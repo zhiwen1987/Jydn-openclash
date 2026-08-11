@@ -47,6 +47,8 @@
 
 下载 [`modules/openclash-dns-privacy-override.yaml`](modules/openclash-dns-privacy-override.yaml)，按 [`docs/openclash-v0.47.156-settings.md`](docs/openclash-v0.47.156-settings.md) 的逐按钮说明安装。
 
+如果 iStoreOS 只用一个 LAN 口作为旁路由，请先按 [`docs/istoreos-openclash-one-arm-router.md`](docs/istoreos-openclash-one-arm-router.md) 完成独臂拓扑、DHCP、网关、DNS 和防火墙设置。
+
 模块使用 `<dns>!:` 强制替换完整 DNS 配置。不要同时在 **覆写设置 → DNS 设置** 中再生成另一套自定义 DNS。
 
 ### 3. alpha-smart 与最低延迟
@@ -62,6 +64,7 @@
 custom/groups.ini                       自定义策略组
 custom/rules.ini                        自定义规则引用
 docs/openclash-v0.47.156-settings.md    LuCI 逐按钮设置
+docs/istoreos-openclash-one-arm-router.md  iStoreOS 独臂旁路由设置
 modules/openclash-dns-privacy-override.yaml
 rules/*.yaml                            自维护域名列表
 scripts/build.py                        生成最终模板
