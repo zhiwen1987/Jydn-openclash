@@ -1,0 +1,36 @@
+name: Build OpenClash Template
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "upstream/metafenliu.ini"
+      - "custom/**"
+      - "scripts/**"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build metafenliu.ini
+        run: python3 scripts/build.py
+
+      - name: Validate generated config
+        run: python3 scripts/validate.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metafenliu.ini
+          git diff --cached --quiet || git commit -m "build metafenliu"
+          git push

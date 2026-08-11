@@ -1,0 +1,114 @@
+# OpenClash v0.47.156 覆写模块（不是完整的 Mihomo 配置文件）
+# 使用位置：服务 → OpenClash → 运行状态 → 覆写模块 → 新增/编辑模块。
+# 整份粘贴；不要粘到订阅 YAML，也不要再启用“覆写设置 → DNS 设置 → 自定义 DNS”。
+
+[General]
+# 防火墙 DNS 重定向会同时接管 TCP/UDP 53。
+DNS_PORT = 7874
+ENABLE_REDIRECT_DNS = 2
+
+# DNS 由下方 <dns>!: 独占生成，禁止 OpenClash UI 再拼接另一套 DNS。
+ENABLE_CUSTOM_DNS = 0
+APPEND_DEFAULT_DNS = 0
+APPEND_WAN_DNS = 0
+CUSTOM_FAKEIP_FILTER = 0
+CUSTOM_NAME_POLICY = 0
+CUSTOM_FALLBACK_FILTER = 0
+
+# IPv4 全接管、规则分流；关闭内核外中国 IP 旁路和 IPv6。
+EN_MODE = fake-ip-mix
+STACK_TYPE = system
+PROXY_MODE = rule
+ROUTER_SELF_PROXY = 1
+COMMON_PORTS = 0
+CHINA_IP_ROUTE = 0
+IPV6_ENABLE = 0
+IPV6_DNS = 0
+CHINA_IP6_ROUTE = 0
+
+# 保留模板中的 url-test，不转换成 Smart 组。
+AUTO_SMART_SWITCH = 0
+RESTART = false
+
+[YAML]
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# 合并 OpenClash 已生成的 tun 块，只改严格路由与 53 端口劫持。
+# strict-route 若造成 Docker、虚拟机或旁路网关异常，改为 false 后测试。
+tun:
+  strict-route: true
+  dns-hijack!:
+    - any:53
+    - tcp://any:53
+
+# OpenClash 覆写模块的 ! 操作符：强制替换整个 dns 值，不与原 dns 合并。
+<dns>!:
+  enable: true
+  listen: 0.0.0.0:7874
+  ipv6: false
+  cache-algorithm: arc
+  prefer-h3: false
+  respect-rules: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+
+  # 只有局域网与系统联网检测使用真实 IP；其他查询使用 Fake-IP。
+  fake-ip-filter-mode: rule
+  fake-ip-filter:
+    - GEOSITE,private,real-ip
+    - DOMAIN,localhost,real-ip
+    - DOMAIN-SUFFIX,lan,real-ip
+    - DOMAIN-SUFFIX,local,real-ip
+    - DOMAIN-SUFFIX,msftconnecttest.com,real-ip
+    - DOMAIN-SUFFIX,msftncsi.com,real-ip
+    - DOMAIN,captive.apple.com,real-ip
+    - DOMAIN,connectivitycheck.gstatic.com,real-ip
+    - MATCH,fake-ip
+
+  # 仅用于解析 DoH/节点服务器域名，避免建立代理前出现解析死循环。
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+  # 公共 DNS 查询经“🔒 隐私代理”访问境外加密 DNS。
+  nameserver:
+    - "https://1.1.1.1/dns-query#🔒 隐私代理"
+    - "https://8.8.8.8/dns-query#🔒 隐私代理"
+
+  # 节点服务器域名建立代理前用境内 DoH 直连解析。
+  proxy-server-nameserver:
+    - "https://223.5.5.5/dns-query#DIRECT"
+    - "https://120.53.53.53/dns-query#DIRECT"
+
+  # DIRECT 域名重新使用境内 DNS，改善中国大陆 CDN 命中。
+  direct-nameserver:
+    - "https://223.5.5.5/dns-query#DIRECT"
+    - "https://120.53.53.53/dns-query#DIRECT"
+  direct-nameserver-follow-policy: false
+
+  # 刻意不配置 fallback，避免国内外 DNS 并发查询和结果混用。
+
+<sniffer>!:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 8080-8880
+    TLS:
+      ports:
+        - 443
+        - 8443
+    QUIC:
+      ports:
+        - 443
+        - 8443

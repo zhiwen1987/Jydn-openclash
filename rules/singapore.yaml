@@ -1,0 +1,11 @@
+payload:
+  - '+.massive.com'
+  
+  # Interactive Brokers / IBKR
+  - '+.interactivebrokers.com'
+  - '+.interactivebrokers.com.hk'
+  - '+.interactivebrokers.com.sg'
+  - '+.ibkr.com'
+  - '+.ibkrcampus.com'
+  - '+.ibkrguides.com'
+  - '+.clientam.com'
