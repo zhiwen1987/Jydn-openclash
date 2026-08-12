@@ -68,10 +68,26 @@ def validate_config(errors: list[str]) -> None:
             item for item in group_lines if item.startswith(f"custom_proxy_group={name}`")
         )
         fields = line.split("`")
-        if len(fields) < 5 or not fields[3].startswith("https://"):
-            errors.append(f"{name} 必须使用 HTTPS 测速地址")
-        if not fields[-1].endswith(",,0"):
-            errors.append(f"{name} 的 url-test 容差必须为 0 ms")
+        if len(fields) < 5 or fields[3] != "https://cp.cloudflare.com/generate_204":
+            errors.append(f"{name} 必须使用 Cloudflare HTTPS 测速地址")
+        if not fields[-1].endswith(",,30"):
+            errors.append(f"{name} 的 url-test 容差必须为 30 ms")
+
+    privacy_line = next(
+        (item for item in group_lines if item.startswith("custom_proxy_group=🔒 隐私代理`")),
+        None,
+    )
+    if privacy_line is None:
+        errors.append("缺少隐私代理策略组")
+    else:
+        if groups.get("🔒 隐私代理") != "select":
+            errors.append("隐私代理必须是 select 策略组")
+        if "`[]♻️ 自动选择`" not in privacy_line:
+            errors.append("隐私代理必须默认包含自动选择组")
+        if not privacy_line.endswith("`.*"):
+            errors.append("隐私代理必须直接包含全部物理节点")
+        if "[]DIRECT" in privacy_line:
+            errors.append("隐私代理禁止包含 DIRECT")
 
     if "ruleset=🌐 Default,[]GEOSITE,geolocation-!cn" not in lines:
         errors.append("缺少 GEOSITE,geolocation-!cn 海外域名规则")
