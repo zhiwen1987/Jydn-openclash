@@ -39,6 +39,18 @@ profile:
   store-selected: true
   store-fake-ip: true
 
+# 为所有 url-test 组补充转换模板无法表达的健康检查参数。
+# 失败阈值从 Mihomo 默认 5 降为 2，并要求探测端点返回 HTTP 204。
+<proxy-groups>*:
+  where:
+    type: url-test
+  set:
+    interval: 120
+    tolerance: 10
+    timeout: 5000
+    max-failed-times: 2
+    expected-status: 204
+
 # 合并 OpenClash 已生成的 tun 块，只改严格路由与 53 端口劫持。
 # strict-route 若造成 Docker、虚拟机或旁路网关异常，改为 false 后测试。
 tun:
