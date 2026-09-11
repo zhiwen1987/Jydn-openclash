@@ -23,7 +23,7 @@
 - 海外应用默认不提供 `DIRECT`，集中通过 `🔒 隐私代理`、地区组或手动节点出站；`🔒 隐私代理` 同时直接列出全部物理节点。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
 - 银行、政务公共服务和国内网盘额外使用 `category-bank-cn`、`geolocation-cn`、`baidu`、`aliyun-drive`、`115` 提前直连，并由 `rules/direct.yaml` 补充独立入口与 CDN 域名。
-- `GEOSITE,gfw` 强制进入 `🔒 隐私代理`；`🌐 Default` 只能选择隐私代理，`🐟 漏网之鱼` 只能继承 Default，防止历史地区节点或 DIRECT 选择绕过稳定链路。
+- `GEOSITE,gfw` 强制进入 `🔒 隐私代理`；通用境外应用、`🌐 Default`、`🐟 漏网之鱼` 逐层收口到 `🛟 稳定自动`，防止历史地区节点或 DIRECT 选择绕过稳定链路。
 - DNS 模块强制替换旧 `dns` 块，境外 DNS 经 `🔒 隐私代理` 查询，DIRECT 域名使用境内 DoH。
 - TUN 同时接管 TCP/UDP，劫持 UDP 53 与 TCP 53，开启 `strict-route`，默认关闭 IPv6 和中国 IP 内核外旁路。
 - 常见 WebRTC STUN/TURN 端口默认 `REJECT`，需要网页通话时可临时切到 `🔒 隐私代理`。

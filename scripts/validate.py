@@ -37,6 +37,24 @@ REQUIRED_DIRECT_EXCEPTIONS = {
     "'+.12306.cn'",
     "'+.chsi.com.cn'",
 }
+LOCKED_OVERSEAS_GROUPS = {
+    "📦 Notion",
+    "🤖 ChatGPT",
+    "🧠 AI",
+    "📨 Telegram",
+    "📞 即时通讯",
+    "💬 社交媒体",
+    "🎬 YouTube",
+    "🎥 Netflix",
+    "🎵 TikTok",
+    "📸 Instagram",
+    "🐦 X",
+    "🛠 GitHub",
+    "🔎 Google",
+    "☁️ Cloudflare",
+    "走国外",
+    "🧑‍💻 开发服务",
+}
 
 
 def active_lines(text: str) -> list[str]:
@@ -111,14 +129,14 @@ def validate_config(errors: list[str]) -> None:
     if privacy_line is None:
         errors.append("缺少隐私代理策略组")
     else:
-        if groups.get("🔒 隐私代理") != "select":
-            errors.append("隐私代理必须是 select 策略组")
-        if "`[]🛟 稳定自动`[]♻️ 自动选择`" not in privacy_line:
-            errors.append("隐私代理必须优先稳定自动组，并保留自动选择组")
-        if not privacy_line.endswith("`.*"):
-            errors.append("隐私代理必须直接包含全部物理节点")
-        if "[]DIRECT" in privacy_line:
-            errors.append("隐私代理禁止包含 DIRECT")
+        expected = "custom_proxy_group=🔒 隐私代理`select`[]🛟 稳定自动"
+        if privacy_line != expected:
+            errors.append("隐私代理必须永久收口且只能引用稳定自动")
+
+    for name in sorted(LOCKED_OVERSEAS_GROUPS):
+        expected = f"custom_proxy_group={name}`select`[]🔒 隐私代理"
+        if expected not in group_lines:
+            errors.append(f"境外应用组 {name} 必须永久收口且只能引用隐私代理")
 
     if "ruleset=🌐 Default,[]GEOSITE,geolocation-!cn" not in lines:
         errors.append("缺少 GEOSITE,geolocation-!cn 海外域名规则")
@@ -153,13 +171,6 @@ def validate_config(errors: list[str]) -> None:
     )
     if final_line != "custom_proxy_group=🐟 漏网之鱼`select`[]🌐 Default":
         errors.append("漏网之鱼必须永久收口且只能继承 Default")
-
-    overseas_custom = next(
-        (item for item in group_lines if item.startswith("custom_proxy_group=走国外`")),
-        None,
-    )
-    if overseas_custom is None or "[]DIRECT" in overseas_custom:
-        errors.append("走国外策略组禁止包含 DIRECT")
 
     if "zhiwen1987/openclash-rules" in text:
         errors.append("生成配置仍包含旧仓库 openclash-rules 地址")
