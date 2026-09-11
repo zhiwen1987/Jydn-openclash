@@ -6,9 +6,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "metafenliu.ini"
 BASE = ROOT / "upstream" / "metafenliu.ini"
+OVERWRITE = ROOT / "modules" / "openclash-dns-privacy-override.yaml"
 BUILTIN_POLICIES = {"DIRECT", "REJECT", "REJECT-DROP", "PASS"}
 REQUIRED_URL_TEST_GROUPS = {
     "♻️ 自动选择",
+    "🛟 稳定自动",
     "🇭🇰 HK",
     "🇹🇼 TW",
     "🇯🇵 JP",
@@ -68,10 +70,20 @@ def validate_config(errors: list[str]) -> None:
             item for item in group_lines if item.startswith(f"custom_proxy_group={name}`")
         )
         fields = line.split("`")
-        if len(fields) < 5 or fields[3] != "https://cp.cloudflare.com/generate_204":
+        if len(fields) < 5 or "https://cp.cloudflare.com/generate_204" not in fields:
             errors.append(f"{name} 必须使用 Cloudflare HTTPS 测速地址")
-        if not fields[-1].endswith(",,30"):
-            errors.append(f"{name} 的 url-test 容差必须为 30 ms")
+        if not fields[-1].endswith("120,,10"):
+            errors.append(f"{name} 必须使用 120 秒间隔和 10 ms 容差")
+
+    stable_line = next(
+        (item for item in group_lines if item.startswith("custom_proxy_group=🛟 稳定自动`")),
+        None,
+    )
+    if stable_line is not None:
+        if "`[]♻️ 自动选择`" not in stable_line:
+            errors.append("稳定自动组必须包含自动选择组作为非 DIRECT 兜底")
+        if "CUCM|专线.*流媒体" not in stable_line:
+            errors.append("稳定自动组缺少稳定线路筛选条件")
 
     privacy_line = next(
         (item for item in group_lines if item.startswith("custom_proxy_group=🔒 隐私代理`")),
@@ -82,8 +94,8 @@ def validate_config(errors: list[str]) -> None:
     else:
         if groups.get("🔒 隐私代理") != "select":
             errors.append("隐私代理必须是 select 策略组")
-        if "`[]♻️ 自动选择`" not in privacy_line:
-            errors.append("隐私代理必须默认包含自动选择组")
+        if "`[]🛟 稳定自动`[]♻️ 自动选择`" not in privacy_line:
+            errors.append("隐私代理必须优先稳定自动组，并保留自动选择组")
         if not privacy_line.endswith("`.*"):
             errors.append("隐私代理必须直接包含全部物理节点")
         if "[]DIRECT" in privacy_line:
@@ -135,16 +147,33 @@ def validate_rule_files(errors: list[str]) -> None:
             )
 
 
+def validate_overwrite(errors: list[str]) -> None:
+    text = OVERWRITE.read_text(encoding="utf-8")
+    required = (
+        "<proxy-groups>*:",
+        "type: url-test",
+        "interval: 120",
+        "tolerance: 10",
+        "timeout: 5000",
+        "max-failed-times: 2",
+        "expected-status: 204",
+    )
+    for marker in required:
+        if marker not in text:
+            errors.append(f"覆写模块缺少自动组健康检查设置：{marker}")
+
+
 def main() -> None:
     errors: list[str] = []
     validate_base(errors)
     validate_config(errors)
     validate_rule_files(errors)
+    validate_overwrite(errors)
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
         raise SystemExit(1)
-    print("Validation passed: groups, references, rule order, URL tests, and rule files")
+    print("Validation passed: groups, references, rule order, URL tests, overwrite, and rule files")
 
 
 if __name__ == "__main__":

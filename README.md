@@ -17,8 +17,9 @@
 
 ## 主要功能
 
-- `🇭🇰 HK`、`🇹🇼 TW`、`🇯🇵 JP`、`🇸🇬 SG`、`🇺🇸 US`、`🧊 冷门节点`、`♻️ 自动选择` 全部使用 `url-test`。
-- 所有自动组使用 Cloudflare HTTPS 探测地址，测试间隔 300 秒，容差 `30 ms`，在低延迟与出口稳定性之间取平衡。
+- `🛟 稳定自动`、`🇭🇰 HK`、`🇹🇼 TW`、`🇯🇵 JP`、`🇸🇬 SG`、`🇺🇸 US`、`🧊 冷门节点`、`♻️ 自动选择` 全部使用 `url-test`。
+- 所有自动组使用 Cloudflare HTTPS 探测地址，测试间隔 120 秒，容差 `10 ms`；覆写模块再设置 5 秒超时、失败阈值 `2` 和预期 HTTP 状态 `204`。
+- `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
 - 海外应用默认不提供 `DIRECT`，集中通过 `🔒 隐私代理`、地区组或手动节点出站；`🔒 隐私代理` 同时直接列出全部物理节点。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
 - DNS 模块强制替换旧 `dns` 块，境外 DNS 经 `🔒 隐私代理` 查询，DIRECT 域名使用境内 DoH。
@@ -56,7 +57,7 @@
 - **插件设置 → 版本更新 → Smart 内核** 可以保持启用。
 - **覆写设置 → Smart 设置 → Smart 策略自动切换** 必须关闭，否则 `url-test` / `load-balance` 组会被转换为 Smart 组。
 - **Policy Priority（权重加成）** 留空。它匹配的是节点名称，不是 `🇭🇰 HK` 等策略组名称，也不参与本模板 `url-test` 的纯延迟排序。
-- 模板默认使用 `30 ms` 容差减少出口频繁切换；如需严格追随当前最低延迟，可把 `upstream/metafenliu.ini` 中自动组末尾的 `30` 改为 `0` 后重新生成。
+- 模板默认使用 `10 ms` 容差和 120 秒间隔，加快故障节点切换；如需严格追随当前最低延迟，可把 `upstream/metafenliu.ini` 中自动组末尾的 `10` 改为 `0` 后重新生成。
 
 ## 仓库结构与生成方式
 
@@ -132,7 +133,7 @@ ruleset=MySite,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-op
 - 更具体的应用和个人规则放前面，`GEOSITE,cn` / `GEOIP,cn` 放在海外分类之后、最终兜底之前。
 - 海外服务组默认不放 `DIRECT`；需要直连时先建立独立策略组观察。
 - 金融、交易平台优先固定地区和固定节点，不要跟随频繁切换的全局最低延迟组。
-- 自动组要稳定可用时，可使用 `30 ms` 容差；追求严格最低延迟才使用 `0 ms`。
+- 自动组默认使用 `10 ms` 容差兼顾响应速度与切换频率；追求严格最低延迟才使用 `0 ms`。
 - 不开启 OpenClash 的“绕过中国大陆 IP”，让所有连接先进入 Mihomo，再由规则决定 `DIRECT`。
 - IPv6 未被 TUN/TProxy、DNS 和防火墙完整接管前保持关闭。
 - 浏览器安全 DNS、Android 私人 DNS、iCloud Private Relay 等独立加密 DNS 通道应单独关闭或纳入接管测试。
