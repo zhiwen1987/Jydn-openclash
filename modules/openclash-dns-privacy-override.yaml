@@ -2,34 +2,6 @@
 # 使用位置：服务 → OpenClash → 运行状态 → 覆写模块 → 新增/编辑模块。
 # 整份粘贴；不要粘到订阅 YAML，也不要再启用“覆写设置 → DNS 设置 → 自定义 DNS”。
 
-[General]
-# 防火墙 DNS 重定向会同时接管 TCP/UDP 53。
-DNS_PORT = 7874
-ENABLE_REDIRECT_DNS = 2
-
-# DNS 由下方 <dns>!: 独占生成，禁止 OpenClash UI 再拼接另一套 DNS。
-ENABLE_CUSTOM_DNS = 0
-APPEND_DEFAULT_DNS = 0
-APPEND_WAN_DNS = 0
-CUSTOM_FAKEIP_FILTER = 0
-CUSTOM_NAME_POLICY = 0
-CUSTOM_FALLBACK_FILTER = 0
-
-# IPv4 全接管、规则分流；关闭内核外中国 IP 旁路和 IPv6。
-EN_MODE = fake-ip-mix
-STACK_TYPE = system
-PROXY_MODE = rule
-ROUTER_SELF_PROXY = 1
-COMMON_PORTS = 0
-CHINA_IP_ROUTE = 0
-IPV6_ENABLE = 0
-IPV6_DNS = 0
-CHINA_IP6_ROUTE = 0
-
-# 保留模板中的 url-test，不转换成 Smart 组。
-AUTO_SMART_SWITCH = 0
-RESTART = false
-
 [YAML]
 ipv6: false
 unified-delay: true
@@ -39,14 +11,14 @@ profile:
   store-selected: true
   store-fake-ip: true
 
-# 为所有 url-test 组补充转换模板无法表达的健康检查参数。
+# 为转换后的 Smart 组补充健康检查参数和 100 ms 防抖容差。
 # 失败阈值从 Mihomo 默认 5 降为 2，并要求探测端点返回 HTTP 204。
 <proxy-groups>*:
   where:
-    type: url-test
+    type: smart
   set:
     interval: 120
-    tolerance: 10
+    tolerance: 100
     timeout: 5000
     max-failed-times: 2
     expected-status: 204

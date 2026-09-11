@@ -215,10 +215,11 @@ def validate_rule_files(errors: list[str]) -> None:
 def validate_overwrite(errors: list[str]) -> None:
     text = OVERWRITE.read_text(encoding="utf-8")
     required = (
+        "[YAML]",
         "<proxy-groups>*:",
-        "type: url-test",
+        "type: smart",
         "interval: 120",
-        "tolerance: 10",
+        "tolerance: 100",
         "timeout: 5000",
         "max-failed-times: 2",
         "expected-status: 204",
@@ -226,6 +227,8 @@ def validate_overwrite(errors: list[str]) -> None:
     for marker in required:
         if marker not in text:
             errors.append(f"覆写模块缺少自动组健康检查设置：{marker}")
+    if "[General]" in text:
+        errors.append("覆写模块不应包含 [General]；插件参数应由 LuCI/UCI 持久化")
 
 
 def main() -> None:

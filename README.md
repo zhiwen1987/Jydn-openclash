@@ -17,10 +17,10 @@
 
 ## 主要功能
 
-- `🛟 稳定自动`、`🇭🇰 HK`、`🇹🇼 TW`、`🇯🇵 JP`、`🇸🇬 SG`、`🇺🇸 US`、`🧊 冷门节点`、`♻️ 自动选择` 全部使用 `url-test`。
-- 所有自动组使用 Cloudflare HTTPS 探测地址，测试间隔 120 秒，容差 `10 ms`；覆写模块再设置 5 秒超时、失败阈值 `2` 和预期 HTTP 状态 `204`。
+- 模板中的 8 个自动节点池以 `url-test` 生成，覆写模块在 Smart 内核上将它们统一转换为 `smart`，按目标站点分别学习和切换节点。
+- 所有 Smart 组使用 Cloudflare HTTPS 探测地址，测试间隔 120 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`，并要求 HTTP 状态 `204`。
 - `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
-- 海外应用默认不提供 `DIRECT`，集中通过 `🔒 隐私代理`、地区组或手动节点出站；`🔒 隐私代理` 同时直接列出全部物理节点。
+- 海外应用默认不提供 `DIRECT`，集中通过 `🔒 隐私代理` 出站；`🔒 隐私代理` 只指向 `🛟 稳定自动`，避免历史手选节点重新接管流量。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
 - 银行、政务公共服务和国内网盘额外使用 `category-bank-cn`、`geolocation-cn`、`baidu`、`aliyun-drive`、`115` 提前直连，并由 `rules/direct.yaml` 补充独立入口与 CDN 域名。
 - `GEOSITE,gfw` 强制进入 `🔒 隐私代理`；通用境外应用、`🌐 Default`、`🐟 漏网之鱼` 逐层收口到 `🛟 稳定自动`，防止历史地区节点或 DIRECT 选择绕过稳定链路。
@@ -53,13 +53,15 @@
 如果 iStoreOS 只用一个 LAN 口作为旁路由，请先按 [`docs/istoreos-openclash-one-arm-router.md`](docs/istoreos-openclash-one-arm-router.md) 完成独臂拓扑、DHCP、网关、DNS 和防火墙设置。
 
 模块使用 `<dns>!:` 强制替换完整 DNS 配置。不要同时在 **覆写设置 → DNS 设置** 中再生成另一套自定义 DNS。
+插件级开关请按文档在 LuCI 保存；模块刻意不含 `[General]`，以兼容当前版本的匿名 UCI 覆写处理。
 
 ### 3. alpha-smart 与最低延迟
 
-- **插件设置 → 版本更新 → Smart 内核** 可以保持启用。
-- **覆写设置 → Smart 设置 → Smart 策略自动切换** 必须关闭，否则 `url-test` / `load-balance` 组会被转换为 Smart 组。
-- **Policy Priority（权重加成）** 留空。它匹配的是节点名称，不是 `🇭🇰 HK` 等策略组名称，也不参与本模板 `url-test` 的纯延迟排序。
-- 模板默认使用 `10 ms` 容差和 120 秒间隔，加快故障节点切换；如需严格追随当前最低延迟，可把 `upstream/metafenliu.ini` 中自动组末尾的 `10` 改为 `0` 后重新生成。
+- **插件设置 → 版本更新 → Smart 内核**：启用。
+- **覆写设置 → Smart 设置 → Smart 策略自动切换**：启用；8 个 `url-test` 节点池会在运行时转换为 Smart。
+- 启用 LightGBM 和模型自动更新，更新间隔设为 72 小时；关闭训练数据采集，避免生成 100 MB CSV 和持续磁盘写入。
+- **Policy Priority** 设为 `0`（不加权），避免地区名称权重长期压过实际延迟和可用性；关闭 Prefer-ASN，减少首次访问前的强制解析。
+- Smart 容差设为 `100 ms`，保留 120 秒健康检查、5 秒超时、失败阈值 `2` 和 HTTP `204` 校验。Smart 还会依据真实目标的连接失败记录重新选路，不只依赖单一测速 URL。
 
 ## 仓库结构与生成方式
 
