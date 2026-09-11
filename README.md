@@ -22,6 +22,8 @@
 - `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
 - 海外应用默认不提供 `DIRECT`，集中通过 `🔒 隐私代理`、地区组或手动节点出站；`🔒 隐私代理` 同时直接列出全部物理节点。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
+- 银行、政务公共服务和国内网盘额外使用 `category-bank-cn`、`geolocation-cn`、`baidu`、`aliyun-drive`、`115` 提前直连，并由 `rules/direct.yaml` 补充独立入口与 CDN 域名。
+- `GEOSITE,gfw` 强制进入 `🔒 隐私代理`；`🌐 Default` 只能选择隐私代理，`🐟 漏网之鱼` 只能继承 Default，防止历史地区节点或 DIRECT 选择绕过稳定链路。
 - DNS 模块强制替换旧 `dns` 块，境外 DNS 经 `🔒 隐私代理` 查询，DIRECT 域名使用境内 DoH。
 - TUN 同时接管 TCP/UDP，劫持 UDP 53 与 TCP 53，开启 `strict-route`，默认关闭 IPv6 和中国 IP 内核外旁路。
 - 常见 WebRTC STUN/TURN 端口默认 `REJECT`，需要网页通话时可临时切到 `🔒 隐私代理`。
@@ -124,7 +126,7 @@ ruleset=MySite,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-op
 - `走国外`：`rules/mygw.yaml` 中需要强制代理的域名。
 - `访问新加坡`：Massive、富途/moomoo、IBKR 常用域名，默认新加坡组。
 - `🧑‍💻 开发服务`：Python、Docker、Linux 软件源、Node.js、Go、Rust、Java、Conda 与开发工具下载域名。
-- `DIRECT`：国内银行、政务、证券、网盘、音乐、运营商及个人维护的直连域名。
+- `DIRECT`：国内银行、政务、证券、网盘、音乐、运营商及个人维护的直连域名；其中银行、政务与网盘同时由 GeoSite 分类覆盖，自维护文件用于补缺。
 
 国内直连的主体是基础模板中的 `GEOSITE,cn` 和 `GEOIP,cn`。`rules/direct.yaml` 只补充无法稳定归类或需要强制直连的例外，不应复制整套中国域名数据库。
 

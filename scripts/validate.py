@@ -18,6 +18,25 @@ REQUIRED_URL_TEST_GROUPS = {
     "🇺🇸 US",
     "🧊 冷门节点",
 }
+REQUIRED_DIRECT_GEOSITES = {
+    "category-bank-cn",
+    "geolocation-cn",
+    "baidu",
+    "aliyun-drive",
+    "115",
+}
+REQUIRED_DIRECT_EXCEPTIONS = {
+    "'+.pbccrc.org.cn'",
+    "'+.bankofbeijing.com.cn'",
+    "'+.alipan.com'",
+    "'+.aliyundrive.net'",
+    "'+.baidupcs.com'",
+    "'+.115cloud.com'",
+    "'+.12315.cn'",
+    "'+.12321.cn'",
+    "'+.12306.cn'",
+    "'+.chsi.com.cn'",
+}
 
 
 def active_lines(text: str) -> list[str]:
@@ -103,6 +122,13 @@ def validate_config(errors: list[str]) -> None:
 
     if "ruleset=🌐 Default,[]GEOSITE,geolocation-!cn" not in lines:
         errors.append("缺少 GEOSITE,geolocation-!cn 海外域名规则")
+    for category in sorted(REQUIRED_DIRECT_GEOSITES):
+        if f"ruleset=DIRECT,[]GEOSITE,{category}" not in lines:
+            errors.append(f"缺少国内直连 GeoSite 分类：{category}")
+    if "ruleset=🔒 隐私代理,[]GEOSITE,gfw" not in lines:
+        errors.append("GFW 域名必须收口到隐私代理")
+    if "ruleset=🚀 手动选择,[]GEOSITE,gfw" in lines:
+        errors.append("GFW 域名仍受手动选择历史节点影响")
     if "ruleset=DIRECT,[]GEOSITE,cn" not in lines:
         errors.append("缺少 GEOSITE,cn 国内直连规则")
     if "ruleset=DIRECT,[]GEOIP,cn,no-resolve" not in lines:
@@ -113,6 +139,27 @@ def validate_config(errors: list[str]) -> None:
     final = lines.index("ruleset=🐟 漏网之鱼,[]FINAL")
     if not overseas < china < final:
         errors.append("规则顺序应为 geolocation-!cn → GEOSITE,cn → FINAL")
+
+    default_line = next(
+        (item for item in group_lines if item.startswith("custom_proxy_group=🌐 Default`")),
+        None,
+    )
+    if default_line != "custom_proxy_group=🌐 Default`select`[]🔒 隐私代理":
+        errors.append("Default 必须永久收口且只能引用隐私代理")
+
+    final_line = next(
+        (item for item in group_lines if item.startswith("custom_proxy_group=🐟 漏网之鱼`")),
+        None,
+    )
+    if final_line != "custom_proxy_group=🐟 漏网之鱼`select`[]🌐 Default":
+        errors.append("漏网之鱼必须永久收口且只能继承 Default")
+
+    overseas_custom = next(
+        (item for item in group_lines if item.startswith("custom_proxy_group=走国外`")),
+        None,
+    )
+    if overseas_custom is None or "[]DIRECT" in overseas_custom:
+        errors.append("走国外策略组禁止包含 DIRECT")
 
     if "zhiwen1987/openclash-rules" in text:
         errors.append("生成配置仍包含旧仓库 openclash-rules 地址")
@@ -145,6 +192,13 @@ def validate_rule_files(errors: list[str]) -> None:
             errors.append(
                 f"{path.relative_to(ROOT)} 存在重复条目：{', '.join(duplicates)}"
             )
+        if path.name == "direct.yaml":
+            missing = sorted(REQUIRED_DIRECT_EXCEPTIONS - set(entries))
+            if missing:
+                errors.append(
+                    "rules/direct.yaml 缺少银行、政务或网盘补充："
+                    + ", ".join(missing)
+                )
 
 
 def validate_overwrite(errors: list[str]) -> None:
