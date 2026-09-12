@@ -19,6 +19,8 @@
 
 - 生成配置共 121 个策略/节点组；其中 43 个自动节点池以 `url-test` 生成：36 个国家组、5 个实用/其他组以及全局自动和稳定自动；覆写模块在 Smart 内核上将它们统一转换为 `smart`，按目标站点分别学习和切换节点。
 - Zashboard 的国家节点组统一使用中文名称，并提供亚洲、欧洲、美洲、中东非洲和大洋洲五个上层导航组；应用策略组使用“中文功能名（品牌名）”，兼顾可读性和品牌识别。
+- Zashboard 继续显示全部代理组；每个业务策略组保留原默认策略在第一位，然后统一按 `DIRECT` → `REJECT` → 稳定自动 → 隐私代理 → 手动/普通自动 → 专线/住宅/流媒体/低倍率 → 港台日新韩 → 五大地区 → 其余国家 → 其他地区的本地网络优先顺序显示。共50个可选代理组入口及 `DIRECT`、`REJECT`；其中 `🔒 隐私代理` 是收口策略入口，`🛟 稳定自动`、手动/自动、国家/地区和线路分类才是节点组。运行期脚本会按最终订阅节点递归判断可用性：空国家/线路/地区组仍保留在代理组总页，但不会出现在上层策略组的选项中。生成与校验共用 `scripts/group_catalog.py`，避免后续新增分组时漏配或形成同级循环引用。
+- Zashboard“代理组”页面上方标记为“节点组”的外层卡片，按本地使用频率排序：稳定/隐私/手动/自动等常用入口 → 本地与国内业务 → 通用海外与品牌细分 → 线路/国家/地区节点组 → 诊断和高级组。运行期对最终 YAML 的 `proxy-groups` 数组重排，使 Mihomo `GLOBAL` 中的顺序与 Zashboard“节点组”卡片一致。
 - 国家及线路叶子组使用 `REJECT` 作为空组安全兜底；`🧭 手动选择` 使用 `🛟 稳定自动` 作为可用性兜底。所有全局节点池都会过滤流量、到期、官网和订阅刷新提示。
 - 节点国家校验优先让真实流量逐节点经过 `country.is`、`ipwho.is`、`IP.SB`、`countries.dev` 和 Cloudflare：只有成功来源中的严格多数、且至少两个来源返回相同 ISO 国家代码才采用在线结果；无法形成多数时才按国旗、国家、城市或代码名称降级判断。
 - 所有 Smart 组使用 Cloudflare HTTPS 探测地址，测试间隔 120 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`，并要求 HTTP 状态 `204`。
@@ -106,9 +108,14 @@ custom/rules.ini                        自定义规则引用
 docs/openclash-v0.47.156-settings.md    LuCI 逐按钮设置
 docs/istoreos-openclash-one-arm-router.md  iStoreOS 独臂旁路由设置
 modules/openclash-dns-privacy-override.yaml
+modules/openclash-business-group-catalog.json  运行期业务组与代理组选项目录
 modules/openclash-source-inbound-subrule.example.yaml  设备/入站/SUB-RULE 安全模板（默认不命中）
 rules/*.yaml                            自维护 domain/classical 规则提供者
 scripts/build.py                        生成最终模板
+scripts/group_catalog.py                业务策略组与节点类代理组统一目录
+scripts/jydn_group_filter_hook.sh       OpenClash 自定义覆写调用入口
+scripts/patch_runtime_groups.rb         提交前临时修补运行 YAML 的可回滚测试工具
+scripts/test_patch_runtime_groups.rb    空组递归过滤与安全兜底测试
 scripts/validate.py                     一致性检查
 scripts/verify_node_geo.rb              多源在线出口国家校验（在 OpenWrt 运行）
 upstream/metafenliu.ini                 基础模板（唯一基础来源）

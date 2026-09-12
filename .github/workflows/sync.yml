@@ -29,6 +29,9 @@ jobs:
       - name: Validate generated config
         run: python3 scripts/validate.py
 
+      - name: Test runtime empty-group filter
+        run: ruby scripts/test_patch_runtime_groups.rb
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"

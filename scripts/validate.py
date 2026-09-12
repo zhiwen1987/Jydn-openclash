@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 import re
+import json
 import sys
 from pathlib import Path
+
+from group_catalog import (
+    BUSINESS_BUILTIN_CHOICES,
+    BUSINESS_PROXY_GROUP_CHOICES,
+    BUSINESS_STRATEGY_CHOICES,
+    BUSINESS_STRATEGY_GROUPS,
+    COUNTRY_NODE_GROUPS,
+    DASHBOARD_PROXY_GROUP_ORDER,
+    FUNCTIONAL_NODE_GROUPS as FUNCTIONAL_NODE_GROUP_NAMES,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -9,30 +20,18 @@ CONFIG = ROOT / "metafenliu.ini"
 BASE = ROOT / "upstream" / "metafenliu.ini"
 OVERWRITE = ROOT / "modules" / "openclash-dns-privacy-override.yaml"
 ADVANCED_ROUTING_EXAMPLE = ROOT / "modules" / "openclash-source-inbound-subrule.example.yaml"
+RUNTIME_CATALOG = ROOT / "modules" / "openclash-business-group-catalog.json"
+RUNTIME_PATCH = ROOT / "scripts" / "patch_runtime_groups.rb"
+RUNTIME_HOOK = ROOT / "scripts" / "jydn_group_filter_hook.sh"
 BUILTIN_POLICIES = {"DIRECT", "REJECT", "REJECT-DROP", "PASS"}
-COUNTRY_GROUPS = {
-    "🇭🇰 香港", "🇹🇼 台湾", "🇯🇵 日本", "🇸🇬 新加坡", "🇰🇷 韩国",
-    "🇮🇳 印度", "🇻🇳 越南", "🇹🇭 泰国", "🇲🇾 马来西亚", "🇵🇭 菲律宾",
-    "🇮🇩 印度尼西亚", "🇲🇲 缅甸", "🇵🇰 巴基斯坦", "🇬🇧 英国", "🇩🇪 德国",
-    "🇫🇷 法国", "🇳🇱 荷兰", "🇪🇸 西班牙", "🇨🇭 瑞士", "🇸🇪 瑞典",
-    "🇷🇺 俄罗斯", "🇹🇷 土耳其", "🇬🇷 希腊", "🇳🇴 挪威", "🇺🇸 美国",
-    "🇨🇦 加拿大", "🇲🇽 墨西哥", "🇧🇷 巴西", "🇨🇱 智利", "🇨🇴 哥伦比亚",
-    "🇦🇪 阿联酋", "🇸🇦 沙特阿拉伯", "🇮🇱 以色列", "🇿🇦 南非",
-    "🇳🇬 尼日利亚", "🇦🇺 澳大利亚",
-}
+COUNTRY_GROUPS = set(COUNTRY_NODE_GROUPS)
 LEGACY_COUNTRY_CODES = {
     "HK", "TW", "JP", "SG", "KR", "IN", "VN", "TH", "MY", "PH", "ID",
     "MM", "PK", "UK", "GB", "DE", "FR", "NL", "ES", "CH", "SE", "RU",
     "TR", "GR", "NO", "US", "CA", "MX", "BR", "CL", "CO", "AE", "SA",
     "IL", "ZA", "NG", "AU",
 }
-FUNCTIONAL_NODE_GROUPS = {
-    "⚡ 专线节点",
-    "🏠 原生住宅",
-    "🎬 流媒体节点",
-    "💰 低倍率节点",
-    "🌍 其他地区",
-}
+FUNCTIONAL_NODE_GROUPS = set(FUNCTIONAL_NODE_GROUP_NAMES)
 REGION_GROUPS = {
     "🌏 亚洲国家": {"🇭🇰 香港", "🇹🇼 台湾", "🇯🇵 日本", "🇸🇬 新加坡", "🇰🇷 韩国", "🇮🇳 印度", "🇻🇳 越南", "🇹🇭 泰国", "🇲🇾 马来西亚", "🇵🇭 菲律宾", "🇮🇩 印度尼西亚", "🇲🇲 缅甸", "🇵🇰 巴基斯坦"},
     "🇪🇺 欧洲国家": {"🇬🇧 英国", "🇩🇪 德国", "🇫🇷 法国", "🇳🇱 荷兰", "🇪🇸 西班牙", "🇨🇭 瑞士", "🇸🇪 瑞典", "🇷🇺 俄罗斯", "🇹🇷 土耳其", "🇬🇷 希腊", "🇳🇴 挪威"},
@@ -241,6 +240,7 @@ EXPECTED_DEFAULT_TARGETS = {
     "🟩 游戏平台（Xbox）": "🕹️ 游戏服务",
     "🔷 游戏平台（PlayStation）": "🕹️ 游戏服务",
     "🔴 游戏平台（Nintendo）": "🕹️ 游戏服务",
+    "🚝 测速工具": "DIRECT",
     "💳 支付服务（PayPal）": "💳 海外支付",
     "💸 跨境汇款（Wise）": "💳 海外支付",
     "🟦 欧易（OKX）": "🪙 数字货币",
@@ -528,6 +528,70 @@ def validate_config(errors: list[str]) -> None:
                 f"策略组 {name} 默认目标应为 {expected_target}，实际为 {actual_target}"
             )
 
+    if set(BUSINESS_STRATEGY_GROUPS) != set(EXPECTED_DEFAULT_TARGETS):
+        errors.append("业务策略组目录与默认行为校验目录不一致")
+
+    dashboard_order = list(DASHBOARD_PROXY_GROUP_ORDER)
+    if len(dashboard_order) != len(set(dashboard_order)):
+        errors.append("Zashboard 外层代理组排序存在重复项")
+    if set(dashboard_order) != set(group_definitions):
+        missing_dashboard = sorted(set(group_definitions) - set(dashboard_order))
+        unknown_dashboard = sorted(set(dashboard_order) - set(group_definitions))
+        if missing_dashboard:
+            errors.append(
+                "Zashboard 外层排序缺少代理组：" + ", ".join(missing_dashboard)
+            )
+        if unknown_dashboard:
+            errors.append(
+                "Zashboard 外层排序包含未知组：" + ", ".join(unknown_dashboard)
+            )
+
+    for name in BUSINESS_STRATEGY_GROUPS:
+        line = group_definitions.get(name)
+        if line is None:
+            continue
+        ordered_references = [
+            target.strip() for target in group_reference.findall(line)
+        ]
+        references = set(ordered_references)
+        missing = [
+            target
+            for target in BUSINESS_STRATEGY_CHOICES
+            if target not in references
+        ]
+        if missing:
+            errors.append(
+                f"业务策略组 {name} 未显示全部节点类代理组："
+                + ", ".join(missing)
+            )
+
+        default_target = EXPECTED_DEFAULT_TARGETS[name]
+        expected_front = list(
+            dict.fromkeys([default_target, *BUSINESS_BUILTIN_CHOICES])
+        )
+        if ordered_references[: len(expected_front)] != expected_front:
+            errors.append(
+                f"策略组 {name} 前置顺序应为："
+                + " → ".join(expected_front)
+            )
+
+        actual_proxy_order = [
+            target
+            for target in ordered_references
+            if target in BUSINESS_PROXY_GROUP_CHOICES
+        ]
+        expected_proxy_order = list(
+            dict.fromkeys(
+                ([default_target] if default_target in BUSINESS_PROXY_GROUP_CHOICES else [])
+                + list(BUSINESS_PROXY_GROUP_CHOICES)
+            )
+        )
+        if actual_proxy_order != expected_proxy_order:
+            errors.append(f"策略组 {name} 的代理组顺序不统一")
+
+    if BUSINESS_BUILTIN_CHOICES != ("DIRECT", "REJECT"):
+        errors.append("业务策略组必须按 DIRECT、REJECT 顺序补齐内置策略")
+
     missing_precision_rules = sorted(REQUIRED_PRECISION_RULES - set(lines))
     if missing_precision_rules:
         errors.append(
@@ -684,6 +748,43 @@ def validate_overwrite(errors: list[str]) -> None:
         errors.append("覆写模块不应包含 [General]；插件参数应由 LuCI/UCI 持久化")
 
 
+def validate_runtime_group_filter(errors: list[str]) -> None:
+    if not RUNTIME_CATALOG.is_file():
+        errors.append("缺少运行期业务策略组目录")
+    else:
+        catalog = json.loads(RUNTIME_CATALOG.read_text(encoding="utf-8"))
+        expected = {
+            "business_groups": list(BUSINESS_STRATEGY_GROUPS),
+            "proxy_choices": list(BUSINESS_PROXY_GROUP_CHOICES),
+            "always_choices": list(BUSINESS_BUILTIN_CHOICES),
+            "dashboard_group_order": list(DASHBOARD_PROXY_GROUP_ORDER),
+        }
+        if catalog != expected:
+            errors.append("运行期业务策略组目录与生成源不一致")
+
+    required_files = {
+        RUNTIME_PATCH: (
+            "empty_proxy_choices",
+            'group["proxies"] << "REJECT"',
+            "choices.replace",
+            "reordered_group_count",
+            "dashboard_reordered_group_count",
+        ),
+        RUNTIME_HOOK: (
+            "jydn_patch_runtime_groups.rb",
+            "jydn_business_group_catalog.json",
+        ),
+    }
+    for path, markers in required_files.items():
+        if not path.is_file():
+            errors.append(f"缺少运行期空组过滤文件：{path.relative_to(ROOT)}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for marker in markers:
+            if marker not in text:
+                errors.append(f"{path.relative_to(ROOT)} 缺少关键逻辑：{marker}")
+
+
 def validate_advanced_routing_example(errors: list[str]) -> None:
     if not ADVANCED_ROUTING_EXAMPLE.is_file():
         errors.append("缺少来源设备/入站/SUB-RULE 安全示例模块")
@@ -716,6 +817,7 @@ def main() -> None:
     validate_config(errors)
     validate_rule_files(errors)
     validate_overwrite(errors)
+    validate_runtime_group_filter(errors)
     validate_advanced_routing_example(errors)
     if errors:
         for error in errors:
