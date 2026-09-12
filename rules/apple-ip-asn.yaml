@@ -1,0 +1,3 @@
+# Apple 自有网络；共享 CDN 不在这里按 ASN 强行分流。
+payload:
+  - 'IP-ASN,714,no-resolve'

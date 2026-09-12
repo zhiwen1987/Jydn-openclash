@@ -1,0 +1,7 @@
+payload:
+  # 仅供 scripts/verify_node_geo.rb 逐节点查询真实出口国家。
+  - 'api.country.is'
+  - 'ipwho.is'
+  - 'api.ip.sb'
+  - 'countries.dev'
+  - 'www.cloudflare.com'

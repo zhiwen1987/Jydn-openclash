@@ -1,0 +1,4 @@
+# 只限当前 10.88.0.0/24 旁路由客户端；排除 OpenClash 路由器本机。
+payload:
+  - 'AND,((SRC-IP-CIDR,10.88.0.0/24),(NOT,((SRC-IP-CIDR,10.88.0.254/32))),(NETWORK,udp),(OR,((DST-PORT,3478-3481),(DST-PORT,5349))))'
+  - 'AND,((SRC-IP-CIDR,10.88.0.0/24),(NOT,((SRC-IP-CIDR,10.88.0.254/32))),(NETWORK,tcp),(DST-PORT,5349))'

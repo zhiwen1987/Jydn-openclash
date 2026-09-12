@@ -1,0 +1,19 @@
+# 可选高级覆写模板：默认使用文档保留地址和不存在的入站名，不会命中真实流量。
+# 安装前必须将 192.0.2.1/32 替换为爱快 DHCP 中已固定的设备 IP，
+# 并将 replace-with-real-inbound 替换为运行 YAML 中的真实 listeners.name。
+
+[YAML]
+sub-rules:
+  jydn-device-inbound:
+    - DOMAIN-SUFFIX,lan,🏠 本地网络
+    - DOMAIN-SUFFIX,local,🏠 本地网络
+    - IP-CIDR,10.0.0.0/8,🏠 本地网络,no-resolve
+    - IP-CIDR,172.16.0.0/12,🏠 本地网络,no-resolve
+    - IP-CIDR,192.168.0.0/16,🏠 本地网络,no-resolve
+    - GEOSITE,geolocation-!cn,🔒 隐私代理
+    - GEOSITE,cn,DIRECT
+    - GEOIP,cn,DIRECT,no-resolve
+    - MATCH,🌐 默认策略
+
++rules:
+  - SUB-RULE,(AND,((SRC-IP-CIDR,192.0.2.1/32),(IN-NAME,replace-with-real-inbound),(IN-TYPE,tun))),jydn-device-inbound

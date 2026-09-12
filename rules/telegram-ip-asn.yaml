@@ -1,0 +1,7 @@
+# Telegram 自有网络；域名规则之后的 IP-only 兜底。
+payload:
+  - 'IP-ASN,62041,no-resolve'
+  - 'IP-ASN,62014,no-resolve'
+  - 'IP-ASN,59930,no-resolve'
+  - 'IP-ASN,44907,no-resolve'
+  - 'IP-ASN,211157,no-resolve'

@@ -1,0 +1,11 @@
+# 联网状态、门户检测和对时域名。
+# classical provider 显式覆盖 Mihomo 的五种域名匹配语法。
+payload:
+  - 'DOMAIN,connectivitycheck.gstatic.com'
+  - 'DOMAIN-SUFFIX,msftconnecttest.com'
+  - 'DOMAIN-SUFFIX,msftncsi.com'
+  - 'DOMAIN-KEYWORD,connectivitycheck'
+  - 'DOMAIN-WILDCARD,time*.apple.com'
+  - 'DOMAIN-REGEX,^time[0-9]*\.(apple|windows)\.com$'
+  # 仅当 NTP 客户端使用固定源端口时命中；其他 NTP 由域名或后续规则决定。
+  - 'AND,((NETWORK,udp),(SRC-PORT,123),(DST-PORT,123))'
