@@ -6,6 +6,9 @@ payload:
   - '+.razyy.com'
   - '+.servicewechat.com'
   - '+.wxgateway.com'
+  # AMD 中国域名会跳转到 www.amd.com，两段都保持直连。
+  - '+.amd.com'
+  - '+.amd.com.cn'
   # ========== 国内银行 ==========
   - '+.icbc.com.cn'
   - '+.abchina.com'
