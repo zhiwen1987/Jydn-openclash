@@ -107,9 +107,10 @@ custom/groups.ini                       自定义策略组
 custom/rules.ini                        自定义规则引用
 docs/openclash-v0.47.156-settings.md    LuCI 逐按钮设置
 docs/istoreos-openclash-one-arm-router.md  iStoreOS 独臂旁路由设置
-modules/openclash-dns-privacy-override.yaml
+modules/openclash-dns-privacy-override.yaml  DNS/隐私覆写（含智能家居 DNS 生成区）
 modules/openclash-business-group-catalog.json  运行期业务组与代理组选项目录
 modules/openclash-source-inbound-subrule.example.yaml  设备/入站/SUB-RULE 安全模板（默认不命中）
+rules/smarthome-direct.yaml             智能家居域名清单（空 payload 即关闭该功能）
 rules/*.yaml                            自维护 domain/classical 规则提供者
 scripts/build.py                        生成最终模板
 scripts/group_catalog.py                业务策略组与节点类代理组统一目录
@@ -124,7 +125,9 @@ metafenliu.ini                          自动生成结果，不要手改
 
 原先构建脚本依赖的外部 `clashmetadingyue` 仓库已经不可访问。现在构建完全使用本仓库的 `upstream/metafenliu.ini`，不会因外部基础模板消失而中断。
 
-修改 `upstream/`、`custom/` 或 `scripts/` 后，GitHub Actions 会重新生成并验证 `metafenliu.ini`。本地也可以运行：
+`rules/smarthome-direct.yaml` 是智能家居直连例外清单：构建时按它生成 `metafenliu.ini` 中优先于广告分类的 `DIRECT` 规则，以及 DNS 模块中对应的 `fake-ip-filter` real-ip 与 `nameserver-policy` 境内 DoH 条目。空 `payload:` 视为未启用该功能，三个生成区都保持为空。
+
+修改 `upstream/`、`custom/`、`rules/` 或 `scripts/` 后，GitHub Actions 会重新生成并验证 `metafenliu.ini`、DNS 模块与运行期目录。本地也可以运行：
 
 ```bash
 python3 scripts/build.py

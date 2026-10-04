@@ -16,14 +16,13 @@ permissions:
   contents: write
 
 jobs:
-  sync:
+  verify:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Build metafenliu.ini
+      - name: Build generated artifacts
         run: python3 scripts/build.py
 
       - name: Validate generated config
@@ -32,10 +31,26 @@ jobs:
       - name: Test runtime empty-group filter
         run: ruby scripts/test_patch_runtime_groups.rb
 
-      - name: Commit changes
+  sync:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build generated artifacts
+        run: python3 scripts/build.py
+
+      - name: Validate generated config
+        run: python3 scripts/validate.py
+
+      - name: Test runtime empty-group filter
+        run: ruby scripts/test_patch_runtime_groups.rb
+
+      - name: Commit generated artifacts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metafenliu.ini
+          git add metafenliu.ini modules/openclash-dns-privacy-override.yaml modules/openclash-business-group-catalog.json
           git diff --cached --quiet || git commit -m "build metafenliu"
           git push

@@ -72,15 +72,35 @@ STATUS_PSEUDO_NODES = (
     "距离下次重置剩余：18 天",
     "套餐到期：2028-12-31",
 )
-REQUIRED_DIRECT_GEOSITES = {"baidu", "geolocation-cn"}
+SMARTHOME_RULE_FILE = ROOT / "rules" / "smarthome-direct.yaml"
+SMARTHOME_DOMAINS = (
+    "tuya.com",
+    "tuyacn.com",
+    "tuyaus.com",
+    "tuyaeu.com",
+    "tuyain.com",
+)
+SMARTHOME_NEGATIVE_SUFFIX = "tuyacn.com.example.invalid"
+
+REQUIRED_REJECT_GEOSITES = {
+    ("🚫 广告拦截", "category-ads-all"),
+}
+
+REQUIRED_DIRECT_GEOSITES = {
+    "baidu",
+    "geolocation-cn",
+    "category-bank-cn",
+    "aliyun-drive",
+    "115",
+    "government-cn",
+    "securities-cn",
+    "music-cn",
+}
+
 REQUIRED_ROUTED_GEOSITES = {
     ("🟥 创意软件（Adobe）", "adobe"),
-    ("🚫 广告拦截", "category-ads-all"),
     ("⬇️ 游戏下载", "category-game-platforms-download"),
     ("🚝 测速工具", "category-speedtest"),
-    ("🏦 国内银行", "category-bank-cn"),
-    ("☁️ 国内网盘", "aliyun-drive"),
-    ("☁️ 国内网盘", "115"),
     ("📦 笔记协作（Notion）", "notion"),
     ("🤖 对话助手（ChatGPT）", "openai"),
     ("🧠 人工智能", "category-ai-!cn"),
@@ -266,11 +286,12 @@ FIRST_MATCH_ORDER = (
     ("ruleset=🪙 数字货币,[]GEOSITE,category-cryptocurrency", "ruleset=💳 海外支付,[]GEOSITE,category-finance"),
     ("ruleset=☁️ 微软云盘（OneDrive）,[]GEOSITE,onedrive", "ruleset=🪟 微软服务（Microsoft）,[]GEOSITE,microsoft"),
     ("ruleset=⬇️ 游戏下载,[]GEOSITE,category-game-platforms-download", "ruleset=DIRECT,[]GEOSITE,category-games@cn"),
-    ("ruleset=🏦 国内银行,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/bank-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
-    ("ruleset=🏛️ 政务服务,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/government-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
-    ("ruleset=📈 国内证券,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/securities-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
-    ("ruleset=☁️ 国内网盘,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/cloud-drive-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
-    ("ruleset=🎵 国内音乐,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/music-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
+    ("ruleset=DIRECT,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/bank-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
+    ("ruleset=DIRECT,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/government-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
+    ("ruleset=DIRECT,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/securities-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
+    ("ruleset=DIRECT,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/cloud-drive-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
+    ("ruleset=DIRECT,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/music-cn.yaml,86400", "ruleset=DIRECT,[]GEOSITE,geolocation-cn"),
+    ("ruleset=DIRECT,[]DOMAIN-SUFFIX,tuya.com", "ruleset=REJECT,[]GEOSITE,category-ads-all"),
 )
 
 REQUIRED_PRECISION_RULES = {
@@ -625,6 +646,9 @@ def validate_config(errors: list[str]) -> None:
     for category in sorted(REQUIRED_DIRECT_GEOSITES):
         if f"ruleset=DIRECT,[]GEOSITE,{category}" not in lines:
             errors.append(f"缺少国内直连 GeoSite 分类：{category}")
+    for target, category in sorted(REQUIRED_REJECT_GEOSITES):
+        if f"ruleset=REJECT,[]GEOSITE,{category}" not in lines:
+            errors.append(f"缺少拒绝目标 GeoSite：{category} → {target}")
     for target, category in sorted(REQUIRED_ROUTED_GEOSITES):
         if f"ruleset={target},[]GEOSITE,{category}" not in lines:
             errors.append(f"缺少精细分流 GeoSite：{category} → {target}")
@@ -785,7 +809,54 @@ def validate_runtime_group_filter(errors: list[str]) -> None:
                 errors.append(f"{path.relative_to(ROOT)} 缺少关键逻辑：{marker}")
 
 
+def validate_smarthome(errors: list[str]) -> None:
+    """Smarthome routing + DNS consistency and order checks."""
+    if not SMARTHOME_RULE_FILE.is_file():
+        errors.append("缺少智能家居域名清单：rules/smarthome-direct.yaml")
+        return
+    text = SMARTHOME_RULE_FILE.read_text(encoding="utf-8")
+    entries = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and not line.strip().startswith("#") and line.strip() != "payload:"
+    ]
+    domains = [entry[5:].strip().strip("'") for entry in entries if entry.startswith("- '+.")]
+    if SMARTHOME_NEGATIVE_SUFFIX in domains:
+        errors.append("智能家居清单包含合成后缀负例")
+
+    config_text = CONFIG.read_text(encoding="utf-8")
+    config_lines = active_lines(config_text)
+    dns_text = OVERWRITE.read_text(encoding="utf-8")
+    if not domains:
+        # 空清单默认关闭：生成物不得残留任何智能家居域名。
+        for domain in SMARTHOME_DOMAINS:
+            marker = f"DOMAIN-SUFFIX,{domain}"
+            if marker in config_text or marker in dns_text:
+                errors.append(f"智能家居清单为空但生成物残留：{marker}")
+        return
+
+    for expected in SMARTHOME_DOMAINS:
+        if expected not in domains:
+            errors.append(f"智能家居清单缺少域名：{expected}")
+    for domain in SMARTHOME_DOMAINS:
+        expected_rule = f"ruleset=DIRECT,[]DOMAIN-SUFFIX,{domain}"
+        if expected_rule not in config_lines:
+            errors.append(f"智能家居生成配置缺少 DIRECT 规则：{domain}")
+            continue
+        ads_line = "ruleset=REJECT,[]GEOSITE,category-ads-all"
+        if ads_line in config_lines and config_lines.index(expected_rule) >= config_lines.index(ads_line):
+            errors.append(f"智能家居规则必须在广告分类之前：{domain}")
+    for domain in SMARTHOME_DOMAINS:
+        if f"- DOMAIN-SUFFIX,{domain},real-ip" not in dns_text:
+            errors.append(f"DNS fake-ip-filter 缺少智能家居 real-ip：{domain}")
+        if f'"DOMAIN-SUFFIX,{domain}": https://223.5.5.5/dns-query#DIRECT' not in dns_text:
+            errors.append(f"DNS nameserver-policy 缺少阿里 DoH：{domain}")
+        if f'"DOMAIN-SUFFIX,{domain}": https://120.53.53.53/dns-query#DIRECT' not in dns_text:
+            errors.append(f"DNS nameserver-policy 缺少腾讯 DoH：{domain}")
+
+
 def validate_advanced_routing_example(errors: list[str]) -> None:
+
     if not ADVANCED_ROUTING_EXAMPLE.is_file():
         errors.append("缺少来源设备/入站/SUB-RULE 安全示例模块")
         return
@@ -818,6 +889,7 @@ def main() -> None:
     validate_rule_files(errors)
     validate_overwrite(errors)
     validate_runtime_group_filter(errors)
+    validate_smarthome(errors)
     validate_advanced_routing_example(errors)
     if errors:
         for error in errors:

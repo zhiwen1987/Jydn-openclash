@@ -53,6 +53,13 @@ tun:
     - DOMAIN-SUFFIX,msftncsi.com,real-ip
     - DOMAIN,captive.apple.com,real-ip
     - DOMAIN,connectivitycheck.gstatic.com,real-ip
+; >>> generated smarthome dns-filter entries start <<<
+    - DOMAIN-SUFFIX,tuya.com,real-ip
+    - DOMAIN-SUFFIX,tuyacn.com,real-ip
+    - DOMAIN-SUFFIX,tuyaus.com,real-ip
+    - DOMAIN-SUFFIX,tuyaeu.com,real-ip
+    - DOMAIN-SUFFIX,tuyain.com,real-ip
+; <<< generated smarthome dns-filter entries end >>>
     - MATCH,fake-ip
 
   # 仅用于解析 DoH/节点服务器域名，避免建立代理前出现解析死循环。
@@ -77,6 +84,21 @@ tun:
   direct-nameserver-follow-policy: false
 
   # 刻意不配置 fallback，避免国内外 DNS 并发查询和结果混用。
+
+  # 智能家居域名使用境内直连 DNS 解析（与 DIRECT 路由同一清单生成）。
+  nameserver-policy:
+; >>> generated smarthome dns-policy entries start <<<
+    "DOMAIN-SUFFIX,tuya.com": https://223.5.5.5/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuya.com": https://120.53.53.53/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyacn.com": https://223.5.5.5/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyacn.com": https://120.53.53.53/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyaus.com": https://223.5.5.5/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyaus.com": https://120.53.53.53/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyaeu.com": https://223.5.5.5/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyaeu.com": https://120.53.53.53/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyain.com": https://223.5.5.5/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuyain.com": https://120.53.53.53/dns-query#DIRECT
+; <<< generated smarthome dns-policy entries end >>>
 
 <sniffer>!:
   enable: true
