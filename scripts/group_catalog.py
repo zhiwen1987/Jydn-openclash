@@ -216,6 +216,7 @@ DASHBOARD_NODE_GROUPS = (
 DASHBOARD_ADVANCED_GROUPS = (
     "🔬 节点归属校验",
     "🇸🇬 指定新加坡",
+    "🇺🇸 指定美国",
     "🛡️ 实时通信（WebRTC）",
     "🔀 非标端口",
     "🐟 遵循规则",
