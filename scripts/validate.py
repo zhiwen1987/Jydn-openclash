@@ -849,10 +849,35 @@ def validate_smarthome(errors: list[str]) -> None:
     for domain in SMARTHOME_DOMAINS:
         if f"- DOMAIN-SUFFIX,{domain},real-ip" not in dns_text:
             errors.append(f"DNS fake-ip-filter 缺少智能家居 real-ip：{domain}")
-        if f'"DOMAIN-SUFFIX,{domain}": https://223.5.5.5/dns-query#DIRECT' not in dns_text:
-            errors.append(f"DNS nameserver-policy 缺少阿里 DoH：{domain}")
-        if f'"DOMAIN-SUFFIX,{domain}": https://120.53.53.53/dns-query#DIRECT' not in dns_text:
-            errors.append(f"DNS nameserver-policy 缺少腾讯 DoH：{domain}")
+
+    # 一个域名对应一个 nameserver-policy 键，值用数组承载全部 DoH；
+    # 重复键会被 YAML 解析器静默覆盖，导致一个 DoH 名存实亡。
+    policy_line_prefixes = {
+        domain: f'    "DOMAIN-SUFFIX,{domain}":'
+        for domain in SMARTHOME_DOMAINS
+    }
+    policy_block_markers = (
+        "; >>> generated smarthome dns-policy entries start <<<",
+        "; <<< generated smarthome dns-policy entries end >>>",
+    )
+    policy_block = None
+    if dns_text.count(policy_block_markers[0]) == 1 and dns_text.count(policy_block_markers[1]) == 1:
+        policy_block = dns_text.split(policy_block_markers[0], 1)[1].split(policy_block_markers[1], 1)[0]
+    for domain in SMARTHOME_DOMAINS:
+        prefix = policy_line_prefixes[domain]
+        occurrences = [line for line in dns_text.splitlines() if line.strip().startswith(prefix.strip())]
+        if len(occurrences) != 1:
+            errors.append(
+                f"DNS nameserver-policy 域名 {domain} 键出现 {len(occurrences)} 次，"
+                "必须是唯一键（值用数组承载多个 DoH）"
+            )
+            continue
+        policy_value = occurrences[0].split(":", 1)[1].strip()
+        for doh in ("https://223.5.5.5/dns-query#DIRECT", "https://120.53.53.53/dns-query#DIRECT"):
+            if doh not in policy_value:
+                errors.append(f"DNS nameserver-policy {domain} 数组值缺少 {doh}")
+        if not policy_value.startswith("["):
+            errors.append(f"DNS nameserver-policy {domain} 值应为数组：[{policy_value}]")
 
 
 def validate_advanced_routing_example(errors: list[str]) -> None:

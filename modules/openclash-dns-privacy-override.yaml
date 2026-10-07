@@ -88,16 +88,11 @@ tun:
   # 智能家居域名使用境内直连 DNS 解析（与 DIRECT 路由同一清单生成）。
   nameserver-policy:
 ; >>> generated smarthome dns-policy entries start <<<
-    "DOMAIN-SUFFIX,tuya.com": https://223.5.5.5/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuya.com": https://120.53.53.53/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyacn.com": https://223.5.5.5/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyacn.com": https://120.53.53.53/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyaus.com": https://223.5.5.5/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyaus.com": https://120.53.53.53/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyaeu.com": https://223.5.5.5/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyaeu.com": https://120.53.53.53/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyain.com": https://223.5.5.5/dns-query#DIRECT
-    "DOMAIN-SUFFIX,tuyain.com": https://120.53.53.53/dns-query#DIRECT
+    "DOMAIN-SUFFIX,tuya.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
+    "DOMAIN-SUFFIX,tuyacn.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
+    "DOMAIN-SUFFIX,tuyaus.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
+    "DOMAIN-SUFFIX,tuyaeu.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
+    "DOMAIN-SUFFIX,tuyain.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
 ; <<< generated smarthome dns-policy entries end >>>
 
 <sniffer>!:
