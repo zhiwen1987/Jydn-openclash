@@ -59,6 +59,7 @@ tun:
     - DOMAIN-SUFFIX,tuyaus.com,real-ip
     - DOMAIN-SUFFIX,tuyaeu.com,real-ip
     - DOMAIN-SUFFIX,tuyain.com,real-ip
+    - DOMAIN-SUFFIX,iotbing.com,real-ip
 ; <<< generated smarthome dns-filter entries end >>>
     - MATCH,fake-ip
 
@@ -93,6 +94,7 @@ tun:
     "DOMAIN-SUFFIX,tuyaus.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
     "DOMAIN-SUFFIX,tuyaeu.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
     "DOMAIN-SUFFIX,tuyain.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
+    "DOMAIN-SUFFIX,iotbing.com": [https://223.5.5.5/dns-query#DIRECT, https://120.53.53.53/dns-query#DIRECT]
 ; <<< generated smarthome dns-policy entries end >>>
 
 <sniffer>!:
