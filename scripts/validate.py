@@ -92,9 +92,6 @@ REQUIRED_DIRECT_GEOSITES = {
     "category-bank-cn",
     "aliyun-drive",
     "115",
-    "government-cn",
-    "securities-cn",
-    "music-cn",
 }
 
 REQUIRED_ROUTED_GEOSITES = {
