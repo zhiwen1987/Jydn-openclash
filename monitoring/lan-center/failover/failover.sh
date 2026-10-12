@@ -45,6 +45,9 @@ current_state() {
 
 log "启动：演练模式=$DRY_RUN 间隔=${INTERVAL}s PT_3当前=$(state)"
 rm -f /data/sim_state
+/bin/sh /chatgpt-controller.sh &
+chatgpt_controller_pid=$!
+trap 'kill "$chatgpt_controller_pid" 2>/dev/null || true' EXIT INT TERM
 failures=0
 successes=0
 

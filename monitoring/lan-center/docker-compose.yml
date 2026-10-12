@@ -8,6 +8,9 @@ services:
     env_file: .env
     environment:
       DRY_RUN: "1"
+      OPENCLASH_API: "http://10.88.0.254:9090"
+      CHATGPT_CONTROL_INTERVAL: "300"
+      CHATGPT_PARALLEL: "6"
     volumes:
       - ./data/failover:/data
     healthcheck:

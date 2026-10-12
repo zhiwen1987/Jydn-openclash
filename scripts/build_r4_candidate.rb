@@ -14,7 +14,7 @@ raise "input and output must be different files" if File.expand_path(input_path)
 
 status_filter = "(?i)^(?!.*(剩余流量|重置剩余|下次重置|套餐到期|官网|邮箱|节点异常|刷新订阅|刷新失败|更新失败|取消订阅时限)).+"
 specs = [
-  ["🤖 对话助手（ChatGPT）", "🧠 人工智能", "🤖 ChatGPT 专用节点池", "https://chatgpt.com/cdn-cgi/trace"],
+  ["🤖 对话助手（ChatGPT）", "🧠 人工智能", "🤖 ChatGPT 专用节点池", "https://chatgpt.com/api/auth/session"],
   ["🟠 对话助手（Claude）", "🧠 人工智能", "🟠 Claude 专用节点池", "https://claude.ai/favicon.ico"],
   ["🔵 对话助手（Gemini）", "🧠 人工智能", "🔵 Gemini 专用节点池", "https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta"],
   ["🎥 流媒体（Netflix）", "🎬 流媒体节点", "🎥 Netflix 专用节点池", "https://www.netflix.com/"],
@@ -45,7 +45,7 @@ new_groups = specs.map do |business_name, old_default, pool_name, url|
   # default so the dashboard retains a simple manual escape hatch.
   business["proxies"] = [pool_name, *choices]
 
-  {
+  pool = {
     "name" => pool_name,
     "type" => "url-test",
     "proxies" => ["🛟 稳定自动"],
@@ -55,6 +55,14 @@ new_groups = specs.map do |business_name, old_default, pool_name, url|
     "interval" => 900,
     "tolerance" => 100,
   }
+  if pool_name == "🤖 ChatGPT 专用节点池"
+    pool.delete("url")
+    pool.delete("interval")
+    pool.delete("tolerance")
+    pool["type"] = "select"
+    pool["proxies"] = ["🧠 人工智能"]
+  end
+  pool
 end
 
 insert_at = groups.index { |group| group["name"] == "🧭 手动选择" }
@@ -69,9 +77,14 @@ specs.each do |business_name, old_default, pool_name, url|
   pool = groups.find { |group| group["name"] == pool_name }
   raise "#{business_name} default was not updated" unless business["proxies"].first(2) == [pool_name, old_default]
   raise "#{pool_name} has an unsafe DIRECT fallback" if pool["proxies"].include?("DIRECT")
-  raise "#{pool_name} lost stable fallback" unless pool["proxies"] == ["🛟 稳定自动"]
-  raise "#{pool_name} URL mismatch" unless pool["url"] == url
-  raise "#{pool_name} timing mismatch" unless pool["interval"] == 900 && pool["tolerance"] == 100
+  if pool_name == "🤖 ChatGPT 专用节点池"
+    raise "#{pool_name} must be controller-selected" unless pool["type"] == "select"
+    raise "#{pool_name} lost AI fail-safe" unless pool["proxies"] == ["🧠 人工智能"]
+  else
+    raise "#{pool_name} lost stable fallback" unless pool["proxies"] == ["🛟 稳定自动"]
+    raise "#{pool_name} URL mismatch" unless pool["url"] == url
+    raise "#{pool_name} timing mismatch" unless pool["interval"] == 900 && pool["tolerance"] == 100
+  end
 end
 
 File.open(output_path, "w", 0o600) { |file| file.write(YAML.dump(config)) }

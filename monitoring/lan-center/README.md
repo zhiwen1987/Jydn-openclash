@@ -7,7 +7,7 @@
 这套栈复用现有两个容器：
 
 - `uptime-kuma`：局域网监控面板，端口 `3101`。
-- `failover`：检查 OpenClash 代理健康；生产环境固定 `DRY_RUN=1`，只记录建议动作，不修改爱快规则。
+- `failover`：检查 OpenClash 代理健康；生产环境固定 `DRY_RUN=1`，不修改爱快规则。同一容器内的 ChatGPT 控制循环每 300 秒检查真实会话入口，只调整 ChatGPT 专用池；无合格节点时回退到人工智能父组。
 
 ## OpenClash 验收组
 

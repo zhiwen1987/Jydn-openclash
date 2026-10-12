@@ -7,6 +7,7 @@
 - 新增 `OpenClash 分流验收` 分组及 7 个子监控。
 - 为 Uptime Kuma 设置 `NODE_OPTIONS=--max-http-header-size=65536`，用于真实检查 Gemini 页面。
 - `failover` 保持 `DRY_RUN=1`，不会修改爱快规则。
+- 复用 `failover` 容器加入 ChatGPT 专用池控制循环，不新建容器。
 
 ## 验收结果
 
@@ -24,10 +25,13 @@
 | ChatGPT | HTTP 200 |
 | Gemini | HTTP 200 |
 | Google 204 | HTTP 204 |
+| ChatGPT 控制循环 | 运行正常；当前无合格独立节点，状态为 `fallback` |
 
 ## 变更前备份
 
 `/home/zhiwen/lan-center-backups/20261013-035740`
+
+ChatGPT 控制器变更前备份：`/home/zhiwen/lan-center-backups/20261012-212843-chatgpt-controller`。
 
 备份包含 `lan-center-full.tar.gz`、`kuma-consistent.db`、原 `failover.sh`、`SHA256SUMS` 和 `RESTORE.md`，校验全部通过。
 

@@ -41,11 +41,10 @@ REQUIRED_URL_TEST_GROUPS = (
     {"♻️ 自动选择", "🛟 稳定自动"}
     | COUNTRY_GROUPS
     | FUNCTIONAL_NODE_GROUPS
-    | CAPABILITY_NODE_GROUPS
+    | (CAPABILITY_NODE_GROUPS - {"🤖 ChatGPT 专用节点池"})
 )
 EXPECTED_URL_TEST_URLS = {
     "🎬 流媒体节点": "https://www.netflix.com/",
-    "🤖 ChatGPT 专用节点池": "https://chatgpt.com/cdn-cgi/trace",
     "🟠 Claude 专用节点池": "https://claude.ai/favicon.ico",
     "🔵 Gemini 专用节点池": "https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta",
     "🎥 Netflix 专用节点池": "https://www.netflix.com/",
@@ -448,8 +447,9 @@ def validate_config(errors: list[str]) -> None:
         line = group_definitions.get(name)
         if line is None:
             continue
-        if "`[]🛟 稳定自动`" not in line:
-            errors.append(f"业务专用节点池 {name} 必须以稳定自动作为非直连兜底")
+        fallback = "🧠 人工智能" if name == "🤖 ChatGPT 专用节点池" else "🛟 稳定自动"
+        if f"`[]{fallback}`" not in line:
+            errors.append(f"业务专用节点池 {name} 缺少安全兜底 {fallback}")
         if "`[]DIRECT`" in line:
             errors.append(f"业务专用节点池 {name} 不得回退 DIRECT")
         if STATUS_FILTER_FRAGMENT not in line:
@@ -519,7 +519,7 @@ def validate_config(errors: list[str]) -> None:
         errors.append("缺少在线节点归属校验专用规则集")
 
     compiled_filters: dict[str, re.Pattern[str]] = {}
-    for name in sorted(REQUIRED_URL_TEST_GROUPS | {"🧭 手动选择"}):
+    for name in sorted(REQUIRED_URL_TEST_GROUPS | CAPABILITY_NODE_GROUPS | {"🧭 手动选择"}):
         line = group_definitions.get(name)
         pattern = node_filter(line) if line is not None else None
         if pattern is None:

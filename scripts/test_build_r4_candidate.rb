@@ -42,9 +42,14 @@ begin
   expected.each do |business_name, choices|
     raise "business order mismatch: #{business_name}" unless by_name.fetch(business_name).fetch("proxies").first(2) == choices
     pool = by_name.fetch(choices.first)
-    raise "unsafe pool fallback: #{choices.first}" unless pool.fetch("proxies") == ["🛟 稳定自动"]
     raise "provider inheritance mismatch: #{choices.first}" unless pool.fetch("use") == ["one", "two"]
-    raise "pool timing mismatch: #{choices.first}" unless pool.fetch("interval") == 900 && pool.fetch("tolerance") == 100
+    if choices.first == "🤖 ChatGPT 专用节点池"
+      raise "ChatGPT pool must be controller-selected" unless pool.fetch("type") == "select"
+      raise "ChatGPT pool lost AI fail-safe" unless pool.fetch("proxies") == ["🧠 人工智能"]
+    else
+      raise "unsafe pool fallback: #{choices.first}" unless pool.fetch("proxies") == ["🛟 稳定自动"]
+      raise "pool timing mismatch: #{choices.first}" unless pool.fetch("interval") == 900 && pool.fetch("tolerance") == 100
+    end
   end
 
   puts "R4 candidate builder test passed"

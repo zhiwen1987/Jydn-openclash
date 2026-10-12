@@ -17,14 +17,16 @@
 | 服务 | 作用 | 是否会修改路由 |
 | --- | --- | --- |
 | `uptime-kuma` | 监控面板、探测历史和状态展示 | 否 |
-| `failover` | 检查 `10.88.0.254:7893` 的代理连通性并记录建议动作 | 否，生产固定 `DRY_RUN=1` |
+| `failover` | 检查代理连通性，并按 ChatGPT 真实会话结果管理它的专用池 | 仅调整 ChatGPT 策略组；爱快固定 `DRY_RUN=1` |
 
 重要限制：
 
-1. 监控系统不得主动停止 WAN、重启爱快或修改 OpenClash。
+1. 监控系统不得主动停止 WAN、重启爱快或重启 OpenClash；只允许调整 ChatGPT 专用池及其业务组选择。
 2. `failover` 的自动切换代码只用于演练；没有单独审批不得把 `DRY_RUN` 改成 `0`。
 3. Kuma 显示业务可达性，不代表账号、配额、支付风控或地区版权一定可用。
 4. 爱快、OpenClash 和 `lan-center` 的变更必须分别备份，不能互相替代。
+
+ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和可用候选数。OpenClash 控制密钥仅保存在服务器 `.env`。
 
 ## 2. 监控项目说明
 
@@ -52,6 +54,15 @@
 - 分组红色：至少一个子监控失败，应先查看具体子项，不要直接重启全部容器。
 
 ## 3. 日常查看
+
+ChatGPT 专用池状态：
+
+```sh
+sudo tail -n 50 /root/dpanel/compose/lan-center/data/failover/chatgpt-controller.log
+sudo cat /root/dpanel/compose/lan-center/data/failover/chatgpt-controller.health
+```
+
+`ok` 表示选中了真实会话检测通过的独立节点；`fallback` 表示当前无合格独立节点，已安全回退到人工智能父组；`error` 表示控制器需要排查。
 
 ### 3.1 查看面板
 
