@@ -201,7 +201,7 @@ REQUIRED_RULE_FILE_ENTRIES = {
 EXPECTED_DEFAULT_TARGETS = {
     "🏠 本地网络": "DIRECT",
     "🌐 联网检测": "DIRECT",
-    "🧠 人工智能": "🔒 隐私代理",
+    "🧠 人工智能": "🇸🇬 新加坡",
     "📞 即时通讯": "🔒 隐私代理",
     "💬 社交平台": "🔒 隐私代理",
     "🌐 Meta 平台": "💬 社交平台",

@@ -25,7 +25,7 @@
 - 节点国家校验优先让真实流量逐节点经过 `country.is`、`ipwho.is`、`IP.SB`、`countries.dev` 和 Cloudflare：只有成功来源中的严格多数、且至少两个来源返回相同 ISO 国家代码才采用在线结果；无法形成多数时才按国旗、国家、城市或代码名称降级判断。
 - 自动组默认使用 Cloudflare HTTPS 探测地址；`🎬 流媒体节点` 使用 Netflix HTTPS 首页验证真实业务连通性，避免通用测速正常但 Netflix 被节点阻断。测试间隔统一为 300 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`。
 - `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
-- 海外功能父组默认通过 `🔒 隐私代理` 出站；品牌子组默认继承父组，并保留按国家或节点单独改路由的入口。`🔒 隐私代理` 只指向 `🛟 稳定自动`。
+- 海外功能父组默认通过 `🔒 隐私代理` 出站；人工智能根据生产沙箱实测默认进入新加坡自动池，避免通用低延迟节点无法访问特定 AI 服务。品牌子组默认继承父组，并保留按国家或节点单独改路由的入口。`🔒 隐私代理` 只指向 `🛟 稳定自动`。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
 - `🏠 本地网络` 用精确域名、域名后缀、`IP-CIDR` / `IP-CIDR6` 和 private GEO 双重保护局域网，默认直连。
 - `🌐 联网检测` 使用 classical `RULE-SET`，组合 `DOMAIN`、`DOMAIN-SUFFIX`、`DOMAIN-KEYWORD`、`DOMAIN-WILDCARD`、`DOMAIN-REGEX` 和 NTP 端口逻辑，降低系统误报断网的概率。
@@ -42,7 +42,7 @@
 
 规则按“具体品牌 → 功能分类 → 国内/海外兜底”的顺序匹配：
 
-- AI：ChatGPT、Claude、Gemini、Grok、Perplexity、Microsoft Copilot → 人工智能 → 隐私代理；GitHub Copilot 默认继承开发服务。
+- AI：ChatGPT、Claude、Gemini、Grok、Perplexity、Microsoft Copilot → 人工智能 → 新加坡自动池；GitHub Copilot 默认继承开发服务。
 - 通讯：Telegram、Discord、WhatsApp、Signal、LINE → 即时通讯 → 隐私代理。
 - 社交：Instagram、X、Facebook、Reddit → 社交平台 → 隐私代理。
 - 影音：Netflix → 流媒体节点；YouTube、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。

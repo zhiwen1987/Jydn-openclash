@@ -20,6 +20,7 @@
 - 每个业务策略组只有 2–8 个明确选项。
 - 自动池为 15 个，间隔 300 秒、容差 100 ms。
 - Netflix 默认进入“流媒体节点”，该池使用 Netflix HTTPS 地址探测；不能仅以 Cloudflare 测速成功代替 Netflix 实际连通。
+- 人工智能默认进入新加坡自动池；ChatGPT、Claude、Gemini、Grok、Perplexity 和 Microsoft Copilot 必须各连续通过三次沙箱 HTTPS 测试。
 
 ### 2. 双订阅生成验收
 
