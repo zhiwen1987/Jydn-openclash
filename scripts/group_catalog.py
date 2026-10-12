@@ -25,6 +25,12 @@ BUSINESS_STRATEGY_GROUPS = (
     "🚫 广告拦截",
     "📦 笔记协作（Notion）",
     "🤖 对话助手（ChatGPT）",
+    "🟠 对话助手（Claude）",
+    "🔵 对话助手（Gemini）",
+    "⚫ 对话助手（Grok）",
+    "🔎 智能搜索（Perplexity）",
+    "🪟 办公助手（Microsoft Copilot）",
+    "🧑‍💻 编程助手（GitHub Copilot）",
     "📨 电报通讯（Telegram）",
     "💬 聊天社区（Discord）",
     "🟢 通讯工具（WhatsApp）",
@@ -67,13 +73,11 @@ BUSINESS_STRATEGY_GROUPS = (
     "🌍 境外网站",
 )
 
-REGION_NODE_GROUPS = (
-    "🌏 亚洲国家",
-    "🇪🇺 欧洲国家",
-    "🌎 美洲国家",
-    "🌍 中东非洲",
-    "🌊 大洋洲",
-)
+# The production subscriptions currently expose nodes in these eight regions.
+# Less common/future regions are still reachable through the global pools and
+# the catch-all "other regions" pool, so they do not need an empty dashboard
+# card and a permanently running health checker of their own.
+REGION_NODE_GROUPS = ()
 
 COUNTRY_NODE_GROUPS = (
     "🇭🇰 香港",
@@ -81,37 +85,9 @@ COUNTRY_NODE_GROUPS = (
     "🇯🇵 日本",
     "🇸🇬 新加坡",
     "🇰🇷 韩国",
-    "🇮🇳 印度",
-    "🇻🇳 越南",
-    "🇹🇭 泰国",
-    "🇲🇾 马来西亚",
-    "🇵🇭 菲律宾",
-    "🇮🇩 印度尼西亚",
-    "🇲🇲 缅甸",
-    "🇵🇰 巴基斯坦",
     "🇬🇧 英国",
     "🇩🇪 德国",
-    "🇫🇷 法国",
-    "🇳🇱 荷兰",
-    "🇪🇸 西班牙",
-    "🇨🇭 瑞士",
-    "🇸🇪 瑞典",
-    "🇷🇺 俄罗斯",
-    "🇹🇷 土耳其",
-    "🇬🇷 希腊",
-    "🇳🇴 挪威",
     "🇺🇸 美国",
-    "🇨🇦 加拿大",
-    "🇲🇽 墨西哥",
-    "🇧🇷 巴西",
-    "🇨🇱 智利",
-    "🇨🇴 哥伦比亚",
-    "🇦🇪 阿联酋",
-    "🇸🇦 沙特阿拉伯",
-    "🇮🇱 以色列",
-    "🇿🇦 南非",
-    "🇳🇬 尼日利亚",
-    "🇦🇺 澳大利亚",
 )
 
 FUNCTIONAL_NODE_GROUPS = (
@@ -156,17 +132,47 @@ BUSINESS_PROXY_GROUP_CHOICES = (
     *NODE_SELECTION_GROUPS[1:],
     *FUNCTIONAL_NODE_GROUPS[:-1],
     *NEARBY_COUNTRY_NODE_GROUPS,
-    *REGION_NODE_GROUPS,
     *OTHER_COUNTRY_NODE_GROUPS,
     FUNCTIONAL_NODE_GROUPS[-1],
 )
 
-# The current group default stays first. These built-in actions are then kept at
-# the front of every selector before all other proxy-group choices.
+# Built-in actions are valid choices, but are no longer injected into every
+# business selector. Each group declares only the actions that make sense for
+# that service so the dashboard stays safe and quick to operate.
 BUSINESS_BUILTIN_CHOICES = (
     "DIRECT",
     "REJECT",
 )
+
+# Every business selector exposes the same direct, automatic, manual, country,
+# streaming, and blocking controls. The group's existing first choice remains
+# first so service defaults and parent inheritance never change.
+STANDARD_BUSINESS_MENU_CHOICES = (
+    "DIRECT",
+    "🔒 隐私代理",
+    NODE_SELECTION_GROUPS[0],
+    "♻️ 自动选择",
+    "🧭 手动选择",
+    "🇭🇰 香港",
+    "🇹🇼 台湾",
+    "🇯🇵 日本",
+    "🇸🇬 新加坡",
+    "🇰🇷 韩国",
+    "🇺🇸 美国",
+    "🇬🇧 英国",
+    "🇩🇪 德国",
+    "🎬 流媒体节点",
+    "REJECT",
+)
+
+# Infrastructure controls are not ordinary service menus. Keep them compact so
+# a country override cannot accidentally send LAN addresses through a remote
+# node or make operating-system connectivity checks report a false outage.
+CONTROL_GROUP_MENUS = {
+    "🏠 本地网络": ("DIRECT", "REJECT"),
+    "🌐 联网检测": ("DIRECT", "🔒 隐私代理"),
+    "🚫 广告拦截": ("REJECT", "DIRECT", "🔒 隐私代理"),
+}
 
 BUSINESS_STRATEGY_CHOICES = (
     *BUSINESS_PROXY_GROUP_CHOICES,
@@ -208,7 +214,6 @@ DASHBOARD_COMMON_GROUPS = (
 DASHBOARD_NODE_GROUPS = (
     *FUNCTIONAL_NODE_GROUPS[:-1],
     *NEARBY_COUNTRY_NODE_GROUPS,
-    *REGION_NODE_GROUPS,
     *OTHER_COUNTRY_NODE_GROUPS,
     FUNCTIONAL_NODE_GROUPS[-1],
 )

@@ -53,6 +53,78 @@ group_names = groups_by_name.keys.to_h { |name| [name, true] }
 builtin_names = %w[DIRECT REJECT REJECT-DROP PASS COMPATIBLE].to_h do |name|
   [name, true]
 end
+
+compile_filter = lambda do |pattern, label|
+  next nil if pattern.nil? || pattern.to_s.empty?
+
+  Regexp.new(pattern.to_s)
+rescue RegexpError => e
+  raise "invalid #{label} regular expression: #{e.message}"
+end
+
+# A provider reference alone does not prove that a filtered group has nodes.
+# Evaluate the filter against OpenClash's local provider cache. When a cache is
+# temporarily unavailable, keep the group visible to avoid a false removal.
+config_dir = File.dirname(File.expand_path(input_path))
+provider_base_dirs = [config_dir]
+provider_base_dirs << File.dirname(config_dir) if File.basename(config_dir) == "config"
+provider_base_dirs << ENV.fetch("OPENCLASH_HOME", "/etc/openclash")
+provider_base_dirs.uniq!
+provider_node_names = {}
+provider_cache_missing = []
+config.fetch("proxy-providers", {}).each do |provider_name, provider|
+  provider_path = provider["path"]
+  provider_config = nil
+  if provider_path && !provider_path.to_s.empty?
+    candidate_paths = if File.absolute_path(provider_path) == provider_path
+      [provider_path]
+    else
+      relative_paths = [provider_path]
+      if provider_path.match?(%r{\A(?:\./)?providers/})
+        relative_paths << provider_path.sub(
+          %r{\A(?:\./)?providers/},
+          "./proxy_provider/"
+        )
+      end
+      relative_paths.flat_map do |relative_path|
+        provider_base_dirs.map { |base_dir| File.expand_path(relative_path, base_dir) }
+      end.uniq
+    end
+    expanded_path = candidate_paths.find { |path| File.file?(path) } || candidate_paths.first
+    begin
+      provider_config = YAML.unsafe_load_file(expanded_path)
+    rescue Errno::ENOENT, Psych::SyntaxError => e
+      provider_cache_missing << "#{provider_name}: #{e.message}"
+    end
+  end
+
+  if provider_config
+    include_pattern = compile_filter.call(provider["filter"], "provider #{provider_name} filter")
+    exclude_pattern = compile_filter.call(
+      provider["exclude-filter"],
+      "provider #{provider_name} exclude-filter"
+    )
+    exclude_type_pattern = compile_filter.call(
+      provider["exclude-type"],
+      "provider #{provider_name} exclude-type"
+    )
+    provider_node_names[provider_name] = Array(provider_config["proxies"]).filter_map do |proxy|
+      next unless proxy.is_a?(Hash)
+
+      name = proxy["name"]
+      type = proxy["type"]
+      next if name.nil? || name.to_s.empty?
+      next if include_pattern && !include_pattern.match?(name.to_s)
+      next if exclude_pattern&.match?(name.to_s)
+      next if exclude_type_pattern&.match?(type.to_s)
+
+      name.to_s
+    end
+  else
+    provider_node_names[provider_name] = nil
+  end
+end
+
 availability = {}
 visiting = {}
 
@@ -64,7 +136,21 @@ group_has_node = lambda do |name|
 
   visiting[name] = true
   group = groups_by_name.fetch(name)
-  result = Array(group["use"]).any? || group["include-all"] == true ||
+  group_filter = compile_filter.call(group["filter"], "group #{name} filter")
+  group_exclude_filter = compile_filter.call(
+    group["exclude-filter"],
+    "group #{name} exclude-filter"
+  )
+  provider_result = Array(group["use"]).any? do |provider_name|
+    names = provider_node_names[provider_name]
+    next true if names.nil?
+
+    names.any? do |node_name|
+      (!group_filter || group_filter.match?(node_name)) &&
+        !group_exclude_filter&.match?(node_name)
+    end
+  end
+  result = provider_result || group["include-all"] == true ||
     Array(group["proxies"]).any? do |choice|
       next false if builtin_names.include?(choice)
 
@@ -94,21 +180,10 @@ proxy_groups.each do |group|
   end
 end
 
-added_choice_count = 0
-reordered_group_count = 0
 business_groups.each do |name|
   group = groups_by_name.fetch(name)
   choices = group.fetch("proxies")
-  original_choices = choices.dup
-  default_choice = choices.first
-  standard_choice_set = (proxy_choices + always_choices).to_h { |choice| [choice, true] }
-  related_choices = choices.drop(1).reject { |choice| standard_choice_set.include?(choice) }
-  available_proxy_choices = proxy_choices.reject { |choice| empty_proxy_choice_set.include?(choice) }
-  choices.replace(
-    ([default_choice] + always_choices + related_choices + available_proxy_choices).compact.uniq
-  )
-  added_choice_count += choices.count { |choice| !original_choices.include?(choice) }
-  reordered_group_count += 1 unless choices == original_choices
+  raise "business group has no available choice: #{name}" if choices.empty?
   raise "self reference detected in #{name}" if choices.include?(name)
 end
 
@@ -134,7 +209,8 @@ puts "business_group_count=#{business_groups.length}"
 puts "proxy_choice_count=#{proxy_choices.length}"
 puts "available_proxy_choice_count=#{proxy_choices.length - empty_proxy_choices.length}"
 puts "empty_proxy_choice_count=#{empty_proxy_choices.length}"
-puts "added_choice_count=#{added_choice_count}"
+puts "added_choice_count=0"
 puts "removed_choice_count=#{removed_choice_count}"
-puts "reordered_group_count=#{reordered_group_count}"
+puts "reordered_group_count=0"
 puts "dashboard_reordered_group_count=#{dashboard_reordered_group_count}"
+puts "provider_cache_missing_count=#{provider_cache_missing.length}"

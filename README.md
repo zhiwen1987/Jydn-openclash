@@ -1,6 +1,6 @@
 # Jydn OpenClash 自用分流模板
 
-面向 OpenClash v0.47.156 与 alpha-smart 内核的自用配置模板。仓库生成最终的 `metafenliu.ini`，并提供 DNS 防污染、防泄漏覆写模块和对应的 LuCI 设置说明。
+面向 OpenClash 与 Mihomo/alpha-smart 内核的生产分流模板。仓库生成最终的 `metafenliu.ini`，并提供 DNS 防污染、防泄漏覆写模块和对应的 LuCI 设置说明。
 
 > 这套方案能降低公网出口、DNS 和常见 WebRTC 路径暴露中国网络位置的风险，但不能隐藏账号地区、SIM/GPS、时区、语言、Cookie 或浏览器指纹。
 
@@ -17,15 +17,15 @@
 
 ## 主要功能
 
-- 生成配置共 121 个策略/节点组；其中 43 个自动节点池以 `url-test` 生成：36 个国家组、5 个实用/其他组以及全局自动和稳定自动；覆写模块在 Smart 内核上将它们统一转换为 `smart`，按目标站点分别学习和切换节点。
+- 精准稳定版生成 95 个策略/节点组；其中只有 15 个自动节点池：两组全局池、当前双订阅实际存在的 8 个国家/地区组，以及 5 个实用/其他组。未来出现的新地区由全局池和“其他地区”承接，不再为不存在的国家持续生成空测速组。
 - Zashboard 的国家节点组统一使用中文名称，并提供亚洲、欧洲、美洲、中东非洲和大洋洲五个上层导航组；应用策略组使用“中文功能名（品牌名）”，兼顾可读性和品牌识别。
-- Zashboard 继续显示全部代理组；每个业务策略组保留原默认策略在第一位，然后统一按 `DIRECT` → `REJECT` → 稳定自动 → 隐私代理 → 手动/普通自动 → 专线/住宅/流媒体/低倍率 → 港台日新韩 → 五大地区 → 其余国家 → 其他地区的本地网络优先顺序显示。共50个可选代理组入口及 `DIRECT`、`REJECT`；其中 `🔒 隐私代理` 是收口策略入口，`🛟 稳定自动`、手动/自动、国家/地区和线路分类才是节点组。运行期脚本会按最终订阅节点递归判断可用性：空国家/线路/地区组仍保留在代理组总页，但不会出现在上层策略组的选项中。生成与校验共用 `scripts/group_catalog.py`，避免后续新增分组时漏配或形成同级循环引用。
+- 所有功能父组和具体业务组保留原默认策略为第一项，并统一显示 `DIRECT`、隐私代理、稳定自动、自动选择、手动选择、八个国家组、流媒体节点和 `REJECT`，便于在任意业务页面直接切换。本地网络、联网检测和广告拦截属于基础安全控制，保持精简菜单，避免误选国家节点导致局域网不可达或系统误报断网。运行期脚本仅删除确实为空的节点组引用；统计信息统一按“信息”写入 OpenClash 日志，避免正常计数被 LuCI 误标成严重错误。
 - Zashboard“代理组”页面上方标记为“节点组”的外层卡片，按本地使用频率排序：稳定/隐私/手动/自动等常用入口 → 本地与国内业务 → 通用海外与品牌细分 → 线路/国家/地区节点组 → 诊断和高级组。运行期对最终 YAML 的 `proxy-groups` 数组重排，使 Mihomo `GLOBAL` 中的顺序与 Zashboard“节点组”卡片一致。
 - 国家及线路叶子组使用 `REJECT` 作为空组安全兜底；`🧭 手动选择` 使用 `🛟 稳定自动` 作为可用性兜底。所有全局节点池都会过滤流量、到期、官网和订阅刷新提示。
 - 节点国家校验优先让真实流量逐节点经过 `country.is`、`ipwho.is`、`IP.SB`、`countries.dev` 和 Cloudflare：只有成功来源中的严格多数、且至少两个来源返回相同 ISO 国家代码才采用在线结果；无法形成多数时才按国旗、国家、城市或代码名称降级判断。
-- 所有 Smart 组使用 Cloudflare HTTPS 探测地址，测试间隔 120 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`，并要求 HTTP 状态 `204`。
+- 自动组默认使用 Cloudflare HTTPS 探测地址；`🎬 流媒体节点` 使用 Netflix HTTPS 首页验证真实业务连通性，避免通用测速正常但 Netflix 被节点阻断。测试间隔统一为 300 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`。
 - `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
-- 海外功能父组默认通过 `🔒 隐私代理` 出站；品牌子组默认继承父组，并保留按国家或节点单独改路由的入口。`🔒 隐私代理` 只指向 `🛟 稳定自动`。
+- 海外功能父组默认通过 `🔒 隐私代理` 出站；人工智能根据生产沙箱实测默认进入新加坡自动池，避免通用低延迟节点无法访问特定 AI 服务。品牌子组默认继承父组，并保留按国家或节点单独改路由的入口。`🔒 隐私代理` 只指向 `🛟 稳定自动`。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
 - `🏠 本地网络` 用精确域名、域名后缀、`IP-CIDR` / `IP-CIDR6` 和 private GEO 双重保护局域网，默认直连。
 - `🌐 联网检测` 使用 classical `RULE-SET`，组合 `DOMAIN`、`DOMAIN-SUFFIX`、`DOMAIN-KEYWORD`、`DOMAIN-WILDCARD`、`DOMAIN-REGEX` 和 NTP 端口逻辑，降低系统误报断网的概率。
@@ -42,15 +42,17 @@
 
 规则按“具体品牌 → 功能分类 → 国内/海外兜底”的顺序匹配：
 
-- AI：对话助手（ChatGPT）→ 人工智能 → 隐私代理。
+- AI：ChatGPT、Claude、Gemini、Grok、Perplexity、Microsoft Copilot → 人工智能 → 新加坡自动池；GitHub Copilot 默认继承开发服务。
 - 通讯：Telegram、Discord、WhatsApp、Signal、LINE → 即时通讯 → 隐私代理。
 - 社交：Instagram、X、Facebook、Reddit → 社交平台 → 隐私代理。
-- 影音：YouTube、Netflix、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
+- 影音：Netflix → 流媒体节点；YouTube、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
 - 开发：GitHub、GitLab、Docker、NPM → 开发服务 → 隐私代理；PyPI、Linux 软件源和镜像站由 `rules/development.yaml` 补齐。
 - 游戏：Steam、Epic、Xbox、PlayStation、Nintendo → 游戏服务；游戏下载单独默认直连。
 - 支付交易：PayPal、Wise → 海外支付；OKX、Binance、Bybit → 数字货币；默认进入手选节点。
 - 云服务：Notion、Apple、Google、Cloudflare、Microsoft、OneDrive、Dropbox 分别保留独立策略。
 - 国内服务：国内银行、政务服务、国内证券、国内网盘、国内音乐默认直连。
+
+每个业务组的第一项仍是上述默认路径；后续选项统一提供直连、稳定/最低延迟自动、手选、国家、流媒体和阻断覆盖，不需要离开当前业务菜单。
 
 ## 多维规则分层
 
@@ -95,10 +97,10 @@
 ### 3. alpha-smart 与最低延迟
 
 - **插件设置 → 版本更新 → Smart 内核**：启用。
-- **覆写设置 → Smart 设置 → Smart 策略自动切换**：启用；43 个 `url-test` 节点池会在运行时转换为 Smart。未选中的组保持懒检测，避免全量国家组同时测速。
+- **覆写设置 → Smart 设置 → Smart 策略自动切换**：启用时，15 个 `url-test` 节点池会在运行时转换为 Smart。未选中的组保持懒检测，避免所有节点池同时测速。
 - 启用 LightGBM 和模型自动更新，更新间隔设为 72 小时；关闭训练数据采集，避免生成 100 MB CSV 和持续磁盘写入。
 - **Policy Priority** 设为 `0`（不加权），避免地区名称权重长期压过实际延迟和可用性；关闭 Prefer-ASN，减少首次访问前的强制解析。
-- Smart 容差设为 `100 ms`，保留 120 秒健康检查、5 秒超时、失败阈值 `2` 和 HTTP `204` 校验。Smart 还会依据真实目标的连接失败记录重新选路，不只依赖单一测速 URL。
+- Smart 容差设为 `100 ms`，使用 300 秒健康检查、5 秒超时、失败阈值 `2` 和 HTTP `204` 校验。Smart 还会依据真实目标的连接失败记录重新选路，不只依赖单一测速 URL。
 
 ## 仓库结构与生成方式
 
@@ -203,7 +205,7 @@ ruleset=MySite,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-op
 - 更具体的应用和个人规则放前面，`GEOSITE,cn` / `GEOIP,cn` 放在海外分类之后、最终兜底之前。
 - 海外功能父组默认不直连；Apple、Microsoft 延续直连优先，其余品牌只把 `DIRECT` 作为人工故障切换选项。
 - 金融、交易平台优先固定地区和固定节点，不要跟随频繁切换的全局最低延迟组。
-- 自动组默认使用 `10 ms` 容差兼顾响应速度与切换频率；追求严格最低延迟才使用 `0 ms`。
+- 自动组默认使用 `100 ms` 容差，避免延迟轻微波动造成出口频繁切换；不要在生产配置中使用 `0 ms`。
 - 不开启 OpenClash 的“绕过中国大陆 IP”，让所有连接先进入 Mihomo，再由规则决定 `DIRECT`。
 - IPv6 未被 TUN/TProxy、DNS 和防火墙完整接管前保持关闭。
 - 浏览器安全 DNS、Android 私人 DNS、iCloud Private Relay 等独立加密 DNS 通道应单独关闭或纳入接管测试。

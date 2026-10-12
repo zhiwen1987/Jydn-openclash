@@ -7,11 +7,12 @@ from pathlib import Path
 from group_catalog import (
     BUSINESS_BUILTIN_CHOICES,
     BUSINESS_PROXY_GROUP_CHOICES,
-    BUSINESS_STRATEGY_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
     COUNTRY_NODE_GROUPS,
+    CONTROL_GROUP_MENUS,
     DASHBOARD_PROXY_GROUP_ORDER,
     FUNCTIONAL_NODE_GROUPS as FUNCTIONAL_NODE_GROUP_NAMES,
+    STANDARD_BUSINESS_MENU_CHOICES,
 )
 
 
@@ -32,34 +33,19 @@ LEGACY_COUNTRY_CODES = {
     "IL", "ZA", "NG", "AU",
 }
 FUNCTIONAL_NODE_GROUPS = set(FUNCTIONAL_NODE_GROUP_NAMES)
-REGION_GROUPS = {
-    "🌏 亚洲国家": {"🇭🇰 香港", "🇹🇼 台湾", "🇯🇵 日本", "🇸🇬 新加坡", "🇰🇷 韩国", "🇮🇳 印度", "🇻🇳 越南", "🇹🇭 泰国", "🇲🇾 马来西亚", "🇵🇭 菲律宾", "🇮🇩 印度尼西亚", "🇲🇲 缅甸", "🇵🇰 巴基斯坦"},
-    "🇪🇺 欧洲国家": {"🇬🇧 英国", "🇩🇪 德国", "🇫🇷 法国", "🇳🇱 荷兰", "🇪🇸 西班牙", "🇨🇭 瑞士", "🇸🇪 瑞典", "🇷🇺 俄罗斯", "🇹🇷 土耳其", "🇬🇷 希腊", "🇳🇴 挪威"},
-    "🌎 美洲国家": {"🇺🇸 美国", "🇨🇦 加拿大", "🇲🇽 墨西哥", "🇧🇷 巴西", "🇨🇱 智利", "🇨🇴 哥伦比亚"},
-    "🌍 中东非洲": {"🇦🇪 阿联酋", "🇸🇦 沙特阿拉伯", "🇮🇱 以色列", "🇿🇦 南非", "🇳🇬 尼日利亚"},
-    "🌊 大洋洲": {"🇦🇺 澳大利亚"},
-}
+REGION_GROUPS = {}
 REQUIRED_URL_TEST_GROUPS = {"♻️ 自动选择", "🛟 稳定自动"} | COUNTRY_GROUPS | FUNCTIONAL_NODE_GROUPS
+EXPECTED_URL_TEST_URLS = {
+    "🎬 流媒体节点": "https://www.netflix.com/",
+}
+DEFAULT_URL_TEST_URL = "https://cp.cloudflare.com/generate_204"
 STATUS_FILTER_FRAGMENT = "(剩余流量|重置剩余|下次重置|套餐到期|官网|邮箱|节点异常|刷新订阅|刷新失败|更新失败|取消订阅时限)"
 GEO_CHECK_GROUP = "🔬 节点归属校验"
 COUNTRY_NODE_FIXTURES = {
     "🇭🇰 香港": "🇭🇰香港 01", "🇹🇼 台湾": "🇨🇳台湾 01",
     "🇯🇵 日本": "Tokyo-01", "🇸🇬 新加坡": "SG 01", "🇰🇷 韩国": "🇰🇷韩国 01",
-    "🇮🇳 印度": "🇮🇳印度 01", "🇻🇳 越南": "🇻🇳越南 01", "🇹🇭 泰国": "🇹🇭泰国 01",
-    "🇲🇾 马来西亚": "🇲🇾马来西亚 01", "🇵🇭 菲律宾": "🇵🇭菲律宾 01",
-    "🇮🇩 印度尼西亚": "🇮🇩印度尼西亚 01", "🇲🇲 缅甸": "🇲🇲缅甸 01",
-    "🇵🇰 巴基斯坦": "🇵🇰巴基斯坦 01", "🇬🇧 英国": "London-01",
-    "🇩🇪 德国": "🇩🇪德国 01", "🇫🇷 法国": "🇫🇷法国 01", "🇳🇱 荷兰": "🇳🇱荷兰 01",
-    "🇪🇸 西班牙": "🇪🇸西班牙 01", "🇨🇭 瑞士": "🇨🇭瑞士 01",
-    "🇸🇪 瑞典": "🇸🇪瑞典 01", "🇷🇺 俄罗斯": "Moscow-01",
-    "🇹🇷 土耳其": "🇹🇷土耳其 01", "🇬🇷 希腊": "🇬🇷希腊 01",
-    "🇳🇴 挪威": "🇳🇴挪威 01", "🇺🇸 美国": "New York 01",
-    "🇨🇦 加拿大": "🇨🇦加拿大 01", "🇲🇽 墨西哥": "🇲🇽墨西哥 01",
-    "🇧🇷 巴西": "São Paulo 01", "🇨🇱 智利": "🇨🇱智利 01",
-    "🇨🇴 哥伦比亚": "Bogotá-01", "🇦🇪 阿联酋": "UAE-01",
-    "🇸🇦 沙特阿拉伯": "🇸🇦沙特 01", "🇮🇱 以色列": "🇮🇱以色列 01",
-    "🇿🇦 南非": "🇿🇦南非 01", "🇳🇬 尼日利亚": "🇳🇬尼日利亚 01",
-    "🇦🇺 澳大利亚": "Sydney-01",
+    "🇬🇧 英国": "London-01", "🇩🇪 德国": "🇩🇪德国 01",
+    "🇺🇸 美国": "New York 01",
 }
 FUNCTIONAL_NODE_FIXTURES = {
     "⚡ 专线节点": "🇭🇰香港 IEPL 01",
@@ -159,6 +145,13 @@ REQUIRED_DIRECT_EXCEPTIONS = {
     "'+.12321.cn'",
     "'+.12306.cn'",
     "'+.chsi.com.cn'",
+    "'+.amd.com'",
+    "'+.amd.com.cn'",
+    "'+.6wz.net'",
+    "'+.kefu.me'",
+    "'+.52ojk.com'",
+    "'+.lla8.com'",
+    "'+.6ta.net'",
 }
 REQUIRED_RULE_FILES = {
     "bank-cn.yaml",
@@ -210,7 +203,7 @@ REQUIRED_RULE_FILE_ENTRIES = {
 EXPECTED_DEFAULT_TARGETS = {
     "🏠 本地网络": "DIRECT",
     "🌐 联网检测": "DIRECT",
-    "🧠 人工智能": "🔒 隐私代理",
+    "🧠 人工智能": "🇸🇬 新加坡",
     "📞 即时通讯": "🔒 隐私代理",
     "💬 社交平台": "🔒 隐私代理",
     "🌐 Meta 平台": "💬 社交平台",
@@ -231,6 +224,12 @@ EXPECTED_DEFAULT_TARGETS = {
     "🚫 广告拦截": "REJECT",
     "📦 笔记协作（Notion）": "☁️ 云端办公",
     "🤖 对话助手（ChatGPT）": "🧠 人工智能",
+    "🟠 对话助手（Claude）": "🧠 人工智能",
+    "🔵 对话助手（Gemini）": "🧠 人工智能",
+    "⚫ 对话助手（Grok）": "🧠 人工智能",
+    "🔎 智能搜索（Perplexity）": "🧠 人工智能",
+    "🪟 办公助手（Microsoft Copilot）": "🧠 人工智能",
+    "🧑‍💻 编程助手（GitHub Copilot）": "💻 开发服务",
     "📨 电报通讯（Telegram）": "📞 即时通讯",
     "💬 聊天社区（Discord）": "📞 即时通讯",
     "🟢 通讯工具（WhatsApp）": "📞 即时通讯",
@@ -241,7 +240,7 @@ EXPECTED_DEFAULT_TARGETS = {
     "👥 社交平台（Facebook）": "💬 社交平台",
     "🗨️ 社区论坛（Reddit）": "💬 社交平台",
     "🎬 视频平台（YouTube）": "🎞️ 海外影音",
-    "🎥 流媒体（Netflix）": "🎞️ 海外影音",
+    "🎥 流媒体（Netflix）": "🎬 流媒体节点",
     "🎵 短视频（TikTok）": "🎞️ 海外影音",
     "🏰 流媒体（Disney+）": "🎞️ 海外影音",
     "📺 流媒体（HBO）": "🎞️ 海外影音",
@@ -274,6 +273,12 @@ EXPECTED_DEFAULT_TARGETS = {
 }
 FIRST_MATCH_ORDER = (
     ("ruleset=🤖 对话助手（ChatGPT）,[]GEOSITE,openai", "ruleset=🧠 人工智能,[]GEOSITE,category-ai-!cn"),
+    ("ruleset=🟠 对话助手（Claude）,[]DOMAIN-SUFFIX,anthropic.com", "ruleset=🧠 人工智能,[]GEOSITE,category-ai-!cn"),
+    ("ruleset=🔵 对话助手（Gemini）,[]DOMAIN,generativelanguage.googleapis.com", "ruleset=🧠 人工智能,[]GEOSITE,category-ai-!cn"),
+    ("ruleset=⚫ 对话助手（Grok）,[]DOMAIN-SUFFIX,x.ai", "ruleset=🧠 人工智能,[]GEOSITE,category-ai-!cn"),
+    ("ruleset=🔎 智能搜索（Perplexity）,[]DOMAIN-SUFFIX,perplexity.ai", "ruleset=🧠 人工智能,[]GEOSITE,category-ai-!cn"),
+    ("ruleset=🪟 办公助手（Microsoft Copilot）,[]DOMAIN,copilot.cloud.microsoft", "ruleset=🪟 微软服务（Microsoft）,[]GEOSITE,microsoft"),
+    ("ruleset=🧑‍💻 编程助手（GitHub Copilot）,[]DOMAIN-SUFFIX,githubcopilot.com", "ruleset=🛠️ 代码托管（GitHub）,[]GEOSITE,github"),
     ("ruleset=📨 电报通讯（Telegram）,[]GEOSITE,telegram", "ruleset=📞 即时通讯,[]GEOSITE,category-communication"),
     ("ruleset=📸 图片社交（Instagram）,[]GEOSITE,instagram", "ruleset=💬 社交平台,[]GEOSITE,category-social-media-!cn"),
     ("ruleset=🎥 流媒体（Netflix）,[]GEOSITE,netflix", "ruleset=🎞️ 海外影音,[]GEOSITE,category-entertainment"),
@@ -292,6 +297,8 @@ FIRST_MATCH_ORDER = (
 )
 
 REQUIRED_PRECISION_RULES = {
+    "ruleset=DIRECT,[]DOMAIN,developer.amd.com.cn",
+    "ruleset=DIRECT,[]DOMAIN-SUFFIX,cn",
     "ruleset=🏠 本地网络,[]DOMAIN,localhost",
     "ruleset=🏠 本地网络,[]DOMAIN-SUFFIX,home.arpa",
     "ruleset=🏠 本地网络,[]IP-CIDR,10.0.0.0/8,no-resolve",
@@ -303,6 +310,12 @@ REQUIRED_PRECISION_RULES = {
     "ruleset=🎥 流媒体（Netflix）,clash-classic:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/netflix-ip-asn.yaml,86400",
     "ruleset=🍎 苹果服务（Apple）,clash-classic:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/apple-ip-asn.yaml,86400",
     "ruleset=🔎 谷歌服务（Google）,clash-classic:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/google-ip-asn.yaml,86400",
+    "ruleset=🟠 对话助手（Claude）,[]DOMAIN-SUFFIX,anthropic.com",
+    "ruleset=🔵 对话助手（Gemini）,[]DOMAIN,generativelanguage.googleapis.com",
+    "ruleset=⚫ 对话助手（Grok）,[]DOMAIN-SUFFIX,x.ai",
+    "ruleset=🔎 智能搜索（Perplexity）,[]DOMAIN-SUFFIX,perplexity.ai",
+    "ruleset=🪟 办公助手（Microsoft Copilot）,[]DOMAIN,copilot.cloud.microsoft",
+    "ruleset=🧑‍💻 编程助手（GitHub Copilot）,[]DOMAIN-SUFFIX,githubcopilot.com",
 }
 
 WEBRTC_LOGIC_RULES = {
@@ -396,10 +409,11 @@ def validate_config(errors: list[str]) -> None:
             item for item in group_lines if item.startswith(f"custom_proxy_group={name}`")
         )
         fields = line.split("`")
-        if len(fields) < 5 or "https://cp.cloudflare.com/generate_204" not in fields:
-            errors.append(f"{name} 必须使用 Cloudflare HTTPS 测速地址")
-        if not fields[-1].endswith("120,,10"):
-            errors.append(f"{name} 必须使用 120 秒间隔和 10 ms 容差")
+        expected_url = EXPECTED_URL_TEST_URLS.get(name, DEFAULT_URL_TEST_URL)
+        if len(fields) < 5 or expected_url not in fields:
+            errors.append(f"{name} 必须使用测速地址 {expected_url}")
+        if not fields[-1].endswith("300,,100"):
+            errors.append(f"{name} 必须使用 300 秒间隔和 100 ms 容差")
 
     for name in sorted(COUNTRY_GROUPS | FUNCTIONAL_NODE_GROUPS):
         line = next(
@@ -571,44 +585,23 @@ def validate_config(errors: list[str]) -> None:
         ordered_references = [
             target.strip() for target in group_reference.findall(line)
         ]
-        references = set(ordered_references)
-        missing = [
-            target
-            for target in BUSINESS_STRATEGY_CHOICES
-            if target not in references
-        ]
-        if missing:
-            errors.append(
-                f"业务策略组 {name} 未显示全部节点类代理组："
-                + ", ".join(missing)
-            )
-
         default_target = EXPECTED_DEFAULT_TARGETS[name]
-        expected_front = list(
-            dict.fromkeys([default_target, *BUSINESS_BUILTIN_CHOICES])
-        )
-        if ordered_references[: len(expected_front)] != expected_front:
+        if not ordered_references or ordered_references[0] != default_target:
             errors.append(
-                f"策略组 {name} 前置顺序应为："
-                + " → ".join(expected_front)
+                f"策略组 {name} 第一选项应为默认策略：{default_target}"
             )
-
-        actual_proxy_order = [
-            target
-            for target in ordered_references
-            if target in BUSINESS_PROXY_GROUP_CHOICES
-        ]
-        expected_proxy_order = list(
-            dict.fromkeys(
-                ([default_target] if default_target in BUSINESS_PROXY_GROUP_CHOICES else [])
-                + list(BUSINESS_PROXY_GROUP_CHOICES)
+        if len(ordered_references) != len(set(ordered_references)):
+            errors.append(f"业务策略组 {name} 存在重复选项")
+        expected_menu = list(
+            CONTROL_GROUP_MENUS.get(
+                name,
+                tuple(dict.fromkeys([default_target, *STANDARD_BUSINESS_MENU_CHOICES])),
             )
         )
-        if actual_proxy_order != expected_proxy_order:
-            errors.append(f"策略组 {name} 的代理组顺序不统一")
-
-    if BUSINESS_BUILTIN_CHOICES != ("DIRECT", "REJECT"):
-        errors.append("业务策略组必须按 DIRECT、REJECT 顺序补齐内置策略")
+        if ordered_references != expected_menu:
+            errors.append(
+                f"业务策略组 {name} 未按统一直观菜单生成"
+            )
 
     missing_precision_rules = sorted(REQUIRED_PRECISION_RULES - set(lines))
     if missing_precision_rules:
@@ -756,7 +749,7 @@ def validate_overwrite(errors: list[str]) -> None:
         "[YAML]",
         "<proxy-groups>*:",
         "type: smart",
-        "interval: 120",
+        "interval: 300",
         "tolerance: 100",
         "timeout: 5000",
         "max-failed-times: 2",
@@ -786,14 +779,16 @@ def validate_runtime_group_filter(errors: list[str]) -> None:
     required_files = {
         RUNTIME_PATCH: (
             "empty_proxy_choices",
+            "provider_node_names",
+            'group["filter"]',
             'group["proxies"] << "REJECT"',
-            "choices.replace",
-            "reordered_group_count",
+            "business group has no available choice",
             "dashboard_reordered_group_count",
         ),
         RUNTIME_HOOK: (
             "jydn_patch_runtime_groups.rb",
             "jydn_business_group_catalog.json",
+            "[信息] Jydn group filter",
         ),
     }
     for path, markers in required_files.items():
