@@ -1,0 +1,35 @@
+name: lan-center
+
+services:
+  failover:
+    build: ./failover
+    image: lan-center-failover:1
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DRY_RUN: "1"
+    volumes:
+      - ./data/failover:/data
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /data/health"]
+      interval: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 64M
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    environment:
+      NODE_OPTIONS: "--max-http-header-size=65536"
+    ports:
+      - "3101:3001"
+    volumes:
+      - ./data/uptime-kuma:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
