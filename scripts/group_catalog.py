@@ -176,6 +176,15 @@ STANDARD_BUSINESS_MENU_CHOICES = (
     "REJECT",
 )
 
+# Preserve the broader functional parent as an explicit manual escape hatch
+# when a business-specific pool becomes the new default.  These entries appear
+# directly after the default and before the common controls.
+BUSINESS_ADDITIONAL_MENU_CHOICES = {
+    "🤖 对话助手（ChatGPT）": ("🧠 人工智能",),
+    "🟠 对话助手（Claude）": ("🧠 人工智能",),
+    "🔵 对话助手（Gemini）": ("🧠 人工智能",),
+}
+
 # Infrastructure controls are not ordinary service menus. Keep them compact so
 # a country override cannot accidentally send LAN addresses through a remote
 # node or make operating-system connectivity checks report a false outage.

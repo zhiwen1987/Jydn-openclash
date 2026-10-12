@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from group_catalog import (
+    BUSINESS_ADDITIONAL_MENU_CHOICES,
     BUSINESS_BUILTIN_CHOICES,
     BUSINESS_PROXY_GROUP_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
@@ -157,7 +158,11 @@ def normalize_business_proxy_choices(text: str) -> str:
             ordered_choices = list(CONTROL_GROUP_MENUS[name])
         else:
             ordered_choices = ordered_unique(
-                [default_choice, *STANDARD_BUSINESS_MENU_CHOICES]
+                [
+                    default_choice,
+                    *BUSINESS_ADDITIONAL_MENU_CHOICES.get(name, ()),
+                    *STANDARD_BUSINESS_MENU_CHOICES,
+                ]
             )
         if name in ordered_choices:
             raise RuntimeError(f"业务策略组不能引用自身：{name}")

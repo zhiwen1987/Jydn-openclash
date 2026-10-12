@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from group_catalog import (
+    BUSINESS_ADDITIONAL_MENU_CHOICES,
     BUSINESS_BUILTIN_CHOICES,
     BUSINESS_PROXY_GROUP_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
@@ -631,7 +632,15 @@ def validate_config(errors: list[str]) -> None:
         expected_menu = list(
             CONTROL_GROUP_MENUS.get(
                 name,
-                tuple(dict.fromkeys([default_target, *STANDARD_BUSINESS_MENU_CHOICES])),
+                tuple(
+                    dict.fromkeys(
+                        [
+                            default_target,
+                            *BUSINESS_ADDITIONAL_MENU_CHOICES.get(name, ()),
+                            *STANDARD_BUSINESS_MENU_CHOICES,
+                        ]
+                    )
+                ),
             )
         )
         if ordered_references != expected_menu:
