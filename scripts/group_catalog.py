@@ -98,6 +98,17 @@ FUNCTIONAL_NODE_GROUPS = (
     "🌍 其他地区",
 )
 
+# Business-aware automatic pools probe the real service instead of inferring
+# availability from a generic latency endpoint.  They are intentionally kept
+# separate from the business selectors so a user can still override one
+# service without changing the shared AI or streaming parent policy.
+CAPABILITY_NODE_GROUPS = (
+    "🤖 ChatGPT 专用节点池",
+    "🟠 Claude 专用节点池",
+    "🔵 Gemini 专用节点池",
+    "🎥 Netflix 专用节点池",
+)
+
 # Business selectors are ordered for this mainland-China one-arm-router setup:
 # stable/common exits first, nearby locations next, then regional navigation
 # and long-distance country choices. "Other regions" remains the final proxy
@@ -218,6 +229,8 @@ DASHBOARD_NODE_GROUPS = (
     FUNCTIONAL_NODE_GROUPS[-1],
 )
 
+DASHBOARD_CAPABILITY_GROUPS = CAPABILITY_NODE_GROUPS
+
 DASHBOARD_ADVANCED_GROUPS = (
     "🔬 节点归属校验",
     "🇸🇬 指定新加坡",
@@ -231,6 +244,7 @@ DASHBOARD_PROXY_GROUP_ORDER = (
     *DASHBOARD_COMMON_GROUPS,
     *LOCAL_BUSINESS_GROUPS,
     *OTHER_BUSINESS_GROUPS,
+    *DASHBOARD_CAPABILITY_GROUPS,
     *DASHBOARD_NODE_GROUPS,
     *DASHBOARD_ADVANCED_GROUPS,
 )

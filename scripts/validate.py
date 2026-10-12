@@ -8,6 +8,7 @@ from group_catalog import (
     BUSINESS_BUILTIN_CHOICES,
     BUSINESS_PROXY_GROUP_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
+    CAPABILITY_NODE_GROUPS as CAPABILITY_NODE_GROUP_NAMES,
     COUNTRY_NODE_GROUPS,
     CONTROL_GROUP_MENUS,
     DASHBOARD_PROXY_GROUP_ORDER,
@@ -33,12 +34,24 @@ LEGACY_COUNTRY_CODES = {
     "IL", "ZA", "NG", "AU",
 }
 FUNCTIONAL_NODE_GROUPS = set(FUNCTIONAL_NODE_GROUP_NAMES)
+CAPABILITY_NODE_GROUPS = set(CAPABILITY_NODE_GROUP_NAMES)
 REGION_GROUPS = {}
-REQUIRED_URL_TEST_GROUPS = {"♻️ 自动选择", "🛟 稳定自动"} | COUNTRY_GROUPS | FUNCTIONAL_NODE_GROUPS
+REQUIRED_URL_TEST_GROUPS = (
+    {"♻️ 自动选择", "🛟 稳定自动"}
+    | COUNTRY_GROUPS
+    | FUNCTIONAL_NODE_GROUPS
+    | CAPABILITY_NODE_GROUPS
+)
 EXPECTED_URL_TEST_URLS = {
     "🎬 流媒体节点": "https://www.netflix.com/",
+    "🤖 ChatGPT 专用节点池": "https://chatgpt.com/cdn-cgi/trace",
+    "🟠 Claude 专用节点池": "https://claude.ai/favicon.ico",
+    "🔵 Gemini 专用节点池": "https://gemini.google.com/",
+    "🎥 Netflix 专用节点池": "https://www.netflix.com/",
 }
 DEFAULT_URL_TEST_URL = "https://cp.cloudflare.com/generate_204"
+CAPABILITY_TEST_INTERVAL = 900
+DEFAULT_TEST_INTERVAL = 300
 STATUS_FILTER_FRAGMENT = "(剩余流量|重置剩余|下次重置|套餐到期|官网|邮箱|节点异常|刷新订阅|刷新失败|更新失败|取消订阅时限)"
 GEO_CHECK_GROUP = "🔬 节点归属校验"
 COUNTRY_NODE_FIXTURES = {
@@ -223,9 +236,9 @@ EXPECTED_DEFAULT_TARGETS = {
     "⬇️ 游戏下载": "DIRECT",
     "🚫 广告拦截": "REJECT",
     "📦 笔记协作（Notion）": "☁️ 云端办公",
-    "🤖 对话助手（ChatGPT）": "🧠 人工智能",
-    "🟠 对话助手（Claude）": "🧠 人工智能",
-    "🔵 对话助手（Gemini）": "🧠 人工智能",
+    "🤖 对话助手（ChatGPT）": "🤖 ChatGPT 专用节点池",
+    "🟠 对话助手（Claude）": "🟠 Claude 专用节点池",
+    "🔵 对话助手（Gemini）": "🔵 Gemini 专用节点池",
     "⚫ 对话助手（Grok）": "🧠 人工智能",
     "🔎 智能搜索（Perplexity）": "🧠 人工智能",
     "🪟 办公助手（Microsoft Copilot）": "🧠 人工智能",
@@ -240,7 +253,7 @@ EXPECTED_DEFAULT_TARGETS = {
     "👥 社交平台（Facebook）": "💬 社交平台",
     "🗨️ 社区论坛（Reddit）": "💬 社交平台",
     "🎬 视频平台（YouTube）": "🎞️ 海外影音",
-    "🎥 流媒体（Netflix）": "🎬 流媒体节点",
+    "🎥 流媒体（Netflix）": "🎥 Netflix 专用节点池",
     "🎵 短视频（TikTok）": "🎞️ 海外影音",
     "🏰 流媒体（Disney+）": "🎞️ 海外影音",
     "📺 流媒体（HBO）": "🎞️ 海外影音",
@@ -412,8 +425,15 @@ def validate_config(errors: list[str]) -> None:
         expected_url = EXPECTED_URL_TEST_URLS.get(name, DEFAULT_URL_TEST_URL)
         if len(fields) < 5 or expected_url not in fields:
             errors.append(f"{name} 必须使用测速地址 {expected_url}")
-        if not fields[-1].endswith("300,,100"):
-            errors.append(f"{name} 必须使用 300 秒间隔和 100 ms 容差")
+        expected_interval = (
+            CAPABILITY_TEST_INTERVAL
+            if name in CAPABILITY_NODE_GROUPS
+            else DEFAULT_TEST_INTERVAL
+        )
+        if not fields[-1].endswith(f"{expected_interval},,100"):
+            errors.append(
+                f"{name} 必须使用 {expected_interval} 秒间隔和 100 ms 容差"
+            )
 
     for name in sorted(COUNTRY_GROUPS | FUNCTIONAL_NODE_GROUPS):
         line = next(
@@ -422,6 +442,17 @@ def validate_config(errors: list[str]) -> None:
         )
         if line is not None and "`[]REJECT`" not in line:
             errors.append(f"叶子节点组 {name} 必须用 REJECT 防止空组回退 DIRECT")
+
+    for name in sorted(CAPABILITY_NODE_GROUPS):
+        line = group_definitions.get(name)
+        if line is None:
+            continue
+        if "`[]🛟 稳定自动`" not in line:
+            errors.append(f"业务专用节点池 {name} 必须以稳定自动作为非直连兜底")
+        if "`[]DIRECT`" in line:
+            errors.append(f"业务专用节点池 {name} 不得回退 DIRECT")
+        if STATUS_FILTER_FRAGMENT not in line:
+            errors.append(f"业务专用节点池 {name} 缺少订阅提示过滤")
 
     for region, members in REGION_GROUPS.items():
         line = next(
@@ -519,7 +550,12 @@ def validate_config(errors: list[str]) -> None:
             errors.append(f"实用节点分类错误：{node} 未进入 {expected}")
 
     for node in STATUS_PSEUDO_NODES:
-        for name in ("🧭 手动选择", "♻️ 自动选择", "🌍 其他地区"):
+        for name in (
+            "🧭 手动选择",
+            "♻️ 自动选择",
+            "🌍 其他地区",
+            *CAPABILITY_NODE_GROUP_NAMES,
+        ):
             pattern = compiled_filters.get(name)
             if pattern is not None and pattern.search(node):
                 errors.append(f"订阅提示误入节点池 {name}：{node}")

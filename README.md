@@ -4,6 +4,8 @@
 
 > 这套方案能降低公网出口、DNS 和常见 WebRTC 路径暴露中国网络位置的风险，但不能隐藏账号地区、SIM/GPS、时区、语言、Cookie 或浏览器指纹。
 
+> 当前 `codex/r4-ha` 是离线候选版，尚未部署到生产旁路由。设计边界、灰度步骤和回滚门槛见 [`docs/precise-stable-r4-ha-design.md`](docs/precise-stable-r4-ha-design.md) 与 [`docs/precise-stable-r4-ha-acceptance.md`](docs/precise-stable-r4-ha-acceptance.md)。
+
 ## 地址速查
 
 | 用途 | 地址 |
@@ -17,15 +19,15 @@
 
 ## 主要功能
 
-- 精准稳定版生成 95 个策略/节点组；其中只有 15 个自动节点池：两组全局池、当前双订阅实际存在的 8 个国家/地区组，以及 5 个实用/其他组。未来出现的新地区由全局池和“其他地区”承接，不再为不存在的国家持续生成空测速组。
+- R4-HA 候选版生成 99 个策略/节点组；其中 19 个自动节点池：两组全局池、当前双订阅实际存在的 8 个国家/地区组、5 个实用/其他组，以及 4 个真实业务探测池。未来出现的新地区由全局池和“其他地区”承接，不再为不存在的国家持续生成空测速组。
 - Zashboard 的国家节点组统一使用中文名称，并提供亚洲、欧洲、美洲、中东非洲和大洋洲五个上层导航组；应用策略组使用“中文功能名（品牌名）”，兼顾可读性和品牌识别。
 - 所有功能父组和具体业务组保留原默认策略为第一项，并统一显示 `DIRECT`、隐私代理、稳定自动、自动选择、手动选择、八个国家组、流媒体节点和 `REJECT`，便于在任意业务页面直接切换。本地网络、联网检测和广告拦截属于基础安全控制，保持精简菜单，避免误选国家节点导致局域网不可达或系统误报断网。运行期脚本仅删除确实为空的节点组引用；统计信息统一按“信息”写入 OpenClash 日志，避免正常计数被 LuCI 误标成严重错误。
 - Zashboard“代理组”页面上方标记为“节点组”的外层卡片，按本地使用频率排序：稳定/隐私/手动/自动等常用入口 → 本地与国内业务 → 通用海外与品牌细分 → 线路/国家/地区节点组 → 诊断和高级组。运行期对最终 YAML 的 `proxy-groups` 数组重排，使 Mihomo `GLOBAL` 中的顺序与 Zashboard“节点组”卡片一致。
 - 国家及线路叶子组使用 `REJECT` 作为空组安全兜底；`🧭 手动选择` 使用 `🛟 稳定自动` 作为可用性兜底。所有全局节点池都会过滤流量、到期、官网和订阅刷新提示。
 - 节点国家校验优先让真实流量逐节点经过 `country.is`、`ipwho.is`、`IP.SB`、`countries.dev` 和 Cloudflare：只有成功来源中的严格多数、且至少两个来源返回相同 ISO 国家代码才采用在线结果；无法形成多数时才按国旗、国家、城市或代码名称降级判断。
-- 自动组默认使用 Cloudflare HTTPS 探测地址；`🎬 流媒体节点` 使用 Netflix HTTPS 首页验证真实业务连通性，避免通用测速正常但 Netflix 被节点阻断。测试间隔统一为 300 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`。
+- 常规自动组使用 Cloudflare HTTPS 探测地址，间隔 300 秒；ChatGPT、Claude、Gemini、Netflix 四个专用节点池分别使用对应业务 HTTPS 入口，间隔 900 秒。全部使用 `100 ms` 容差，专用池只回退到 `🛟 稳定自动`，绝不回退 DIRECT。
 - `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
-- 海外功能父组默认通过 `🔒 隐私代理` 出站；人工智能根据生产沙箱实测默认进入新加坡自动池，避免通用低延迟节点无法访问特定 AI 服务。品牌子组默认继承父组，并保留按国家或节点单独改路由的入口。`🔒 隐私代理` 只指向 `🛟 稳定自动`。
+- 海外功能父组默认通过 `🔒 隐私代理` 出站；ChatGPT、Claude、Gemini 和 Netflix 默认进入自己的业务探测池，避免通用低延迟节点无法访问特定服务。其他 AI 品牌仍继承人工智能父组。每个品牌组保留按国家或节点单独改路由的入口，`🔒 隐私代理` 只指向 `🛟 稳定自动`。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
 - `🏠 本地网络` 用精确域名、域名后缀、`IP-CIDR` / `IP-CIDR6` 和 private GEO 双重保护局域网，默认直连。
 - `🌐 联网检测` 使用 classical `RULE-SET`，组合 `DOMAIN`、`DOMAIN-SUFFIX`、`DOMAIN-KEYWORD`、`DOMAIN-WILDCARD`、`DOMAIN-REGEX` 和 NTP 端口逻辑，降低系统误报断网的概率。
@@ -42,10 +44,10 @@
 
 规则按“具体品牌 → 功能分类 → 国内/海外兜底”的顺序匹配：
 
-- AI：ChatGPT、Claude、Gemini、Grok、Perplexity、Microsoft Copilot → 人工智能 → 新加坡自动池；GitHub Copilot 默认继承开发服务。
+- AI：ChatGPT、Claude、Gemini → 各自专用节点池；Grok、Perplexity、Microsoft Copilot → 人工智能 → 新加坡自动池；GitHub Copilot 默认继承开发服务。
 - 通讯：Telegram、Discord、WhatsApp、Signal、LINE → 即时通讯 → 隐私代理。
 - 社交：Instagram、X、Facebook、Reddit → 社交平台 → 隐私代理。
-- 影音：Netflix → 流媒体节点；YouTube、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
+- 影音：Netflix → Netflix 专用节点池；YouTube、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
 - 开发：GitHub、GitLab、Docker、NPM → 开发服务 → 隐私代理；PyPI、Linux 软件源和镜像站由 `rules/development.yaml` 补齐。
 - 游戏：Steam、Epic、Xbox、PlayStation、Nintendo → 游戏服务；游戏下载单独默认直连。
 - 支付交易：PayPal、Wise → 海外支付；OKX、Binance、Bybit → 数字货币；默认进入手选节点。
@@ -97,10 +99,10 @@
 ### 3. alpha-smart 与最低延迟
 
 - **插件设置 → 版本更新 → Smart 内核**：启用。
-- **覆写设置 → Smart 设置 → Smart 策略自动切换**：启用时，15 个 `url-test` 节点池会在运行时转换为 Smart。未选中的组保持懒检测，避免所有节点池同时测速。
+- **覆写设置 → Smart 设置 → Smart 策略自动切换**：启用时，19 个 `url-test` 节点池会在运行时转换为 Smart。未选中的组保持懒检测，避免所有节点池同时测速。
 - 启用 LightGBM 和模型自动更新，更新间隔设为 72 小时；关闭训练数据采集，避免生成 100 MB CSV 和持续磁盘写入。
 - **Policy Priority** 设为 `0`（不加权），避免地区名称权重长期压过实际延迟和可用性；关闭 Prefer-ASN，减少首次访问前的强制解析。
-- Smart 容差设为 `100 ms`，使用 300 秒健康检查、5 秒超时、失败阈值 `2` 和 HTTP `204` 校验。Smart 还会依据真实目标的连接失败记录重新选路，不只依赖单一测速 URL。
+- Smart 容差设为 `100 ms`；常规池使用 300 秒健康检查，业务专用池使用 900 秒低频检查以降低风控和限流概率。Smart 还会依据真实目标的连接失败记录重新选路，不只依赖单一测速 URL。
 
 ## 仓库结构与生成方式
 
