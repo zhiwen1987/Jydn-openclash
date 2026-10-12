@@ -33,6 +33,10 @@ LEGACY_COUNTRY_CODES = {
 FUNCTIONAL_NODE_GROUPS = set(FUNCTIONAL_NODE_GROUP_NAMES)
 REGION_GROUPS = {}
 REQUIRED_URL_TEST_GROUPS = {"♻️ 自动选择", "🛟 稳定自动"} | COUNTRY_GROUPS | FUNCTIONAL_NODE_GROUPS
+EXPECTED_URL_TEST_URLS = {
+    "🎬 流媒体节点": "https://www.netflix.com/",
+}
+DEFAULT_URL_TEST_URL = "https://cp.cloudflare.com/generate_204"
 STATUS_FILTER_FRAGMENT = "(剩余流量|重置剩余|下次重置|套餐到期|官网|邮箱|节点异常|刷新订阅|刷新失败|更新失败|取消订阅时限)"
 GEO_CHECK_GROUP = "🔬 节点归属校验"
 COUNTRY_NODE_FIXTURES = {
@@ -234,7 +238,7 @@ EXPECTED_DEFAULT_TARGETS = {
     "👥 社交平台（Facebook）": "💬 社交平台",
     "🗨️ 社区论坛（Reddit）": "💬 社交平台",
     "🎬 视频平台（YouTube）": "🎞️ 海外影音",
-    "🎥 流媒体（Netflix）": "🎞️ 海外影音",
+    "🎥 流媒体（Netflix）": "🎬 流媒体节点",
     "🎵 短视频（TikTok）": "🎞️ 海外影音",
     "🏰 流媒体（Disney+）": "🎞️ 海外影音",
     "📺 流媒体（HBO）": "🎞️ 海外影音",
@@ -403,8 +407,9 @@ def validate_config(errors: list[str]) -> None:
             item for item in group_lines if item.startswith(f"custom_proxy_group={name}`")
         )
         fields = line.split("`")
-        if len(fields) < 5 or "https://cp.cloudflare.com/generate_204" not in fields:
-            errors.append(f"{name} 必须使用 Cloudflare HTTPS 测速地址")
+        expected_url = EXPECTED_URL_TEST_URLS.get(name, DEFAULT_URL_TEST_URL)
+        if len(fields) < 5 or expected_url not in fields:
+            errors.append(f"{name} 必须使用测速地址 {expected_url}")
         if not fields[-1].endswith("300,,100"):
             errors.append(f"{name} 必须使用 300 秒间隔和 100 ms 容差")
 

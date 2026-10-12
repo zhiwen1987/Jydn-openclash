@@ -23,7 +23,7 @@
 - Zashboard“代理组”页面上方标记为“节点组”的外层卡片，按本地使用频率排序：稳定/隐私/手动/自动等常用入口 → 本地与国内业务 → 通用海外与品牌细分 → 线路/国家/地区节点组 → 诊断和高级组。运行期对最终 YAML 的 `proxy-groups` 数组重排，使 Mihomo `GLOBAL` 中的顺序与 Zashboard“节点组”卡片一致。
 - 国家及线路叶子组使用 `REJECT` 作为空组安全兜底；`🧭 手动选择` 使用 `🛟 稳定自动` 作为可用性兜底。所有全局节点池都会过滤流量、到期、官网和订阅刷新提示。
 - 节点国家校验优先让真实流量逐节点经过 `country.is`、`ipwho.is`、`IP.SB`、`countries.dev` 和 Cloudflare：只有成功来源中的严格多数、且至少两个来源返回相同 ISO 国家代码才采用在线结果；无法形成多数时才按国旗、国家、城市或代码名称降级判断。
-- 所有自动组使用 Cloudflare HTTPS 探测地址，测试间隔 300 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`，并要求 HTTP 状态 `204`，减少生产网络中的频繁重测与出口抖动。
+- 自动组默认使用 Cloudflare HTTPS 探测地址；`🎬 流媒体节点` 使用 Netflix HTTPS 首页验证真实业务连通性，避免通用测速正常但 Netflix 被节点阻断。测试间隔统一为 300 秒、容差 `100 ms`、超时 5 秒、失败阈值 `2`。
 - `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
 - 海外功能父组默认通过 `🔒 隐私代理` 出站；品牌子组默认继承父组，并保留按国家或节点单独改路由的入口。`🔒 隐私代理` 只指向 `🛟 稳定自动`。
 - `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
@@ -45,7 +45,7 @@
 - AI：ChatGPT、Claude、Gemini、Grok、Perplexity、Microsoft Copilot → 人工智能 → 隐私代理；GitHub Copilot 默认继承开发服务。
 - 通讯：Telegram、Discord、WhatsApp、Signal、LINE → 即时通讯 → 隐私代理。
 - 社交：Instagram、X、Facebook、Reddit → 社交平台 → 隐私代理。
-- 影音：YouTube、Netflix、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
+- 影音：Netflix → 流媒体节点；YouTube、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
 - 开发：GitHub、GitLab、Docker、NPM → 开发服务 → 隐私代理；PyPI、Linux 软件源和镜像站由 `rules/development.yaml` 补齐。
 - 游戏：Steam、Epic、Xbox、PlayStation、Nintendo → 游戏服务；游戏下载单独默认直连。
 - 支付交易：PayPal、Wise → 海外支付；OKX、Binance、Bybit → 数字货币；默认进入手选节点。
