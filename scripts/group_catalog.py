@@ -144,6 +144,36 @@ BUSINESS_BUILTIN_CHOICES = (
     "REJECT",
 )
 
+# Every business selector exposes the same direct, automatic, manual, country,
+# streaming, and blocking controls. The group's existing first choice remains
+# first so service defaults and parent inheritance never change.
+STANDARD_BUSINESS_MENU_CHOICES = (
+    "DIRECT",
+    "🔒 隐私代理",
+    NODE_SELECTION_GROUPS[0],
+    "♻️ 自动选择",
+    "🧭 手动选择",
+    "🇭🇰 香港",
+    "🇹🇼 台湾",
+    "🇯🇵 日本",
+    "🇸🇬 新加坡",
+    "🇰🇷 韩国",
+    "🇺🇸 美国",
+    "🇬🇧 英国",
+    "🇩🇪 德国",
+    "🎬 流媒体节点",
+    "REJECT",
+)
+
+# Infrastructure controls are not ordinary service menus. Keep them compact so
+# a country override cannot accidentally send LAN addresses through a remote
+# node or make operating-system connectivity checks report a false outage.
+CONTROL_GROUP_MENUS = {
+    "🏠 本地网络": ("DIRECT", "REJECT"),
+    "🌐 联网检测": ("DIRECT", "🔒 隐私代理"),
+    "🚫 广告拦截": ("REJECT", "DIRECT", "🔒 隐私代理"),
+}
+
 BUSINESS_STRATEGY_CHOICES = (
     *BUSINESS_PROXY_GROUP_CHOICES,
     *BUSINESS_BUILTIN_CHOICES,

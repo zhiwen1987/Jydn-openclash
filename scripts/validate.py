@@ -9,8 +9,10 @@ from group_catalog import (
     BUSINESS_PROXY_GROUP_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
     COUNTRY_NODE_GROUPS,
+    CONTROL_GROUP_MENUS,
     DASHBOARD_PROXY_GROUP_ORDER,
     FUNCTIONAL_NODE_GROUPS as FUNCTIONAL_NODE_GROUP_NAMES,
+    STANDARD_BUSINESS_MENU_CHOICES,
 )
 
 
@@ -590,9 +592,15 @@ def validate_config(errors: list[str]) -> None:
             )
         if len(ordered_references) != len(set(ordered_references)):
             errors.append(f"业务策略组 {name} 存在重复选项")
-        if not 2 <= len(ordered_references) <= 8:
+        expected_menu = list(
+            CONTROL_GROUP_MENUS.get(
+                name,
+                tuple(dict.fromkeys([default_target, *STANDARD_BUSINESS_MENU_CHOICES])),
+            )
+        )
+        if ordered_references != expected_menu:
             errors.append(
-                f"业务策略组 {name} 应保持 2-8 个选项，实际 {len(ordered_references)}"
+                f"业务策略组 {name} 未按统一直观菜单生成"
             )
 
     missing_precision_rules = sorted(REQUIRED_PRECISION_RULES - set(lines))

@@ -6,7 +6,9 @@ from group_catalog import (
     BUSINESS_BUILTIN_CHOICES,
     BUSINESS_PROXY_GROUP_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
+    CONTROL_GROUP_MENUS,
     DASHBOARD_PROXY_GROUP_ORDER,
+    STANDARD_BUSINESS_MENU_CHOICES,
 )
 
 
@@ -122,7 +124,7 @@ def ordered_unique(values: list[str] | tuple[str, ...]) -> list[str]:
 
 
 def normalize_business_proxy_choices(text: str) -> str:
-    """Preserve each group's intentionally small menu and remove duplicates."""
+    """Preserve each default and expose one consistent full control menu."""
     business_groups = set(BUSINESS_STRATEGY_GROUPS)
     found: set[str] = set()
     output: list[str] = []
@@ -150,13 +152,15 @@ def normalize_business_proxy_choices(text: str) -> str:
         if not existing_choices:
             raise RuntimeError(f"业务策略组没有默认选项：{name}")
 
-        ordered_choices = ordered_unique(existing_choices)
+        default_choice = existing_choices[0]
+        if name in CONTROL_GROUP_MENUS:
+            ordered_choices = list(CONTROL_GROUP_MENUS[name])
+        else:
+            ordered_choices = ordered_unique(
+                [default_choice, *STANDARD_BUSINESS_MENU_CHOICES]
+            )
         if name in ordered_choices:
             raise RuntimeError(f"业务策略组不能引用自身：{name}")
-        if not 2 <= len(ordered_choices) <= 8:
-            raise RuntimeError(
-                f"业务策略组应保留 2-8 个精简选项：{name}={len(ordered_choices)}"
-            )
         rebuilt = "`".join(
             [fields[0], fields[1]]
             + [f"[]{choice}" for choice in ordered_choices]
