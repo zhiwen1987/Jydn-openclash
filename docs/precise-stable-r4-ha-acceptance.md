@@ -36,7 +36,7 @@
 
 ## 四、灰度切换
 
-1. 预置自动回滚任务；若在规定时间内没有人工确认，恢复 R3 并重启 OpenClash。
+1. 使用 `scripts/openclash_r4_rollback_guard.sh` 预置 30 分钟自动回滚；若在规定时间内没有人工确认，恢复 R3 策略目录与活动配置并重启 OpenClash。
 2. 将活动配置切换到 R4-HA，只重启 OpenClash，不改爱快。
 3. 先验证国内直连、`.cn`、AMD 中国、涂鸦智能和五个指定直连域名。
 4. 再验证 ChatGPT、Claude、Gemini、Netflix，每项连续成功三次。
