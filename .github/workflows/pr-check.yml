@@ -3,6 +3,17 @@ name: PR Build Check
 on:
   pull_request:
     paths:
+      - ".github/workflows/pr-check.yml"
+      - "upstream/metafenliu.ini"
+      - "custom/**"
+      - "rules/**"
+      - "modules/**"
+      - "scripts/**"
+  push:
+    branches:
+      - "codex/**"
+    paths:
+      - ".github/workflows/pr-check.yml"
       - "upstream/metafenliu.ini"
       - "custom/**"
       - "rules/**"
