@@ -12,12 +12,13 @@ profile:
   store-fake-ip: true
 
 # 为转换后的 Smart 组补充健康检查参数和 100 ms 防抖容差。
+# 300 秒检测间隔减少生产网络中的频繁重测与出口抖动。
 # 失败阈值从 Mihomo 默认 5 降为 2，并要求探测端点返回 HTTP 204。
 <proxy-groups>*:
   where:
     type: smart
   set:
-    interval: 120
+    interval: 300
     tolerance: 100
     timeout: 5000
     max-failed-times: 2

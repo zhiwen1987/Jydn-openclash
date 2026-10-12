@@ -5,7 +5,6 @@ from pathlib import Path
 from group_catalog import (
     BUSINESS_BUILTIN_CHOICES,
     BUSINESS_PROXY_GROUP_CHOICES,
-    BUSINESS_STRATEGY_CHOICES,
     BUSINESS_STRATEGY_GROUPS,
     DASHBOARD_PROXY_GROUP_ORDER,
 )
@@ -122,10 +121,9 @@ def ordered_unique(values: list[str] | tuple[str, ...]) -> list[str]:
     return list(dict.fromkeys(values))
 
 
-def order_business_proxy_choices(text: str) -> str:
-    """Keep each default first, then apply one consistent local-network order."""
+def normalize_business_proxy_choices(text: str) -> str:
+    """Preserve each group's intentionally small menu and remove duplicates."""
     business_groups = set(BUSINESS_STRATEGY_GROUPS)
-    standard_choices = set(BUSINESS_STRATEGY_CHOICES)
     found: set[str] = set()
     output: list[str] = []
 
@@ -152,18 +150,13 @@ def order_business_proxy_choices(text: str) -> str:
         if not existing_choices:
             raise RuntimeError(f"业务策略组没有默认选项：{name}")
 
-        default_choice = existing_choices[0]
-        related_choices = [
-            choice
-            for choice in existing_choices[1:]
-            if choice not in standard_choices and choice != name
-        ]
-        ordered_choices = ordered_unique(
-            [default_choice]
-            + list(BUSINESS_BUILTIN_CHOICES)
-            + related_choices
-            + list(BUSINESS_PROXY_GROUP_CHOICES)
-        )
+        ordered_choices = ordered_unique(existing_choices)
+        if name in ordered_choices:
+            raise RuntimeError(f"业务策略组不能引用自身：{name}")
+        if not 2 <= len(ordered_choices) <= 8:
+            raise RuntimeError(
+                f"业务策略组应保留 2-8 个精简选项：{name}={len(ordered_choices)}"
+            )
         rebuilt = "`".join(
             [fields[0], fields[1]]
             + [f"[]{choice}" for choice in ordered_choices]
@@ -198,7 +191,7 @@ def build() -> str:
         "custom groups",
         read_required(CUSTOM_DIR / "groups.ini"),
     )
-    result = order_business_proxy_choices(result)
+    result = normalize_business_proxy_choices(result)
     return result + "\n"
 
 
