@@ -41,3 +41,6 @@ jobs:
 
       - name: Test R4 candidate builder
         run: ruby scripts/test_build_r4_candidate.rb
+
+      - name: Check production shell scripts
+        run: sh -n scripts/openclash_r4_rollback_guard.sh scripts/select_r4_business_defaults.sh

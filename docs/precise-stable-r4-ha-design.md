@@ -15,7 +15,7 @@ R4-HA 增加四个独立的 `url-test` 业务节点池：
 | --- | --- | --- | ---: | --- |
 | ChatGPT | `🤖 ChatGPT 专用节点池` | `https://chatgpt.com/cdn-cgi/trace` | 900 秒 | `🛟 稳定自动` |
 | Claude | `🟠 Claude 专用节点池` | `https://claude.ai/favicon.ico` | 900 秒 | `🛟 稳定自动` |
-| Gemini | `🔵 Gemini 专用节点池` | `https://gemini.google.com/` | 900 秒 | `🛟 稳定自动` |
+| Gemini | `🔵 Gemini 专用节点池` | `https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta` | 900 秒 | `🛟 稳定自动` |
 | Netflix | `🎥 Netflix 专用节点池` | `https://www.netflix.com/` | 900 秒 | `🛟 稳定自动` |
 
 四个池覆盖全部有效订阅节点并过滤流量、到期、官网、邮箱和订阅更新提示。ChatGPT、Claude、Gemini 在专用池之后保留 `🧠 人工智能` 父组入口；业务组仍能直接切换 `DIRECT`、稳定自动、自动选择、手动选择及八个国家组，但默认第一项改为对应专用节点池。

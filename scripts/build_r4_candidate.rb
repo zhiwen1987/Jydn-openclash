@@ -16,7 +16,7 @@ status_filter = "(?i)^(?!.*(剩余流量|重置剩余|下次重置|套餐到期|
 specs = [
   ["🤖 对话助手（ChatGPT）", "🧠 人工智能", "🤖 ChatGPT 专用节点池", "https://chatgpt.com/cdn-cgi/trace"],
   ["🟠 对话助手（Claude）", "🧠 人工智能", "🟠 Claude 专用节点池", "https://claude.ai/favicon.ico"],
-  ["🔵 对话助手（Gemini）", "🧠 人工智能", "🔵 Gemini 专用节点池", "https://gemini.google.com/"],
+  ["🔵 对话助手（Gemini）", "🧠 人工智能", "🔵 Gemini 专用节点池", "https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta"],
   ["🎥 流媒体（Netflix）", "🎬 流媒体节点", "🎥 Netflix 专用节点池", "https://www.netflix.com/"],
 ]
 

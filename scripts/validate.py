@@ -47,7 +47,7 @@ EXPECTED_URL_TEST_URLS = {
     "🎬 流媒体节点": "https://www.netflix.com/",
     "🤖 ChatGPT 专用节点池": "https://chatgpt.com/cdn-cgi/trace",
     "🟠 Claude 专用节点池": "https://claude.ai/favicon.ico",
-    "🔵 Gemini 专用节点池": "https://gemini.google.com/",
+    "🔵 Gemini 专用节点池": "https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta",
     "🎥 Netflix 专用节点池": "https://www.netflix.com/",
 }
 DEFAULT_URL_TEST_URL = "https://cp.cloudflare.com/generate_204"
