@@ -6,6 +6,7 @@
 - 部署目录：`/root/dpanel/compose/lan-center`
 - 监控面板：`http://10.88.0.249:3101`
 - 节点能力看板：`http://10.88.0.249:3102`
+- 自动订阅看板：`http://10.88.0.249:3103`
 - OpenClash：`10.88.0.254`
 - 爱快：`10.88.0.1`
 
@@ -18,7 +19,7 @@
 | 服务 | 作用 | 是否会修改路由 |
 | --- | --- | --- |
 | `uptime-kuma` | 监控面板、探测历史和状态展示 | 否 |
-| `failover` | 代理观察、业务探针、ChatGPT 节点验证和子进程监督 | 仅调整 ChatGPT 策略组；爱快固定 `DRY_RUN=1` |
+| `failover` | 代理观察、业务探针、ChatGPT 节点验证、节点能力评估、受控订阅发布和子进程监督 | 调整 ChatGPT 专用池；通过已验收事务更新 provider；爱快固定 `DRY_RUN=1` |
 
 重要限制：
 
@@ -28,6 +29,8 @@
 4. 爱快、OpenClash 和 `lan-center` 的变更必须分别备份，不能互相替代。
 5. 节点能力评估器固定为影子模式；只操作 `🧪 节点能力检测` 隔离组，不允许调整生产业务组。
 6. 节点检测入站必须使用独立强认证，凭据只保存在路由器受限文件和服务器 `.env`，不得提交。
+7. 订阅控制器只能发布 provider 内容，不能修改规则、DNS、端口、策略组拓扑或爱快配置。
+8. 自动发布必须同时通过上游实时抓取、准入规则、异常门禁、Mihomo 内核有效数和真实业务探针；任一失败保留旧发布。
 
 ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和候选数。候选先经 API 批量筛选，再通过 OpenClash 代理对 Codex 后端执行真实 POST；只有 JSON `400/401` 才算业务可用。HTML `403` 会立即回退并将节点哈希冷却一小时。已验证节点保持粘性，不按小幅延迟差主动切换。OpenClash 控制密钥仅保存在服务器 `.env`。
 
@@ -110,6 +113,29 @@ V2 看板字段解释：
 
 调度标准：未评估节点优先，健康/降级/业务受限节点 15 分钟复检，冷却/不可用节点 5 分钟复检，业务深测 6 小时复检。订阅更新或容器重启不会清空已有评分。
 
+### 3.6 查看自动订阅状态
+
+局域网只读页面：`http://10.88.0.249:3103`。
+
+```sh
+curl -fsS --max-time 8 http://10.88.0.249:3103/health
+sudo tail -n 50 /root/dpanel/compose/lan-center/data/failover/subscription-controller/controller.log
+docker exec lan-center-failover-1 python3 /subscription-controller.py --self-test
+```
+
+关键状态：
+
+- `published`：新版本已刷新到 Mihomo，并通过内核有效数与六项真实业务验收；
+- `unchanged`：候选与当前版本一致；
+- `held`：缓存源、异常变化或确认次数不足，新版本未进入生产；
+- `rejected`：低于最低节点数或触发硬门禁；
+- `rolled_back`：刷新、内核有效数或业务验收失败，已恢复上一个版本；
+- `shadow`：只生成候选，不改变当前发布。
+
+`node_count` 是控制器批准数，`effective_node_count` 是 Mihomo 实际接受数。两者允许有小幅差异，但单个 provider 的内核拒绝比例超过 10% 会回滚。`cached_sources` 必须为 `0` 才允许不同候选改变生产。
+
+`publish-pending.json` 仅在发布事务进行中存在。正常空闲时必须不存在；若容器在发布中被重启，下次启动会用该文件恢复旧指针。不要手工删除该文件或改写 `current.json`。
+
 ### 3.2 查看容器状态
 
 ```sh
@@ -168,9 +194,21 @@ docker cp lan-center-failover-1:/tmp/node-capability-consistent.db \
   "$dest/node-capability-consistent.db"
 docker exec lan-center-failover-1 rm -f /tmp/node-capability-consistent.db
 
+docker exec lan-center-failover-1 python3 -c \
+  'import sqlite3; s=sqlite3.connect("/data/subscription-controller/controller.db"); d=sqlite3.connect("/tmp/subscription-controller-consistent.db"); s.backup(d); d.close(); s.close()'
+docker cp lan-center-failover-1:/tmp/subscription-controller-consistent.db \
+  "$dest/subscription-controller-consistent.db"
+docker exec lan-center-failover-1 rm -f /tmp/subscription-controller-consistent.db
+
+sudo tar -C /root/dpanel/compose/lan-center/data/failover \
+  --exclude='subscription-controller/controller.db*' \
+  -czf "$dest/subscription-controller-files.tar.gz" \
+  subscription-controller subscription-sources.json
+
 sudo chown -R zhiwen:zhiwen "$dest"
 (cd "$dest" && sha256sum lan-center-config.tar.gz kuma-consistent.db \
-  node-capability-consistent.db > SHA256SUMS)
+  node-capability-consistent.db subscription-controller-consistent.db \
+  subscription-controller-files.tar.gz > SHA256SUMS)
 (cd "$dest" && sha256sum -c SHA256SUMS)
 echo "$dest"
 ```
@@ -179,7 +217,7 @@ echo "$dest"
 
 - 命令无错误退出；
 - `sha256sum -c` 全部为 `OK`；
-- 压缩包、Kuma 数据库和节点能力数据库均存在且大小不为零。
+- 压缩包、Kuma 数据库、节点能力数据库和订阅控制器数据库均存在且大小不为零。
 
 ## 5. 恢复
 
@@ -263,6 +301,48 @@ tar -xzf "$backup/openclash-files.tar.gz" -C /
 ```
 
 本次 V2 只更新 249 的评估器，正常回滚时不需要恢复 OpenClash。只有后续变更过路由器文件时才执行 OpenClash 恢复。
+
+### 5.4 恢复自动订阅控制器变更前状态
+
+备份位置：
+
+- 249：`/home/zhiwen/lan-center-backups/20261013-215006-subscription-control-prechange`
+- OpenClash：`/root/openclash-backups/20261013-215006-subscription-control-prechange`
+
+先恢复路由器，使 OpenClash 不再依赖 249 控制器：
+
+```sh
+backup=/root/openclash-backups/20261013-215006-subscription-control-prechange
+cd "$backup"
+sha256sum -c SHA256SUMS
+tar -tzf openclash-prechange.tar.gz >/dev/null
+/etc/init.d/openclash stop
+tar -xzf openclash-prechange.tar.gz -C /
+/etc/init.d/openclash start
+```
+
+确认 `uci get openclash.config.config_path` 已回到备份中的原 R4 文件且业务恢复后，再恢复 249：
+
+```sh
+backup=/home/zhiwen/lan-center-backups/20261013-215006-subscription-control-prechange
+project=/root/dpanel/compose/lan-center
+cd "$backup"
+sha256sum -c SHA256SUMS
+cd "$project"
+sudo docker compose stop failover uptime-kuma
+sudo tar -xzf "$backup/lan-center-files.tar.gz" -C /root/dpanel/compose
+sudo cp "$backup/node-capability.db" "$project/data/failover/node-capability.db"
+sudo cp "$backup/kuma.db" "$project/data/uptime-kuma/kuma.db"
+sudo rm -f "$project/data/failover/node-capability.db-wal" \
+  "$project/data/failover/node-capability.db-shm" \
+  "$project/data/uptime-kuma/kuma.db-wal" \
+  "$project/data/uptime-kuma/kuma.db-shm"
+cd "$project"
+sudo docker compose config --quiet
+sudo docker compose up -d
+```
+
+恢复顺序不能颠倒；否则原 OpenClash 仍指向已经停止的本地 provider 服务。
 
 ## 6. 安全更新流程
 
@@ -414,6 +494,15 @@ docker exec lan-center-uptime-kuma-1 \
 6. `DRY_RUN=1`；
 7. 最近日志没有持续的 `error`、`fatal` 或数据库异常；
 8. 保存验收后备份和验收报告。
+
+启用自动订阅时还必须满足：
+
+9. 活动配置是 `精准稳定-v1-r4-ha-subscription-managed.yaml`，OpenClash 原生配置自动更新为 `0`；
+10. 两个 provider 手动刷新返回 HTTP 204，运行时节点数与控制器报告的内核有效数一致；
+11. `/health` 为 `mode=automatic`，空闲时无 `publish-pending.json`；
+12. AMD 中国、涂鸦中国、Google、ChatGPT Codex POST、Gemini、GitHub 全部通过；ChatGPT 只接受 JSON `400/401`，HTML `403` 不算通过；
+13. 缓存源场景必须显示 `held`，发布失败场景必须显示 `rolled_back` 且旧指针仍可用；
+14. 路由器核心、控制器、节点能力和 Kuma 数据库 `integrity_check` 全部为 `ok`。
 
 本地告警必须存在父分组绑定，并能写入：
 

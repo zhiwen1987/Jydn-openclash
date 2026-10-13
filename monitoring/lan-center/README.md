@@ -2,12 +2,12 @@
 
 生产位置：`10.88.0.249:/root/dpanel/compose/lan-center`
 
-完整维护与回滚步骤见 [OPERATIONS.md](./OPERATIONS.md)，基础监控验收见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)，V2 节点能力系统验收见 [ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md](./ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md)。
+完整维护与回滚步骤见 [OPERATIONS.md](./OPERATIONS.md)，基础监控验收见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)，V2 节点能力系统验收见 [ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md](./ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md)，自动订阅控制器验收见 [ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md](./ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md)。
 
 ## 当前架构
 
 - `uptime-kuma`：监控面板，局域网端口 `3101`；镜像固定到已验收的 SHA256 摘要。
-- `failover`：不新增第三个容器，内部同时运行代理观察、业务探针、ChatGPT 控制器、节点能力评估器和子进程监督。
+- `failover`：不新增第三个容器，内部同时运行代理观察、业务探针、ChatGPT 控制器、节点能力评估器、订阅发布控制器和子进程监督。
 - 爱快始终保持 `DRY_RUN=1`，本服务不会自动修改爱快规则。
 
 ## 节点能力评估 V2（影子模式）
@@ -26,6 +26,17 @@
 - 当前强制 `CAPABILITY_MODE=shadow`；系统只评估和推荐，不允许自动接管生产业务组。
 
 ChatGPT 控制器每 300 秒检查一次。候选节点先通过 OpenAI API 批量筛选，再临时选中并对 Codex 后端执行真实 POST；只接受 JSON `400/401`。HTML `403` 节点会立刻回退并进入一小时冷却名单。已通过真实检查的节点保持粘性，不因小幅延迟差主动切换。
+
+## 自动订阅发布控制器
+
+- 局域网只读看板：`http://10.88.0.249:3103`。
+- 支持 1–N 条订阅源；生产当前配置 2 条，新增或删除来源只修改服务器受限源文件。
+- OpenClash 活动配置只把两个 provider URL 指向本地控制器，99 个策略组、134 条规则、DNS、端口和业务选择结构保持不变。
+- 默认先影子观察；生产验收后才使用 `automatic`。抓取失败、使用缓存、异常降幅、内核拒绝比例超限、真实业务探针失败或发布中断时均不提交新版本。
+- 发布前保留旧版本指针；发布进程被重启或主机掉电时，下次启动自动恢复旧指针。
+- 上游缓存只用于维持当前服务，不能推动生产版本变化；相同异常候选需要连续确认，新节点需通过能力评估才准入。
+- OpenClash 原生订阅自动更新已关闭，避免旧任务覆盖本地受控 provider；控制器每小时检查一次。
+- provider 下载只允许路由器和容器内部地址，并要求独立随机令牌；源 URL、令牌、节点名称和完整出口 IP 不写入 Git。
 
 ## OpenClash 验收组
 
@@ -57,9 +68,23 @@ sha256sum -c SHA256SUMS
 
 恢复前必须先停止两个容器。该备份包含配置压缩包和一致性 Kuma 数据库，恢复命令见操作手册第 5 节。
 
+自动订阅控制器变更前备份：
+
+- OpenClash：`/root/openclash-backups/20261013-215006-subscription-control-prechange`
+- 249：`/home/zhiwen/lan-center-backups/20261013-215006-subscription-control-prechange`
+
+两端 `SHA256SUMS` 已重新校验为 `OK`；路由器压缩包也已执行可读性检查。恢复命令见操作手册第 5.4 节。
+
+自动订阅控制器验收后快照：
+
+- OpenClash：`/root/openclash-backups/20261014-001036-subscription-control-accepted`
+- 249：`/home/zhiwen/lan-center-backups/20261014-001036-subscription-control-accepted`
+
+验收后快照通过全部 SHA256、压缩包可读性和三个 SQLite 副本完整性检查。
+
 ## 发布约束
 
 1. 不提交 `.env`、数据库、日志、节点名称或任何密码/令牌。
 2. 发布前必须执行 Shell 语法检查、迁移幂等测试和 `docker compose config --quiet`。
 3. 只重建发生变化的服务，不使用 `docker compose down -v`。
-4. 验收必须包含：22 个启用监控、验收组 8 个子项、数据库完整性、业务探针连续检查、控制器回读、容器健康和资源限制。
+4. 验收必须包含：22 个启用监控、验收组 8 个子项、三个数据库完整性、业务探针连续检查、订阅指针/事务状态、provider 内核有效数、控制器回读、容器健康和资源限制。

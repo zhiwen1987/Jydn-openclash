@@ -11,6 +11,7 @@ set -u
 : "${LOG_MAX_BYTES:=5242880}"
 : "${LOG_KEEP:=5}"
 : "${CAPABILITY_ENABLED:=0}"
+: "${SUBSCRIPTION_CONTROLLER_ENABLED:=0}"
 
 LOG=/data/failover.log
 HEALTH=/data/health
@@ -39,6 +40,7 @@ rotate_logs() {
   rotate_one /data/failover.log
   rotate_one /data/chatgpt-controller.log
   rotate_one /data/node-capability.log
+  rotate_one /data/subscription-controller/controller.log
   rotate_one /data/alerts.log
 }
 
@@ -108,6 +110,15 @@ start_capability_evaluator() {
   log 'status=started child=node_capability mode=shadow'
 }
 
+start_subscription_controller() {
+  [ "$SUBSCRIPTION_CONTROLLER_ENABLED" = 1 ] || return 0
+  rm -f /data/subscription-controller/health.json
+  /usr/bin/python3 /subscription-controller.py &
+  subscription_pid=$!
+  printf '%s\n' "$subscription_pid" > /data/subscription-controller.pid
+  log "status=started child=subscription_controller mode=${SUBSCRIPTION_CONTROLLER_MODE:-shadow}"
+}
+
 supervise_children() {
   if ! kill -0 "$controller_pid" 2>/dev/null; then
     log 'status=restarting child=chatgpt_controller'
@@ -121,20 +132,27 @@ supervise_children() {
     log 'status=restarting child=node_capability'
     start_capability_evaluator
   fi
+  if [ "$SUBSCRIPTION_CONTROLLER_ENABLED" = 1 ] && ! kill -0 "$subscription_pid" 2>/dev/null; then
+    log 'status=restarting child=subscription_controller'
+    start_subscription_controller
+  fi
 }
 
 cleanup() {
   [ -z "$controller_pid" ] || kill "$controller_pid" 2>/dev/null || true
   [ -z "$probe_pid" ] || kill "$probe_pid" 2>/dev/null || true
   [ -z "$capability_pid" ] || kill "$capability_pid" 2>/dev/null || true
+  [ -z "$subscription_pid" ] || kill "$subscription_pid" 2>/dev/null || true
   [ -z "$controller_pid" ] || wait "$controller_pid" 2>/dev/null || true
   [ -z "$probe_pid" ] || wait "$probe_pid" 2>/dev/null || true
   [ -z "$capability_pid" ] || wait "$capability_pid" 2>/dev/null || true
-  rm -f /data/chatgpt-controller.pid /data/probe-server.pid /data/node-capability.pid
+  [ -z "$subscription_pid" ] || wait "$subscription_pid" 2>/dev/null || true
+  rm -f /data/chatgpt-controller.pid /data/probe-server.pid /data/node-capability.pid /data/subscription-controller.pid
 }
 controller_pid=''
 probe_pid=''
 capability_pid=''
+subscription_pid=''
 trap cleanup EXIT INT TERM
 
 log "status=started dry_run=$DRY_RUN interval=${INTERVAL}s"
@@ -142,6 +160,7 @@ rm -f /data/sim_state
 start_controller
 start_probe_server
 start_capability_evaluator
+start_subscription_controller
 failures=0
 successes=0
 

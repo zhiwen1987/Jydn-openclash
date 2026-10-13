@@ -1,0 +1,18 @@
+{
+  "sources": [
+    {
+      "id": "provider-a",
+      "name": "订阅A",
+      "provider_name": "Provider_A",
+      "url": "https://subscription.example.invalid/a",
+      "enabled": true
+    },
+    {
+      "id": "provider-b",
+      "name": "订阅B",
+      "provider_name": "Provider_B",
+      "url": "https://subscription.example.invalid/b",
+      "enabled": true
+    }
+  ]
+}

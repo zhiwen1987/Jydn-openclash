@@ -1,6 +1,6 @@
 FROM alpine:3.20
 
-RUN apk add --no-cache curl tzdata jq ca-certificates python3 \
+RUN apk add --no-cache curl tzdata jq ca-certificates python3 py3-yaml \
  && cd /tmp \
  && curl -fsSL -o c.tgz https://github.com/ikuaidev/ikuai-cli/releases/download/v1.0.18/ikuai-cli_linux_amd64.tar.gz \
  && echo "047318d14b4b7eace976b9baea5e34df5a68e532abf0841308898848eda4b593  c.tgz" | sha256sum -c - \
@@ -15,5 +15,6 @@ COPY healthcheck.sh /healthcheck.sh
 COPY probe-server.sh /probe-server.sh
 COPY probe-handler.sh /probe-handler.sh
 COPY node-capability.py /node-capability.py
-RUN chmod 755 /failover.sh /chatgpt-controller.sh /healthcheck.sh /probe-server.sh /probe-handler.sh /node-capability.py
+COPY subscription-controller.py /subscription-controller.py
+RUN chmod 755 /failover.sh /chatgpt-controller.sh /healthcheck.sh /probe-server.sh /probe-handler.sh /node-capability.py /subscription-controller.py
 CMD ["sh", "/failover.sh"]

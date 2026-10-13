@@ -3,12 +3,13 @@ name: lan-center
 services:
   failover:
     build: ./failover
-    image: lan-center-failover:4
+    image: lan-center-failover:5
     restart: unless-stopped
     env_file: .env
     environment:
       DRY_RUN: "1"
       OPENCLASH_API: "http://10.88.0.254:9090"
+      OPENCLASH_API_TIMEOUT: "30"
       CHATGPT_CONTROL_INTERVAL: "300"
       CHATGPT_PASS_THRESHOLD: "2"
       CHATGPT_MAX_CANDIDATE_TRIALS: "5"
@@ -21,11 +22,26 @@ services:
       CAPABILITY_NODE_INTERVAL: "10"
       CAPABILITY_DISCOVERY_INTERVAL: "600"
       CAPABILITY_BUSINESS_RECHECK: "21600"
-      CAPABILITY_HEALTHY_RECHECK: "900"
+      CAPABILITY_HEALTHY_RECHECK: "1800"
       CAPABILITY_UNHEALTHY_RECHECK: "300"
-      CAPABILITY_STALE_MULTIPLIER: "2"
+      CAPABILITY_STALE_MULTIPLIER: "3"
       ROUTE_AUDIT_INTERVAL: "300"
       CAPABILITY_GENERAL_ATTEMPTS: "2"
+      SUBSCRIPTION_CONTROLLER_ENABLED: "1"
+      SUBSCRIPTION_CONTROLLER_MODE: "${SUBSCRIPTION_CONTROLLER_MODE:-shadow}"
+      SUBSCRIPTION_SOURCES_FILE: "/data/subscription-sources.json"
+      SUBSCRIPTION_PUBLISH_TOKEN: "${SUBSCRIPTION_PUBLISH_TOKEN}"
+      SUBSCRIPTION_HMAC_KEY: "${SUBSCRIPTION_HMAC_KEY}"
+      SUBSCRIPTION_FETCH_INTERVAL: "3600"
+      SUBSCRIPTION_FETCH_TIMEOUT: "10"
+      SUBSCRIPTION_USER_AGENT: "${SUBSCRIPTION_USER_AGENT:-clash.meta}"
+      SUBSCRIPTION_CACHE_TTL: "604800"
+      SUBSCRIPTION_MIN_APPROVED: "3"
+      SUBSCRIPTION_MAX_DROP_PERCENT: "30"
+      SUBSCRIPTION_MAX_RUNTIME_REJECT_PERCENT: "10"
+      SUBSCRIPTION_MAX_RELEASES: "100"
+      SUBSCRIPTION_ANOMALY_CONFIRMATIONS: "3"
+      SUBSCRIPTION_ALLOWED_PROVIDER_CLIENTS: "10.88.0.254,127.0.0.1,172.17.0.1,172.18.0.1"
     volumes:
       - ./data/failover:/data
     healthcheck:
@@ -39,6 +55,7 @@ services:
       - "8081"
     ports:
       - "10.88.0.249:3102:8081"
+      - "10.88.0.249:3103:8082"
     logging:
       driver: json-file
       options:
@@ -47,8 +64,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "1.0"
+          memory: 256M
 
   uptime-kuma:
     image: louislam/uptime-kuma@sha256:9912da7d7d9b6ddc0c2d904beb84d24689c1ed9c33b81419eb9008663a92a329

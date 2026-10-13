@@ -42,5 +42,14 @@ jobs:
       - name: Test R4 candidate builder
         run: ruby scripts/test_build_r4_candidate.rb
 
+      - name: Test subscription-managed candidate builder
+        run: ruby scripts/test_build_subscription_managed_candidate.rb
+
+      - name: Check subscription-managed candidate verifier syntax
+        run: ruby -c scripts/verify_subscription_managed_candidate.rb
+
+      - name: Check provider validation builder syntax
+        run: ruby -c scripts/build_provider_validation_config.rb
+
       - name: Check production shell scripts
-        run: sh -n scripts/openclash_r4_rollback_guard.sh scripts/select_r4_business_defaults.sh
+        run: sh -n scripts/openclash_r4_rollback_guard.sh scripts/openclash_subscription_switch_guard.sh scripts/select_r4_business_defaults.sh
