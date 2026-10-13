@@ -41,7 +41,7 @@ ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和
 | `业务·AMD中国·TokenFactory` | HTTP 200-399 | 验证 AMD 中国页面和 `.cn` 分流 |
 | `业务·涂鸦中国` | HTTP 200-399 | 验证涂鸦中国站点可达性 |
 | `业务·ChatGPT` | HTTP 200-399 | 验证 ChatGPT 域名、TLS 和线路 |
-| `业务·Gemini` | HTTP 200-399 | 验证 Gemini 真实主页 |
+| `业务·Gemini` | HTTP 200-399 | 验证 Gemini Discovery API 和业务线路 |
 | `业务·Google 204` | HTTP 204 | 验证 Google 基础连通性 |
 
 业务项每 30 秒检测，失败后每 10 秒重试，连续重试 2 次才判定故障。
@@ -263,7 +263,19 @@ sudo docker compose restart uptime-kuma
 
 DNS 和 Google 正常但业务项失败，通常是节点业务可用性或地区限制，不等于整条网络中断。切换业务组时只改该业务，不改人工智能父组或全部海外流量。
 
-### 7.5 Gemini 出现 `Header overflow`
+### 7.5 Gemini 主页返回 `429`
+
+`gemini.google.com` 主页会对自动监控产生限流或风控误报。生产监控应使用与 OpenClash Gemini 专用池一致的 Discovery API：
+
+```text
+https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta
+```
+
+修改前必须使用 SQLite `.backup` 创建 Kuma 一致性备份，停止 `uptime-kuma` 后执行 `migrations/20261013-gemini-monitor.sql`，再启动并验证连续心跳。
+
+该监控必须关闭 `cache_bust`。Discovery API 仅接受规定查询参数；Kuma 追加随机防缓存参数时会收到 HTTP 400。
+
+### 7.6 Gemini 出现 `Header overflow`
 
 检查 Kuma 容器：
 
@@ -280,7 +292,7 @@ NODE_OPTIONS=--max-http-header-size=65536
 
 缺失时恢复本项目的 Compose，并只重建 `uptime-kuma`。
 
-### 7.6 `failover` 显示代理连续失败
+### 7.7 `failover` 显示代理连续失败
 
 它只记录演练动作，不会真实切换爱快。检查：
 

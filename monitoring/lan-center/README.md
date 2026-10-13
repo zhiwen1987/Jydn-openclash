@@ -20,7 +20,7 @@ Kuma 中的 `OpenClash 分流验收` 包含：
 - Gemini；
 - Google 204。
 
-HTTP 项每 30 秒检查一次，失败后每 10 秒重试，连续重试 2 次才判定故障。Gemini 页面响应头较大，因此 Kuma 使用 64 KiB 的 Node 响应头上限。
+HTTP 项每 30 秒检查一次，失败后每 10 秒重试，连续重试 2 次才判定故障。Gemini 使用稳定的 Discovery API，避免主页对自动检查返回 `429` 造成误报。
 
 ## 备份与恢复
 
