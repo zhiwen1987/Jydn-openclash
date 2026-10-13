@@ -3,19 +3,31 @@ name: lan-center
 services:
   failover:
     build: ./failover
-    image: lan-center-failover:1
+    image: lan-center-failover:2
     restart: unless-stopped
     env_file: .env
     environment:
       DRY_RUN: "1"
       OPENCLASH_API: "http://10.88.0.254:9090"
       CHATGPT_CONTROL_INTERVAL: "300"
-      CHATGPT_PARALLEL: "6"
+      CHATGPT_PASS_THRESHOLD: "2"
+      CHATGPT_MAX_CANDIDATE_TRIALS: "5"
+      CHATGPT_REJECT_COOLDOWN: "3600"
     volumes:
       - ./data/failover:/data
     healthcheck:
-      test: ["CMD-SHELL", "test -f /data/health"]
-      interval: 60s
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    expose:
+      - "8080"
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -23,14 +35,22 @@ services:
           memory: 64M
 
   uptime-kuma:
-    image: louislam/uptime-kuma:2
+    image: louislam/uptime-kuma@sha256:9912da7d7d9b6ddc0c2d904beb84d24689c1ed9c33b81419eb9008663a92a329
     restart: unless-stopped
+    depends_on:
+      failover:
+        condition: service_healthy
     environment:
       NODE_OPTIONS: "--max-http-header-size=65536"
     ports:
       - "3101:3001"
     volumes:
       - ./data/uptime-kuma:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "5"
     deploy:
       resources:
         limits:

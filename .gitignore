@@ -4,3 +4,7 @@ node-geo-report*.yaml
 
 # 旧版备份（保留本地，不入库）
 *.bak.*
+
+# Runtime secrets
+.env
+**/.env

@@ -1,76 +1,148 @@
 #!/bin/sh
-# OpenClash proxy health observer. DRY_RUN=1 is intentionally enforced by Compose.
+# Supervise the route observer, business probes, and ChatGPT controller.
 set -u
 
-: "${PROXY:=http://10.88.0.254:7893}" "${RULE_ID:=3}" "${INTERVAL:=15}" "${FAIL_N:=3}" "${OK_N:=3}" "${DRY_RUN:=1}"
+: "${PROXY:=http://10.88.0.254:7893}"
+: "${RULE_ID:=3}"
+: "${INTERVAL:=15}"
+: "${FAIL_N:=3}"
+: "${OK_N:=3}"
+: "${DRY_RUN:=1}"
+: "${LOG_MAX_BYTES:=5242880}"
+: "${LOG_KEEP:=5}"
+
 LOG=/data/failover.log
+HEALTH=/data/health
 
-log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
+[ "$DRY_RUN" = 1 ] || {
+  printf '%s status=fatal reason=production_requires_dry_run\n' "$(date '+%F %T')" >&2
+  exit 64
+}
 
-ikuai-cli auth set-url "$IKUAI_URL" >/dev/null \
-  && ikuai-cli auth set-token "$IKUAI_TOKEN" >/dev/null \
-  || log "爱快登录配置失败"
+rotate_one() {
+  file="$1"
+  [ -f "$file" ] || return 0
+  size="$(wc -c < "$file" | tr -d ' ')"
+  [ "$size" -lt "$LOG_MAX_BYTES" ] && return 0
+  index="$LOG_KEEP"
+  while [ "$index" -gt 1 ]; do
+    previous=$((index - 1))
+    [ -f "$file.$previous" ] && mv -f "$file.$previous" "$file.$index"
+    index="$previous"
+  done
+  mv -f "$file" "$file.1"
+  : > "$file"
+}
+
+rotate_logs() {
+  rotate_one /data/failover.log
+  rotate_one /data/chatgpt-controller.log
+  rotate_one /data/alerts.log
+}
+
+log() {
+  rotate_logs
+  printf '%s %s\n' "$(date '+%F %T')" "$*" | tee -a "$LOG"
+}
+
+atomic_health() {
+  route_probe="$1"
+  temporary="${HEALTH}.tmp.$$"
+  jq -nc --arg status ok --arg route_probe "$route_probe" --argjson epoch "$(date +%s)" \
+    '{status:$status,route_probe:$route_probe,epoch:$epoch}' > "$temporary" \
+    && mv -f "$temporary" "$HEALTH"
+}
+
+if ! ikuai-cli auth set-url "$IKUAI_URL" >/dev/null \
+  || ! ikuai-cli auth set-token "$IKUAI_TOKEN" >/dev/null; then
+  log 'status=warning reason=ikuai_auth_setup_failed'
+fi
 
 probe() {
   for url in https://www.gstatic.com/generate_204 https://www.cloudflare.com/cdn-cgi/trace; do
-    curl -s -o /dev/null -m 8 -x "$PROXY" -U "$PROXY_AUTH" "$url" && return 0
+    curl -fsS -o /dev/null --max-time 8 -x "$PROXY" -U "$PROXY_AUTH" "$url" && return 0
   done
   return 1
 }
 
 state() {
   ikuai-cli routing stream five-tuple get "$RULE_ID" -f json 2>/dev/null \
-    | jq -r '.data[0].enabled // empty' \
-    | head -1
+    | jq -r '.data[0].enabled // empty' | head -1
 }
 
 set_rule() {
-  if [ "$DRY_RUN" = 1 ]; then
-    log "[演练] 此时应把 PT_3 设为 enabled=$1（未执行）"
-    echo "$1" > /data/sim_state
-  else
-    ikuai-cli routing stream five-tuple toggle "$RULE_ID" --enabled "$1" >/dev/null 2>&1 \
-      && log "已把 PT_3 设为 enabled=$1" \
-      || log "切换 PT_3 失败"
-  fi
+  log "status=dry_run requested_rule_state=$1"
+  printf '%s\n' "$1" > /data/sim_state
 }
 
 current_state() {
-  if [ "$DRY_RUN" = 1 ] && [ -f /data/sim_state ]; then
+  if [ -f /data/sim_state ]; then
     cat /data/sim_state
   else
     state
   fi
 }
 
-log "启动：演练模式=$DRY_RUN 间隔=${INTERVAL}s PT_3当前=$(state)"
+start_controller() {
+  /bin/sh /chatgpt-controller.sh &
+  controller_pid=$!
+  printf '%s\n' "$controller_pid" > /data/chatgpt-controller.pid
+  log 'status=started child=chatgpt_controller'
+}
+
+start_probe_server() {
+  /bin/sh /probe-server.sh &
+  probe_pid=$!
+  printf '%s\n' "$probe_pid" > /data/probe-server.pid
+  log 'status=started child=probe_server'
+}
+
+supervise_children() {
+  if ! kill -0 "$controller_pid" 2>/dev/null; then
+    log 'status=restarting child=chatgpt_controller'
+    start_controller
+  fi
+  if ! kill -0 "$probe_pid" 2>/dev/null; then
+    log 'status=restarting child=probe_server'
+    start_probe_server
+  fi
+}
+
+cleanup() {
+  [ -z "$controller_pid" ] || kill "$controller_pid" 2>/dev/null || true
+  [ -z "$probe_pid" ] || kill "$probe_pid" 2>/dev/null || true
+  [ -z "$controller_pid" ] || wait "$controller_pid" 2>/dev/null || true
+  [ -z "$probe_pid" ] || wait "$probe_pid" 2>/dev/null || true
+  rm -f /data/chatgpt-controller.pid /data/probe-server.pid
+}
+controller_pid=''
+probe_pid=''
+trap cleanup EXIT INT TERM
+
+log "status=started dry_run=$DRY_RUN interval=${INTERVAL}s"
 rm -f /data/sim_state
-/bin/sh /chatgpt-controller.sh &
-chatgpt_controller_pid=$!
-trap 'kill "$chatgpt_controller_pid" 2>/dev/null || true' EXIT INT TERM
+start_controller
+start_probe_server
 failures=0
 successes=0
 
 while true; do
+  supervise_children
+  rotate_logs
   if probe; then
     successes=$((successes + 1))
     failures=0
-    echo ok > /data/health
+    route_probe=ok
   else
     failures=$((failures + 1))
     successes=0
-    echo fail > /data/health
-    log "代理检测失败 第${failures}次"
+    route_probe=fail
+    log "status=warning reason=proxy_probe_failed consecutive=$failures"
   fi
+  atomic_health "$route_probe"
 
-  current=$(current_state)
-  [ "$failures" -ge "$FAIL_N" ] && [ "$current" = yes ] && {
-    log ".254 代理连续失败，演练切换为直连"
-    set_rule no
-  }
-  [ "$successes" -ge "$OK_N" ] && [ "$current" = no ] && {
-    log ".254 代理已恢复，演练切回代理"
-    set_rule yes
-  }
+  current="$(current_state)"
+  [ "$failures" -ge "$FAIL_N" ] && [ "$current" = yes ] && set_rule no
+  [ "$successes" -ge "$OK_N" ] && [ "$current" = no ] && set_rule yes
   sleep "$INTERVAL"
 done

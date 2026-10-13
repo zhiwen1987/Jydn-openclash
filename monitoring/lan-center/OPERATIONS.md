@@ -17,7 +17,7 @@
 | 服务 | 作用 | 是否会修改路由 |
 | --- | --- | --- |
 | `uptime-kuma` | 监控面板、探测历史和状态展示 | 否 |
-| `failover` | 检查代理连通性，并按 ChatGPT 真实会话结果管理它的专用池 | 仅调整 ChatGPT 策略组；爱快固定 `DRY_RUN=1` |
+| `failover` | 代理观察、业务探针、ChatGPT 节点验证和子进程监督 | 仅调整 ChatGPT 策略组；爱快固定 `DRY_RUN=1` |
 
 重要限制：
 
@@ -26,7 +26,9 @@
 3. Kuma 显示业务可达性，不代表账号、配额、支付风控或地区版权一定可用。
 4. 爱快、OpenClash 和 `lan-center` 的变更必须分别备份，不能互相替代。
 
-ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和可用候选数。OpenClash 控制密钥仅保存在服务器 `.env`。
+ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和候选数。候选先经 API 批量筛选，再通过 OpenClash 代理对 Codex 后端执行真实 POST；只有 JSON `400/401` 才算业务可用。HTML `403` 会立即回退并将节点哈希冷却一小时。已验证节点保持粘性，不按小幅延迟差主动切换。OpenClash 控制密钥仅保存在服务器 `.env`。
+
+Kuma 通过 Docker 内网访问 `failover:8080`，该端口不映射到局域网。`failover` 会监督探针和控制器子进程，健康检查同时验证状态文件新鲜度、进程存活和本地 HTTP 接口。
 
 ## 2. 监控项目说明
 
@@ -40,9 +42,10 @@ ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和
 | `DNS·海外域名` | 通过 `10.88.0.254` 返回 A 记录 | 验证海外域名 DNS |
 | `业务·AMD中国·TokenFactory` | HTTP 200-399 | 验证 AMD 中国页面和 `.cn` 分流 |
 | `业务·涂鸦中国` | HTTP 200-399 | 验证涂鸦中国站点可达性 |
-| `业务·ChatGPT` | HTTP 200-399 | 验证 ChatGPT 域名、TLS 和线路 |
-| `业务·Gemini` | HTTP 200-399 | 验证 Gemini Discovery API 和业务线路 |
-| `业务·Google 204` | HTTP 204 | 验证 Google 基础连通性 |
+| `业务·ChatGPT` | 本地探针 HTTP 204 | 经 OpenClash 执行 Codex POST，排除 HTML 403 节点 |
+| `业务·Gemini` | 本地探针 HTTP 204 | 经 OpenClash 访问 Gemini Discovery API |
+| `业务·Google策略组` | 本地探针 HTTP 204 | 经 OpenClash 访问 Google 204，验证真实规则出口 |
+| `链路·实际海外出口` | HTTP 204 | 从 249 独立验证默认海外出口 |
 
 业务项每 30 秒检测，失败后每 10 秒重试，连续重试 2 次才判定故障。
 
@@ -62,7 +65,7 @@ sudo tail -n 50 /root/dpanel/compose/lan-center/data/failover/chatgpt-controller
 sudo cat /root/dpanel/compose/lan-center/data/failover/chatgpt-controller.health
 ```
 
-`ok` 表示选中了真实会话检测通过的独立节点；`fallback` 表示当前无合格独立节点，已安全回退到人工智能父组；`error` 表示控制器需要排查。
+`ok` 表示当前节点已通过 Codex POST；`fallback` 表示专用池无合格节点，已安全回退到人工智能父组；`error` 表示连回退线路也未通过或控制接口异常。
 
 ### 3.1 查看面板
 
@@ -115,8 +118,8 @@ ts=$(TZ=Asia/Shanghai date +%Y%m%d-%H%M%S)
 dest="/home/zhiwen/lan-center-backups/$ts"
 mkdir -p "$dest"
 
-sudo tar -C /root/dpanel/compose \
-  -czf "$dest/lan-center-full.tar.gz" lan-center
+sudo tar -C /root/dpanel/compose --exclude='lan-center/data' \
+  -czf "$dest/lan-center-config.tar.gz" lan-center
 
 docker exec lan-center-uptime-kuma-1 \
   sqlite3 /app/data/kuma.db ".backup '/tmp/kuma-consistent.db'"
@@ -125,7 +128,7 @@ docker cp lan-center-uptime-kuma-1:/tmp/kuma-consistent.db \
 docker exec lan-center-uptime-kuma-1 rm -f /tmp/kuma-consistent.db
 
 sudo chown -R zhiwen:zhiwen "$dest"
-(cd "$dest" && sha256sum lan-center-full.tar.gz kuma-consistent.db > SHA256SUMS)
+(cd "$dest" && sha256sum lan-center-config.tar.gz kuma-consistent.db > SHA256SUMS)
 (cd "$dest" && sha256sum -c SHA256SUMS)
 echo "$dest"
 ```
@@ -143,16 +146,19 @@ echo "$dest"
 以下示例恢复首次变更前备份。执行前确认备份目录和目标目录完全一致。
 
 ```sh
-backup=/home/zhiwen/lan-center-backups/20261013-035740
+backup=/home/zhiwen/lan-center-backups/20261013-180800-pre-monitor-hardening
 project=/root/dpanel/compose/lan-center
 
-test -f "$backup/lan-center-full.tar.gz"
+test -f "$backup/lan-center-config.tar.gz"
+test -f "$backup/kuma-pre-hardening.db"
 cd "$backup"
 sha256sum -c SHA256SUMS
 
 cd "$project"
 sudo docker compose down
-sudo tar -C /root/dpanel/compose -xzf "$backup/lan-center-full.tar.gz"
+sudo tar -C /root/dpanel/compose -xzf "$backup/lan-center-config.tar.gz"
+sudo cp "$backup/kuma-pre-hardening.db" "$project/data/uptime-kuma/kuma.db"
+sudo rm -f "$project/data/uptime-kuma/kuma.db-wal" "$project/data/uptime-kuma/kuma.db-shm"
 cd "$project"
 sudo docker compose config --quiet
 sudo docker compose up -d
@@ -165,17 +171,17 @@ sudo docker compose up -d
 仅当 Compose 和脚本正确、只有监控配置损坏时使用：
 
 ```sh
-backup=/home/zhiwen/lan-center-backups/20261013-035740
+backup=/home/zhiwen/lan-center-backups/20261013-180800-pre-monitor-hardening
 project=/root/dpanel/compose/lan-center
 
-test -f "$backup/kuma-consistent.db"
+test -f "$backup/kuma-pre-hardening.db"
 cd "$backup"
 sha256sum -c SHA256SUMS
 
 cd "$project"
 sudo docker compose stop uptime-kuma
 sudo cp data/uptime-kuma/kuma.db "data/uptime-kuma/kuma.db.before-restore-$(date +%s)"
-sudo cp "$backup/kuma-consistent.db" data/uptime-kuma/kuma.db
+sudo cp "$backup/kuma-pre-hardening.db" data/uptime-kuma/kuma.db
 sudo rm -f data/uptime-kuma/kuma.db-wal data/uptime-kuma/kuma.db-shm
 sudo docker compose up -d uptime-kuma
 ```
@@ -258,10 +264,19 @@ sudo docker compose restart uptime-kuma
 
 - 对应业务监控；
 - `DNS·海外域名`；
-- `Google 204`；
+- `业务·Google策略组` 与 `链路·实际海外出口`；
 - OpenClash 对应业务组的当前节点。
 
-DNS 和 Google 正常但业务项失败，通常是节点业务可用性或地区限制，不等于整条网络中断。切换业务组时只改该业务，不改人工智能父组或全部海外流量。
+DNS 和 Google 正常但业务项失败，通常是节点业务可用性或地区限制，不等于整条网络中断。ChatGPT 探针要求 Codex POST 返回 JSON `400/401`；HTML `403` 明确视为不可用。切换业务组时只改该业务，不改人工智能父组或全部海外流量。
+
+控制器会先回退再冷却失败节点。查看时只使用哈希日志：
+
+```sh
+sudo tail -n 50 data/failover/chatgpt-controller.log
+sudo cat data/failover/chatgpt-controller.health
+```
+
+不要把节点名称写入工单或监控日志。
 
 ### 7.5 Gemini 主页返回 `429`
 
@@ -319,10 +334,18 @@ docker exec lan-center-uptime-kuma-1 \
 结果必须为 `ok`。
 
 4. 原有监控全部正常；
-5. `OpenClash 分流验收` 分组及 7 个子项全部正常；
+5. 22 个监控启用，`OpenClash 分流验收` 分组及 8 个子项全部正常；
 6. `DRY_RUN=1`；
 7. 最近日志没有持续的 `error`、`fatal` 或数据库异常；
 8. 保存验收后备份和验收报告。
+
+本地告警必须存在父分组绑定，并能写入：
+
+```sh
+sudo tail -n 20 data/failover/alerts.log
+```
+
+如需手机或聊天软件通知，只在服务器 `.env` 设置 `ALERT_WEBHOOK_URL`，然后重建 `failover`；不要把 Webhook 地址提交到 GitHub。
 
 首次部署的验收证据见 `ACCEPTANCE-20261013.md`。
 

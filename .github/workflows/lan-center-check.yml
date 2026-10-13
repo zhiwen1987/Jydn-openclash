@@ -1,0 +1,47 @@
+name: lan-center Check
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/lan-center-check.yml"
+      - "monitoring/lan-center/**"
+  push:
+    branches:
+      - "codex/**"
+      - main
+    paths:
+      - ".github/workflows/lan-center-check.yml"
+      - "monitoring/lan-center/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install validators
+        run: sudo apt-get update && sudo apt-get install -y shellcheck sqlite3
+
+      - name: Check shell syntax
+        run: sh -n monitoring/lan-center/failover/*.sh monitoring/lan-center/tests/*.sh
+
+      - name: Run ShellCheck
+        run: shellcheck monitoring/lan-center/failover/*.sh monitoring/lan-center/tests/*.sh
+
+      - name: Test idempotent database migration
+        run: sh monitoring/lan-center/tests/test_migration.sh
+
+      - name: Validate Compose
+        working-directory: monitoring/lan-center
+        run: |
+          cat > .env <<'EOF'
+          IKUAI_URL=http://10.88.0.1
+          IKUAI_TOKEN=ci-placeholder
+          PROXY_AUTH=ci-placeholder
+          OPENCLASH_SECRET=ci-placeholder
+          EOF
+          docker compose config --quiet

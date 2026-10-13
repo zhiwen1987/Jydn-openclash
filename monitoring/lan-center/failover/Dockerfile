@@ -11,4 +11,8 @@ RUN apk add --no-cache curl tzdata jq ca-certificates \
 ENV TZ=Asia/Shanghai HOME=/data
 COPY failover.sh /failover.sh
 COPY chatgpt-controller.sh /chatgpt-controller.sh
+COPY healthcheck.sh /healthcheck.sh
+COPY probe-server.sh /probe-server.sh
+COPY probe-handler.sh /probe-handler.sh
+RUN chmod 755 /failover.sh /chatgpt-controller.sh /healthcheck.sh /probe-server.sh /probe-handler.sh
 CMD ["sh", "/failover.sh"]
