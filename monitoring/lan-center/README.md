@@ -2,13 +2,23 @@
 
 生产位置：`10.88.0.249:/root/dpanel/compose/lan-center`
 
-完整维护与回滚步骤见 [OPERATIONS.md](./OPERATIONS.md)，本次验收证据见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)。
+完整维护与回滚步骤见 [OPERATIONS.md](./OPERATIONS.md)，基础监控验收见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)，节点能力系统验收见 [ACCEPTANCE-NODE-CAPABILITY-20261013.md](./ACCEPTANCE-NODE-CAPABILITY-20261013.md)。
 
 ## 当前架构
 
 - `uptime-kuma`：监控面板，局域网端口 `3101`；镜像固定到已验收的 SHA256 摘要。
-- `failover`：不新增第三个容器，内部同时运行代理观察、业务探针、ChatGPT 控制器和子进程监督。
+- `failover`：不新增第三个容器，内部同时运行代理观察、业务探针、ChatGPT 控制器、节点能力评估器和子进程监督。
 - 爱快始终保持 `DRY_RUN=1`，本服务不会自动修改爱快规则。
+
+## 节点能力评估（影子模式）
+
+- 局域网看板：`http://10.88.0.249:3102`。
+- OpenClash 使用独立组 `🧪 节点能力检测` 和独立认证入站 `10.88.0.254:7895`。
+- 检测器只切换该隔离组，不会切换任何业务组、国家组或爱快线路。
+- 通用检测要求 Google、Cloudflare、Apple 三目标中至少两个连续两次返回严格预期状态。
+- 业务能力分开记录 ChatGPT/Codex、Gemini、Claude 和 Netflix，不再用单一延迟代替业务可用性。
+- SQLite 保留 30 天检测数据，评分组成为业务可用性 50%、近期成功率 20%、丢包/抖动 15%、延迟 10%、持续可用 5%。
+- 当前强制 `CAPABILITY_MODE=shadow`，不包含自动接管代码。
 
 ChatGPT 控制器每 300 秒检查一次。候选节点先通过 OpenAI API 批量筛选，再临时选中并对 Codex 后端执行真实 POST；只接受 JSON `400/401`。HTML `403` 节点会立刻回退并进入一小时冷却名单。已通过真实检查的节点保持粘性，不因小幅延迟差主动切换。
 
@@ -31,12 +41,12 @@ ChatGPT 控制器每 300 秒检查一次。候选节点先通过 OpenAI API 批�
 
 迁移前一致性备份：
 
-`/home/zhiwen/lan-center-backups/20261013-180800-pre-monitor-hardening`
+`/home/zhiwen/lan-center-backups/20261013-185108-node-capability-prechange`
 
 校验：
 
 ```sh
-cd /home/zhiwen/lan-center-backups/20261013-180800-pre-monitor-hardening
+cd /home/zhiwen/lan-center-backups/20261013-185108-node-capability-prechange
 sha256sum -c SHA256SUMS
 ```
 

@@ -5,6 +5,7 @@
 - Docker 主机：`10.88.0.249`
 - 部署目录：`/root/dpanel/compose/lan-center`
 - 监控面板：`http://10.88.0.249:3101`
+- 节点能力看板：`http://10.88.0.249:3102`
 - OpenClash：`10.88.0.254`
 - 爱快：`10.88.0.1`
 
@@ -25,6 +26,8 @@
 2. `failover` 的自动切换代码只用于演练；没有单独审批不得把 `DRY_RUN` 改成 `0`。
 3. Kuma 显示业务可达性，不代表账号、配额、支付风控或地区版权一定可用。
 4. 爱快、OpenClash 和 `lan-center` 的变更必须分别备份，不能互相替代。
+5. 节点能力评估器固定为影子模式；只操作 `🧪 节点能力检测` 隔离组，不允许调整生产业务组。
+6. 节点检测入站必须使用独立强认证，凭据只保存在路由器受限文件和服务器 `.env`，不得提交。
 
 ChatGPT 控制器不把节点名称写入日志，只保存短哈希、延迟和候选数。候选先经 API 批量筛选，再通过 OpenClash 代理对 Codex 后端执行真实 POST；只有 JSON `400/401` 才算业务可用。HTML `403` 会立即回退并将节点哈希冷却一小时。已验证节点保持粘性，不按小幅延迟差主动切换。OpenClash 控制密钥仅保存在服务器 `.env`。
 
@@ -74,6 +77,27 @@ sudo cat /root/dpanel/compose/lan-center/data/failover/chatgpt-controller.health
 `http://10.88.0.249:3101`
 
 使用现有 Kuma 账号登录。不要在聊天、工单或截图中公开密码。
+
+节点能力评估看板是只读页面，局域网访问：
+
+`http://10.88.0.249:3102`
+
+该页面没有切换、修改或删除接口；返回修改请求时固定响应 `405 read_only`。
+
+### 3.5 查看节点评估运行状态
+
+```sh
+sudo cat /root/dpanel/compose/lan-center/data/failover/node-capability.health
+sudo tail -n 50 /root/dpanel/compose/lan-center/data/failover/node-capability.log
+sudo docker exec lan-center-failover-1 python3 - <<'PY'
+import sqlite3
+db = sqlite3.connect('/data/node-capability.db')
+print(db.execute('pragma integrity_check').fetchone()[0])
+print(db.execute('select state,count(*) from health_scores group by state').fetchall())
+PY
+```
+
+正常时健康文件为 `status=ok`、`mode=shadow`，数据库完整性为 `ok`。日志只记录节点短哈希，不记录节点名。
 
 ### 3.2 查看容器状态
 

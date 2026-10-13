@@ -5,6 +5,9 @@ on:
     paths:
       - ".github/workflows/lan-center-check.yml"
       - "monitoring/lan-center/**"
+      - "scripts/patch_node_capability_probe.rb"
+      - "scripts/jydn_node_capability_hook.sh"
+      - "scripts/install_node_capability_hook.rb"
   push:
     branches:
       - "codex/**"
@@ -12,6 +15,9 @@ on:
     paths:
       - ".github/workflows/lan-center-check.yml"
       - "monitoring/lan-center/**"
+      - "scripts/patch_node_capability_probe.rb"
+      - "scripts/jydn_node_capability_hook.sh"
+      - "scripts/install_node_capability_hook.rb"
 
 permissions:
   contents: read
@@ -24,13 +30,19 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Install validators
-        run: sudo apt-get update && sudo apt-get install -y shellcheck sqlite3
+        run: sudo apt-get update && sudo apt-get install -y ruby shellcheck sqlite3
 
       - name: Check shell syntax
         run: sh -n monitoring/lan-center/failover/*.sh monitoring/lan-center/tests/*.sh
 
       - name: Run ShellCheck
-        run: shellcheck monitoring/lan-center/failover/*.sh monitoring/lan-center/tests/*.sh
+        run: shellcheck monitoring/lan-center/failover/*.sh monitoring/lan-center/tests/*.sh scripts/jydn_node_capability_hook.sh
+
+      - name: Test node capability evaluator
+        run: python3 monitoring/lan-center/failover/node-capability.py --self-test
+
+      - name: Test isolated OpenClash probe patch
+        run: sh monitoring/lan-center/tests/test_node_capability_patch.sh
 
       - name: Test idempotent database migration
         run: sh monitoring/lan-center/tests/test_migration.sh
@@ -43,5 +55,6 @@ jobs:
           IKUAI_TOKEN=ci-placeholder
           PROXY_AUTH=ci-placeholder
           OPENCLASH_SECRET=ci-placeholder
+          CAPABILITY_PROXY_AUTH=ci-placeholder
           EOF
           docker compose config --quiet

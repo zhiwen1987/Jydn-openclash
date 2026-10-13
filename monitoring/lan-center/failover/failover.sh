@@ -10,6 +10,7 @@ set -u
 : "${DRY_RUN:=1}"
 : "${LOG_MAX_BYTES:=5242880}"
 : "${LOG_KEEP:=5}"
+: "${CAPABILITY_ENABLED:=0}"
 
 LOG=/data/failover.log
 HEALTH=/data/health
@@ -37,6 +38,7 @@ rotate_one() {
 rotate_logs() {
   rotate_one /data/failover.log
   rotate_one /data/chatgpt-controller.log
+  rotate_one /data/node-capability.log
   rotate_one /data/alerts.log
 }
 
@@ -97,6 +99,15 @@ start_probe_server() {
   log 'status=started child=probe_server'
 }
 
+start_capability_evaluator() {
+  [ "$CAPABILITY_ENABLED" = 1 ] || return 0
+  rm -f /data/node-capability.health
+  /usr/bin/python3 /node-capability.py &
+  capability_pid=$!
+  printf '%s\n' "$capability_pid" > /data/node-capability.pid
+  log 'status=started child=node_capability mode=shadow'
+}
+
 supervise_children() {
   if ! kill -0 "$controller_pid" 2>/dev/null; then
     log 'status=restarting child=chatgpt_controller'
@@ -106,23 +117,31 @@ supervise_children() {
     log 'status=restarting child=probe_server'
     start_probe_server
   fi
+  if [ "$CAPABILITY_ENABLED" = 1 ] && ! kill -0 "$capability_pid" 2>/dev/null; then
+    log 'status=restarting child=node_capability'
+    start_capability_evaluator
+  fi
 }
 
 cleanup() {
   [ -z "$controller_pid" ] || kill "$controller_pid" 2>/dev/null || true
   [ -z "$probe_pid" ] || kill "$probe_pid" 2>/dev/null || true
+  [ -z "$capability_pid" ] || kill "$capability_pid" 2>/dev/null || true
   [ -z "$controller_pid" ] || wait "$controller_pid" 2>/dev/null || true
   [ -z "$probe_pid" ] || wait "$probe_pid" 2>/dev/null || true
-  rm -f /data/chatgpt-controller.pid /data/probe-server.pid
+  [ -z "$capability_pid" ] || wait "$capability_pid" 2>/dev/null || true
+  rm -f /data/chatgpt-controller.pid /data/probe-server.pid /data/node-capability.pid
 }
 controller_pid=''
 probe_pid=''
+capability_pid=''
 trap cleanup EXIT INT TERM
 
 log "status=started dry_run=$DRY_RUN interval=${INTERVAL}s"
 rm -f /data/sim_state
 start_controller
 start_probe_server
+start_capability_evaluator
 failures=0
 successes=0
 
