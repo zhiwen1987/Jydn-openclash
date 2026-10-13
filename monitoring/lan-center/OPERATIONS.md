@@ -99,6 +99,17 @@ PY
 
 正常时健康文件为 `status=ok`、`mode=shadow`，数据库完整性为 `ok`。日志只记录节点短哈希，不记录节点名。
 
+V2 看板字段解释：
+
+- `未评估`：无历史样本，会被调度器优先选中；
+- `数据过期`：有历史结果，但超过本类检测的有效期，不能作为自动决策依据；
+- `业务受限`：通用联网正常，但至少一项业务探针未通过；
+- `可信度`：根据 7 天样本量和连续成功/失败次数计算，新节点不会因一次成功获得高可信度；
+- 业务标签的鼠标提示显示失败分类和该项可信度；
+- `当前生产分流验证`通过正常生产代理入口检查，与节点隔离探针分开。
+
+调度标准：未评估节点优先，健康/降级/业务受限节点 15 分钟复检，冷却/不可用节点 5 分钟复检，业务深测 6 小时复检。订阅更新或容器重启不会清空已有评分。
+
 ### 3.2 查看容器状态
 
 ```sh
@@ -151,8 +162,15 @@ docker cp lan-center-uptime-kuma-1:/tmp/kuma-consistent.db \
   "$dest/kuma-consistent.db"
 docker exec lan-center-uptime-kuma-1 rm -f /tmp/kuma-consistent.db
 
+docker exec lan-center-failover-1 python3 -c \
+  'import sqlite3; s=sqlite3.connect("/data/node-capability.db"); d=sqlite3.connect("/tmp/node-capability-consistent.db"); s.backup(d); d.close(); s.close()'
+docker cp lan-center-failover-1:/tmp/node-capability-consistent.db \
+  "$dest/node-capability-consistent.db"
+docker exec lan-center-failover-1 rm -f /tmp/node-capability-consistent.db
+
 sudo chown -R zhiwen:zhiwen "$dest"
-(cd "$dest" && sha256sum lan-center-config.tar.gz kuma-consistent.db > SHA256SUMS)
+(cd "$dest" && sha256sum lan-center-config.tar.gz kuma-consistent.db \
+  node-capability-consistent.db > SHA256SUMS)
 (cd "$dest" && sha256sum -c SHA256SUMS)
 echo "$dest"
 ```
@@ -161,7 +179,7 @@ echo "$dest"
 
 - 命令无错误退出；
 - `sha256sum -c` 全部为 `OK`；
-- 压缩包和一致性数据库均存在且大小不为零。
+- 压缩包、Kuma 数据库和节点能力数据库均存在且大小不为零。
 
 ## 5. 恢复
 
@@ -211,6 +229,40 @@ sudo docker compose up -d uptime-kuma
 ```
 
 数据库恢复必须在 Kuma 停止后执行，不能覆盖正在使用的 SQLite 文件。
+
+### 5.3 恢复本次 V2 变更前状态
+
+249 恢复路径：
+
+```sh
+backup=/home/zhiwen/lan-center-backups/20261013-195256-node-capability-v2-prechange
+project=/root/dpanel/compose/lan-center
+
+cd "$backup"
+sha256sum -c SHA256SUMS
+cd "$project"
+sudo docker compose stop failover
+sudo tar -xzf "$backup/lan-center-files.tar.gz" -C /root/dpanel/compose \
+  --exclude='lan-center/data'
+sudo cp "$backup/node-capability.db" "$project/data/failover/node-capability.db"
+sudo rm -f "$project/data/failover/node-capability.db-wal" \
+  "$project/data/failover/node-capability.db-shm"
+cd "$project"
+sudo docker compose up -d --build failover
+```
+
+OpenClash 恢复路径：
+
+```sh
+backup=/root/openclash-backups/20261013-195256-node-capability-v2-prechange
+cd "$backup"
+sha256sum -c SHA256SUMS
+/etc/init.d/openclash stop
+tar -xzf "$backup/openclash-files.tar.gz" -C /
+/etc/init.d/openclash start
+```
+
+本次 V2 只更新 249 的评估器，正常回滚时不需要恢复 OpenClash。只有后续变更过路由器文件时才执行 OpenClash 恢复。
 
 ## 6. 安全更新流程
 

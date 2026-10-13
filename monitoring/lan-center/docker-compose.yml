@@ -3,7 +3,7 @@ name: lan-center
 services:
   failover:
     build: ./failover
-    image: lan-center-failover:3
+    image: lan-center-failover:4
     restart: unless-stopped
     env_file: .env
     environment:
@@ -18,9 +18,13 @@ services:
       CAPABILITY_GROUP: "🧪 节点能力检测"
       CAPABILITY_PROXY: "http://10.88.0.254:7895"
       CAPABILITY_PROXY_AUTH: "${CAPABILITY_PROXY_AUTH}"
-      CAPABILITY_NODE_INTERVAL: "30"
+      CAPABILITY_NODE_INTERVAL: "10"
       CAPABILITY_DISCOVERY_INTERVAL: "600"
       CAPABILITY_BUSINESS_RECHECK: "21600"
+      CAPABILITY_HEALTHY_RECHECK: "900"
+      CAPABILITY_UNHEALTHY_RECHECK: "300"
+      CAPABILITY_STALE_MULTIPLIER: "2"
+      ROUTE_AUDIT_INTERVAL: "300"
       CAPABILITY_GENERAL_ATTEMPTS: "2"
     volumes:
       - ./data/failover:/data
