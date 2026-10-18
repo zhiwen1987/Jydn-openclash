@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/probe-backup-v3.json",
+  "title": "Chengwang probe state-only backup v3",
+  "$comment": "backupId has a high-entropy canonical form; non-reuse across operations requires an external durable uniqueness registry and cannot be proven by a standalone document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "backupId", "createdUnix", "expiresUnix", "sourceBootId", "wasRunningBeforeQuiesce", "candidate", "configuration", "state"],
+  "properties": {
+    "schema": { "const": "chengwang.m2b-probe-backup/v3" },
+    "backupId": { "$ref": "#/$defs/backupId" },
+    "createdUnix": { "$ref": "#/$defs/unix" },
+    "expiresUnix": { "$ref": "#/$defs/unix" },
+    "sourceBootId": { "$ref": "#/$defs/bootId" },
+    "wasRunningBeforeQuiesce": { "type": "boolean" },
+    "candidate": { "$ref": "#/$defs/candidate" },
+    "configuration": { "$ref": "#/$defs/configuration" },
+    "state": { "$ref": "#/$defs/state" }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$" },
+    "backupId": { "type": "string", "pattern": "^backup-[0-9a-f]{32}$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "unix": { "type": "integer", "minimum": 1, "maximum": 253402300799 },
+    "bootId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "absolutePath": { "type": "string", "minLength": 2, "maxLength": 1024, "pattern": "^/(?:[A-Za-z0-9_][A-Za-z0-9._-]*)(?:/[A-Za-z0-9_][A-Za-z0-9._-]*)*$" },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidateId", "projectName", "serviceName", "candidateRoot", "stateMountTarget"],
+      "properties": {
+        "candidateId": { "$ref": "#/$defs/id" },
+        "projectName": { "$ref": "#/$defs/id" },
+        "serviceName": { "$ref": "#/$defs/id" },
+        "candidateRoot": { "$ref": "#/$defs/absolutePath" },
+        "stateMountTarget": { "$ref": "#/$defs/absolutePath" }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["imageId", "imageManifestDigest", "imageReference", "composeSourceSha256", "composeRenderedSha256", "probeEnvSha256", "catalogSha256", "dotCaSha256", "egressPolicySha256", "configurationBindingSha256"],
+      "properties": {
+        "imageId": { "$ref": "#/$defs/digest" },
+        "imageManifestDigest": { "$ref": "#/$defs/digest" },
+        "imageReference": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._/@:-]{0,511}$" },
+        "composeSourceSha256": { "$ref": "#/$defs/digest" },
+        "composeRenderedSha256": { "$ref": "#/$defs/digest" },
+        "probeEnvSha256": { "$ref": "#/$defs/digest" },
+        "catalogSha256": { "$ref": "#/$defs/digest" },
+        "dotCaSha256": { "$ref": "#/$defs/digest" },
+        "egressPolicySha256": { "$ref": "#/$defs/digest" },
+        "configurationBindingSha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["archiveSha256", "treeSha256", "validationReportSha256", "relationshipComplete"],
+      "properties": {
+        "archiveSha256": { "$ref": "#/$defs/digest" },
+        "treeSha256": { "$ref": "#/$defs/digest" },
+        "validationReportSha256": { "$ref": "#/$defs/digest" },
+        "relationshipComplete": { "const": true }
+      }
+    }
+  }
+}

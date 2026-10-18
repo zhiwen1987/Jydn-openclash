@@ -74,7 +74,7 @@ jobs:
           /usr/bin/sudo --non-interactive /usr/bin/install -d -o 0 -g 0 -m 0700 "$root_fixture"
 
           cd chengwang
-          CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=readonly GOPROXY=off GOSUMDB=off \
+          CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off \
             /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -c \
               -tags proberestore_root -o "$artifact_dir/proberestore-root.test" ./internal/proberestore
           /usr/bin/chmod 0555 "$artifact_dir/proberestore-root.test"
@@ -209,7 +209,7 @@ jobs:
                 GOCACHE="$6" GOMODCACHE="$7" GOTMPDIR="$8" \
                 PATH=/opt/hostedtoolcache/go/1.23.12/x64/bin:/usr/bin:/bin \
                 LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
-                GOTOOLCHAIN=local GOFLAGS=-mod=readonly GOPROXY=off GOSUMDB=off CGO_ENABLED=1 \
+                GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=1 \
                 GIT_OPTIONAL_LOCKS=0 \
                 /usr/bin/bash --noprofile --norc -euo pipefail
           ' chengwang-netns "$runner_uid" "$runner_gid" "$isolated_home" "$isolated_tmp" \
@@ -250,7 +250,6 @@ jobs:
             echo "Python bytecode was generated" >&2
             exit 1
           fi
-          echo 'SCHEMA_METASCHEMA=BLOCKED_SCHEMA_METASCHEMA_VALIDATOR_UNAVAILABLE'
           echo 'DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES'
           echo 'Dockerfiles use mutable golang:1.23-alpine and alpine:3.21 tags; this static gate intentionally does not build or pull them.'
           /usr/bin/git diff --check

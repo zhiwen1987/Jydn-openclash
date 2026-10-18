@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/probe-receipt-checkpoint-v1.json",
+  "title": "Chengwang unverified externally anchored receipt checkpoint claims v1",
+  "description": "Unverified checkpoint claims are not an exact replay index by themselves; all three independently read and externally retained indexes remain mandatory. Local parsing does not prove signature authenticity, CAS, or WORM behavior.",
+  "$comment": "The Go semantic layer requires three distinct index object keys, count equality, through-generation bounds, independent expected index tuples, bounded freshness, and minimum retention.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidateId", "checkpointGeneration", "throughGeneration", "createdUnix", "receiptCount", "receiptAccumulatorSha256", "previousCheckpointSha256", "anchorSha256", "indexes", "cas", "worm", "signer", "signature"],
+  "properties": {
+    "schema": { "const": "chengwang.probe-receipt-checkpoint/v1" },
+    "candidateId": { "$ref": "#/$defs/id" },
+    "checkpointGeneration": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "throughGeneration": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "createdUnix": { "$ref": "#/$defs/unix" },
+    "receiptCount": { "type": "integer", "minimum": 1, "maximum": 1000000000 },
+    "receiptAccumulatorSha256": { "$ref": "#/$defs/digest" },
+    "previousCheckpointSha256": { "$ref": "#/$defs/digest" },
+    "anchorSha256": { "$ref": "#/$defs/digest" },
+    "indexes": { "$ref": "#/$defs/indexes" },
+    "cas": { "$ref": "#/$defs/cas" },
+    "worm": { "$ref": "#/$defs/worm" },
+    "signer": { "$ref": "#/$defs/signer" },
+    "signature": { "$ref": "#/$defs/signature" }
+  },
+  "allOf": [
+    { "if": { "properties": { "signer": { "properties": { "algorithm": { "const": "ED25519" } }, "required": ["algorithm"] } } }, "then": { "properties": { "signature": { "minLength": 88, "maxLength": 88 } } } },
+    { "if": { "properties": { "signer": { "properties": { "algorithm": { "const": "ECDSA_P256_SHA256" } }, "required": ["algorithm"] } } }, "then": { "properties": { "signature": { "minLength": 12, "maxLength": 96 } } } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$" },
+    "version": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,255}$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "unix": { "type": "integer", "minimum": 1, "maximum": 253402300799 },
+    "index": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backendId", "objectKey", "objectVersion", "rootSha256", "count"],
+      "properties": { "backendId": { "$ref": "#/$defs/id" }, "objectKey": { "$ref": "#/$defs/version" }, "objectVersion": { "$ref": "#/$defs/version" }, "rootSha256": { "$ref": "#/$defs/digest" }, "count": { "type": "integer", "minimum": 1, "maximum": 1000000000 } }
+    },
+    "indexes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["operations", "backups", "manifests"],
+      "properties": { "operations": { "$ref": "#/$defs/index" }, "backups": { "$ref": "#/$defs/index" }, "manifests": { "$ref": "#/$defs/index" } }
+    },
+    "cas": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backendId", "objectKey", "expectedVersion", "committedVersion"],
+      "properties": { "backendId": { "$ref": "#/$defs/id" }, "objectKey": { "$ref": "#/$defs/version" }, "expectedVersion": { "$ref": "#/$defs/version" }, "committedVersion": { "$ref": "#/$defs/version" } }
+    },
+    "worm": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backendClass", "backendId", "objectKey", "objectVersion", "retentionUntilUnix", "independent"],
+      "properties": {
+        "backendClass": { "enum": ["REMOTE_OBJECT_LOCK", "REMOTE_APPEND_ONLY_LEDGER", "HARDWARE_MONOTONIC"] },
+        "backendId": { "$ref": "#/$defs/id" }, "objectKey": { "$ref": "#/$defs/version" }, "objectVersion": { "$ref": "#/$defs/version" },
+        "retentionUntilUnix": { "$ref": "#/$defs/unix" }, "independent": { "const": true }
+      }
+    },
+    "signer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keyId", "algorithm"],
+      "properties": { "keyId": { "$ref": "#/$defs/id" }, "algorithm": { "enum": ["ED25519", "ECDSA_P256_SHA256"] } }
+    },
+    "signature": { "type": "string", "minLength": 4, "maxLength": 96, "pattern": "^[A-Za-z0-9+/]+={0,2}$", "$comment": "Strict base64 decoding, ED25519 decoded length, and ECDSA DER scalar shape/range are enforced by the Go semantic layer; this is not cryptographic verification." }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/probe-restore-anchor-v1.json",
+  "title": "Chengwang unverified external monotonic restore anchor claims v1",
+  "description": "Unverified claims returned by an independently operated CAS/WORM backend. Local parsing and structural signature validation do not prove signature authenticity, backend independence, CAS behavior, or WORM retention.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidateId", "operationId", "generation", "journalHeadSha256", "phase", "backupId", "backupManifestSha256", "controlRecordSha256", "receiptAccumulatorSha256", "bootId", "previousAnchorSha256", "createdUnix", "cas", "worm", "signer", "signature"],
+  "properties": {
+    "schema": { "const": "chengwang.probe-restore-anchor/v1" },
+    "candidateId": { "$ref": "#/$defs/id" },
+    "operationId": { "$ref": "#/$defs/id" },
+    "generation": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "journalHeadSha256": { "$ref": "#/$defs/journalHash" },
+    "phase": { "$ref": "#/$defs/phase" },
+    "backupId": { "$ref": "#/$defs/backupId" },
+    "backupManifestSha256": { "$ref": "#/$defs/digest" },
+    "controlRecordSha256": { "$ref": "#/$defs/digest" },
+    "receiptAccumulatorSha256": { "$ref": "#/$defs/digest" },
+    "bootId": { "$ref": "#/$defs/bootId" },
+    "previousAnchorSha256": { "$ref": "#/$defs/digest" },
+    "createdUnix": { "$ref": "#/$defs/unix" },
+    "cas": { "$ref": "#/$defs/cas" },
+    "worm": { "$ref": "#/$defs/worm" },
+    "signer": { "$ref": "#/$defs/signer" },
+    "signature": { "$ref": "#/$defs/signature" }
+  },
+  "allOf": [
+    { "if": { "properties": { "signer": { "properties": { "algorithm": { "const": "ED25519" } }, "required": ["algorithm"] } } }, "then": { "properties": { "signature": { "minLength": 88, "maxLength": 88 } } } },
+    { "if": { "properties": { "signer": { "properties": { "algorithm": { "const": "ECDSA_P256_SHA256" } }, "required": ["algorithm"] } } }, "then": { "properties": { "signature": { "minLength": 12, "maxLength": 96 } } } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$" },
+    "version": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,255}$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "journalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "backupId": { "type": "string", "pattern": "^backup-[0-9a-f]{32}$" },
+    "unix": { "type": "integer", "minimum": 1, "maximum": 253402300799 },
+    "bootId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "phase": { "enum": ["NEW", "LOCKED", "INPUT_VERIFIED", "LIVE_QUIESCED", "CURRENT_BACKUP_DURABLE", "STAGED", "STAGED_VALIDATED", "SWITCH_ARMED", "STATE_EXCHANGED", "CONTAINER_RECREATED", "EGRESS_REBOUND", "CONTAINER_STARTED", "LOCAL_HEALTH_PASSED", "INDEPENDENT_PROBE_PASSED", "COMMITTED", "ROLLBACK_ARMED", "STATE_ROLLBACK_EXCHANGED", "ROLLBACK_CONTAINER_RECREATED", "ROLLBACK_EGRESS_REBOUND", "ROLLBACK_CONTAINER_STARTED", "ROLLBACK_HEALTH_PASSED", "ROLLED_BACK", "FAILED", "RESCUE_REQUIRED", "RESCUE_LOCKDOWN"] },
+    "cas": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backendId", "objectKey", "expectedVersion", "committedVersion"],
+      "properties": { "backendId": { "$ref": "#/$defs/id" }, "objectKey": { "$ref": "#/$defs/version" }, "expectedVersion": { "$ref": "#/$defs/version" }, "committedVersion": { "$ref": "#/$defs/version" } }
+    },
+    "worm": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backendClass", "backendId", "objectKey", "objectVersion", "retentionUntilUnix", "independent"],
+      "properties": {
+        "backendClass": { "enum": ["REMOTE_OBJECT_LOCK", "REMOTE_APPEND_ONLY_LEDGER", "HARDWARE_MONOTONIC"] },
+        "backendId": { "$ref": "#/$defs/id" }, "objectKey": { "$ref": "#/$defs/version" }, "objectVersion": { "$ref": "#/$defs/version" },
+        "retentionUntilUnix": { "$ref": "#/$defs/unix" }, "independent": { "const": true }
+      }
+    },
+    "signer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keyId", "algorithm"],
+      "properties": { "keyId": { "$ref": "#/$defs/id" }, "algorithm": { "enum": ["ED25519", "ECDSA_P256_SHA256"] } }
+    },
+    "signature": { "type": "string", "minLength": 4, "maxLength": 96, "pattern": "^[A-Za-z0-9+/]+={0,2}$", "$comment": "Strict base64 decoding, ED25519 decoded length, and ECDSA DER scalar shape/range are enforced by the Go semantic layer; this is not cryptographic verification." }
+  }
+}

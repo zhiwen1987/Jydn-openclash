@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import json
 import os
 import pathlib
@@ -29,7 +30,14 @@ REQUIRED_TEST_SUITES = {
     "bootstrap/tests": 29,
 }
 
-SCHEMA_METASCHEMA_STATUS = "BLOCKED_SCHEMA_METASCHEMA_VALIDATOR_UNAVAILABLE"
+REQUIRED_SCHEMA_COUNT = 11
+SCHEMA_VALIDATOR_PACKAGE = "chengwang/internal/restorecontracts"
+SCHEMA_VALIDATOR_TEST = "TestSchemasDraft2020CompileAndValidate"
+SCHEMA_METASCHEMA_STATUS = "PENDING_GO_VALIDATOR"
+SCHEMA_METASCHEMA_PASS = (
+    "SCHEMA_METASCHEMA=PASS "
+    "validator=santhosh-tekuri-jsonschema-v6.0.3 schemas=11"
+)
 
 WINDOWS_PLATFORM_SKIPS = frozenset(
     {
@@ -77,6 +85,37 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/webui": 3,
 }
 
+REQUIRED_GO_TEST_FINGERPRINTS = {
+    "chengwang/internal/restorecontracts": {
+        "count": 226,
+        "sha256": "36e5f531ae1b53e5a69d3d4f4f5ed5a3b713ee27157e15e904087ffb2560b786",
+    }
+}
+
+REQUIRED_GO_TEST_NAMES = {
+    "chengwang/internal/restorecontracts": frozenset(
+        {
+            "TestGoldenContractsParse",
+            "TestStrictJSONRejectsStructuralAmbiguity",
+            "TestEveryRequiredFieldDeletionRejected",
+            "TestBackupSemanticBoundaries",
+            "TestStateOnlyRejectsEveryBindingDifference",
+            "TestEveryEvidenceKindHasExactPhaseAndRequiredChecks",
+            "TestEvidenceTopologyMatrix",
+            "TestEvidenceTransitionsMatchProbeRestore",
+            "TestRescueAndLockdownPreserveUnknownTopology",
+            "TestEvidenceReasonPolicyMatchesJournal",
+            "TestEvidenceContextFreshnessBootAndRawDigest",
+            "TestAnchorClaimsRequireTrustedContext",
+            "TestCheckpointClaimsRequireIndependentIndexes",
+            "TestAnchorAndCheckpointBoundaries",
+            "TestValidatedObjectsAreOpaqueSnapshots",
+            "TestSchemaParityAndLocalReferences",
+            SCHEMA_VALIDATOR_TEST,
+        }
+    )
+}
+
 ALLOWED_GO_PACKAGE_SKIPS = frozenset({"chengwang/internal/domain"})
 
 
@@ -98,6 +137,11 @@ def _reject_nonstandard_number(value: str) -> object:
     raise ValueError(f"non-standard JSON number: {value}")
 
 
+def _test_name_fingerprint(names: set[str]) -> str:
+    canonical = "\n".join(sorted(names)).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _assert_no_python_cache(candidate_root: pathlib.Path) -> None:
     artifacts = sorted(
         path.relative_to(candidate_root).as_posix()
@@ -110,8 +154,11 @@ def _assert_no_python_cache(candidate_root: pathlib.Path) -> None:
 
 def _parse_schemas(candidate_root: pathlib.Path) -> int:
     schemas = sorted(candidate_root.rglob("*.schema.json"))
-    if not schemas:
-        raise RuntimeError(f"no schemas found under {candidate_root}")
+    if len(schemas) != REQUIRED_SCHEMA_COUNT:
+        raise RuntimeError(
+            f"schema count is {len(schemas)} under {candidate_root}; "
+            f"required exact count is {REQUIRED_SCHEMA_COUNT}"
+        )
     for path in schemas:
         with path.open("r", encoding="utf-8") as handle:
             value = json.load(
@@ -189,6 +236,9 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
     for source in paths:
         source = source.resolve(strict=True)
         run_events: collections.Counter[str] = collections.Counter()
+        started_tests: dict[str, set[str]] = collections.defaultdict(set)
+        passed_tests: dict[str, set[str]] = collections.defaultdict(set)
+        terminal_package_passes = set()
         package_skips = set()
         with source.open("r", encoding="utf-8") as handle:
             for line_number, line in enumerate(handle, 1):
@@ -209,10 +259,23 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
                     total_packages.add(package)
                 test_name = event.get("Test")
                 action = event.get("Action")
+                if action == "fail":
+                    target = f"{package or '?'}::{test_name}" if test_name else package or "?"
+                    raise RuntimeError(f"Go test failure event is forbidden: {target}")
                 if isinstance(test_name, str) and action == "skip":
                     raise RuntimeError(f"Go test skip is forbidden: {package or '?'}::{test_name}")
-                if isinstance(test_name, str) and action == "run":
+                if isinstance(test_name, str) and test_name.startswith("Test") and action == "run":
                     run_events[package] += 1
+                    started_tests[package].add(test_name)
+                if isinstance(test_name, str) and test_name.startswith("Test") and action == "pass":
+                    if test_name not in started_tests[package]:
+                        raise RuntimeError(
+                            f"Go test pass without a preceding run event is forbidden: "
+                            f"{package or '?'}::{test_name}"
+                        )
+                    passed_tests[package].add(test_name)
+                if test_name is None and isinstance(package, str) and action == "pass":
+                    terminal_package_passes.add(package)
                 if test_name is None and action == "skip":
                     if package not in ALLOWED_GO_PACKAGE_SKIPS:
                         raise RuntimeError(f"Go package skip is forbidden: {package or '?'}")
@@ -229,10 +292,40 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
                     f"Go package {package} has {actual} test run events in {source}; "
                     f"required minimum is {minimum}"
                 )
+            if package not in terminal_package_passes:
+                raise RuntimeError(
+                    f"Go package {package} has no terminal package pass event in {source}"
+                )
+        for package, expected in REQUIRED_GO_TEST_FINGERPRINTS.items():
+            names = passed_tests[package]
+            actual_count = len(names)
+            actual_digest = _test_name_fingerprint(names)
+            if actual_count != expected["count"] or actual_digest != expected["sha256"]:
+                raise RuntimeError(
+                    f"Go package {package} passed Test* fingerprint mismatch in {source}: "
+                    f"count={actual_count} sha256={actual_digest}; "
+                    f"expected count={expected['count']} sha256={expected['sha256']}"
+                )
+            if package not in terminal_package_passes:
+                raise RuntimeError(
+                    f"Go package {package} has no terminal package pass event in {source}"
+                )
+        for package, required_names in REQUIRED_GO_TEST_NAMES.items():
+            missing = sorted(required_names - passed_tests[package])
+            if missing:
+                raise RuntimeError(
+                    f"Go package {package} is missing required top-level passing tests in {source}: {missing}"
+                )
+        if SCHEMA_VALIDATOR_TEST not in passed_tests[SCHEMA_VALIDATOR_PACKAGE]:
+            raise RuntimeError(
+                f"required Draft 2020-12 validator test did not pass in {source}: "
+                f"{SCHEMA_VALIDATOR_PACKAGE}::{SCHEMA_VALIDATOR_TEST}"
+            )
         total_run_events += sum(run_events.values())
+    print(SCHEMA_METASCHEMA_PASS)
     print(
         "GO_JSON_GATE=PASS "
-        f"files={len(paths)} runEvents={total_run_events} packages={len(total_packages)} skips=0"
+        f"files={len(paths)} semanticRunEvents={total_run_events} packages={len(total_packages)} skips=0"
     )
     return 0
 

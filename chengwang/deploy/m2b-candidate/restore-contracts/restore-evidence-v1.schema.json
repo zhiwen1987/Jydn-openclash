@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/probe-restore-evidence-v1.json",
+  "title": "Chengwang probe restore transition evidence v1",
+  "$comment": "Schema binds kind to journal-compatible from/target phase, the lockdown reason, and coarse presence topology where identity must be known. Go semantic validation additionally binds reason to independent context, payloadSchema to kind, unique check names, required check names, old/new tree digests to live/stage identities for ordinary and failure transitions, boottime freshness, and raw-byte SHA-256. RESCUE_REQUIRED and LOCKDOWN_VERIFIED deliberately preserve any strictly shaped independently bound topology, including unknown or contradictory state identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "operationId", "transitionSequence", "fromPhase", "targetPhase", "reasonCode", "previousJournalHeadSha256", "capturedUnix", "expiresUnix", "bootId", "boottimeNs", "candidate", "binding", "collector", "payloadSchema", "payload"],
+  "properties": {
+    "schema": { "const": "chengwang.probe-restore-evidence/v1" },
+    "kind": { "$ref": "#/$defs/kind" },
+    "operationId": { "$ref": "#/$defs/id" },
+    "transitionSequence": { "type": "integer", "minimum": 2, "maximum": 18446744073709551615 },
+    "fromPhase": { "$ref": "#/$defs/fromPhase" },
+    "targetPhase": { "$ref": "#/$defs/phase" },
+    "reasonCode": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Z][A-Z0-9_]{0,63}$" },
+    "previousJournalHeadSha256": { "$ref": "#/$defs/journalHash" },
+    "capturedUnix": { "$ref": "#/$defs/unix" },
+    "expiresUnix": { "$ref": "#/$defs/unix" },
+    "bootId": { "$ref": "#/$defs/bootId" },
+    "boottimeNs": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "candidate": { "$ref": "#/$defs/candidate" },
+    "binding": { "$ref": "#/$defs/binding" },
+    "collector": { "$ref": "#/$defs/collector" },
+    "payloadSchema": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^chengwang[.]probe-restore-evidence[.][a-z0-9-]+/v1$" },
+    "payload": { "$ref": "#/$defs/payload" }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "const": "LOCK_ACQUIRED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "NEW" }, "targetPhase": { "const": "LOCKED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyOldOnly" } } } } } },
+    { "if": { "properties": { "kind": { "const": "INPUT_BOUND" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "LOCKED" }, "targetPhase": { "const": "INPUT_VERIFIED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyOldOnly" } } } } } },
+    { "if": { "properties": { "kind": { "const": "LIVE_QUIESCED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "INPUT_VERIFIED" }, "targetPhase": { "const": "LIVE_QUIESCED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyOldOnly" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_BACKUP_DURABLE" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "LIVE_QUIESCED" }, "targetPhase": { "const": "CURRENT_BACKUP_DURABLE" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyOldOnly" } } } } } },
+    { "if": { "properties": { "kind": { "const": "STAGE_DURABLE" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "CURRENT_BACKUP_DURABLE" }, "targetPhase": { "const": "STAGED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "STAGE_VALIDATED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "STAGED" }, "targetPhase": { "const": "STAGED_VALIDATED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "SWITCH_ARMED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "STAGED_VALIDATED" }, "targetPhase": { "const": "SWITCH_ARMED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "STATE_EXCHANGED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "SWITCH_ARMED" }, "targetPhase": { "const": "STATE_EXCHANGED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "CONTAINER_RECREATED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "STATE_EXCHANGED" }, "targetPhase": { "const": "CONTAINER_RECREATED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "EGRESS_REBOUND" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "CONTAINER_RECREATED" }, "targetPhase": { "const": "EGRESS_REBOUND" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "CONTAINER_STARTED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "EGRESS_REBOUND" }, "targetPhase": { "const": "CONTAINER_STARTED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "LOCAL_HEALTH" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "CONTAINER_STARTED" }, "targetPhase": { "const": "LOCAL_HEALTH_PASSED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "INDEPENDENT_HEALTH" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "LOCAL_HEALTH_PASSED" }, "targetPhase": { "const": "INDEPENDENT_PROBE_PASSED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "COMMIT" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "INDEPENDENT_PROBE_PASSED" }, "targetPhase": { "const": "COMMITTED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_ARMED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "enum": ["STATE_EXCHANGED", "CONTAINER_RECREATED", "EGRESS_REBOUND", "CONTAINER_STARTED", "LOCAL_HEALTH_PASSED", "INDEPENDENT_PROBE_PASSED"] }, "targetPhase": { "const": "ROLLBACK_ARMED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_STATE_EXCHANGED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "ROLLBACK_ARMED" }, "targetPhase": { "const": "STATE_ROLLBACK_EXCHANGED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_CONTAINER_RECREATED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "STATE_ROLLBACK_EXCHANGED" }, "targetPhase": { "const": "ROLLBACK_CONTAINER_RECREATED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_EGRESS_REBOUND" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "ROLLBACK_CONTAINER_RECREATED" }, "targetPhase": { "const": "ROLLBACK_EGRESS_REBOUND" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_CONTAINER_STARTED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "ROLLBACK_EGRESS_REBOUND" }, "targetPhase": { "const": "ROLLBACK_CONTAINER_STARTED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_HEALTH" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "ROLLBACK_CONTAINER_STARTED" }, "targetPhase": { "const": "ROLLBACK_HEALTH_PASSED" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "ROLLBACK_COMMIT" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "ROLLBACK_HEALTH_PASSED" }, "targetPhase": { "const": "ROLLED_BACK" }, "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } },
+    { "if": { "properties": { "kind": { "const": "FAILURE_RECORDED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "enum": ["NEW", "LOCKED", "INPUT_VERIFIED", "LIVE_QUIESCED", "CURRENT_BACKUP_DURABLE", "STAGED", "STAGED_VALIDATED", "SWITCH_ARMED"] }, "targetPhase": { "const": "FAILED" } } } },
+    { "if": { "properties": { "kind": { "const": "RESCUE_REQUIRED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "enum": ["NEW", "LOCKED", "INPUT_VERIFIED", "LIVE_QUIESCED", "CURRENT_BACKUP_DURABLE", "STAGED", "STAGED_VALIDATED", "SWITCH_ARMED", "STATE_EXCHANGED", "CONTAINER_RECREATED", "EGRESS_REBOUND", "CONTAINER_STARTED", "LOCAL_HEALTH_PASSED", "INDEPENDENT_PROBE_PASSED", "ROLLBACK_ARMED", "STATE_ROLLBACK_EXCHANGED", "ROLLBACK_CONTAINER_RECREATED", "ROLLBACK_EGRESS_REBOUND", "ROLLBACK_CONTAINER_STARTED", "ROLLBACK_HEALTH_PASSED"] }, "targetPhase": { "const": "RESCUE_REQUIRED" } } } },
+    { "if": { "properties": { "kind": { "const": "LOCKDOWN_VERIFIED" } }, "required": ["kind"] }, "then": { "properties": { "fromPhase": { "const": "RESCUE_REQUIRED" }, "targetPhase": { "const": "RESCUE_LOCKDOWN" }, "reasonCode": { "const": "LOCKDOWN_VERIFIED" } } } },
+    { "if": { "properties": { "kind": { "const": "FAILURE_RECORDED" }, "fromPhase": { "enum": ["NEW", "LOCKED", "INPUT_VERIFIED", "LIVE_QUIESCED", "CURRENT_BACKUP_DURABLE"] } }, "required": ["kind", "fromPhase"] }, "then": { "properties": { "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyOldOnly" } } } } } },
+    { "if": { "properties": { "kind": { "const": "FAILURE_RECORDED" }, "fromPhase": { "enum": ["STAGED", "STAGED_VALIDATED", "SWITCH_ARMED"] } }, "required": ["kind", "fromPhase"] }, "then": { "properties": { "payload": { "properties": { "topology": { "$ref": "#/$defs/topologyBothPresent" } } } } } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "journalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "backupId": { "type": "string", "pattern": "^backup-[0-9a-f]{32}$" },
+    "unix": { "type": "integer", "minimum": 1, "maximum": 253402300799 },
+    "bootId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "absolutePath": { "type": "string", "minLength": 2, "maxLength": 1024, "pattern": "^/(?:[A-Za-z0-9_][A-Za-z0-9._-]*)(?:/[A-Za-z0-9_][A-Za-z0-9._-]*)*$" },
+    "kind": {
+      "enum": ["LOCK_ACQUIRED", "INPUT_BOUND", "LIVE_QUIESCED", "ROLLBACK_BACKUP_DURABLE", "STAGE_DURABLE", "STAGE_VALIDATED", "SWITCH_ARMED", "STATE_EXCHANGED", "CONTAINER_RECREATED", "EGRESS_REBOUND", "CONTAINER_STARTED", "LOCAL_HEALTH", "INDEPENDENT_HEALTH", "COMMIT", "ROLLBACK_ARMED", "ROLLBACK_STATE_EXCHANGED", "ROLLBACK_CONTAINER_RECREATED", "ROLLBACK_EGRESS_REBOUND", "ROLLBACK_CONTAINER_STARTED", "ROLLBACK_HEALTH", "ROLLBACK_COMMIT", "RESCUE_REQUIRED", "LOCKDOWN_VERIFIED", "FAILURE_RECORDED"]
+    },
+    "phase": {
+      "enum": ["LOCKED", "INPUT_VERIFIED", "LIVE_QUIESCED", "CURRENT_BACKUP_DURABLE", "STAGED", "STAGED_VALIDATED", "SWITCH_ARMED", "STATE_EXCHANGED", "CONTAINER_RECREATED", "EGRESS_REBOUND", "CONTAINER_STARTED", "LOCAL_HEALTH_PASSED", "INDEPENDENT_PROBE_PASSED", "COMMITTED", "ROLLBACK_ARMED", "STATE_ROLLBACK_EXCHANGED", "ROLLBACK_CONTAINER_RECREATED", "ROLLBACK_EGRESS_REBOUND", "ROLLBACK_CONTAINER_STARTED", "ROLLBACK_HEALTH_PASSED", "ROLLED_BACK", "FAILED", "RESCUE_REQUIRED", "RESCUE_LOCKDOWN"]
+    },
+    "fromPhase": { "enum": ["NEW", "LOCKED", "INPUT_VERIFIED", "LIVE_QUIESCED", "CURRENT_BACKUP_DURABLE", "STAGED", "STAGED_VALIDATED", "SWITCH_ARMED", "STATE_EXCHANGED", "CONTAINER_RECREATED", "EGRESS_REBOUND", "CONTAINER_STARTED", "LOCAL_HEALTH_PASSED", "INDEPENDENT_PROBE_PASSED", "COMMITTED", "ROLLBACK_ARMED", "STATE_ROLLBACK_EXCHANGED", "ROLLBACK_CONTAINER_RECREATED", "ROLLBACK_EGRESS_REBOUND", "ROLLBACK_CONTAINER_STARTED", "ROLLBACK_HEALTH_PASSED", "ROLLED_BACK", "FAILED", "RESCUE_REQUIRED", "RESCUE_LOCKDOWN"] },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["candidateId", "projectName", "serviceName", "candidateRoot", "stateMountTarget"],
+      "properties": {
+        "candidateId": { "$ref": "#/$defs/id" }, "projectName": { "$ref": "#/$defs/id" }, "serviceName": { "$ref": "#/$defs/id" }, "candidateRoot": { "$ref": "#/$defs/absolutePath" }, "stateMountTarget": { "$ref": "#/$defs/absolutePath" }
+      }
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backupId", "backupManifestSha256", "configurationBindingSha256", "oldStateTreeSha256", "newStateTreeSha256"],
+      "properties": {
+        "backupId": { "$ref": "#/$defs/backupId" }, "backupManifestSha256": { "$ref": "#/$defs/digest" },
+        "configurationBindingSha256": { "$ref": "#/$defs/digest" }, "oldStateTreeSha256": { "$ref": "#/$defs/digest" }, "newStateTreeSha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "collector": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "version", "binarySha256"],
+      "properties": {
+        "name": { "$ref": "#/$defs/id" }, "version": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,255}$" }, "binarySha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "stateObject": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["present", "sha256", "device", "inode", "mountId"],
+          "properties": { "present": { "const": true }, "sha256": { "$ref": "#/$defs/digest" }, "device": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 }, "inode": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 }, "mountId": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["present", "sha256", "device", "inode", "mountId"],
+          "properties": { "present": { "const": false }, "sha256": { "const": "" }, "device": { "const": 0 }, "inode": { "const": 0 }, "mountId": { "const": 0 } }
+        }
+      ]
+    },
+    "topologyOldOnly": {
+      "type": "object", "additionalProperties": false, "required": ["live", "stage"],
+      "properties": {
+        "live": { "allOf": [{ "$ref": "#/$defs/stateObject" }, { "properties": { "present": { "const": true } } }] },
+        "stage": { "allOf": [{ "$ref": "#/$defs/stateObject" }, { "properties": { "present": { "const": false } } }] }
+      }
+    },
+    "topologyBothPresent": {
+      "type": "object", "additionalProperties": false, "required": ["live", "stage"],
+      "properties": {
+        "live": { "allOf": [{ "$ref": "#/$defs/stateObject" }, { "properties": { "present": { "const": true } } }] },
+        "stage": { "allOf": [{ "$ref": "#/$defs/stateObject" }, { "properties": { "present": { "const": true } } }] }
+      }
+    },
+    "check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "passed", "evidenceSha256"],
+      "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Z][A-Z0-9_]{0,63}$" }, "passed": { "const": true }, "evidenceSha256": { "$ref": "#/$defs/digest" } }
+    },
+    "payload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subjectSha256", "topology", "checks"],
+      "properties": {
+        "subjectSha256": { "$ref": "#/$defs/digest" },
+        "topology": { "type": "object", "additionalProperties": false, "required": ["live", "stage"], "properties": { "live": { "$ref": "#/$defs/stateObject" }, "stage": { "$ref": "#/$defs/stateObject" } } },
+        "checks": { "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/check" } }
+      }
+    }
+  }
+}
