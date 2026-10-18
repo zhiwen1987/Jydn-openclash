@@ -2,7 +2,9 @@
 
 ## 1. 结论先行
 
-M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、默认关闭的独立主动代理容器定义和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复、调度器集成、严格进程健康协议和结构化启动前校验；主动代理另有停机一致性备份、恢复暂存和启动前证据绑定脚本，但启动和恢复切换均继续失败关闭。静态 canary 合同与供应链证据候选已能发现结构和摘要矛盾，但两者始终返回 `BLOCKED/78`，既不观测真实业务，也不执行密码学验签或 Registry 读回。单独的 `compose.probe-agent.yaml` 仅在显式 profile 下存在，当前仍接入 `internal` quarantine 网络。该静态定义只表达无公网默认出口意图，不能证明宿主或同网段路径已 deny-all。当前开发机没有 Docker，因此源码和静态配置可以验收，镜像构建、容器运行态、唯一出口和 canary 仍须在隔离 Linux 候选机执行后才能签署。
+M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、默认关闭的独立主动代理容器定义和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复、调度器集成、严格进程健康协议和结构化启动前校验；主动代理另有停机一致性备份、恢复暂存和启动前证据绑定脚本，但启动和恢复切换均继续失败关闭。静态 canary 合同与供应链证据候选已能发现结构和摘要矛盾，但两者始终返回 `BLOCKED/78`，既不观测真实业务，也不执行密码学验签或 Registry 读回。单独的 `compose.probe-agent.yaml` 仅在显式 profile 下存在，当前仍接入 `internal` quarantine 网络。该静态定义只表达无公网默认出口意图，不能证明宿主或同网段路径已 deny-all。Linux 静态门禁已在独立 GitHub Actions runner 上通过；当前开发机仍没有 Docker，因此镜像构建、容器运行态、唯一出口和 canary 仍须在隔离 Linux 候选机执行后才能签署。
+
+已签署的 Linux 静态证据仅限 GitHub Actions run `39149469450`、job `117739961567`、提交 `3f9a4cec736192c3f25dcbb2d7c3cd9bf62ecf1f`：Ubuntu 24.04.5、Linux 6.17.0-1022-azure x86_64、Go 1.23.12/linux-amd64；Python 离线门禁 132 项、0 个测试用例 skip、7 个 schema；13 个生命周期 shell 脚本语法通过；Go 普通与 race JSON 合计 1510 个 run event，23 个有测试包达到基线，`internal/domain` 是唯一允许且已核对的无测试包，测试用例 0 skip，并执行 `go vet ./...`。Python 阶段使用固定摘要测试镜像、无网络和只读源码挂载；Go/Shell 阶段使用可写 checkout，但在退出前通过 `git diff --check` 和空 `git status --porcelain` 证明没有残留修改。该任务结论为 `success`。同一运行仍明确输出 `SCHEMA_METASCHEMA=BLOCKED_SCHEMA_METASCHEMA_VALIDATOR_UNAVAILABLE` 和 `DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES`；固定摘要的 Python 镜像只是测试工具，不是产品供应链验收。
 
 以下四项仍是进入真实主动路径候选的阻断条件：
 
@@ -39,7 +41,7 @@ M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、�
 
 | 门禁 | 权威证据 | 当前状态 | 失败处理 |
 |---|---|---|---|
-| 源码正确 | `go test ./...`、`go vet ./...`、Linux/amd64 构建 | 待集成者总验收 | 不构建候选 |
+| 源码正确 | `go test ./...`、`go test -race ./...`、`go vet ./...`、显式 Linux/amd64 二进制构建 | test/race/vet 已在 Linux CI 通过；两项 `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build` 尚未由该工作流执行 | 未补齐显式二进制构建前不构建候选镜像 |
 | catalog 严格性 | M2b-0 测试 + guard 无效 catalog 注入 | 本地测试已覆盖一部分；容器注入待运行 | 失败关闭 |
 | 非 root / 只读 / capabilities | `docker inspect` + 容器内写入负测 | 待候选机运行 | 删除候选，不发布 |
 | CPU/RAM/PID | `docker inspect` 精确值 | 待候选机运行 | 删除候选，不发布 |
@@ -51,7 +53,7 @@ M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、�
 | 固定可信 DNS | 固定 DoT IP:port、TLS/SNI/CA、DNS 帧/记录边界、A/AAAA CNAME 一致性和重绑定注入 | 本地实现与测试通过；容器运行态未验 | 禁止真实探测 |
 | 自有 canary | 所有权、无副作用、合同版本、频率和限流批准 | `blocked` | 禁止公共目标 |
 | 出口 bootstrap | 双栈 bridge、宿主 INPUT/FORWARD 默认拒绝、显式 chain、计数器与回滚摘要 | 离线结构计划和本地测试已实现；Docker/netns/nft 安装及读回未执行，固定 `BLOCKED/78` | 不执行计划；保留现有 `internal` quarantine |
-| Linux 静态 CI | 固定测试镜像、零网络、只读源码、无 capabilities、Python 零 skip、Go/Shell/race/vet 门禁 | 工作流已实现；首次 Ubuntu 24.04 Actions 运行尚未签署 | CI 失败保持 M2b 启动阻断，不降级到 Windows 结果 |
+| Linux 静态 CI | 固定 Python 测试镜像、零网络、零 capabilities、Python 阶段源码只读、Go/Shell 阶段退出前工作树 clean，以及 Python/Go/Shell/race/vet 门禁 | `PASS`：run `39149469450` / job `117739961567` / commit `3f9a4cec...`；132 个 Python 测试、13 个 shell 脚本、Go 普通/race/vet；23 个有测试包满足基线、唯一允许的无测试包已核对、测试用例零 skip；仅签静态门禁 | 后续 CI 失败保持 M2b 启动阻断，不降级到旧成功或 Windows 结果 |
 | 生产不变 | 前后 hash-only manifest 完全一致 | 工具已提供，未在生产运行 | 任一变化立即停止并调查 |
 | 备份/回滚 | 专用根标记、停机一致性包、类型/数量/尺寸边界、SHA-256、保留失败副本、恢复后重验 | 护栏与主动代理备份工具均已提供、均未在 Docker 候选机演练；主动代理已实现只读 spool+ledger 语义验证及归档前后报告全等，恢复只验证私有暂存且不触碰 live，切换仍阻断 | 主动代理禁止启动；不得手工切换暂存状态或清理旧副本 |
 

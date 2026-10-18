@@ -121,7 +121,7 @@ sh scripts/compare-baseline.sh \
 
 `canary/static_canary_contract.py` 与 `supply-chain/verify_supply_chain.py` 同样是失败关闭的离线候选门禁。前者校验自有 canary 的静态期望，后者校验镜像证据之间的结构和摘要关系；二者无论输入多完整都返回 78，且不会生成启动门接受的 schema。它们尚未接入生命周期脚本，必须先在 Linux 候选机补齐权限、symlink、竞态、`fsync` 和故障注入证据；供应链门禁还必须补真实 DSSE/镜像验签、X.509/Rekor、Registry digest 读回与防重放账本。
 
-`bootstrap/compile_egress_bootstrap.py` 只生成可复验的抽象 nft 计划。它同时约束受管 bridge 到公网的 `FORWARD` 路径和到宿主服务的 `INPUT` 路径，且每条规则显式绑定 chain；但 PID、netns、cgroup、veth、宿主全局 chain 顺序、conntrack 和已安装对象摘要必须在 Linux 运行时重新绑定。`.github/workflows/chengwang-m2b-candidate.yml` 为这些离线门禁提供独立 Linux CI；首次 Actions 成功前仍不能签署 Linux 兼容性，schema metaschema 和产品镜像构建也继续明确阻断。
+`bootstrap/compile_egress_bootstrap.py` 只生成可复验的抽象 nft 计划。它同时约束受管 bridge 到公网的 `FORWARD` 路径和到宿主服务的 `INPUT` 路径，且每条规则显式绑定 chain；但 PID、netns、cgroup、veth、宿主全局 chain 顺序、conntrack 和已安装对象摘要必须在 Linux 运行时重新绑定。`.github/workflows/chengwang-m2b-candidate.yml` 为这些离线门禁提供独立 Linux CI。run `39149469450` / commit `3f9a4cec...` 已签署 Ubuntu 24.04 静态门禁：Python 132 项零测试用例 skip、13 个 shell 脚本、Go 普通/race/vet；23 个有测试包满足基线，`internal/domain` 是唯一允许且已核对的无测试包。该结论不签署显式 Linux 二进制构建、Docker 运行态、产品镜像或出口；schema metaschema 与产品镜像构建在同一运行中继续明确阻断。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 
