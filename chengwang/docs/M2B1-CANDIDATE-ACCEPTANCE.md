@@ -2,14 +2,14 @@
 
 ## 1. 结论先行
 
-M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、默认关闭的独立主动代理容器定义和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复、调度器集成、严格进程健康协议和结构化启动前校验；主动代理另有停机一致性备份、恢复暂存和启动前证据绑定脚本，但启动和恢复切换均继续失败关闭。单独的 `compose.probe-agent.yaml` 仅在显式 profile 下存在，当前仍接入 `internal` quarantine 网络。该静态定义只表达无公网默认出口意图，不能证明宿主或同网段路径已 deny-all。当前开发机没有 Docker，因此源码和静态配置可以验收，镜像构建、容器运行态、唯一出口和 canary 仍须在隔离 Linux 候选机执行后才能签署。
+M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、默认关闭的独立主动代理容器定义和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复、调度器集成、严格进程健康协议和结构化启动前校验；主动代理另有停机一致性备份、恢复暂存和启动前证据绑定脚本，但启动和恢复切换均继续失败关闭。静态 canary 合同与供应链证据候选已能发现结构和摘要矛盾，但两者始终返回 `BLOCKED/78`，既不观测真实业务，也不执行密码学验签或 Registry 读回。单独的 `compose.probe-agent.yaml` 仅在显式 profile 下存在，当前仍接入 `internal` quarantine 网络。该静态定义只表达无公网默认出口意图，不能证明宿主或同网段路径已 deny-all。当前开发机没有 Docker，因此源码和静态配置可以验收，镜像构建、容器运行态、唯一出口和 canary 仍须在隔离 Linux 候选机执行后才能签署。
 
 以下四项仍是进入真实主动路径候选的阻断条件：
 
 1. `probe-agent` 容器候选文件尚未完成 Linux/Docker 构建、运行和故障注入；
-2. 自有、无副作用、带版本化合同标记的 canary 尚未提供和批准；
+2. 自有、无副作用、带版本化合同标记的 canary 尚未实际提供、密码学批准并完成运行时观测；当前只有静态合同校验候选；
 3. 独立 bridge 只提供隔离，不提供“唯一公网出口”证明；需要宿主机/外部防火墙或专用网关的出站策略与独立读回证据；
-4. Docker 基础镜像尚未锁定经过验证的 digest，也未生成候选 SBOM/来源证明。
+4. Docker 基础镜像尚未锁定经过真实验签与 Registry 读回的 digest，也未形成可信 SBOM/来源证明；当前只有始终阻断的结构一致性校验候选。
 
 所以当前状态应写成：`guard and probe-agent implemented+tested local-only; active container files statically checked; Docker runtime and egress not proven; active path blocked`。
 

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/supply-chain-verification-v1.json",
+  "title": "Chengwang candidate supply-chain verification report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "reason",
+    "exitCode",
+    "readOnly",
+    "offline",
+    "authorizationGranted"
+  ],
+  "properties": {
+    "schema": { "const": "chengwang.supply-chain-verification/v1" },
+    "status": { "const": "BLOCKED" },
+    "reason": {
+      "enum": [
+        "EVIDENCE_CONTRACT_FAILED",
+        "INTERNAL_VALIDATION_FAILURE",
+        "CRYPTOGRAPHIC_TRUST_GATE_NOT_IMPLEMENTED"
+      ]
+    },
+    "exitCode": { "const": 78 },
+    "readOnly": { "const": true },
+    "offline": { "const": true },
+    "authorizationGranted": { "const": false },
+    "platformAssurance": { "enum": ["POSIX_ROOT_OWNERSHIP_AND_MODE_ENFORCED", "DEVELOPMENT_ONLY_NON_POSIX"] },
+    "outputContract": { "const": "CREATE_NEW_ONLY_NEVER_ACCEPTED" },
+    "replayProtection": { "const": "UNAVAILABLE_OFFLINE" },
+    "error": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "verifiedAtUnix": { "type": "integer", "minimum": 0 },
+    "policy": { "type": "object" },
+    "image": { "type": "object" },
+    "sbom": { "type": "object" },
+    "attestation": { "type": "object" },
+    "signatureBundle": { "type": "object" },
+    "signatureReceipt": { "type": "object" },
+    "structuralChecks": { "const": "PASS" },
+    "cryptographicChecks": { "const": "UNTRUSTED_EXTERNAL_ASSERTIONS_ONLY" },
+    "remainingBlockers": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  }
+}

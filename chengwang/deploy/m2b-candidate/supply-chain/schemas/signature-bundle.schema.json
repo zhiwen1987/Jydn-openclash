@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/signature-bundle-candidate-v1.json",
+  "title": "Chengwang candidate signature bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "runId", "signedArtifactDigest", "signature", "certificate", "transparencyLog"],
+  "properties": {
+    "schema": { "const": "chengwang.signature-bundle-candidate/v1" },
+    "runId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "signedArtifactDigest": { "$ref": "#/$defs/digest" },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "enum": ["ECDSA_P256_SHA256", "ED25519"] },
+        "value": { "type": "string", "minLength": 44, "maxLength": 16384, "contentEncoding": "base64" }
+      }
+    },
+    "certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["der", "sha256", "issuer", "subject", "notBefore", "notAfter"],
+      "properties": {
+        "der": { "type": "string", "minLength": 172, "maxLength": 131072, "contentEncoding": "base64" },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "issuer": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "notBefore": { "type": "string", "format": "date-time" },
+        "notAfter": { "type": "string", "format": "date-time" }
+      }
+    },
+    "transparencyLog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logId", "logIndex", "integratedTime", "inclusionProof"],
+      "properties": {
+        "logId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "logIndex": { "type": "integer", "minimum": 0 },
+        "integratedTime": { "type": "string", "format": "date-time" },
+        "inclusionProof": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rootHash", "treeSize", "hashes"],
+          "properties": {
+            "rootHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "treeSize": { "type": "integer", "minimum": 1 },
+            "hashes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chengwang.invalid/schemas/signature-verifier-receipt-v1.json",
+  "title": "Chengwang external signature verifier receipt v1",
+  "description": "A structural input assertion only. This schema does not make the receipt trusted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "runId", "verifiedAt", "imageRepository", "imageDigest", "manifestDigest", "configDigest",
+    "layerDigests", "sbomDigest", "attestationDigest", "signatureBundleDigest", "issuer", "subject",
+    "certificate", "transparencyLog", "verifier", "verification"
+  ],
+  "properties": {
+    "schema": { "const": "chengwang.signature-verifier-receipt/v1" },
+    "runId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "verifiedAt": { "type": "string", "format": "date-time" },
+    "imageRepository": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "imageDigest": { "$ref": "#/$defs/digest" },
+    "manifestDigest": { "$ref": "#/$defs/digest" },
+    "configDigest": { "$ref": "#/$defs/digest" },
+    "layerDigests": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/digest" } },
+    "sbomDigest": { "$ref": "#/$defs/digest" },
+    "attestationDigest": { "$ref": "#/$defs/digest" },
+    "signatureBundleDigest": { "$ref": "#/$defs/digest" },
+    "issuer": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "subject": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "notBefore", "notAfter"],
+      "properties": {
+        "sha256": { "$ref": "#/$defs/digest" },
+        "notBefore": { "type": "string", "format": "date-time" },
+        "notAfter": { "type": "string", "format": "date-time" }
+      }
+    },
+    "transparencyLog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["included", "integratedTime", "logId", "logIndex"],
+      "properties": {
+        "included": { "const": true },
+        "integratedTime": { "type": "string", "format": "date-time" },
+        "logId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "logIndex": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "binaryDigest", "trustRootDigest", "offline", "policyDigest"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "binaryDigest": { "$ref": "#/$defs/digest" },
+        "trustRootDigest": { "$ref": "#/$defs/digest" },
+        "offline": { "const": true },
+        "policyDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signatureVerified", "certificateChainVerified", "issuerMatched", "subjectMatched",
+        "manifestDigestMatched", "sbomDigestMatched", "attestationDigestMatched", "transparencyProofVerified"
+      ],
+      "properties": {
+        "signatureVerified": { "const": true },
+        "certificateChainVerified": { "const": true },
+        "issuerMatched": { "const": true },
+        "subjectMatched": { "const": true },
+        "manifestDigestMatched": { "const": true },
+        "sbomDigestMatched": { "const": true },
+        "attestationDigestMatched": { "const": true },
+        "transparencyProofVerified": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}
