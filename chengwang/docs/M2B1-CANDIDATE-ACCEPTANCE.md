@@ -6,6 +6,8 @@ M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、�
 
 已签署的 Linux 静态证据仅限 GitHub Actions run `39149469450`、job `117739961567`、提交 `3f9a4cec736192c3f25dcbb2d7c3cd9bf62ecf1f`：Ubuntu 24.04.5、Linux 6.17.0-1022-azure x86_64、Go 1.23.12/linux-amd64；Python 离线门禁 132 项、0 个测试用例 skip、7 个 schema；13 个生命周期 shell 脚本语法通过；Go 普通与 race JSON 合计 1510 个 run event，23 个有测试包达到基线，`internal/domain` 是唯一允许且已核对的无测试包，测试用例 0 skip，并执行 `go vet ./...`。Python 阶段使用固定摘要测试镜像、无网络和只读源码挂载；Go/Shell 阶段使用可写 checkout，但在退出前通过 `git diff --check` 和空 `git status --porcelain` 证明没有残留修改。该任务结论为 `success`。同一运行仍明确输出 `SCHEMA_METASCHEMA=BLOCKED_SCHEMA_METASCHEMA_VALIDATOR_UNAVAILABLE` 和 `DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES`；固定摘要的 Python 镜像只是测试工具，不是产品供应链验收。
 
+恢复状态基础库加入后的最新权威证据为 GitHub Actions run `39154612179`、job `117755133903`、提交 `74fab39e4ad479af8d669dc0913abefee8334f8f`，结论为 `success`。同一 Ubuntu 24.04.5 / Linux 6.17.0-1022-azure / Go 1.23.12 环境中，固定摘要、无网络、只读根文件系统、capabilities 全清且禁止提权的容器以 root 身份在真实 ext4/XFS bind 路径执行了 11 个 `proberestore` Linux 系统调用测试，结果为 `PROBE_RESTORE_ROOT_GATE=PASS ... skips=0`；全仓普通与 race JSON 合计 2416 个 run event、25 个包、测试用例 0 skip，并继续通过 132 项 Python、13 个 shell 脚本和 `go vet ./...`。该证据只签署 root/ext4-XFS 系统调用路径及静态门禁，不签署掉电、VM 崩溃、Docker live 切换或生产恢复；schema metaschema 和产品镜像构建仍明确阻断。
+
 以下四项仍是进入真实主动路径候选的阻断条件：
 
 1. `probe-agent` 容器候选文件尚未完成 Linux/Docker 构建、运行和故障注入；
@@ -53,7 +55,7 @@ M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、�
 | 固定可信 DNS | 固定 DoT IP:port、TLS/SNI/CA、DNS 帧/记录边界、A/AAAA CNAME 一致性和重绑定注入 | 本地实现与测试通过；容器运行态未验 | 禁止真实探测 |
 | 自有 canary | 所有权、无副作用、合同版本、频率和限流批准 | `blocked` | 禁止公共目标 |
 | 出口 bootstrap | 双栈 bridge、宿主 INPUT/FORWARD 默认拒绝、显式 chain、计数器与回滚摘要 | 离线结构计划和本地测试已实现；Docker/netns/nft 安装及读回未执行，固定 `BLOCKED/78` | 不执行计划；保留现有 `internal` quarantine |
-| Linux 静态 CI | 固定 Python 测试镜像、零网络、零 capabilities、Python 阶段源码只读、Go/Shell 阶段退出前工作树 clean，以及 Python/Go/Shell/race/vet 门禁 | `PASS`：run `39149469450` / job `117739961567` / commit `3f9a4cec...`；132 个 Python 测试、13 个 shell 脚本、Go 普通/race/vet；23 个有测试包满足基线、唯一允许的无测试包已核对、测试用例零 skip；仅签静态门禁 | 后续 CI 失败保持 M2b 启动阻断，不降级到旧成功或 Windows 结果 |
+| Linux 静态 CI | 固定 Python 测试镜像、零网络、零 capabilities、Python 阶段源码只读、root/ext4-XFS 恢复系统调用测试、Go/Shell 阶段退出前工作树 clean，以及 Python/Go/Shell/race/vet 门禁 | `PASS`：run `39154612179` / job `117755133903` / commit `74fab39e...`；11 个 Linux root 测试、132 个 Python 测试、13 个 shell 脚本、Go 普通/race/vet；2416 个 Go run event、25 个包、测试用例零 skip；仅签静态和系统调用路径门禁 | 后续 CI 失败保持 M2b 启动阻断，不降级到旧成功或 Windows 结果；不得扩大为掉电或 live 恢复证明 |
 | 生产不变 | 前后 hash-only manifest 完全一致 | 工具已提供，未在生产运行 | 任一变化立即停止并调查 |
 | 备份/回滚 | 专用根标记、停机一致性包、类型/数量/尺寸边界、SHA-256、保留失败副本、恢复后重验 | 护栏与主动代理备份工具均已提供、均未在 Docker 候选机演练；主动代理已实现只读 spool+ledger 语义验证及归档前后报告全等，恢复只验证私有暂存且不触碰 live，切换仍阻断 | 主动代理禁止启动；不得手工切换暂存状态或清理旧副本 |
 
@@ -127,6 +129,8 @@ DNS/TCP/TLS/HTTP/合同不匹配/429 等网络故障注入必须保持 `BLOCKED_
 恢复脚本要求绝对路径、合法候选根标记、容器组件标签与真实挂载源一致，并且必须设置确认短语。恢复后保持停止，重新执行候选验收；在全部通过前保留失败副本。
 
 上述双目录切换只适用于护栏候选 spool，不是主动代理或生产控制面的回滚。主动代理另有同一 `probe-state` 单元下的 probe-spool、probe-ledger、三份只读配置与独立镜像；专用备份脚本已覆盖这些输入并始终把候选留在停止状态。它先验证 live，归档后再解包复验，报告不全等就不发布；合法 retention 缺失会显式降级。专用恢复脚本只做严格复制、清单/结构/身份验证、私有暂存和语义复验，不停止或修改 live，并在实际切换前固定返回 78。因此当前可签“备份与恢复输入语义验证已实现（本地静态证据）”，不能签“恢复成功”或“回滚演练通过”。生产仍使用其现有备份和回滚镜像，M2b 候选不得修改或重启它。
+
+`internal/proberestore` 现提供恢复执行器的失败关闭基础：25 个阶段、全部 25×16 拓扑组合、严格事件哈希链、单一原子 `control.json`、操作/备份/manifest 三重防重、单写者锁，以及 ext4/XFS 上的临时文件写入、文件 `fsync`、`renameat`、目录 `fsync` 和 inode 读回。Windows 只允许诊断读取，写入返回不支持。该包不读取证据内容、不控制 Docker、不交换 live 状态，也无法在 fresh `Open` 后独立发现整个有效 control 目录或磁盘快照被回滚；后续仍须实现已 fsync 证据的严格 coordinator、真实崩溃点/SIGKILL 重启注入、外部签名或 WORM 单调锚点和 receipts 归档轮换。在这些门禁完成前，`restore-probe-agent.sh` 继续固定返回 78。
 
 ## 6. 进入真实主动探针前的退出条件
 
