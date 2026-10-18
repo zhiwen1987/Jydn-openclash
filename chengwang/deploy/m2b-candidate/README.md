@@ -12,7 +12,8 @@
 | 固定可信解析器 | 已实现、本地测试通过 | 固定 IP:port 的 DoT、TLS/SNI/CA 校验、完整有界 CNAME 链、A/AAAA 一致性；尚未做候选容器运行态验证 |
 | 唯一允许出口 | `blocked` | `internal: true` 只能证明隔离，不能证明一个可用且唯一的公网出口 |
 | `probe-agent` 命令 | 已实现、本地测试通过 | 启动账本先于网络、结果先入 spool 再结算、跨重启预算、崩溃恢复和严格进程健康协议；尚未完成容器运行态验收 |
-| 主动探测容器定义 | 已实现、默认关闭、仅静态校验 | 独立 profile、非 root、只读根、独立 spool/ledger、健康 tmpfs；没有 Docker 构建或运行证据 |
+| 主动探测容器定义 | 已实现、默认关闭、仅静态校验 | 独立 profile、非 root、只读根、同一 `probe-state` 下的独立 spool/ledger、健康 tmpfs；没有 Docker 构建或运行证据 |
+| 主动代理生命周期门禁 | 已实现、仅静态校验 | 严格结构化 preflight、全局/实例互斥锁、停机一致性备份、恢复私有暂存和启动前证据绑定；启动与恢复切换仍明确阻断 |
 | 主动业务探针 | `blocked` | 自有 canary、唯一出口、宿主防火墙计数器和容器运行门禁未完成；`internal` quarantine 只表达无公网出口意图，运行态 deny-all 未证明 |
 | 生产部署 | 未执行 | 本目录不得直接替换 `/opt/chengwang` 的生产控制面 |
 
@@ -71,7 +72,7 @@ ACTIVE_START=BLOCKED
 
 `STATIC_COMPOSE_CONTRACT=PASS` 只表示固定仓库文件命中了离线安全片段检查，不等于 Docker Compose 已完成结构解析。`COMPOSE_PARSE=NOT_RUN` 必须保持明确；进入受控候选运行前，还要用候选机的 Docker Compose v2 解析、读回合并结果并按字段验收。
 
-本阶段故意不提供启动命令。只有 M2a 24 小时签署、自有 canary 审批、默认拒绝出口策略安装、允许/拒绝计数器取证、镜像来源固定和变更窗口备份全部完成后，才编写候选机专用的受控启动与回滚步骤。
+本阶段故意不提供会启动容器的命令。`scripts/start-verify-probe-agent.sh` 只读回 Compose、镜像、现存停止容器、最新备份和宿主出口证据，并固定在启动前返回 78；它不会执行 `compose up`。只有 M2a 24 小时签署、自有 canary 审批、默认拒绝出口策略安装及独立读回、允许/拒绝计数器取证、镜像来源固定和变更窗口备份全部完成后，才能实现候选机专用的受控启动步骤。
 
 ## 生产周边不变证明
 
@@ -108,7 +109,9 @@ sh scripts/compare-baseline.sh \
 
 ## 候选备份与恢复
 
-本节现有脚本只覆盖默认护栏候选的 catalog、单一 spool 和镜像，不覆盖主动代理的 probe-spool、probe-ledger、DoT CA、出口策略和独立镜像。主动代理的完整备份/恢复单元尚未实现和演练，因此这是启动阻断项，不能套用下面的护栏恢复步骤。
+默认护栏候选和主动代理使用两套独立生命周期脚本。主动代理的 `backup-probe-agent.sh` 已实现停机一致性备份：`probe-state/probe-spool` 与 `probe-state/probe-ledger` 同包归档，并绑定 `probe.env`、catalog、DoT CA、出口期望策略、Compose 摘要和不可变镜像 ID。该脚本尚未在 Linux/Docker 候选机演练。
+
+主动代理的 `restore-probe-agent.sh` 目前只校验备份、停止已识别容器并解包到私有暂存目录；由于还没有离线 Go spool+ledger 语义验证接口，它会在任何状态替换前输出 `PROBE_RESTORE=BLOCKED_NO_OFFLINE_GO_SPOOL_LEDGER_VALIDATOR` 并返回 78。不得把“归档和配置校验通过”解释为恢复成功，也不得手工绕过该门禁。下面仍是默认护栏候选的独立备份/恢复步骤。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 

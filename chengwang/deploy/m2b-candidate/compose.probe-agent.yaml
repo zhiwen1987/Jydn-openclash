@@ -8,6 +8,8 @@ services:
       context: ../..
       dockerfile: deploy/m2b-candidate/Dockerfile.probe-agent
     image: chengwang-m2b-probe-agent:${M2B_PROBE_RELEASE_ID:?set a traceable candidate release id}
+    entrypoint:
+      - /app/probe-agent-entrypoint.sh
     restart: "no"
     init: true
     stop_signal: SIGTERM

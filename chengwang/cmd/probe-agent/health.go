@@ -370,7 +370,7 @@ func validateExistingHealthFile(path string) error {
 func rejectDuplicateHealthJSONKeys(raw []byte) error {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
-	if err := consumeHealthJSONValue(decoder); err != nil {
+	if err := consumeStrictJSONValue(decoder); err != nil {
 		return fmt.Errorf("inspect probe-agent health JSON: %w", err)
 	}
 	if token, err := decoder.Token(); err != io.EOF {
@@ -382,7 +382,7 @@ func rejectDuplicateHealthJSONKeys(raw []byte) error {
 	return nil
 }
 
-func consumeHealthJSONValue(decoder *json.Decoder) error {
+func consumeStrictJSONValue(decoder *json.Decoder) error {
 	token, err := decoder.Token()
 	if err != nil {
 		return err
@@ -407,7 +407,7 @@ func consumeHealthJSONValue(decoder *json.Decoder) error {
 				return fmt.Errorf("duplicate object key %q", key)
 			}
 			seen[key] = struct{}{}
-			if err := consumeHealthJSONValue(decoder); err != nil {
+			if err := consumeStrictJSONValue(decoder); err != nil {
 				return err
 			}
 		}
@@ -417,7 +417,7 @@ func consumeHealthJSONValue(decoder *json.Decoder) error {
 		}
 	case '[':
 		for decoder.More() {
-			if err := consumeHealthJSONValue(decoder); err != nil {
+			if err := consumeStrictJSONValue(decoder); err != nil {
 				return err
 			}
 		}

@@ -133,7 +133,7 @@ func rejectAmbiguousArguments(args []string) error {
 			continue
 		}
 		if argument == "--" || !strings.HasPrefix(argument, "--") || len(argument) == 2 {
-			return fmt.Errorf("only named --flag arguments are accepted: %q", argument)
+			return errors.New("only named --flag arguments are accepted")
 		}
 		nameValue := argument[2:]
 		name, _, hasInlineValue := strings.Cut(nameValue, "=")
@@ -234,6 +234,10 @@ func loadCAPool(path string) (*x509.CertPool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read DoT CA file: %w", err)
 	}
+	return parseCAPoolBytes(raw)
+}
+
+func parseCAPoolBytes(raw []byte) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	certificates := 0
 	remaining := raw

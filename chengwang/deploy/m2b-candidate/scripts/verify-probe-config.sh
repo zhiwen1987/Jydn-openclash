@@ -221,8 +221,12 @@ for key, actual in configured_paths.items():
 
 spool = explicit_absolute_directory(values["M2B_PROBE_SPOOL_DIR"], "probe spool")
 ledger = explicit_absolute_directory(values["M2B_PROBE_LEDGER_DIR"], "probe ledger")
-if spool != root_path / "probe-spool" or ledger != root_path / "probe-ledger":
-    reject("probe spool and ledger must use the dedicated candidate-root/probe-spool and probe-ledger paths")
+state_directory = explicit_absolute_directory(str(root_path / "probe-state"), "probe state directory")
+state_info = state_directory.stat()
+if state_info.st_uid != 10001 or stat.S_IMODE(state_info.st_mode) != 0o700:
+    reject("probe state directory must be owned by uid 10001 with mode 0700")
+if spool != state_directory / "probe-spool" or ledger != state_directory / "probe-ledger":
+    reject("probe spool and ledger must be dedicated children of candidate-root/probe-state")
 for path, label in ((spool, "probe spool"), (ledger, "probe ledger")):
     reject_production(path, label)
     if not is_within(root_path, path) or path == root_path:
@@ -241,11 +245,11 @@ for config_path in (catalog_path, ca_path, policy_path):
 if len({(os.stat(path).st_dev, os.stat(path).st_ino) for path in (catalog_path, ca_path, policy_path)}) != 3:
     reject("catalog, DoT CA, and egress policy must be distinct files")
 root_device = root_path.stat().st_dev
-if any(path.stat().st_dev != root_device for path in (spool, ledger, config_directory, env_path, catalog_path, ca_path, policy_path, marker)):
+if any(path.stat().st_dev != root_device for path in (state_directory, spool, ledger, config_directory, env_path, catalog_path, ca_path, policy_path, marker)):
     reject("candidate state and configuration must remain on the candidate root filesystem")
 root_mount = mount_signature(root_path, "candidate root")
 for path, label in (
-    (spool, "probe spool"), (ledger, "probe ledger"),
+    (state_directory, "probe state directory"), (spool, "probe spool"), (ledger, "probe ledger"),
     (config_directory, "candidate config directory"), (env_path, "probe env"),
     (catalog_path, "catalog"), (ca_path, "DoT CA"),
     (policy_path, "egress policy"), (marker, "candidate marker"),
