@@ -1,0 +1,153 @@
+name: Chengwang M2b Candidate Static Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/chengwang-m2b-candidate.yml"
+      - "chengwang/**"
+  push:
+    branches:
+      - main
+      - codex/chengwang-security-hardening
+    paths:
+      - ".github/workflows/chengwang-m2b-candidate.yml"
+      - "chengwang/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-m2b-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-gate:
+    name: Offline Linux static gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONHASHSEED: "0"
+      GOTOOLCHAIN: local
+      CGO_ENABLED: "1"
+    steps:
+      - name: Checkout source
+        # actions/checkout v4.4.0; immutable full commit SHA.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        # actions/setup-go v6.1.0; immutable full commit SHA.
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+
+      - name: Pull immutable Python test image before repository execution
+        shell: bash
+        env:
+          PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
+        run: |
+          set -euo pipefail
+          /usr/bin/docker pull --platform linux/amd64 "$PYTHON_TEST_IMAGE"
+          test "$(/usr/bin/docker image inspect --format '{{.Os}}/{{.Architecture}}' "$PYTHON_TEST_IMAGE")" = "linux/amd64"
+          echo 'PYTHON_TEST_IMAGE_BOUNDARY=PINNED_TEST_HARNESS_NOT_PRODUCT_SUPPLY_CHAIN_ACCEPTANCE'
+
+      - name: Run root ownership Python contracts in a locked-down container
+        shell: bash
+        env:
+          PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
+        run: |
+          set -euo pipefail
+          /usr/bin/docker run --rm --pull never --platform linux/amd64 \
+            --network none --read-only --user 0:0 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --pids-limit 256 --memory 512m --cpus 2 \
+            --mount "type=bind,src=$GITHUB_WORKSPACE,dst=/workspace,readonly" \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+            --tmpfs /root:rw,noexec,nosuid,nodev,size=64m,mode=0700 \
+            --workdir /workspace \
+            --env HOME=/root --env TMPDIR=/tmp \
+            --env PYTHONDONTWRITEBYTECODE=1 --env PYTHONHASHSEED=0 \
+            --env LANG=C.UTF-8 --env TZ=UTC \
+            --entrypoint /usr/local/bin/python3 \
+            "$PYTHON_TEST_IMAGE" \
+            -B chengwang/deploy/m2b-candidate/tests/run_static_gate.py
+
+      - name: Run remaining repository checks unprivileged in an offline network namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          runner_uid=$(/usr/bin/id -u)
+          runner_gid=$(/usr/bin/id -g)
+          isolated_root="$RUNNER_TEMP/chengwang-m2b-static-gate"
+          isolated_home="$isolated_root/home"
+          isolated_tmp="$isolated_root/tmp"
+          go_cache="$isolated_root/go-build"
+          go_mod_cache="$isolated_root/go-mod"
+          go_tmp="$isolated_root/go-tmp"
+          /usr/bin/install -d -m 0700 "$isolated_root" "$isolated_home" "$isolated_tmp" "$go_cache" "$go_mod_cache" "$go_tmp"
+          /usr/bin/chown -R "$runner_uid:$runner_gid" "$isolated_root"
+
+          /usr/bin/sudo --non-interactive /usr/bin/unshare --net -- /usr/bin/bash -c '
+            set -euo pipefail
+            /usr/sbin/ip link set lo up
+            exec /usr/bin/setpriv \
+              --reuid="$1" --regid="$2" --clear-groups \
+              --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
+              /usr/bin/env -i \
+                HOME="$3" TMPDIR="$4" RUNNER_TEMP="$5" \
+                GOCACHE="$6" GOMODCACHE="$7" GOTMPDIR="$8" \
+                PATH=/opt/hostedtoolcache/go/1.23.12/x64/bin:/usr/bin:/bin \
+                LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
+                GOTOOLCHAIN=local GOFLAGS=-mod=readonly GOPROXY=off GOSUMDB=off CGO_ENABLED=1 \
+                GIT_OPTIONAL_LOCKS=0 \
+                /usr/bin/bash --noprofile --norc -euo pipefail
+          ' chengwang-netns "$runner_uid" "$runner_gid" "$isolated_home" "$isolated_tmp" \
+            "$isolated_root" "$go_cache" "$go_mod_cache" "$go_tmp" <<'ISOLATED_GATE'
+          /usr/bin/id
+          /usr/bin/grep -E '^(NoNewPrivs|Cap(Inh|Prm|Eff|Bnd|Amb)):' /proc/self/status
+          /usr/bin/grep -qE '^NoNewPrivs:[[:space:]]+1$' /proc/self/status
+          for capability_field in CapInh CapPrm CapEff CapBnd CapAmb; do
+            /usr/bin/grep -qE "^${capability_field}:[[:space:]]+0000000000000000$" /proc/self/status
+          done
+          echo "RUNNER_OS_RELEASE=$(/usr/bin/grep '^PRETTY_NAME=' /etc/os-release | /usr/bin/cut -d= -f2-)"
+          echo "RUNNER_KERNEL=$(/usr/bin/uname -srmo)"
+          /opt/hostedtoolcache/go/1.23.12/x64/bin/go version
+
+          mapfile -d '' shell_scripts < <(/usr/bin/find chengwang/deploy/m2b-candidate/scripts -type f -name '*.sh' -print0 | /usr/bin/sort -z)
+          if (( ${#shell_scripts[@]} == 0 )); then
+            echo "No lifecycle shell scripts found" >&2
+            exit 1
+          fi
+          for script in "${shell_scripts[@]}"; do
+            /usr/bin/bash -n "$script"
+          done
+          echo "SHELL_SYNTAX_GATE=PASS scripts=${#shell_scripts[@]}"
+
+          cd chengwang
+          /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -count=1 ./... | /usr/bin/tee "$RUNNER_TEMP/chengwang-go-test.json"
+          /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -race -count=1 ./... | /usr/bin/tee "$RUNNER_TEMP/chengwang-go-race.json"
+          /opt/hostedtoolcache/go/1.23.12/x64/bin/go vet ./...
+          /usr/bin/python3 -B deploy/m2b-candidate/tests/run_static_gate.py \
+            --go-json "$RUNNER_TEMP/chengwang-go-test.json" \
+            --go-json "$RUNNER_TEMP/chengwang-go-race.json"
+
+          if /usr/bin/find deploy/m2b-candidate -type d -name __pycache__ -print -quit | /usr/bin/grep -q .; then
+            echo "Python cache directory was generated" >&2
+            exit 1
+          fi
+          if /usr/bin/find deploy/m2b-candidate -type f \( -name '*.pyc' -o -name '*.pyo' \) -print -quit | /usr/bin/grep -q .; then
+            echo "Python bytecode was generated" >&2
+            exit 1
+          fi
+          echo 'SCHEMA_METASCHEMA=BLOCKED_SCHEMA_METASCHEMA_VALIDATOR_UNAVAILABLE'
+          echo 'DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES'
+          echo 'Dockerfiles use mutable golang:1.23-alpine and alpine:3.21 tags; this static gate intentionally does not build or pull them.'
+          /usr/bin/git diff --check
+          test -z "$(/usr/bin/git status --porcelain --untracked-files=all)"
+          ISOLATED_GATE

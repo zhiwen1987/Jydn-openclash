@@ -68,7 +68,7 @@
 | 订阅系统 | `design-only` | 功能和闭环文档 | 无抓取、自动识别、去重、隔离、签名/来源、转换、准入、回退 |
 | DNS 数据面 | `design-only` | DNS 闭环与 DDI 设计 | 无 DNS 服务、策略执行、缓存、健康切换、DNSSEC、泄漏检测、出口一致性验证 |
 | 持续被动观测 | `production-shadow-initial-gates-passed`，24 小时浸泡待签署 | Mihomo 周期只读、共享串行读取、有界摘要历史、TTL、时钟回拨、匿名聚合、受保护历史、生产备份与回滚验证 | 只证明 Controller 周期读回；尚无独立故障域或节点/业务主动探针，长期浸泡未完成 |
-| 主动路径和真实业务探测 | `implemented+tested local-only`（M2b-0）；M2b-1 仅候选文件与静态校验 | 命令入口、严格许可目录、固定 DoT、全 CNAME 链与地址校验、固定 IP/SNI、HTTPS 分类、耐久启动账本、有界调度、独立 spool、严格进程健康、只读状态语义验证、归档前后复验、BLOCKED 宿主出口取证、静态 canary 合同、供应链结构校验和默认关闭的隔离容器定义 | 无 API/控制面接入/获批且实测的 canary/真实密码学验签/Registry 读回/已证明唯一出口；`internal` 网络与真实出口合同未闭合；未完成 Docker 构建运行与故障注入；M2b-2 仍为设计态，未访问公共业务、未验证单节点能力或生产路径 |
+| 主动路径和真实业务探测 | `implemented+tested local-only`（M2b-0）；M2b-1 仅候选文件与静态校验 | 命令入口、严格许可目录、固定 DoT、全 CNAME 链与地址校验、固定 IP/SNI、HTTPS 分类、耐久启动账本、有界调度、独立 spool、严格进程健康、只读状态语义验证、归档前后复验、BLOCKED 宿主出口取证/双栈 bootstrap 计划、静态 canary 合同、供应链结构校验、Linux 静态 CI 定义和默认关闭的隔离容器定义 | 首次 Linux CI 尚未签署；无 API/控制面接入/获批且实测的 canary/真实密码学验签/Registry 读回/已证明唯一出口；`internal` 网络与真实出口合同未闭合；未完成 Docker 构建运行与故障注入；M2b-2 仍为设计态，未访问公共业务、未验证单节点能力或生产路径 |
 | 自动诊断和修复 | `design-only` | A0-A5、动作预算、监督器设计 | 无事件状态机、计划器、动作执行器、独立验证器、抑制和回滚执行链 |
 | Mihomo 写入生命周期 | `design-only` | 架构与发布状态机 | 无备份、隔离启动、金丝雀、排空、写后读回、观察和自动回滚 |
 | sing-box / Xray | `design-only` | 能力矩阵和注册接口 | 无真实适配器、编译器、进程管理、版本兼容与 E2E 测试 |

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "input.schema.json",
+  "title": "Chengwang M2B egress bootstrap offline input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "revision", "validationUnix", "candidate", "network", "identityBinding", "firewall", "resolver", "canary"],
+  "properties": {
+    "schema": {"const": "chengwang.m2b-egress-bootstrap-input/v1"},
+    "revision": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"},
+    "validationUnix": {"type": "integer", "minimum": 1},
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["projectName", "serviceName", "imageId", "composeSha256", "resolverMode"],
+      "properties": {
+        "projectName": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"},
+        "serviceName": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"},
+        "imageId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "composeSha256": {"$ref": "#/$defs/sha256"},
+        "resolverMode": {"const": "DIRECT_DOT_ONLY_NO_SYSTEM_RESOLVER"}
+      }
+    },
+    "network": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "driver", "internal", "attachable", "bridgeName", "enableIcc", "enableIpv6", "ipv4", "ipv6"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"},
+        "driver": {"const": "bridge"}, "internal": {"const": false}, "attachable": {"const": false},
+        "bridgeName": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,14}$"},
+        "enableIcc": {"const": false}, "enableIpv6": {"const": true}, "ipv4": {"$ref": "#/$defs/networkFamily"}, "ipv6": {"$ref": "#/$defs/networkFamily"}
+      }
+    },
+    "identityBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "containerId", "containerPid", "pidStartTime", "netnsInode", "cgroupId", "vethHostIfindex"],
+      "properties": {
+        "mode": {"const": "pending-runtime"}, "containerId": {"type": "null"}, "containerPid": {"type": "null"},
+        "pidStartTime": {"type": "null"}, "netnsInode": {"type": "null"}, "cgroupId": {"type": "null"}, "vethHostIfindex": {"type": "null"}
+      }
+    },
+    "firewall": {
+      "type": "object", "additionalProperties": false,
+      "required": ["family", "table", "forwardEntryChain", "forwardPolicyChain", "inputEntryChain", "inputPolicyChain", "forwardPriority", "inputPriority", "basePolicy", "allowPlainDns", "allowDhcp", "allowIpv6NeighborDiscovery", "globalImpactApproval"],
+      "properties": {
+        "family": {"const": "inet"}, "table": {"$ref": "#/$defs/nftName"},
+        "forwardEntryChain": {"$ref": "#/$defs/nftName"}, "forwardPolicyChain": {"$ref": "#/$defs/nftName"},
+        "inputEntryChain": {"$ref": "#/$defs/nftName"}, "inputPolicyChain": {"$ref": "#/$defs/nftName"},
+        "forwardPriority": {"type": "integer", "minimum": -300, "maximum": 300},
+        "inputPriority": {"type": "integer", "minimum": -300, "maximum": 300}, "basePolicy": {"const": "accept"},
+        "allowPlainDns": {"const": false}, "allowDhcp": {"const": false},
+        "allowIpv6NeighborDiscovery": {"const": true}, "globalImpactApproval": {"const": "unproven"}
+      }
+    },
+    "resolver": {
+      "type": "object", "additionalProperties": false,
+      "required": ["serverName", "port", "transport", "addresses", "observedUnix", "expiresUnix"],
+      "properties": {
+        "serverName": {"type": "string", "minLength": 3, "maxLength": 253}, "port": {"const": 853}, "transport": {"const": "tcp-tls"},
+        "addresses": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "maxLength": 64}},
+        "observedUnix": {"type": "integer", "minimum": 1}, "expiresUnix": {"type": "integer", "minimum": 1}
+      }
+    },
+    "canary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractSha256", "observedUnix", "expiresUnix", "probes"],
+      "properties": {
+        "contractSha256": {"$ref": "#/$defs/sha256"}, "observedUnix": {"type": "integer", "minimum": 1}, "expiresUnix": {"type": "integer", "minimum": 1},
+        "probes": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/probe"}}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nftName": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,31}$"},
+    "networkFamily": {
+      "type": "object", "additionalProperties": false, "required": ["subnet", "gateway", "containerAddress"],
+      "properties": {"subnet": {"type": "string", "maxLength": 64}, "gateway": {"type": "string", "maxLength": 64}, "containerAddress": {"type": "string", "maxLength": 64}}
+    },
+    "probe": {
+      "type": "object", "additionalProperties": false, "required": ["id", "host", "port", "addresses"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"}, "host": {"type": "string", "minLength": 3, "maxLength": 253}, "port": {"const": 443},
+        "addresses": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "maxLength": 64}}
+      }
+    }
+  }
+}

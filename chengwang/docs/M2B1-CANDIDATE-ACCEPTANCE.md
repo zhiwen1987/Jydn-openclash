@@ -50,6 +50,8 @@ M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、�
 | 唯一出口 | 防火墙/网关默认拒绝、允许列表、计数器和独立出口读回 | `blocked` | 禁止真实探测 |
 | 固定可信 DNS | 固定 DoT IP:port、TLS/SNI/CA、DNS 帧/记录边界、A/AAAA CNAME 一致性和重绑定注入 | 本地实现与测试通过；容器运行态未验 | 禁止真实探测 |
 | 自有 canary | 所有权、无副作用、合同版本、频率和限流批准 | `blocked` | 禁止公共目标 |
+| 出口 bootstrap | 双栈 bridge、宿主 INPUT/FORWARD 默认拒绝、显式 chain、计数器与回滚摘要 | 离线结构计划和本地测试已实现；Docker/netns/nft 安装及读回未执行，固定 `BLOCKED/78` | 不执行计划；保留现有 `internal` quarantine |
+| Linux 静态 CI | 固定测试镜像、零网络、只读源码、无 capabilities、Python 零 skip、Go/Shell/race/vet 门禁 | 工作流已实现；首次 Ubuntu 24.04 Actions 运行尚未签署 | CI 失败保持 M2b 启动阻断，不降级到 Windows 结果 |
 | 生产不变 | 前后 hash-only manifest 完全一致 | 工具已提供，未在生产运行 | 任一变化立即停止并调查 |
 | 备份/回滚 | 专用根标记、停机一致性包、类型/数量/尺寸边界、SHA-256、保留失败副本、恢复后重验 | 护栏与主动代理备份工具均已提供、均未在 Docker 候选机演练；主动代理已实现只读 spool+ledger 语义验证及归档前后报告全等，恢复只验证私有暂存且不触碰 live，切换仍阻断 | 主动代理禁止启动；不得手工切换暂存状态或清理旧副本 |
 

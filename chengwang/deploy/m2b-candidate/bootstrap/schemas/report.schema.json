@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "report.schema.json",
+  "title": "Chengwang blocked egress bootstrap report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "reason", "exitCode", "advisoryOnly", "executionPermitted", "acceptedEvidenceProduced", "inputSha256", "canonicalInputSha256", "planSha256", "plan", "blockers"],
+  "properties": {
+    "schema": {"const": "chengwang.m2b-egress-bootstrap-report/v1"},
+    "status": {"const": "BLOCKED"},
+    "reason": {"const": "OFFLINE_PLAN_CANNOT_PROVE_RUNTIME_EGRESS_ENFORCEMENT"},
+    "exitCode": {"const": 78}, "advisoryOnly": {"const": true}, "executionPermitted": {"const": false}, "acceptedEvidenceProduced": {"const": false},
+    "inputSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "canonicalInputSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "planSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "plan": {"$ref": "plan.schema.json"},
+    "blockers": {"type": "array", "minItems": 7, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z0-9_]+$"}}
+  }
+}

@@ -15,6 +15,7 @@
 | 主动探测容器定义 | 已实现、默认关闭、仅静态校验 | 独立 profile、非 root、只读根、同一 `probe-state` 下的独立 spool/ledger、健康 tmpfs；没有 Docker 构建或运行证据 |
 | 主动代理生命周期门禁 | 已实现、仅静态校验 | 严格结构化 preflight、只读状态语义验证、全局/实例互斥锁、归档前后双重验证、无 live 变更的恢复私有暂存和启动前证据绑定；启动与恢复切换仍明确阻断 |
 | 宿主出口取证候选 | 已实现、仅本地测试 | 最小投影采集 Docker/netns/nftables，并校验 IPv4/IPv6 规则与计数器；因出口架构合同尚未闭合，只生成 `BLOCKED` 报告 |
+| 出口 bootstrap 离线计划 | 已实现、仅本地测试 | 编译专用双栈 bridge 的 `FORWARD`/`INPUT` 默认拒绝结构、chain 归属、计数器与精确回滚摘要；不执行 Docker/nft，固定 `BLOCKED/78` |
 | 静态自有 canary 合同 | 已实现、仅本地测试 | 严格绑定 catalog、域名/CNAME、公网单播 IP、TLS 与 HTTP 预期；只生成 `BLOCKED` 报告，不替代运行时 DNS/TLS/HTTP 观测或书面审批验签 |
 | 镜像供应链证据候选 | 已实现、仅本地测试 | 严格检查 OCI、layer/diff ID、SPDX、DSSE/bundle/receipt 的结构和摘要；因没有真实密码学验签、Registry 读回和 Linux 候选机证据，只生成 `BLOCKED` 报告 |
 | 主动业务探针 | `blocked` | 自有 canary、唯一出口、宿主防火墙计数器和容器运行门禁未完成；`internal` quarantine 只表达无公网出口意图，运行态 deny-all 未证明 |
@@ -119,6 +120,8 @@ sh scripts/compare-baseline.sh \
 `egress/host_egress_evidence.py` 是只读取证候选，不是防火墙安装器。它只保存 Docker、network namespace 与 nftables 的最小投影，最终只输出 `chengwang.host-egress-verification/v1`、`status=BLOCKED` 并返回 78。当前 `internal: true` 网络与真实可路由出口互相冲突，首次启动、可信 DoT 交易、唯一测试向量、其他宿主 base chain 和 Python/Go 合同共享也未闭合，因此该报告绝不能改名或转换为启动门接受的 evidence。
 
 `canary/static_canary_contract.py` 与 `supply-chain/verify_supply_chain.py` 同样是失败关闭的离线候选门禁。前者校验自有 canary 的静态期望，后者校验镜像证据之间的结构和摘要关系；二者无论输入多完整都返回 78，且不会生成启动门接受的 schema。它们尚未接入生命周期脚本，必须先在 Linux 候选机补齐权限、symlink、竞态、`fsync` 和故障注入证据；供应链门禁还必须补真实 DSSE/镜像验签、X.509/Rekor、Registry digest 读回与防重放账本。
+
+`bootstrap/compile_egress_bootstrap.py` 只生成可复验的抽象 nft 计划。它同时约束受管 bridge 到公网的 `FORWARD` 路径和到宿主服务的 `INPUT` 路径，且每条规则显式绑定 chain；但 PID、netns、cgroup、veth、宿主全局 chain 顺序、conntrack 和已安装对象摘要必须在 Linux 运行时重新绑定。`.github/workflows/chengwang-m2b-candidate.yml` 为这些离线门禁提供独立 Linux CI；首次 Actions 成功前仍不能签署 Linux 兼容性，schema metaschema 和产品镜像构建也继续明确阻断。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 
