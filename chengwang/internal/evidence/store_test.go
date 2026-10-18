@@ -44,6 +44,7 @@ func TestAppendAndVerifyChain(t *testing.T) {
 
 func TestStatusIsCachedAndFullVerifyRefreshesIt(t *testing.T) {
 	dir := t.TempDir()
+	secureTestStoreDir(t, dir)
 	store, err := Open(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -357,9 +358,7 @@ func TestAppendOnceValidationAndAppendBoundary(t *testing.T) {
 
 func TestOpenRejectsDuplicateEventIDs(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
+	secureTestStoreDir(t, dir)
 	first := storedTestEvent(t, "first", "first-key", genesisHash)
 	second := storedTestEvent(t, "second", "second-key", first.Hash)
 	second.ID = first.ID
@@ -434,9 +433,7 @@ func TestOpenAcceptsLegacyLogWithoutIdempotencyKey(t *testing.T) {
 
 func TestOpenRejectsConflictingDuplicateIdempotencyKeys(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
+	secureTestStoreDir(t, dir)
 	first := storedTestEvent(t, "first", "same-key", genesisHash)
 	second := storedTestEvent(t, "second", "same-key", first.Hash)
 	firstLine, _ := json.Marshal(first)
@@ -590,6 +587,7 @@ func TestOpenRejectsNonRegularStoreFiles(t *testing.T) {
 	for _, filename := range []string{logFilename, checkpointFilename, lockFilename} {
 		t.Run(filename, func(t *testing.T) {
 			dir := t.TempDir()
+			secureTestStoreDir(t, dir)
 			if err := os.Mkdir(filepath.Join(dir, filename), 0o700); err != nil {
 				t.Fatal(err)
 			}
@@ -684,6 +682,7 @@ func openTestStore(t *testing.T) *Store {
 
 func mustOpen(t *testing.T, dir string) *Store {
 	t.Helper()
+	secureTestStoreDir(t, dir)
 	store, err := Open(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -694,6 +693,13 @@ func mustOpen(t *testing.T, dir string) *Store {
 		}
 	})
 	return store
+}
+
+func secureTestStoreDir(t *testing.T, dir string) {
+	t.Helper()
+	if err := os.Chmod(dir, 0o700); err != nil {
+		t.Fatalf("secure evidence test directory: %v", err)
+	}
 }
 
 func testEvent(action string) EvidenceEvent {
