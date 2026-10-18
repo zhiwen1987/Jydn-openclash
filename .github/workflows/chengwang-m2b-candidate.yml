@@ -102,23 +102,64 @@ jobs:
           import sys
 
           path = pathlib.Path(sys.argv[1]).resolve(strict=True)
-          linux_runs = set()
+          linux_top_level_runs = set()
+          fault_stage_runs = set()
           package_passed = False
+          expected_linux_top_level = {
+              "TestLinuxStoreCreateSaveReopenAndSingleWriter",
+              "TestLinuxCommitFsyncFailurePoisonsStore",
+              "TestLinuxTruncatedControlRecordFailsOnReopen",
+              "TestLinuxOldCompleteControlReplayFailsClosed",
+              "TestLinuxLockUnlinkRecreateDetected",
+              "TestLinuxRejectsNonEmptyLock",
+              "TestLinuxControlDirectoryPathReplacementDetected",
+              "TestLinuxTerminalReceiptPreventsAllIdentityReplay",
+              "TestLinuxRejectsUnsafeAncestorsAndPermissions",
+              "TestLinuxControlFilesRoot0600SingleLink",
+              "TestLinuxRejectsHardLinkedControlRecord",
+              "TestLinuxOpenHandlesOrphanTempsSafely",
+              "TestLinuxCommitFaultBoundariesNeverExposePartialControl",
+              "TestLinuxCrashAtRenameBoundariesReopensCompleteControl",
+          }
+          fault_prefix = "TestLinuxCommitFaultBoundariesNeverExposePartialControl/"
+          expected_fault_stages = {
+              "before-temp-write",
+              "after-temp-write",
+              "before-temp-sync",
+              "after-temp-sync",
+              "before-renameat",
+              "after-renameat",
+              "before-directory-fsync",
+              "after-directory-fsync",
+          }
           with path.open(encoding="utf-8") as handle:
               for line_number, line in enumerate(handle, 1):
                   event = json.loads(line)
                   if event.get("Action") == "skip":
                       raise SystemExit(f"Go skip is forbidden at {path}:{line_number}: {event}")
                   test = event.get("Test")
-                  if event.get("Action") == "run" and isinstance(test, str) and test.startswith("TestLinux"):
-                      linux_runs.add(test)
+                  if event.get("Action") == "run" and isinstance(test, str):
+                      if test.startswith("TestLinux") and "/" not in test:
+                          linux_top_level_runs.add(test)
+                      if test.startswith(fault_prefix):
+                          fault_stage_runs.add(test.removeprefix(fault_prefix))
                   if event.get("Action") == "pass" and event.get("Package") == "chengwang/internal/proberestore" and test is None:
                       package_passed = True
-          if len(linux_runs) != 11:
-              raise SystemExit(f"expected 11 Linux root tests, observed {len(linux_runs)}: {sorted(linux_runs)}")
+          if linux_top_level_runs != expected_linux_top_level:
+              raise SystemExit(
+                  "Linux root scenario mismatch: "
+                  f"missing={sorted(expected_linux_top_level - linux_top_level_runs)} "
+                  f"unexpected={sorted(linux_top_level_runs - expected_linux_top_level)}"
+              )
+          if fault_stage_runs != expected_fault_stages:
+              raise SystemExit(
+                  "durability fault-stage mismatch: "
+                  f"missing={sorted(expected_fault_stages - fault_stage_runs)} "
+                  f"unexpected={sorted(fault_stage_runs - expected_fault_stages)}"
+              )
           if not package_passed:
               raise SystemExit("proberestore package did not emit a passing terminal event")
-          print("PROBE_RESTORE_ROOT_GATE=PASS linux_root_tests=11 skips=0 filesystem=ext4-or-xfs")
+          print("PROBE_RESTORE_ROOT_GATE=PASS linux_root_scenarios=14 fault_stage_cases=8 skips=0 filesystem=ext4-or-xfs")
           PY
 
       - name: Run root ownership Python contracts in a locked-down container

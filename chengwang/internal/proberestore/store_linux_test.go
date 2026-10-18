@@ -3,12 +3,50 @@
 package proberestore
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"flag"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
+
+var (
+	crashNonceFlag = flag.String("proberestore-crash-nonce", "", "internal crash-test nonce")
+	crashDirFlag   = flag.String("proberestore-crash-dir", "", "internal crash-test control directory")
+	crashStageFlag = flag.String("proberestore-crash-stage", "", "internal crash-test stage")
+)
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	mode := os.Getenv("PROBERESTORE_CRASH_HELPER")
+	if mode == "" {
+		if *crashNonceFlag != "" || *crashDirFlag != "" || *crashStageFlag != "" {
+			fmt.Fprintln(os.Stderr, "crash helper flags require guarded helper mode")
+			os.Exit(2)
+		}
+		os.Exit(m.Run())
+	}
+	if mode != "v1" {
+		fmt.Fprintln(os.Stderr, "invalid crash helper mode")
+		os.Exit(2)
+	}
+	if err := runLinuxCrashHelper(); err != nil {
+		fmt.Fprintln(os.Stderr, "crash helper rejected or failed:", err)
+		os.Exit(2)
+	}
+	// A successful helper always terminates itself at the requested syscall
+	// boundary. Reaching this point must never be mistaken for a passing test.
+	os.Exit(3)
+}
 
 func linuxControlDir(t *testing.T) string {
 	t.Helper()
@@ -257,5 +295,338 @@ func TestLinuxRejectsHardLinkedControlRecord(t *testing.T) {
 	}
 	if _, err := Open(d); err == nil {
 		t.Fatal("hard-linked control record accepted")
+	}
+}
+
+func TestLinuxOpenHandlesOrphanTempsSafely(t *testing.T) {
+	t.Run("strict-orphan-cleanup", func(t *testing.T) {
+		d := linuxControlDir(t)
+		orphan := filepath.Join(d, ".tmp-0123456789abcdef01234567")
+		if err := os.WriteFile(orphan, []byte("orphaned but non-authoritative"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		s := openLinuxStore(t, d)
+		defer s.Close()
+		if _, err := os.Lstat(orphan); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("strict orphan was not removed: %v", err)
+		}
+	})
+	t.Run("suspicious-entry-prevents-partial-cleanup", func(t *testing.T) {
+		d := linuxControlDir(t)
+		valid := filepath.Join(d, ".tmp-0123456789abcdef01234567")
+		malformed := filepath.Join(d, ".tmp-malformed")
+		if err := os.WriteFile(valid, []byte("valid orphan"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(malformed, []byte("suspicious"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Open(d); err == nil {
+			t.Fatal("mixed orphan set was accepted")
+		}
+		for _, path := range []string{valid, malformed} {
+			if _, err := os.Lstat(path); err != nil {
+				t.Fatalf("orphan was modified before validation completed: %s: %v", path, err)
+			}
+		}
+	})
+
+	suspicious := []struct {
+		name  string
+		setup func(*testing.T, string) string
+	}{
+		{
+			name: "symlink",
+			setup: func(t *testing.T, d string) string {
+				p := filepath.Join(d, ".tmp-0123456789abcdef01234567")
+				if err := os.Symlink(controlFilename, p); err != nil {
+					t.Fatal(err)
+				}
+				return p
+			},
+		},
+		{
+			name: "hardlink",
+			setup: func(t *testing.T, d string) string {
+				source := filepath.Join(d, "orphan-hardlink-source")
+				if err := os.WriteFile(source, []byte("x"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				p := filepath.Join(d, ".tmp-0123456789abcdef01234567")
+				if err := os.Link(source, p); err != nil {
+					t.Fatal(err)
+				}
+				return p
+			},
+		},
+		{
+			name: "wrong-permissions",
+			setup: func(t *testing.T, d string) string {
+				p := filepath.Join(d, ".tmp-0123456789abcdef01234567")
+				if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(p, 0o640); err != nil {
+					t.Fatal(err)
+				}
+				return p
+			},
+		},
+		{
+			name: "fifo",
+			setup: func(t *testing.T, d string) string {
+				p := filepath.Join(d, ".tmp-0123456789abcdef01234567")
+				if err := syscall.Mkfifo(p, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				return p
+			},
+		},
+		{
+			name: "malformed-name",
+			setup: func(t *testing.T, d string) string {
+				p := filepath.Join(d, ".tmp-not-a-generated-name")
+				if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				return p
+			},
+		},
+	}
+	for _, tt := range suspicious {
+		t.Run(tt.name, func(t *testing.T) {
+			d := linuxControlDir(t)
+			suspicious := tt.setup(t, d)
+			if _, err := Open(d); err == nil {
+				t.Fatal("suspicious orphan temporary was accepted")
+			}
+			if _, err := os.Lstat(suspicious); err != nil {
+				t.Fatalf("suspicious orphan was modified or deleted: %v", err)
+			}
+		})
+	}
+}
+
+func TestLinuxCommitFaultBoundariesNeverExposePartialControl(t *testing.T) {
+	tests := []struct {
+		stage   replaceStage
+		newDisk bool
+	}{
+		{replaceBeforeWrite, false},
+		{replaceAfterWrite, false},
+		{replaceBeforeSync, false},
+		{replaceAfterSync, false},
+		{replaceBeforeRename, false},
+		{replaceAfterRename, true},
+		{replaceBeforeDirSync, true},
+		{replaceAfterDirSync, true},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.stage), func(t *testing.T) {
+			d := linuxControlDir(t)
+			s := openLinuxStore(t, d)
+			old := validJournal(t)
+			if err := s.Create(old); err != nil {
+				t.Fatal(err)
+			}
+			newJournal := advance(t, old, PhaseLocked)
+			s.platform.replaceFault = func(stage replaceStage) error {
+				if stage == tt.stage {
+					return errors.New("injected durability-boundary failure")
+				}
+				return nil
+			}
+			if err := s.Save(newJournal); !errors.Is(err, ErrStorePoisoned) {
+				t.Fatalf("Save=%v", err)
+			}
+			if _, err := s.Load(); !errors.Is(err, ErrStorePoisoned) {
+				t.Fatalf("poisoned Load=%v", err)
+			}
+			if err := s.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			assertCompleteControlChoice(t, d, old, newJournal, tt.newDisk)
+			assertNoTemporaryControls(t, d)
+		})
+	}
+}
+
+func TestLinuxCrashAtRenameBoundariesReopensCompleteControl(t *testing.T) {
+	t.Run("directory-fsync-failure", func(t *testing.T) {
+		d := linuxControlDir(t)
+		s := openLinuxStore(t, d)
+		old := validJournal(t)
+		if err := s.Create(old); err != nil {
+			t.Fatal(err)
+		}
+		newJournal := advance(t, old, PhaseLocked)
+		s.platform.dirSync = func(int) error { return syscall.EIO }
+		if err := s.Save(newJournal); !errors.Is(err, syscall.EIO) || !errors.Is(err, ErrStorePoisoned) {
+			t.Fatalf("Save=%v", err)
+		}
+		if err := s.Close(); err != nil {
+			t.Fatal(err)
+		}
+		assertCompleteControlChoice(t, d, old, newJournal, true)
+	})
+
+	tests := []struct {
+		stage     replaceStage
+		expectNew bool
+	}{
+		{replaceBeforeRename, false},
+		{replaceAfterRename, true},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.stage), func(t *testing.T) {
+			d := linuxControlDir(t)
+			s := openLinuxStore(t, d)
+			old := validJournal(t)
+			if err := s.Create(old); err != nil {
+				t.Fatal(err)
+			}
+			if err := s.Close(); err != nil {
+				t.Fatal(err)
+			}
+			newJournal := advance(t, old, PhaseLocked)
+
+			runCrashSubprocess(t, d, tt.stage)
+			assertCompleteControlChoice(t, d, old, newJournal, tt.expectNew)
+			assertNoTemporaryControls(t, d)
+		})
+	}
+}
+
+func runCrashSubprocess(t *testing.T, dir string, stage replaceStage) {
+	t.Helper()
+	nonceBytes := make([]byte, 32)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		t.Fatal(err)
+	}
+	nonce := hex.EncodeToString(nonceBytes)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, os.Args[0],
+		"-test.run=^$",
+		"-test.timeout=10s",
+		"-proberestore-crash-nonce="+nonce,
+		"-proberestore-crash-dir="+dir,
+		"-proberestore-crash-stage="+string(stage),
+	)
+	cmd.Env = append(crashHelperBaseEnv(os.Environ()),
+		"PROBERESTORE_CRASH_HELPER=v1",
+		"PROBERESTORE_CRASH_NONCE="+nonce,
+	)
+	err := cmd.Run()
+	if ctx.Err() != nil {
+		t.Fatalf("crash helper exceeded timeout: %v", ctx.Err())
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("helper was not killed: %v", err)
+	}
+	status, ok := exitErr.Sys().(syscall.WaitStatus)
+	if !ok || !status.Signaled() || status.Signal() != syscall.SIGKILL {
+		t.Fatalf("helper exit status=%v err=%v", exitErr.Sys(), err)
+	}
+}
+
+func runLinuxCrashHelper() error {
+	nonce := os.Getenv("PROBERESTORE_CRASH_NONCE")
+	if len(nonce) != 64 || nonce != *crashNonceFlag || !lowerHex(nonce) {
+		return errors.New("nonce mismatch")
+	}
+	dir := *crashDirFlag
+	if dir == "" || !filepath.IsAbs(dir) || filepath.Clean(dir) != dir {
+		return errors.New("invalid control directory")
+	}
+	stage := replaceStage(*crashStageFlag)
+	if stage != replaceBeforeRename && stage != replaceAfterRename {
+		return errors.New("invalid crash stage")
+	}
+	s, err := Open(dir)
+	if err != nil {
+		return err
+	}
+	j, err := s.Load()
+	if err != nil {
+		return err
+	}
+	next, err := j.Transition(requestFor(j, PhaseLocked))
+	if err != nil {
+		return err
+	}
+	s.platform.replaceFault = func(current replaceStage) error {
+		if current == stage {
+			if err := syscall.Kill(syscall.Getpid(), syscall.SIGKILL); err != nil {
+				return err
+			}
+			return errors.New("SIGKILL returned without terminating process")
+		}
+		return nil
+	}
+	return s.Save(next)
+}
+
+func crashHelperBaseEnv(env []string) []string {
+	clean := make([]string, 0, len(env))
+	for _, entry := range env {
+		if strings.HasPrefix(entry, "PROBERESTORE_CRASH_HELPER=") || strings.HasPrefix(entry, "PROBERESTORE_CRASH_NONCE=") {
+			continue
+		}
+		clean = append(clean, entry)
+	}
+	return clean
+}
+
+func lowerHex(value string) bool {
+	for _, ch := range value {
+		if !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
+func assertCompleteControlChoice(t *testing.T, dir string, old, next Journal, expectNew bool) {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(dir, controlFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := decodeControl(raw)
+	if err != nil {
+		t.Fatalf("control record is not complete and valid: %v", err)
+	}
+	oldControl := newControl(old, nil)
+	wantControl := oldControl
+	if expectNew {
+		wantControl = advanceControl(next, oldControl)
+	}
+	if !reflect.DeepEqual(record, wantControl) {
+		t.Fatalf("disk control record does not exactly match expected old/new record\ngot:  %#v\nwant: %#v", record, wantControl)
+	}
+	s := openLinuxStore(t, dir)
+	defer s.Close()
+	got, err := s.Load()
+	if err != nil {
+		t.Fatalf("reopen Load=%v", err)
+	}
+	if !reflect.DeepEqual(got, wantControl.Journal) {
+		t.Fatalf("reopened journal does not exactly match expected journal\ngot:  %#v\nwant: %#v", got, wantControl.Journal)
+	}
+}
+
+func assertNoTemporaryControls(t *testing.T, dir string) {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".tmp-") {
+			t.Fatalf("temporary control survived: %s", entry.Name())
+		}
 	}
 }

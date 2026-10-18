@@ -15,12 +15,32 @@ import (
 )
 
 type platformStore struct {
-	dirPath  string
-	dir      *os.File
-	lock     *os.File
-	dirStat  syscall.Stat_t
-	lockStat syscall.Stat_t
+	dirPath      string
+	dir          *os.File
+	lock         *os.File
+	dirStat      syscall.Stat_t
+	lockStat     syscall.Stat_t
+	replaceFault func(replaceStage) error
+	dirSync      func(int) error
 }
+
+// replaceStage names the durability boundary immediately before or after each
+// operation in the single-file commit protocol. replaceFault is nil in
+// production; authoritative Linux tests use it to prove that every observed
+// result is an old complete record, a new complete record, or a fail-closed
+// store. The hook must never be used to recover or continue a failed write.
+type replaceStage string
+
+const (
+	replaceBeforeWrite   replaceStage = "before-temp-write"
+	replaceAfterWrite    replaceStage = "after-temp-write"
+	replaceBeforeSync    replaceStage = "before-temp-sync"
+	replaceAfterSync     replaceStage = "after-temp-sync"
+	replaceBeforeRename  replaceStage = "before-renameat"
+	replaceAfterRename   replaceStage = "after-renameat"
+	replaceBeforeDirSync replaceStage = "before-directory-fsync"
+	replaceAfterDirSync  replaceStage = "after-directory-fsync"
+)
 
 const (
 	ext4SuperMagic = 0xEF53
@@ -87,8 +107,12 @@ func openPlatformStore(path string) (*platformStore, error) {
 		}
 		return nil, err
 	}
-	p := &platformStore{path, d, lock, ds, ls}
+	p := &platformStore{dirPath: path, dir: d, lock: lock, dirStat: ds, lockStat: ls, dirSync: syscall.Fsync}
 	if err := p.verifyBindings(); err != nil {
+		_ = syscall.Flock(lfd, syscall.LOCK_UN)
+		return nil, err
+	}
+	if err := p.cleanupOrphanTemps(); err != nil {
 		_ = syscall.Flock(lfd, syscall.LOCK_UN)
 		return nil, err
 	}
@@ -229,12 +253,25 @@ func (p *platformStore) replace(name string, data []byte) error {
 		_ = f.Close()
 		return err
 	}
+	if err := p.injectReplaceFault(replaceBeforeWrite); err != nil {
+		_ = f.Close()
+		return err
+	}
 	n, werr := f.Write(data)
 	if werr == nil && n != len(data) {
 		werr = io.ErrShortWrite
 	}
 	if werr == nil {
+		werr = p.injectReplaceFault(replaceAfterWrite)
+	}
+	if werr == nil {
+		werr = p.injectReplaceFault(replaceBeforeSync)
+	}
+	if werr == nil {
 		werr = f.Sync()
+	}
+	if werr == nil {
+		werr = p.injectReplaceFault(replaceAfterSync)
 	}
 	cerr := f.Close()
 	if werr != nil {
@@ -243,11 +280,23 @@ func (p *platformStore) replace(name string, data []byte) error {
 	if cerr != nil {
 		return cerr
 	}
+	if err := p.injectReplaceFault(replaceBeforeRename); err != nil {
+		return err
+	}
 	if err := syscall.Renameat(int(p.dir.Fd()), tmp, int(p.dir.Fd()), name); err != nil {
 		return err
 	}
 	cleanup = false
-	if err := syscall.Fsync(int(p.dir.Fd())); err != nil {
+	if err := p.injectReplaceFault(replaceAfterRename); err != nil {
+		return err
+	}
+	if err := p.injectReplaceFault(replaceBeforeDirSync); err != nil {
+		return err
+	}
+	if err := p.dirSync(int(p.dir.Fd())); err != nil {
+		return err
+	}
+	if err := p.injectReplaceFault(replaceAfterDirSync); err != nil {
 		return err
 	}
 	if err := p.verifyBindings(); err != nil {
@@ -267,6 +316,75 @@ func (p *platformStore) replace(name string, data []byte) error {
 	}
 	return secureRootFileStat(name, st)
 }
+
+func (p *platformStore) injectReplaceFault(stage replaceStage) error {
+	if p.replaceFault == nil {
+		return nil
+	}
+	return p.replaceFault(stage)
+}
+
+// cleanupOrphanTemps runs only after the exclusive writer lock is held. A
+// crash may leave a fully written temporary inode before rename; such an inode
+// is not authoritative state and is safe to unlink only when its name and
+// metadata exactly match files created by replace. Anything suspicious fails
+// Open closed and is left untouched for operator inspection.
+func (p *platformStore) cleanupOrphanTemps() error {
+	names, err := p.dir.Readdirnames(-1)
+	if err != nil {
+		return fmt.Errorf("enumerate control directory: %w", err)
+	}
+	var orphans []string
+	for _, name := range names {
+		if !strings.HasPrefix(name, ".tmp-") {
+			continue
+		}
+		if !validOrphanTempName(name) {
+			return fmt.Errorf("unsafe orphan temporary name %q", name)
+		}
+		fd, err := syscall.Openat(int(p.dir.Fd()), name, syscall.O_RDONLY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+		if err != nil {
+			return fmt.Errorf("inspect orphan temporary %q: %w", name, err)
+		}
+		var st syscall.Stat_t
+		statErr := syscall.Fstat(fd, &st)
+		closeErr := syscall.Close(fd)
+		if statErr != nil {
+			return fmt.Errorf("stat orphan temporary %q: %w", name, statErr)
+		}
+		if closeErr != nil {
+			return fmt.Errorf("close orphan temporary %q: %w", name, closeErr)
+		}
+		if err := secureRootFileStat(name, st); err != nil {
+			return fmt.Errorf("unsafe orphan temporary: %w", err)
+		}
+		orphans = append(orphans, name)
+	}
+	for _, name := range orphans {
+		if err := syscall.Unlinkat(int(p.dir.Fd()), name); err != nil {
+			return fmt.Errorf("remove orphan temporary %q: %w", name, err)
+		}
+	}
+	if len(orphans) > 0 {
+		if err := p.dirSync(int(p.dir.Fd())); err != nil {
+			return fmt.Errorf("sync orphan cleanup: %w", err)
+		}
+	}
+	return p.verifyBindings()
+}
+
+func validOrphanTempName(name string) bool {
+	if len(name) != len(".tmp-")+24 || !strings.HasPrefix(name, ".tmp-") {
+		return false
+	}
+	for _, ch := range name[len(".tmp-"):] {
+		if !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
 func secureRootFileStat(name string, st syscall.Stat_t) error {
 	if st.Mode&syscall.S_IFMT != syscall.S_IFREG || st.Uid != 0 || st.Mode&0o777 != 0o600 || st.Nlink != 1 {
 		return fmt.Errorf("%s must be root-owned mode 0600 single-link regular file", name)
