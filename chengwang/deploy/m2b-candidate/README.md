@@ -123,7 +123,7 @@ sh scripts/compare-baseline.sh \
 
 `bootstrap/compile_egress_bootstrap.py` 只生成可复验的抽象 nft 计划。它同时约束受管 bridge 到公网的 `FORWARD` 路径和到宿主服务的 `INPUT` 路径，且每条规则显式绑定 chain；但 PID、netns、cgroup、veth、宿主全局 chain 顺序、conntrack 和已安装对象摘要必须在 Linux 运行时重新绑定。`.github/workflows/chengwang-m2b-candidate.yml` 为这些离线门禁提供独立 Linux CI。run `39149469450` / commit `3f9a4cec...` 已签署 Ubuntu 24.04 静态门禁：Python 132 项零测试用例 skip、13 个 shell 脚本、Go 普通/race/vet；23 个有测试包满足基线，`internal/domain` 是唯一允许且已核对的无测试包。该结论不签署显式 Linux 二进制构建、Docker 运行态、产品镜像或出口；schema metaschema 与产品镜像构建在同一运行中继续明确阻断。
 
-恢复基础库加入后的最新静态证据是 run `39154612179` / job `117755133903` / commit `74fab39e...`：锁定测试镜像中的 root/ext4-XFS 系统调用路径 11 项零 skip，全仓普通与 race 共 2416 个 Go run event、25 个包零测试用例 skip，Python 132 项、shell 13 项和 vet 同时通过。`internal/proberestore` 只提供 25 阶段恢复状态机、25×16 拓扑恢复决策、单一原子 `control.json`、防重 receipt 和 Linux 单写者持久化基础，不控制 Docker 或 live 状态。该 gate 不是掉电/VM 崩溃注入，也不证明恢复成功；证据 coordinator、外部单调锚点、receipt 轮换和真实 crash/reopen 测试仍未实现，`restore-probe-agent.sh` 因此继续在切换前返回 78。
+恢复基础库与同内核故障注入的最新静态证据是 run `39156376057` / job `117760331614` / commit `ec71f05d...`：锁定测试镜像中的 root/ext4-XFS 系统调用路径共有 14 个顶层场景、8 个精确原子替换故障点、零 skip；全仓普通与 race 共 2416 个 Go run event、25 个包零测试用例 skip，Python 132 项、shell 13 项和 vet 同时通过。`internal/proberestore` 提供 25 阶段恢复状态机、25×16 拓扑恢复决策、单一原子 `control.json`、防重 receipt 和 Linux 单写者持久化基础，并验证 rename 前后真实 SIGKILL/reopen、目录同步失败、合法孤儿清理和恶意对象失败关闭；它仍不控制 Docker 或 live 状态。该 gate 不是突然断电、VM/宿主崩溃注入，也不证明恢复成功；证据 coordinator、外部单调锚点和 receipt 轮换仍未实现，`restore-probe-agent.sh` 因此继续在切换前返回 78。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 
