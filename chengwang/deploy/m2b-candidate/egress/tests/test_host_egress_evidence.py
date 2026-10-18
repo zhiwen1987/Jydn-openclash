@@ -84,6 +84,15 @@ def snapshot(captured, delta=0, internal=False):
 
 
 class EvidenceTests(unittest.TestCase):
+    def candidate_root(self, directory):
+        resolved = pathlib.Path(directory).resolve(strict=True)
+        if os.name == "posix":
+            return str(resolved)
+        # The production contract is POSIX-only.  Preserve the resolved native
+        # fixture identity in a POSIX-shaped value for cross-platform unit
+        # tests; Linux still receives and stats the exact resolved directory.
+        return "/" + resolved.as_posix()
+
     def write_fixture_bytes(self, path, value):
         path = pathlib.Path(path)
         path.write_bytes(value)
@@ -117,7 +126,7 @@ class EvidenceTests(unittest.TestCase):
             "schema": MODULE.PLAN_SCHEMA,
             "revision": "fixture-v1",
             "approval": {"status": "approved", "owner": "fixture-owner", "approvedUnix": NOW - 60},
-            "candidateRoot": "/var/lib/chengwang/test",
+            "candidateRoot": self.candidate_root(directory),
             "projectName": PROJECT,
             "imageId": IMAGE_ID,
             "catalogSha256": catalog_sha,
@@ -156,9 +165,14 @@ class EvidenceTests(unittest.TestCase):
         self.write_fixture_text(compose, "services: {}\n")
         output = pathlib.Path(directory) / "report.json"
         with self.assertRaises(SystemExit) as raised:
-            MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, output, now=NOW)
+            self.verify(directory, paths, output)
         self.assertEqual(raised.exception.code, 78)
         return json.loads(output.read_text(encoding="utf-8"))
+
+    def verify(self, directory, paths, output):
+        return MODULE.verify(
+            *paths, self.candidate_root(directory), PROJECT, IMAGE_ID, CONTAINER_ID, output, now=NOW,
+        )
 
     def rewrite_plan_and_bind_policy(self, directory, paths, plan):
         plan_path = self.write_json(directory, "plan-updated.json", plan)
@@ -185,7 +199,7 @@ class EvidenceTests(unittest.TestCase):
             paths[1] = self.write_json(directory, "after-internal.json", after)
             self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "non-internal"):
-                MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
+                self.verify(directory, paths, pathlib.Path(directory) / "report.json")
 
     def test_undeclared_accept_rule_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -197,7 +211,7 @@ class EvidenceTests(unittest.TestCase):
             paths[1] = self.write_json(directory, "after-extra.json", after)
             self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "structure changed"):
-                MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
+                self.verify(directory, paths, pathlib.Path(directory) / "report.json")
 
     def test_counter_without_growth_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -205,7 +219,7 @@ class EvidenceTests(unittest.TestCase):
             paths[1] = self.write_json(directory, "after-flat.json", snapshot(NOW - 10, 0))
             self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "counter did not increase"):
-                MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
+                self.verify(directory, paths, pathlib.Path(directory) / "report.json")
 
     def test_policy_must_bind_exact_plan_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -215,7 +229,7 @@ class EvidenceTests(unittest.TestCase):
             paths[4] = self.write_json(directory, "policy-wrong.json", policy)
             self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "exact egress plan"):
-                MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
+                self.verify(directory, paths, pathlib.Path(directory) / "report.json")
 
     def test_duplicate_json_key_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -324,7 +338,7 @@ class EvidenceTests(unittest.TestCase):
             self.rewrite_plan_and_bind_policy(directory, paths, plan)
             self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "duplicate or loop"):
-                MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
+                self.verify(directory, paths, pathlib.Path(directory) / "report.json")
 
     def test_nft_projection_drops_unrelated_secret_and_rejects_unlabelled_managed_rule(self):
         managed = ruleset(0)["nftables"]
@@ -445,7 +459,7 @@ class EvidenceTests(unittest.TestCase):
             paths[4] = self.write_json(directory, "policy-future.json", policy)
             self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "in the future"):
-                MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
+                self.verify(directory, paths, pathlib.Path(directory) / "report.json")
 
 
 if __name__ == "__main__":
