@@ -259,8 +259,11 @@ func TestLockedStateSnapshotDetectsLockPathReplacement(t *testing.T) {
 			if err := os.WriteFile(lockPath, nil, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := snapshot.Verify(); err == nil || !strings.Contains(err.Error(), "replaced") {
-				t.Fatalf("lock replacement verification error = %v", err)
+			if err := snapshot.Verify(); err == nil || !strings.Contains(err.Error(), "verification failed") {
+				t.Fatalf("lock replacement did not fail closed: %v", err)
+			}
+			if err := snapshot.Verify(); err == nil || !strings.Contains(err.Error(), "poisoned") {
+				t.Fatalf("lock replacement did not sticky-poison the snapshot: %v", err)
 			}
 		})
 	}
