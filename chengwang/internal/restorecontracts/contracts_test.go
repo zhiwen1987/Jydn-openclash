@@ -833,6 +833,32 @@ func FuzzParseBackupV3NeverPanics(f *testing.F) {
 	})
 }
 
+func TestParsedBackupV3RetainsExactRawDigest(t *testing.T) {
+	v := validBackup(t)
+	compact, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	indented, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := ParseBackupV3(compact, testNow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := ParseBackupV3(indented, testNow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.RawSHA256() != rawDigestBytes(compact) || second.RawSHA256() != rawDigestBytes(indented) {
+		t.Fatal("parsed backup did not retain the exact raw-byte digest")
+	}
+	if first.RawSHA256() == second.RawSHA256() {
+		t.Fatal("different raw encodings unexpectedly share a digest")
+	}
+}
+
 func FuzzParseRestoreEvidenceV1NeverPanics(f *testing.F) {
 	v := validEvidence("INPUT_BOUND")
 	f.Add(encode(f, v))

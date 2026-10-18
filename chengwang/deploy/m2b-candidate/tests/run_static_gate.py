@@ -79,6 +79,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/probe": 224,
     "chengwang/internal/proberestore": 16,
     "chengwang/internal/proxyiface": 5,
+    "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/routing": 4,
     "chengwang/internal/store": 4,
     "chengwang/internal/truth": 20,
@@ -87,8 +88,12 @@ REQUIRED_GO_TEST_RUNS = {
 
 REQUIRED_GO_TEST_FINGERPRINTS = {
     "chengwang/internal/restorecontracts": {
-        "count": 226,
-        "sha256": "36e5f531ae1b53e5a69d3d4f4f5ed5a3b713ee27157e15e904087ffb2560b786",
+        "count": 227,
+        "sha256": "36b2b9c67a3e742ccaf9a6694fb6665844002f27cd83a2422949df4c7073e7ff",
+    },
+    "chengwang/internal/restorecoordinator": {
+        "count": 24,
+        "sha256": "641b77a1e952f67645760bf0babd7d352b51c77a7c6957134f9592b736ccb0d3",
     }
 }
 
@@ -113,7 +118,25 @@ REQUIRED_GO_TEST_NAMES = {
             "TestSchemaParityAndLocalReferences",
             SCHEMA_VALIDATOR_TEST,
         }
-    )
+    ),
+    "chengwang/internal/restorecoordinator": frozenset(
+        {
+            "TestPrepareBindsExactBackupBytes",
+            "TestPrepareRejectsSameOldAndTargetState",
+            "TestCoordinatorAdvancesOnlyThroughInputVerified",
+            "TestCoordinatorIdempotentAfterJournalCommit",
+            "TestCoordinatorRetriesEvidenceCommittedBeforeJournalSave",
+            "TestCoordinatorRebuildsPreparedModelFromDurableIdentity",
+            "TestCoordinatorIdempotenceRequiresExactTailEvent",
+            "TestCoordinatorFailureRetryIsIdempotentFromEveryPreLivePhase",
+            "TestCoordinatorHasNoProductionConstructor",
+            "TestCoordinatorProductionSurfaceRemainsBlocked",
+            "TestCoordinatorRejectsDiagnosticOrUncommittedEvidence",
+            "TestCoordinatorRejectsEveryIndependentContextMismatch",
+            "TestCoordinatorAllowsOnlyExactPreLiveRequests",
+            "TestCoordinatorActualTransitionSetIsExact",
+        }
+    ),
 }
 
 ALLOWED_GO_PACKAGE_SKIPS = frozenset({"chengwang/internal/domain"})

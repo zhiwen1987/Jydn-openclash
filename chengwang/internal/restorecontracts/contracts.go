@@ -320,8 +320,9 @@ type CheckpointContext struct {
 }
 
 type ParsedBackupV3 struct {
-	document BackupV3
-	parsedAt time.Time
+	document  BackupV3
+	parsedAt  time.Time
+	rawSHA256 string
 }
 
 type UnverifiedAnchorClaims struct {
@@ -340,7 +341,7 @@ func ParseBackupV3(data []byte, now time.Time) (ParsedBackupV3, error) {
 	if err := validateBackup(v, now); err != nil {
 		return ParsedBackupV3{}, err
 	}
-	return ParsedBackupV3{document: v, parsedAt: now.UTC()}, nil
+	return ParsedBackupV3{document: v, parsedAt: now.UTC(), rawSHA256: rawDigestBytes(data)}, nil
 }
 
 func ParseRestoreEvidenceV1(data []byte, context EvidenceContext) (ParsedEvidence, error) {
@@ -403,6 +404,10 @@ func (b ParsedBackupV3) ValidateStateOnly(now time.Time, current StateOnlyCurren
 }
 
 func (b ParsedBackupV3) Snapshot() BackupV3 { return b.document }
+
+// RawSHA256 returns the SHA-256 of the exact input bytes accepted by
+// ParseBackupV3. It deliberately does not hash a re-encoded JSON document.
+func (b ParsedBackupV3) RawSHA256() string { return b.rawSHA256 }
 func (e ParsedEvidence) Snapshot() RestoreEvidenceV1 {
 	copy := e.document
 	copy.Payload.Checks = append([]EvidenceCheck(nil), e.document.Payload.Checks...)
