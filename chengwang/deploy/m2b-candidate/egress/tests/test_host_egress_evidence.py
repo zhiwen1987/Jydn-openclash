@@ -84,10 +84,18 @@ def snapshot(captured, delta=0, internal=False):
 
 
 class EvidenceTests(unittest.TestCase):
+    def write_fixture_bytes(self, path, value):
+        path = pathlib.Path(path)
+        path.write_bytes(value)
+        path.chmod(0o600)
+        return path
+
+    def write_fixture_text(self, path, value):
+        return self.write_fixture_bytes(path, value.encode("utf-8"))
+
     def write_json(self, directory, name, value):
         path = pathlib.Path(directory) / name
-        path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")), encoding="utf-8")
-        return path
+        return self.write_fixture_text(path, json.dumps(value, sort_keys=True, separators=(",", ":")))
 
     def inputs(self, directory):
         catalog = {
@@ -145,7 +153,7 @@ class EvidenceTests(unittest.TestCase):
 
     def invoke(self, directory, paths):
         compose = paths[-1]
-        compose.write_text("services: {}\n", encoding="utf-8")
+        self.write_fixture_text(compose, "services: {}\n")
         output = pathlib.Path(directory) / "report.json"
         with self.assertRaises(SystemExit) as raised:
             MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, output, now=NOW)
@@ -175,7 +183,7 @@ class EvidenceTests(unittest.TestCase):
             paths = list(self.inputs(directory))
             after = snapshot(NOW - 10, 1, internal=True)
             paths[1] = self.write_json(directory, "after-internal.json", after)
-            paths[-1].write_text("services: {}\n", encoding="utf-8")
+            self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "non-internal"):
                 MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
 
@@ -187,7 +195,7 @@ class EvidenceTests(unittest.TestCase):
             extra["rule"]["comment"] = "chengwang:v1:undeclared"
             after["nftRuleset"]["nftables"].insert(-2, extra)
             paths[1] = self.write_json(directory, "after-extra.json", after)
-            paths[-1].write_text("services: {}\n", encoding="utf-8")
+            self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "structure changed"):
                 MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
 
@@ -195,7 +203,7 @@ class EvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             paths = list(self.inputs(directory))
             paths[1] = self.write_json(directory, "after-flat.json", snapshot(NOW - 10, 0))
-            paths[-1].write_text("services: {}\n", encoding="utf-8")
+            self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "counter did not increase"):
                 MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
 
@@ -205,14 +213,14 @@ class EvidenceTests(unittest.TestCase):
             policy = json.loads(paths[4].read_text(encoding="utf-8"))
             policy["enforcement"]["runtimeEvidence"] = "evidence:" + "0" * 64
             paths[4] = self.write_json(directory, "policy-wrong.json", policy)
-            paths[-1].write_text("services: {}\n", encoding="utf-8")
+            self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "exact egress plan"):
                 MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
 
     def test_duplicate_json_key_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / "duplicate.json"
-            path.write_text('{"schema":"a","schema":"b"}', encoding="utf-8")
+            self.write_fixture_text(path, '{"schema":"a","schema":"b"}')
             with self.assertRaisesRegex(MODULE.ContractError, "duplicate JSON key"):
                 MODULE.load_json(path)
 
@@ -220,7 +228,7 @@ class EvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = pathlib.Path(directory) / "first.json"
             second = pathlib.Path(directory) / "second.json"
-            first.write_text("{}", encoding="utf-8")
+            self.write_fixture_text(first, "{}")
             try:
                 second.hardlink_to(first)
             except OSError:
@@ -231,7 +239,7 @@ class EvidenceTests(unittest.TestCase):
     def test_oversized_and_relative_inputs_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             oversized = pathlib.Path(directory) / "oversized.json"
-            oversized.write_bytes(b"x" * 33)
+            self.write_fixture_bytes(oversized, b"x" * 33)
             with self.assertRaisesRegex(MODULE.ContractError, "exceeds"):
                 MODULE.load_json(oversized, 32)
         with self.assertRaisesRegex(MODULE.ContractError, "absolute"):
@@ -314,7 +322,7 @@ class EvidenceTests(unittest.TestCase):
             plan = json.loads(paths[2].read_text(encoding="utf-8"))
             plan["probeResolutions"][0]["cnameChain"] = ["example.com", "example.com"]
             self.rewrite_plan_and_bind_policy(directory, paths, plan)
-            paths[-1].write_text("services: {}\n", encoding="utf-8")
+            self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "duplicate or loop"):
                 MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
 
@@ -435,7 +443,7 @@ class EvidenceTests(unittest.TestCase):
             policy = json.loads(paths[4].read_text(encoding="utf-8"))
             policy["approval"]["approvedAt"] = "2099-01-01T00:00:00Z"
             paths[4] = self.write_json(directory, "policy-future.json", policy)
-            paths[-1].write_text("services: {}\n", encoding="utf-8")
+            self.write_fixture_text(paths[-1], "services: {}\n")
             with self.assertRaisesRegex(MODULE.ContractError, "in the future"):
                 MODULE.verify(*paths, "/var/lib/chengwang/test", PROJECT, IMAGE_ID, CONTAINER_ID, pathlib.Path(directory) / "report.json", now=NOW)
 
