@@ -4,19 +4,20 @@
 
 ## 当前状态
 
-> 本节是最后一次生产读回的事实快照，不会随本地源码自动更新。当前生产是“默认锁定的 Shadow 操作控制面”：相关代码和页面已经部署，但身份文件未配置、操作写开关关闭、设备执行器不存在。它不接管生产流量，也不能执行设备变更。
+> 本节是最后一次生产读回的事实快照，不会随本地源码自动更新。当前生产是“默认锁定的 Shadow 操作控制面 + M2a 持续被动观测”：相关代码和页面已经部署，但身份文件未配置、操作写开关关闭、设备执行器不存在。它不接管生产流量，也不能执行设备变更。
 
 - 访问地址：`http://10.88.0.254:7811/`
 - 部署目录：`/opt/chengwang`
 - 容器：`chengwang`
 - 镜像：`chengwang:local`
-- 镜像 ID：`sha256:0004384b7494d2beb1e76b56b8afe24d932592533fc26796b541e7314f59ddee`
+- 镜像 ID：`sha256:80fcab39f8a96a42f8f510daf06827f96ca5145b62b4eac22003d0a19d7d6c9a`
 - 运行模式：`shadow`
 - 发布能力：锁定，接口返回 HTTP 423
 - Shadow 操作身份：未配置，接口返回 HTTP 503 `operation_control_not_configured`
 - Shadow 操作写入：`CHENGWANG_OPERATION_WRITES_ENABLED=false`
 - 设备执行器：不存在，协议固定声明 `effect=local_record_only`、`deviceActionsExecuted=false`
 - Mihomo 接入：本机 Controller API，只读；匿名端点只返回脱敏可达性和新鲜度
+- 持续观测：每 30 秒只读采集 Controller 摘要，最多保留 4096 个原子分段；节点技术、互联网、业务和 DNS 未测量时保持 `unknown`
 - 敏感诊断：`runtime`、`readback`、`versions`、`evidence/integrity` 均要求身份与管理范围；当前未配置身份，因此返回 HTTP 503
 - 管理传输：局域网明文 HTTP 不发送或接受 Bearer；前端锁住令牌输入，服务端返回 HTTP 426
 - 认证信息：仅保存在目标机 `/opt/chengwang/.env`，权限 `600`；未写入仓库或本记录。
@@ -29,7 +30,8 @@
 - 证据链运行时发布前完整备份：`/root/chengwang-backups/20261018-150218-pre-evidence-runtime`
 - Shadow 操作控制面发布前完整备份：`/root/chengwang-backups/20261018-160829-pre-shadow-control`
 - 安全加固版发布前完整备份：`/root/chengwang-backups/20261018-173811-pre-security-hardening`
-- 当前版本的直接回滚镜像：`chengwang:rollback-20261018-173811`
+- M2a 发布前完整备份：`/root/chengwang-backups/20261018-184529-pre-m2a`
+- 当前版本的直接回滚镜像：`chengwang:rollback-20261018-184529`
 
 备份目录权限为 `700`。发布前备份保留部署源码和受保护的 `.env`；对应回滚镜像使用独立标签保留。
 
@@ -38,6 +40,7 @@
 - 容器：`running / healthy`
 - 容器用户：`chengwang`（非 root）
 - 根文件系统：只读
+- 运行资源限制：PID 128、内存 256 MiB、CPU 0.5、Linux capabilities 全部丢弃、`no-new-privileges=true`
 - 持久化目录 `/app/data`：可写
 - 健康接口：HTTP 200，`status=ok`、`mode=shadow`、`mihomoReadbackConfigured=true`
 - Mihomo 匿名状态接口：HTTP 200，只含 `configured/reachable/fresh/stale/observedAt`，未返回版本、地址、节点、策略组或规则
@@ -48,7 +51,7 @@
 - 发布接口：HTTP 423，保持锁定
 - OpenClash：`running`
 - 原 Home Assistant 容器：`running`
-- 能力事实接口：HTTP 200，共 15 项；`real_authentication` 与 `durable_operation_control` 因生产未配置身份而显示 `blocked`
+- 能力事实接口：HTTP 200，共 16 项；`real_authentication` 与 `durable_operation_control` 因生产未配置身份而显示 `blocked`
 - 生产控制：`productionControlEnabled=false`，整体阶段：`foundation`
 - “系统闭环”页面：局域网浏览器实测，能力证据与限制正常显示
 - 匿名 Shadow 证明：HTTP 200，证据有效且时间新鲜，但不泄露精确事件数
@@ -57,7 +60,7 @@
 - 操作目录权限：目录 `0700`，快照与锁文件 `0600`，UID/GID 10001
 - Shadow operations：无认证配置时 HTTP 503；响应明确为本地记录边界，不产生设备动作
 - “操作中心”页面：局域网浏览器实测，清楚显示执行锁定、身份未配置和本地影子记录边界
-- 独立只读验收器：对生产地址执行 5 项检查，健康、安全头、能力事实、operations 失败关闭和最小 Shadow 证明全部通过
+- 独立只读验收器：对生产地址执行 6 项检查，健康、安全头、能力事实、持续被动观测、operations 失败关闭和最小 Shadow 证明全部通过
 - 容器重启：实际执行后恢复 `running / healthy`，证据完整性继续为 `valid=true`
 - 单写者门禁：第二实例复用同一数据目录时启动被拒绝
 - 回滚演练：旧镜像在独立端口实际启动，健康与 Mihomo 只读读回通过后才移除测试容器
@@ -138,9 +141,29 @@
 
 当前仍刻意不配置身份文件，不启用本地操作写入，也没有设备执行器。本次是已部署的只读安全闭环，不是生产网络写入、自动修复或企业高可用闭环。
 
+## 2026-10-18 M2a 持续被动观测发布
+
+本次发布新增周期只读 Mihomo 摘要采集、共享串行读取门、分层健康真值、有界原子分段历史、时钟回拨失败关闭、跨进程协作锁、匿名最小状态接口、受保护历史接口和“代理节点观测”页面。采集器不测速、不访问第三方业务、不切换节点、不重载配置，也不修改 OpenClash。
+
+可追溯产物：
+
+- 源码提交：`01b20c6`（远端分支 `codex/chengwang-security-hardening`，未合并 `main`）。
+- 源码发布包：`chengwang-m2a-01b20c6.tar.gz`，SHA-256 `ad2704064740d9c65fb9bf6b01ed86b0d509f0afbd925a0040d5b7ca74ab4827`。
+- Linux/amd64 服务二进制 SHA-256：`38a9700db13930c74266bdf447806c426227e44ee6f8a5ff5436d071401bca26`。
+- 离线候选包 SHA-256：`d2610a8e4bd85a7f3659576ebee7055e913e2f5cdcedfa849f726bcb708c0566`。
+- 候选及生产镜像 ID：`sha256:80fcab39f8a96a42f8f510daf06827f96ca5145b62b4eac22003d0a19d7d6c9a`。
+
+远端直接源码镜像构建连续两次在 Docker Hub 的 `node:22-alpine` 清单请求处收到 EOF，生产未受影响。随后使用已备份的生产回滚镜像作为离线基础层，只替换本地测试通过的静态服务二进制与前端构建产物；远端收到的源码包、离线包和二进制哈希均与本地一致。
+
+候选容器使用生产数据副本和独立端口 `17811`，实际通过以下门禁：6/6 独立验收；只读根文件系统与资源限制读回；第二写者拒绝；优雅停止不产生伪失败样本；重启后历史恢复；真实 Controller 可用；隔离假 Controller 的断开、恢复和再次断开；损坏段保留且存储降级；旧回滚镜像在独立端口健康启动。假 Controller 的第一版测试夹具因 BusyBox 不含 `httpd`、第二版因返回了带转义符的无效 JSON 而被排除，修正并先验证夹具自身后才记录恢复通过。
+
+正式切换后 T+0、受控重启后、T+60 和 T+300 的 6/6 验收均通过；容器保持 `running/healthy`、重启计数 0，观测历史在关停边界没有新增失败样本。最终资源快照为 CPU 0.00%、内存约 9.6 MiB / 256 MiB、进程数 19。OpenClash 活动配置 SHA-256 保持 `4c969773cb85fc59fe7ef8d43246b222ca93249bb2d255669a2d48ec6f60a5a4`，核心 PID 保持 `22819/22824`。容器 ID `235ce60f...` 经本次读回确认属于 `homeassistant`，不是 OpenClash HA 容器；其状态保持 running、重启次数 0。
+
+当前尚未完成 24 小时生产浸泡，因此只能认定“M2a 已灰度发布且初始门禁通过”，不能认定完整 M2、节点能力评估、自动修复闭环或任何 `99.999999%` 可用率。新页面仅完成自动化前端测试、构建与 HTTP 产物读回，本次没有新增浏览器控制台截图证据。
+
 ## 当前版本的备份/恢复注意事项
 
-- Evidence 和 operation 各有进程生命周期单写者锁。同一数据目录只能由一个控制器打开；Store 提供幂等 `Close()`，进程退出也会由操作系统释放内核锁。当前服务入口尚未接入 SIGTERM 优雅关停，不能把容器停止记录成已调用应用层 `Close()`。
+- Evidence、operation 和 observation 各有进程生命周期单写者锁。同一数据目录只能由一个控制器打开；Store 提供幂等 `Close()`，服务入口已接入 SIGTERM/SIGINT 优雅关停，容器停止日志与观测样本已验证没有记录伪失败。
 - 一致性备份应在容器停止后复制整个 `/opt/chengwang/data`，不能只复制 `operations.json`、`events.jsonl` 或 checkpoint 中的单个文件。
 - 身份文件和 `.env` 属于秘密材料，目录保持 `0700`、文件保持 `0600`，不得进入 Git 或验收截图。
 - `commit_unknown`、store poison 或 `checkpoint_stale` 发生时保持失败关闭，先保全整个数据目录再人工分析。当前没有经过验收的自动修复；不得删除锁文件、手改 checkpoint 或盲目重放写请求。
@@ -154,6 +177,20 @@
 cd /opt/chengwang
 docker compose down
 ```
+
+## 回滚 M2a 到安全加固版
+
+只回滚澄网，不会修改或重启 OpenClash：
+
+```sh
+cd /opt/chengwang
+docker compose down
+cp -a /root/chengwang-backups/20261018-184529-pre-m2a/source/. /opt/chengwang/
+docker tag chengwang:rollback-20261018-184529 chengwang:local
+docker compose up -d --no-build
+```
+
+回滚后必须重新检查容器健康、5 项旧版只读验收、Mihomo 只读状态、OpenClash 配置哈希和 Home Assistant 状态。M2a 新增的 `/opt/chengwang/data/observations` 可保留供取证；旧镜像不会读取它。
 
 ## 回滚到 Shadow 操作控制面发布前版本
 
