@@ -49,6 +49,9 @@ type ReadOptions struct {
 	MaxFutureSkew time.Duration
 	MaxEntries    int
 	MaxBytes      int64
+	// IncludeExpired keeps otherwise valid historical evidence while still
+	// rejecting future-dated results. It is for recovery/audit, not live health.
+	IncludeExpired bool
 }
 
 type catalogBinding struct {
@@ -103,7 +106,8 @@ type spoolScan struct {
 
 // ReadStore imports a bounded verified view without acquiring the writer lock
 // or changing any spool file. Unknown schemas, modified content, wrong catalog
-// generations, future/expired samples, and duplicate run IDs are excluded.
+// generations, future samples, and duplicate run IDs are excluded. Expired
+// samples are excluded unless IncludeExpired is explicitly enabled.
 func ReadStore(directory string, options ReadOptions) (ReadReport, error) {
 	if options.Limit == 0 {
 		options.Limit = defaultReadResults
@@ -132,7 +136,7 @@ func ReadStore(directory string, options ReadOptions) (ReadReport, error) {
 	if err != nil {
 		return ReadReport{}, err
 	}
-	scan, err := scanSpoolSegments(filepath.Join(absDirectory, spoolSegmentsDirectory), binding, options.Now, options.MaxFutureSkew, true, maxEntries, maxBytes)
+	scan, err := scanSpoolSegments(filepath.Join(absDirectory, spoolSegmentsDirectory), binding, options.Now, options.MaxFutureSkew, true, !options.IncludeExpired, maxEntries, maxBytes)
 	if err != nil {
 		return ReadReport{}, err
 	}
@@ -155,7 +159,7 @@ func ReadStore(directory string, options ReadOptions) (ReadReport, error) {
 	return report, nil
 }
 
-func scanSpoolSegments(directory string, binding catalogBinding, now time.Time, futureSkew time.Duration, temporal bool, maxEntries int, maxBytes int64) (spoolScan, error) {
+func scanSpoolSegments(directory string, binding catalogBinding, now time.Time, futureSkew time.Duration, checkFuture, checkExpiry bool, maxEntries int, maxBytes int64) (spoolScan, error) {
 	dir, err := os.Open(directory)
 	if err != nil {
 		return spoolScan{}, fmt.Errorf("open probe spool segments: %w", err)
@@ -213,7 +217,7 @@ func scanSpoolSegments(directory string, binding catalogBinding, now time.Time, 
 			scan.issues = append(scan.issues, ReadIssue{File: entry.Name(), Reason: "unexpected_directory_entry"})
 			continue
 		}
-		segment, reason := readSpoolSegment(filepath.Join(directory, entry.Name()), binding, now, futureSkew, temporal)
+		segment, reason := readSpoolSegment(filepath.Join(directory, entry.Name()), binding, now, futureSkew, checkFuture, checkExpiry)
 		if reason != "" {
 			scan.issues = append(scan.issues, ReadIssue{File: entry.Name(), Reason: reason})
 			continue
@@ -238,7 +242,7 @@ func scanSpoolSegments(directory string, binding catalogBinding, now time.Time, 
 	return scan, nil
 }
 
-func readSpoolSegment(path string, binding catalogBinding, now time.Time, futureSkew time.Duration, temporal bool) (spoolSegment, string) {
+func readSpoolSegment(path string, binding catalogBinding, now time.Time, futureSkew time.Duration, checkFuture, checkExpiry bool) (spoolSegment, string) {
 	info, err := os.Lstat(path)
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return spoolSegment{}, "segment_not_regular"
@@ -278,13 +282,13 @@ func readSpoolSegment(path string, binding catalogBinding, now time.Time, future
 	if err != nil || segment.Digest != expectedDigest {
 		return spoolSegment{}, "content_digest_mismatch"
 	}
-	if reason := validateSpoolResult(segment.Result, binding, now, futureSkew, temporal); reason != "" {
+	if reason := validateSpoolResult(segment.Result, binding, now, futureSkew, checkFuture, checkExpiry); reason != "" {
 		return spoolSegment{}, reason
 	}
 	return segment, ""
 }
 
-func validateSpoolResult(result ProbeResult, binding catalogBinding, now time.Time, futureSkew time.Duration, temporal bool) string {
+func validateSpoolResult(result ProbeResult, binding catalogBinding, now time.Time, futureSkew time.Duration, checkFuture, checkExpiry bool) string {
 	if result.SchemaVersion != ResultSchemaV1 {
 		return "unknown_result_schema"
 	}
@@ -327,14 +331,14 @@ func validateSpoolResult(result ProbeResult, binding catalogBinding, now time.Ti
 	if result.HTTPStatus != nil && (*result.HTTPStatus < 100 || *result.HTTPStatus > 599) {
 		return "result_http_status_invalid"
 	}
-	if temporal {
+	if checkFuture {
 		futureBoundary := now.Add(futureSkew)
 		if result.AttemptedAt.After(futureBoundary) || result.CompletedAt.After(futureBoundary) {
 			return "future_result"
 		}
-		if !result.ExpiresAt.After(now) {
-			return "expired_result"
-		}
+	}
+	if checkExpiry && !result.ExpiresAt.After(now) {
+		return "expired_result"
 	}
 	return ""
 }
@@ -524,6 +528,9 @@ func secureSpoolDirectory(directory string, create bool) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve probe spool directory: %w", err)
 	}
+	if err := rejectSymlinkPathComponents(absDirectory); err != nil {
+		return "", err
+	}
 	info, err := os.Lstat(absDirectory)
 	if errors.Is(err, os.ErrNotExist) && create {
 		if err := os.MkdirAll(absDirectory, 0o700); err != nil {
@@ -559,4 +566,28 @@ func secureSpoolDirectory(directory string, create bool) (string, error) {
 		}
 	}
 	return absDirectory, nil
+}
+
+func rejectSymlinkPathComponents(path string) error {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("resolve path: %w", err)
+	}
+	volume := filepath.VolumeName(absolute)
+	remainder := strings.TrimPrefix(absolute, volume)
+	current := volume + string(filepath.Separator)
+	for _, component := range strings.FieldsFunc(remainder, func(r rune) bool { return r == '/' || r == '\\' }) {
+		current = filepath.Join(current, component)
+		info, err := os.Lstat(current)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("inspect path component %q: %w", current, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("path component %q must not be a symbolic link", current)
+		}
+	}
+	return nil
 }

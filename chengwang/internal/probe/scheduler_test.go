@@ -2,6 +2,7 @@ package probe
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -66,7 +67,10 @@ func TestSchedulerBoundsConcurrencyAndPreventsProbeOverlap(t *testing.T) {
 		schedulerTask("b", "b.example", 30*time.Second, 10*time.Second, makeRun("b")),
 		schedulerTask("c", "c.example", 30*time.Second, 10*time.Second, makeRun("c")),
 	}
-	scheduler, err := NewScheduler(tasks, SchedulerOptions{Anchor: anchor, QueueSize: 3, GlobalConcurrency: 2})
+	scheduler, err := NewScheduler(tasks, SchedulerOptions{
+		Anchor: anchor, QueueSize: 3, GlobalConcurrency: 2,
+		Now: func() time.Time { return anchor.Add(3 * time.Minute) },
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,6 +159,24 @@ func TestSchedulerQueueBudgetAndClockRollbackFreeze(t *testing.T) {
 	}
 }
 
+func TestSchedulerQueuedReservationDoesNotExpireBeforeNetworkStart(t *testing.T) {
+	anchor := time.Unix(1_700_000_000, 0).UTC()
+	tasks := []Task{
+		schedulerTask("a", "a.example", 30*time.Second, time.Second, func(context.Context) ProbeResult { return ProbeResult{} }),
+		schedulerTask("b", "b.example", 30*time.Second, time.Second, func(context.Context) ProbeResult { return ProbeResult{} }),
+	}
+	scheduler, err := NewScheduler(tasks, SchedulerOptions{Anchor: anchor, GlobalConcurrency: 1, QueueSize: 2, MaxStartsPerMinute: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.DispatchDue(anchor.Add(time.Minute))
+	scheduler.DispatchDue(anchor.Add(2 * time.Minute))
+	status := scheduler.Status()
+	if status.Queued != 1 || scheduler.startReservations != 1 || status.BudgetSkipped < 2 {
+		t.Fatalf("old queued reservation allowed a new minute burst: reservations=%d status=%+v", scheduler.startReservations, status)
+	}
+}
+
 func TestSchedulerCancellationDoesNotPublishSyntheticFailure(t *testing.T) {
 	anchor := time.Unix(1_700_000_000, 0).UTC()
 	started := make(chan struct{})
@@ -216,6 +238,209 @@ func TestSchedulerConcurrentStatusIsSafe(t *testing.T) {
 		go func() { defer group.Done(); _ = scheduler.Status() }()
 	}
 	group.Wait()
+}
+
+func TestSchedulerDurablyRecordsStartBeforeNetworkAndBindsEvidence(t *testing.T) {
+	anchor := time.Unix(1_700_000_000, 0).UTC()
+	now := anchor.Add(time.Minute)
+	var recorded atomic.Bool
+	var ran atomic.Bool
+	captured := make(chan ProbeResult, 1)
+	task := schedulerTask("durable", "durable.example", 30*time.Second, time.Second, func(context.Context) ProbeResult {
+		if !recorded.Load() {
+			t.Error("task ran before its durable start was recorded")
+		}
+		ran.Store(true)
+		return ProbeResult{}
+	})
+	scheduler, err := NewScheduler([]Task{task}, SchedulerOptions{
+		Anchor: anchor, Now: func() time.Time { return now }, GlobalConcurrency: 1, QueueSize: 1,
+		NewStartID: func() (string, error) { return "durable-start", nil },
+		RecordStart: func(_ context.Context, startID, probeID string, startedAt time.Time) error {
+			if startID != "durable-start" || probeID != "durable" || !startedAt.Equal(now) {
+				t.Fatalf("unexpected durable start: %q %q %s", startID, probeID, startedAt)
+			}
+			recorded.Store(true)
+			return nil
+		},
+		Sink: func(_ context.Context, result ProbeResult) error { captured <- result; return nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- scheduler.Run(ctx) }()
+	waitForSchedulerRunning(t, scheduler)
+	scheduler.DispatchDue(now)
+	deadline := time.Now().Add(time.Second)
+	for scheduler.Status().Completed != 1 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	var persisted ProbeResult
+	select {
+	case persisted = <-captured:
+	case <-time.After(time.Second):
+		t.Fatal("durable result was not persisted")
+	}
+	if !ran.Load() || persisted.EvidenceRef != "durable-start" {
+		t.Fatalf("durable execution was not bound to evidence: ran=%v result=%+v", ran.Load(), persisted)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSchedulerStartPersistenceFailurePreventsNetworkAndFreezes(t *testing.T) {
+	anchor := time.Unix(1_700_000_000, 0).UTC()
+	now := anchor.Add(time.Minute)
+	var ran atomic.Bool
+	task := schedulerTask("blocked", "blocked.example", 30*time.Second, time.Second, func(context.Context) ProbeResult {
+		ran.Store(true)
+		return ProbeResult{}
+	})
+	scheduler, err := NewScheduler([]Task{task}, SchedulerOptions{
+		Anchor: anchor, Now: func() time.Time { return now }, GlobalConcurrency: 1, QueueSize: 1,
+		NewStartID: func() (string, error) { return "blocked-start", nil },
+		RecordStart: func(context.Context, string, string, time.Time) error {
+			return errors.New("injected durable start failure")
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- scheduler.Run(ctx) }()
+	waitForSchedulerRunning(t, scheduler)
+	scheduler.DispatchDue(now)
+	deadline := time.Now().Add(time.Second)
+	for scheduler.Status().StorageHealthy && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	status := scheduler.Status()
+	if ran.Load() || status.StorageHealthy || status.StorageIssue != "start_persistence_failed" || status.Started != 0 {
+		t.Fatalf("start persistence did not fail closed: ran=%v status=%+v", ran.Load(), status)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSchedulerStaleDurableStartNeverReachesNetwork(t *testing.T) {
+	anchor := time.Unix(1_700_000_000, 0).UTC()
+	current := anchor.Add(time.Minute)
+	var clockMu sync.Mutex
+	now := func() time.Time {
+		clockMu.Lock()
+		defer clockMu.Unlock()
+		return current
+	}
+	var ran atomic.Bool
+	task := schedulerTask("stale", "stale.example", 30*time.Second, time.Second, func(context.Context) ProbeResult {
+		ran.Store(true)
+		return ProbeResult{}
+	})
+	scheduler, err := NewScheduler([]Task{task}, SchedulerOptions{
+		Anchor: anchor, Now: now, GlobalConcurrency: 1, QueueSize: 1,
+		NewStartID: func() (string, error) { return "stale-start", nil },
+		RecordStart: func(context.Context, string, string, time.Time) error {
+			clockMu.Lock()
+			current = current.Add(MaximumStartPersistenceDelay + time.Second)
+			clockMu.Unlock()
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.DispatchDue(now())
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- scheduler.Run(ctx) }()
+	deadline := time.Now().Add(time.Second)
+	for scheduler.Status().StorageHealthy && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	status := scheduler.Status()
+	if ran.Load() || status.StorageHealthy || status.StorageIssue != "start_persistence_stale" || status.Started != 0 {
+		t.Fatalf("stale durable start was not blocked: ran=%v status=%+v", ran.Load(), status)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSchedulerClassifiesLedgerClockFailures(t *testing.T) {
+	anchor := time.Unix(1_700_000_000, 0).UTC()
+	task := schedulerTask("clock", "clock.example", 30*time.Second, time.Second, func(context.Context) ProbeResult { return ProbeResult{} })
+	scheduler, err := NewScheduler([]Task{task}, SchedulerOptions{
+		Anchor: anchor, Now: func() time.Time { return anchor.Add(time.Minute) }, GlobalConcurrency: 1, QueueSize: 1,
+		NewStartID:  func() (string, error) { return "clock-start", nil },
+		RecordStart: func(context.Context, string, string, time.Time) error { return ErrStartLedgerClock },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- scheduler.Run(ctx) }()
+	waitForSchedulerRunning(t, scheduler)
+	scheduler.DispatchDue(anchor.Add(time.Minute))
+	deadline := time.Now().Add(time.Second)
+	for scheduler.Status().ClockHealthy && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	status := scheduler.Status()
+	if status.ClockHealthy || status.ClockIssue != "clock_rollback" || status.StorageIssue != "start_persistence_failed" {
+		t.Fatalf("ledger clock error was misclassified: %+v", status)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSchedulerRejectsClockRollbackBetweenDispatchAndDurableStart(t *testing.T) {
+	anchor := time.Unix(1_700_000_000, 0).UTC()
+	current := anchor.Add(time.Minute)
+	var recorded atomic.Bool
+	var ran atomic.Bool
+	task := schedulerTask("rollback-start", "rollback.example", 30*time.Second, time.Second, func(context.Context) ProbeResult {
+		ran.Store(true)
+		return ProbeResult{}
+	})
+	scheduler, err := NewScheduler([]Task{task}, SchedulerOptions{
+		Anchor: anchor, Now: func() time.Time { return current }, GlobalConcurrency: 1, QueueSize: 1,
+		NewStartID: func() (string, error) { return "rollback-start-id", nil },
+		RecordStart: func(context.Context, string, string, time.Time) error {
+			recorded.Store(true)
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.DispatchDue(current)
+	current = anchor.Add(30 * time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- scheduler.Run(ctx) }()
+	deadline := time.Now().Add(time.Second)
+	for scheduler.Status().Canceled != 1 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	status := scheduler.Status()
+	if recorded.Load() || ran.Load() || status.ClockHealthy || status.ClockIssue != "clock_rollback" || status.Started != 0 {
+		t.Fatalf("pre-network rollback did not fail closed: recorded=%v ran=%v status=%+v", recorded.Load(), ran.Load(), status)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestSchedulerAppliesRetryAfterAndRestoresPersistedBackoff(t *testing.T) {

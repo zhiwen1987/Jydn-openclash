@@ -14,13 +14,20 @@ import (
 
 const MaxResolvedAddresses = 16
 
-// Resolver requires a complete, ordered CNAME chain beginning with the queried
-// host. net.Resolver is deliberately insufficient because LookupCNAME exposes
-// only the final canonical name. Production must supply a fixed trusted
-// resolver capable of returning the full bounded chain.
+// DNSResolution is one resolver snapshot. The chain and address set must come
+// from the same bounded resolution operation so DNS rebinding cannot occur
+// between two independently fetched pieces of evidence.
+type DNSResolution struct {
+	CanonicalChain []string
+	Addresses      []netip.Addr
+}
+
+// Resolver returns the complete, ordered CNAME chain and every A/AAAA address
+// in one operation. net.Resolver is deliberately insufficient because
+// LookupCNAME exposes only the final canonical name. Production must supply a
+// fixed trusted resolver capable of returning the full bounded snapshot.
 type Resolver interface {
-	LookupCNAMEChain(ctx context.Context, host string) ([]string, error)
-	LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error)
+	ResolveHost(ctx context.Context, host string) (DNSResolution, error)
 }
 
 // NoRedirect is suitable for http.Client.CheckRedirect. ErrUseLastResponse
@@ -38,19 +45,16 @@ func ResolveAndPin(ctx context.Context, resolver Resolver, target Target) (Resol
 	if resolver == nil {
 		return ResolvedTarget{}, errors.New("resolver is nil")
 	}
-	chain, err := resolver.LookupCNAMEChain(ctx, target.Host)
+	snapshot, err := resolver.ResolveHost(ctx, target.Host)
 	if err != nil {
-		return ResolvedTarget{}, fmt.Errorf("resolve canonical chain: %w", err)
+		return ResolvedTarget{}, fmt.Errorf("resolve target snapshot: %w", err)
 	}
-	validatedChain, err := validateCanonicalChain(target, chain)
+	validatedChain, err := validateCanonicalChain(target, snapshot.CanonicalChain)
 	if err != nil {
 		return ResolvedTarget{}, err
 	}
 	canonical := validatedChain[len(validatedChain)-1]
-	addresses, err := resolver.LookupNetIP(ctx, "ip", target.Host)
-	if err != nil {
-		return ResolvedTarget{}, fmt.Errorf("resolve target: %w", err)
-	}
+	addresses := snapshot.Addresses
 	if len(addresses) == 0 {
 		return ResolvedTarget{}, errors.New("resolver returned no addresses")
 	}

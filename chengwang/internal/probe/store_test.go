@@ -221,6 +221,38 @@ func TestReaderRejectsUnknownDigestFutureExpiredAndDuplicate(t *testing.T) {
 	}
 }
 
+func TestReadStoreHistoricalModeKeepsExpiredEvidence(t *testing.T) {
+	directory := t.TempDir()
+	catalog := testSpoolCatalog(t)
+	base := time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC)
+	store, err := OpenStore(directory, catalog, StoreLimits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.now = func() time.Time { return base.Add(time.Second) }
+	if err := store.Append(validTestResult(base, "historical-run")); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	now := base.Add(601 * time.Second)
+	live, err := ReadStore(directory, ReadOptions{Catalog: catalog, Now: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.Healthy || live.Issue != "expired_result" {
+		t.Fatalf("live read did not reject expired evidence: %+v", live)
+	}
+	history, err := ReadStore(directory, ReadOptions{Catalog: catalog, Now: now, IncludeExpired: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !history.Healthy || len(history.Results) != 1 || history.Results[0].RunID != "historical-run" {
+		t.Fatalf("historical read lost valid expired evidence: %+v", history)
+	}
+}
+
 func TestSpoolRejectsIdentityStateAndCatalogMembershipForgery(t *testing.T) {
 	directory := t.TempDir()
 	catalog := testSpoolCatalog(t)

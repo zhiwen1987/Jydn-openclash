@@ -1,0 +1,32 @@
+{
+  "schema": "chengwang.probe-catalog/v1",
+  "revision": "example-quarantine-v1",
+  "agent": {
+    "id": "candidate-guard",
+    "independence": "P1",
+    "advisoryOnly": true
+  },
+  "paths": [
+    {
+      "id": "quarantine-direct",
+      "kind": "direct"
+    }
+  ],
+  "probes": [
+    {
+      "id": "owned-canary-placeholder",
+      "pathId": "quarantine-direct",
+      "kind": "https",
+      "host": "probe.invalid",
+      "port": 443,
+      "requestPath": "/healthz",
+      "method": "GET",
+      "expectedStatus": [200],
+      "requiredMarker": "replace-with-owned-canary-contract",
+      "intervalSeconds": 300,
+      "timeoutSeconds": 5,
+      "ttlSeconds": 600,
+      "maxBodyBytes": 4096
+    }
+  ]
+}

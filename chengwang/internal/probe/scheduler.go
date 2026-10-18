@@ -17,6 +17,10 @@ const (
 	DefaultProbeConcurrency  = 2
 	DefaultProbeQueueSize    = 256
 	DefaultProbeStartsMinute = 20
+	// A durable start write that takes longer than this is treated as stale and
+	// the network task is not allowed to begin. The ledger retains a matching
+	// padding window so restart recovery cannot age the budget out early.
+	MaximumStartPersistenceDelay = 10 * time.Second
 )
 
 // Task is deliberately a closed-over, pre-validated catalog operation. The
@@ -28,6 +32,10 @@ type Task struct {
 
 type ResultSink func(context.Context, ProbeResult) error
 
+// DurableStartRecorder commits a start before Task.Run can perform network
+// I/O. startID is copied into ProbeResult.EvidenceRef for settlement by Sink.
+type DurableStartRecorder func(context.Context, string, string, time.Time) error
+
 type SchedulerOptions struct {
 	GlobalConcurrency  int
 	QueueSize          int
@@ -37,6 +45,8 @@ type SchedulerOptions struct {
 	InitialStartTimes  []time.Time
 	Now                func() time.Time
 	Sink               ResultSink
+	RecordStart        DurableStartRecorder
+	NewStartID         func() (string, error)
 }
 
 type SchedulerStatus struct {
@@ -68,6 +78,7 @@ type scheduledTask struct {
 // routing nor fabricates a failed ProbeResult when shutdown cancels work.
 type Scheduler struct {
 	mu          sync.Mutex
+	startMu     sync.Mutex
 	tasks       map[string]*scheduledTask
 	orderedIDs  []string
 	hostBusy    map[string]bool
@@ -76,12 +87,18 @@ type Scheduler struct {
 	maxStarts   int
 	now         func() time.Time
 	sink        ResultSink
+	recordStart DurableStartRecorder
+	newStartID  func() (string, error)
 	startTimes  []time.Time
-	lastClock   time.Time
-	frozen      bool
-	startedRun  bool
-	status      SchedulerStatus
-	wakeEvery   time.Duration
+	// startReservations counts queued/running tasks that have not yet crossed
+	// the pre-network durable-start boundary. It prevents a deep queue from
+	// bypassing the starts-per-minute budget when an old minute rolls over.
+	startReservations int
+	lastClock         time.Time
+	frozen            bool
+	startedRun        bool
+	status            SchedulerStatus
+	wakeEvery         time.Duration
 }
 
 func NewScheduler(tasks []Task, options SchedulerOptions) (*Scheduler, error) {
@@ -112,6 +129,12 @@ func NewScheduler(tasks []Task, options SchedulerOptions) (*Scheduler, error) {
 	if options.Now == nil {
 		options.Now = time.Now
 	}
+	if options.RecordStart != nil && options.NewStartID == nil {
+		options.NewStartID = randomRunID
+	}
+	if options.RecordStart == nil && options.NewStartID != nil {
+		return nil, errors.New("start ID generator requires a durable start recorder")
+	}
 	anchor := options.Anchor
 	if anchor.IsZero() {
 		anchor = options.Now()
@@ -119,7 +142,8 @@ func NewScheduler(tasks []Task, options SchedulerOptions) (*Scheduler, error) {
 	s := &Scheduler{
 		tasks: make(map[string]*scheduledTask, len(tasks)), hostBusy: make(map[string]bool), queue: make(chan string, options.QueueSize),
 		concurrency: options.GlobalConcurrency, maxStarts: options.MaxStartsPerMinute,
-		now: options.Now, sink: options.Sink, lastClock: anchor, wakeEvery: time.Second,
+		now: options.Now, sink: options.Sink, recordStart: options.RecordStart, newStartID: options.NewStartID,
+		lastClock: anchor, wakeEvery: time.Second,
 		status: SchedulerStatus{ClockHealthy: true, StorageHealthy: true, LastClock: anchor},
 	}
 	for _, startedAt := range options.InitialStartTimes {
@@ -170,7 +194,7 @@ func RestoreSchedulerState(catalog Catalog, results []ProbeResult, now time.Time
 		return notBefore, starts, errors.New("scheduler restore time is required")
 	}
 	for _, result := range results {
-		if validateSpoolResult(result, binding, now, defaultFutureSkew, false) != "" || result.CompletedAt.After(now) {
+		if validateSpoolResult(result, binding, now, defaultFutureSkew, false, false) != "" || result.CompletedAt.After(now) {
 			continue
 		}
 		if result.AttemptedAt.After(now.Add(-time.Minute)) {
@@ -222,9 +246,15 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			s.mu.Unlock()
 			return nil
 		case <-ticker.C:
-			s.DispatchDue(s.now())
+			s.dispatchCurrent()
 		}
 	}
+}
+
+func (s *Scheduler) dispatchCurrent() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.dispatchDueLocked(s.now())
 }
 
 // DispatchDue is exported to permit deterministic local acceptance tests. It
@@ -232,6 +262,10 @@ func (s *Scheduler) Run(ctx context.Context) error {
 func (s *Scheduler) DispatchDue(now time.Time) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.dispatchDueLocked(now)
+}
+
+func (s *Scheduler) dispatchDueLocked(now time.Time) {
 	if s.frozen {
 		return
 	}
@@ -243,14 +277,7 @@ func (s *Scheduler) DispatchDue(now time.Time) {
 	}
 	s.lastClock = now
 	s.status.LastClock = now
-	cutoff := now.Add(-time.Minute)
-	first := 0
-	for first < len(s.startTimes) && s.startTimes[first].Before(cutoff) {
-		first++
-	}
-	if first > 0 {
-		s.startTimes = append([]time.Time(nil), s.startTimes[first:]...)
-	}
+	s.pruneStartTimesLocked(now)
 	for _, id := range s.orderedIDs {
 		state := s.tasks[id]
 		if now.Before(state.nextDue) || state.queued || state.running {
@@ -266,7 +293,7 @@ func (s *Scheduler) DispatchDue(now time.Time) {
 		state.cycle++
 		interval := time.Duration(state.task.Target.IntervalSeconds) * time.Second
 		state.nextDue = now.Add(deterministicInterval(id, state.cycle, interval))
-		if len(s.startTimes) >= s.maxStarts {
+		if len(s.startTimes)+s.startReservations >= s.maxStarts {
 			s.status.BudgetSkipped++
 			continue
 		}
@@ -274,7 +301,7 @@ func (s *Scheduler) DispatchDue(now time.Time) {
 		case s.queue <- id:
 			state.queued = true
 			s.hostBusy[state.task.Target.Host] = true
-			s.startTimes = append(s.startTimes, now)
+			s.startReservations++
 			s.status.Queued = len(s.queue)
 		default:
 			s.status.QueueSkipped++
@@ -296,6 +323,7 @@ func (s *Scheduler) worker(root context.Context) {
 			}
 			if root.Err() != nil || s.frozen || state.running {
 				state.queued = false
+				s.releaseStartReservationLocked()
 				delete(s.hostBusy, state.task.Target.Host)
 				s.status.Queued = len(s.queue)
 				s.status.Canceled++
@@ -306,13 +334,98 @@ func (s *Scheduler) worker(root context.Context) {
 			state.running = true
 			s.status.Queued = len(s.queue)
 			s.status.Active++
-			s.status.Started++
 			task := state.task
 			s.mu.Unlock()
+
+			// Serialize the pre-network start boundary. The clock sample is
+			// taken while holding s.mu so a concurrent completion cannot make a
+			// legitimate sample look like a rollback merely through lock order.
+			s.startMu.Lock()
+			s.mu.Lock()
+			startedAt := s.now()
+			if startedAt.Before(s.lastClock) {
+				s.frozen = true
+				s.status.ClockHealthy = false
+				s.status.ClockIssue = "clock_rollback"
+				state.running = false
+				s.releaseStartReservationLocked()
+				delete(s.hostBusy, state.task.Target.Host)
+				s.status.Active--
+				s.status.Canceled++
+				s.mu.Unlock()
+				s.startMu.Unlock()
+				continue
+			}
+			s.lastClock = startedAt
+			s.status.LastClock = startedAt
+			s.mu.Unlock()
+
+			startID := ""
+			if s.recordStart != nil {
+				generated, err := s.newStartID()
+				if err != nil || !spoolIdentityPattern.MatchString(generated) {
+					s.startMu.Unlock()
+					s.failStart(state, "start_id_unavailable")
+					continue
+				}
+				if err := s.recordStart(root, generated, task.Target.ID, startedAt); err != nil {
+					s.startMu.Unlock()
+					if errors.Is(err, ErrStartLedgerClock) {
+						s.failStartClock(state, "clock_rollback")
+					} else {
+						s.failStart(state, "start_persistence_failed")
+					}
+					continue
+				}
+				startID = generated
+			}
+			s.mu.Lock()
+			networkAt := s.now()
+			if networkAt.Before(s.lastClock) {
+				s.frozen = true
+				s.status.ClockHealthy = false
+				s.status.ClockIssue = "clock_rollback"
+			}
+			if networkAt.Sub(startedAt) > MaximumStartPersistenceDelay {
+				s.frozen = true
+				s.status.StorageHealthy = false
+				s.status.StorageIssue = "start_persistence_stale"
+			}
+			if root.Err() != nil || s.frozen {
+				state.running = false
+				s.releaseStartReservationLocked()
+				delete(s.hostBusy, state.task.Target.Host)
+				s.status.Active--
+				s.status.Canceled++
+				s.mu.Unlock()
+				s.startMu.Unlock()
+				continue
+			}
+			s.pruneStartTimesLocked(networkAt)
+			s.releaseStartReservationLocked()
+			if len(s.startTimes) >= s.maxStarts {
+				state.running = false
+				delete(s.hostBusy, state.task.Target.Host)
+				s.status.Active--
+				s.status.Canceled++
+				s.status.BudgetSkipped++
+				s.mu.Unlock()
+				s.startMu.Unlock()
+				continue
+			}
+			s.startTimes = append(s.startTimes, networkAt)
+			s.lastClock = networkAt
+			s.status.LastClock = networkAt
+			s.status.Started++
+			s.mu.Unlock()
+			s.startMu.Unlock()
 
 			runCtx, cancel := context.WithTimeout(root, time.Duration(task.Target.TimeoutSeconds)*time.Second)
 			result := task.Run(runCtx)
 			cancel()
+			if startID != "" {
+				result.EvidenceRef = startID
+			}
 
 			s.mu.Lock()
 			state.running = false
@@ -346,12 +459,61 @@ func (s *Scheduler) worker(root context.Context) {
 					s.status.SinkFailures++
 					s.status.StorageHealthy = false
 					s.status.StorageIssue = "result_persistence_failed"
+					if errors.Is(err, ErrStartLedgerClock) {
+						s.status.ClockHealthy = false
+						s.status.ClockIssue = "clock_rollback"
+					}
 					s.frozen = true
 					s.mu.Unlock()
 				}
 			}
 		}
 	}
+}
+
+func (s *Scheduler) pruneStartTimesLocked(now time.Time) {
+	cutoff := now.Add(-time.Minute)
+	first := 0
+	for first < len(s.startTimes) && s.startTimes[first].Before(cutoff) {
+		first++
+	}
+	if first > 0 {
+		s.startTimes = append([]time.Time(nil), s.startTimes[first:]...)
+	}
+}
+
+func (s *Scheduler) releaseStartReservationLocked() {
+	if s.startReservations > 0 {
+		s.startReservations--
+	}
+}
+
+func (s *Scheduler) failStart(state *scheduledTask, issue string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	state.running = false
+	s.releaseStartReservationLocked()
+	delete(s.hostBusy, state.task.Target.Host)
+	s.status.Active--
+	s.status.Canceled++
+	s.status.StorageHealthy = false
+	s.status.StorageIssue = issue
+	s.frozen = true
+}
+
+func (s *Scheduler) failStartClock(state *scheduledTask, issue string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	state.running = false
+	s.releaseStartReservationLocked()
+	delete(s.hostBusy, state.task.Target.Host)
+	s.status.Active--
+	s.status.Canceled++
+	s.status.ClockHealthy = false
+	s.status.ClockIssue = issue
+	s.status.StorageHealthy = false
+	s.status.StorageIssue = "start_persistence_failed"
+	s.frozen = true
 }
 
 func (s *Scheduler) Status() SchedulerStatus {

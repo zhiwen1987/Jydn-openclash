@@ -53,7 +53,7 @@ func TestRunnerUsesPinnedIPAndStrictHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reason := validateSpoolResult(result, binding, result.CompletedAt, defaultFutureSkew, true); reason != "" {
+	if reason := validateSpoolResult(result, binding, result.CompletedAt, defaultFutureSkew, true, true); reason != "" {
 		t.Fatalf("runner produced a result rejected by the spool contract: %s", reason)
 	}
 	if requests.Load() != 1 || wrongProtocol.Load() {
@@ -390,7 +390,7 @@ func assertRunnerResultAccepted(t *testing.T, catalog Catalog, result ProbeResul
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reason := validateSpoolResult(result, binding, result.CompletedAt, defaultFutureSkew, true); reason != "" {
+	if reason := validateSpoolResult(result, binding, result.CompletedAt, defaultFutureSkew, true, true); reason != "" {
 		t.Fatalf("runner produced a result rejected by the spool contract: %s; result=%+v", reason, result)
 	}
 }
@@ -401,24 +401,13 @@ type runnerTestResolver struct {
 	block     bool
 }
 
-func (r runnerTestResolver) LookupCNAMEChain(ctx context.Context, host string) ([]string, error) {
+func (r runnerTestResolver) ResolveHost(ctx context.Context, host string) (DNSResolution, error) {
 	if r.block {
 		<-ctx.Done()
-		return nil, ctx.Err()
+		return DNSResolution{}, ctx.Err()
 	}
 	if r.lookupErr != nil {
-		return nil, r.lookupErr
+		return DNSResolution{}, r.lookupErr
 	}
-	return []string{host}, nil
-}
-
-func (r runnerTestResolver) LookupNetIP(ctx context.Context, _, _ string) ([]netip.Addr, error) {
-	if r.block {
-		<-ctx.Done()
-		return nil, ctx.Err()
-	}
-	if r.lookupErr != nil {
-		return nil, r.lookupErr
-	}
-	return append([]netip.Addr(nil), r.addresses...), nil
+	return DNSResolution{CanonicalChain: []string{host}, Addresses: append([]netip.Addr(nil), r.addresses...)}, nil
 }

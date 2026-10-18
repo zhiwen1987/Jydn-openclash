@@ -1,0 +1,10 @@
+**
+!go.mod
+!internal/
+!internal/probe/
+!internal/probe/**
+!deploy/
+!deploy/m2b-candidate/
+!deploy/m2b-candidate/cmd/
+!deploy/m2b-candidate/cmd/candidate-guard/
+!deploy/m2b-candidate/cmd/candidate-guard/**

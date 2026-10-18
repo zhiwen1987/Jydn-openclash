@@ -80,7 +80,7 @@ func OpenStore(directory string, catalog Catalog, limits StoreLimits) (*Store, e
 	}()
 	segmentDir := filepath.Join(absDirectory, spoolSegmentsDirectory)
 	now := time.Now()
-	scan, err := scanSpoolSegments(segmentDir, binding, now, defaultFutureSkew, false, maxEntries, maxBytes)
+	scan, err := scanSpoolSegments(segmentDir, binding, now, defaultFutureSkew, false, false, maxEntries, maxBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (s *Store) Append(result ProbeResult) error {
 	if !s.writable {
 		return ErrSpoolReadOnly
 	}
-	if reason := validateSpoolResult(result, s.binding, s.now(), defaultFutureSkew, true); reason != "" {
+	if reason := validateSpoolResult(result, s.binding, s.now(), defaultFutureSkew, true, true); reason != "" {
 		return fmt.Errorf("invalid probe result: %s", reason)
 	}
 	if _, exists := s.runIDs[result.RunID]; exists {

@@ -13,20 +13,15 @@ type fakeResolver struct {
 	addresses []netip.Addr
 	err       error
 	chain     []string
-	cnameErr  error
-	network   string
 	host      string
 }
 
-func (r *fakeResolver) LookupCNAMEChain(_ context.Context, host string) ([]string, error) {
+func (r *fakeResolver) ResolveHost(_ context.Context, host string) (DNSResolution, error) {
 	r.host = host
-	return append([]string(nil), r.chain...), r.cnameErr
-}
-
-func (r *fakeResolver) LookupNetIP(_ context.Context, network, host string) ([]netip.Addr, error) {
-	r.network = network
-	r.host = host
-	return append([]netip.Addr(nil), r.addresses...), r.err
+	return DNSResolution{
+		CanonicalChain: append([]string(nil), r.chain...),
+		Addresses:      append([]netip.Addr(nil), r.addresses...),
+	}, r.err
 }
 
 func TestValidatePublicIP(t *testing.T) {
@@ -64,8 +59,8 @@ func TestResolveAndPinValidatesAllAnswers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveAndPin() error = %v", err)
 	}
-	if resolver.network != "ip" || resolver.host != target.Host {
-		t.Fatalf("unexpected lookup %q %q", resolver.network, resolver.host)
+	if resolver.host != target.Host {
+		t.Fatalf("unexpected lookup %q", resolver.host)
 	}
 	if resolved.IP != netip.MustParseAddr("1.1.1.1") || resolved.DialAddress != "1.1.1.1:443" {
 		t.Fatalf("target was not deterministically pinned: %+v", resolved)
