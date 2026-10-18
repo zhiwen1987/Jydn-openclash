@@ -170,7 +170,7 @@ func TestLinuxAdvisoryCollectorRejectsUnsafeConfigObjects(t *testing.T) {
 			}
 		},
 		"config-special-mode": func(t *testing.T, root string) {
-			if err := os.Chmod(filepath.Join(root, "config"), 0o1750); err != nil {
+			if err := os.Chmod(filepath.Join(root, "config"), os.ModeSticky|0o750); err != nil {
 				t.Fatal(err)
 			}
 		},
@@ -210,7 +210,7 @@ func TestLinuxAdvisoryCollectorRejectsUnsafeConfigObjects(t *testing.T) {
 			}
 		},
 		"special-mode": func(t *testing.T, root string) {
-			if err := os.Chmod(filepath.Join(root, "config", "catalog.json"), 0o4640); err != nil {
+			if err := os.Chmod(filepath.Join(root, "config", "catalog.json"), os.ModeSetuid|0o640); err != nil {
 				t.Fatal(err)
 			}
 		},
@@ -233,7 +233,7 @@ func TestLinuxAdvisoryCollectorRejectsUnsafeConfigObjects(t *testing.T) {
 						t.Fatal(err)
 					}
 				case "special-mode":
-					if err := os.Chmod(path, os.FileMode(spec.mode|0o4000)); err != nil {
+					if err := os.Chmod(path, os.ModeSetuid|os.FileMode(spec.mode)); err != nil {
 						t.Fatal(err)
 					}
 				case "wrong-owner":
