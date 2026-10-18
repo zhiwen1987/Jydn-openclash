@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+data
+web/node_modules
+web/dist
+web/*.tsbuildinfo
+docs/design
+*.log

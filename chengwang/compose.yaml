@@ -1,0 +1,26 @@
+services:
+  chengwang:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chengwang:local
+    container_name: chengwang
+    restart: unless-stopped
+    stop_grace_period: 20s
+    network_mode: host
+    environment:
+      CHENGWANG_ADDR: 0.0.0.0:7811
+      CHENGWANG_DATA_DIR: /app/data
+      CHENGWANG_WEB_DIR: /app/web
+      CHENGWANG_MODE: shadow
+      CHENGWANG_ALLOW_PUBLISH: "false"
+      CHENGWANG_OPERATION_WRITES_ENABLED: "false"
+      CHENGWANG_MIHOMO_URL: http://127.0.0.1:9090
+      CHENGWANG_MIHOMO_TOKEN: ${CHENGWANG_MIHOMO_TOKEN:?set in .env}
+    volumes:
+      - ./data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true

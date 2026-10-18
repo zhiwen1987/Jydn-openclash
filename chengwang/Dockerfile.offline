@@ -1,0 +1,8 @@
+ARG BASE_IMAGE=chengwang:local
+FROM ${BASE_IMAGE}
+
+USER root
+COPY --chown=chengwang:chengwang release/chengwang /app/chengwang
+COPY --chown=chengwang:chengwang release/web/ /app/web/
+RUN chmod 0755 /app/chengwang
+USER chengwang

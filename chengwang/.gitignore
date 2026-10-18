@@ -1,0 +1,13 @@
+data/
+.env
+web/node_modules/
+web/dist/
+release/
+*.log
+*.tsbuildinfo
+web/vite.config.js
+web/vite.config.d.ts
+authz
+operation-cover
+candidate-*/
+chengwang-*.tar.gz
