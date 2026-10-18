@@ -90,3 +90,24 @@ func TestRuntimeProviderFailsClosedWhenClockMovesDuringRead(t *testing.T) {
 		t.Fatalf("clock-invalid result was cached: snapshot=%t success=%s inflight=%v", provider.hasSnapshot, provider.lastSuccess, provider.inflight)
 	}
 }
+
+func TestRuntimeProviderSamplesClockUnderStateLock(t *testing.T) {
+	reader := &scriptedRuntimeReader{responses: []runtimeReaderResponse{{snapshot: mihomo.RuntimeSnapshot{}}}}
+	provider := newRuntimeProvider(reader)
+	var samples []bool
+	provider.now = func() time.Time {
+		locked := !provider.mu.TryLock()
+		if !locked {
+			provider.mu.Unlock()
+		}
+		samples = append(samples, locked)
+		return time.Unix(100+int64(len(samples)), 0).UTC()
+	}
+
+	if _, err := provider.observe(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	if len(samples) != 2 || !samples[0] || !samples[1] {
+		t.Fatalf("clock samples held provider lock = %v, want [true true]", samples)
+	}
+}

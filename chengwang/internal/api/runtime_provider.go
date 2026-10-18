@@ -56,8 +56,11 @@ func newRuntimeProvider(reader MihomoReader) *runtimeProvider {
 
 func (p *runtimeProvider) observe(ctx context.Context, requireFresh bool) (runtimeObservation, error) {
 	for {
-		now := p.now().UTC()
 		p.mu.Lock()
+		// Sample the admission clock while holding the same mutex that protects
+		// lastAttempt and lastSuccess. Sampling before Lock lets an older sample
+		// wait behind a newer request and then look like a wall-clock rollback.
+		now := p.now().UTC()
 		if (p.hasSnapshot && now.Before(p.lastSuccess)) || (!p.lastAttempt.IsZero() && now.Before(p.lastAttempt)) {
 			p.mu.Unlock()
 			return runtimeObservation{}, errRuntimeClock
@@ -106,8 +109,8 @@ func (p *runtimeProvider) observe(ctx context.Context, requireFresh bool) (runti
 		p.mu.Unlock()
 
 		snapshot, err := p.reader.ReadRuntime(ctx)
-		completedAt := p.now().UTC()
 		p.mu.Lock()
+		completedAt := p.now().UTC()
 		if completedAt.Before(p.lastAttempt) || (p.hasSnapshot && completedAt.Before(p.lastSuccess)) {
 			p.inflight = nil
 			close(done)
