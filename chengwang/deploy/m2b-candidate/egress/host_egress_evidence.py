@@ -322,8 +322,10 @@ def _run_bounded_process(command: list[str], executable_fd: int, timeout_seconds
             if remaining <= 0:
                 raise ContractError(f"read-only command timed out: {command[0]}")
             events = selector.select(remaining)
-            if not events and process.poll() is not None:
-                break
+            # A child exit does not imply capture completion: a descendant can
+            # still own either pipe.  Only EOF on both registered streams may
+            # end this loop; otherwise the deadline triggers fail-closed group
+            # cleanup in the finally block.
             for key, _ in events:
                 chunk = os.read(key.fileobj.fileno(), 65536)
                 if not chunk:

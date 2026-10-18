@@ -284,7 +284,7 @@ class ValidationTests(unittest.TestCase):
                 link.symlink_to(target)
             except (OSError, NotImplementedError):
                 self.skipTest("symlink creation is unavailable")
-            with self.assertRaisesRegex(subject.ContractError, "non-symlink"):
+            with self.assertRaisesRegex(subject.ContractError, "input path contains a symbolic link"):
                 subject.load_immutable_json(link)
 
     def test_symlink_directory_component_rejected_when_supported(self):

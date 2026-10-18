@@ -63,7 +63,7 @@ jobs:
           PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
         run: |
           set -euo pipefail
-          /usr/bin/docker run --rm --pull never --platform linux/amd64 \
+          /usr/bin/docker run --rm --init --pull never --platform linux/amd64 \
             --network none --read-only --user 0:0 \
             --cap-drop ALL --security-opt no-new-privileges \
             --pids-limit 256 --memory 512m --cpus 2 \
@@ -71,7 +71,7 @@ jobs:
             --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
             --tmpfs /root:rw,noexec,nosuid,nodev,size=64m,mode=0700 \
             --workdir /workspace \
-            --env HOME=/root --env TMPDIR=/tmp \
+            --env HOME=/root --env TMPDIR=/root \
             --env PYTHONDONTWRITEBYTECODE=1 --env PYTHONHASHSEED=0 \
             --env LANG=C.UTF-8 --env TZ=UTC \
             --entrypoint /usr/local/bin/python3 \
