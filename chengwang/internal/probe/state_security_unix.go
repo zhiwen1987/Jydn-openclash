@@ -28,7 +28,8 @@ func validateStateSecurity(info os.FileInfo, directory bool) (uint64, uint64, ui
 	if directory {
 		want = 0o700
 	}
-	if info.Mode().Perm() != want {
+	actual := info.Mode() & (os.ModePerm | os.ModeSetuid | os.ModeSetgid | os.ModeSticky)
+	if actual != want {
 		return 0, 0, 0, errors.New("permissions must be owner-only")
 	}
 	if !directory && uint64(stat.Nlink) != 1 {
@@ -37,10 +38,19 @@ func validateStateSecurity(info os.FileInfo, directory bool) (uint64, uint64, ui
 	return uint64(stat.Uid), uint64(stat.Gid), uint64(stat.Nlink), nil
 }
 
-func acquireStateValidationLock(path string) (func() error, error) {
+func acquireStateValidationLock(path string) (*stateValidationLock, error) {
 	before, err := os.Lstat(path)
-	if err != nil || before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() || before.Size() != 0 {
-		return nil, errors.New("state writer lock must be an empty non-symlink regular file")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.New("required state writer lock is missing")
+		}
+		return nil, fmt.Errorf("inspect state writer lock: %w", err)
+	}
+	if before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() {
+		return nil, errors.New("state writer lock must be a regular file")
+	}
+	if before.Size() != 0 {
+		return nil, errors.New("state writer lock file must be empty")
 	}
 	if _, _, _, err := validateStateSecurity(before, false); err != nil {
 		return nil, fmt.Errorf("unsafe state writer lock: %w", err)
@@ -66,12 +76,27 @@ func acquireStateValidationLock(path string) (func() error, error) {
 		}
 		return nil, err
 	}
-	closed := false
-	return func() error {
-		if closed {
-			return nil
+	verify := func() error {
+		held, err := file.Stat()
+		if err != nil || !held.Mode().IsRegular() || held.Size() != 0 || !os.SameFile(after, held) {
+			return errors.Join(errors.New("held state writer lock identity or type changed"), err)
 		}
-		closed = true
-		return errors.Join(syscall.Flock(fd, syscall.LOCK_UN), file.Close())
+		if _, _, _, err := validateStateSecurity(held, false); err != nil {
+			return fmt.Errorf("unsafe held state writer lock: %w", err)
+		}
+		current, err := os.Lstat(path)
+		if err != nil || current.Mode()&os.ModeSymlink != 0 || !current.Mode().IsRegular() || current.Size() != 0 || !os.SameFile(after, current) {
+			return errors.Join(errors.New("state writer lock path was replaced"), err)
+		}
+		if _, _, _, err := validateStateSecurity(current, false); err != nil {
+			return fmt.Errorf("unsafe state writer lock path: %w", err)
+		}
+		return nil
+	}
+	return &stateValidationLock{
+		verify: verify,
+		release: func() error {
+			return errors.Join(syscall.Flock(fd, syscall.LOCK_UN), file.Close())
+		},
 	}, nil
 }

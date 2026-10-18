@@ -241,6 +241,8 @@ AI 辅助与受控学习
 
 恢复协调器目前新增的是 **blocked model**，不是可用能力：backup v3 解析结果已绑定原始输入字节 SHA-256；模型可演练本地 evidence publish/readback 后再写 journal、split-commit 重试、尾事件全等、持久化 store 重开及 `INPUT_VERIFIED` 边界。run `39169948542` / job `117800728560` 已在 Linux/ext4-XFS 真实执行该重开场景，并固定输出 `authorization=BLOCKED_TRUSTED_INPUTS_MISSING`。后续新增的 `internal/restorelease` 是单独的 Linux 安全原语：固定使用与 shell 相同的两个 flock 路径，按全局后候选顺序获取、反序释放，并将 trusted parent、base、候选目录、锁和 marker 的长持 FD 与设备/inode/mount ID 绑定；Windows 明确不支持，验证失败永久 poisoned。run `39172099478` / job `117807132828` 已在受限 Linux root 容器中通过 13 个场景、2 个 shell 互操作场景和零 skip；全仓离线门禁同时报告 `GO_JSON_GATE=PASS files=2 semanticRunEvents=2936 packages=29 skips=0`。该原语尚未接入协调器，重启后也不能证明旧租约连续。协调器仍刻意没有公开生产构造器，内部可信时间、独立当前配置/旧状态/拓扑采集、backup-v3 collector 和正式 Resume/Reconcile 均未实现；不能签署恢复协调器已上线或可授权 live 动作。
 
+状态采集链现补入一个仍被隔离的只读基础：`LockedStateSnapshot` 在 spool→ledger 两把 writer lock 均持有后生成报告，并在消费报告前复验锁路径和全树摘要；失败会 sticky-poison，失败路径与关闭路径均反序释放。测试覆盖跨进程 writer 互操作、第二把锁失败与语义失败无泄漏、exec 不继承、路径/根替换、非协作内容变更、复制别名和并发生命周期。它仍是 process-local、依赖协作式 flock 的 advisory 原语；`Verify` 与边界外动作之间仍存在 TOCTOU，不合作的 root writer 仍属于 TCB。它没有接入 coordinator，Windows 仅具 advisory 诊断等级，Linux 也尚未长持 trusted-parent dirfd 或绑定 mount ID；因此它不能代替独立 current config/image/Compose/topology/runtime observer，不能解除恢复授权阻断。
+
 宿主出口取证工具也只生成 BLOCKED 报告，因为 `internal` 网络、首次启动、可信 DoT/唯一测试向量、全局 nftables 效果和共享 Go 合同尚未闭合。启动门不会执行 `compose up`。同时保留 M1 尚未完成的企业 IdP、独立审计副本和可信时间缺口。每个里程碑都必须同时提交代码、自动测试、故障注入记录、部署证据、恢复演练和残余风险清单；只有这些证据共同成立，才能把状态从“设计”升级为“已实现”，再从“已实现”升级为“生产已验收”。
 
 ## 13. M1 源代码底座进展（2026-10-18）

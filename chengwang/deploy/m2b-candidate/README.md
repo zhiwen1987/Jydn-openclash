@@ -129,6 +129,8 @@ sh scripts/compare-baseline.sh \
 
 新增的 `internal/restorecoordinator` 只是一套失败关闭的实验模型，不是生产恢复入口。它没有公开可构造的生产实例，CI 仅演练真实 journal/evidence 文件系统存储、原字节证据重读、split-commit 重试、重开后幂等确认和 `INPUT_VERIFIED` 前硬停止，并固定报告 `authorization=BLOCKED_TRUSTED_INPUTS_MISSING`。`internal/restorelease` 已实现 Linux 进程内、FD 绑定的双层生命周期租约，并与现有 shell 使用相同的全局锁和候选实例锁；它会校验 root 所有权、权限、单链接、设备、inode、mount ID、文件系统、候选根 marker 及路径重绑定，并在首次验证失败后永久 poisoned。GitHub Actions run `39172099478` / job `117807132828` 已在受限 Linux root 容器中通过 13 个 syscall/path 场景和 2 个 shell `flock` 互操作场景。`internal/restoreclock` 进一步把 UTC wall、kernel boot ID 与 `CLOCK_BOOTTIME` 封装为不可由调用方填写的进程内观察，并拒绝 boot 变化、时钟回退、超时和双时钟漂移；它不提供外部时间锚，也不能证明跨重启连续。租约与时钟都还没有接入协调器。在独立 current-state/topology collector、backup-v3 collector 和显式 Resume/Reconcile 完成前，任何模块都不得消费其阶段作为 live 操作授权。
 
+`internal/probe.LockedStateSnapshot` 现可在只读校验期间持续持有 spool 与 ledger writer lock，并在每次读取报告前复验锁路径和完整状态树；失败会永久 poisoned，关闭按 ledger→spool 释放。其 `snapshotDigest` 算法只是为既有编码命名为 `chengwang.probe-state-tree/v1`，没有改变 report v1、backup v3 或它们的原始字节摘要。该句柄仍是 process-local、cooperative-lock、advisory 诊断原语：不合作的 root writer 不受 flock 约束，`Verify` 到边界外消费者动作之间仍有 TOCTOU；Windows 不具备 Linux 所有权/链接元数据保证，Linux 版本也尚未绑定 trusted-parent dirfd 与 mount ID。它没有接入 coordinator，不采集镜像、Compose、拓扑或 live 容器身份，不能解除 `BLOCKED_TRUSTED_INPUTS_MISSING`。
+
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 
 ```sh

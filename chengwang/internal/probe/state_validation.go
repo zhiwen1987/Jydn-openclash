@@ -9,10 +9,16 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
 const StateValidationSchemaV1 = "chengwang.probe-state-validation/v1"
+
+// StateTreeDigestSchemaV1 names the pre-existing SnapshotDigest algorithm. It
+// is not serialized in v1 reports; adding an on-wire identifier requires a new
+// state-validation and backup contract version.
+const StateTreeDigestSchemaV1 = "chengwang.probe-state-tree/v1"
 
 // StateValidationOptions bounds a read-only validation of one stopped spool
 // and start-ledger snapshot. Validation holds both existing writer locks via
@@ -75,96 +81,238 @@ type stateTreeEntry struct {
 	identity string
 }
 
+// LockedStateSnapshot is an opaque, process-local handle to one validated
+// spool and ledger generation. It holds both writer locks until Close. Verify
+// must be called immediately before consuming the report in a larger trusted
+// workflow; any verification failure permanently poisons the handle.
+type LockedStateSnapshot struct {
+	control *lockedStateSnapshotControl
+}
+
+type lockedStateSnapshotControl struct {
+	mu sync.Mutex
+
+	report          StateValidationReport
+	spoolAbs        string
+	ledgerAbs       string
+	spoolMaxEntries int
+	spoolMaxBytes   int64
+	ledgerMaxBytes  int64
+	initial         []stateTreeEntry
+	locks           []*stateValidationLock
+	closed          bool
+	poisoned        bool
+}
+
+// Report returns the immutable validation report captured while both writer
+// locks were held. The report is advisory until Verify succeeds in the same
+// trusted operation that consumes it.
+func (snapshot *LockedStateSnapshot) Report() (StateValidationReport, error) {
+	if snapshot == nil || snapshot.control == nil {
+		return StateValidationReport{}, errors.New("locked state snapshot is missing")
+	}
+	control := snapshot.control
+	control.mu.Lock()
+	defer control.mu.Unlock()
+	if control.closed {
+		return StateValidationReport{}, errors.New("locked state snapshot is closed")
+	}
+	if control.poisoned {
+		return StateValidationReport{}, errors.New("locked state snapshot is poisoned")
+	}
+	if err := control.verifyLocked(); err != nil {
+		return StateValidationReport{}, err
+	}
+	return control.report, nil
+}
+
+// Verify revalidates the held lock identities and the complete state-tree
+// digest. The first failure is sticky so a caller cannot retry through a
+// transient or adversarial replacement and later consume the handle.
+func (snapshot *LockedStateSnapshot) Verify() error {
+	if snapshot == nil || snapshot.control == nil {
+		return errors.New("locked state snapshot is missing")
+	}
+	control := snapshot.control
+	control.mu.Lock()
+	defer control.mu.Unlock()
+	if control.closed {
+		return errors.New("locked state snapshot is closed")
+	}
+	if control.poisoned {
+		return errors.New("locked state snapshot is poisoned")
+	}
+	return control.verifyLocked()
+}
+
+func (control *lockedStateSnapshotControl) verifyLocked() error {
+	poison := func(err error) error {
+		control.poisoned = true
+		return err
+	}
+	var verificationErr error
+	for _, lock := range control.locks {
+		if err := lock.Verify(); err != nil {
+			verificationErr = errors.Join(verificationErr, fmt.Errorf("verify locked state writer: %w", err))
+		}
+	}
+	current, _, _, err := inspectStateTrees(control.spoolAbs, control.ledgerAbs, control.spoolMaxEntries, control.spoolMaxBytes, control.ledgerMaxBytes)
+	if err != nil {
+		verificationErr = errors.Join(verificationErr, fmt.Errorf("reinspect locked state snapshot: %w", err))
+	}
+	if err == nil && (!sameStateTree(control.initial, current) || digestStateTree(current) != control.report.SnapshotDigest) {
+		verificationErr = errors.Join(verificationErr, errors.New("locked state snapshot changed after validation"))
+	}
+	if verificationErr != nil {
+		return poison(verificationErr)
+	}
+	return nil
+}
+
+// Close releases the ledger lock followed by the spool lock. It is
+// idempotent. Closing never makes a previously poisoned snapshot reusable.
+func (snapshot *LockedStateSnapshot) Close() error {
+	if snapshot == nil || snapshot.control == nil {
+		return nil
+	}
+	control := snapshot.control
+	control.mu.Lock()
+	defer control.mu.Unlock()
+	if control.closed {
+		return nil
+	}
+	control.closed = true
+	var releaseErr error
+	for index := len(control.locks) - 1; index >= 0; index-- {
+		releaseErr = errors.Join(releaseErr, control.locks[index].Close())
+	}
+	control.locks = nil
+	return releaseErr
+}
+
 // ValidateStateSnapshot strictly validates one spool and ledger generation.
 // The caller must stop every writer before taking the snapshot. A second tree
-// fingerprint detects changes made while validation is in progress.
+// fingerprint detects changes made while validation is in progress. This
+// compatibility wrapper releases the held locks before returning; a restore
+// coordinator must use AcquireLockedStateSnapshot and retain its handle.
 func ValidateStateSnapshot(spoolDirectory, ledgerDirectory string, options StateValidationOptions) (StateValidationReport, error) {
+	snapshot, err := AcquireLockedStateSnapshot(spoolDirectory, ledgerDirectory, options)
+	if err != nil {
+		return StateValidationReport{}, err
+	}
+	report, reportErr := snapshot.Report()
+	closeErr := snapshot.Close()
+	if reportErr != nil || closeErr != nil {
+		return StateValidationReport{}, errors.Join(reportErr, closeErr)
+	}
+	return report, nil
+}
+
+// AcquireLockedStateSnapshot validates one spool and ledger generation and
+// retains exclusive writer locks for the lifetime of the returned handle. It
+// is read-only: it never creates, rewrites, compacts, repairs, or deletes state.
+func AcquireLockedStateSnapshot(spoolDirectory, ledgerDirectory string, options StateValidationOptions) (*LockedStateSnapshot, error) {
 	binding, err := bindCatalog(options.Catalog)
 	if err != nil {
-		return StateValidationReport{}, fmt.Errorf("bind state catalog: %w", err)
+		return nil, fmt.Errorf("bind state catalog: %w", err)
 	}
 	if options.Now.IsZero() {
 		options.Now = time.Now().UTC()
 	}
 	if options.Now.UnixNano() < 0 {
-		return StateValidationReport{}, errors.New("state validation current time is invalid")
+		return nil, errors.New("state validation current time is invalid")
 	}
 	if options.MaxFutureSkew == 0 {
 		options.MaxFutureSkew = defaultFutureSkew
 	}
 	if options.MaxFutureSkew < 0 || options.MaxFutureSkew > 10*time.Minute {
-		return StateValidationReport{}, errors.New("state validation future skew must be between zero and ten minutes")
+		return nil, errors.New("state validation future skew must be between zero and ten minutes")
 	}
 	spoolMaxEntries, spoolMaxBytes, err := normalizeSpoolLimits(options.SpoolMaxEntries, options.SpoolMaxBytes)
 	if err != nil {
-		return StateValidationReport{}, err
+		return nil, err
 	}
 	ledgerMaxEntries, ledgerMaxBytes, err := normalizeStartLedgerLimits(options.LedgerMaxEntries, options.LedgerMaxBytes)
 	if err != nil {
-		return StateValidationReport{}, err
+		return nil, err
 	}
 	spoolAbs, ledgerAbs, ledgerWriterAbs, err := validateStateRoots(spoolDirectory, ledgerDirectory, options.ExpectedLedgerWriterDirectory)
 	if err != nil {
-		return StateValidationReport{}, err
+		return nil, err
+	}
+
+	var locks []*stateValidationLock
+	releaseLocks := func() error {
+		var releaseErr error
+		for index := len(locks) - 1; index >= 0; index-- {
+			releaseErr = errors.Join(releaseErr, locks[index].Close())
+		}
+		locks = nil
+		return releaseErr
+	}
+	fail := func(cause error) (*LockedStateSnapshot, error) {
+		return nil, errors.Join(cause, releaseLocks())
+	}
+	for _, lockPath := range []string{filepath.Join(spoolAbs, spoolLockFilename), filepath.Join(ledgerAbs, startLedgerLockFilename)} {
+		lock, err := acquireStateValidationLock(lockPath)
+		if err != nil {
+			return fail(fmt.Errorf("state writer must be stopped: %w", err))
+		}
+		locks = append(locks, lock)
+		if err := lock.Verify(); err != nil {
+			return fail(fmt.Errorf("verify acquired state writer lock: %w", err))
+		}
 	}
 
 	before, owner, group, err := inspectStateTrees(spoolAbs, ledgerAbs, spoolMaxEntries, spoolMaxBytes, ledgerMaxBytes)
 	if err != nil {
-		return StateValidationReport{}, err
+		return fail(err)
 	}
 	securityMetadataVerified := stateSecurityMetadataAvailable()
 	if options.EnforceExpectedOwner {
 		if !securityMetadataVerified {
-			return StateValidationReport{}, errors.New("state ownership metadata is unavailable on this platform")
+			return fail(errors.New("state ownership metadata is unavailable on this platform"))
 		}
 		if owner != options.ExpectedOwnerUID || group != options.ExpectedOwnerGID {
-			return StateValidationReport{}, fmt.Errorf("state owner is uid=%d gid=%d, want uid=%d gid=%d", owner, group, options.ExpectedOwnerUID, options.ExpectedOwnerGID)
+			return fail(fmt.Errorf("state owner is uid=%d gid=%d, want uid=%d gid=%d", owner, group, options.ExpectedOwnerUID, options.ExpectedOwnerGID))
 		}
-	}
-	var lockReleases []func() error
-	defer func() {
-		for index := len(lockReleases) - 1; index >= 0; index-- {
-			_ = lockReleases[index]()
-		}
-	}()
-	for _, lockPath := range []string{filepath.Join(spoolAbs, spoolLockFilename), filepath.Join(ledgerAbs, startLedgerLockFilename)} {
-		release, err := acquireStateValidationLock(lockPath)
-		if err != nil {
-			return StateValidationReport{}, fmt.Errorf("state writer must be stopped: %w", err)
-		}
-		lockReleases = append(lockReleases, release)
 	}
 
 	spoolScan, err := scanSpoolSegments(filepath.Join(spoolAbs, spoolSegmentsDirectory), binding, options.Now, options.MaxFutureSkew, true, false, spoolMaxEntries, spoolMaxBytes)
 	if err != nil {
-		return StateValidationReport{}, fmt.Errorf("validate probe spool: %w", err)
+		return fail(fmt.Errorf("validate probe spool: %w", err))
 	}
 	if len(spoolScan.issues) != 0 {
 		issue := spoolScan.issues[0]
-		return StateValidationReport{}, fmt.Errorf("invalid probe spool entry %q: %s", issue.File, issue.Reason)
+		return fail(fmt.Errorf("invalid probe spool entry %q: %s", issue.File, issue.Reason))
 	}
 	ledgerSnapshotDir := filepath.Join(ledgerAbs, startLedgerSnapshotsDir)
 	latest, ledgerFiles, _, err := readStartLedgerSnapshots(ledgerSnapshotDir, binding, digestStartLedgerDirectory(ledgerWriterAbs), ledgerMaxEntries, ledgerMaxBytes, options.Now)
 	if err != nil {
-		return StateValidationReport{}, fmt.Errorf("validate start ledger: %w", err)
+		return fail(fmt.Errorf("validate start ledger: %w", err))
 	}
 	if latest == nil {
-		return StateValidationReport{}, errors.New("start ledger contains no durable snapshot")
+		return fail(errors.New("start ledger contains no durable snapshot"))
 	}
 	if err := validateStartLedgerEvolution(ledgerSnapshotDir, binding, digestStartLedgerDirectory(ledgerWriterAbs), ledgerMaxEntries, ledgerMaxBytes, options.Now); err != nil {
-		return StateValidationReport{}, err
+		return fail(err)
 	}
 	missingRetainedEvidence, err := validateLatestStateRelationships(*latest, spoolScan.valid)
 	if err != nil {
-		return StateValidationReport{}, err
+		return fail(err)
 	}
 
 	after, _, _, err := inspectStateTrees(spoolAbs, ledgerAbs, spoolMaxEntries, spoolMaxBytes, ledgerMaxBytes)
 	if err != nil {
-		return StateValidationReport{}, err
+		return fail(err)
 	}
 	if !sameStateTree(before, after) {
-		return StateValidationReport{}, errors.New("probe state changed while read-only validation was running")
+		return fail(errors.New("probe state changed while read-only validation was running"))
+	}
+	for _, lock := range locks {
+		if err := lock.Verify(); err != nil {
+			return fail(fmt.Errorf("verify state writer lock after validation: %w", err))
+		}
 	}
 
 	settled := 0
@@ -176,7 +324,7 @@ func ValidateStateSnapshot(spoolDirectory, ledgerDirectory string, options State
 			settled++
 		}
 	}
-	return StateValidationReport{
+	report := StateValidationReport{
 		Schema: StateValidationSchemaV1, CatalogDigest: binding.digest,
 		SnapshotDigest:         digestStateTree(before),
 		ReadPathDigest:         digestStateReadPaths(spoolAbs, ledgerAbs),
@@ -192,7 +340,13 @@ func ValidateStateSnapshot(spoolDirectory, ledgerDirectory string, options State
 		ExpectedOwnerUID: options.ExpectedOwnerUID, ExpectedOwnerGID: options.ExpectedOwnerGID,
 		MissingRetainedEvidence: missingRetainedEvidence,
 		RelationshipComplete:    missingRetainedEvidence == 0,
-	}, nil
+	}
+	control := &lockedStateSnapshotControl{
+		report: report, spoolAbs: spoolAbs, ledgerAbs: ledgerAbs,
+		spoolMaxEntries: spoolMaxEntries, spoolMaxBytes: spoolMaxBytes, ledgerMaxBytes: ledgerMaxBytes,
+		initial: append([]stateTreeEntry(nil), after...), locks: locks,
+	}
+	return &LockedStateSnapshot{control: control}, nil
 }
 
 // validateStartLedgerEvolution checks the retained snapshot window only. Old

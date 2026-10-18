@@ -23,10 +23,19 @@ func validateStateSecurity(info os.FileInfo, _ bool) (uint64, uint64, uint64, er
 	return 0, 0, 1, nil
 }
 
-func acquireStateValidationLock(path string) (func() error, error) {
+func acquireStateValidationLock(path string) (*stateValidationLock, error) {
 	before, err := os.Lstat(path)
-	if err != nil || before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() || before.Size() != 0 {
-		return nil, errors.New("state writer lock must be an empty non-symlink regular file")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.New("required state writer lock is missing")
+		}
+		return nil, fmt.Errorf("inspect state writer lock: %w", err)
+	}
+	if before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() {
+		return nil, errors.New("state writer lock must be a regular file")
+	}
+	if before.Size() != 0 {
+		return nil, errors.New("state writer lock file must be empty")
 	}
 	pathUTF16, err := syscall.UTF16PtrFromString(path)
 	if err != nil {
@@ -53,17 +62,26 @@ func acquireStateValidationLock(path string) (func() error, error) {
 		}
 		return nil, fmt.Errorf("test state writer lock: %w", callErr)
 	}
-	closed := false
-	return func() error {
-		if closed {
-			return nil
+	verify := func() error {
+		held, err := file.Stat()
+		if err != nil || !held.Mode().IsRegular() || held.Size() != 0 || !os.SameFile(after, held) {
+			return errors.Join(errors.New("held state writer lock identity or type changed"), err)
 		}
-		closed = true
-		result, _, callErr := spoolProcUnlockFileEx.Call(file.Fd(), 0, 1, 0, uintptr(unsafe.Pointer(&overlapped)))
-		var unlockErr error
-		if result == 0 {
-			unlockErr = fmt.Errorf("release state writer lock test: %w", callErr)
+		current, err := os.Lstat(path)
+		if err != nil || current.Mode()&os.ModeSymlink != 0 || !current.Mode().IsRegular() || current.Size() != 0 || !os.SameFile(after, current) {
+			return errors.Join(errors.New("state writer lock path was replaced"), err)
 		}
-		return errors.Join(unlockErr, file.Close())
+		return nil
+	}
+	return &stateValidationLock{
+		verify: verify,
+		release: func() error {
+			result, _, callErr := spoolProcUnlockFileEx.Call(file.Fd(), 0, 1, 0, uintptr(unsafe.Pointer(&overlapped)))
+			var unlockErr error
+			if result == 0 {
+				unlockErr = fmt.Errorf("release state writer lock test: %w", callErr)
+			}
+			return errors.Join(unlockErr, file.Close())
+		},
 	}, nil
 }
