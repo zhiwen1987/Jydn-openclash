@@ -375,6 +375,92 @@ jobs:
           print("RESTORE_COORDINATOR_MODEL_GATE=PASS pre_live_scenarios=1 skips=0 boundary=INPUT_VERIFIED authorization=BLOCKED_TRUSTED_INPUTS_MISSING")
           PY
 
+      - name: Exercise Linux lifecycle lease syscall and shell interoperability gate
+        shell: bash
+        env:
+          PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/chengwang-restorelease-artifacts"
+          root_fixture="$RUNNER_TEMP/chengwang-restorelease-rootfs"
+          production_var_lib="$RUNNER_TEMP/chengwang-restorelease-var-lib"
+          container_name="chengwang-restorelease-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            /usr/bin/docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          /usr/bin/install -d -m 0755 "$artifact_dir"
+          /usr/bin/sudo --non-interactive /usr/bin/install -d -o 0 -g 0 -m 0700 "$root_fixture"
+          /usr/bin/sudo --non-interactive /usr/bin/install -d -o 0 -g 0 -m 0700 \
+            "$production_var_lib" "$production_var_lib/chengwang-m2b-candidate"
+
+          cd chengwang
+          CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -c \
+              -tags restorelease_root -o "$artifact_dir/restorelease-root.test" ./internal/restorelease
+          /usr/bin/chmod 0555 "$artifact_dir/restorelease-root.test"
+
+          /usr/bin/timeout --signal=KILL 5m \
+            /usr/bin/docker run --rm --init --pull never --platform linux/amd64 \
+              --name "$container_name" \
+              --network none --read-only --user 0:0 \
+              --cap-drop ALL --security-opt no-new-privileges \
+              --pids-limit 128 --memory 512m --cpus 2 \
+              --mount "type=bind,src=$artifact_dir,dst=/tests,readonly" \
+              --mount "type=bind,src=$root_fixture,dst=/root/restorelease" \
+              --mount "type=bind,src=$production_var_lib,dst=/var/lib" \
+              --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,mode=0755 \
+              --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+              --env RESTORELEASE_ROOT_TEST_DIR=/root/restorelease \
+              --env RESTORELEASE_PRODUCTION_ROOT=/var/lib/chengwang-m2b-candidate/prod1 \
+              --env GOMAXPROCS=2 --env LANG=C.UTF-8 --env TZ=UTC \
+              --entrypoint /tests/restorelease-root.test \
+              "$PYTHON_TEST_IMAGE" \
+              -test.v=test2json -test.count=1 -test.timeout=3m 2>&1 \
+            | /opt/hostedtoolcache/go/1.23.12/x64/bin/go tool test2json \
+                -p chengwang/internal/restorelease \
+            | /usr/bin/tee "$artifact_dir/restorelease-root.json"
+
+          /usr/bin/python3 - "$artifact_dir/restorelease-root.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1]).resolve(strict=True)
+          runs = set()
+          package_passed = False
+          expected = {
+              "TestLinuxLeaseAcquiresExactGlobalAndCandidateLocks",
+              "TestLinuxLeaseProductionAcquireUsesFixedPaths",
+              "TestLinuxLeaseExcludesSecondGoHolder",
+              "TestLinuxLeaseShellHolderBlocksGo",
+              "TestLinuxLeaseGoHolderBlocksShell",
+              "TestLinuxLeaseCloseIsIdempotentAndReopens",
+              "TestLinuxLeaseDetectsCandidateLockReplacementAndPoisons",
+              "TestLinuxLeaseDetectsMarkerReplacementAndPoisons",
+              "TestLinuxLeaseDetectsGlobalLockReplacementAndPoisons",
+              "TestLinuxLeaseDetectsCandidateDirectoryReplacementAndPoisons",
+              "TestLinuxLeaseDetectsEveryOtherHeldDirectoryReplacement",
+              "TestLinuxLeaseDescriptorsAreCloseOnExec",
+              "TestLinuxLeaseRejectsUnsafeMarkerAndLockObjects",
+          }
+          with path.open(encoding="utf-8") as handle:
+              for line_number, line in enumerate(handle, 1):
+                  event = json.loads(line)
+                  if event.get("Action") in {"fail", "skip"}:
+                      raise SystemExit(f"Go fail/skip is forbidden at {path}:{line_number}: {event}")
+                  test = event.get("Test")
+                  if event.get("Action") == "run" and isinstance(test, str) and test.startswith("TestLinux") and "/" not in test:
+                      runs.add(test)
+                  if event.get("Action") == "pass" and event.get("Package") == "chengwang/internal/restorelease" and test is None:
+                      package_passed = True
+          if runs != expected:
+              raise SystemExit(f"restore lease Linux root scenario mismatch: expected={sorted(expected)} actual={sorted(runs)}")
+          if not package_passed:
+              raise SystemExit("restorelease package did not emit a passing terminal event")
+          print("RESTORE_LEASE_ROOT_GATE=PASS linux_root_scenarios=13 shell_interop=2 skips=0 filesystem=ext4-or-xfs")
+          PY
+
       - name: Run root ownership Python contracts in a locked-down container
         shell: bash
         env:

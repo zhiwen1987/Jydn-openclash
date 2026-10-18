@@ -80,6 +80,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/proberestore": 16,
     "chengwang/internal/proxyiface": 5,
     "chengwang/internal/restorecoordinator": 24,
+    "chengwang/internal/restorelease": 2,
     "chengwang/internal/routing": 4,
     "chengwang/internal/store": 4,
     "chengwang/internal/truth": 20,
@@ -135,6 +136,12 @@ REQUIRED_GO_TEST_NAMES = {
             "TestCoordinatorRejectsEveryIndependentContextMismatch",
             "TestCoordinatorAllowsOnlyExactPreLiveRequests",
             "TestCoordinatorActualTransitionSetIsExact",
+        }
+    ),
+    "chengwang/internal/restorelease": frozenset(
+        {
+            "TestNilAndZeroLeaseFailClosed",
+            "TestProductionCandidatePathPolicy",
         }
     ),
 }

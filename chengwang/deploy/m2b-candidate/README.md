@@ -127,7 +127,7 @@ sh scripts/compare-baseline.sh \
 
 `internal/proberestore` 提供 25 阶段恢复状态机、25×16 拓扑恢复决策、单一原子 `control.json`、防重 receipt 和 Linux 单写者持久化基础，并验证 rename 前后真实 SIGKILL/reopen、目录同步失败、合法孤儿清理和恶意对象失败关闭。`internal/restoreevidence` 已补上严格恢复证据的 Linux 原子 no-clobber 落盘、三态提交结果、原始字节回读、设备/inode/mount 绑定、单写者锁、容量与 orphan 失败关闭；Windows 仍仅允许诊断读取。它们都不控制 Docker 或 live 状态。该 gate 不是突然断电、VM/宿主崩溃注入，也不证明恢复成功；把采集、真实签名验真、外部 CAS/WORM 单调锚点、本地 store 和 receipt 轮换串成闭环的 coordinator 仍未实现，`restore-probe-agent.sh` 因此继续在切换前返回 78。产品镜像构建仍以 `DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES` 失败关闭，不能用本次静态通过替代镜像或运行态验收。
 
-新增的 `internal/restorecoordinator` 只是一套失败关闭的实验模型，不是生产恢复入口。它没有公开可构造的生产实例，CI 仅演练真实 journal/evidence 文件系统存储、原字节证据重读、split-commit 重试、重开后幂等确认和 `INPUT_VERIFIED` 前硬停止，并固定报告 `authorization=BLOCKED_TRUSTED_INPUTS_MISSING`。在全局 lifecycle lease、可信时钟、独立 current-state/topology collector 和显式 Resume/Reconcile 完成前，任何模块都不得消费其阶段作为 live 操作授权。
+新增的 `internal/restorecoordinator` 只是一套失败关闭的实验模型，不是生产恢复入口。它没有公开可构造的生产实例，CI 仅演练真实 journal/evidence 文件系统存储、原字节证据重读、split-commit 重试、重开后幂等确认和 `INPUT_VERIFIED` 前硬停止，并固定报告 `authorization=BLOCKED_TRUSTED_INPUTS_MISSING`。`internal/restorelease` 已实现 Linux 进程内、FD 绑定的双层生命周期租约，并与现有 shell 使用相同的全局锁和候选实例锁；它会校验 root 所有权、权限、单链接、设备、inode、mount ID、文件系统、候选根 marker 及路径重绑定，并在首次验证失败后永久 poisoned。该租约还没有接入协调器；进程重启也不会延续旧租约权限。在可信时钟、独立 current-state/topology collector、backup-v3 collector 和显式 Resume/Reconcile 完成前，任何模块都不得消费其阶段作为 live 操作授权。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 

@@ -136,7 +136,7 @@ DNS/TCP/TLS/HTTP/合同不匹配/429 等网络故障注入必须保持 `BLOCKED_
 
 `internal/restoreevidence` 已实现严格合同解析后的本地不可覆盖落盘。Linux 路径要求 root:root、目录 `0700`、文件 `0600`、普通文件、单链接、同设备和同 mount ID，并按“临时写入 → 文件 fsync → 临时目录 fsync → `linkat` no-clobber → 发布文件 fsync → 提交目录 fsync → 临时项清理与目录 fsync → 原始字节回读”执行；故障状态区分 `NotCommitted`、`Uncertain` 和 `Committed`，post-link 不确定性会中毒并保留现场。单写者锁、目录项上限、orphan、路径替换、软硬链接、时钟回拨、boot 变化和原始字节变异均失败关闭。Windows 不提供可靠发布，只返回独立的 `DIAGNOSTIC_ONLY` 结果，并拒绝 ADS、设备名及歧义叶名。
 
-`internal/restorecoordinator` 当前只是明确阻断的 pre-live 模型：它验证“证据先提交并按原字节回读，再推进 journal”、split-commit 重试、尾事件全等和 `INPUT_VERIFIED` 边界，但没有公开生产构造器。`Prepare` 的当前时间、当前配置和旧状态摘要仍是模型输入，不能证明来源独立；全局 lifecycle lease、可信 current-state collector 和生产 Resume/Reconcile 尚未实现。因此 CI 只能输出 `authorization=BLOCKED_TRUSTED_INPUTS_MISSING`，不得把模型中的 `LOCKED` 或 `INPUT_VERIFIED` 当成真实授权状态。
+`internal/restorecoordinator` 当前只是明确阻断的 pre-live 模型：它验证“证据先提交并按原字节回读，再推进 journal”、split-commit 重试、尾事件全等和 `INPUT_VERIFIED` 边界，但没有公开生产构造器。`internal/restorelease` 已实现真实 Linux lifecycle lease 原语并加入 root syscall/shell `flock` 互操作门禁，但仍是尚未接线的独立能力；进程重启会释放 flock，旧 `LOCKED` journal 不能冒充租约连续。`Prepare` 的当前时间、当前配置和旧状态摘要仍是模型输入，不能证明来源独立；可信 current-state/backup-v3 collector 和生产 Resume/Reconcile 尚未实现。因此 CI 仍只能输出 `authorization=BLOCKED_TRUSTED_INPUTS_MISSING`，不得把模型中的 `LOCKED` 或 `INPUT_VERIFIED` 当成真实授权状态。
 
 这些合同和本地存储不采集业务证据、不验证签名真伪、不访问真实 CAS/WORM，也不控制 Docker 或交换 live 状态；fresh `Open` 后仍无法独立发现整个有效 control 目录或磁盘快照被回滚。后续仍须实现把采集、签名验证、外部 CAS/WORM、单调锚点和本地 store 串接起来的 evidence coordinator，以及突然断电/VM 或宿主崩溃注入和 receipts 归档轮换。产品镜像仍因基础镜像标签未锁摘要而保持构建阻断。在这些门禁完成前，`restore-probe-agent.sh` 继续固定返回 78。
 
