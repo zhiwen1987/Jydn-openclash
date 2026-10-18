@@ -243,6 +243,8 @@ AI 辅助与受控学习
 
 状态采集链现补入一个仍被隔离的只读基础：`LockedStateSnapshot` 在 spool→ledger 两把 writer lock 均持有后生成报告，并在消费报告前复验锁路径和全树摘要；失败会 sticky-poison，失败路径与关闭路径均反序释放。测试覆盖跨进程 writer 互操作、第二把锁失败与语义失败无泄漏、exec 不继承、路径/根替换、非协作内容变更、复制别名和并发生命周期。它仍是 process-local、依赖协作式 flock 的 advisory 原语；`Verify` 与边界外动作之间仍存在 TOCTOU，不合作的 root writer 仍属于 TCB。它没有接入 coordinator，Windows 仅具 advisory 诊断等级，Linux 也尚未长持 trusted-parent dirfd 或绑定 mount ID；因此它不能代替独立 current config/image/Compose/topology/runtime observer，不能解除恢复授权阻断。
 
+run `39175647549` / job `117817635191` / commit `2ad8f25...` 已补齐该切片的 Linux 执行证据：Ubuntu 24.04.5、Linux 6.17、Go 1.23.12；普通与 race 两份 transcript 中 probe 各 260 个 run event，整仓合计 3028 个语义 run event、30 个包且零 skip；Go vet、Python 141 项、shell 13 项和 schema metaschema 同时通过。该结论只提升 advisory 状态快照原语，不提升恢复协调器或生产能力状态。
+
 宿主出口取证工具也只生成 BLOCKED 报告，因为 `internal` 网络、首次启动、可信 DoT/唯一测试向量、全局 nftables 效果和共享 Go 合同尚未闭合。启动门不会执行 `compose up`。同时保留 M1 尚未完成的企业 IdP、独立审计副本和可信时间缺口。每个里程碑都必须同时提交代码、自动测试、故障注入记录、部署证据、恢复演练和残余风险清单；只有这些证据共同成立，才能把状态从“设计”升级为“已实现”，再从“已实现”升级为“生产已验收”。
 
 ## 13. M1 源代码底座进展（2026-10-18）

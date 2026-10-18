@@ -76,7 +76,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/observation": 13,
     "chengwang/internal/operation": 61,
     "chengwang/internal/policy": 3,
-    "chengwang/internal/probe": 256,
+    "chengwang/internal/probe": 260,
     "chengwang/internal/proberestore": 16,
     "chengwang/internal/proxyiface": 5,
     "chengwang/internal/restorecoordinator": 24,

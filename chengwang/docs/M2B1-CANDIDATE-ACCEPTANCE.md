@@ -140,6 +140,8 @@ DNS/TCP/TLS/HTTP/合同不匹配/429 等网络故障注入必须保持 `BLOCKED_
 
 `internal/probe` 的 `LockedStateSnapshot` 是下一步 current-state collector 的只读基础，而不是 collector 本身。它在两把既有 writer lock 均持有后生成报告，`Report` 会再次验证锁 FD/当前锁路径与完整状态树；路径替换、内容变化或验证失败会 sticky-poison，复制句柄共享同一关闭状态。跨进程锁冲突、第二把锁失败回收、语义失败回收、exec 后描述符不继承、根目录/锁路径替换、并发关闭和旧 API 报告一致性均有自动测试。`snapshotDigest` 继续使用既有 `chengwang.probe-state-tree/v1` 编码，未给 report v1 或 backup v3 增加字段；该摘要绑定 mode/UID/GID/nlink，因此只保证同一受支持 Linux 状态布局与安全元数据下的确定性，不宣称跨文件系统可移植。当前实现仍按 process-local、cooperative-lock、advisory 明示：不合作的 root writer 不受 flock 约束，`Verify` 返回后到外部动作之间仍有边界外 TOCTOU；它没有长持 trusted-parent dirfd、mount ID 绑定、独立镜像/Compose/拓扑采集或运行时容器身份观察，Windows 根重绑也尚无权威 Linux 等级保证，因此不能作为 live 恢复授权输入。
 
+该切片的权威 Linux 证据为 GitHub Actions run `39175647549` / job `117817635191` / commit `2ad8f25...`：Ubuntu 24.04.5、Linux 6.17、Go 1.23.12；普通与 race 两份 transcript 中 `internal/probe` 各执行 260 个 run event，合计整仓 3028 个语义 run event、30 个包、零 skip；Go 普通/race/vet、141 个 Python 测试、13 个 shell 语法门禁和 11 份 schema metaschema 验证全部通过。该证据只签署 advisory 原语和测试矩阵，不签署 current-state collector、Docker 镜像或生产恢复。
+
 这些合同和本地存储不采集业务证据、不验证签名真伪、不访问真实 CAS/WORM，也不控制 Docker 或交换 live 状态；fresh `Open` 后仍无法独立发现整个有效 control 目录或磁盘快照被回滚。后续仍须实现把采集、签名验证、外部 CAS/WORM、单调锚点和本地 store 串接起来的 evidence coordinator，以及突然断电/VM 或宿主崩溃注入和 receipts 归档轮换。产品镜像仍因基础镜像标签未锁摘要而保持构建阻断。在这些门禁完成前，`restore-probe-agent.sh` 继续固定返回 78。
 
 ## 6. 进入真实主动探针前的退出条件
