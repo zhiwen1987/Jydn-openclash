@@ -461,6 +461,119 @@ jobs:
           print("RESTORE_LEASE_ROOT_GATE=PASS linux_root_scenarios=13 shell_interop=2 skips=0 filesystem=ext4-or-xfs")
           PY
 
+      - name: Run blocked current observation Linux root gate
+        shell: bash
+        env:
+          PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/chengwang-restorecurrent-artifacts"
+          production_var_lib="$RUNNER_TEMP/chengwang-restorecurrent-var-lib"
+          container_name="chengwang-restorecurrent-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            /usr/bin/docker rm -f "${container_name}-ordinary" "${container_name}-race" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          /usr/bin/install -d -m 0755 "$artifact_dir"
+          /usr/bin/sudo --non-interactive /usr/bin/install -d -o 0 -g 0 -m 0700 \
+            "$production_var_lib" "$production_var_lib/chengwang-m2b-candidate"
+
+          cd chengwang
+          CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -c \
+              -tags restorecurrent_root -o "$artifact_dir/restorecurrent-root.test" ./internal/restorecurrent
+          CGO_ENABLED=1 GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -race -c \
+              -tags restorecurrent_root -o "$artifact_dir/restorecurrent-root-race.test" ./internal/restorecurrent
+          /usr/bin/chmod 0555 "$artifact_dir/restorecurrent-root.test" "$artifact_dir/restorecurrent-root-race.test"
+
+          for variant in ordinary race; do
+            binary=restorecurrent-root.test
+            if [ "$variant" = race ]; then
+              binary=restorecurrent-root-race.test
+            fi
+            /usr/bin/timeout --signal=KILL 5m \
+              /usr/bin/docker run --rm --init --pull never --platform linux/amd64 \
+                --name "${container_name}-${variant}" \
+                --network none --read-only --user 0:0 \
+                --cap-drop ALL --cap-add CHOWN --security-opt no-new-privileges \
+                --pids-limit 128 --memory 512m --cpus 2 \
+                --mount "type=bind,src=$artifact_dir,dst=/tests,readonly" \
+                --mount "type=bind,src=$production_var_lib,dst=/var/lib" \
+                --tmpfs /run:rw,nosuid,nodev,noexec,size=8m,mode=0755 \
+                --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+                --env RESTORECURRENT_PRODUCTION_ROOT=/var/lib/chengwang-m2b-candidate/prod1 \
+                --env RESTORECURRENT_ROOT_TEST_ACK=ephemeral-ci-only-v1 \
+                --env GOMAXPROCS=2 --env LANG=C.UTF-8 --env TZ=UTC \
+                --entrypoint "/tests/${binary}" \
+                "$PYTHON_TEST_IMAGE" \
+                -test.v=test2json -test.count=1 -test.timeout=3m 2>&1 \
+              | /opt/hostedtoolcache/go/1.23.12/x64/bin/go tool test2json \
+                  -p chengwang/internal/restorecurrent \
+              | /usr/bin/tee "$artifact_dir/restorecurrent-root-${variant}.json"
+          done
+
+          /usr/bin/python3 - \
+            "$artifact_dir/restorecurrent-root-ordinary.json" \
+            "$artifact_dir/restorecurrent-root-race.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          expected = {
+              "TestLinuxAdvisoryCollectorReturnsBlockedWithoutAuthoritativeState",
+              "TestLinuxAdvisoryCollectorExcludesConcurrentLifecycleAndReopens",
+              "TestLinuxAdvisoryCollectorDetectsConfigurationMutationAndPoisons",
+              "TestLinuxAdvisoryCollectorDetectsFileAndDirectoryReplacement",
+              "TestLinuxAdvisoryCollectorDetectsCandidateRootReplacement",
+              "TestLinuxAdvisoryCollectorRejectsUnsafeConfigObjects",
+              "TestLinuxAdvisoryCollectorDetectsHeldFileUnlinkAndPoisons",
+              "TestLinuxAdvisoryCollectorDescriptorsDoNotSurviveExec",
+              "TestLinuxAdvisoryCollectorSharedLifecycleAndConcurrentClose",
+              "TestLinuxAdvisoryCollectorFailureDoesNotLeakLeaseOrSecrets",
+          }
+          replacement = "TestLinuxAdvisoryCollectorDetectsFileAndDirectoryReplacement"
+          expected.update(f"{replacement}/{name}" for name in (
+              "probe.env", "catalog.json", "dot-ca.pem", "egress-policy.json", "config"
+          ))
+          unsafe = "TestLinuxAdvisoryCollectorRejectsUnsafeConfigObjects"
+          expected.update(f"{unsafe}/{name}" for name in (
+              "config-symlink", "config-wrong-owner", "config-wrong-mode", "config-special-mode",
+              "symlink", "hardlink", "fifo", "wrong-mode", "special-mode", "wrong-owner", "oversized-ca"
+          ))
+          expected.update(
+              f"{unsafe}/{name}/{defect}"
+              for name in ("probe.env", "catalog.json", "dot-ca.pem", "egress-policy.json")
+              for defect in ("empty", "wrong-mode", "special-mode", "wrong-owner")
+          )
+          for raw_path in sys.argv[1:]:
+              path = pathlib.Path(raw_path).resolve(strict=True)
+              runs = set()
+              passes = set()
+              package_passed = False
+              with path.open(encoding="utf-8") as handle:
+                  for line_number, line in enumerate(handle, 1):
+                      event = json.loads(line)
+                      if event.get("Action") in {"fail", "skip"}:
+                          raise SystemExit(f"Go fail/skip is forbidden at {path}:{line_number}: {event}")
+                      test = event.get("Test")
+                      if isinstance(test, str) and test.startswith("TestLinux"):
+                          if event.get("Action") == "run":
+                              runs.add(test)
+                          if event.get("Action") == "pass":
+                              passes.add(test)
+                      if event.get("Action") == "pass" and event.get("Package") == "chengwang/internal/restorecurrent" and test is None:
+                          package_passed = True
+              if runs != expected or passes != expected:
+                  raise SystemExit(
+                      f"restore current Linux scenario mismatch in {path}: "
+                      f"expected={sorted(expected)} runs={sorted(runs)} passes={sorted(passes)}"
+                  )
+              if not package_passed:
+                  raise SystemExit(f"restorecurrent package did not emit a passing terminal event: {path}")
+          print("RESTORE_CURRENT_ROOT_GATE=PASS transcripts=2 linux_root_scenarios=42 skips=0 race=pass boundary=ADVISORY_CONFIG_BOUND authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING")
+          PY
+
       - name: Run root ownership Python contracts in a locked-down container
         shell: bash
         env:

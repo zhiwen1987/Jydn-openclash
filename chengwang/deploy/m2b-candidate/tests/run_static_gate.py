@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import sys
 import unittest
 
@@ -28,6 +29,7 @@ REQUIRED_TEST_SUITES = {
     "supply-chain/tests": 45,
     "egress/tests": 19,
     "bootstrap/tests": 29,
+    "tests": 12,
 }
 
 REQUIRED_SCHEMA_COUNT = 11
@@ -81,6 +83,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/proxyiface": 5,
     "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/restoreclock": 13,
+    "chengwang/internal/restorecurrent": 17,
     "chengwang/internal/restorelease": 2,
     "chengwang/internal/routing": 4,
     "chengwang/internal/store": 4,
@@ -177,6 +180,27 @@ REQUIRED_GO_TEST_NAMES = {
             "TestNilAndZeroClockFailClosed",
         }
     ),
+    "chengwang/internal/restorecurrent": frozenset(
+        {
+            "TestAdvisoryObservationBlockersAreExactStableAndImmutable",
+            "TestOpenAdvisoryRejectsEveryUnsafeCandidatePathBeforeCollection",
+            "TestNilZeroClosedAndCopiedHandlesFailClosed",
+            "TestValidateConfigurationAcceptsOnlyExactFixedBindings",
+            "TestValidateConfigurationAcceptsOnlyExactFixedBindings/env_binding",
+            "TestValidateConfigurationAcceptsOnlyExactFixedBindings/catalog_bytes",
+            "TestValidateConfigurationAcceptsOnlyExactFixedBindings/ca_bytes",
+            "TestValidateConfigurationAcceptsOnlyExactFixedBindings/policy_bytes",
+            "TestEnvironmentParserRejectsUnknownDuplicateMissingAndSecretValues",
+            "TestPolicyRejectsDuplicateKeysAndUnapprovedClaims",
+            "TestConfigurationErrorsNeverExposeRawSecretCanary",
+            "TestCatalogAndPolicyErrorsNeverExposeUntrustedTokens",
+            "TestCatalogAndPolicyErrorsNeverExposeUntrustedTokens/catalog_trailing_token",
+            "TestCatalogAndPolicyErrorsNeverExposeUntrustedTokens/catalog_unknown_key",
+            "TestCatalogAndPolicyErrorsNeverExposeUntrustedTokens/policy_trailing_token",
+            "TestCatalogAndPolicyErrorsNeverExposeUntrustedTokens/policy_duplicate_key",
+            "TestDigestUsesPrefixedRawSHA256",
+        }
+    ),
     "chengwang/internal/restorelease": frozenset(
         {
             "TestNilAndZeroLeaseFailClosed",
@@ -219,6 +243,64 @@ def _assert_no_python_cache(candidate_root: pathlib.Path) -> None:
     )
     if artifacts:
         raise RuntimeError("Python cache artifacts are forbidden: " + ", ".join(artifacts))
+
+
+def _validate_restorecurrent_sources(candidate_root: pathlib.Path) -> None:
+    package_root = candidate_root.parents[1] / "internal" / "restorecurrent"
+    _validate_restorecurrent_package(package_root)
+
+
+def _validate_restorecurrent_package(package_root: pathlib.Path) -> None:
+    if not package_root.is_dir():
+        raise RuntimeError(f"restorecurrent package is missing: {package_root}")
+    allowed_imports = {
+        "bufio", "bytes", "crypto/sha256", "encoding/hex", "encoding/json",
+        "errors", "fmt", "io", "net/netip", "os", "path", "regexp", "sort",
+        "strconv", "strings", "sync", "syscall", "time", "unicode/utf8",
+        "chengwang/internal/probe", "chengwang/internal/restoreclock",
+        "chengwang/internal/restorelease",
+    }
+    forbidden = {
+        '"os/exec"': "shell or subprocess execution",
+        '"net/http"': "network clients",
+        '"github.com/docker/': "Docker SDK",
+        "restorecontracts.StateOnlyCurrent": "authoritative current-state output",
+        '"chengwang/internal/restorecoordinator"': "coordinator integration",
+        "AcquireLockedStateSnapshot": "state collection without quiesce authority",
+        "os.ReadFile": "path-based configuration reads",
+        "exec.Command": "subprocess execution",
+    }
+    production = sorted(
+        path for path in package_root.glob("*.go") if not path.name.endswith("_test.go")
+    )
+    if not production:
+        raise RuntimeError("restorecurrent production sources are missing")
+    for source in production:
+        text = source.read_text(encoding="utf-8")
+        imports = set(
+            re.findall(
+                r'^\s*(?:[._A-Za-z][A-Za-z0-9_]*\s+)?"([^"\n]+)"\s*$',
+                text,
+                flags=re.MULTILINE,
+            )
+        )
+        imports.update(
+            re.findall(
+                r'^\s*import\s+(?:[._A-Za-z][A-Za-z0-9_]*\s+)?"([^"\n]+)"\s*$',
+                text,
+                flags=re.MULTILINE,
+            )
+        )
+        unexpected_imports = sorted(imports - allowed_imports)
+        if unexpected_imports:
+            raise RuntimeError(
+                f"restorecurrent source {source.name} imports forbidden packages: {unexpected_imports}"
+            )
+        for token, capability in forbidden.items():
+            if token in text:
+                raise RuntimeError(
+                    f"restorecurrent source {source.name} contains forbidden {capability}: {token}"
+                )
 
 
 def _parse_schemas(candidate_root: pathlib.Path) -> int:
@@ -405,6 +487,7 @@ def run(candidate_root: pathlib.Path, verbosity: int = 2) -> int:
         raise RuntimeError("Linux static gate must run as root so ownership tests cannot skip")
 
     _assert_no_python_cache(candidate_root)
+    _validate_restorecurrent_sources(candidate_root)
     schema_count = _parse_schemas(candidate_root)
     suite, suite_counts = _load_tests(candidate_root)
     runner = unittest.TextTestRunner(verbosity=verbosity, resultclass=RecordingResult)

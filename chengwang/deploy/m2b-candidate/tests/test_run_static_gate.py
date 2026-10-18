@@ -115,5 +115,31 @@ class GoJSONFingerprintTests(unittest.TestCase):
             self._validate(events)
 
 
+class RestoreCurrentSourceGateTests(unittest.TestCase):
+    def _package(self, source: str) -> pathlib.Path:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        package = pathlib.Path(temporary.name) / "restorecurrent"
+        package.mkdir()
+        (package / "current.go").write_text(source, encoding="utf-8")
+        return package
+
+    def test_allowlisted_side_effect_free_import_is_accepted(self) -> None:
+        package = self._package('package restorecurrent\nimport "errors"\nvar _ = errors.New\n')
+        run_static_gate._validate_restorecurrent_package(package)
+
+    def test_subprocess_import_is_rejected(self) -> None:
+        package = self._package('package restorecurrent\nimport runner "os/exec"\nvar _ = runner.Command\n')
+        with self.assertRaisesRegex(RuntimeError, "forbidden packages"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_authoritative_or_state_collection_api_is_rejected(self) -> None:
+        for token in ("restorecontracts.StateOnlyCurrent", "AcquireLockedStateSnapshot"):
+            with self.subTest(token=token):
+                package = self._package(f"package restorecurrent\n// test\nvar _ = {token}\n")
+                with self.assertRaisesRegex(RuntimeError, "forbidden"):
+                    run_static_gate._validate_restorecurrent_package(package)
+
+
 if __name__ == "__main__":
     unittest.main()
