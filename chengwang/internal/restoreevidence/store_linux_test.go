@@ -147,7 +147,7 @@ func TestLinuxPublishRejectsInvalidAndStaleInputs(t *testing.T) {
 			return b, c, k
 		}},
 		{name: "boottime stale", mutate: func(b []byte, c restorecontracts.EvidenceContext, k clockSnapshot) ([]byte, restorecontracts.EvidenceContext, clockSnapshot) {
-			k.BoottimeNS += uint64(10 * time.Second)
+			k.BoottimeNS += uint64(defaultMaxBoottimeAge + time.Second)
 			return b, c, k
 		}},
 	}
