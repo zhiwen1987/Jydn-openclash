@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -479,7 +480,11 @@ func TestTransitionUsesPersistedIdentityAndSurvivesRestart(t *testing.T) {
 }
 
 func TestRealEvidenceStoreAcceptsBoundedControlKeys(t *testing.T) {
-	evidenceStore, err := evidence.Open(t.TempDir())
+	directory := t.TempDir()
+	if err := os.Chmod(directory, 0o700); err != nil {
+		t.Fatalf("secure evidence test directory: %v", err)
+	}
+	evidenceStore, err := evidence.Open(directory)
 	if err != nil {
 		t.Fatal(err)
 	}
