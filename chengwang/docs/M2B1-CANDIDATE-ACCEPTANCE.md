@@ -4,7 +4,7 @@
 
 M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、默认关闭的独立主动代理容器定义和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复、调度器集成、严格进程健康协议和结构化启动前校验；主动代理另有停机一致性备份、恢复暂存和启动前证据绑定脚本，但启动和恢复切换均继续失败关闭。静态 canary 合同与供应链证据候选已能发现结构和摘要矛盾，但两者始终返回 `BLOCKED/78`，既不观测真实业务，也不执行密码学验签或 Registry 读回。单独的 `compose.probe-agent.yaml` 仅在显式 profile 下存在，当前仍接入 `internal` quarantine 网络。该静态定义只表达无公网默认出口意图，不能证明宿主或同网段路径已 deny-all。Linux 静态门禁已在独立 GitHub Actions runner 上通过；当前开发机仍没有 Docker，因此镜像构建、容器运行态、唯一出口和 canary 仍须在隔离 Linux 候选机执行后才能签署。
 
-已签署的 Linux 静态证据仅限 GitHub Actions run `39149469450`、job `117739961567`、提交 `3f9a4cec736192c3f25dcbb2d7c3cd9bf62ecf1f`：Ubuntu 24.04.5、Linux 6.17.0-1022-azure x86_64、Go 1.23.12/linux-amd64；Python 离线门禁 132 项、0 个测试用例 skip、7 个 schema；13 个生命周期 shell 脚本语法通过；Go 普通与 race JSON 合计 1510 个 run event，23 个有测试包达到基线，`internal/domain` 是唯一允许且已核对的无测试包，测试用例 0 skip，并执行 `go vet ./...`。Python 阶段使用固定摘要测试镜像、无网络和只读源码挂载；Go/Shell 阶段使用可写 checkout，但在退出前通过 `git diff --check` 和空 `git status --porcelain` 证明没有残留修改。该任务结论为 `success`。同一运行仍明确输出 `SCHEMA_METASCHEMA=BLOCKED_SCHEMA_METASCHEMA_VALIDATOR_UNAVAILABLE` 和 `DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES`；固定摘要的 Python 镜像只是测试工具，不是产品供应链验收。
+最新已签署的 Linux 静态证据为 GitHub Actions run `39167275180`、job `117792733320`、提交 `fcd6887fb70b37d911c82876a55506195b6e83b3`：Ubuntu 24.04.5、Linux 6.17.0-1022-azure x86_64、Go 1.23.12/linux-amd64；Python 离线门禁 141 项、测试用例 0 skip、11 个 schema；13 个生命周期 shell 脚本语法通过；Go 普通与 race JSON 合计 2882 个语义 run event、27 个包、测试用例 0 skip，并执行 `go vet ./...`。11 份 Draft 2020-12 schema 已由固定的 `santhosh-tekuri/jsonschema/v6 v6.0.3` 编译并验证正反实例。固定摘要的 Python 阶段保持无网络、只读源码挂载；Go/Shell 阶段在无网络、无 capabilities、禁止提权的命名空间内运行，并在退出前证明工作树没有残留修改。该任务结论为 `success`，但仍明确输出 `DOCKER_BUILD=BLOCKED_UNPINNED_BASE_IMAGES`；固定摘要测试镜像不是产品供应链验收。
 
 恢复状态基础库与同内核故障注入的最新权威证据为 GitHub Actions run `39156376057`、job `117760331614`、提交 `ec71f05d41d52284bb5aada822223095d1a7c1d4`，结论为 `success`。Ubuntu 24.04.5 / Linux 6.17.0-1022-azure / Go 1.23.12 环境中，固定摘要、无网络、只读根文件系统、capabilities 全清且禁止提权的容器以 root 身份在真实 ext4/XFS bind 路径执行了 14 个 `proberestore` 顶层 Linux 场景，并精确覆盖 8 个原子替换故障点；结果为 `PROBE_RESTORE_ROOT_GATE=PASS linux_root_scenarios=14 fault_stage_cases=8 skips=0 filesystem=ext4-or-xfs`。测试包括 rename 前后真实 SIGKILL、重开读回、目录同步失败中毒、合法孤儿清理以及恶意链接/权限/类型对象失败关闭；全仓普通与 race JSON 合计 2416 个 run event、25 个包、测试用例 0 skip，并继续通过 132 项 Python、13 个 shell 脚本和 `go vet ./...`。该证据只签署同一 Linux 内核下的进程崩溃可见性、root/ext4-XFS 系统调用路径及静态门禁，不签署突然断电、VM/宿主崩溃、Docker live 切换或生产恢复；schema metaschema 和产品镜像构建仍明确阻断。
 
@@ -55,7 +55,7 @@ M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、�
 | 固定可信 DNS | 固定 DoT IP:port、TLS/SNI/CA、DNS 帧/记录边界、A/AAAA CNAME 一致性和重绑定注入 | 本地实现与测试通过；容器运行态未验 | 禁止真实探测 |
 | 自有 canary | 所有权、无副作用、合同版本、频率和限流批准 | `blocked` | 禁止公共目标 |
 | 出口 bootstrap | 双栈 bridge、宿主 INPUT/FORWARD 默认拒绝、显式 chain、计数器与回滚摘要 | 离线结构计划和本地测试已实现；Docker/netns/nft 安装及读回未执行，固定 `BLOCKED/78` | 不执行计划；保留现有 `internal` quarantine |
-| Linux 静态 CI | 固定 Python 测试镜像、零网络、零 capabilities、Python 阶段源码只读、root/ext4-XFS 恢复系统调用与同内核故障注入、Go/Shell 阶段退出前工作树 clean，以及 Python/Go/Shell/race/vet 门禁 | `PASS`：run `39162519874` / job `117778615130` / commit `5ca68f8...`；Ubuntu 24.04.5 / Linux 6.17 / Go 1.23.12；14 个 Linux root 顶层场景、8 个精确故障点、141 个 Python 测试、13 个 shell 脚本、Go 普通/race/vet；2868 个 Go 语义 run event、26 个包、测试用例零 skip；11 份 Draft 2020-12 schema 经固定验证器编译并验证正反实例 | 后续 CI 失败保持 M2b 启动阻断，不降级到旧成功或 Windows 结果；不得扩大为掉电、VM/宿主崩溃、Docker 构建、签名验真或 live 恢复证明 |
+| Linux 静态 CI | 固定 Python 测试镜像、零网络、零 capabilities、Python 阶段源码只读、root/ext4-XFS 恢复系统调用与同内核故障注入、Go/Shell 阶段退出前工作树 clean，以及 Python/Go/Shell/race/vet 门禁 | `PASS`：run `39167275180` / job `117792733320` / commit `fcd6887...`；Ubuntu 24.04.5 / Linux 6.17 / Go 1.23.12；`proberestore` 14 个 Linux root 顶层场景和 8 个故障点；`restoreevidence` 11 个顶层场景、16 个关键子场景和 20 个故障点；141 个 Python 测试、13 个 shell 脚本、Go 普通/race/vet；2882 个 Go 语义 run event、27 个包、测试用例零 skip；11 份 Draft 2020-12 schema 经固定验证器编译并验证正反实例 | 后续 CI 失败保持 M2b 启动阻断，不降级到旧成功或 Windows 结果；不得扩大为掉电、VM/宿主崩溃、Docker 构建、签名验真或 live 恢复证明 |
 | 生产不变 | 前后 hash-only manifest 完全一致 | 工具已提供，未在生产运行 | 任一变化立即停止并调查 |
 | 备份/回滚 | 专用根标记、停机一致性包、类型/数量/尺寸边界、SHA-256、保留失败副本、恢复后重验 | 护栏与主动代理备份工具均已提供、均未在 Docker 候选机演练；主动代理已实现只读 spool+ledger 语义验证及归档前后报告全等，恢复只验证私有暂存且不触碰 live，切换仍阻断 | 主动代理禁止启动；不得手工切换暂存状态或清理旧副本 |
 
@@ -134,7 +134,9 @@ DNS/TCP/TLS/HTTP/合同不匹配/429 等网络故障注入必须保持 `BLOCKED_
 
 `internal/restorecontracts` 新增四类严格版本化合同：backup v3 绑定镜像、Compose、配置、状态树和归档摘要；恢复证据 v1 绑定阶段、原因、序列、boot/boottime、拓扑和原始字节摘要；anchor v1 与 receipt checkpoint v1 绑定外部后端、对象键、CAS 预期版本、签名元数据和 receipt 索引。解析结果使用不透明类型，state-only 恢复仍会重新验证完整绑定。Schema 与 Go 语义通过差分测试保持一致，Go JSON 签章器固定 226 个通过名称的指纹，并显式拒绝 fail、skip、缺 terminal pass 和没有先行 run 的 pass。
 
-这些合同不读取业务证据、不验证签名真伪、不访问真实 CAS/WORM，也不控制 Docker 或交换 live 状态；fresh `Open` 后仍无法独立发现整个有效 control 目录或磁盘快照被回滚。后续仍须实现安全持久化的证据 coordinator、突然断电/VM 或宿主崩溃注入、真实外部验签与单调锚点读回、receipts 归档轮换。产品镜像仍因基础镜像标签未锁摘要而保持构建阻断。在这些门禁完成前，`restore-probe-agent.sh` 继续固定返回 78。
+`internal/restoreevidence` 已实现严格合同解析后的本地不可覆盖落盘。Linux 路径要求 root:root、目录 `0700`、文件 `0600`、普通文件、单链接、同设备和同 mount ID，并按“临时写入 → 文件 fsync → 临时目录 fsync → `linkat` no-clobber → 发布文件 fsync → 提交目录 fsync → 临时项清理与目录 fsync → 原始字节回读”执行；故障状态区分 `NotCommitted`、`Uncertain` 和 `Committed`，post-link 不确定性会中毒并保留现场。单写者锁、目录项上限、orphan、路径替换、软硬链接、时钟回拨、boot 变化和原始字节变异均失败关闭。Windows 不提供可靠发布，只返回独立的 `DIAGNOSTIC_ONLY` 结果，并拒绝 ADS、设备名及歧义叶名。
+
+这些合同和本地存储不采集业务证据、不验证签名真伪、不访问真实 CAS/WORM，也不控制 Docker 或交换 live 状态；fresh `Open` 后仍无法独立发现整个有效 control 目录或磁盘快照被回滚。后续仍须实现把采集、签名验证、外部 CAS/WORM、单调锚点和本地 store 串接起来的 evidence coordinator，以及突然断电/VM 或宿主崩溃注入和 receipts 归档轮换。产品镜像仍因基础镜像标签未锁摘要而保持构建阻断。在这些门禁完成前，`restore-probe-agent.sh` 继续固定返回 78。
 
 ## 6. 进入真实主动探针前的退出条件
 
