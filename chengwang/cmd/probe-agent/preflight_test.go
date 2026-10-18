@@ -36,7 +36,7 @@ func TestPreflightAcceptsExactReadOnlyContracts(t *testing.T) {
 		t.Fatalf("successful preflight emitted output: %q", output.String())
 	}
 	executeArguments := append([]string{"preflight"}, fixture.arguments...)
-	if err := execute(context.Background(), executeArguments, &output); err != nil {
+	if err := execute(context.Background(), executeArguments, &bytes.Buffer{}, &output); err != nil {
 		t.Fatalf("execute(preflight) error = %v", err)
 	}
 	after := snapshotPreflightFiles(t, fixture.config)

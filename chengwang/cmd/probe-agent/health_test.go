@@ -37,7 +37,7 @@ func TestHealthFileRoundTripAndCommand(t *testing.T) {
 	}
 	if err := execute(context.Background(), []string{
 		"health", "--health-file", healthPath, "--catalog", catalogPath, "--max-age", "30s",
-	}, &bytes.Buffer{}); err != nil {
+	}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatalf("execute(health) error = %v", err)
 	}
 	read, err := readHealthFile(healthPath)

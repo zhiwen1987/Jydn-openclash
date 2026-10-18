@@ -12,7 +12,7 @@ M2b 分阶段交付，不能把“代码存在”“候选通过”和“生产�
 
 M2a 已在生产灰度并通过初始门禁，但 24 小时浸泡尚未签署。M2b 不得越过这一生产前置条件。
 
-M2b-0 已包含 `cmd/probe-agent` 命令入口和独立的 `chengwang.probe-agent-health/v1` 进程健康文件。M2b-1 已增加默认不启动的主动探测容器定义、被阻断的 canary/出口示例、纯离线配置校验器，以及严格结构化 preflight、停机一致性备份、恢复暂存和启动前证据绑定。当前恢复在状态切换前固定阻断，启动门也固定不执行 `compose up`；策略中的 `enforced` 只是管理期望，不能充当宿主防火墙证明。当前开发机没有 Docker，因此未完成 Compose 解析、镜像构建或容器运行证据；`internal` quarantine 只表达无公网默认出口意图，运行态 deny-all、真实 canary 和唯一出口均未证明，也没有 HTTP API、生产定时任务、控制面挂载或公网业务访问。以上不能称为候选运行通过、生产探针或节点能力验证。
+M2b-0 已包含 `cmd/probe-agent` 命令入口和独立的 `chengwang.probe-agent-health/v1` 进程健康文件。M2b-1 已增加默认不启动的主动探测容器定义、被阻断的 canary/出口示例、纯离线配置校验器，以及严格结构化 preflight、只读 spool+ledger 语义验证、归档前后双重验证、无 live 变更的恢复暂存和启动前证据绑定。宿主出口取证候选可校验最小 Docker/netns/nftables 投影，但只生成 `BLOCKED` 报告。当前恢复在状态切换前固定阻断，启动门也固定不执行 `compose up`；策略中的 `enforced` 只是管理期望，不能充当宿主防火墙证明。当前开发机没有 Docker，因此未完成 Compose 解析、镜像构建或容器运行证据；`internal` quarantine 与真实可路由出口的合同仍冲突，运行态 deny-all、真实 canary 和唯一出口均未证明，也没有 HTTP API、生产定时任务、控制面挂载或公网业务访问。以上不能称为候选运行通过、生产探针或节点能力验证。
 
 ## 2. 不可突破的边界
 

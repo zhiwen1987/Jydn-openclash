@@ -62,6 +62,13 @@ cleanup_pending() {
 }
 trap cleanup_pending EXIT HUP INT TERM
 
+probe_validate_state_snapshot \
+  "$IMAGE_ID" \
+  "$PROBE_CATALOG_FILE" \
+  "$PROBE_SPOOL_DIR" \
+  "$PROBE_LEDGER_DIR" \
+  "$DESTINATION/state-validation.json"
+
 python3 - "$PROBE_SPOOL_DIR" "$PROBE_LEDGER_DIR" "$DESTINATION/probe-state.tar.gz" "$PROBE_ARCHIVE_MAX_ENTRIES" "$PROBE_ARCHIVE_MAX_BYTES" <<'PY'
 import os, pathlib, stat, sys, tarfile
 spool, ledger, archive = map(pathlib.Path, sys.argv[1:4])
@@ -106,16 +113,44 @@ with tarfile.open(archive, "w:gz", compresslevel=6) as target:
 PY
 [ "$(stat -c %s "$DESTINATION/probe-state.tar.gz")" -le "$PROBE_ARCHIVE_MAX_BYTES" ] || fail "compressed probe state archive exceeds its limit"
 
+# Snapshot the configuration before revalidating the archived state.  In
+# particular, the validator must consume the catalog that will be published in
+# this backup, not a live path that could change between validation and copy.
 cp -- "$PROBE_ENV_FILE" "$DESTINATION/probe.env"
 cp -- "$PROBE_CATALOG_FILE" "$DESTINATION/catalog.json"
 cp -- "$PROBE_DOT_CA_FILE" "$DESTINATION/dot-ca.pem"
 cp -- "$PROBE_EGRESS_POLICY_FILE" "$DESTINATION/egress-policy.json"
+
+# Re-extract and validate the actual archive before publication.  Exact report
+# equality closes the gap between live validation and a concurrently changing
+# tar input; any mismatch leaves only the private pending directory, which the
+# EXIT trap removes.
+probe_extract_state_archive \
+  "$DESTINATION/probe-state.tar.gz" \
+  "$DESTINATION/.archive-state"
+probe_validate_state_snapshot \
+  "$IMAGE_ID" \
+  "$DESTINATION/catalog.json" \
+  "$DESTINATION/.archive-state/probe-spool" \
+  "$DESTINATION/.archive-state/probe-ledger" \
+  "$DESTINATION/.archive-state-validation.json"
+RELATIONSHIP_COMPLETE=$(probe_compare_state_validation_reports \
+  "$DESTINATION/state-validation.json" \
+  "$DESTINATION/.archive-state-validation.json")
+rm -rf -- "$DESTINATION/.archive-state"
+rm -f -- "$DESTINATION/.archive-state-validation.json"
+
 docker image inspect "$IMAGE_ID" >"$DESTINATION/image-inspect.json"
 COMPOSE_SHA256=$(sha256sum "$PROBE_COMPOSE_FILE" | awk '{print $1}')
 CREATED_UNIX=$(date -u +%s)
-python3 - "$DESTINATION/backup-meta.json" "$PROBE_BACKUP_SCHEMA" "$CREATED_UNIX" "$CANDIDATE_ROOT" "$M2B_PROBE_PROJECT_NAME" "$IMAGE_ID" "$IMAGE_REFERENCE" "$COMPOSE_SHA256" "${CID:+yes}" <<'PY'
+python3 - "$DESTINATION/backup-meta.json" "$DESTINATION/state-validation.json" "$PROBE_BACKUP_SCHEMA" "$CREATED_UNIX" "$CANDIDATE_ROOT" "$M2B_PROBE_PROJECT_NAME" "$IMAGE_ID" "$IMAGE_REFERENCE" "$COMPOSE_SHA256" "${CID:+yes}" <<'PY'
 import json, os, sys
-path, schema, created, root, project, image_id, image_reference, compose_sha, active_present = sys.argv[1:]
+path, validation_path, schema, created, root, project, image_id, image_reference, compose_sha, active_present = sys.argv[1:]
+with open(validation_path, encoding="utf-8") as stream:
+    validation = json.load(stream)
+relationship_complete = validation.get("relationshipComplete")
+if not isinstance(relationship_complete, bool):
+    raise SystemExit("state validation relationship completeness is missing")
 value = {
     "schema": schema,
     "createdUnix": int(created),
@@ -125,6 +160,7 @@ value = {
     "imageReference": image_reference,
     "composeSha256": compose_sha,
     "activeContainerPresent": active_present == "yes",
+    "relationshipComplete": relationship_complete,
 }
 with open(path, "x", encoding="utf-8", newline="\n") as stream:
     json.dump(value, stream, sort_keys=True, separators=(",", ":"))
@@ -136,7 +172,7 @@ PY
 chmod 600 "$DESTINATION"/*
 (
   cd "$DESTINATION"
-  sha256sum backup-meta.json catalog.json dot-ca.pem egress-policy.json image-inspect.json probe-state.tar.gz probe.env >SHA256SUMS
+  sha256sum backup-meta.json catalog.json dot-ca.pem egress-policy.json image-inspect.json probe-state.tar.gz probe.env state-validation.json >SHA256SUMS
 )
 chmod 600 "$DESTINATION/SHA256SUMS"
 sync "$DESTINATION"
@@ -145,6 +181,15 @@ sync "$PROBE_BACKUP_ROOT"
 DESTINATION=
 trap - EXIT HUP INT TERM
 cleanup_config
-printf '%s\n' "PROBE_BACKUP=PASS"
+printf '%s\n' "PROBE_STATE_SEMANTIC_VALIDATION=PASS"
+printf '%s\n' "PROBE_STATE_ARCHIVE_REVALIDATION=PASS"
+printf '%s\n' "PROBE_STATE_RELATIONSHIP_COMPLETE=$RELATIONSHIP_COMPLETE"
+if [ "$RELATIONSHIP_COMPLETE" = true ]; then
+  printf '%s\n' "PROBE_BACKUP=PASS"
+  printf '%s\n' "PROBE_BACKUP_QUALITY=COMPLETE"
+else
+  printf '%s\n' "PROBE_BACKUP=PASS_DEGRADED"
+  printf '%s\n' "PROBE_BACKUP_QUALITY=DEGRADED_RELATIONSHIP_INCOMPLETE"
+fi
 printf '%s\n' "PROBE_CONTAINER_STATE=STOPPED"
 printf '%s\n' "PROBE_BACKUP_PATH=$FINAL_DESTINATION"

@@ -13,7 +13,8 @@
 | 唯一允许出口 | `blocked` | `internal: true` 只能证明隔离，不能证明一个可用且唯一的公网出口 |
 | `probe-agent` 命令 | 已实现、本地测试通过 | 启动账本先于网络、结果先入 spool 再结算、跨重启预算、崩溃恢复和严格进程健康协议；尚未完成容器运行态验收 |
 | 主动探测容器定义 | 已实现、默认关闭、仅静态校验 | 独立 profile、非 root、只读根、同一 `probe-state` 下的独立 spool/ledger、健康 tmpfs；没有 Docker 构建或运行证据 |
-| 主动代理生命周期门禁 | 已实现、仅静态校验 | 严格结构化 preflight、全局/实例互斥锁、停机一致性备份、恢复私有暂存和启动前证据绑定；启动与恢复切换仍明确阻断 |
+| 主动代理生命周期门禁 | 已实现、仅静态校验 | 严格结构化 preflight、只读状态语义验证、全局/实例互斥锁、归档前后双重验证、无 live 变更的恢复私有暂存和启动前证据绑定；启动与恢复切换仍明确阻断 |
+| 宿主出口取证候选 | 已实现、仅本地测试 | 最小投影采集 Docker/netns/nftables，并校验 IPv4/IPv6 规则与计数器；因出口架构合同尚未闭合，只生成 `BLOCKED` 报告 |
 | 主动业务探针 | `blocked` | 自有 canary、唯一出口、宿主防火墙计数器和容器运行门禁未完成；`internal` quarantine 只表达无公网出口意图，运行态 deny-all 未证明 |
 | 生产部署 | 未执行 | 本目录不得直接替换 `/opt/chengwang` 的生产控制面 |
 
@@ -109,9 +110,11 @@ sh scripts/compare-baseline.sh \
 
 ## 候选备份与恢复
 
-默认护栏候选和主动代理使用两套独立生命周期脚本。主动代理的 `backup-probe-agent.sh` 已实现停机一致性备份：`probe-state/probe-spool` 与 `probe-state/probe-ledger` 同包归档，并绑定 `probe.env`、catalog、DoT CA、出口期望策略、Compose 摘要和不可变镜像 ID。该脚本尚未在 Linux/Docker 候选机演练。
+默认护栏候选和主动代理使用两套独立生命周期脚本。主动代理的 `backup-probe-agent.sh` 已实现停机一致性备份：`probe-state/probe-spool` 与 `probe-state/probe-ledger` 同包归档，并绑定 `probe.env`、catalog、DoT CA、出口期望策略、Compose 摘要和不可变镜像 ID。它先对停止后的 live 状态执行只读 `validate-state`，归档后再安全解包到私有目录，用同一不可变镜像复验并要求两份报告完全一致，才发布备份。`relationshipComplete=false` 代表合法保留淘汰造成的证据关系不完整，此时备份标记为 `PASS_DEGRADED`，不能解释为完整恢复证明。该流程尚未在 Linux/Docker 候选机演练。
 
-主动代理的 `restore-probe-agent.sh` 目前只校验备份、停止已识别容器并解包到私有暂存目录；由于还没有离线 Go spool+ledger 语义验证接口，它会在任何状态替换前输出 `PROBE_RESTORE=BLOCKED_NO_OFFLINE_GO_SPOOL_LEDGER_VALIDATOR` 并返回 78。不得把“归档和配置校验通过”解释为恢复成功，也不得手工绕过该门禁。下面仍是默认护栏候选的独立备份/恢复步骤。
+主动代理的 `restore-probe-agent.sh` 目前只校验备份并解包到私有暂存目录，再用 `validate-state` 复验且要求报告与归档内报告全等。它不会停止、启动或修改 live 容器和状态，并在任何切换前输出 `PROBE_LIVE_CONTAINER_ACTION=NONE`、`PROBE_RESTORE_APPLY=BLOCKED_UNAUDITED_LIVE_STATE_SWITCH` 后返回 78。不得把“归档、配置和暂存语义校验通过”解释为恢复成功，也不得手工绕过该门禁。下面仍是默认护栏候选的独立备份/恢复步骤。
+
+`egress/host_egress_evidence.py` 是只读取证候选，不是防火墙安装器。它只保存 Docker、network namespace 与 nftables 的最小投影，最终只输出 `chengwang.host-egress-verification/v1`、`status=BLOCKED` 并返回 78。当前 `internal: true` 网络与真实可路由出口互相冲突，首次启动、可信 DoT 交易、唯一测试向量、其他宿主 base chain 和 Python/Go 合同共享也未闭合，因此该报告绝不能改名或转换为启动门接受的 evidence。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 

@@ -6,11 +6,14 @@ PROBE_COMPOSE_FILE=$ROOT_DIR/compose.probe-agent.yaml
 PROBE_PROFILE=active-probe-candidate
 PROBE_SERVICE=probe-agent
 PROBE_COMPONENT=m2b-probe-agent-candidate
-PROBE_BACKUP_SCHEMA=chengwang.m2b-probe-backup/v1
+PROBE_BACKUP_SCHEMA=chengwang.m2b-probe-backup/v2
 PROBE_EGRESS_EVIDENCE_SCHEMA=chengwang.m2b-probe-egress-evidence/v1
 PROBE_BACKUP_MAX_AGE_SECONDS=3600
 PROBE_ARCHIVE_MAX_ENTRIES=8192
 PROBE_ARCHIVE_MAX_BYTES=268435456
+PROBE_VALIDATOR_SPOOL_PATH=/var/lib/chengwang-probe/results
+PROBE_VALIDATOR_LEDGER_PATH=/var/lib/chengwang-probe/ledger
+PROBE_VALIDATOR_CATALOG_PATH=/run/chengwang-probe/catalog.json
 
 probe_require() {
   command -v "$1" >/dev/null 2>&1 || candidate_fail "required command is missing: $1"
@@ -251,6 +254,288 @@ if set(seen) != set(expected):
 PY
 }
 
+probe_validate_state_snapshot() (
+  set -eu
+  probe_validator_image=$1
+  probe_validator_catalog=$2
+  probe_validator_spool=$3
+  probe_validator_ledger=$4
+  probe_validator_report=$5
+
+  printf '%s\n' "$probe_validator_image" | grep -Eq '^sha256:[0-9a-f]{64}$' || \
+    candidate_fail "state validator image id is invalid"
+  [ "$(docker image inspect --format '{{.Id}}' "$probe_validator_image")" = "$probe_validator_image" ] || \
+    candidate_fail "state validator immutable image is not present locally"
+  [ -f "$probe_validator_catalog" ] && [ ! -L "$probe_validator_catalog" ] || \
+    candidate_fail "state validator catalog is missing or unsafe"
+  for probe_validator_directory in "$probe_validator_spool" "$probe_validator_ledger"; do
+    [ -d "$probe_validator_directory" ] && [ ! -L "$probe_validator_directory" ] || \
+      candidate_fail "state validator directory is missing or unsafe: $probe_validator_directory"
+  done
+  [ ! -e "$probe_validator_report" ] || candidate_fail "state validator report destination already exists"
+  candidate_assert_no_symlink_components "$probe_validator_catalog"
+  candidate_assert_no_symlink_components "$probe_validator_spool"
+  candidate_assert_no_symlink_components "$probe_validator_ledger"
+
+  probe_validator_name=m2b-probe-validator-$M2B_INSTANCE_ID-$$
+  probe_validator_cid=
+  cleanup_validator() {
+    if [ -n "${probe_validator_cid:-}" ]; then
+      docker rm -f "$probe_validator_cid" >/dev/null 2>&1 || true
+    fi
+  }
+  trap cleanup_validator EXIT HUP INT TERM
+
+  probe_validator_cid=$(docker create \
+    --pull never \
+    --name "$probe_validator_name" \
+    --label com.jydn.chengwang.component=m2b-probe-state-validator-candidate \
+    --network none \
+    --read-only \
+    --user 10001:10001 \
+    --cap-drop ALL \
+    --security-opt no-new-privileges=true \
+    --pids-limit 32 \
+    --memory 64m \
+    --cpus 0.25 \
+    --restart no \
+    --log-driver none \
+    --mount "type=bind,src=$probe_validator_catalog,dst=$PROBE_VALIDATOR_CATALOG_PATH,readonly" \
+    --mount "type=bind,src=$probe_validator_spool,dst=$PROBE_VALIDATOR_SPOOL_PATH,readonly" \
+    --mount "type=bind,src=$probe_validator_ledger,dst=$PROBE_VALIDATOR_LEDGER_PATH,readonly" \
+    --entrypoint /app/probe-agent \
+    "$probe_validator_image" \
+    validate-state \
+    --catalog "$PROBE_VALIDATOR_CATALOG_PATH" \
+    --spool-dir "$PROBE_VALIDATOR_SPOOL_PATH" \
+    --ledger-dir "$PROBE_VALIDATOR_LEDGER_PATH" \
+    --expected-ledger-writer-dir "$PROBE_VALIDATOR_LEDGER_PATH")
+  printf '%s\n' "$probe_validator_cid" | grep -Eq '^[0-9a-f]{64}$' || \
+    candidate_fail "state validator container id is invalid"
+
+  python3 - "$probe_validator_cid" "$probe_validator_name" "$probe_validator_image" "$probe_validator_catalog" "$probe_validator_spool" "$probe_validator_ledger" "$PROBE_VALIDATOR_CATALOG_PATH" "$PROBE_VALIDATOR_SPOOL_PATH" "$PROBE_VALIDATOR_LEDGER_PATH" <<'PY'
+import json, pathlib, subprocess, sys
+(
+    cid, name, image_id, catalog, spool, ledger,
+    catalog_target, spool_target, ledger_target,
+) = sys.argv[1:]
+raw = subprocess.run(["docker", "inspect", cid], check=True, capture_output=True, text=True, timeout=15)
+values = json.loads(raw.stdout)
+if not isinstance(values, list) or len(values) != 1:
+    raise SystemExit("state validator inspect result is ambiguous")
+value = values[0]
+config, host = value.get("Config"), value.get("HostConfig")
+if not isinstance(config, dict) or not isinstance(host, dict):
+    raise SystemExit("state validator inspect structure is incomplete")
+if value.get("Id") != cid or value.get("Name") != "/" + name or value.get("Image") != image_id:
+    raise SystemExit("state validator container identity mismatch")
+if config.get("Image") != image_id or config.get("User") != "10001:10001":
+    raise SystemExit("state validator image or user mismatch")
+if config.get("Entrypoint") != ["/app/probe-agent"]:
+    raise SystemExit("state validator entrypoint mismatch")
+expected_command = [
+    "validate-state", "--catalog", catalog_target, "--spool-dir", spool_target,
+    "--ledger-dir", ledger_target, "--expected-ledger-writer-dir", ledger_target,
+]
+if config.get("Cmd") != expected_command:
+    raise SystemExit("state validator command mismatch")
+for item in config.get("Env") or []:
+    key = item.split("=", 1)[0].upper()
+    if key in {"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"}:
+        raise SystemExit("proxy environment is forbidden in the state validator")
+labels = config.get("Labels") or {}
+if labels != {"com.jydn.chengwang.component": "m2b-probe-state-validator-candidate"}:
+    raise SystemExit("state validator labels mismatch")
+if host.get("NetworkMode") != "none" or host.get("ReadonlyRootfs") is not True or host.get("Privileged") is not False:
+    raise SystemExit("state validator isolation mismatch")
+if host.get("PidMode") or host.get("IpcMode") or host.get("UTSMode") or host.get("UsernsMode") or host.get("CgroupnsMode") == "host":
+    raise SystemExit("state validator namespace sharing is forbidden")
+if host.get("CapAdd") or host.get("CapDrop") != ["ALL"]:
+    raise SystemExit("state validator capability contract mismatch")
+if host.get("SecurityOpt") not in (["no-new-privileges"], ["no-new-privileges:true"]):
+    raise SystemExit("state validator no-new-privileges contract mismatch")
+if host.get("PidsLimit") != 32 or host.get("Memory") != 64 * 1024 * 1024 or host.get("NanoCpus") != 250_000_000:
+    raise SystemExit("state validator resource limit mismatch")
+if (host.get("RestartPolicy") or {}).get("Name") not in ("", "no") or host.get("AutoRemove") is not False:
+    raise SystemExit("state validator lifecycle policy mismatch")
+if (host.get("LogConfig") or {}).get("Type") != "none":
+    raise SystemExit("state validator logging policy mismatch")
+if (
+    host.get("PortBindings") or config.get("ExposedPorts") or config.get("Volumes")
+    or config.get("Healthcheck") or host.get("Devices") or host.get("DeviceRequests")
+    or host.get("Binds") or host.get("Tmpfs") or host.get("Links")
+    or host.get("VolumesFrom") or host.get("Dns") or host.get("DnsOptions")
+    or host.get("DnsSearch") or host.get("ExtraHosts") or host.get("GroupAdd")
+    or host.get("PublishAllPorts")
+):
+    raise SystemExit("state validator exposes an unexpected host resource")
+expected_mounts = {
+    catalog_target: pathlib.Path(catalog).resolve(strict=True),
+    spool_target: pathlib.Path(spool).resolve(strict=True),
+    ledger_target: pathlib.Path(ledger).resolve(strict=True),
+}
+seen = set()
+for mount in value.get("Mounts") or []:
+    target = mount.get("Destination")
+    if target not in expected_mounts or target in seen or mount.get("Type") != "bind" or mount.get("RW") is not False:
+        raise SystemExit("state validator mount set or mode is invalid")
+    if pathlib.Path(mount.get("Source", "")).resolve(strict=True) != expected_mounts[target]:
+        raise SystemExit("state validator mount source mismatch")
+    if mount.get("Propagation") not in ("", "rprivate"):
+        raise SystemExit("state validator mount propagation mismatch")
+    seen.add(target)
+if seen != set(expected_mounts):
+    raise SystemExit("state validator mount set is incomplete")
+PY
+
+  probe_validator_diagnostics=$probe_validator_report.stderr
+  [ ! -e "$probe_validator_diagnostics" ] || candidate_fail "state validator diagnostics destination already exists"
+  docker start -a "$probe_validator_cid" >"$probe_validator_report" 2>"$probe_validator_diagnostics"
+  chmod 600 "$probe_validator_report" "$probe_validator_diagnostics"
+  [ "$(docker inspect --format '{{.State.Running}}' "$probe_validator_cid")" = false ] || \
+    candidate_fail "state validator container did not stop"
+  [ "$(docker inspect --format '{{.State.ExitCode}}' "$probe_validator_cid")" = 0 ] || \
+    candidate_fail "state validator container returned a non-zero exit code"
+  [ ! -s "$probe_validator_diagnostics" ] || candidate_fail "state validator emitted unexpected diagnostics"
+  rm -f -- "$probe_validator_diagnostics"
+  [ "$(stat -c %s "$probe_validator_report")" -le 65536 ] || \
+    candidate_fail "state validator report exceeds its size limit"
+
+  python3 - "$probe_validator_report" <<'PY'
+import json, re, sys
+def unique(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise SystemExit(f"duplicate state validation report key: {key}")
+        result[key] = value
+    return result
+with open(sys.argv[1], encoding="utf-8") as stream:
+    report = json.load(stream, object_pairs_hook=unique)
+expected = {
+    "schema", "catalogDigest", "snapshotDigest", "readPathDigest", "ledgerWriterPathDigest",
+    "relationshipScope", "spoolResults", "ledgerSnapshots", "latestSequence", "latestStarts",
+    "latestInFlight", "latestSettled", "latestRateLimits", "advisoryOnly", "readOnlyValidation",
+    "securityMetadataVerified", "ownerUid", "ownerGid", "expectedOwnerUid", "expectedOwnerGid",
+    "missingRetainedEvidence", "relationshipComplete",
+}
+if not isinstance(report, dict) or set(report) != expected:
+    raise SystemExit("state validation report field set is invalid")
+if report["schema"] != "chengwang.probe-state-validation/v1" or report["relationshipScope"] != "latest-ledger-vs-retained-spool":
+    raise SystemExit("state validation report schema or relationship scope is invalid")
+for key in ("catalogDigest", "snapshotDigest", "readPathDigest", "ledgerWriterPathDigest"):
+    if not isinstance(report[key], str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", report[key]):
+        raise SystemExit(f"state validation report digest is invalid: {key}")
+if report["advisoryOnly"] is not True or report["readOnlyValidation"] is not True or report["securityMetadataVerified"] is not True:
+    raise SystemExit("state validation report does not prove read-only security metadata validation")
+for key in (
+    "spoolResults", "ledgerSnapshots", "latestSequence", "latestStarts", "latestInFlight",
+    "latestSettled", "latestRateLimits", "missingRetainedEvidence",
+):
+    if not isinstance(report[key], int) or isinstance(report[key], bool) or report[key] < 0:
+        raise SystemExit(f"state validation report count is invalid: {key}")
+for key in ("ownerUid", "ownerGid", "expectedOwnerUid", "expectedOwnerGid"):
+    if report[key] != 10001:
+        raise SystemExit(f"state validation report ownership is invalid: {key}")
+if not isinstance(report["relationshipComplete"], bool):
+    raise SystemExit("state validation relationshipComplete must be boolean")
+if report["relationshipComplete"] != (report["missingRetainedEvidence"] == 0):
+    raise SystemExit("state validation relationship completeness is inconsistent")
+PY
+
+  docker rm "$probe_validator_cid" >/dev/null
+  probe_validator_cid=
+  trap - EXIT HUP INT TERM
+)
+
+probe_extract_state_archive() {
+  probe_archive=$1
+  probe_destination=$2
+  [ -f "$probe_archive" ] && [ ! -L "$probe_archive" ] || candidate_fail "probe state archive is missing or unsafe"
+  [ ! -e "$probe_destination" ] || candidate_fail "probe state extraction destination already exists"
+  candidate_assert_no_symlink_components "$probe_archive"
+
+  python3 - "$probe_archive" "$probe_destination" "$PROBE_ARCHIVE_MAX_ENTRIES" "$PROBE_ARCHIVE_MAX_BYTES" <<'PY'
+import os, pathlib, shutil, sys, tarfile
+archive, destination = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+maximum_entries, maximum_bytes = map(int, sys.argv[3:])
+destination.mkdir(mode=0o700)
+os.chown(destination, 10001, 10001)
+count = 0
+total = 0
+seen = set()
+seen_directories = set()
+with tarfile.open(archive, "r|gz") as source:
+    for member in source:
+        path = pathlib.PurePosixPath(member.name)
+        if (
+            path.is_absolute() or ".." in path.parts or path.as_posix() != member.name
+            or not path.parts or path.parts[0] not in {"probe-spool", "probe-ledger"}
+            or not (member.isdir() or member.isfile()) or member.name in seen
+        ):
+            raise SystemExit("unsafe or duplicate probe state archive member")
+        if len(path.parts) == 1 and not member.isdir():
+            raise SystemExit("probe state archive roots must be directories")
+        if len(path.parts) > 1 and path.parent.as_posix() not in seen_directories:
+            raise SystemExit("probe state archive member appears before its declared parent directory")
+        count += 1
+        if count > maximum_entries + 2:
+            raise SystemExit("probe state archive entry limit exceeded")
+        seen.add(member.name)
+        target = destination.joinpath(*path.parts)
+        if member.isdir():
+            target.mkdir(mode=0o700, parents=False, exist_ok=False)
+            os.chown(target, 10001, 10001)
+            seen_directories.add(path.as_posix())
+            continue
+        total += member.size
+        if member.size < 0 or total > maximum_bytes:
+            raise SystemExit("probe state archive byte limit exceeded")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = os.open(target, flags, 0o600)
+        try:
+            with os.fdopen(descriptor, "wb", closefd=False) as output:
+                extracted = source.extractfile(member)
+                if extracted is None:
+                    raise SystemExit("probe state archive member has no payload")
+                shutil.copyfileobj(extracted, output, length=65536)
+                output.flush()
+                os.fsync(output.fileno())
+            os.chown(target, 10001, 10001)
+            if target.stat().st_size != member.size:
+                raise SystemExit("probe state archive member was truncated during extraction")
+        finally:
+            os.close(descriptor)
+if {"probe-spool", "probe-ledger"} - seen:
+    raise SystemExit("probe state archive is missing a required state root")
+PY
+}
+
+probe_compare_state_validation_reports() {
+  python3 - "$1" "$2" <<'PY'
+import json, sys
+def unique(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise SystemExit(f"duplicate state validation report key: {key}")
+        result[key] = value
+    return result
+with open(sys.argv[1], encoding="utf-8") as stream:
+    expected = json.load(stream, object_pairs_hook=unique)
+with open(sys.argv[2], encoding="utf-8") as stream:
+    actual = json.load(stream, object_pairs_hook=unique)
+if actual != expected:
+    raise SystemExit("archive state semantic report differs from the validated live-state report")
+value = actual.get("relationshipComplete")
+if not isinstance(value, bool):
+    raise SystemExit("state relationship completeness is invalid")
+print(str(value).lower())
+PY
+}
+
 probe_render_compose_json() {
   probe_output=$1
   probe_compose config --format json >"$probe_output"
@@ -451,15 +736,16 @@ probe_copy_validate_backup() {
   python3 - "$probe_backup" <<'PY'
 import pathlib, sys
 root = pathlib.Path(sys.argv[1])
-expected = {"SHA256SUMS", "backup-meta.json", "catalog.json", "dot-ca.pem", "egress-policy.json", "image-inspect.json", "probe-state.tar.gz", "probe.env"}
+expected = {"SHA256SUMS", "backup-meta.json", "catalog.json", "dot-ca.pem", "egress-policy.json", "image-inspect.json", "probe-state.tar.gz", "probe.env", "state-validation.json"}
 actual = {entry.name for entry in root.iterdir()}
 if actual != expected:
     raise SystemExit("probe backup directory must contain exactly the required backup unit")
 PY
 
-  for probe_member in SHA256SUMS backup-meta.json catalog.json dot-ca.pem egress-policy.json image-inspect.json probe-state.tar.gz probe.env; do
+  for probe_member in SHA256SUMS backup-meta.json catalog.json dot-ca.pem egress-policy.json image-inspect.json probe-state.tar.gz probe.env state-validation.json; do
     probe_assert_backup_file "$probe_backup/$probe_member"
   done
+  [ "$(stat -c %s "$probe_backup/state-validation.json")" -le 65536 ] || candidate_fail "state validation report exceeds its size limit"
   [ "$(stat -c %s "$probe_backup/probe-state.tar.gz")" -le "$PROBE_ARCHIVE_MAX_BYTES" ] || candidate_fail "compressed probe state archive exceeds its limit"
 
   [ ! -e "$probe_stage" ] || candidate_fail "private backup stage already exists"
@@ -467,7 +753,8 @@ PY
   cp -- "$probe_backup/SHA256SUMS" "$probe_backup/backup-meta.json" \
     "$probe_backup/catalog.json" "$probe_backup/dot-ca.pem" \
     "$probe_backup/egress-policy.json" "$probe_backup/image-inspect.json" \
-    "$probe_backup/probe-state.tar.gz" "$probe_backup/probe.env" "$probe_stage/"
+    "$probe_backup/probe-state.tar.gz" "$probe_backup/probe.env" \
+    "$probe_backup/state-validation.json" "$probe_stage/"
   chmod 600 "$probe_stage"/*
 
   probe_expected_reference=$(probe_image_reference)
@@ -480,7 +767,7 @@ import hashlib, json, os, pathlib, re, stat, sys, tarfile, time
 stage = pathlib.Path(stage_arg)
 expected_names = {
     "backup-meta.json", "catalog.json", "dot-ca.pem", "egress-policy.json",
-    "image-inspect.json", "probe-state.tar.gz", "probe.env",
+    "image-inspect.json", "probe-state.tar.gz", "probe.env", "state-validation.json",
 }
 actual_names = {entry.name for entry in stage.iterdir() if entry.name != "SHA256SUMS"}
 if actual_names != expected_names:
@@ -488,7 +775,7 @@ if actual_names != expected_names:
 
 entries = {}
 for line in (stage / "SHA256SUMS").read_text(encoding="ascii").splitlines():
-    match = re.fullmatch(r"([0-9a-f]{64})  (backup-meta\.json|catalog\.json|dot-ca\.pem|egress-policy\.json|image-inspect\.json|probe-state\.tar\.gz|probe\.env)", line)
+    match = re.fullmatch(r"([0-9a-f]{64})  (backup-meta\.json|catalog\.json|dot-ca\.pem|egress-policy\.json|image-inspect\.json|probe-state\.tar\.gz|probe\.env|state-validation\.json)", line)
     if not match or match.group(2) in entries:
         raise SystemExit("probe backup checksum manifest is invalid")
     entries[match.group(2)] = match.group(1)
@@ -501,7 +788,7 @@ for name, expected in entries.items():
 
 with (stage / "backup-meta.json").open(encoding="utf-8") as stream:
     metadata = json.load(stream)
-required_meta = {"schema", "createdUnix", "candidateRoot", "projectName", "imageId", "imageReference", "composeSha256", "activeContainerPresent"}
+required_meta = {"schema", "createdUnix", "candidateRoot", "projectName", "imageId", "imageReference", "composeSha256", "activeContainerPresent", "relationshipComplete"}
 if not isinstance(metadata, dict) or set(metadata) != required_meta:
     raise SystemExit("probe backup metadata schema is invalid")
 if metadata["schema"] != schema or metadata["candidateRoot"] != root or metadata["projectName"] != project:
@@ -510,6 +797,8 @@ if not isinstance(metadata["createdUnix"], int) or isinstance(metadata["createdU
     raise SystemExit("probe backup creation time is invalid")
 if not isinstance(metadata["activeContainerPresent"], bool):
     raise SystemExit("probe backup active-container flag is invalid")
+if not isinstance(metadata["relationshipComplete"], bool):
+    raise SystemExit("probe backup relationship completeness flag is invalid")
 now = int(time.time())
 maximum_age = int(max_age_text)
 if metadata["createdUnix"] > now + 5:
@@ -531,6 +820,15 @@ if not isinstance(image, list) or len(image) != 1 or image[0].get("Id") != metad
     raise SystemExit("probe backup image inspect evidence is invalid")
 if metadata["imageReference"] not in (image[0].get("RepoTags") or []):
     raise SystemExit("probe backup image inspect does not bind the release tag")
+
+with (stage / "state-validation.json").open(encoding="utf-8") as stream:
+    validation = json.load(stream)
+if not isinstance(validation, dict) or validation.get("schema") != "chengwang.probe-state-validation/v1":
+    raise SystemExit("probe backup state validation report is invalid")
+if validation.get("relationshipComplete") is not metadata["relationshipComplete"]:
+    raise SystemExit("probe backup relationship completeness metadata mismatch")
+if validation.get("readOnlyValidation") is not True or validation.get("securityMetadataVerified") is not True:
+    raise SystemExit("probe backup lacks read-only state security validation")
 
 if require_match_text == "yes":
     for staged_name, current_name in (

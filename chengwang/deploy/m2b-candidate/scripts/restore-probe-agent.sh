@@ -1,7 +1,7 @@
 #!/bin/sh
-# Validate and stage an active-probe backup. This version intentionally blocks
-# before switching state because the current probe-agent exposes no offline
-# spool+ledger semantic validation command.
+# Validate and stage an active-probe backup without touching live state. The
+# staged spool+ledger unit is semantically validated, then discarded; applying
+# it remains blocked until a separately audited atomic switch exists.
 set -eu
 umask 077
 
@@ -49,29 +49,6 @@ BACKUP_IMAGE_ID=$(read_backup_field imageId)
 BACKUP_IMAGE_REFERENCE=$(read_backup_field imageReference)
 CURRENT_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$BACKUP_IMAGE_REFERENCE")
 [ "$CURRENT_IMAGE_ID" = "$BACKUP_IMAGE_ID" ] || fail "backup image differs from the current immutable local image"
-
-CID_LIST=$(docker ps -aq \
-  --filter "label=com.jydn.chengwang.component=$PROBE_COMPONENT" \
-  --filter "label=com.docker.compose.project=$M2B_PROBE_PROJECT_NAME")
-case "$CID_LIST" in
-  '') CID= ;;
-  *' '*) fail "multiple active probe component containers are forbidden" ;;
-  *)
-    [ "$(printf '%s\n' "$CID_LIST" | wc -l | tr -d ' ')" -eq 1 ] || fail "multiple active probe component containers are forbidden"
-    CID=$CID_LIST
-    ;;
-esac
-if [ -n "$CID" ]; then
-  probe_assert_container_identity "$CID"
-  probe_assert_container_mounts "$CID"
-  [ "$(docker inspect --format '{{.Image}}' "$CID")" = "$BACKUP_IMAGE_ID" ] || fail "container image differs from the backup image"
-  docker stop -t 20 "$CID" >/dev/null
-  [ "$(docker inspect --format '{{.State.Running}}' "$CID")" = false ] || fail "probe-agent did not stop"
-  probe_assert_unique_container_and_mounts "$CID"
-else
-  probe_assert_unique_container_and_mounts ""
-fi
-probe_assert_no_uid10001_writers
 
 python3 - "$RESTORE_STAGE/backup" "$CANDIDATE_ROOT" "$M2B_PROBE_PROJECT_NAME" <<'PY'
 import hashlib, ipaddress, json, pathlib, re, sys
@@ -138,54 +115,9 @@ PY
 
 REPLACEMENT=$RESTORE_STAGE/replacement
 mkdir -m 700 -- "$REPLACEMENT"
-python3 - "$RESTORE_STAGE/backup/probe-state.tar.gz" "$REPLACEMENT/probe-state" "$PROBE_ARCHIVE_MAX_ENTRIES" "$PROBE_ARCHIVE_MAX_BYTES" <<'PY'
-import os, pathlib, shutil, stat, sys, tarfile
-archive, destination = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-maximum_entries, maximum_bytes = map(int, sys.argv[3:])
-destination.mkdir(mode=0o700)
-os.chown(destination, 10001, 10001)
-count = 0
-total = 0
-with tarfile.open(archive, "r|gz") as source:
-    for member in source:
-        path = pathlib.PurePosixPath(member.name)
-        if path.is_absolute() or ".." in path.parts or not (member.isdir() or member.isfile()):
-            raise SystemExit("unsafe probe state archive member")
-        if not path.parts or path.parts[0] not in {"probe-spool", "probe-ledger"}:
-            raise SystemExit("unexpected probe state archive root")
-        count += 1
-        if count > maximum_entries + 2:
-            raise SystemExit("probe state archive entry limit exceeded")
-        target = destination.joinpath(*path.parts)
-        if member.isdir():
-            target.mkdir(mode=0o700, parents=False, exist_ok=False)
-            os.chown(target, 10001, 10001)
-            continue
-        total += member.size
-        if total > maximum_bytes:
-            raise SystemExit("probe state archive byte limit exceeded")
-        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        descriptor = os.open(target, flags, 0o600)
-        try:
-            with os.fdopen(descriptor, "wb", closefd=False) as output:
-                extracted = source.extractfile(member)
-                if extracted is None:
-                    raise SystemExit("probe state archive member has no payload")
-                shutil.copyfileobj(extracted, output, length=65536)
-                output.flush()
-                os.fsync(output.fileno())
-            os.chown(target, 10001, 10001)
-            if target.stat().st_size != member.size:
-                raise SystemExit("probe state archive member was truncated during extraction")
-        finally:
-            os.close(descriptor)
-for required in (destination / "probe-spool", destination / "probe-ledger"):
-    if not required.is_dir():
-        raise SystemExit("probe state archive is missing a required directory")
-PY
+probe_extract_state_archive \
+  "$RESTORE_STAGE/backup/probe-state.tar.gz" \
+  "$REPLACEMENT/probe-state"
 
 mkdir -m 750 -- "$REPLACEMENT/config"
 chown 0:10001 "$REPLACEMENT/config"
@@ -198,7 +130,25 @@ chmod 600 "$REPLACEMENT/config/probe.env"
 chown 0:10001 "$REPLACEMENT/config/catalog.json" "$REPLACEMENT/config/dot-ca.pem" "$REPLACEMENT/config/egress-policy.json"
 chmod 640 "$REPLACEMENT/config/catalog.json" "$REPLACEMENT/config/dot-ca.pem" "$REPLACEMENT/config/egress-policy.json"
 
+probe_validate_state_snapshot \
+  "$BACKUP_IMAGE_ID" \
+  "$REPLACEMENT/config/catalog.json" \
+  "$REPLACEMENT/probe-state/probe-spool" \
+  "$REPLACEMENT/probe-state/probe-ledger" \
+  "$RESTORE_STAGE/staged-state-validation.json"
+
+RELATIONSHIP_COMPLETE=$(probe_compare_state_validation_reports \
+  "$RESTORE_STAGE/backup/state-validation.json" \
+  "$RESTORE_STAGE/staged-state-validation.json")
+
 printf '%s\n' "PROBE_RESTORE_ARCHIVE_AND_CONFIG=PASS"
-printf '%s\n' "PROBE_CONTAINER_STATE=STOPPED"
-printf '%s\n' "PROBE_RESTORE=BLOCKED_NO_OFFLINE_GO_SPOOL_LEDGER_VALIDATOR"
+printf '%s\n' "PROBE_RESTORE_STAGE_SEMANTIC_VALIDATION=PASS"
+printf '%s\n' "PROBE_STATE_RELATIONSHIP_COMPLETE=$RELATIONSHIP_COMPLETE"
+if [ "$RELATIONSHIP_COMPLETE" = true ]; then
+  printf '%s\n' "PROBE_RESTORE_VALIDATION_QUALITY=COMPLETE"
+else
+  printf '%s\n' "PROBE_RESTORE_VALIDATION_QUALITY=DEGRADED_RELATIONSHIP_INCOMPLETE"
+fi
+printf '%s\n' "PROBE_LIVE_CONTAINER_ACTION=NONE"
+printf '%s\n' "PROBE_RESTORE_APPLY=BLOCKED_UNAUDITED_LIVE_STATE_SWITCH"
 exit 78

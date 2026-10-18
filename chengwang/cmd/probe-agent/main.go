@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func execute(ctx context.Context, args []string, stderr io.Writer) error {
+func execute(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if ctx == nil {
 		return errors.New("probe-agent context is nil")
 	}
@@ -22,6 +22,9 @@ func execute(ctx context.Context, args []string, stderr io.Writer) error {
 	}
 	if len(args) > 0 && args[0] == "preflight" {
 		return runPreflightCommand(args[1:], stderr, time.Now)
+	}
+	if len(args) > 0 && args[0] == "validate-state" {
+		return runValidateStateCommand(args[1:], stdout, stderr, time.Now)
 	}
 	value, err := parseConfig(args, stderr)
 	if err != nil {
@@ -37,7 +40,7 @@ func execute(ctx context.Context, args []string, stderr io.Writer) error {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := execute(ctx, os.Args[1:], os.Stderr); err != nil {
+	if err := execute(ctx, os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return
 		}
