@@ -2,29 +2,29 @@
 
 ## 1. 结论先行
 
-M2b-1 目前新增的是 **可构建的隔离护栏候选、真实 probe-agent 的本地实现和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复和调度器集成，但尚未放进候选 Compose。当前开发机没有 Docker，因此源码与 Go 测试可以验收，容器运行态仍须在隔离 Linux 候选机执行后才能签署。
+M2b-1 目前包含 **隔离护栏候选、真实 probe-agent 的本地实现、默认关闭的独立主动代理容器定义和验收工具**，不是主动探针上线。护栏程序仍只做严格 catalog 解析、spool 可写性检查、存活记录和优雅停止，协议固定声明 `activeProbes=false`。`probe-agent` 已完成固定 DoT、启动账本、证据 spool、崩溃恢复、调度器集成和严格进程健康协议；单独的 `compose.probe-agent.yaml` 仅在显式 profile 下存在，当前仍接入 `internal` quarantine 网络。该静态定义只表达无公网默认出口意图，不能证明宿主或同网段路径已 deny-all。当前开发机没有 Docker，因此源码和静态配置可以验收，镜像构建、容器运行态、唯一出口和 canary 仍须在隔离 Linux 候选机执行后才能签署。
 
 以下四项仍是进入真实主动路径候选的阻断条件：
 
-1. `probe-agent` 尚未容器化并接受 Linux/Docker 故障注入；
+1. `probe-agent` 容器候选文件尚未完成 Linux/Docker 构建、运行和故障注入；
 2. 自有、无副作用、带版本化合同标记的 canary 尚未提供和批准；
 3. 独立 bridge 只提供隔离，不提供“唯一公网出口”证明；需要宿主机/外部防火墙或专用网关的出站策略与独立读回证据；
 4. Docker 基础镜像尚未锁定经过验证的 digest，也未生成候选 SBOM/来源证明。
 
-所以当前状态应写成：`guard and probe-agent implemented+tested local-only; container runtime not yet verified; active path blocked`。
+所以当前状态应写成：`guard and probe-agent implemented+tested local-only; active container files statically checked; Docker runtime and egress not proven; active path blocked`。
 
 ## 2. 候选架构边界
 
 ```text
 只读 catalog ─────┐
                   v
-        candidate-guard (uid 10001)
+        candidate-guard 或单独 profile 的 probe-agent (uid 10001)
         ├─ read-only rootfs
         ├─ cap_drop: ALL
         ├─ no-new-privileges
-        ├─ CPU 0.25 / RAM 64 MiB / PID 64
-        ├─ /run/m2b (tmpfs health)
-        └─ /var/lib/chengwang-probe (独立候选 spool)
+        ├─ CPU 0.25 / RAM 护栏 64 MiB、主动代理 96 MiB / PID 64
+        ├─ 独立 tmpfs health
+        └─ 独立候选 spool；probe-agent 另有独立 ledger
                   |
                   v
         internal Docker bridge
@@ -33,7 +33,7 @@ M2b-1 目前新增的是 **可构建的隔离护栏候选、真实 probe-agent �
 
 生产控制面、OpenClash、Mihomo selector、DNS 和候选不共享数据卷，也不向候选提供令牌。候选没有写 API、Docker socket、host PID/IPC/网络或生产控制通道。
 
-未来真实 probe-agent 只能替换护栏进程，不能放宽上述权限。若需要公网探测，必须先在容器外建立默认拒绝的 egress enforcement，并用网络命名空间/防火墙计数器/独立出口身份同时证明允许与拒绝路径；给普通 Docker bridge 增加默认路由不算通过。
+真实 probe-agent 使用单独的默认关闭 Compose/profile，不能与护栏同时被解释为同一份运行证据，也不能放宽上述权限。若需要公网探测，必须先在容器外建立默认拒绝的 egress enforcement，并用网络命名空间/防火墙计数器/独立出口身份同时证明允许与拒绝路径；给普通 Docker bridge 增加默认路由或在策略 JSON 中自报 `enforced` 都不算通过。
 
 ## 3. 验收证据矩阵
 
@@ -44,14 +44,14 @@ M2b-1 目前新增的是 **可构建的隔离护栏候选、真实 probe-agent �
 | 非 root / 只读 / capabilities | `docker inspect` + 容器内写入负测 | 待候选机运行 | 删除候选，不发布 |
 | CPU/RAM/PID | `docker inspect` 精确值 | 待候选机运行 | 删除候选，不发布 |
 | catalog/spool 边界 | Mount `RW` 读回 + 写入正负测试 | 待候选机运行 | 删除候选，保留日志 |
-| 健康检查 | tmpfs 心跳新鲜度、状态固定 `activeProbes=false` | 单测通过；运行态待验证 | 容器 unhealthy，不自动升级 |
+| 健康检查 | 护栏固定 `activeProbes=false`；主动代理严格验证 tmpfs 心跳、catalog digest、scheduler/clock/storage 且固定 `advisoryOnly=true` | 两套单测通过；运行态待验证 | 容器 unhealthy，不自动升级；不得推导业务健康 |
 | 优雅停止 | SIGTERM 日志 + 20 秒停止窗口 + 重启持久性 | 待候选机运行 | 保留旧镜像和 spool |
 | 隔离 bridge | 网络对象 `Internal=true`、无发布端口 | 待候选机运行 | 不开放 egress |
 | 唯一出口 | 防火墙/网关默认拒绝、允许列表、计数器和独立出口读回 | `blocked` | 禁止真实探测 |
 | 固定可信 DNS | 固定 DoT IP:port、TLS/SNI/CA、DNS 帧/记录边界、A/AAAA CNAME 一致性和重绑定注入 | 本地实现与测试通过；容器运行态未验 | 禁止真实探测 |
 | 自有 canary | 所有权、无副作用、合同版本、频率和限流批准 | `blocked` | 禁止公共目标 |
 | 生产不变 | 前后 hash-only manifest 完全一致 | 工具已提供，未在生产运行 | 任一变化立即停止并调查 |
-| 备份/回滚 | 专用根标记、停机一致性包、类型/数量/尺寸边界、SHA-256、保留失败副本、恢复后重验 | 工具已提供，未演练 | 不得清理旧副本 |
+| 备份/回滚 | 专用根标记、停机一致性包、类型/数量/尺寸边界、SHA-256、保留失败副本、恢复后重验 | 仅护栏候选工具已提供且未演练；主动代理的 spool+ledger+三份配置+镜像恢复单元尚未实现 | 主动代理禁止启动；不得清理旧副本 |
 
 “当前开发机没有 Docker”是缺少运行证据，不是失败，也不能写成通过。
 
@@ -62,11 +62,12 @@ M2b-1 目前新增的是 **可构建的隔离护栏候选、真实 probe-agent �
 在 `chengwang` 目录执行：
 
 ```sh
-gofmt -w deploy/m2b-candidate/cmd/candidate-guard
+gofmt -w cmd/probe-agent deploy/m2b-candidate/cmd/candidate-guard
 go test -count=1 ./...
-go test -race -count=3 ./internal/probe ./deploy/m2b-candidate/cmd/candidate-guard
+go test -race -count=3 ./cmd/probe-agent ./internal/probe ./deploy/m2b-candidate/cmd/candidate-guard
 go vet ./...
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/m2b-candidate-guard ./deploy/m2b-candidate/cmd/candidate-guard
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/m2b-probe-agent ./cmd/probe-agent
 ```
 
 这些命令只证明代码与目标平台可构建，不证明容器或网络状态。
@@ -121,7 +122,7 @@ DNS/TCP/TLS/HTTP/合同不匹配/429 等网络故障注入必须保持 `BLOCKED_
 
 恢复脚本要求绝对路径、合法候选根标记、容器组件标签与真实挂载源一致，并且必须设置确认短语。恢复后保持停止，重新执行候选验收；在全部通过前保留失败副本。
 
-这只是候选 spool 的回滚，不是生产控制面的回滚。生产仍使用其现有备份和回滚镜像，M2b 候选不得修改或重启它。
+这只是护栏候选 spool 的回滚，不是主动代理或生产控制面的回滚。主动代理另有 probe-spool、probe-ledger、三份只读配置与独立镜像，当前脚本没有覆盖这个一致性单元；在专用备份/恢复脚本和演练证据完成前不得启动主动代理。生产仍使用其现有备份和回滚镜像，M2b 候选不得修改或重启它。
 
 ## 6. 进入真实主动探针前的退出条件
 
@@ -134,8 +135,8 @@ DNS/TCP/TLS/HTTP/合同不匹配/429 等网络故障注入必须保持 `BLOCKED_
 5. canary 所有权、内容合同、限流、隐私和无副作用得到书面批准；
 6. 启动预算跨重启耐久，重复/时钟回拨/存储降级继续失败关闭；
 7. 候选前后不变门禁通过，且 M2a 24 小时浸泡已签署；
-8. 备份和回滚实际演练通过。
+8. 主动代理的 spool、ledger、catalog、DoT CA、出口策略和镜像形成同一备份/恢复单元，且实际演练通过。
 
-本地已实现不等于上述退出条件已经签署。尤其当前 Compose 仍运行 `candidate-guard`，不会调用 `probe-agent`。
+本地已实现不等于上述退出条件已经签署。默认护栏 Compose 仍只运行 `candidate-guard`；单独的主动代理 Compose 需要显式 profile，blocked 示例会拒绝启动，且当前没有获批出口或 Docker 运行证据。
 
 在这些条件完成前，不创建生产定时任务、不开放 API、不显示“节点能力已验证”，也不将护栏容器部署到生产。

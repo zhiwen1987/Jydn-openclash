@@ -1,0 +1,12 @@
+**
+!go.mod
+!cmd/
+!cmd/probe-agent/
+!cmd/probe-agent/**
+!internal/
+!internal/probe/
+!internal/probe/**
+!deploy/
+!deploy/m2b-candidate/
+!deploy/m2b-candidate/scripts/
+!deploy/m2b-candidate/scripts/probe-agent-entrypoint.sh

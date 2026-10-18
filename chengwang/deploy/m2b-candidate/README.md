@@ -11,8 +11,9 @@
 | Docker 运行时验收 | 未执行 | 当前开发机没有 Docker；必须在隔离候选机运行脚本后才能签署 |
 | 固定可信解析器 | 已实现、本地测试通过 | 固定 IP:port 的 DoT、TLS/SNI/CA 校验、完整有界 CNAME 链、A/AAAA 一致性；尚未做候选容器运行态验证 |
 | 唯一允许出口 | `blocked` | `internal: true` 只能证明隔离，不能证明一个可用且唯一的公网出口 |
-| `probe-agent` 命令 | 已实现、本地测试通过 | 启动账本先于网络、结果先入 spool 再结算、跨重启预算及崩溃恢复；尚未容器化，也没有获批 canary/出口 |
-| 主动业务探针 | `blocked` | 护栏容器仍固定 `activeProbes=false`；自有 canary、唯一出口和容器运行门禁未完成 |
+| `probe-agent` 命令 | 已实现、本地测试通过 | 启动账本先于网络、结果先入 spool 再结算、跨重启预算、崩溃恢复和严格进程健康协议；尚未完成容器运行态验收 |
+| 主动探测容器定义 | 已实现、默认关闭、仅静态校验 | 独立 profile、非 root、只读根、独立 spool/ledger、健康 tmpfs；没有 Docker 构建或运行证据 |
+| 主动业务探针 | `blocked` | 自有 canary、唯一出口、宿主防火墙计数器和容器运行门禁未完成；`internal` quarantine 只表达无公网出口意图，运行态 deny-all 未证明 |
 | 生产部署 | 未执行 | 本目录不得直接替换 `/opt/chengwang` 的生产控制面 |
 
 `probe.invalid` 是故意不可用的文档占位目标。不得把它替换为公共业务域名后直接运行。真实目标必须先成为自有、无副作用、版本化合同端点，并获得审批。
@@ -30,19 +31,57 @@ sudo sh scripts/fault-injection.sh
 
 默认根目录固定为本目录的 `runtime`；首次运行验收脚本时，在候选根目录范围内只会创建根目录、专用标记和 `spool`。验收还会按 Compose 构建并启动独立镜像、容器和网络。脚本不会修改候选根目录本身的属主或权限，只会把专用 `spool` 设为 uid/gid `10001:10001`、模式 `0700`。
 
-验收脚本会构建并启动独立项目 `chengwang-m2b-candidate`，验证容器约束、读写边界、健康检查、优雅停止、重启持久性、无效 catalog 失败关闭、只读 spool 失败关闭和心跳停滞检测。结束时容器保持运行，仍处于无公网出口的隔离网络。
+验收脚本会按“实例名 + 规范化候选根路径摘要”派生独立项目名，构建并启动对应护栏候选，验证容器约束、读写边界、健康检查、优雅停止、重启持久性、无效 catalog 失败关闭、只读 spool 失败关闭和心跳停滞检测。结束时容器保持运行，仍处于无公网出口的隔离网络。
 
 脚本输出的以下三项必须继续显示 `BLOCKED`，否则属于事实误报：
 
 ```text
-ACTIVE_PROBE_EXECUTION=BLOCKED_NOT_CONTAINERIZED_OR_EGRESS_APPROVED
+ACTIVE_PROBE_EXECUTION=BLOCKED_SEPARATE_PROFILE_EGRESS_AND_RUNTIME_UNPROVEN
 FIXED_TRUSTED_RESOLVER=IMPLEMENTED_LOCAL_ONLY_RUNTIME_NOT_PROVEN
 UNIQUE_EGRESS_ENFORCEMENT=BLOCKED_NOT_PROVEN
 ```
 
+## 主动探测候选文件
+
+`compose.probe-agent.yaml` 是单独的 Compose 文件，服务只存在于显式 profile `active-probe-candidate`。示例 `.env.probe.example`、`catalog.canary.example.json` 和 `egress-policy.example.json` 故意包含阻断值；直接复制不会得到可运行探针。`Dockerfile.probe-agent.dockerignore` 只放行构建主动代理所需的最小源码，不扩大护栏镜像上下文。
+
+离线门禁要求配置路径和权限精确固定：`config/` 必须为 `root:10001`、`0750`；容器只读挂载的 `catalog.json`、`dot-ca.pem`、`egress-policy.json` 必须为 `root:10001`、`0640`、硬链接数 1；不挂载进容器的 `probe.env` 必须为 `root:root`、`0600`、硬链接数 1。四个文件只能使用候选根下这些固定名称，避免可写父目录、不可读配置和路径别名造成静态通过、运行失败。
+
+在任何构建或启动之前，只能先运行纯离线校验器。它不调用 Docker、不解析 DNS、不访问网络、不安装防火墙，也不启动容器、探针或网络服务；它只调用有界的本地只读检查工具。即使校验通过，最后仍固定报告 Compose 未解析、出口运行态和启动未获证明：
+
+```sh
+sh scripts/verify-probe-config.sh \
+  --env /var/lib/chengwang-m2b-candidate/<instance>/config/probe.env \
+  --compose /absolute/repository/path/compose.probe-agent.yaml \
+  --catalog /var/lib/chengwang-m2b-candidate/<instance>/config/catalog.json \
+  --dot-ca /var/lib/chengwang-m2b-candidate/<instance>/config/dot-ca.pem \
+  --egress-policy /var/lib/chengwang-m2b-candidate/<instance>/config/egress-policy.json \
+  --candidate-root /var/lib/chengwang-m2b-candidate/<instance>
+```
+
+预期结尾必须为：
+
+```text
+OFFLINE_INPUT_CHECK=PASS
+STATIC_COMPOSE_CONTRACT=PASS
+COMPOSE_PARSE=NOT_RUN
+EGRESS_RUNTIME=NOT_PROVEN
+ACTIVE_START=BLOCKED
+```
+
+`STATIC_COMPOSE_CONTRACT=PASS` 只表示固定仓库文件命中了离线安全片段检查，不等于 Docker Compose 已完成结构解析。`COMPOSE_PARSE=NOT_RUN` 必须保持明确；进入受控候选运行前，还要用候选机的 Docker Compose v2 解析、读回合并结果并按字段验收。
+
+本阶段故意不提供启动命令。只有 M2a 24 小时签署、自有 canary 审批、默认拒绝出口策略安装、允许/拒绝计数器取证、镜像来源固定和变更窗口备份全部完成后，才编写候选机专用的受控启动与回滚步骤。
+
 ## 生产周边不变证明
 
 `capture-baseline.sh` 只读采集并只保留 SHA-256：活动 OpenClash 配置、OpenClash UCI、DNS/DHCP UCI、`resolv.conf`、selector 当前选择、生产控制面 Compose 和生产控制面安全运行状态。Controller 原始响应和 UCI 原文只存在于权限 `0700` 的临时目录，退出时删除。
+
+证据目录必须由当前执行用户持有、权限精确为 `0700`，路径不能包含符号链接；输出只能是该目录的直接子文件。脚本使用同目录随机临时文件、落盘同步和不覆盖发布，遇到同名文件或并发创建会失败关闭：
+
+```sh
+sudo install -d -m 0700 /root/m2b-evidence
+```
 
 在候选动作前后分别运行，输出文件必须是新文件：
 
@@ -68,6 +107,8 @@ sh scripts/compare-baseline.sh \
 只有 `UNCHANGED_GATE=PASS` 才能证明这些具体哈希在窗口内未变。它不能证明公网出口、业务可用性或没有哈希范围之外的变化。
 
 ## 候选备份与恢复
+
+本节现有脚本只覆盖默认护栏候选的 catalog、单一 spool 和镜像，不覆盖主动代理的 probe-spool、probe-ledger、DoT CA、出口策略和独立镜像。主动代理的完整备份/恢复单元尚未实现和演练，因此这是启动阻断项，不能套用下面的护栏恢复步骤。
 
 备份脚本只接受绝对路径，并要求 spool 和备份目录都位于 `M2B_CANDIDATE_ROOT` 下；它会读回容器真实挂载源、先优雅停止候选，再备份 catalog、spool、候选镜像检查结果和校验和，并把候选保持在停止状态：
 

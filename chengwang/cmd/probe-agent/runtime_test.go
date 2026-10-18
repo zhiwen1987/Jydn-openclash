@@ -55,6 +55,7 @@ func (executor *fakeExecutor) ResolveAndRun(context.Context, probe.Catalog, stri
 type fakeStore struct {
 	log       *eventLog
 	appendErr error
+	closed    chan struct{}
 }
 
 func (store *fakeStore) Append(result probe.ProbeResult) error {
@@ -62,13 +63,19 @@ func (store *fakeStore) Append(result probe.ProbeResult) error {
 	return store.appendErr
 }
 
-func (*fakeStore) Close() error { return nil }
+func (store *fakeStore) Close() error {
+	if store.closed != nil {
+		close(store.closed)
+	}
+	return nil
+}
 
 type fakeLedger struct {
 	log       *eventLog
 	recordErr error
 	settleErr error
 	settled   chan struct{}
+	closed    chan struct{}
 }
 
 func (ledger *fakeLedger) RecordStart(startID, probeID string, _ time.Time) error {
@@ -89,7 +96,12 @@ func (ledger *fakeLedger) SettleRecovered(startID string, result probe.ProbeResu
 	return ledger.settleErr
 }
 
-func (*fakeLedger) Close() error { return nil }
+func (ledger *fakeLedger) Close() error {
+	if ledger.closed != nil {
+		close(ledger.closed)
+	}
+	return nil
+}
 
 func TestBuildSchedulerEnforcesDurableStartNetworkSpoolSettleOrder(t *testing.T) {
 	log := &eventLog{}
@@ -349,6 +361,100 @@ func TestApplicationInitializesWithoutNetworkAndReleasesLocksOnCancellation(t *t
 	}
 	if err := ledger.Close(); err != nil {
 		t.Fatalf("close reopened start ledger: %v", err)
+	}
+}
+
+func TestApplicationPublishesHealthAndRemovesItOnCancellation(t *testing.T) {
+	base := t.TempDir()
+	catalog := commandTestCatalog(t)
+	raw, err := json.Marshal(catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalogPath := filepath.Join(base, "catalog.json")
+	if err := os.WriteFile(catalogPath, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	healthDirectory := filepath.Join(base, "health")
+	if err := os.Mkdir(healthDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(healthDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	healthPath := filepath.Join(healthDirectory, "probe-agent.json")
+	arguments := replaceArgument(validArguments(base), "--catalog", catalogPath)
+	arguments = append(arguments, "--health-file", healthPath)
+	value, err := parseConfig(arguments, nil)
+	if err != nil {
+		t.Fatalf("parseConfig() error = %v", err)
+	}
+	app, err := newApplication(value)
+	if err != nil {
+		t.Fatalf("newApplication() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- app.run(ctx) }()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if _, err := os.Stat(healthPath); err == nil {
+			break
+		} else if !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("inspect health file: %v", err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("application did not publish its initial health record")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if err := runHealthCommand([]string{"--health-file", healthPath, "--catalog", catalogPath}, nil, time.Now); err != nil {
+		t.Fatalf("health command during run error = %v", err)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("application.run() error = %v", err)
+	}
+	if _, err := os.Lstat(healthPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("health file remains after graceful cancellation: %v", err)
+	}
+}
+
+func TestApplicationHealthFailureStopsSchedulerAndClosesResources(t *testing.T) {
+	catalog := commandTestCatalog(t)
+	log := &eventLog{}
+	storeClosed := make(chan struct{})
+	ledgerClosed := make(chan struct{})
+	store := &fakeStore{log: log, closed: storeClosed}
+	ledger := &fakeLedger{log: log, closed: ledgerClosed}
+	scheduler, err := buildScheduler(catalog, &fakeExecutor{log: log}, fakeResolver{}, store, ledger, schedulerInputs{
+		anchor: time.Now(), concurrency: 1, queueSize: 1, startsPerMinute: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := errors.New("health storage failed")
+	publisher := &healthPublisher{
+		path: "unused", catalogDigest: catalog.Digest, status: scheduler.Status,
+		now: time.Now, interval: time.Second,
+		write: func(string, probeAgentHealth) error { return want },
+	}
+	app := &application{scheduler: scheduler, store: store, ledger: ledger, health: publisher}
+	if err := app.run(context.Background()); !errors.Is(err, want) {
+		t.Fatalf("application.run() error = %v", err)
+	}
+	select {
+	case <-storeClosed:
+	default:
+		t.Fatal("result store was not closed after health failure")
+	}
+	select {
+	case <-ledgerClosed:
+	default:
+		t.Fatal("start ledger was not closed after health failure")
+	}
+	if scheduler.Status().Running {
+		t.Fatal("scheduler remained running after health failure")
 	}
 }
 

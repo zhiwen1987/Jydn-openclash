@@ -29,6 +29,7 @@ type application struct {
 	scheduler *probe.Scheduler
 	store     resultStore
 	ledger    durableLedger
+	health    *healthPublisher
 }
 
 func newApplication(value config) (_ *application, err error) {
@@ -115,7 +116,11 @@ func newApplication(value config) (_ *application, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return &application{scheduler: scheduler, store: store, ledger: ledger}, nil
+	health, err := newHealthPublisher(value.healthFilePath, catalog.Digest, scheduler.Status)
+	if err != nil {
+		return nil, fmt.Errorf("configure probe-agent health: %w", err)
+	}
+	return &application{scheduler: scheduler, store: store, ledger: ledger, health: health}, nil
 }
 
 func reconcileInflightResults(ledger durableLedger, state probe.StartLedgerSnapshot, results []probe.ProbeResult) error {
@@ -206,11 +211,49 @@ func mergeNotBefore(first, second map[string]time.Time) map[string]time.Time {
 }
 
 func (app *application) run(ctx context.Context) (err error) {
+	if ctx == nil {
+		return errors.New("probe application context is nil")
+	}
 	if app == nil || app.scheduler == nil || app.store == nil || app.ledger == nil {
 		return errors.New("probe application is incomplete")
 	}
 	defer func() {
 		err = errors.Join(err, app.ledger.Close(), app.store.Close())
 	}()
-	return app.scheduler.Run(ctx)
+	if app.health == nil {
+		return app.scheduler.Run(ctx)
+	}
+	// Invalidate any record left by an ungraceful prior process before this
+	// scheduler can advertise itself as running.
+	if err := removeHealthFile(app.health.path); err != nil {
+		return fmt.Errorf("invalidate previous probe-agent health: %w", err)
+	}
+
+	runContext, cancel := context.WithCancel(ctx)
+	defer cancel()
+	schedulerDone := make(chan error, 1)
+	healthDone := make(chan error, 1)
+	go func() { schedulerDone <- app.scheduler.Run(runContext) }()
+	go func() { healthDone <- app.health.run(runContext) }()
+
+	var schedulerErr, healthErr error
+	var schedulerFinished, healthFinished bool
+	select {
+	case schedulerErr = <-schedulerDone:
+		schedulerFinished = true
+	case healthErr = <-healthDone:
+		healthFinished = true
+	case <-ctx.Done():
+	}
+	cancel()
+	if !healthFinished {
+		healthErr = <-healthDone
+	}
+	// Stop the writer before removing its record, but do not leave a healthy
+	// heartbeat behind while probe workers finish their bounded cancellation.
+	cleanupErr := removeHealthFile(app.health.path)
+	if !schedulerFinished {
+		schedulerErr = <-schedulerDone
+	}
+	return errors.Join(schedulerErr, healthErr, cleanupErr)
 }

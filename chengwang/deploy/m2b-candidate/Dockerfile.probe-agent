@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+
+FROM golang:1.23-alpine AS builder
+WORKDIR /src
+COPY go.mod ./
+COPY internal/probe/ ./internal/probe/
+COPY cmd/probe-agent/ ./cmd/probe-agent/
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/probe-agent ./cmd/probe-agent
+
+FROM alpine:3.21
+RUN addgroup -S -g 10001 chengwang-probe \
+    && adduser -S -D -H -u 10001 -G chengwang-probe chengwang-probe \
+    && mkdir -p /app /etc/ssl/certs /run/chengwang-probe /run/m2b-probe-health \
+        /var/lib/chengwang-probe/results /var/lib/chengwang-probe/ledger \
+    && chown -R 10001:10001 /run/m2b-probe-health \
+        /var/lib/chengwang-probe/results /var/lib/chengwang-probe/ledger
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /out/probe-agent /app/probe-agent
+COPY --chmod=0555 deploy/m2b-candidate/scripts/probe-agent-entrypoint.sh /app/probe-agent-entrypoint.sh
+USER 10001:10001
+WORKDIR /app
+ENTRYPOINT ["/app/probe-agent-entrypoint.sh"]
+CMD ["/app/probe-agent"]

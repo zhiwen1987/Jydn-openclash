@@ -41,6 +41,9 @@ func TestParseConfigRequiresStrictFixedInputs(t *testing.T) {
 		{"overlapping stores", replaceArgument(args, "--ledger-dir", filepath.Join(base, "spool", "ledger")), "non-overlapping"},
 		{"catalog in store", replaceArgument(args, "--catalog", filepath.Join(base, "spool", "catalog.json")), "outside writable"},
 		{"bad concurrency", replaceArgument(args, "--concurrency", "17"), "between 1 and 16"},
+		{"health in spool", append(args, "--health-file", filepath.Join(base, "spool", "health.json")), "outside writable"},
+		{"health replaces catalog", append(args, "--health-file", filepath.Join(base, "catalog.json")), "must not replace --catalog"},
+		{"health whitespace", append(args, "--health-file", " "+filepath.Join(base, "health.json")), "surrounding whitespace"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

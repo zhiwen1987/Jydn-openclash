@@ -26,6 +26,7 @@ type config struct {
 	doTUpstream      netip.AddrPort
 	doTServerName    string
 	doTCAPath        string
+	healthFilePath   string
 	resolverTimeout  time.Duration
 	runnerTimeout    time.Duration
 	concurrency      int
@@ -54,6 +55,7 @@ func parseConfig(args []string, output io.Writer) (config, error) {
 	flags.StringVar(&upstream, "dot-upstream", "", "fixed DNS-over-TLS endpoint as IP:port")
 	flags.StringVar(&result.doTServerName, "dot-server-name", "", "TLS SNI name for the fixed DoT endpoint")
 	flags.StringVar(&result.doTCAPath, "dot-ca", "", "optional PEM CA bundle for the DoT endpoint")
+	flags.StringVar(&result.healthFilePath, "health-file", "", "optional independent tmpfs health record path")
 	flags.DurationVar(&result.resolverTimeout, "resolver-timeout", 5*time.Second, "total timeout for one fixed-DoT resolution")
 	flags.DurationVar(&result.runnerTimeout, "runner-timeout", 10*time.Second, "maximum total HTTPS probe timeout")
 	flags.IntVar(&result.concurrency, "concurrency", probe.DefaultProbeConcurrency, "global probe concurrency")
@@ -161,6 +163,12 @@ func validateIndependentPaths(value config) error {
 		}
 		paths["dot-ca"] = value.doTCAPath
 	}
+	if value.healthFilePath != "" {
+		if value.healthFilePath != strings.TrimSpace(value.healthFilePath) {
+			return errors.New("--health-file must not contain surrounding whitespace")
+		}
+		paths["health-file"] = value.healthFilePath
+	}
 	abs := make(map[string]string, len(paths))
 	for name, path := range paths {
 		resolved, err := filepath.Abs(path)
@@ -179,6 +187,16 @@ func validateIndependentPaths(value config) error {
 		}
 		if pathsOverlap(filePath, abs["spool-dir"]) || pathsOverlap(filePath, abs["ledger-dir"]) {
 			return fmt.Errorf("--%s must be outside writable spool and ledger directories", fileName)
+		}
+	}
+	if healthPath, exists := abs["health-file"]; exists {
+		if pathsOverlap(healthPath, abs["spool-dir"]) || pathsOverlap(healthPath, abs["ledger-dir"]) {
+			return errors.New("--health-file must be outside writable spool and ledger directories")
+		}
+		for _, immutableName := range []string{"catalog", "dot-ca"} {
+			if immutablePath, ok := abs[immutableName]; ok && healthPath == immutablePath {
+				return fmt.Errorf("--health-file must not replace --%s", immutableName)
+			}
 		}
 	}
 	return nil

@@ -1,0 +1,32 @@
+{
+  "schema": "chengwang.probe-catalog/v1",
+  "revision": "example-canary-blocked-v1",
+  "agent": {
+    "id": "probe-agent-candidate",
+    "independence": "P1",
+    "advisoryOnly": true
+  },
+  "paths": [
+    {
+      "id": "candidate-direct-blocked",
+      "kind": "direct"
+    }
+  ],
+  "probes": [
+    {
+      "id": "owned-canary-placeholder",
+      "pathId": "candidate-direct-blocked",
+      "kind": "https",
+      "host": "probe.invalid",
+      "port": 443,
+      "requestPath": "/healthz",
+      "method": "GET",
+      "expectedStatus": [200],
+      "requiredMarker": "replace-with-owned-canary-contract",
+      "intervalSeconds": 300,
+      "timeoutSeconds": 5,
+      "ttlSeconds": 600,
+      "maxBodyBytes": 4096
+    }
+  ]
+}

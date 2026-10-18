@@ -1,0 +1,19 @@
+{
+  "schema": "chengwang.probe-egress-policy/v1",
+  "revision": "example-blocked-v1",
+  "approval": {
+    "status": "unapproved",
+    "owner": "",
+    "approvedAt": null
+  },
+  "enforcement": {
+    "state": "blocked",
+    "mode": "deny-all",
+    "runtimeEvidence": "not-collected"
+  },
+  "allowedDestinations": [],
+  "notes": [
+    "Schema example only; it does not install or prove an egress policy.",
+    "Active probe startup must remain blocked until an approved policy and runtime counter evidence exist."
+  ]
+}
