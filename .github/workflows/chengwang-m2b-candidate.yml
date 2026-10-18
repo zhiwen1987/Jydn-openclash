@@ -57,6 +57,70 @@ jobs:
           test "$(/usr/bin/docker image inspect --format '{{.Os}}/{{.Architecture}}' "$PYTHON_TEST_IMAGE")" = "linux/amd64"
           echo 'PYTHON_TEST_IMAGE_BOUNDARY=PINNED_TEST_HARNESS_NOT_PRODUCT_SUPPLY_CHAIN_ACCEPTANCE'
 
+      - name: Run probe restore root syscall-path gate in a locked-down container
+        shell: bash
+        env:
+          PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/chengwang-proberestore-artifacts"
+          root_fixture="$RUNNER_TEMP/chengwang-proberestore-rootfs"
+          container_name="chengwang-proberestore-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            /usr/bin/docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          /usr/bin/install -d -m 0755 "$artifact_dir"
+          /usr/bin/sudo --non-interactive /usr/bin/install -d -o 0 -g 0 -m 0700 "$root_fixture"
+
+          cd chengwang
+          CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=readonly GOPROXY=off GOSUMDB=off \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -c \
+              -tags proberestore_root -o "$artifact_dir/proberestore-root.test" ./internal/proberestore
+          /usr/bin/chmod 0555 "$artifact_dir/proberestore-root.test"
+
+          /usr/bin/timeout --signal=KILL 5m \
+            /usr/bin/docker run --rm --init --pull never --platform linux/amd64 \
+              --name "$container_name" \
+              --network none --read-only --user 0:0 \
+              --cap-drop ALL --security-opt no-new-privileges \
+              --pids-limit 128 --memory 512m --cpus 2 \
+              --mount "type=bind,src=$artifact_dir,dst=/tests,readonly" \
+              --mount "type=bind,src=$root_fixture,dst=/root" \
+              --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+              --env GOMAXPROCS=2 --env LANG=C.UTF-8 --env TZ=UTC \
+              --entrypoint /tests/proberestore-root.test \
+              "$PYTHON_TEST_IMAGE" \
+              -test.v=test2json -test.count=1 -test.timeout=3m 2>&1 \
+            | /opt/hostedtoolcache/go/1.23.12/x64/bin/go tool test2json \
+                -p chengwang/internal/proberestore \
+            | /usr/bin/tee "$artifact_dir/proberestore-root.json"
+
+          /usr/bin/python3 - "$artifact_dir/proberestore-root.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1]).resolve(strict=True)
+          linux_runs = set()
+          package_passed = False
+          with path.open(encoding="utf-8") as handle:
+              for line_number, line in enumerate(handle, 1):
+                  event = json.loads(line)
+                  if event.get("Action") == "skip":
+                      raise SystemExit(f"Go skip is forbidden at {path}:{line_number}: {event}")
+                  test = event.get("Test")
+                  if event.get("Action") == "run" and isinstance(test, str) and test.startswith("TestLinux"):
+                      linux_runs.add(test)
+                  if event.get("Action") == "pass" and event.get("Package") == "chengwang/internal/proberestore" and test is None:
+                      package_passed = True
+          if len(linux_runs) != 11:
+              raise SystemExit(f"expected 11 Linux root tests, observed {len(linux_runs)}: {sorted(linux_runs)}")
+          if not package_passed:
+              raise SystemExit("proberestore package did not emit a passing terminal event")
+          print("PROBE_RESTORE_ROOT_GATE=PASS linux_root_tests=11 skips=0 filesystem=ext4-or-xfs")
+          PY
+
       - name: Run root ownership Python contracts in a locked-down container
         shell: bash
         env:
