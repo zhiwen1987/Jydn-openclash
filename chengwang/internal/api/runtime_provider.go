@@ -10,6 +10,7 @@ import (
 )
 
 var errRuntimeBusy = errors.New("mihomo runtime refresh admission is full")
+var errRuntimeClock = errors.New("mihomo runtime clock moved backwards")
 
 const (
 	defaultRuntimeTTL      = 5 * time.Second
@@ -57,6 +58,10 @@ func (p *runtimeProvider) observe(ctx context.Context, requireFresh bool) (runti
 	for {
 		now := p.now().UTC()
 		p.mu.Lock()
+		if (p.hasSnapshot && now.Before(p.lastSuccess)) || (!p.lastAttempt.IsZero() && now.Before(p.lastAttempt)) {
+			p.mu.Unlock()
+			return runtimeObservation{}, errRuntimeClock
+		}
 		if p.hasSnapshot && now.Sub(p.lastSuccess) <= p.ttl {
 			result := p.observationLocked(true, true)
 			p.mu.Unlock()
@@ -103,6 +108,12 @@ func (p *runtimeProvider) observe(ctx context.Context, requireFresh bool) (runti
 		snapshot, err := p.reader.ReadRuntime(ctx)
 		completedAt := p.now().UTC()
 		p.mu.Lock()
+		if completedAt.Before(p.lastAttempt) || (p.hasSnapshot && completedAt.Before(p.lastSuccess)) {
+			p.inflight = nil
+			close(done)
+			p.mu.Unlock()
+			return runtimeObservation{}, errRuntimeClock
+		}
 		if err == nil {
 			p.snapshot = snapshot
 			p.hasSnapshot = true

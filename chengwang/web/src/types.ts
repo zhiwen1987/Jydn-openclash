@@ -61,6 +61,31 @@ export type CapabilityReport = {
   capabilities: SystemCapability[]
 }
 
+export type ObservationState = 'unknown' | 'available' | 'degraded' | 'unavailable'
+export type ObservationLayer = {
+  state: ObservationState
+  observedAt?: string
+  expiresAt?: string
+  reason: string
+}
+export type ObservationStatus = {
+  configured: boolean
+  mode: string
+  running: boolean
+  fresh: boolean
+  stale: boolean
+  lastAttemptAt?: string
+  lastSuccessAt?: string
+  consecutiveFailures: number
+  controller: ObservationLayer
+  nodeTechnical: ObservationLayer
+  internet: ObservationLayer
+  business: ObservationLayer
+  dns: ObservationLayer
+  storage: ObservationLayer
+  clock: ObservationLayer
+}
+
 export type OperationResource = {
   tenantId: string
   siteId: string

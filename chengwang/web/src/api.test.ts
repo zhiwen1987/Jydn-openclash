@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { APIError, getMihomoRuntime, isManagementTransportSecure } from './api'
+import { APIError, getMihomoRuntime, getObservationStatus, isManagementTransportSecure } from './api'
 
 afterEach(() => {
 	vi.unstubAllGlobals()
@@ -24,6 +24,22 @@ describe('management transport boundary', () => {
 			code: 'secure_transport_required',
 		})
 		expect(fetchMock).not.toHaveBeenCalled()
+	})
+})
+
+describe('passive observation API', () => {
+	it('reads the anonymous cached status without credentials', async () => {
+		const status = { configured: true, mode: 'passive_read_only', running: true, fresh: false, stale: false, consecutiveFailures: 0 }
+		let capturedInit: RequestInit | undefined
+		const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+			expect(String(input)).toBe('/api/v1/observations/status')
+			capturedInit = init
+			return Promise.resolve({ ok: true, status: 200, json: async () => status } as Response)
+		})
+		vi.stubGlobal('fetch', fetchMock)
+		await expect(getObservationStatus()).resolves.toEqual(status)
+		expect(fetchMock).toHaveBeenCalledWith('/api/v1/observations/status', expect.objectContaining({ headers: { Accept: 'application/json' } }))
+		expect(capturedInit?.headers).not.toHaveProperty('Authorization')
 	})
 })
 

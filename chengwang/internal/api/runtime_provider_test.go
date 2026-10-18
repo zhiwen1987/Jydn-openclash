@@ -53,3 +53,40 @@ func TestRuntimeProviderMarksFallbackUnreachableAndStale(t *testing.T) {
 		t.Fatalf("stale fallback = %+v", fallback)
 	}
 }
+
+func TestRuntimeProviderFailsClosedWhenClockMovesBeforeLastSuccess(t *testing.T) {
+	reader := &scriptedRuntimeReader{responses: []runtimeReaderResponse{{snapshot: mihomo.RuntimeSnapshot{}}}}
+	provider := newRuntimeProvider(reader)
+	now := time.Unix(100, 0).UTC()
+	provider.now = func() time.Time { return now }
+	if _, err := provider.observe(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	now = time.Unix(99, 0).UTC()
+	if _, err := provider.observe(context.Background(), false); !errors.Is(err, errRuntimeClock) {
+		t.Fatalf("expected clock error, got %v", err)
+	}
+}
+
+func TestRuntimeProviderFailsClosedWhenClockMovesDuringRead(t *testing.T) {
+	reader := &scriptedRuntimeReader{responses: []runtimeReaderResponse{{snapshot: mihomo.RuntimeSnapshot{ObservedAt: time.Unix(100, 0).UTC()}}}}
+	provider := newRuntimeProvider(reader)
+	times := []time.Time{time.Unix(100, 0).UTC(), time.Unix(99, 0).UTC()}
+	var index int
+	provider.now = func() time.Time {
+		current := times[index]
+		if index < len(times)-1 {
+			index++
+		}
+		return current
+	}
+	result, err := provider.observe(context.Background(), false)
+	if !errors.Is(err, errRuntimeClock) {
+		t.Fatalf("expected clock error, got result=%+v err=%v", result, err)
+	}
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+	if provider.hasSnapshot || !provider.lastSuccess.IsZero() || provider.inflight != nil {
+		t.Fatalf("clock-invalid result was cached: snapshot=%t success=%s inflight=%v", provider.hasSnapshot, provider.lastSuccess, provider.inflight)
+	}
+}

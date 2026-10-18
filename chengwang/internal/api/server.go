@@ -18,6 +18,7 @@ import (
 	"chengwang/internal/control"
 	"chengwang/internal/domain"
 	"chengwang/internal/evidence"
+	"chengwang/internal/observation"
 	"chengwang/internal/operation"
 	"chengwang/internal/policy"
 	"chengwang/internal/proxyiface"
@@ -37,6 +38,7 @@ type Options struct {
 	OperationWritesEnabled bool
 	ManagementScope        authz.ResourceScope
 	EvidenceMaxAge         time.Duration
+	Observation            ObservationReader
 }
 
 type MihomoReader interface {
@@ -62,6 +64,13 @@ type OperationLister interface {
 	List() ([]operation.Operation, error)
 }
 
+// ObservationReader exposes sanitized passive-observation facts. Status is
+// safe for an anonymous LAN dashboard; Detail is always management protected.
+type ObservationReader interface {
+	Status() observation.Status
+	Detail(int) observation.Detail
+}
+
 type server struct {
 	options          Options
 	runtime          *runtimeProvider
@@ -80,6 +89,8 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("GET /api/v1/health", s.health)
 	mux.HandleFunc("GET /api/v1/capabilities", s.capabilities)
 	mux.HandleFunc("GET /api/v1/attestation/shadow", s.shadowAttestation)
+	mux.HandleFunc("GET /api/v1/observations/status", s.observationStatus)
+	mux.HandleFunc("GET /api/v1/observations/mihomo/history", s.observationHistory)
 	mux.HandleFunc("GET /api/v1/evidence/integrity", s.evidenceIntegrity)
 	mux.HandleFunc("GET /api/v1/snapshot", s.snapshot)
 	mux.HandleFunc("GET /api/v1/versions", s.versions)
@@ -108,7 +119,36 @@ func (s *server) capabilities(w http.ResponseWriter, _ *http.Request) {
 		evidenceValid,
 		s.options.Authn != nil,
 		s.options.Authn != nil && s.options.Operations != nil && s.options.Control != nil && evidenceValid,
+		s.options.Observation != nil,
 	))
+}
+
+func (s *server) observationStatus(w http.ResponseWriter, _ *http.Request) {
+	if s.options.Observation == nil {
+		writeJSON(w, http.StatusOK, observation.Status{
+			Configured: false, Mode: "disabled",
+			Controller:    observation.Layer{State: observation.StateUnknown, Reason: "持续观测未配置"},
+			NodeTechnical: observation.Layer{State: observation.StateUnknown, Reason: "节点技术探针未配置"},
+			Internet:      observation.Layer{State: observation.StateUnknown, Reason: "互联网探针未配置"},
+			Business:      observation.Layer{State: observation.StateUnknown, Reason: "业务探针未配置"},
+			DNS:           observation.Layer{State: observation.StateUnknown, Reason: "DNS 探针未配置"},
+			Storage:       observation.Layer{State: observation.StateUnknown, Reason: "观测存储未配置"},
+			Clock:         observation.Layer{State: observation.StateUnknown, Reason: "观测时钟尚未校验"},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, s.options.Observation.Status())
+}
+
+func (s *server) observationHistory(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.managementPreflight(w, r, authz.ActionReadResource); !ok {
+		return
+	}
+	if s.options.Observation == nil {
+		writeError(w, http.StatusServiceUnavailable, "observation_not_configured", "持续观测尚未配置")
+		return
+	}
+	writeJSON(w, http.StatusOK, s.options.Observation.Detail(200))
 }
 
 func (s *server) evidenceIntegrity(w http.ResponseWriter, r *http.Request) {
@@ -452,6 +492,10 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 }
 
 func writeMihomoError(w http.ResponseWriter, err error) {
+	if errors.Is(err, errRuntimeClock) {
+		writeError(w, http.StatusServiceUnavailable, "mihomo_clock_invalid", "系统时钟异常，Mihomo 运行态证据已冻结")
+		return
+	}
 	if errors.Is(err, errRuntimeBusy) {
 		w.Header().Set("Retry-After", "5")
 		writeError(w, http.StatusTooManyRequests, "mihomo_refresh_busy", "Mihomo 状态刷新受限，请稍后重试")

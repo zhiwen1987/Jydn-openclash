@@ -584,6 +584,7 @@ func TestPublicMihomoStatusIsRedactedAndRefreshIsCoalesced(t *testing.T) {
 		},
 	}
 	handler := New(Options{Mode: "shadow", Mihomo: reader})
+	started := reader.startedChannel()
 	const requests = 32
 	codes := make(chan int, requests)
 	bodies := make(chan string, requests)
@@ -595,7 +596,7 @@ func TestPublicMihomoStatusIsRedactedAndRefreshIsCoalesced(t *testing.T) {
 			bodies <- recorder.Body.String()
 		}()
 	}
-	<-reader.startedChannel()
+	<-started
 	close(reader.release)
 	for range requests {
 		code := <-codes

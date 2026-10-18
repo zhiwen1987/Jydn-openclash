@@ -32,7 +32,8 @@ type Report struct {
 // It deliberately describes only executable code paths. Product plans and UI
 // placeholders remain design_only, and an unconfigured runtime adapter is
 // reported as blocked rather than available.
-func Build(now time.Time, mihomoConfigured, evidenceConfigured, evidenceValid, identityConfigured, operationControlConfigured bool) Report {
+func Build(now time.Time, mihomoConfigured, evidenceConfigured, evidenceValid, identityConfigured, operationControlConfigured bool, observationConfiguredValue ...bool) Report {
+	observationConfigured := len(observationConfiguredValue) == 1 && observationConfiguredValue[0]
 	mihomoState := StateBlocked
 	mihomoEvidence := []string{}
 	mihomoLimitations := []string{
@@ -91,6 +92,19 @@ func Build(now time.Time, mihomoConfigured, evidenceConfigured, evidenceValid, i
 		}
 	}
 
+	observationState := StateBlocked
+	observationEvidence := []string{}
+	observationLimitations := []string{"未配置周期只读观测器，控制器状态只有请求时读取"}
+	if observationConfigured {
+		observationState = StateLiveReadOnly
+		observationEvidence = []string{"GET /api/v1/observations/status", "GET /api/v1/observations/mihomo/history"}
+		observationLimitations = []string{
+			"当前只周期读取 Mihomo Controller 并保留有界摘要历史",
+			"不主动测试节点、互联网、DNS 或具体业务；这些层保持 unknown",
+			"不切换节点、不重载配置、不执行自动修复",
+		}
+	}
+
 	return Report{
 		GeneratedAt:              now.UTC().Truncate(time.Second).Format(time.RFC3339),
 		ProductionControlEnabled: false,
@@ -146,6 +160,11 @@ func Build(now time.Time, mihomoConfigured, evidenceConfigured, evidenceValid, i
 				ID: "durable_operation_control", Domain: "control", Name: "耐久 Shadow 操作控制面",
 				State: operationState, ReadOnly: false,
 				Evidence: operationEvidence, Limitations: operationLimitations,
+			},
+			{
+				ID: "continuous_passive_observation", Domain: "observability", Name: "Mihomo 持续只读观测",
+				State: observationState, ReadOnly: true,
+				Evidence: observationEvidence, Limitations: observationLimitations,
 			},
 			designOnly("router_publish", "configuration", "路由器配置写入与发布", "尚无设备写入、配置测试、灰度、热重载和自动回滚闭环"),
 			designOnly("subscription_orchestration", "subscription", "订阅识别与编排", "尚无订阅拉取、去重、隔离、转换、健康检查和回退执行链"),

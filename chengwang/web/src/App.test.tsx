@@ -38,6 +38,34 @@ describe('App', () => {
     expect(screen.getByText('Hysteria2')).toBeInTheDocument()
   })
 
+  it('shows truthful layered passive observation without inferring business health', async () => {
+    const status = {
+      configured: true, mode: 'passive_read_only', running: true, fresh: true, stale: false,
+      lastAttemptAt: '2026-10-18T08:00:00Z', lastSuccessAt: '2026-10-18T08:00:00Z', consecutiveFailures: 0,
+      controller: { state: 'available', observedAt: '2026-10-18T08:00:00Z', reason: 'Mihomo Controller 周期读回成功' },
+      nodeTechnical: { state: 'unknown', reason: '尚未启用独立节点技术探针' },
+      internet: { state: 'unknown', reason: '尚未启用端到端互联网探针' },
+      business: { state: 'unknown', reason: '尚未启用按业务定义的许可清单探针' },
+      dns: { state: 'unknown', reason: '尚未启用 DNS 路径与泄漏探针' },
+      storage: { state: 'available', reason: '观测摘要持久化正常' },
+      clock: { state: 'available', reason: '观测时钟单调性正常' },
+    }
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/api/v1/snapshot')) return new Promise(() => {})
+      if (url.endsWith('/api/v1/observations/status')) return Promise.resolve({ ok: true, status: 200, json: async () => status } as Response)
+      return Promise.reject(new Error(`unexpected request: ${url}`))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '代理节点' }))
+    expect(await screen.findByText('Mihomo Controller 周期读回成功')).toBeInTheDocument()
+    expect(screen.getByText('延迟和控制器可达不等于业务可用')).toBeInTheDocument()
+    expect(screen.getAllByText('未评估').length).toBeGreaterThanOrEqual(4)
+    expect(screen.queryByText('ChatGPT 可用')).not.toBeInTheDocument()
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+  })
+
   it('manages proxy server interfaces without enabling production publish', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
     render(<App />)

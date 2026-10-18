@@ -1,6 +1,6 @@
 import type {
   CapabilityReport, MihomoReadbackReport, MihomoRuntimeSnapshot, OperationEnvelope, OperationResource,
-  OperationRisk, OperationStatus, PolicyDraft, ProxyInterface, Snapshot, ValidationResult,
+  ObservationStatus, OperationRisk, OperationStatus, PolicyDraft, ProxyInterface, Snapshot, ValidationResult,
 } from './types'
 
 export class APIError extends Error {
@@ -76,6 +76,12 @@ export async function getCapabilities(signal?: AbortSignal): Promise<CapabilityR
   const response = await fetch('/api/v1/capabilities', { signal, headers: { Accept: 'application/json' } })
   if (!response.ok) return throwAPIError(response, `读取系统闭环状态失败 (${response.status})`)
   return response.json() as Promise<CapabilityReport>
+}
+
+export async function getObservationStatus(signal?: AbortSignal): Promise<ObservationStatus> {
+  const response = await fetch('/api/v1/observations/status', { signal, headers: { Accept: 'application/json' } })
+  if (!response.ok) return throwAPIError(response, `读取持续观测状态失败 (${response.status})`)
+  return response.json() as Promise<ObservationStatus>
 }
 
 function operationHeaders(token: string, idempotencyKey?: string): HeadersInit {

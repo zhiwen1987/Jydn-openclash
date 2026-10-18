@@ -20,6 +20,7 @@ import (
 	"chengwang/internal/authz"
 	"chengwang/internal/control"
 	"chengwang/internal/evidence"
+	"chengwang/internal/observation"
 	"chengwang/internal/operation"
 	"chengwang/internal/store"
 	"chengwang/internal/webui"
@@ -119,6 +120,9 @@ func runWith(options runOptions) error {
 	}
 
 	var mihomoReader api.MihomoReader
+	var observer api.ObservationReader
+	var stopObservation context.CancelFunc
+	var observationDone <-chan struct{}
 	if controllerURL := os.Getenv("CHENGWANG_MIHOMO_URL"); controllerURL != "" {
 		client, err := mihomo.NewWithOptions(controllerURL, os.Getenv("CHENGWANG_MIHOMO_TOKEN"), 5*time.Second, mihomo.ClientOptions{
 			AllowedHosts: splitCSV(os.Getenv("CHENGWANG_MIHOMO_ALLOWED_HOSTS")),
@@ -126,7 +130,38 @@ func runWith(options runOptions) error {
 		if err != nil {
 			return fmt.Errorf("initialize mihomo read-only adapter: %w", err)
 		}
-		mihomoReader = client
+		sharedReader, err := observation.NewSerializedReader(client)
+		if err != nil {
+			return fmt.Errorf("initialize shared Mihomo reader: %w", err)
+		}
+		mihomoReader = sharedReader
+		observationInterval, err := durationEnv("CHENGWANG_OBSERVATION_INTERVAL", 30*time.Second)
+		if err != nil {
+			return fmt.Errorf("initialize passive observation interval: %w", err)
+		}
+		observationTTL, err := durationEnv("CHENGWANG_OBSERVATION_TTL", 2*time.Minute)
+		if err != nil {
+			return fmt.Errorf("initialize passive observation TTL: %w", err)
+		}
+		observationStore, err := observation.OpenStore(filepath.Join(dataDir, "observations"), 4096)
+		if err != nil {
+			return fmt.Errorf("initialize passive observation store: %w", err)
+		}
+		defer observationStore.Close()
+		collector, err := observation.NewCollector(sharedReader, observationStore, observationInterval, observationTTL)
+		if err != nil {
+			return fmt.Errorf("initialize passive observation collector: %w", err)
+		}
+		observationContext, cancel := context.WithCancel(context.Background())
+		stopObservation = cancel
+		observationDone = collector.Run(observationContext)
+		observer = collector
+	}
+	if stopObservation != nil {
+		defer func() {
+			stopObservation()
+			<-observationDone
+		}()
 	}
 
 	var handler http.Handler = api.New(api.Options{
@@ -142,6 +177,7 @@ func runWith(options runOptions) error {
 		OperationWritesEnabled: operationWritesEnabled,
 		ManagementScope:        managementScope,
 		EvidenceMaxAge:         2 * time.Minute,
+		Observation:            observer,
 	})
 	if webDir := os.Getenv("CHENGWANG_WEB_DIR"); webDir != "" {
 		handler, err = webui.New(webDir, handler)
@@ -299,6 +335,18 @@ func strictBoolEnv(key string) (bool, error) {
 		return true, nil
 	}
 	return false, fmt.Errorf("%s must be exactly true or false", key)
+}
+
+func durationEnv(key string, fallback time.Duration) (time.Duration, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a Go duration: %w", key, err)
+	}
+	return duration, nil
 }
 
 func envOr(key, fallback string) string {

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"chengwang/internal/capability"
+	"chengwang/internal/observation"
 )
 
 const maxResponseBytes = 1 << 20
@@ -68,8 +69,8 @@ type shadowAttestation struct {
 
 func main() {
 	base := flag.String("base-url", "http://127.0.0.1:7811", "Chengwang base URL")
-	timeout := flag.Duration("timeout", 8*time.Second, "total acceptance timeout")
-	expectedCapabilities := flag.Int("expected-capabilities", 15, "exact expected capability count")
+	timeout := flag.Duration("timeout", 20*time.Second, "total acceptance timeout")
+	expectedCapabilities := flag.Int("expected-capabilities", 16, "exact expected capability count")
 	flag.Parse()
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
@@ -121,6 +122,12 @@ func verify(ctx context.Context, rawBase string, expectedCapabilities int) (repo
 	operationsBlocked := capabilityState(capabilities, "durable_operation_control") == capability.StateBlocked
 	add("capability_truth", err == nil && len(capabilities.Capabilities) == expectedCapabilities && !capabilities.ProductionControlEnabled && identityBlocked && operationsBlocked, safeDetail(err, "count=%d production-control=%t identity-blocked=%t operations-blocked=%t", len(capabilities.Capabilities), capabilities.ProductionControlEnabled, identityBlocked, operationsBlocked))
 
+	passive, passiveAttempts, err := waitForPassiveObservation(ctx, client, endpoint(base, "/api/v1/observations/status"))
+	passiveTruthful := err == nil && passive.Configured && passive.Running && passive.Fresh && !passive.Stale &&
+		passive.Controller.State == observation.StateAvailable && passive.Storage.State == observation.StateAvailable && passive.Clock.State == observation.StateAvailable &&
+		passive.NodeTechnical.State == observation.StateUnknown && passive.Internet.State == observation.StateUnknown && passive.Business.State == observation.StateUnknown && passive.DNS.State == observation.StateUnknown
+	add("passive_observation", passiveTruthful, safeDetail(err, "attempts=%d configured=%t running=%t fresh=%t stale=%t controller=%s node=%s internet=%s business=%s dns=%s storage=%s clock=%s", passiveAttempts, passive.Configured, passive.Running, passive.Fresh, passive.Stale, passive.Controller.State, passive.NodeTechnical.State, passive.Internet.State, passive.Business.State, passive.DNS.State, passive.Storage.State, passive.Clock.State))
+
 	var boundary operationBoundary
 	_, err = getJSON(ctx, client, endpoint(base, "/api/v1/operations"), http.StatusServiceUnavailable, &boundary)
 	add("operation_fail_closed", err == nil && boundary.Code == "operation_control_not_configured" && boundary.Effect == "local_record_only" && !boundary.DeviceActionsExecuted, safeDetail(err, "code=%s effect=%s device-actions=%t", boundary.Code, boundary.Effect, boundary.DeviceActionsExecuted))
@@ -134,6 +141,37 @@ func verify(ctx context.Context, rawBase string, expectedCapabilities int) (repo
 	add("shadow_attestation", attested, safeDetail(err, "mode=%s production-control=%t identity=%t operation-writes=%t device-actions=%t evidence=%t mihomo-configured=%t mihomo-reachable=%t mihomo-fresh=%t", attestation.Mode, attestation.ProductionControlEnabled, attestation.IdentityConfigured, attestation.OperationWritesEnabled, attestation.DeviceActionsExecuted, attestation.Evidence.Valid, attestation.Mihomo.Configured, attestation.Mihomo.Reachable, attestation.Mihomo.Fresh))
 
 	return r, nil
+}
+
+func waitForPassiveObservation(parent context.Context, client *http.Client, target string) (observation.Status, int, error) {
+	return waitForPassiveObservationWithBudget(parent, client, target, 8*time.Second, 200*time.Millisecond)
+}
+
+func waitForPassiveObservationWithBudget(parent context.Context, client *http.Client, target string, maxWait, pollInterval time.Duration) (observation.Status, int, error) {
+	if maxWait <= 0 || pollInterval <= 0 {
+		return observation.Status{}, 0, errors.New("passive observation wait budget and poll interval must be positive")
+	}
+	ctx, cancel := context.WithTimeout(parent, maxWait)
+	defer cancel()
+	for attempt := 1; ; attempt++ {
+		var status observation.Status
+		_, err := getJSON(ctx, client, target, http.StatusOK, &status)
+		if err != nil {
+			return status, attempt, err
+		}
+		unmeasuredTruthful := status.NodeTechnical.State == observation.StateUnknown && status.Internet.State == observation.StateUnknown && status.Business.State == observation.StateUnknown && status.DNS.State == observation.StateUnknown
+		if !status.Configured || !status.Running || !unmeasuredTruthful || status.Clock.State == observation.StateUnavailable || status.Storage.State == observation.StateDegraded {
+			return status, attempt, nil
+		}
+		if status.Fresh && !status.Stale && status.Controller.State == observation.StateAvailable {
+			return status, attempt, nil
+		}
+		select {
+		case <-ctx.Done():
+			return status, attempt, ctx.Err()
+		case <-time.After(pollInterval):
+		}
+	}
 }
 
 func parseBaseURL(raw string) (*url.URL, error) {

@@ -72,10 +72,10 @@ POST /api/v1/kernels/mihomo/readback
 
 `readback` 请求体为策略草稿，响应会报告策略组缺失、成员或顺序漂移、域名规则缺失和规则目标漂移。该适配器只调用 Mihomo 的 `GET /version`、`GET /configs`、`GET /proxies` 和 `GET /rules`，不会重载配置、切换节点、清理缓存或重启内核。详细契约见 [Mihomo 只读适配器](docs/MIHOMO-READONLY-ADAPTER.md)。
 
-可以从独立客户端运行只读验收器，执行 5 项检查：健康、HTTP 安全头、能力事实、operations 失败关闭和最小 Shadow 证明。验收器不携带凭据、不读取敏感运行态，也不会调用写接口：
+可以从独立客户端运行只读验收器，执行 6 项检查：健康、HTTP 安全头、能力事实、持续被动观测真实性、operations 失败关闭和最小 Shadow 证明。验收器不携带凭据、不读取敏感运行态，也不会调用写接口：
 
 ```powershell
-go run ./cmd/verify-shadow -base-url http://<CONTROL-PLANE-IP>:7811 -timeout 15s -expected-capabilities 15
+go run ./cmd/verify-shadow -base-url http://<CONTROL-PLANE-IP>:7811 -timeout 20s -expected-capabilities 16
 ```
 
 退出码 `0` 表示全部检查通过，`1` 表示至少一项检查失败，`2` 表示参数或验收器本身出错。输出是可保存的 JSON 证据，但生成时间来自验收客户端本机，并不是可信时间戳。
@@ -122,6 +122,7 @@ internal/operation  schema v2 耐久状态机、身份绑定、幂等与单写�
 internal/evidence   幂等追加、哈希链、checkpoint、单写者与失败关闭
 internal/control    授权、操作和前置/结果证据协调（不执行设备动作）
 internal/truth      期望、实际、观测三态与新鲜度门禁
+internal/observation 周期只读观测、分层未知语义与有界摘要历史
 internal/api        安全 API 与演示快照
 web                 React + Vite 中文控制台
 docs/design         视觉设计基准
@@ -135,6 +136,7 @@ docs/design         视觉设计基准
 - [企业级闭环补强方案 v2.1](docs/ENTERPRISE-CLOSED-LOOPS-v2.1.md)：平台升级、跨系统事务、回滚失败生存、交互安全、数据隐私、审计防篡改、AI生命周期、独立监测和管理权恢复。
 - [操作详情与执行时间线交互规格 v2.1](docs/OPERATION-DETAIL-INTERACTION-v2.1.md)：选定方案2的页面结构、状态模型、权限、敏感信息和验收规则。
 - [系统完成度与闭环差距审计](docs/SYSTEM-COMPLETION-GAP-AUDIT.md)：当前可验收能力、P0/P1/P2 缺口、统一验收门、回滚门和四个实施里程碑。
+- [M2a 持续被动观测](docs/M2A-PASSIVE-OBSERVATION.md)：周期只读、分层未知语义、持久化边界、安全门和生产浸泡条件。
 - [产品规格](docs/PRODUCT-SPEC.md)：多内核代理与精准分流的产品能力。
 - [架构边界](docs/ARCHITECTURE.md)：控制面、数据面、适配器和当前实现状态。
 
@@ -148,5 +150,7 @@ docs/design         视觉设计基准
 - 企业 IdP、会话、MFA、令牌轮换与独立审计身份源
 
 这些能力必须在后续阶段分别实现、故障注入、灰度验证，不能通过复用演示数据宣称已完成。
+
+M2a 源码已实现 Mihomo Controller 的周期只读采集、单一共享读取门、4096 个原子小段组成的有界摘要历史、证据 TTL、时钟回拨门禁、跨进程单写锁、匿名最小状态接口和受保护历史接口。它不会测速、访问第三方业务、切换节点或修改 OpenClash。节点技术能力、互联网、业务和 DNS 仍明确为 `unknown`；这只是持续被动观测底座，不是完整 M2，也不是节点能力评估完成。
 
 M1 已新增静态身份认证、默认拒绝授权、schema v2 耐久操作库、前置/结果证据协调、证据幂等和三态真值门禁及 race 测试。2026-10-18 已把默认锁定的 Shadow 操作 API 与“操作中心”部署到 `10.88.0.254:7811`；生产未配置身份文件、写开关为 `false`、设备执行器不存在，因此认证和操作能力仍如实显示为 `blocked`。这次部署只增加安全失败关闭的本地控制面基础，不代表生产写入、企业治理闭环或 `99.999999%` 可用率。
