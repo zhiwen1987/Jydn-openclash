@@ -45,6 +45,149 @@ func TestLinuxAdvisoryCollectorReturnsBlockedWithoutAuthoritativeState(t *testin
 	}
 }
 
+func TestLinuxIdentityBoundObservationKeepsAllTrustBlockers(t *testing.T) {
+	root, contents := resetLinuxCandidate(t)
+	handle, err := OpenIdentityBound(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Close()
+	observation, err := handle.Observation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := parseCandidateIdentity(contents.identity, root, observation.Instance(), observation.ProjectName())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if observation.Schema() != IdentityObservationSchemaV1 || observation.Boundary() != "ADVISORY_LOCAL_IDENTITY_BOUND" || observation.Authorization() != "BLOCKED" || observation.CandidateID() != identity.CandidateID || observation.IdentityGeneration() != 1 || observation.IdentitySHA256() != digest(contents.identity) {
+		t.Fatalf("invalid identity-bound observation: %#v", observation)
+	}
+	if !reflect.DeepEqual(observation.Blockers(), sortedMandatoryBlockers()) {
+		t.Fatalf("identity blockers=%v", observation.Blockers())
+	}
+}
+
+func TestLinuxIdentityBoundDetectsIdentityMutationAndPoisons(t *testing.T) {
+	mutations := map[string]func(*testing.T, string, configurationContents){
+		"path-replacement": func(t *testing.T, path string, contents configurationContents) {
+			if err := os.Rename(path, path+".old"); err != nil {
+				t.Fatal(err)
+			}
+			writeExact(t, path, contents.identity, 0, 10001, 0o640)
+		},
+		"in-place-mutation": func(t *testing.T, path string, _ configurationContents) {
+			file, err := os.OpenFile(path, os.O_WRONLY, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := file.WriteAt([]byte("["), 0); err != nil {
+				_ = file.Close()
+				t.Fatal(err)
+			}
+			if err := file.Close(); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"unlink": func(t *testing.T, path string, _ configurationContents) {
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"oversize": func(t *testing.T, path string, _ configurationContents) {
+			if err := os.Truncate(path, int64(maxCandidateIdentityBytes+1)); err != nil {
+				t.Fatal(err)
+			}
+		},
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			root, contents := resetLinuxCandidate(t)
+			handle, err := OpenIdentityBound(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer handle.Close()
+			identityPath := filepath.Join(root, "config", candidateIdentityFileSpec.name)
+			mutate(t, identityPath, contents)
+			if err := handle.Verify(); !errors.Is(err, ErrPoisoned) {
+				t.Fatalf("Verify error=%v, want ErrPoisoned", err)
+			}
+			if _, err := handle.Observation(); !errors.Is(err, ErrPoisoned) {
+				t.Fatalf("Observation error=%v, want sticky ErrPoisoned", err)
+			}
+		})
+	}
+}
+
+func TestLinuxIdentityBoundRejectsUnsafeIdentityObjects(t *testing.T) {
+	tests := map[string]func(*testing.T, string){
+		"symlink": func(t *testing.T, root string) {
+			path := filepath.Join(root, "config", candidateIdentityFileSpec.name)
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink("catalog.json", path); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"hardlink": func(t *testing.T, root string) {
+			path := filepath.Join(root, "config", candidateIdentityFileSpec.name)
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Link(filepath.Join(root, "config", "catalog.json"), path); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"fifo": func(t *testing.T, root string) {
+			path := filepath.Join(root, "config", candidateIdentityFileSpec.name)
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			if err := syscall.Mkfifo(path, 0o640); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Chown(path, 0, 10001); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"empty": func(t *testing.T, root string) {
+			writeExact(t, filepath.Join(root, "config", candidateIdentityFileSpec.name), nil, 0, 10001, 0o640)
+		},
+		"wrong-mode": func(t *testing.T, root string) {
+			if err := os.Chmod(filepath.Join(root, "config", candidateIdentityFileSpec.name), 0o660); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"special-mode": func(t *testing.T, root string) {
+			if err := os.Chmod(filepath.Join(root, "config", candidateIdentityFileSpec.name), os.ModeSetuid|0o640); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"wrong-owner": func(t *testing.T, root string) {
+			if err := os.Chown(filepath.Join(root, "config", candidateIdentityFileSpec.name), 10001, 10001); err != nil {
+				t.Fatal(err)
+			}
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			root, _ := resetLinuxCandidate(t)
+			mutate(t, root)
+			if handle, err := OpenIdentityBound(root); err == nil {
+				handle.Close()
+				t.Fatal("unsafe candidate identity was accepted")
+			}
+			lease, err := restorelease.Acquire(root)
+			if err != nil {
+				t.Fatalf("failed construction leaked lifecycle lease: %v", err)
+			}
+			lease.Close()
+		})
+	}
+}
+
 func TestLinuxAdvisoryCollectorExcludesConcurrentLifecycleAndReopens(t *testing.T) {
 	root, _ := resetLinuxCandidate(t)
 	first, err := OpenAdvisory(root)
@@ -296,7 +439,7 @@ func TestLinuxAdvisoryCollectorDescriptorsDoNotSurviveExec(t *testing.T) {
 		return
 	}
 	root, _ := resetLinuxCandidate(t)
-	handle, err := OpenAdvisory(root)
+	handle, err := OpenIdentityBound(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -402,6 +545,7 @@ func writeConfigTree(t *testing.T, directory string, contents configurationConte
 	writeExact(t, filepath.Join(directory, "catalog.json"), contents.catalog, 0, 10001, 0o640)
 	writeExact(t, filepath.Join(directory, "dot-ca.pem"), contents.ca, 0, 10001, 0o640)
 	writeExact(t, filepath.Join(directory, "egress-policy.json"), contents.policy, 0, 10001, 0o640)
+	writeExact(t, filepath.Join(directory, candidateIdentityFileSpec.name), contents.identity, 0, 10001, 0o640)
 }
 
 func mkdirExact(t *testing.T, path string, uid, gid int, mode os.FileMode) {

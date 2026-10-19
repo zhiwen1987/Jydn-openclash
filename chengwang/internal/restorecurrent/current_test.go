@@ -37,6 +37,30 @@ func TestAdvisoryObservationBlockersAreExactStableAndImmutable(t *testing.T) {
 	}
 }
 
+func TestIdentityBoundBlockersKeepExternalAttestationGap(t *testing.T) {
+	want := []BlockerCode{
+		BlockerCandidateIDAttestationMissing,
+		BlockerComposeRenderedAttestationMissing,
+		BlockerComposeSourceAttestationMissing,
+		BlockerExternalTimeAnchorMissing,
+		BlockerImageIdentityAttestationMissing,
+		BlockerLiveContainerIdentityNotObserved,
+		BlockerLiveQuiesceNotAuthorized,
+		BlockerProbeStatePathBindingUnproven,
+		BlockerStateWriterQuiesceUnproven,
+	}
+	actual := sortedBlockersForTest(mandatoryBlockers)
+	if !reflect.DeepEqual(actual, want) {
+		t.Fatalf("local identity removed a trust blocker: got=%v want=%v", actual, want)
+	}
+}
+
+func sortedBlockersForTest(source []BlockerCode) []BlockerCode {
+	value := append([]BlockerCode(nil), source...)
+	sort.Slice(value, func(i, j int) bool { return value[i] < value[j] })
+	return value
+}
+
 func TestOpenAdvisoryRejectsEveryUnsafeCandidatePathBeforeCollection(t *testing.T) {
 	for _, candidate := range []string{"", "relative", "/", "/tmp/site", "/var/lib/chengwang-m2b-candidate", "/var/lib/chengwang-m2b-candidate/a/b", "/var/lib/chengwang-m2b-candidate/UPPER", "/var/lib/chengwang-m2b-candidate/site/"} {
 		if _, err := OpenAdvisory(candidate); !errors.Is(err, ErrInvalid) {
@@ -89,6 +113,77 @@ func TestValidateConfigurationAcceptsOnlyExactFixedBindings(t *testing.T) {
 			mutate(&copy)
 			if _, err := validateConfiguration(copy, root, "site1"); !errors.Is(err, ErrInvalid) {
 				t.Fatalf("error=%v, want ErrInvalid", err)
+			}
+		})
+	}
+}
+
+func TestCandidateIdentityBindsRootNonceProjectAndGeneration(t *testing.T) {
+	root := "/var/lib/chengwang-m2b-candidate/site1"
+	contents := validConfigurationContents(t, root)
+	environment, err := validateConfiguration(contents, root, "site1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := parseCandidateIdentity(contents.identity, root, "site1", environment.projectName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if identity.CandidateID != deriveCandidateID(root, identity.GenesisNonce) || identity.IdentityGeneration != 1 {
+		t.Fatalf("identity is not deterministically bound: %#v", identity)
+	}
+	sentinel := "SECRET_CANARY_identity"
+	mutations := map[string]func([]byte) []byte{
+		"root": func(raw []byte) []byte {
+			return bytesReplace(raw, root, root+"-other")
+		},
+		"project": func(raw []byte) []byte {
+			return bytesReplace(raw, environment.projectName, environment.projectName+"-other")
+		},
+		"generation": func(raw []byte) []byte {
+			return bytesReplace(raw, `"identityGeneration":1`, `"identityGeneration":2`)
+		},
+		"unknown": func(raw []byte) []byte {
+			return bytesReplace(raw, "}", `,"unknown":"`+sentinel+`"}`)
+		},
+		"duplicate_key": func(raw []byte) []byte {
+			return bytesReplace(raw, "}", `,"schema":"`+sentinel+`"}`)
+		},
+		"trailing_token": func(raw []byte) []byte {
+			return append(raw, []byte(` "`+sentinel+`"`)...)
+		},
+		"wrong_type": func(raw []byte) []byte {
+			return bytesReplace(raw, `"identityGeneration":1`, `"identityGeneration":"`+sentinel+`"`)
+		},
+		"wrong_schema": func(raw []byte) []byte {
+			return bytesReplace(raw, candidateIdentitySchemaV1, "chengwang.m2b-candidate-identity/v2")
+		},
+		"wrong_candidate_id": func(raw []byte) []byte {
+			return bytesReplace(raw, identity.CandidateID, "candidate-ffffffffffffffffffffffffffffffff")
+		},
+		"wrong_instance": func(raw []byte) []byte {
+			return bytesReplace(raw, `"instance":"site1"`, `"instance":"site2"`)
+		},
+		"wrong_service": func(raw []byte) []byte {
+			return bytesReplace(raw, `"serviceName":"`+serviceName+`"`, `"serviceName":"other"`)
+		},
+		"wrong_state_mount_target": func(raw []byte) []byte {
+			return bytesReplace(raw, `"stateMountTarget":"`+stateMountTarget+`"`, `"stateMountTarget":"/other"`)
+		},
+		"invalid_nonce": func(raw []byte) []byte {
+			return bytesReplace(raw, identity.GenesisNonce, strings.Repeat("g", 64))
+		},
+		"all_zero_nonce": func(raw []byte) []byte {
+			return bytesReplace(raw, identity.GenesisNonce, strings.Repeat("0", 64))
+		},
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			raw := append([]byte(nil), contents.identity...)
+			raw = mutate(raw)
+			_, err := parseCandidateIdentity(raw, root, "site1", environment.projectName)
+			if !errors.Is(err, ErrInvalid) || strings.Contains(err.Error(), sentinel) {
+				t.Fatalf("unsafe identity was not rejected safely: %v", err)
 			}
 		})
 	}
@@ -194,7 +289,11 @@ func validConfigurationContents(t *testing.T, root string) configurationContents
 	for _, key := range allowedEnvironmentKeys {
 		builder.WriteString(key + "=" + values[key] + "\n")
 	}
-	return configurationContents{env: []byte(builder.String()), catalog: catalog, ca: ca, policy: policy}
+	nonce := strings.Repeat("1", 64)
+	candidateID := deriveCandidateID(root, nonce)
+	instance := root[strings.LastIndex(root, "/")+1:]
+	identity := []byte(`{"schema":"` + candidateIdentitySchemaV1 + `","candidateId":"` + candidateID + `","instance":"` + instance + `","candidateRoot":"` + root + `","projectName":"` + project + `","serviceName":"` + serviceName + `","stateMountTarget":"` + stateMountTarget + `","identityGeneration":1,"genesisNonce":"` + nonce + `"}`)
+	return configurationContents{env: []byte(builder.String()), catalog: catalog, ca: ca, policy: policy, identity: identity}
 }
 
 func parseTestCatalog(raw []byte) (string, error) {
@@ -211,6 +310,7 @@ func cloneContents(value configurationContents) configurationContents {
 	return configurationContents{
 		env: append([]byte(nil), value.env...), catalog: append([]byte(nil), value.catalog...),
 		ca: append([]byte(nil), value.ca...), policy: append([]byte(nil), value.policy...),
+		identity: append([]byte(nil), value.identity...),
 	}
 }
 

@@ -522,6 +522,9 @@ jobs:
 
           expected = {
               "TestLinuxAdvisoryCollectorReturnsBlockedWithoutAuthoritativeState",
+              "TestLinuxIdentityBoundObservationKeepsAllTrustBlockers",
+              "TestLinuxIdentityBoundDetectsIdentityMutationAndPoisons",
+              "TestLinuxIdentityBoundRejectsUnsafeIdentityObjects",
               "TestLinuxAdvisoryCollectorExcludesConcurrentLifecycleAndReopens",
               "TestLinuxAdvisoryCollectorDetectsConfigurationMutationAndPoisons",
               "TestLinuxAdvisoryCollectorDetectsFileAndDirectoryReplacement",
@@ -546,6 +549,14 @@ jobs:
               for name in ("probe.env", "catalog.json", "dot-ca.pem", "egress-policy.json")
               for defect in ("empty", "wrong-mode", "special-mode", "wrong-owner")
           )
+          identity_unsafe = "TestLinuxIdentityBoundRejectsUnsafeIdentityObjects"
+          expected.update(f"{identity_unsafe}/{name}" for name in (
+              "symlink", "hardlink", "fifo", "empty", "wrong-mode", "special-mode", "wrong-owner"
+          ))
+          identity_mutation = "TestLinuxIdentityBoundDetectsIdentityMutationAndPoisons"
+          expected.update(f"{identity_mutation}/{name}" for name in (
+              "path-replacement", "in-place-mutation", "unlink", "oversize"
+          ))
           for raw_path in sys.argv[1:]:
               path = pathlib.Path(raw_path).resolve(strict=True)
               runs = set()
@@ -571,7 +582,7 @@ jobs:
                   )
               if not package_passed:
                   raise SystemExit(f"restorecurrent package did not emit a passing terminal event: {path}")
-          print("RESTORE_CURRENT_ROOT_GATE=PASS transcripts=2 linux_root_scenarios=42 skips=0 race=pass boundary=ADVISORY_CONFIG_BOUND authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING")
+          print("RESTORE_CURRENT_ROOT_GATE=PASS transcripts=2 linux_root_scenarios=56 skips=0 race=pass boundaries=ADVISORY_CONFIG_BOUND,ADVISORY_LOCAL_IDENTITY_BOUND authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING")
           PY
 
       - name: Run root ownership Python contracts in a locked-down container

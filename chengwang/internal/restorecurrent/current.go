@@ -21,7 +21,10 @@ import (
 	"chengwang/internal/restorelease"
 )
 
-const ObservationSchemaV1 = "chengwang.restore-current-observation/v1"
+const (
+	ObservationSchemaV1         = "chengwang.restore-current-observation/v1"
+	IdentityObservationSchemaV1 = "chengwang.restore-identity-observation/v1"
+)
 
 const (
 	serviceName             = "probe-agent"
@@ -78,8 +81,12 @@ type ConfigurationDigests struct {
 // persisted trust contract.
 type Observation struct {
 	schema             string
+	boundary           string
 	authorization      string
 	instance           string
+	candidateID        string
+	identityGeneration uint64
+	identitySHA256     string
 	projectName        string
 	serviceName        string
 	candidateRoot      string
@@ -92,8 +99,12 @@ type Observation struct {
 }
 
 func (o Observation) Schema() string                      { return o.schema }
+func (o Observation) Boundary() string                    { return o.boundary }
 func (o Observation) Authorization() string               { return o.authorization }
 func (o Observation) Instance() string                    { return o.instance }
+func (o Observation) CandidateID() string                 { return o.candidateID }
+func (o Observation) IdentityGeneration() uint64          { return o.identityGeneration }
+func (o Observation) IdentitySHA256() string              { return o.identitySHA256 }
 func (o Observation) ProjectName() string                 { return o.projectName }
 func (o Observation) ServiceName() string                 { return o.serviceName }
 func (o Observation) CandidateRoot() string               { return o.candidateRoot }
@@ -124,6 +135,17 @@ type handleControl struct {
 // state: there is no trusted live-container observation or quiesce authority
 // in this package. It never stops a process or container.
 func OpenAdvisory(candidateRoot string) (*Handle, error) {
+	return openAdvisory(candidateRoot, false)
+}
+
+// OpenIdentityBound additionally binds a root-owned local identity file. The
+// file is not an external attestation, so every trust blocker remains present.
+// The result does not prove Compose, image, runtime, quiesce, state, or time.
+func OpenIdentityBound(candidateRoot string) (*Handle, error) {
+	return openAdvisory(candidateRoot, true)
+}
+
+func openAdvisory(candidateRoot string, identityBound bool) (*Handle, error) {
 	instance, err := candidateInstance(candidateRoot)
 	if err != nil {
 		return nil, err
@@ -150,12 +172,13 @@ func OpenAdvisory(candidateRoot string) (*Handle, error) {
 	if err := lease.Verify(); err != nil {
 		return fail(fmt.Errorf("verify restore current lease: %w", err))
 	}
-	platform, contents, err := openPlatform(candidateRoot, lease.Identity())
+	platform, contents, err := openPlatform(candidateRoot, lease.Identity(), identityBound)
 	if err != nil {
 		return fail(err)
 	}
 	control.platform = platform
 	defer clear(contents.env)
+	defer clear(contents.identity)
 	env, err := validateConfiguration(contents, candidateRoot, instance)
 	if err != nil {
 		return fail(err)
@@ -171,11 +194,29 @@ func OpenAdvisory(candidateRoot string) (*Handle, error) {
 	if err != nil {
 		return fail(fmt.Errorf("close restore current observation window: %w", err))
 	}
-	blockers := append([]BlockerCode(nil), mandatoryBlockers...)
+	identity := candidateIdentity{}
+	identityDigest := ""
+	if identityBound {
+		identity, err = parseCandidateIdentity(contents.identity, candidateRoot, instance, env.projectName)
+		if err != nil {
+			return fail(err)
+		}
+		identityDigest = digest(contents.identity)
+	}
+	blockerSource := mandatoryBlockers
+	schema := ObservationSchemaV1
+	boundary := "ADVISORY_CONFIG_BOUND"
+	if identityBound {
+		schema = IdentityObservationSchemaV1
+		boundary = "ADVISORY_LOCAL_IDENTITY_BOUND"
+	}
+	blockers := append([]BlockerCode(nil), blockerSource...)
 	sort.Slice(blockers, func(i, j int) bool { return blockers[i] < blockers[j] })
 	control.value = Observation{
-		schema: ObservationSchemaV1, authorization: "BLOCKED", instance: instance,
-		projectName: env.projectName, serviceName: serviceName, candidateRoot: candidateRoot,
+		schema: schema, boundary: boundary, authorization: "BLOCKED", instance: instance,
+		candidateID: identity.CandidateID, identityGeneration: identity.IdentityGeneration,
+		identitySHA256: identityDigest,
+		projectName:    env.projectName, serviceName: serviceName, candidateRoot: candidateRoot,
 		stateMountTarget: stateMountTarget, bootID: end.BootID(), observedUnix: end.WallUTC().Unix(),
 		observedBoottimeNS: end.BoottimeNS(), blockers: blockers,
 		configuration: ConfigurationDigests{

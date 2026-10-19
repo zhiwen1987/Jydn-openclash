@@ -17,10 +17,11 @@ import (
 )
 
 type configurationContents struct {
-	env     []byte
-	catalog []byte
-	ca      []byte
-	policy  []byte
+	env      []byte
+	catalog  []byte
+	ca       []byte
+	policy   []byte
+	identity []byte
 }
 
 type validatedEnvironment struct{ projectName string }

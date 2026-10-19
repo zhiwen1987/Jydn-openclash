@@ -83,7 +83,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/proxyiface": 5,
     "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/restoreclock": 13,
-    "chengwang/internal/restorecurrent": 17,
+    "chengwang/internal/restorecurrent": 33,
     "chengwang/internal/restorelease": 2,
     "chengwang/internal/routing": 4,
     "chengwang/internal/store": 4,
@@ -99,7 +99,11 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
     "chengwang/internal/restorecoordinator": {
         "count": 24,
         "sha256": "641b77a1e952f67645760bf0babd7d352b51c77a7c6957134f9592b736ccb0d3",
-    }
+    },
+    "chengwang/internal/restorecurrent": {
+        "count": 33,
+        "sha256": "110ba4bdf1efc40b6e33c0cfef607a0810ac258b849eb656d32711d6371b0f5f",
+    },
 }
 
 REQUIRED_GO_TEST_NAMES = {
@@ -183,6 +187,7 @@ REQUIRED_GO_TEST_NAMES = {
     "chengwang/internal/restorecurrent": frozenset(
         {
             "TestAdvisoryObservationBlockersAreExactStableAndImmutable",
+            "TestIdentityBoundBlockersKeepExternalAttestationGap",
             "TestOpenAdvisoryRejectsEveryUnsafeCandidatePathBeforeCollection",
             "TestNilZeroClosedAndCopiedHandlesFailClosed",
             "TestValidateConfigurationAcceptsOnlyExactFixedBindings",
@@ -190,6 +195,21 @@ REQUIRED_GO_TEST_NAMES = {
             "TestValidateConfigurationAcceptsOnlyExactFixedBindings/catalog_bytes",
             "TestValidateConfigurationAcceptsOnlyExactFixedBindings/ca_bytes",
             "TestValidateConfigurationAcceptsOnlyExactFixedBindings/policy_bytes",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/root",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/project",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/generation",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/unknown",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/duplicate_key",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/trailing_token",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_type",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_schema",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_candidate_id",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_instance",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_service",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_state_mount_target",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/invalid_nonce",
+            "TestCandidateIdentityBindsRootNonceProjectAndGeneration/all_zero_nonce",
             "TestEnvironmentParserRejectsUnknownDuplicateMissingAndSecretValues",
             "TestPolicyRejectsDuplicateKeysAndUnapprovedClaims",
             "TestConfigurationErrorsNeverExposeRawSecretCanary",

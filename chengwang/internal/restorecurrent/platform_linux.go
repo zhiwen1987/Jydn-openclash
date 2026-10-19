@@ -40,10 +40,11 @@ type heldFile struct {
 }
 
 type platformSnapshot struct {
-	rootPath string
-	root     heldDirectory
-	config   heldDirectory
-	files    []*heldFile
+	rootPath      string
+	root          heldDirectory
+	config        heldDirectory
+	files         []*heldFile
+	expectedFiles int
 }
 
 type fileSpec struct {
@@ -61,12 +62,18 @@ var candidateFileSpecs = []fileSpec{
 	{name: "egress-policy.json", uid: 0, gid: 10001, mode: 0o640, maxBytes: 256 << 10},
 }
 
-func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity) (*platformSnapshot, configurationContents, error) {
+var candidateIdentityFileSpec = fileSpec{name: "candidate-identity.json", uid: 0, gid: 10001, mode: 0o640, maxBytes: maxCandidateIdentityBytes}
+
+func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity, includeIdentity bool) (*platformSnapshot, configurationContents, error) {
 	root, err := openAbsoluteDirectory(candidateRoot, "candidate-root", 0, 0, 0, false)
 	if err != nil {
 		return nil, configurationContents{}, err
 	}
-	p := &platformSnapshot{rootPath: candidateRoot, root: root}
+	specs := append([]fileSpec(nil), candidateFileSpecs...)
+	if includeIdentity {
+		specs = append(specs, candidateIdentityFileSpec)
+	}
+	p := &platformSnapshot{rootPath: candidateRoot, root: root, expectedFiles: len(specs)}
 	fail := func(cause error) (*platformSnapshot, configurationContents, error) {
 		return nil, configurationContents{}, errors.Join(cause, p.close())
 	}
@@ -78,9 +85,9 @@ func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity) (*p
 		return fail(err)
 	}
 	p.config = config
-	contentsByName := make(map[string][]byte, len(candidateFileSpecs))
+	contentsByName := make(map[string][]byte, len(specs))
 	identities := map[[2]uint64]string{}
-	for _, spec := range candidateFileSpecs {
+	for _, spec := range specs {
 		held, raw, err := openChildFile(&p.config, spec)
 		if err != nil {
 			return fail(err)
@@ -100,11 +107,12 @@ func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity) (*p
 	return p, configurationContents{
 		env: contentsByName["probe.env"], catalog: contentsByName["catalog.json"],
 		ca: contentsByName["dot-ca.pem"], policy: contentsByName["egress-policy.json"],
+		identity: contentsByName["candidate-identity.json"],
 	}, nil
 }
 
 func (p *platformSnapshot) verify() error {
-	if p == nil || p.root.file == nil || p.config.file == nil || len(p.files) != len(candidateFileSpecs) {
+	if p == nil || p.root.file == nil || p.config.file == nil || len(p.files) != p.expectedFiles || p.expectedFiles < len(candidateFileSpecs) {
 		return ErrClosed
 	}
 	reopened, err := openAbsoluteDirectory(p.rootPath, "candidate-root", 0, 0, 0, false)
