@@ -57,6 +57,52 @@ jobs:
           test "$(/usr/bin/docker image inspect --format '{{.Os}}/{{.Architecture}}' "$PYTHON_TEST_IMAGE")" = "linux/amd64"
           echo 'PYTHON_TEST_IMAGE_BOUNDARY=PINNED_TEST_HARNESS_NOT_PRODUCT_SUPPLY_CHAIN_ACCEPTANCE'
 
+      - name: Validate real Docker Compose v2 rendering compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          transcript="$RUNNER_TEMP/chengwang-compose-cli.json"
+          /usr/bin/docker compose version
+          cd chengwang
+          GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json \
+              -tags composecli -run '^TestComposeCLIRenderedOutputMatchesLocalReleaseContract$' \
+              -count=1 ./internal/restorecurrent | /usr/bin/tee "$transcript"
+          /usr/bin/python3 - "$transcript" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1]).resolve(strict=True)
+          target = "TestComposeCLIRenderedOutputMatchesLocalReleaseContract"
+          package = "chengwang/internal/restorecurrent"
+          runs = set()
+          passes = set()
+          package_passed = False
+          with path.open(encoding="utf-8") as stream:
+              for line_number, line in enumerate(stream, 1):
+                  event = json.loads(line)
+                  action = event.get("Action")
+                  test = event.get("Test")
+                  if action == "fail":
+                      raise SystemExit(f"Compose compatibility failure event at line {line_number}: {test or package}")
+                  if action == "skip":
+                      raise SystemExit(f"Compose compatibility skip is forbidden: {test or package}")
+                  if test and action == "run":
+                      runs.add(test)
+                  if test and action == "pass":
+                      passes.add(test)
+                  if event.get("Package") == package and test is None and action == "pass":
+                      package_passed = True
+          if runs != {target} or passes != {target} or not package_passed:
+              raise SystemExit(
+                  f"Compose compatibility exact test contract failed: runs={sorted(runs)} "
+                  f"passes={sorted(passes)} packagePass={package_passed}"
+              )
+          print("COMPOSE_CLI_TEST_EVENTS=PASS exact=1 skips=0 packagePass=true")
+          PY
+          echo 'COMPOSE_RENDER_COMPATIBILITY=PASS boundary=LOCAL_COMPATIBILITY_NOT_RENDERER_ATTESTATION'
+
       - name: Run probe restore root syscall-path gate in a locked-down container
         shell: bash
         env:
@@ -507,7 +553,7 @@ jobs:
                 --env GOMAXPROCS=2 --env LANG=C.UTF-8 --env TZ=UTC \
                 --entrypoint "/tests/${binary}" \
                 "$PYTHON_TEST_IMAGE" \
-                -test.v=test2json -test.count=1 -test.timeout=3m 2>&1 \
+                -test.v=test2json -test.run='^TestLinux' -test.count=1 -test.timeout=3m 2>&1 \
               | /opt/hostedtoolcache/go/1.23.12/x64/bin/go tool test2json \
                   -p chengwang/internal/restorecurrent \
               | /usr/bin/tee "$artifact_dir/restorecurrent-root-${variant}.json"
@@ -525,6 +571,10 @@ jobs:
               "TestLinuxIdentityBoundObservationKeepsAllTrustBlockers",
               "TestLinuxIdentityBoundDetectsIdentityMutationAndPoisons",
               "TestLinuxIdentityBoundRejectsUnsafeIdentityObjects",
+              "TestLinuxReleaseBoundObservationKeepsAllTrustBlockers",
+              "TestLinuxReleaseBoundDetectsEveryReleaseFileMutationAndPoisons",
+              "TestLinuxReleaseBoundRejectsUnsafeReleaseObjects",
+              "TestLinuxReleaseBoundSemanticFailureReleasesLease",
               "TestLinuxAdvisoryCollectorExcludesConcurrentLifecycleAndReopens",
               "TestLinuxAdvisoryCollectorDetectsConfigurationMutationAndPoisons",
               "TestLinuxAdvisoryCollectorDetectsFileAndDirectoryReplacement",
@@ -557,6 +607,19 @@ jobs:
           expected.update(f"{identity_mutation}/{name}" for name in (
               "path-replacement", "in-place-mutation", "unlink", "oversize"
           ))
+          release_mutation = "TestLinuxReleaseBoundDetectsEveryReleaseFileMutationAndPoisons"
+          expected.update(
+              f"{release_mutation}/{file_name}/{mutation}"
+              for file_name in ("compose-source.yaml", "compose-rendered.json", "compose-local-binding.json")
+              for mutation in ("path-replacement", "in-place-mutation", "unlink", "oversize")
+          )
+          release_unsafe = "TestLinuxReleaseBoundRejectsUnsafeReleaseObjects"
+          expected.update(f"{release_unsafe}/{name}" for name in ("symlink", "hardlink", "fifo"))
+          expected.update(
+              f"{release_unsafe}/{file_name}/{defect}"
+              for file_name in ("compose-source.yaml", "compose-rendered.json", "compose-local-binding.json")
+              for defect in ("empty", "wrong-mode", "special-mode", "wrong-owner")
+          )
           for raw_path in sys.argv[1:]:
               path = pathlib.Path(raw_path).resolve(strict=True)
               runs = set()
@@ -582,7 +645,7 @@ jobs:
                   )
               if not package_passed:
                   raise SystemExit(f"restorecurrent package did not emit a passing terminal event: {path}")
-          print("RESTORE_CURRENT_ROOT_GATE=PASS transcripts=2 linux_root_scenarios=56 skips=0 race=pass boundaries=ADVISORY_CONFIG_BOUND,ADVISORY_LOCAL_IDENTITY_BOUND authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING")
+          print("RESTORE_CURRENT_ROOT_GATE=PASS transcripts=2 linux_root_scenarios=87 skips=0 race=pass boundaries=ADVISORY_CONFIG_BOUND,ADVISORY_LOCAL_IDENTITY_BOUND,ADVISORY_LOCAL_RELEASE_BOUND authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING")
           PY
 
       - name: Run root ownership Python contracts in a locked-down container

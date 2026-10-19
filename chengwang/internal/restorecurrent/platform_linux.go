@@ -64,14 +64,23 @@ var candidateFileSpecs = []fileSpec{
 
 var candidateIdentityFileSpec = fileSpec{name: "candidate-identity.json", uid: 0, gid: 10001, mode: 0o640, maxBytes: maxCandidateIdentityBytes}
 
-func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity, includeIdentity bool) (*platformSnapshot, configurationContents, error) {
+var candidateReleaseFileSpecs = []fileSpec{
+	{name: "compose-source.yaml", uid: 0, gid: 0, mode: 0o600, maxBytes: 256 << 10},
+	{name: "compose-rendered.json", uid: 0, gid: 0, mode: 0o600, maxBytes: 1 << 20},
+	{name: "compose-local-binding.json", uid: 0, gid: 0, mode: 0o600, maxBytes: 32 << 10},
+}
+
+func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity, mode observationMode) (*platformSnapshot, configurationContents, error) {
 	root, err := openAbsoluteDirectory(candidateRoot, "candidate-root", 0, 0, 0, false)
 	if err != nil {
 		return nil, configurationContents{}, err
 	}
 	specs := append([]fileSpec(nil), candidateFileSpecs...)
-	if includeIdentity {
+	if mode >= observationIdentity {
 		specs = append(specs, candidateIdentityFileSpec)
+	}
+	if mode == observationRelease {
+		specs = append(specs, candidateReleaseFileSpecs...)
 	}
 	p := &platformSnapshot{rootPath: candidateRoot, root: root, expectedFiles: len(specs)}
 	fail := func(cause error) (*platformSnapshot, configurationContents, error) {
@@ -107,7 +116,10 @@ func openPlatform(candidateRoot string, leaseIdentity restorelease.Identity, inc
 	return p, configurationContents{
 		env: contentsByName["probe.env"], catalog: contentsByName["catalog.json"],
 		ca: contentsByName["dot-ca.pem"], policy: contentsByName["egress-policy.json"],
-		identity: contentsByName["candidate-identity.json"],
+		identity:       contentsByName["candidate-identity.json"],
+		composeSource:  contentsByName["compose-source.yaml"],
+		composeJSON:    contentsByName["compose-rendered.json"],
+		composeBinding: contentsByName["compose-local-binding.json"],
 	}, nil
 }
 

@@ -29,7 +29,7 @@ REQUIRED_TEST_SUITES = {
     "supply-chain/tests": 45,
     "egress/tests": 19,
     "bootstrap/tests": 29,
-    "tests": 12,
+    "tests": 23,
 }
 
 REQUIRED_SCHEMA_COUNT = 11
@@ -83,7 +83,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/proxyiface": 5,
     "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/restoreclock": 13,
-    "chengwang/internal/restorecurrent": 33,
+    "chengwang/internal/restorecurrent": 134,
     "chengwang/internal/restorelease": 2,
     "chengwang/internal/routing": 4,
     "chengwang/internal/store": 4,
@@ -101,8 +101,8 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
         "sha256": "641b77a1e952f67645760bf0babd7d352b51c77a7c6957134f9592b736ccb0d3",
     },
     "chengwang/internal/restorecurrent": {
-        "count": 33,
-        "sha256": "110ba4bdf1efc40b6e33c0cfef607a0810ac258b849eb656d32711d6371b0f5f",
+        "count": 134,
+        "sha256": "beac7124d363f45f247727baf94797051ee98edd386a13108d40b351b9861b94",
     },
 }
 
@@ -210,6 +210,67 @@ REQUIRED_GO_TEST_NAMES = {
             "TestCandidateIdentityBindsRootNonceProjectAndGeneration/wrong_state_mount_target",
             "TestCandidateIdentityBindsRootNonceProjectAndGeneration/invalid_nonce",
             "TestCandidateIdentityBindsRootNonceProjectAndGeneration/all_zero_nonce",
+            "TestLocalReleaseBindsExactBytesSemanticsAndKeepsAllBlockers",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/source_guard_role",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/rendered_extra_service",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/rendered_privileged",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/rendered_mount_mode",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_duplicate",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_trailing",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_unknown",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_wrong_type",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_identity",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_source_digest",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_rendered_digest",
+            "TestLocalReleaseRejectsBindingAndRenderedDriftWithoutLeakingTokens/binding_renderer_claim",
+            "TestLocalReleaseAcceptsAbsoluteExternalBuildContextClaim",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims/backslash",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims/newline",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims/nul",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims/relative",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims/root",
+            "TestLocalReleaseRejectsMalformedBuildContextClaims/unclean",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/extra_service",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/privileged",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/build_context",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/network_name",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/network_attachment",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/duplicate_tmpfs",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/proxy_environment",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/mount_mode",
+            "TestRenderedSemanticDigestNormalizesAcceptedRepresentations",
+            "TestReleaseObserverSourcePurityASTGate",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/raw_import_alias",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/unicode_import_alias",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/commented_import_alias",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/indexed_receiver",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/parenthesized_method",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/numeric_write_flags",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/parenthesized_syscall",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/syscall_function_value",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/release_println",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/release_package_write",
+            "TestReleaseObserverSourcePurityASTGateRejectsSyntaxBypasses/release_package_address",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/file_chmod",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/fmt_fprint",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/io_copy",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/json_encoder",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/bufio_writer",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/encoder_encode",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/writer_flush",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/fmt_print",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/builtin_println",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/internal_store",
+            "TestRestorecurrentSourcePurityASTGateRejectsFileMutationMethods/writer_write_to",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/profile",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/stdin_open",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/tty",
+            "TestRenderedComposeRejectsEverySecurityProjectionDrift/network_driver",
             "TestEnvironmentParserRejectsUnknownDuplicateMissingAndSecretValues",
             "TestPolicyRejectsDuplicateKeysAndUnapprovedClaims",
             "TestConfigurationErrorsNeverExposeRawSecretCanary",
@@ -268,13 +329,17 @@ def _assert_no_python_cache(candidate_root: pathlib.Path) -> None:
 def _validate_restorecurrent_sources(candidate_root: pathlib.Path) -> None:
     package_root = candidate_root.parents[1] / "internal" / "restorecurrent"
     _validate_restorecurrent_package(package_root)
+    snapshot = package_root / "compose_probe_agent.snapshot.yaml"
+    source = candidate_root / "compose.probe-agent.yaml"
+    if not snapshot.is_file() or snapshot.read_bytes() != source.read_bytes():
+        raise RuntimeError("restorecurrent Compose source snapshot differs from compose.probe-agent.yaml")
 
 
 def _validate_restorecurrent_package(package_root: pathlib.Path) -> None:
     if not package_root.is_dir():
         raise RuntimeError(f"restorecurrent package is missing: {package_root}")
     allowed_imports = {
-        "bufio", "bytes", "crypto/sha256", "encoding/hex", "encoding/json",
+        "bufio", "bytes", "crypto/sha256", "embed", "encoding/hex", "encoding/json",
         "errors", "fmt", "io", "net/netip", "os", "path", "regexp", "sort",
         "strconv", "strings", "sync", "syscall", "time", "unicode/utf8",
         "chengwang/internal/probe", "chengwang/internal/restoreclock",
@@ -289,6 +354,27 @@ def _validate_restorecurrent_package(package_root: pathlib.Path) -> None:
         "AcquireLockedStateSnapshot": "state collection without quiesce authority",
         "os.ReadFile": "path-based configuration reads",
         "exec.Command": "subprocess execution",
+        "os.WriteFile": "filesystem mutation",
+        "os.OpenFile": "potentially writable filesystem access",
+        "os.Create": "filesystem mutation",
+        "os.Rename": "filesystem mutation",
+        "os.Remove": "filesystem mutation",
+        "os.Chmod": "filesystem mutation",
+        "os.Chown": "filesystem mutation",
+        "os.Truncate": "filesystem mutation",
+        "WriteTo(": "filesystem or output mutation",
+        "fmt.Print(": "standard output mutation",
+        "fmt.Printf(": "standard output mutation",
+        "fmt.Println(": "standard output mutation",
+        "syscall.Socket": "raw network access",
+        "syscall.Connect": "raw network access",
+        "syscall.Syscall": "unreviewed raw syscall access",
+        "syscall.RawSyscall": "unreviewed raw syscall access",
+        "syscall.O_WRONLY": "writable file descriptor access",
+        "syscall.O_RDWR": "writable file descriptor access",
+        "syscall.O_CREAT": "filesystem mutation",
+        "syscall.O_TRUNC": "filesystem mutation",
+        "syscall.O_APPEND": "filesystem mutation",
     }
     production = sorted(
         path for path in package_root.glob("*.go") if not path.name.endswith("_test.go")
@@ -311,6 +397,20 @@ def _validate_restorecurrent_package(package_root: pathlib.Path) -> None:
                 flags=re.MULTILINE,
             )
         )
+        import_aliases: dict[str, str] = {}
+        for alias, import_path in re.findall(
+            r'^\s*([._A-Za-z][A-Za-z0-9_]*)?\s*"([^"\n]+)"\s*$',
+            text,
+            flags=re.MULTILINE,
+        ):
+            effective = alias if alias and alias != "import" else import_path.rsplit("/", 1)[-1]
+            import_aliases[effective] = import_path
+        for alias, import_path in re.findall(
+            r'^\s*import\s+(?:([._A-Za-z][A-Za-z0-9_]*)\s+)?"([^"\n]+)"\s*$',
+            text,
+            flags=re.MULTILINE,
+        ):
+            import_aliases[alias or import_path.rsplit("/", 1)[-1]] = import_path
         unexpected_imports = sorted(imports - allowed_imports)
         if unexpected_imports:
             raise RuntimeError(
@@ -321,6 +421,105 @@ def _validate_restorecurrent_package(package_root: pathlib.Path) -> None:
                 raise RuntimeError(
                     f"restorecurrent source {source.name} contains forbidden {capability}: {token}"
                 )
+        if re.search(r"(?<![.A-Za-z0-9_])(?:panic|print|println)\s*\(", text):
+            raise RuntimeError(
+                f"restorecurrent source {source.name} contains forbidden builtin side effect"
+            )
+        privileged_aliases = {
+            alias: import_path
+            for alias, import_path in import_aliases.items()
+            if import_path in {"os", "syscall"}
+        }
+        if any(alias in {".", "_"} for alias in privileged_aliases):
+            raise RuntimeError(f"restorecurrent source {source.name} uses an unreviewed privileged import form")
+        privileged_calls = set()
+        for alias, import_path in privileged_aliases.items():
+            for method in re.findall(
+                rf"\b{re.escape(alias)}\.([A-Za-z_][A-Za-z0-9_]*)\s*\(",
+                text,
+            ):
+                privileged_calls.add(f"{import_path}.{method}")
+        unexpected_privileged = sorted(
+            privileged_calls
+            - {"os.NewFile", "os.Open", "syscall.Close", "syscall.Fstat", "syscall.Open", "syscall.Openat"}
+        )
+        if unexpected_privileged:
+            raise RuntimeError(
+                f"restorecurrent source {source.name} calls unreviewed OS or syscall APIs: {unexpected_privileged}"
+            )
+    release_source = package_root / "release.go"
+    if not release_source.is_file():
+        return
+    release_text = release_source.read_text(encoding="utf-8")
+    release_imports = set(
+        re.findall(
+            r'^\s*(?:[._A-Za-z][A-Za-z0-9_]*\s+)?"([^"\n]+)"\s*$',
+            release_text,
+            flags=re.MULTILINE,
+        )
+    )
+    release_allowed = {
+        "bytes", "crypto/sha256", "embed", "encoding/hex", "encoding/json", "errors", "fmt", "io",
+        "path", "regexp", "strings", "unicode/utf8",
+    }
+    if release_imports - release_allowed:
+        raise RuntimeError(
+            f"restorecurrent release observer imports side-effect-capable packages: {sorted(release_imports - release_allowed)}"
+        )
+    for token in (
+        "os.", "syscall.", "net.", "WriteFile", "OpenFile", "Rename", "Remove", "Chmod", "Chown", "Socket", "Dial",
+    ):
+        if token in release_text:
+            raise RuntimeError(f"restorecurrent release observer contains forbidden side-effect token: {token}")
+    declared = set(
+        re.findall(r"^\s*func\s+(?:\([^)]*\)\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(", release_text, flags=re.MULTILINE)
+    )
+    unqualified_calls = set(
+        re.findall(r"(?<![.A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*)\s*\(", release_text)
+    )
+    unqualified_calls.update(
+        re.findall(
+            r"(?<![.A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*)\s*\[[^\]\n]+\]\s*\(",
+            release_text,
+        )
+    )
+    builtins_and_keywords = {
+        "append", "byte", "const", "func", "import", "int64", "len", "make", "type", "uint64", "var",
+    }
+    external_helpers = sorted(unqualified_calls - declared - builtins_and_keywords)
+    if external_helpers:
+        raise RuntimeError(
+            "restorecurrent release observer calls helpers declared outside its pure source file: "
+            + ", ".join(external_helpers)
+        )
+    allowed_selector_calls = {
+        "bytes.Equal", "bytes.IndexByte", "bytes.NewReader",
+        "decoder.Decode", "decoder.DisallowUnknownFields", "decoder.More", "decoder.Token", "decoder.UseNumber",
+        "errors.Join", "errors.New", "fmt.Sprint", "hex.EncodeToString",
+        "json.Delim", "json.Marshal", "json.NewDecoder", "json.Unmarshal",
+        "path.Clean", "path.IsAbs", "path.Join", "regexp.MustCompile",
+        "releaseHashPattern.MatchString", "rendererVersionPattern.MatchString", "sha256.Sum256",
+        "strings.ContainsAny", "strings.HasPrefix", "strings.Repeat", "strings.TrimPrefix",
+        "utf8.Valid", "value.String",
+    }
+    selector_calls = {
+        f"{match.group(1)}.{match.group(2)}"
+        for match in re.finditer(
+            r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]\n]+\])?\s*\(",
+            release_text,
+        )
+    }
+    unexpected_selectors = sorted(selector_calls - allowed_selector_calls)
+    if unexpected_selectors:
+        raise RuntimeError(
+            "restorecurrent release observer calls unreviewed selector methods: "
+            + ", ".join(unexpected_selectors)
+        )
+    if re.search(
+        r"\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\[[^\]\n]+\])?\s*\(",
+        release_text,
+    ):
+        raise RuntimeError("restorecurrent release observer calls a chained selector method")
 
 
 def _parse_schemas(candidate_root: pathlib.Path) -> int:

@@ -24,6 +24,7 @@ import (
 const (
 	ObservationSchemaV1         = "chengwang.restore-current-observation/v1"
 	IdentityObservationSchemaV1 = "chengwang.restore-identity-observation/v1"
+	ReleaseObservationSchemaV1  = "chengwang.restore-local-release-observation/v1"
 )
 
 const (
@@ -76,6 +77,13 @@ type ConfigurationDigests struct {
 	EgressPolicySHA256 string
 }
 
+type LocalReleaseDigests struct {
+	ComposeSourceSHA256    string
+	ComposeRenderedSHA256  string
+	RenderedSemanticSHA256 string
+	LocalBindingSHA256     string
+}
+
 // Observation contains only redacted facts. It intentionally has no JSON
 // tags and no exported fields: v1 is an in-process diagnostic API, not a
 // persisted trust contract.
@@ -95,6 +103,7 @@ type Observation struct {
 	observedUnix       int64
 	observedBoottimeNS uint64
 	configuration      ConfigurationDigests
+	localRelease       LocalReleaseDigests
 	blockers           []BlockerCode
 }
 
@@ -113,6 +122,7 @@ func (o Observation) BootID() string                      { return o.bootID }
 func (o Observation) ObservedUnix() int64                 { return o.observedUnix }
 func (o Observation) ObservedBoottimeNS() uint64          { return o.observedBoottimeNS }
 func (o Observation) Configuration() ConfigurationDigests { return o.configuration }
+func (o Observation) LocalRelease() LocalReleaseDigests   { return o.localRelease }
 func (o Observation) Blockers() []BlockerCode             { return append([]BlockerCode(nil), o.blockers...) }
 
 // Handle owns all process-local capabilities used by one observation. Copies
@@ -135,17 +145,36 @@ type handleControl struct {
 // state: there is no trusted live-container observation or quiesce authority
 // in this package. It never stops a process or container.
 func OpenAdvisory(candidateRoot string) (*Handle, error) {
-	return openAdvisory(candidateRoot, false)
+	return openAdvisory(candidateRoot, observationConfig)
 }
 
 // OpenIdentityBound additionally binds a root-owned local identity file. The
 // file is not an external attestation, so every trust blocker remains present.
 // The result does not prove Compose, image, runtime, quiesce, state, or time.
 func OpenIdentityBound(candidateRoot string) (*Handle, error) {
-	return openAdvisory(candidateRoot, true)
+	return openAdvisory(candidateRoot, observationIdentity)
 }
 
-func openAdvisory(candidateRoot string, identityBound bool) (*Handle, error) {
+// OpenReleaseBound additionally binds local evidence copies of the active-probe
+// Compose source, rendered JSON, and their local binding receipt. These objects
+// remain self-asserted inside the candidate root: they are not provenance,
+// renderer, image, or runtime attestations and remove no blockers.
+func OpenReleaseBound(candidateRoot string) (*Handle, error) {
+	return openAdvisory(candidateRoot, observationRelease)
+}
+
+type observationMode uint8
+
+const (
+	observationConfig observationMode = iota
+	observationIdentity
+	observationRelease
+)
+
+func openAdvisory(candidateRoot string, mode observationMode) (*Handle, error) {
+	if mode > observationRelease {
+		return nil, ErrInvalid
+	}
 	instance, err := candidateInstance(candidateRoot)
 	if err != nil {
 		return nil, err
@@ -172,13 +201,16 @@ func openAdvisory(candidateRoot string, identityBound bool) (*Handle, error) {
 	if err := lease.Verify(); err != nil {
 		return fail(fmt.Errorf("verify restore current lease: %w", err))
 	}
-	platform, contents, err := openPlatform(candidateRoot, lease.Identity(), identityBound)
+	platform, contents, err := openPlatform(candidateRoot, lease.Identity(), mode)
 	if err != nil {
 		return fail(err)
 	}
 	control.platform = platform
 	defer clear(contents.env)
 	defer clear(contents.identity)
+	defer clear(contents.composeSource)
+	defer clear(contents.composeJSON)
+	defer clear(contents.composeBinding)
 	env, err := validateConfiguration(contents, candidateRoot, instance)
 	if err != nil {
 		return fail(err)
@@ -196,19 +228,30 @@ func openAdvisory(candidateRoot string, identityBound bool) (*Handle, error) {
 	}
 	identity := candidateIdentity{}
 	identityDigest := ""
-	if identityBound {
+	if mode >= observationIdentity {
 		identity, err = parseCandidateIdentity(contents.identity, candidateRoot, instance, env.projectName)
 		if err != nil {
 			return fail(err)
 		}
 		identityDigest = digest(contents.identity)
 	}
+	releaseDigests := LocalReleaseDigests{}
+	if mode == observationRelease {
+		releaseDigests, err = validateLocalRelease(contents, env, identity)
+		if err != nil {
+			return fail(err)
+		}
+	}
 	blockerSource := mandatoryBlockers
 	schema := ObservationSchemaV1
 	boundary := "ADVISORY_CONFIG_BOUND"
-	if identityBound {
+	if mode >= observationIdentity {
 		schema = IdentityObservationSchemaV1
 		boundary = "ADVISORY_LOCAL_IDENTITY_BOUND"
+	}
+	if mode == observationRelease {
+		schema = ReleaseObservationSchemaV1
+		boundary = "ADVISORY_LOCAL_RELEASE_BOUND"
 	}
 	blockers := append([]BlockerCode(nil), blockerSource...)
 	sort.Slice(blockers, func(i, j int) bool { return blockers[i] < blockers[j] })
@@ -224,6 +267,7 @@ func openAdvisory(candidateRoot string, identityBound bool) (*Handle, error) {
 			CatalogDigest: catalog.Digest, DotCASHA256: digest(contents.ca),
 			EgressPolicySHA256: digest(contents.policy),
 		},
+		localRelease: releaseDigests,
 	}
 	return &Handle{control: control}, nil
 }

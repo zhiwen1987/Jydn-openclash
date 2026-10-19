@@ -188,6 +188,165 @@ func TestLinuxIdentityBoundRejectsUnsafeIdentityObjects(t *testing.T) {
 	}
 }
 
+func TestLinuxReleaseBoundObservationKeepsAllTrustBlockers(t *testing.T) {
+	root, contents := resetLinuxCandidate(t)
+	handle, err := OpenReleaseBound(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handle.Close()
+	observation, err := handle.Observation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	release := observation.LocalRelease()
+	if observation.Schema() != ReleaseObservationSchemaV1 || observation.Boundary() != "ADVISORY_LOCAL_RELEASE_BOUND" || observation.Authorization() != "BLOCKED" ||
+		release.ComposeSourceSHA256 != digest(contents.composeSource) || release.ComposeRenderedSHA256 != digest(contents.composeJSON) ||
+		release.LocalBindingSHA256 != digest(contents.composeBinding) || !strings.HasPrefix(release.RenderedSemanticSHA256, "sha256:") {
+		t.Fatalf("invalid release-bound observation: %#v", observation)
+	}
+	if !reflect.DeepEqual(observation.Blockers(), sortedMandatoryBlockers()) {
+		t.Fatalf("release blockers=%v", observation.Blockers())
+	}
+}
+
+func TestLinuxReleaseBoundDetectsEveryReleaseFileMutationAndPoisons(t *testing.T) {
+	for _, spec := range candidateReleaseFileSpecs {
+		for _, mutation := range []string{"path-replacement", "in-place-mutation", "unlink", "oversize"} {
+			name := spec.name + "/" + mutation
+			t.Run(name, func(t *testing.T) {
+				root, contents := resetLinuxCandidate(t)
+				handle, err := OpenReleaseBound(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer handle.Close()
+				path := filepath.Join(root, "config", spec.name)
+				switch mutation {
+				case "path-replacement":
+					if err := os.Rename(path, path+".old"); err != nil {
+						t.Fatal(err)
+					}
+					writeExact(t, path, releaseFixture(spec.name, contents), int(spec.uid), int(spec.gid), os.FileMode(spec.mode))
+				case "in-place-mutation":
+					file, err := os.OpenFile(path, os.O_WRONLY, 0)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := file.WriteAt([]byte("!"), 0); err != nil {
+						_ = file.Close()
+						t.Fatal(err)
+					}
+					if err := file.Close(); err != nil {
+						t.Fatal(err)
+					}
+				case "unlink":
+					if err := os.Remove(path); err != nil {
+						t.Fatal(err)
+					}
+				case "oversize":
+					if err := os.Truncate(path, spec.maxBytes+1); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err := handle.Verify(); !errors.Is(err, ErrPoisoned) {
+					t.Fatalf("Verify error=%v, want ErrPoisoned", err)
+				}
+				if _, err := handle.Observation(); !errors.Is(err, ErrPoisoned) {
+					t.Fatalf("Observation error=%v, want sticky ErrPoisoned", err)
+				}
+			})
+		}
+	}
+}
+
+func TestLinuxReleaseBoundRejectsUnsafeReleaseObjects(t *testing.T) {
+	tests := map[string]func(*testing.T, string){
+		"symlink": func(t *testing.T, root string) {
+			path := filepath.Join(root, "config", "compose-source.yaml")
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink("compose-rendered.json", path); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"hardlink": func(t *testing.T, root string) {
+			path := filepath.Join(root, "config", "compose-source.yaml")
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Link(filepath.Join(root, "config", "compose-rendered.json"), path); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"fifo": func(t *testing.T, root string) {
+			path := filepath.Join(root, "config", "compose-local-binding.json")
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			if err := syscall.Mkfifo(path, 0o600); err != nil {
+				t.Fatal(err)
+			}
+		},
+	}
+	for _, spec := range candidateReleaseFileSpecs {
+		for _, defect := range []string{"empty", "wrong-mode", "special-mode", "wrong-owner"} {
+			name := spec.name + "/" + defect
+			tests[name] = func(t *testing.T, root string) {
+				path := filepath.Join(root, "config", spec.name)
+				switch defect {
+				case "empty":
+					writeExact(t, path, nil, int(spec.uid), int(spec.gid), os.FileMode(spec.mode))
+				case "wrong-mode":
+					if err := os.Chmod(path, os.FileMode(spec.mode|0o040)); err != nil {
+						t.Fatal(err)
+					}
+				case "special-mode":
+					if err := os.Chmod(path, os.ModeSticky|os.FileMode(spec.mode)); err != nil {
+						t.Fatal(err)
+					}
+				case "wrong-owner":
+					if err := os.Chown(path, 10001, int(spec.gid)); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+		}
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			root, _ := resetLinuxCandidate(t)
+			mutate(t, root)
+			if handle, err := OpenReleaseBound(root); err == nil {
+				handle.Close()
+				t.Fatal("unsafe local release object was accepted")
+			}
+			lease, err := restorelease.Acquire(root)
+			if err != nil {
+				t.Fatalf("failed construction leaked lifecycle lease: %v", err)
+			}
+			lease.Close()
+		})
+	}
+}
+
+func TestLinuxReleaseBoundSemanticFailureReleasesLease(t *testing.T) {
+	root, contents := resetLinuxCandidate(t)
+	path := filepath.Join(root, "config", "compose-rendered.json")
+	contents.composeJSON = bytesReplace(contents.composeJSON, `"privileged":false`, `"privileged":true`)
+	writeExact(t, path, contents.composeJSON, 0, 0, 0o600)
+	if handle, err := OpenReleaseBound(root); err == nil {
+		handle.Close()
+		t.Fatal("semantically invalid rendered Compose was accepted")
+	}
+	lease, err := restorelease.Acquire(root)
+	if err != nil {
+		t.Fatalf("semantic validation failure leaked lifecycle lease: %v", err)
+	}
+	lease.Close()
+}
+
 func TestLinuxAdvisoryCollectorExcludesConcurrentLifecycleAndReopens(t *testing.T) {
 	root, _ := resetLinuxCandidate(t)
 	first, err := OpenAdvisory(root)
@@ -439,7 +598,7 @@ func TestLinuxAdvisoryCollectorDescriptorsDoNotSurviveExec(t *testing.T) {
 		return
 	}
 	root, _ := resetLinuxCandidate(t)
-	handle, err := OpenIdentityBound(root)
+	handle, err := OpenReleaseBound(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -546,6 +705,9 @@ func writeConfigTree(t *testing.T, directory string, contents configurationConte
 	writeExact(t, filepath.Join(directory, "dot-ca.pem"), contents.ca, 0, 10001, 0o640)
 	writeExact(t, filepath.Join(directory, "egress-policy.json"), contents.policy, 0, 10001, 0o640)
 	writeExact(t, filepath.Join(directory, candidateIdentityFileSpec.name), contents.identity, 0, 10001, 0o640)
+	writeExact(t, filepath.Join(directory, "compose-source.yaml"), contents.composeSource, 0, 0, 0o600)
+	writeExact(t, filepath.Join(directory, "compose-rendered.json"), contents.composeJSON, 0, 0, 0o600)
+	writeExact(t, filepath.Join(directory, "compose-local-binding.json"), contents.composeBinding, 0, 0, 0o600)
 }
 
 func mkdirExact(t *testing.T, path string, uid, gid int, mode os.FileMode) {
@@ -597,6 +759,19 @@ func fileFixture(name string, contents configurationContents) (fileSpec, []byte)
 		}
 	}
 	panic("unknown fixture file: " + name)
+}
+
+func releaseFixture(name string, contents configurationContents) []byte {
+	switch name {
+	case "compose-source.yaml":
+		return contents.composeSource
+	case "compose-rendered.json":
+		return contents.composeJSON
+	case "compose-local-binding.json":
+		return contents.composeBinding
+	default:
+		panic("unknown release fixture: " + name)
+	}
 }
 
 func cleanupOwnedTestRoot(t *testing.T, root string) {

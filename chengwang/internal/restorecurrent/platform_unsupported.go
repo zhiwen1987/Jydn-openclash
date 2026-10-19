@@ -6,7 +6,7 @@ import "chengwang/internal/restorelease"
 
 type platformSnapshot struct{}
 
-func openPlatform(string, restorelease.Identity, bool) (*platformSnapshot, configurationContents, error) {
+func openPlatform(string, restorelease.Identity, observationMode) (*platformSnapshot, configurationContents, error) {
 	return nil, configurationContents{}, ErrUnsupported
 }
 

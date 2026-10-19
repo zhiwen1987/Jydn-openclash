@@ -133,6 +133,106 @@ class RestoreCurrentSourceGateTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "forbidden packages"):
             run_static_gate._validate_restorecurrent_package(package)
 
+    def test_release_observer_side_effect_import_is_rejected(self) -> None:
+        package = self._package('package restorecurrent\nimport "errors"\nvar _ = errors.New\n')
+        (package / "release.go").write_text(
+            'package restorecurrent\nimport "os"\nvar _ = os.WriteFile\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "forbidden filesystem mutation|side-effect-capable packages"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_release_observer_cannot_call_same_package_helper(self) -> None:
+        package = self._package("package restorecurrent\nfunc mutate() {}\n")
+        (package / "release.go").write_text(
+            "package restorecurrent\nfunc observe() { mutate() }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "helpers declared outside"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_release_observer_cannot_call_println(self) -> None:
+        package = self._package("package restorecurrent\n")
+        (package / "release.go").write_text(
+            "package restorecurrent\nfunc observe(secret string) { println(secret) }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "builtin side effect"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_restorecurrent_cannot_call_fmt_print(self) -> None:
+        package = self._package(
+            'package restorecurrent\nimport "fmt"\nfunc mutate(secret string) { fmt.Print(secret) }\n'
+        )
+        with self.assertRaisesRegex(RuntimeError, "standard output mutation"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_restorecurrent_cannot_call_builtin_println(self) -> None:
+        package = self._package(
+            "package restorecurrent\nfunc mutate(secret string) { println(secret) }\n"
+        )
+        with self.assertRaisesRegex(RuntimeError, "builtin side effect"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_release_observer_cannot_call_same_package_selector_method(self) -> None:
+        package = self._package(
+            "package restorecurrent\ntype helper struct{}\nfunc (helper) mutate() {}\n"
+        )
+        (package / "release.go").write_text(
+            "package restorecurrent\nfunc observe(value helper) { value.mutate() }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "unreviewed selector methods"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_release_observer_cannot_call_same_package_generic_helper(self) -> None:
+        package = self._package("package restorecurrent\nfunc mutate[T any]() {}\n")
+        (package / "release.go").write_text(
+            "package restorecurrent\nfunc observe() { mutate[int]() }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "helpers declared outside"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_unreviewed_os_mutator_is_rejected_package_wide(self) -> None:
+        package = self._package(
+            'package restorecurrent\nimport "os"\nfunc mutate() { _ = os.Mkdir("/tmp/x", 0700) }\n'
+        )
+        with self.assertRaisesRegex(RuntimeError, "unreviewed OS or syscall APIs"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_aliased_os_mutator_is_rejected_package_wide(self) -> None:
+        package = self._package(
+            'package restorecurrent\nimport fs "os"\nfunc mutate() { _ = fs.Mkdir("/tmp/x", 0700) }\n'
+        )
+        with self.assertRaisesRegex(RuntimeError, "unreviewed OS or syscall APIs"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_release_observer_cannot_call_chained_same_package_method(self) -> None:
+        package = self._package(
+            "package restorecurrent\ntype helper struct{}\nfunc (helper) mutate() {}\n"
+        )
+        (package / "release.go").write_text(
+            "package restorecurrent\nfunc localFactory() helper { return helper{} }\nfunc observe() { localFactory().mutate() }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "chained selector method"):
+            run_static_gate._validate_restorecurrent_package(package)
+
+    def test_compose_snapshot_drift_is_rejected(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        chengwang = pathlib.Path(temporary.name) / "chengwang"
+        candidate = chengwang / "deploy" / "m2b-candidate"
+        package = chengwang / "internal" / "restorecurrent"
+        candidate.mkdir(parents=True)
+        package.mkdir(parents=True)
+        (package / "current.go").write_text("package restorecurrent\n", encoding="utf-8")
+        (package / "compose_probe_agent.snapshot.yaml").write_bytes(b"reviewed\n")
+        (candidate / "compose.probe-agent.yaml").write_bytes(b"drifted\n")
+        with self.assertRaisesRegex(RuntimeError, "snapshot differs"):
+            run_static_gate._validate_restorecurrent_sources(candidate)
+
     def test_authoritative_or_state_collection_api_is_rejected(self) -> None:
         for token in ("restorecontracts.StateOnlyCurrent", "AcquireLockedStateSnapshot"):
             with self.subTest(token=token):

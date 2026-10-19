@@ -1,0 +1,85 @@
+//go:build composecli
+
+package restorecurrent
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Fatal("Compose CLI compatibility gate is Linux-only")
+	}
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot locate repository root")
+	}
+	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
+	projectDirectory := filepath.Join(repositoryRoot, "deploy", "m2b-candidate")
+	composeFile := filepath.Join(projectDirectory, "compose.probe-agent.yaml")
+
+	candidateRoot := filepath.Join(t.TempDir(), "candidate1")
+	contents := validConfigurationContents(t, candidateRoot)
+	environment, err := validateConfiguration(contents, candidateRoot, "candidate1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	envFile := filepath.Join(t.TempDir(), "probe.env")
+	if err := os.WriteFile(envFile, contents.env, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	command := exec.CommandContext(
+		ctx,
+		"docker", "compose", "--env-file", envFile,
+		"--project-name", environment.projectName,
+		"--project-directory", projectDirectory,
+		"-f", composeFile,
+		"--profile", activeProbeProfile,
+		"config", "--format", "json",
+	)
+	for _, variable := range os.Environ() {
+		if !strings.HasPrefix(variable, "COMPOSE_") {
+			command.Env = append(command.Env, variable)
+		}
+	}
+	command.Env = append(command.Env, "COMPOSE_IGNORE_ORPHANS=1")
+	rendered, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("docker compose config failed: %v: %s", err, strings.TrimSpace(string(rendered)))
+	}
+	contents.composeJSON = rendered
+	buildContext := filepath.ToSlash(repositoryRoot)
+	semanticDigest, err := validateRenderedCompose(rendered, environment, buildContext)
+	if err != nil {
+		t.Fatalf("actual Docker Compose v2 output violates the local release contract: %v", err)
+	}
+	binding, err := parseLocalReleaseBinding(contents.composeBinding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	binding.BuildContext = buildContext
+	binding.RenderedSizeBytes = uint64(len(rendered))
+	binding.RenderedSHA256 = releaseDigest(rendered)
+	binding.RenderedSemanticSHA256 = semanticDigest
+	contents.composeBinding, err = json.Marshal(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := parseCandidateIdentity(contents.identity, candidateRoot, "candidate1", environment.projectName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := validateLocalRelease(contents, environment, identity); err != nil {
+		t.Fatalf("actual Docker Compose v2 release bundle was rejected: %v", err)
+	}
+}

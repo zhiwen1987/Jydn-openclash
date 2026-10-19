@@ -17,14 +17,21 @@ import (
 )
 
 type configurationContents struct {
-	env      []byte
-	catalog  []byte
-	ca       []byte
-	policy   []byte
-	identity []byte
+	env            []byte
+	catalog        []byte
+	ca             []byte
+	policy         []byte
+	identity       []byte
+	composeSource  []byte
+	composeJSON    []byte
+	composeBinding []byte
 }
 
-type validatedEnvironment struct{ projectName string }
+type validatedEnvironment struct {
+	projectName string
+	releaseID   string
+	values      map[string]string
+}
 
 var (
 	releasePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
@@ -88,7 +95,7 @@ func validateConfiguration(contents configurationContents, candidateRoot, instan
 	if err := validatePolicy(contents.policy); err != nil {
 		return validatedEnvironment{}, err
 	}
-	return validatedEnvironment{projectName: expectedProject}, nil
+	return validatedEnvironment{projectName: expectedProject, releaseID: release, values: values}, nil
 }
 
 func parseEnvironment(raw []byte) (map[string]string, error) {
