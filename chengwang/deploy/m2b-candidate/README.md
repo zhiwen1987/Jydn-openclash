@@ -196,3 +196,9 @@ sudo env \
 P0-c 的仓库候选实现采用独立权限域，而不是把 Docker 主 socket 交给观察客户端。特权 `docker-runtime-readonly-proxy` 只暴露一个固定的去敏快照端点；`internal/restoreruntime` 只连接 `/run/chengwang-runtime-observer/readonly.sock`，没有标准 Docker socket、Docker SDK、CLI、环境回退或写方法。代理与客户端各执行双读，绑定完整容器/镜像/网络 ID、PID start ticks、netns inode、运行状态和已审查安全资源语义。
 
 该仓库候选已由 GitHub Actions run `39206352055` / job `117909922290` / commit `c9b466481614afe5deff1032b8b2bd1d31e59b29` 在 Linux 上验收：真实 daemon fixture 普通/race 两份 transcript 各精确通过一个 tagged 用例且零 skip，采集前后身份不变并确认清理无残留；整仓 3466 个 Go 语义 run event、35 个包、158 个 Python 测试、11 份 schema 和 Go vet 同步通过。它仍是 **未部署实现**，边界只有 `ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND / authorization=BLOCKED`，九项 blocker 全保留。fixture 只签署本机 API 兼容性，不签署产品镜像或生产容器。详细威胁边界见 `docs/P0C-DOCKER-RUNTIME-OBSERVER.md`。
+
+## P0-d1 本地 OCI 镜像身份关联候选
+
+`internal/restoreimage` 已增加原始 manifest/config 字节摘要、descriptor 长度和平台校验，并与 P0-c opaque observation 的本地 image ID 关联。manifest digest、config digest 与 Docker image ID 分别保存、逐项核对；Go AST 门禁限制该层仅做内存计算。结果只达到 `ADVISORY_LOCAL_IMAGE_ASSOCIATION / authorization=BLOCKED`，九项 blocker 全保留。
+
+这一实现尚无独立 Registry/RepoDigests 读回、layer 字节验证、Sigstore/DSSE 验签、策略审批或持久防重放；没有接入恢复执行器，也未部署。测试中的 runtime facts 是合成输入，不代表真实 Capture→BindLocal 验收。具体输入约束、证据边界与后续事项见 `docs/P0D1-LOCAL-OCI-IDENTITY.md`。

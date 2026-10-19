@@ -86,6 +86,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/restoreclock": 13,
     "chengwang/internal/restorecurrent": 148,
+    "chengwang/internal/restoreimage": 197,
     "chengwang/internal/restorelease": 2,
     "chengwang/internal/restoreruntime": 50,
     "chengwang/internal/routing": 4,
@@ -115,6 +116,10 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
     "chengwang/internal/restorecurrent": {
         "count": 148,
         "sha256": "518d0474814e656cafd2012fcf400a56e52374f4cb184df652e38bd7822558cd",
+    },
+    "chengwang/internal/restoreimage": {
+        "count": 197,
+        "sha256": "0e71129389fceddddcbe94114fb959616e82910b585c5fc2a0b53295431277d1",
     },
     "chengwang/internal/restoreruntime": {
         "count": 50,
@@ -317,6 +322,24 @@ REQUIRED_GO_TEST_NAMES = {
         {
             "TestNilAndZeroLeaseFailClosed",
             "TestProductionCandidatePathPolicy",
+        }
+    ),
+    "chengwang/internal/restoreimage": frozenset(
+        {
+            "TestValidateLocalBindsRawOCIAndDockerBytes",
+            "TestValidateLocalRequiresExactRawByteDigests",
+            "TestValidateLocalRequiresExactRawByteDigests/config-id-is-not-manifest-digest",
+            "TestValidateLocalRequiresExactRawByteDigests/manifest-id-is-not-config-digest",
+            "TestValidateLocalRejectsAmbiguousJSON",
+            "TestValidateLocalBoundsOpaqueInputWork",
+            "TestContentHasNoAuthorizationOrRawConfigSurface",
+            "TestAssociationKeepsDigestRolesAndNineBlockers",
+            "TestAssociationRejectsIncompleteAndSubstitutedRuntime/manifest-digest-is-not-runtime-image-id",
+            "TestBindLocalRejectsZeroOpaqueInputs",
+            "TestLocalBytesCannotAuthenticateRepositoryOrLayerContent",
+            "TestProductionSourcesKeepPureByteAndParentTypeBoundary",
+            "TestProductionSourceScannerRejectsCapabilityChanges",
+            "TestProductionSourceScannerRejectsNativeAttachments",
         }
     ),
     "chengwang/internal/restoreruntime": frozenset(
