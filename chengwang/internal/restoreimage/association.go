@@ -1,11 +1,14 @@
 package restoreimage
 
 import (
+	"regexp"
 	"sort"
 
 	"chengwang/internal/restorecurrent"
 	"chengwang/internal/restoreruntime"
 )
+
+var candidateIDPattern = regexp.MustCompile(`^candidate-[0-9a-f]{32}$`)
 
 const (
 	AssociationSchemaV1  = "chengwang.restore-local-image-association/v1"
@@ -68,7 +71,7 @@ func bindFacts(content Content, runtime runtimeFacts) (Association, error) {
 	digest, valid := referenceDigest(content.reference)
 	if !valid || digest != content.manifestDigest || runtime.schema != restoreruntime.ObservationSchemaV1 ||
 		runtime.boundary != restoreruntime.ObservationBoundary || runtime.authorization != AuthorizationBlocked ||
-		!digestPattern.MatchString(runtime.candidateID) || !digestPattern.MatchString(runtime.runtimeSHA256) ||
+		!candidateIDPattern.MatchString(runtime.candidateID) || !digestPattern.MatchString(runtime.runtimeSHA256) ||
 		!digestPattern.MatchString("sha256:"+runtime.containerID) || runtime.imageID != content.configDigest ||
 		!exactBlockers(runtime.blockers) {
 		return Association{}, ErrInvalid

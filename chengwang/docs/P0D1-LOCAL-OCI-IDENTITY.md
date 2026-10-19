@@ -50,6 +50,8 @@ manifest.config.digest
 
 测试包含原始字节变化但语义相同、manifest/config 摘要混用、descriptor/平台/rootfs 漂移、JSON 歧义与资源边界、敏感内容不泄漏、零观察值和 blocker 变异。内部 `bindFacts` 使用合成 runtime facts 测试关联规则；它不是一次真实 `Capture → BindLocal` 的端到端证明。
 
+首次集成复核曾发现 consumer 错把 Candidate ID 当成 SHA-256 摘要，而 producer 实际格式是 `candidate-<32 lowercase hex>`，导致合法样本被拒绝。该问题已修正，并新增直接解析上游 `restorecurrent/identity.go` 格式合同的测试，避免合成样本再次掩盖两层格式不一致。
+
 本阶段沿用整仓 ordinary/race/vet 和 Linux offline static gate，并登记测试名称精确指纹。CI run、commit、结果必须以实际返回记录；本文件不预先宣称 CI 或生产验收成功。
 
 后续 P0-d2 需选择并锁定标准 Sigstore 验证器与独立信任根，完成 layer/Registry 字节读回、签名与 provenance、审批策略和持久防重放，再建设与真实候选运行态的集成测试。现有 `supply-chain/verify_supply_chain.py` 保持结构预检及固定 BLOCKED，不以外部布尔回执替代验签。

@@ -3,7 +3,13 @@ package restoreimage
 import (
 	"encoding/json"
 	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"path/filepath"
 	"reflect"
+	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -20,7 +26,7 @@ func associationFixture(t *testing.T) (Content, runtimeFacts) {
 	}
 	return content, runtimeFacts{
 		schema: restoreruntime.ObservationSchemaV1, boundary: restoreruntime.ObservationBoundary,
-		authorization: AuthorizationBlocked, candidateID: "sha256:" + strings.Repeat("c", 64),
+		authorization: AuthorizationBlocked, candidateID: "candidate-" + strings.Repeat("c", 32),
 		containerID: strings.Repeat("d", 64), imageID: testSHA(config), runtimeSHA256: "sha256:" + strings.Repeat("e", 64),
 		blockers: []restorecurrent.BlockerCode{
 			restorecurrent.BlockerCandidateIDAttestationMissing,
@@ -79,6 +85,9 @@ func TestAssociationRejectsIncompleteAndSubstitutedRuntime(t *testing.T) {
 		{"boundary", func(v *runtimeFacts) { v.boundary = "ACCEPTED" }},
 		{"authorization", func(v *runtimeFacts) { v.authorization = "ALLOWED" }},
 		{"candidate", func(v *runtimeFacts) { v.candidateID = "short" }},
+		{"candidate-is-not-sha256", func(v *runtimeFacts) { v.candidateID = "sha256:" + strings.Repeat("c", 64) }},
+		{"candidate-uppercase", func(v *runtimeFacts) { v.candidateID = "candidate-" + strings.Repeat("C", 32) }},
+		{"candidate-truncated", func(v *runtimeFacts) { v.candidateID = "candidate-" + strings.Repeat("c", 31) }},
 		{"container", func(v *runtimeFacts) { v.containerID = "short" }},
 		{"snapshot-digest", func(v *runtimeFacts) { v.runtimeSHA256 = "short" }},
 		{"wrong-config", func(v *runtimeFacts) { v.imageID = "sha256:" + strings.Repeat("f", 64) }},
@@ -103,6 +112,51 @@ func TestAssociationRejectsIncompleteAndSubstitutedRuntime(t *testing.T) {
 			t.Fatal("manifest substituted for config image ID")
 		}
 	})
+}
+
+// The producer and consumer must agree on identity formats. Synthetic runtime
+// facts alone previously hid a SHA-256-vs-candidate-ID compatibility bug.
+func TestCandidateIDContractMatchesActualUpstreamProducer(t *testing.T) {
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot locate upstream contract")
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), filepath.Join(filepath.Dir(source), "..", "restorecurrent", "identity.go"), nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	ast.Inspect(file, func(node ast.Node) bool {
+		spec, ok := node.(*ast.ValueSpec)
+		if !ok {
+			return true
+		}
+		for i, name := range spec.Names {
+			if name.Name != "candidateIDPattern" {
+				continue
+			}
+			if i >= len(spec.Values) {
+				t.Fatal("upstream candidate contract has no expression")
+			}
+			call, ok := spec.Values[i].(*ast.CallExpr)
+			if !ok || len(call.Args) != 1 {
+				t.Fatal("upstream candidate contract changed shape")
+			}
+			literal, ok := call.Args[0].(*ast.BasicLit)
+			if !ok {
+				t.Fatal("upstream candidate contract is no longer literal")
+			}
+			pattern, err := strconv.Unquote(literal.Value)
+			if err != nil || pattern != candidateIDPattern.String() {
+				t.Fatal("consumer disagrees with actual upstream candidate ID format")
+			}
+			found = true
+		}
+		return true
+	})
+	if !found {
+		t.Fatal("actual upstream candidate ID contract was not checked")
+	}
 }
 
 func TestBindLocalRejectsZeroOpaqueInputs(t *testing.T) {

@@ -86,7 +86,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/restoreclock": 13,
     "chengwang/internal/restorecurrent": 148,
-    "chengwang/internal/restoreimage": 197,
+    "chengwang/internal/restoreimage": 201,
     "chengwang/internal/restorelease": 2,
     "chengwang/internal/restoreruntime": 50,
     "chengwang/internal/routing": 4,
@@ -118,8 +118,8 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
         "sha256": "518d0474814e656cafd2012fcf400a56e52374f4cb184df652e38bd7822558cd",
     },
     "chengwang/internal/restoreimage": {
-        "count": 197,
-        "sha256": "0e71129389fceddddcbe94114fb959616e82910b585c5fc2a0b53295431277d1",
+        "count": 201,
+        "sha256": "45899b6ac978ee4d618af8f41e1a3c43c78326899ff4332584650cd2f9ff96b5",
     },
     "chengwang/internal/restoreruntime": {
         "count": 50,
@@ -334,6 +334,8 @@ REQUIRED_GO_TEST_NAMES = {
             "TestValidateLocalBoundsOpaqueInputWork",
             "TestContentHasNoAuthorizationOrRawConfigSurface",
             "TestAssociationKeepsDigestRolesAndNineBlockers",
+            "TestCandidateIDContractMatchesActualUpstreamProducer",
+            "TestAssociationRejectsIncompleteAndSubstitutedRuntime/candidate-is-not-sha256",
             "TestAssociationRejectsIncompleteAndSubstitutedRuntime/manifest-digest-is-not-runtime-image-id",
             "TestBindLocalRejectsZeroOpaqueInputs",
             "TestLocalBytesCannotAuthenticateRepositoryOrLayerContent",
