@@ -26,9 +26,9 @@ func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
 	projectDirectory := filepath.Join(repositoryRoot, "deploy", "m2b-candidate")
 	composeFile := filepath.Join(projectDirectory, "compose.probe-agent.yaml")
 
-	candidateRoot := filepath.Join(t.TempDir(), "candidate1")
+	candidateRoot := "/var/lib/chengwang-m2b-candidate/composecompat"
 	contents := validConfigurationContents(t, candidateRoot)
-	environment, err := validateConfiguration(contents, candidateRoot, "candidate1")
+	environment, err := validateConfiguration(contents, candidateRoot, "composecompat")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	identity, err := parseCandidateIdentity(contents.identity, candidateRoot, "candidate1", environment.projectName)
+	identity, err := parseCandidateIdentity(contents.identity, candidateRoot, "composecompat", environment.projectName)
 	if err != nil {
 		t.Fatal(err)
 	}
