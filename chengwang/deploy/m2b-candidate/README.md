@@ -14,6 +14,7 @@
 | `probe-agent` 命令 | 已实现、本地测试通过 | 启动账本先于网络、结果先入 spool 再结算、跨重启预算、崩溃恢复和严格进程健康协议；尚未完成容器运行态验收 |
 | 主动探测容器定义 | 已实现、默认关闭、仅静态校验 | 独立 profile、非 root、只读根、同一 `probe-state` 下的独立 spool/ledger、健康 tmpfs；没有 Docker 构建或运行证据 |
 | 主动代理生命周期门禁 | 已实现、仅静态校验 | 严格结构化 preflight、只读状态语义验证、全局/实例互斥锁、归档前后双重验证、无 live 变更的恢复私有暂存和启动前证据绑定；启动与恢复切换仍明确阻断 |
+| 本地 Release/Compose 绑定 | 已实现、Linux CI 验证、仍为 advisory | 精确 Compose 源快照、真实 Compose v2 标准化输出语义、绑定文件摘要和候选身份交叉绑定；不调用 Docker 运行态、不证明镜像来源，九项阻断全部保留 |
 | 宿主出口取证候选 | 已实现、仅本地测试 | 最小投影采集 Docker/netns/nftables，并校验 IPv4/IPv6 规则与计数器；因出口架构合同尚未闭合，只生成 `BLOCKED` 报告 |
 | 出口 bootstrap 离线计划 | 已实现、仅本地测试 | 编译专用双栈 bridge 的 `FORWARD`/`INPUT` 默认拒绝结构、chain 归属、计数器与精确回滚摘要；不执行 Docker/nft，固定 `BLOCKED/78` |
 | 静态自有 canary 合同 | 已实现、仅本地测试 | 严格绑定 catalog、域名/CNAME、公网单播 IP、TLS 与 HTTP 预期；只生成 `BLOCKED` 报告，不替代运行时 DNS/TLS/HTTP 观测或书面审批验签 |
@@ -134,6 +135,8 @@ sh scripts/compare-baseline.sh \
 `internal/restorecurrent` 当前只实现 config-only 的阻断诊断观察：在 lifecycle lease 与同 boot kernel clock 窗口内，以 candidate root 的设备/inode/mount identity 为锚长持 config 和四个固定文件 FD，校验路径、类型、owner/group、mode、单链接、大小和原始摘要；错误不回显 `probe.env` 原文、未知键或 JSON token。它既不会运行 Docker/shell/network，也不会读取 probe state 或停止服务，更不会产出 `StateOnlyCurrent`。观察固定保留 CandidateID、Compose source/rendered、镜像、live container、quiesce、writer 停止、state 绑定和外部时间锚九项阻断。run `39178627641` / job `117826454347` / commit `a212563...` 已用 ordinary/race 两份 transcript 各精确执行 42 个 Linux root 场景且零 skip，race 与整仓门禁通过；因此该切片仅验收到 `ADVISORY_CONFIG_BOUND / authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING`，不是可恢复或已部署能力。
 
 后续 P0-a 又加入可选的 `candidate-identity.json` 本地绑定：`OpenIdentityBound` 会长持第五个 FD，并严格绑定 candidate root、instance、project、service、state mount、generation、nonce 与派生 Candidate ID；替换、原位修改、unlink、超限、软硬链接、FIFO、owner/mode 和 JSON 结构歧义都会失败关闭并 sticky-poison。这个文件与 nonce 都位于同一候选根内，属于 **本地自签身份**，不是独立外部证明，所以 `CANDIDATE_ID_ATTESTATION_MISSING` 与其余八项阻断全部保留，边界仅为 `ADVISORY_LOCAL_IDENTITY_BOUND`。GitHub Actions run `39181172717` / job `117834039374` / commit `2d94be3914bdda471d54a9fa47c5250336a7bf62` 已用 ordinary/race 两份 transcript 各精确通过 56 个 Linux root 场景、零 skip；整仓同时通过 3094 个 Go 语义 run event、31 个包、144 个 Python 测试、13 个 shell 脚本与 11 份 schema metaschema。该证据仍固定 `authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING`，不代表 Compose、镜像、Docker 运行态、恢复授权或生产部署。
+
+P0-b 又把 `compose-source.yaml`、`compose-rendered.json` 和 `compose-local-binding.json` 纳入同一 root-owned、`0600`、单链接、同 device/mount 的 FD 生命周期。`OpenReleaseBound` 要求源文件与审查快照逐字节一致，并将候选身份、环境摘要、源/渲染原始摘要和严格语义摘要交叉绑定；它本身不运行 Docker、shell、网络或状态采集。构建上下文仍明确只是外部绝对路径声明，不是文件系统身份或供应链来源证明。GitHub Actions run `39202982653` / job `117899713507` / commit `8c9e52f08fecc7e9cdd2ad1fe5cb030bd088e17d` 已用 Docker Compose v2.38.2 的真实 `config --format json` 输出通过兼容门，并确认只把渲染器省略的 false 默认值和空 `ipam` 规范化为相同语义；显式 `true`、`null`、未知字段和非空 IPAM 均有拒绝测试。ordinary/race 两份 root transcript 各精确通过 87 个场景、零 skip；整仓普通/race/vet、3324 个 Go 语义 run event、31 个包、155 个 Python 测试、13 个 shell 脚本和 11 份 schema metaschema 同步通过。边界只提升到 `ADVISORY_LOCAL_RELEASE_BOUND`，九项 blocker 与 `authorization=BLOCKED_RUNTIME_ATTESTATIONS_MISSING` 原样保留；这不是 renderer attestation、镜像证明、容器运行态、恢复授权或生产部署。
 
 run `39175647549` / job `117817635191` / commit `2ad8f25...` 已在 Ubuntu 24.04.5 / Linux 6.17 / Go 1.23.12 上执行该矩阵：普通与 race transcript 中 `internal/probe` 各 260 个 run event，整仓合计 3028 个语义 run event、30 个包、零 skip；静态门禁同时通过 141 个 Python 测试和 11 份 schema metaschema 验证。该结果不改变上述 advisory 与未接线边界。
 
