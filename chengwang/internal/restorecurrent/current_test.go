@@ -507,8 +507,20 @@ func TestRenderedComposeRejectsEverySecurityProjectionDrift(t *testing.T) {
 		"network_attachable": func(value map[string]any) {
 			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["attachable"] = true
 		},
+		"network_attachable_null": func(value map[string]any) {
+			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["attachable"] = nil
+		},
 		"network_external": func(value map[string]any) {
 			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["external"] = true
+		},
+		"network_external_null": func(value map[string]any) {
+			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["external"] = nil
+		},
+		"network_ipam_null": func(value map[string]any) {
+			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["ipam"] = nil
+		},
+		"network_ipam_configuration": func(value map[string]any) {
+			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["ipam"] = map[string]any{"driver": "default"}
 		},
 		"network_icc": func(value map[string]any) {
 			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["driver_opts"].(map[string]any)["com.docker.network.bridge.enable_icc"] = "true"
@@ -560,6 +572,10 @@ func TestRenderedSemanticDigestNormalizesAcceptedRepresentations(t *testing.T) {
 				delete(mount, "read_only")
 			}
 		}
+		network := value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)
+		delete(network, "attachable")
+		delete(network, "external")
+		network["ipam"] = map[string]any{}
 		service["build"].(map[string]any)["dockerfile"] = path.Join(buildContext, "deploy/m2b-candidate/Dockerfile.probe-agent")
 		service["cpus"] = "0.25"
 		service["mem_limit"] = "100663296"

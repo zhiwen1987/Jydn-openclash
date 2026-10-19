@@ -390,13 +390,19 @@ func validateRenderedNetwork(rawNetworks, rawServiceNetworks any, projectName st
 		return errors.Join(ErrInvalid, errors.New("rendered Compose network set is invalid"))
 	}
 	network, ok := networks["m2b_probe_quarantine"].(map[string]any)
-	if !ok || !allowedAnyKeys(network, "name", "driver", "driver_opts", "attachable", "internal", "external") ||
+	if !ok || !allowedAnyKeys(network, "name", "driver", "driver_opts", "attachable", "internal", "external", "ipam") ||
 		stringValue(network["name"]) != projectName+"_m2b_probe_quarantine" || stringValue(network["driver"]) != "bridge" ||
-		!boolValue(network["attachable"], false) || !boolValue(network["internal"], true) {
+		!omittedOrFalse(network, "attachable") || !boolValue(network["internal"], true) {
 		return errors.Join(ErrInvalid, errors.New("rendered Compose quarantine network is invalid"))
 	}
 	if external, exists := network["external"]; exists && !boolValue(external, false) {
 		return errors.Join(ErrInvalid, errors.New("rendered Compose network cannot be external"))
+	}
+	if rawIPAM, exists := network["ipam"]; exists {
+		ipam, ok := rawIPAM.(map[string]any)
+		if !ok || len(ipam) != 0 {
+			return errors.Join(ErrInvalid, errors.New("rendered Compose network IPAM must be empty"))
+		}
 	}
 	opts, ok := network["driver_opts"].(map[string]any)
 	if !ok || !exactAnyKeys(opts, "com.docker.network.bridge.enable_icc") || stringValue(opts["com.docker.network.bridge.enable_icc"]) != "false" {
