@@ -143,12 +143,13 @@ func renderedComposeKeyShape(raw []byte, environment validatedEnvironment) strin
 		parts = append(parts, "networks="+strings.Join(sortedMapKeys(networks), ","))
 		if network, ok := networks["m2b_probe_quarantine"].(map[string]any); ok {
 			driverOptions, driverOptionsOK := network["driver_opts"].(map[string]any)
+			ipam, ipamOK := network["ipam"].(map[string]any)
 			parts = append(parts, fmt.Sprintf(
-				"network=keys[%s],nameMatch[%t],driverBridge[%t],attachableFalse[%t],internalTrue[%t],externalFalse[%t],driverOptions[%t],driverOptionKeys[%s],iccFalse[%t]",
+				"network=keys[%s],nameMatch[%t],driverBridge[%t],attachableFalse[%t],internalTrue[%t],externalFalse[%t],driverOptions[%t],driverOptionKeys[%s],iccFalse[%t],ipamObject[%t],ipamKeys[%s]",
 				strings.Join(sortedMapKeys(network), ","), stringValue(network["name"]) == environment.projectName+"_m2b_probe_quarantine",
 				stringValue(network["driver"]) == "bridge", omittedOrFalse(network, "attachable"), boolValue(network["internal"], true),
 				omittedOrFalse(network, "external"), driverOptionsOK, strings.Join(sortedMapKeys(driverOptions), ","),
-				driverOptionsOK && stringValue(driverOptions["com.docker.network.bridge.enable_icc"]) == "false",
+				driverOptionsOK && stringValue(driverOptions["com.docker.network.bridge.enable_icc"]) == "false", ipamOK, strings.Join(sortedMapKeys(ipam), ","),
 			))
 		}
 	}
