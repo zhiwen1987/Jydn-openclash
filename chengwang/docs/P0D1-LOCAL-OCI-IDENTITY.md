@@ -54,4 +54,6 @@ manifest.config.digest
 
 本阶段沿用整仓 ordinary/race/vet 和 Linux offline static gate，并登记测试名称精确指纹。CI run、commit、结果必须以实际返回记录；本文件不预先宣称 CI 或生产验收成功。
 
+2026-10-19 已核实的 Linux 仓库验收：commit `23d3d41d2f2b42d22c5fa7a9c7ce2247557eeb51`，GitHub Actions [run 39208841021 / job 117917487408](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39208841021/job/117917487408)，结论 `success`。`restoreimage` ordinary/race 两份 transcript 各精确通过 201 个 Test 场景；整仓 `GO_JSON_GATE=PASS files=2 semanticRunEvents=3870 packages=36 skips=0`，158 个 Linux Python 测试、11 份 schema metaschema、Go vet 与既有真实 Docker fixture 门同步通过。该结果不包含本模块真实 Capture→BindLocal、独立来源验签或生产部署。
+
 后续 P0-d2 需选择并锁定标准 Sigstore 验证器与独立信任根，完成 layer/Registry 字节读回、签名与 provenance、审批策略和持久防重放，再建设与真实候选运行态的集成测试。现有 `supply-chain/verify_supply_chain.py` 保持结构预检及固定 BLOCKED，不以外部布尔回执替代验签。
