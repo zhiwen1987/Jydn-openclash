@@ -410,6 +410,9 @@ func TestRenderedComposeRejectsEverySecurityProjectionDrift(t *testing.T) {
 		"privileged": func(value map[string]any) {
 			renderedService(value)["privileged"] = true
 		},
+		"privileged_null": func(value map[string]any) {
+			renderedService(value)["privileged"] = nil
+		},
 		"build_context": func(value map[string]any) {
 			renderedService(value)["build"].(map[string]any)["context"] = root + "/other"
 		},
@@ -429,12 +432,24 @@ func TestRenderedComposeRejectsEverySecurityProjectionDrift(t *testing.T) {
 		"mount_mode": func(value map[string]any) {
 			renderedService(value)["volumes"].([]any)[0].(map[string]any)["read_only"] = false
 		},
-		"user":         func(value map[string]any) { renderedService(value)["user"] = "0:0" },
-		"profile":      func(value map[string]any) { renderedService(value)["profiles"] = []any{"other"} },
-		"read_only":    func(value map[string]any) { renderedService(value)["read_only"] = false },
-		"init":         func(value map[string]any) { renderedService(value)["init"] = false },
-		"stdin_open":   func(value map[string]any) { renderedService(value)["stdin_open"] = true },
-		"tty":          func(value map[string]any) { renderedService(value)["tty"] = true },
+		"user":       func(value map[string]any) { renderedService(value)["user"] = "0:0" },
+		"profile":    func(value map[string]any) { renderedService(value)["profiles"] = []any{"other"} },
+		"read_only":  func(value map[string]any) { renderedService(value)["read_only"] = false },
+		"init":       func(value map[string]any) { renderedService(value)["init"] = false },
+		"stdin_open": func(value map[string]any) { renderedService(value)["stdin_open"] = true },
+		"tty":        func(value map[string]any) { renderedService(value)["tty"] = true },
+		"stdin_open_null": func(value map[string]any) {
+			renderedService(value)["stdin_open"] = nil
+		},
+		"tty_null": func(value map[string]any) {
+			renderedService(value)["tty"] = nil
+		},
+		"unknown_service_field": func(value map[string]any) {
+			renderedService(value)["unknown"] = false
+		},
+		"missing_required_field": func(value map[string]any) {
+			delete(renderedService(value), "read_only")
+		},
 		"restart":      func(value map[string]any) { renderedService(value)["restart"] = "always" },
 		"stop_signal":  func(value map[string]any) { renderedService(value)["stop_signal"] = "SIGKILL" },
 		"stop_grace":   func(value map[string]any) { renderedService(value)["stop_grace_period"] = "1s" },
@@ -520,6 +535,9 @@ func TestRenderedSemanticDigestNormalizesAcceptedRepresentations(t *testing.T) {
 	}
 	variant := mutateRenderedCompose(t, contents.composeJSON, func(value map[string]any) {
 		service := renderedService(value)
+		delete(service, "privileged")
+		delete(service, "stdin_open")
+		delete(service, "tty")
 		service["build"].(map[string]any)["dockerfile"] = path.Join(buildContext, "deploy/m2b-candidate/Dockerfile.probe-agent")
 		service["cpus"] = "0.25"
 		service["mem_limit"] = "100663296"

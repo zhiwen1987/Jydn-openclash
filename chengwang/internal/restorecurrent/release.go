@@ -178,16 +178,16 @@ func validateRenderedCompose(raw []byte, env validatedEnvironment, buildContext 
 		return "", errors.Join(ErrInvalid, errors.New("rendered Compose service set is invalid"))
 	}
 	service, ok := services[serviceName].(map[string]any)
-	if !ok || !exactAnyKeys(service,
+	if !ok || !exactRequiredOptionalAnyKeys(service, []string{
 		"build", "cap_drop", "command", "cpus", "entrypoint", "environment", "healthcheck", "image", "init", "labels",
-		"logging", "mem_limit", "mem_reservation", "networks", "pids_limit", "privileged", "profiles", "read_only", "restart",
-		"security_opt", "stdin_open", "stop_grace_period", "stop_signal", "tmpfs", "tty", "ulimits", "user", "volumes",
-	) {
+		"logging", "mem_limit", "mem_reservation", "networks", "pids_limit", "profiles", "read_only", "restart",
+		"security_opt", "stop_grace_period", "stop_signal", "tmpfs", "ulimits", "user", "volumes",
+	}, "privileged", "stdin_open", "tty") {
 		return "", errors.Join(ErrInvalid, errors.New("rendered Compose service field set is invalid"))
 	}
 	if !equalStrings(service["profiles"], []string{activeProbeProfile}) || stringValue(service["image"]) != "chengwang-m2b-probe-agent:"+env.releaseID ||
-		stringValue(service["user"]) != "10001:10001" || !boolValue(service["read_only"], true) || !boolValue(service["privileged"], false) ||
-		!boolValue(service["init"], true) || !boolValue(service["stdin_open"], false) || !boolValue(service["tty"], false) ||
+		stringValue(service["user"]) != "10001:10001" || !boolValue(service["read_only"], true) || !omittedOrFalse(service, "privileged") ||
+		!boolValue(service["init"], true) || !omittedOrFalse(service, "stdin_open") || !omittedOrFalse(service, "tty") ||
 		stringValue(service["restart"]) != "no" || stringValue(service["stop_signal"]) != "SIGTERM" || !durationValue(service["stop_grace_period"], "20s", 20_000_000_000) {
 		return "", errors.Join(ErrInvalid, errors.New("rendered Compose process isolation is invalid"))
 	}
@@ -502,6 +502,22 @@ func exactAnyKeys(value map[string]any, keys ...string) bool {
 	return len(value) == len(keys) && allowedAnyKeys(value, keys...)
 }
 
+func exactRequiredOptionalAnyKeys(value map[string]any, required []string, optional ...string) bool {
+	if len(value) < len(required) || len(value) > len(required)+len(optional) {
+		return false
+	}
+	allowed := append(append(make([]string, 0, len(required)+len(optional)), required...), optional...)
+	if !allowedAnyKeys(value, allowed...) {
+		return false
+	}
+	for _, key := range required {
+		if _, ok := value[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func allowedAnyKeys(value map[string]any, keys ...string) bool {
 	allowed := make(map[string]struct{}, len(keys))
 	for _, key := range keys {
@@ -523,6 +539,11 @@ func stringValue(raw any) string {
 func boolValue(raw any, expected bool) bool {
 	value, ok := raw.(bool)
 	return ok && value == expected
+}
+
+func omittedOrFalse(value map[string]any, key string) bool {
+	raw, ok := value[key]
+	return !ok || boolValue(raw, false)
 }
 
 func equalStrings(raw any, expected []string) bool {
