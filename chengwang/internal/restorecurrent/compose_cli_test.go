@@ -5,6 +5,7 @@ package restorecurrent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,7 +63,7 @@ func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
 	buildContext := filepath.ToSlash(repositoryRoot)
 	semanticDigest, err := validateRenderedCompose(rendered, environment, buildContext)
 	if err != nil {
-		t.Fatalf("actual Docker Compose v2 output violates the local release contract: %v; safe_shape=%s", err, renderedComposeKeyShape(rendered))
+		t.Fatalf("actual Docker Compose v2 output violates the local release contract: %v; safe_shape=%s", err, renderedComposeKeyShape(rendered, environment))
 	}
 	binding, err := parseLocalReleaseBinding(contents.composeBinding)
 	if err != nil {
@@ -85,7 +86,7 @@ func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
 	}
 }
 
-func renderedComposeKeyShape(raw []byte) string {
+func renderedComposeKeyShape(raw []byte, environment validatedEnvironment) string {
 	var root map[string]any
 	if err := json.Unmarshal(raw, &root); err != nil {
 		return "unparseable-json"
@@ -109,6 +110,34 @@ func renderedComposeKeyShape(raw []byte) string {
 	}
 	if logging, ok := service["logging"].(map[string]any); ok {
 		parts = append(parts, "logging="+strings.Join(sortedMapKeys(logging), ","))
+	}
+	if volumes, ok := service["volumes"].([]any); ok {
+		wanted := map[string]struct {
+			source   string
+			readOnly bool
+		}{
+			"/run/chengwang-probe/catalog.json":       {environment.values["M2B_PROBE_CATALOG_FILE"], true},
+			"/run/chengwang-probe/dot-ca.pem":         {environment.values["M2B_PROBE_DOT_CA_FILE"], true},
+			"/run/chengwang-probe/egress-policy.json": {environment.values["M2B_PROBE_EGRESS_POLICY_FILE"], true},
+			"/var/lib/chengwang-probe/results":        {environment.values["M2B_PROBE_SPOOL_DIR"], false},
+			"/var/lib/chengwang-probe/ledger":         {environment.values["M2B_PROBE_LEDGER_DIR"], false},
+		}
+		for index, rawMount := range volumes {
+			mount, mountOK := rawMount.(map[string]any)
+			if !mountOK {
+				parts = append(parts, fmt.Sprintf("mount%d=not-object", index))
+				continue
+			}
+			target := stringValue(mount["target"])
+			expected, known := wanted[target]
+			bind, bindOK := mount["bind"].(map[string]any)
+			parts = append(parts, fmt.Sprintf(
+				"mount%d=keys[%s],bindKeys[%s],known[%t],typeBind[%t],sourceMatch[%t],readOnlyMatch[%t],createHostPathFalse[%t]",
+				index, strings.Join(sortedMapKeys(mount), ","), strings.Join(sortedMapKeys(bind), ","), known,
+				stringValue(mount["type"]) == "bind", known && stringValue(mount["source"]) == expected.source,
+				known && boolValue(mount["read_only"], expected.readOnly), bindOK && boolValue(bind["create_host_path"], false),
+			))
+		}
 	}
 	return strings.Join(parts, ";")
 }
