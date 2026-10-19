@@ -241,5 +241,59 @@ class RestoreCurrentSourceGateTests(unittest.TestCase):
                     run_static_gate._validate_restorecurrent_package(package)
 
 
+class RuntimeObserverSourceGateTests(unittest.TestCase):
+    def _tree(self, observer_source: str, proxy_source: str) -> pathlib.Path:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        chengwang = pathlib.Path(temporary.name) / "chengwang"
+        candidate = chengwang / "deploy" / "m2b-candidate"
+        observer = chengwang / "internal" / "restoreruntime"
+        proxy = chengwang / "internal" / "dockerreadonlyproxy"
+        command = chengwang / "cmd" / "docker-runtime-readonly-proxy"
+        for path in (candidate, observer, proxy, command):
+            path.mkdir(parents=True, exist_ok=True)
+        (observer / "runtime.go").write_text(observer_source, encoding="utf-8")
+        (observer / "client.go").write_text(
+            'package restoreruntime\nconst socket = "/run/chengwang-runtime-observer/readonly.sock"\n',
+            encoding="utf-8",
+        )
+        (observer / "unsupported.go").write_text("package restoreruntime\n", encoding="utf-8")
+        (proxy / "server.go").write_text(
+            'package dockerreadonlyproxy\nconst SnapshotPathPrefix = "/v1/runtime-snapshot/"\n',
+            encoding="utf-8",
+        )
+        (proxy / "collector.go").write_text(proxy_source, encoding="utf-8")
+        (proxy / "unsupported.go").write_text("package dockerreadonlyproxy\n", encoding="utf-8")
+        (command / "main.go").write_text("package main\nfunc main(){}\n", encoding="utf-8")
+        return candidate
+
+    def test_minimal_fixed_readonly_boundary_is_accepted(self) -> None:
+        candidate = self._tree(
+            "package restoreruntime\n",
+            'package dockerreadonlyproxy\nconst backend = "/run/docker.sock"\n',
+        )
+        run_static_gate._validate_runtime_observer_sources(candidate)
+
+    def test_observer_standard_docker_socket_or_write_method_is_rejected(self) -> None:
+        for token in ('const bad = "/var/run/docker.sock"', "const bad = http.MethodPost"):
+            with self.subTest(token=token):
+                candidate = self._tree(
+                    "package restoreruntime\n" + token + "\n",
+                    'package dockerreadonlyproxy\nconst backend = "/run/docker.sock"\n',
+                )
+                with self.assertRaisesRegex(RuntimeError, "forbidden"):
+                    run_static_gate._validate_runtime_observer_sources(candidate)
+
+    def test_proxy_docker_write_or_broad_read_path_is_rejected(self) -> None:
+        for token in ("http.MethodDelete", 'const bad = "/logs"'):
+            with self.subTest(token=token):
+                candidate = self._tree(
+                    "package restoreruntime\n",
+                    'package dockerreadonlyproxy\nconst backend = "/run/docker.sock"\nvar bad = ' + token + "\n",
+                )
+                with self.assertRaisesRegex(RuntimeError, "forbidden"):
+                    run_static_gate._validate_runtime_observer_sources(candidate)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -190,3 +190,9 @@ sudo env \
 - 不得在 M2a 24 小时浸泡签署之前进入 M2b 生产 Shadow。
 - 当前 Dockerfile 基础镜像仍使用可变标签；在候选机取得并验证镜像 digest、SBOM 与构建来源之前，不得签署可追溯构建门禁。
 - 不得把本目录脚本直接当作生产发布脚本；生产变更仍需单独备份、候选、灰度、读回和回滚演练。
+
+## P0-c Docker 运行态观察候选
+
+P0-c 的仓库候选实现采用独立权限域，而不是把 Docker 主 socket 交给观察客户端。特权 `docker-runtime-readonly-proxy` 只暴露一个固定的去敏快照端点；`internal/restoreruntime` 只连接 `/run/chengwang-runtime-observer/readonly.sock`，没有标准 Docker socket、Docker SDK、CLI、环境回退或写方法。代理与客户端各执行双读，绑定完整容器/镜像/网络 ID、PID start ticks、netns inode、运行状态和已审查安全资源语义。
+
+该能力当前仍是 **未部署、待 Linux CI 签署的实现候选**；即使门禁通过，也只到 `ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND / authorization=BLOCKED`，九项 blocker 全保留。真实 daemon fixture 只签署本机 API 兼容性，不签署产品镜像或生产容器。详细威胁边界见 `docs/P0C-DOCKER-RUNTIME-OBSERVER.md`。

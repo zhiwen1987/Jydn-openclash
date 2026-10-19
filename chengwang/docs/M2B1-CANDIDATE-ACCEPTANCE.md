@@ -170,3 +170,9 @@ P0-b 本地发布绑定同样只属于 advisory。`OpenReleaseBound` 通过候�
 本地已实现不等于上述退出条件已经签署。默认护栏 Compose 仍只运行 `candidate-guard`；单独的主动代理 Compose 需要显式 profile，blocked 示例会拒绝启动，且当前没有获批出口或 Docker 运行证据。
 
 在这些条件完成前，不创建生产定时任务、不开放 API、不显示“节点能力已验证”，也不将护栏容器部署到生产。
+
+## P0-c 运行态观察候选验收边界
+
+P0-c 候选实现新增 `internal/dockerreadonlyproxy`、`internal/restoreruntime` 和 `cmd/docker-runtime-readonly-proxy`。观察客户端绝不直连标准 Docker socket；特权代理是明确标注的本机 TCB，只返回去敏、固定字段的单业务快照。源代码门禁拒绝标准 socket 回退、Docker SDK/CLI、环境覆盖、写方法和宽泛读取端点；语义测试拒绝容器、镜像、网络、PID/start ticks、健康、重启、安全参数、资源、挂载与网络任一漂移。
+
+真实 daemon fixture 使用固定摘要测试镜像且由工作流外部创建/清理，不冒充产品容器。当前状态仍为 **待 Linux CI 签署且未部署**；目标边界最多为 `ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND / authorization=BLOCKED`，九项 blocker 一个都不移除。它不能解除镜像、daemon、live container 独立证明、quiesce、state writer、state path 或外部时间缺口。

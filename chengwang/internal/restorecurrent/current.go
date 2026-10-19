@@ -97,6 +97,7 @@ type Observation struct {
 	identitySHA256     string
 	projectName        string
 	serviceName        string
+	releaseID          string
 	candidateRoot      string
 	stateMountTarget   string
 	bootID             string
@@ -107,15 +108,28 @@ type Observation struct {
 	blockers           []BlockerCode
 }
 
-func (o Observation) Schema() string                      { return o.schema }
-func (o Observation) Boundary() string                    { return o.boundary }
-func (o Observation) Authorization() string               { return o.authorization }
-func (o Observation) Instance() string                    { return o.instance }
-func (o Observation) CandidateID() string                 { return o.candidateID }
-func (o Observation) IdentityGeneration() uint64          { return o.identityGeneration }
-func (o Observation) IdentitySHA256() string              { return o.identitySHA256 }
-func (o Observation) ProjectName() string                 { return o.projectName }
-func (o Observation) ServiceName() string                 { return o.serviceName }
+func (o Observation) Schema() string             { return o.schema }
+func (o Observation) Boundary() string           { return o.boundary }
+func (o Observation) Authorization() string      { return o.authorization }
+func (o Observation) Instance() string           { return o.instance }
+func (o Observation) CandidateID() string        { return o.candidateID }
+func (o Observation) IdentityGeneration() uint64 { return o.identityGeneration }
+func (o Observation) IdentitySHA256() string     { return o.identitySHA256 }
+func (o Observation) ProjectName() string        { return o.projectName }
+func (o Observation) ServiceName() string        { return o.serviceName }
+func (o Observation) ReleaseID() string          { return o.releaseID }
+func (o Observation) ExpectedImageReference() string {
+	if o.releaseID == "" {
+		return ""
+	}
+	return "chengwang-m2b-probe-agent:" + o.releaseID
+}
+func (o Observation) ExpectedNetworkName() string {
+	if o.projectName == "" {
+		return ""
+	}
+	return o.projectName + "_m2b_probe_quarantine"
+}
 func (o Observation) CandidateRoot() string               { return o.candidateRoot }
 func (o Observation) StateMountTarget() string            { return o.stateMountTarget }
 func (o Observation) BootID() string                      { return o.bootID }
@@ -259,7 +273,7 @@ func openAdvisory(candidateRoot string, mode observationMode) (*Handle, error) {
 		schema: schema, boundary: boundary, authorization: "BLOCKED", instance: instance,
 		candidateID: identity.CandidateID, identityGeneration: identity.IdentityGeneration,
 		identitySHA256: identityDigest,
-		projectName:    env.projectName, serviceName: serviceName, candidateRoot: candidateRoot,
+		projectName:    env.projectName, serviceName: serviceName, releaseID: env.releaseID, candidateRoot: candidateRoot,
 		stateMountTarget: stateMountTarget, bootID: end.BootID(), observedUnix: end.WallUTC().Unix(),
 		observedBoottimeNS: end.BoottimeNS(), blockers: blockers,
 		configuration: ConfigurationDigests{

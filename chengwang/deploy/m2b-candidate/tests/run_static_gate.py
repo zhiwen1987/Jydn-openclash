@@ -29,7 +29,7 @@ REQUIRED_TEST_SUITES = {
     "supply-chain/tests": 45,
     "egress/tests": 19,
     "bootstrap/tests": 29,
-    "tests": 23,
+    "tests": 26,
 }
 
 REQUIRED_SCHEMA_COUNT = 11
@@ -333,6 +333,81 @@ def _validate_restorecurrent_sources(candidate_root: pathlib.Path) -> None:
     source = candidate_root / "compose.probe-agent.yaml"
     if not snapshot.is_file() or snapshot.read_bytes() != source.read_bytes():
         raise RuntimeError("restorecurrent Compose source snapshot differs from compose.probe-agent.yaml")
+
+
+def _validate_runtime_observer_sources(candidate_root: pathlib.Path) -> None:
+    chengwang_root = candidate_root.parents[1]
+    observer_root = chengwang_root / "internal" / "restoreruntime"
+    proxy_root = chengwang_root / "internal" / "dockerreadonlyproxy"
+    command_root = chengwang_root / "cmd" / "docker-runtime-readonly-proxy"
+    for package in (observer_root, proxy_root, command_root):
+        if not package.is_dir():
+            raise RuntimeError(f"runtime observer package is missing: {package}")
+
+    observer_sources = sorted(
+        path for path in observer_root.glob("*.go") if not path.name.endswith("_test.go")
+    )
+    if len(observer_sources) < 3:
+        raise RuntimeError("runtime observer production source set is incomplete")
+    observer_text = "\n".join(path.read_text(encoding="utf-8") for path in observer_sources)
+    observer_forbidden = {
+        "/var/run/docker.sock": "standard Docker socket",
+        "/run/docker.sock": "standard Docker socket",
+        '"os/exec"': "subprocess execution",
+        '"github.com/docker/': "Docker SDK",
+        "DOCKER_HOST": "environment-selected Docker endpoint",
+        "DOCKER_CONTEXT": "environment-selected Docker context",
+        "ProxyFromEnvironment": "environment-selected HTTP proxy",
+        "os.Getenv": "environment-selected runtime input",
+        "os.LookupEnv": "environment-selected runtime input",
+        "http.MethodPost": "HTTP write method",
+        "http.MethodPut": "HTTP write method",
+        "http.MethodPatch": "HTTP write method",
+        "http.MethodDelete": "HTTP write method",
+        "restorecontracts.StateOnlyCurrent": "authoritative current-state output",
+        '"chengwang/internal/restorecoordinator"': "restore coordinator integration",
+    }
+    for token, capability in observer_forbidden.items():
+        if token in observer_text:
+            raise RuntimeError(f"runtime observer contains forbidden {capability}: {token}")
+    if observer_text.count('/run/chengwang-runtime-observer/readonly.sock') != 1:
+        raise RuntimeError("runtime observer must contain exactly one fixed read-only proxy socket")
+
+    proxy_sources = sorted(
+        path for path in proxy_root.glob("*.go") if not path.name.endswith("_test.go")
+    )
+    if len(proxy_sources) < 3:
+        raise RuntimeError("Docker read-only collector production source set is incomplete")
+    proxy_text = "\n".join(path.read_text(encoding="utf-8") for path in proxy_sources)
+    proxy_forbidden = {
+        '"os/exec"': "subprocess execution",
+        '"github.com/docker/': "Docker SDK",
+        "DOCKER_HOST": "environment-selected Docker endpoint",
+        "DOCKER_CONTEXT": "environment-selected Docker context",
+        "ProxyFromEnvironment": "environment-selected HTTP proxy",
+        "http.MethodPost": "Docker write method",
+        "http.MethodPut": "Docker write method",
+        "http.MethodPatch": "Docker write method",
+        "http.MethodDelete": "Docker write method",
+        "/logs": "unbounded container logs",
+        "/archive": "container filesystem archive",
+        "/exec": "container execution API",
+        "/stats": "unbounded container statistics",
+        "/events": "unbounded daemon events",
+        "/images/get": "image export API",
+        "/containers/create": "container creation API",
+        "/start": "container start API",
+        "/stop": "container stop API",
+        "/kill": "container kill API",
+        "/remove": "Docker removal API",
+    }
+    for token, capability in proxy_forbidden.items():
+        if token in proxy_text:
+            raise RuntimeError(f"Docker read-only collector contains forbidden {capability}: {token}")
+    if proxy_text.count('/run/docker.sock') != 1 or '/var/run/docker.sock' in proxy_text:
+        raise RuntimeError("Docker read-only collector backend socket contract drifted")
+    if 'SnapshotPathPrefix = "/v1/runtime-snapshot/"' not in proxy_text:
+        raise RuntimeError("Docker read-only collector endpoint contract is missing")
 
 
 def _validate_restorecurrent_package(package_root: pathlib.Path) -> None:
@@ -707,6 +782,7 @@ def run(candidate_root: pathlib.Path, verbosity: int = 2) -> int:
 
     _assert_no_python_cache(candidate_root)
     _validate_restorecurrent_sources(candidate_root)
+    _validate_runtime_observer_sources(candidate_root)
     schema_count = _parse_schemas(candidate_root)
     suite, suite_counts = _load_tests(candidate_root)
     runner = unittest.TextTestRunner(verbosity=verbosity, resultclass=RecordingResult)

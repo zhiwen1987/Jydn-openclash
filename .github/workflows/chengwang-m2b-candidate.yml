@@ -103,6 +103,112 @@ jobs:
           PY
           echo 'COMPOSE_RENDER_COMPATIBILITY=PASS boundary=LOCAL_COMPATIBILITY_NOT_RENDERER_ATTESTATION'
 
+      - name: Validate read-only Docker collector against an isolated daemon fixture
+        shell: bash
+        env:
+          PYTHON_TEST_IMAGE: python:3.12.12-slim-bookworm@sha256:2986c55feb36e6cae00fa1fefb454283e4b33f35e75ff8bdd123b134130be301
+        run: |
+          set -euo pipefail
+          fixture_suffix="$(printf '%s-%s' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | /usr/bin/sha256sum | /usr/bin/cut -c1-12)"
+          fixture_project="chengwang-m2b-probe-ci-${fixture_suffix}-candidate"
+          fixture_container="chengwang-runtime-fixture-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          fixture_network="chengwang-runtime-fixture-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          transcript_dir="$RUNNER_TEMP/chengwang-runtime-observer"
+          container_id=""
+          network_id=""
+          cleanup() {
+            if [ -n "$container_id" ]; then
+              /usr/bin/docker rm -f "$container_id" >/dev/null 2>&1 || true
+            fi
+            if [ -n "$network_id" ]; then
+              /usr/bin/docker network rm "$network_id" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+          /usr/bin/install -d -m 0700 "$transcript_dir"
+          if /usr/bin/docker container inspect "$fixture_container" >/dev/null 2>&1 || \
+             /usr/bin/docker network inspect "$fixture_network" >/dev/null 2>&1; then
+            echo 'fixture name collision; refusing destructive reuse' >&2
+            exit 1
+          fi
+          network_id="$(/usr/bin/docker network create --driver bridge --internal \
+            --label com.jydn.chengwang.test-fixture=true "$fixture_network")"
+          test "${#network_id}" -eq 64
+          container_id="$(/usr/bin/docker run -d --pull never --platform linux/amd64 \
+            --name "$fixture_container" --network "$fixture_network" --read-only --user 65534:65534 \
+            --cap-drop ALL --security-opt no-new-privileges --pids-limit 32 --memory 64m --cpus 0.25 \
+            --label "com.docker.compose.project=$fixture_project" \
+            --label com.docker.compose.service=probe-agent \
+            --label com.jydn.chengwang.component=m2b-probe-agent-candidate \
+            --label com.jydn.chengwang.active-probes=true \
+            --label com.jydn.chengwang.advisory-only=true \
+            --label com.jydn.chengwang.egress-approved=false \
+            --entrypoint /usr/local/bin/python3 "$PYTHON_TEST_IMAGE" -c 'import time; time.sleep(600)')"
+          test "${#container_id}" -eq 64
+          before="$(/usr/bin/docker inspect --format '{{.Id}}|{{.Image}}|{{.State.StartedAt}}|{{.RestartCount}}|{{.State.Pid}}' "$container_id")"
+          test "$(/usr/bin/docker inspect --format '{{.State.Running}}' "$container_id")" = true
+
+          cd chengwang
+          for variant in ordinary race; do
+            race_flag=()
+            if [ "$variant" = race ]; then
+              race_flag=(-race)
+            fi
+            CHENGWANG_DOCKER_FIXTURE_PROJECT="$fixture_project" \
+            CHENGWANG_DOCKER_FIXTURE_CONTAINER_ID="$container_id" \
+              CGO_ENABLED=1 GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off \
+              /opt/hostedtoolcache/go/1.23.12/x64/bin/go test "${race_flag[@]}" -json \
+                -tags dockerdaemon -run '^TestDockerDaemonFixtureReadOnlySnapshotCompatibility$' \
+                -count=1 ./internal/dockerreadonlyproxy \
+              | /usr/bin/tee "$transcript_dir/${variant}.json"
+          done
+          after="$(/usr/bin/docker inspect --format '{{.Id}}|{{.Image}}|{{.State.StartedAt}}|{{.RestartCount}}|{{.State.Pid}}' "$container_id")"
+          test "$before" = "$after"
+
+          /usr/bin/python3 - "$transcript_dir/ordinary.json" "$transcript_dir/race.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          target = "TestDockerDaemonFixtureReadOnlySnapshotCompatibility"
+          package = "chengwang/internal/dockerreadonlyproxy"
+          for raw in sys.argv[1:]:
+              path = pathlib.Path(raw).resolve(strict=True)
+              runs = set()
+              passes = set()
+              package_passed = False
+              with path.open(encoding="utf-8") as stream:
+                  for line_number, line in enumerate(stream, 1):
+                      event = json.loads(line)
+                      if event.get("Action") in {"fail", "skip"}:
+                          raise SystemExit(f"Docker fixture fail/skip at {path}:{line_number}: {event}")
+                      test = event.get("Test")
+                      if event.get("Action") == "run" and test:
+                          runs.add(test)
+                      if event.get("Action") == "pass" and test:
+                          passes.add(test)
+                      if event.get("Action") == "pass" and event.get("Package") == package and test is None:
+                          package_passed = True
+              if runs != {target} or passes != {target} or not package_passed:
+                  raise SystemExit(
+                      f"Docker fixture exact contract failed: runs={sorted(runs)} "
+                      f"passes={sorted(passes)} packagePass={package_passed}"
+                  )
+          print("DOCKER_RUNTIME_FIXTURE=PASS transcripts=2 exact=1 skips=0 race=pass boundary=LOCAL_DAEMON_FIXTURE_COMPATIBILITY")
+          PY
+
+          cd "$GITHUB_WORKSPACE"
+          cleanup
+          trap - EXIT
+          container_id=""
+          network_id=""
+          if /usr/bin/docker container inspect "$fixture_container" >/dev/null 2>&1 || \
+             /usr/bin/docker network inspect "$fixture_network" >/dev/null 2>&1; then
+            echo 'fixture cleanup verification failed' >&2
+            exit 1
+          fi
+          echo 'DOCKER_RUNTIME_OBSERVER_BOUNDARY=ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND authorization=BLOCKED blockers=9 production=false'
+
       - name: Run probe restore root syscall-path gate in a locked-down container
         shell: bash
         env:

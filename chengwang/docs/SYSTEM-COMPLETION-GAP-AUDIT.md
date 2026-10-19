@@ -270,3 +270,9 @@ run `39175647549` / job `117817635191` / commit `2ad8f25...` 已补齐该切片�
 同日安全加固进一步把匿名接口压缩为常量成本的健康与 Shadow 证明，完整 runtime/readback/versions/evidence 校验改为身份和管理范围保护；管理凭据在非回环监听上强制 TLS，浏览器在局域网明文 HTTP 上不会发送令牌；Mihomo Controller 令牌增加回环 HTTP/远程 HTTPS 白名单与禁环境代理边界；运行态刷新增加缓存、单航班、等待者上限和明确陈旧语义；版本库增加分批枚举和发布前硬配额。该候选经独立绕过审查、源码门禁、候选容器、生产切换、重启和旧镜像烟测后部署。生产继续保持无身份、写入关闭和无执行器。
 
 M1 仍未完成：操作库只有单机跨进程互斥，没有分布式租约或共识；证据链仍非 WORM/独立副本；静态身份不是企业 IdP；三态模型没有连接真实对象存储和可信时间。两项明确 P1 运维缺口是本机无密钥链/非 WORM，以及 `checkpoint_stale` 仍需人工取证与恢复。因此不得把这些源码底座解释为生产写入、企业治理闭环或 `99.999999%` 可用率。
+
+## P0-c 运行态观察候选缺口
+
+P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了“观察器直接连接 Docker socket”的方案，现改为特权 GET-only 采集代理与无特权观察客户端两个权限域。代理只允许固定标签容器列表及完整 container/image/network ID inspect，输出不含 Env、health log、原始 labels、宿主 mount source 或 Docker 错误正文；客户端固定连接专用 socket，对代理投影和 `OpenReleaseBound` handle 分别双读。
+
+工作流新增固定摘要、隔离网络、无端口无生产挂载的短生命周期 daemon fixture，并要求 ordinary/race 精确 transcript 和清理读回。当前这些仍是 **待 Linux CI 签署的代码与验收定义**，不是已安装服务；即使通过，九项 blocker、`authorization=BLOCKED`、镜像/daemon/host 同源信任缺口和生产恢复禁令仍全部保留。
