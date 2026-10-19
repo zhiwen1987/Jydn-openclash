@@ -113,6 +113,9 @@ jobs:
           fixture_project="chengwang-m2b-probe-ci-${fixture_suffix}-candidate"
           fixture_container="chengwang-runtime-fixture-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           fixture_network="chengwang-runtime-fixture-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          fixture_uid="$(/usr/bin/id -u)"
+          fixture_gid="$(/usr/bin/id -g)"
+          test "$fixture_uid" -gt 0
           transcript_dir="$RUNNER_TEMP/chengwang-runtime-observer"
           container_id=""
           network_id=""
@@ -135,7 +138,7 @@ jobs:
             --label com.jydn.chengwang.test-fixture=true "$fixture_network")"
           test "${#network_id}" -eq 64
           container_id="$(/usr/bin/docker run -d --pull never --platform linux/amd64 \
-            --name "$fixture_container" --network "$fixture_network" --read-only --user 65534:65534 \
+            --name "$fixture_container" --network "$fixture_network" --read-only --user "$fixture_uid:$fixture_gid" \
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 32 --memory 64m --cpus 0.25 \
             --label "com.docker.compose.project=$fixture_project" \
             --label com.docker.compose.service=probe-agent \

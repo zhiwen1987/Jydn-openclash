@@ -22,6 +22,31 @@ func TestDockerDaemonFixtureReadOnlySnapshotCompatibility(t *testing.T) {
 	}
 	context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	implementation, ok := collector.(*dockerCollector)
+	if !ok {
+		t.Fatal("collector implementation is unavailable")
+	}
+	containerID, imageID, err := implementation.uniqueContainer(context, project)
+	if err != nil || containerID != expectedContainerID {
+		t.Fatal("stage=unique-container")
+	}
+	container, err := implementation.inspectContainer(context, containerID)
+	if err != nil || container.Image != imageID {
+		t.Fatal("stage=container-inspect")
+	}
+	if _, err := readProcessIdentity(container.State.PID); err != nil {
+		t.Fatal("stage=process-identity")
+	}
+	if _, err := implementation.inspectImage(context, imageID); err != nil {
+		t.Fatal("stage=image-inspect")
+	}
+	_, networkID, err := exactContainerNetwork(container)
+	if err != nil {
+		t.Fatal("stage=network-attachment")
+	}
+	if _, err := implementation.inspectNetwork(context, networkID); err != nil {
+		t.Fatal("stage=network-inspect")
+	}
 	snapshot, err := collector.Snapshot(context, project)
 	if err != nil {
 		t.Fatal("read-only Docker snapshot failed")
