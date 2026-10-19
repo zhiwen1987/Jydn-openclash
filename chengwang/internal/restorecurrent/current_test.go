@@ -483,6 +483,21 @@ func TestRenderedComposeRejectsEverySecurityProjectionDrift(t *testing.T) {
 		"mount_create_host_path": func(value map[string]any) {
 			renderedService(value)["volumes"].([]any)[0].(map[string]any)["bind"].(map[string]any)["create_host_path"] = true
 		},
+		"mount_create_host_path_null": func(value map[string]any) {
+			renderedService(value)["volumes"].([]any)[0].(map[string]any)["bind"].(map[string]any)["create_host_path"] = nil
+		},
+		"mount_bind_unknown_field": func(value map[string]any) {
+			renderedService(value)["volumes"].([]any)[0].(map[string]any)["bind"].(map[string]any)["unknown"] = false
+		},
+		"mount_read_only_null": func(value map[string]any) {
+			renderedService(value)["volumes"].([]any)[0].(map[string]any)["read_only"] = nil
+		},
+		"mount_read_only_missing": func(value map[string]any) {
+			delete(renderedService(value)["volumes"].([]any)[0].(map[string]any), "read_only")
+		},
+		"writable_mount_read_only": func(value map[string]any) {
+			renderedService(value)["volumes"].([]any)[3].(map[string]any)["read_only"] = true
+		},
 		"network_internal": func(value map[string]any) {
 			value["networks"].(map[string]any)["m2b_probe_quarantine"].(map[string]any)["internal"] = false
 		},
@@ -538,6 +553,13 @@ func TestRenderedSemanticDigestNormalizesAcceptedRepresentations(t *testing.T) {
 		delete(service, "privileged")
 		delete(service, "stdin_open")
 		delete(service, "tty")
+		for index, rawMount := range service["volumes"].([]any) {
+			mount := rawMount.(map[string]any)
+			delete(mount["bind"].(map[string]any), "create_host_path")
+			if index >= 3 {
+				delete(mount, "read_only")
+			}
+		}
 		service["build"].(map[string]any)["dockerfile"] = path.Join(buildContext, "deploy/m2b-candidate/Dockerfile.probe-agent")
 		service["cpus"] = "0.25"
 		service["mem_limit"] = "100663296"

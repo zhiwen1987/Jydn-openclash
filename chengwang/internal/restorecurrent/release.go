@@ -361,19 +361,27 @@ func validateRenderedMounts(raw any, env validatedEnvironment) error {
 	seen := map[string]bool{}
 	for _, rawMount := range values {
 		mount, ok := rawMount.(map[string]any)
-		if !ok || !exactAnyKeys(mount, "bind", "read_only", "source", "target", "type") {
+		if !ok || !exactRequiredOptionalAnyKeys(mount, []string{"bind", "source", "target", "type"}, "read_only") {
 			return errors.Join(ErrInvalid, errors.New("rendered Compose mount shape is invalid"))
 		}
 		target := stringValue(mount["target"])
 		expected, ok := wanted[target]
 		bind, bindOK := mount["bind"].(map[string]any)
 		if !ok || seen[target] || stringValue(mount["type"]) != "bind" || stringValue(mount["source"]) != expected.source ||
-			!boolValue(mount["read_only"], expected.readOnly) || !bindOK || !exactAnyKeys(bind, "create_host_path") || !boolValue(bind["create_host_path"], false) {
+			!renderedReadOnlyMatches(mount, expected.readOnly) || !bindOK ||
+			!exactRequiredOptionalAnyKeys(bind, nil, "create_host_path") || !omittedOrFalse(bind, "create_host_path") {
 			return errors.Join(ErrInvalid, errors.New("rendered Compose mount binding is invalid"))
 		}
 		seen[target] = true
 	}
 	return nil
+}
+
+func renderedReadOnlyMatches(mount map[string]any, expected bool) bool {
+	if expected {
+		return boolValue(mount["read_only"], true)
+	}
+	return omittedOrFalse(mount, "read_only")
 }
 
 func validateRenderedNetwork(rawNetworks, rawServiceNetworks any, projectName string) error {
