@@ -139,6 +139,27 @@ func renderedComposeKeyShape(raw []byte, environment validatedEnvironment) strin
 			))
 		}
 	}
+	if networks, ok := root["networks"].(map[string]any); ok {
+		parts = append(parts, "networks="+strings.Join(sortedMapKeys(networks), ","))
+		if network, ok := networks["m2b_probe_quarantine"].(map[string]any); ok {
+			driverOptions, driverOptionsOK := network["driver_opts"].(map[string]any)
+			parts = append(parts, fmt.Sprintf(
+				"network=keys[%s],nameMatch[%t],driverBridge[%t],attachableFalse[%t],internalTrue[%t],externalFalse[%t],driverOptions[%t],driverOptionKeys[%s],iccFalse[%t]",
+				strings.Join(sortedMapKeys(network), ","), stringValue(network["name"]) == environment.projectName+"_m2b_probe_quarantine",
+				stringValue(network["driver"]) == "bridge", omittedOrFalse(network, "attachable"), boolValue(network["internal"], true),
+				omittedOrFalse(network, "external"), driverOptionsOK, strings.Join(sortedMapKeys(driverOptions), ","),
+				driverOptionsOK && stringValue(driverOptions["com.docker.network.bridge.enable_icc"]) == "false",
+			))
+		}
+	}
+	if serviceNetworks, ok := service["networks"].(map[string]any); ok {
+		attachment, exists := serviceNetworks["m2b_probe_quarantine"]
+		attachmentObject, attachmentObjectOK := attachment.(map[string]any)
+		parts = append(parts, fmt.Sprintf(
+			"serviceNetworks=keys[%s],attachmentExists[%t],attachmentNil[%t],attachmentObject[%t],attachmentKeys[%s]",
+			strings.Join(sortedMapKeys(serviceNetworks), ","), exists, attachment == nil, attachmentObjectOK, strings.Join(sortedMapKeys(attachmentObject), ","),
+		))
+	}
 	return strings.Join(parts, ";")
 }
 
