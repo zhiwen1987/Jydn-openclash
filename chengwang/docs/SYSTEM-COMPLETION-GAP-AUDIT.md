@@ -282,3 +282,9 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 本阶段新增 `internal/restoreimage`，使预期 manifest digest、原始 manifest、config descriptor 和原始 config 摘要形成一致链，并与 P0-c opaque observation 的本地 Docker image ID 关联。它是纯字节处理候选：只接受受限单平台 manifest，严格拒绝歧义 JSON、digest/size/media type/platform 漂移和 blocker 缺失；不包含文件、网络或恢复执行入口。
 
 成功仅为 `ADVISORY_LOCAL_IMAGE_ASSOCIATION / authorization=BLOCKED`。仓库引用与平台仍是本地声明；layer 内容、Registry 远端和 RepoDigests、Sigstore/DSSE、独立审批信任根、防重放、不可变 Compose 部署和真实 Capture→BindLocal 集成均未完成。因此镜像 blocker 与其余八项继续全部保留；详见 `P0D1-LOCAL-OCI-IDENTITY.md`。
+
+## P0-d2 层字节图与候选环境进展
+
+新增有界内存 `ValidateLocalLayers`，逐层核对原始 blob 摘要/长度、完整解压 diff_id、顺序与累计预算，gzip 仅支持单 member，压缩输入和解压输出都检查取消。结果仍是 `ADVISORY_LOCAL_OCI_DIGEST_GRAPH_BOUND`；没有 tar/overlay 验证、Registry 与签名来源证明或恢复授权，全部九项 blocker 保留。
+
+2026-10-20 只读检查确认 10.88.0.240 有 Ubuntu/Docker 和可用资源，但已承载 ERP。主机尚未部署澄网，也没有改动现有服务。后续必须使用独立候选项目及资源限制；环境基线和首次观察到的 SSH 指纹记录于 `DEPLOYMENT-240-PREFLIGHT.md`，实施前需重新读取。

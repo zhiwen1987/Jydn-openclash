@@ -182,3 +182,7 @@ P0-c 候选实现新增 `internal/dockerreadonlyproxy`、`internal/restoreruntim
 `internal/restoreimage` 的验收限于原始 manifest/config 摘要、descriptor/平台语义、资源上限、秘密不泄漏、opaque runtime 输入及九项 blocker 的完整保留。AST 源码测试同时检验 import 和父包调用边界，ordinary/race transcript 登记测试名称精确指纹。
 
 `BindLocal` 规则测试使用合成 runtime facts；没有真实 Capture→BindLocal 集成证据，不能将该测试记为容器、Registry、签名或生产验收。成功仍固定 `ADVISORY_LOCAL_IMAGE_ASSOCIATION / authorization=BLOCKED`。独立来源、layer 字节、不可变引用、审批和防重放仍待 P0-d 后续阶段补齐，详见 `P0D1-LOCAL-OCI-IDENTITY.md`。
+
+## P0-d2 layer 字节图验收边界
+
+`ValidateLocalLayers` 只验收原始 blob 与 manifest/config 的有序摘要链、压缩完整性、资源预算、取消和去敏结果。它接受符合摘要合同的非 tar 数据，因此不能解释为 tar 安全展开、完整 OCI 规范、Registry 来源、真实部署或生产验收；九项 blocker 保留。测试名称精确指纹、ordinary/race 和 Go AST 源码边界继续纳入 Linux 门禁，详见 `P0D2-LOCAL-LAYER-DIGEST-GRAPH.md`。

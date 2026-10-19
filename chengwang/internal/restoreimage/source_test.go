@@ -25,6 +25,7 @@ func checkImageProductionSource(name string, source []byte) error {
 		return fmt.Errorf("unexpected production package: %s", name)
 	}
 	allowed := map[string]bool{
+		"compress/gzip": true, "context": true,
 		"bytes": true, "crypto/sha256": true, "encoding/hex": true,
 		"encoding/json": true, "errors": true, "io": true, "regexp": true,
 		"strconv": true, "strings": true, "unicode/utf8": true, "sort": true,

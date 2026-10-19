@@ -202,3 +202,9 @@ P0-c 的仓库候选实现采用独立权限域，而不是把 Docker 主 socket
 `internal/restoreimage` 已增加原始 manifest/config 字节摘要、descriptor 长度和平台校验，并与 P0-c opaque observation 的本地 image ID 关联。manifest digest、config digest 与 Docker image ID 分别保存、逐项核对；Go AST 门禁限制该层仅做内存计算。结果只达到 `ADVISORY_LOCAL_IMAGE_ASSOCIATION / authorization=BLOCKED`，九项 blocker 全保留。
 
 这一实现尚无独立 Registry/RepoDigests 读回、layer 字节验证、Sigstore/DSSE 验签、策略审批或持久防重放；没有接入恢复执行器，也未部署。测试中的 runtime facts 是合成输入，不代表真实 Capture→BindLocal 验收。具体输入约束、证据边界与后续事项见 `docs/P0D1-LOCAL-OCI-IDENTITY.md`。
+
+## P0-d2 本地 layer 摘要图候选
+
+`ValidateLocalLayers` 在 P0-d1 上补入全部 layer 原始字节、descriptor 长度/摘要、完整解压 diff_id 和固定资源预算校验。gzip 单 member、CRC/ISIZE、尾随拒绝、输入/输出双侧取消及重复层累计均进入测试。结果只达到 `ADVISORY_LOCAL_OCI_DIGEST_GRAPH_BOUND`，不会解除任何镜像来源或恢复授权 blocker。
+
+它不解析 tar，不验证 Registry/签名/来源，也未部署。详见 `docs/P0D2-LOCAL-LAYER-DIGEST-GRAPH.md`；10.88.0.240 的资源、现有 ERP 业务和后续隔离约束见 `docs/DEPLOYMENT-240-PREFLIGHT.md`。
