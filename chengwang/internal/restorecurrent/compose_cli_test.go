@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
 	buildContext := filepath.ToSlash(repositoryRoot)
 	semanticDigest, err := validateRenderedCompose(rendered, environment, buildContext)
 	if err != nil {
-		t.Fatalf("actual Docker Compose v2 output violates the local release contract: %v", err)
+		t.Fatalf("actual Docker Compose v2 output violates the local release contract: %v; safe_shape=%s", err, renderedComposeKeyShape(rendered))
 	}
 	binding, err := parseLocalReleaseBinding(contents.composeBinding)
 	if err != nil {
@@ -82,4 +83,41 @@ func TestComposeCLIRenderedOutputMatchesLocalReleaseContract(t *testing.T) {
 	if _, err := validateLocalRelease(contents, environment, identity); err != nil {
 		t.Fatalf("actual Docker Compose v2 release bundle was rejected: %v", err)
 	}
+}
+
+func renderedComposeKeyShape(raw []byte) string {
+	var root map[string]any
+	if err := json.Unmarshal(raw, &root); err != nil {
+		return "unparseable-json"
+	}
+	parts := []string{"root=" + strings.Join(sortedMapKeys(root), ",")}
+	services, ok := root["services"].(map[string]any)
+	if !ok {
+		return strings.Join(parts, ";")
+	}
+	parts = append(parts, "services="+strings.Join(sortedMapKeys(services), ","))
+	service, ok := services[serviceName].(map[string]any)
+	if !ok {
+		return strings.Join(parts, ";")
+	}
+	parts = append(parts, "service="+strings.Join(sortedMapKeys(service), ","))
+	if build, ok := service["build"].(map[string]any); ok {
+		parts = append(parts, "build="+strings.Join(sortedMapKeys(build), ","))
+	}
+	if healthcheck, ok := service["healthcheck"].(map[string]any); ok {
+		parts = append(parts, "healthcheck="+strings.Join(sortedMapKeys(healthcheck), ","))
+	}
+	if logging, ok := service["logging"].(map[string]any); ok {
+		parts = append(parts, "logging="+strings.Join(sortedMapKeys(logging), ","))
+	}
+	return strings.Join(parts, ";")
+}
+
+func sortedMapKeys(value map[string]any) []string {
+	keys := make([]string, 0, len(value))
+	for key := range value {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
