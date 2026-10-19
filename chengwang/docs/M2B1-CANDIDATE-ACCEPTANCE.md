@@ -175,4 +175,4 @@ P0-b 本地发布绑定同样只属于 advisory。`OpenReleaseBound` 通过候�
 
 P0-c 候选实现新增 `internal/dockerreadonlyproxy`、`internal/restoreruntime` 和 `cmd/docker-runtime-readonly-proxy`。观察客户端绝不直连标准 Docker socket；特权代理是明确标注的本机 TCB，只返回去敏、固定字段的单业务快照。源代码门禁拒绝标准 socket 回退、Docker SDK/CLI、环境覆盖、写方法和宽泛读取端点；语义测试拒绝容器、镜像、网络、PID/start ticks、健康、重启、安全参数、资源、挂载与网络任一漂移。
 
-真实 daemon fixture 使用固定摘要测试镜像且由工作流外部创建/清理，不冒充产品容器。当前状态仍为 **待 Linux CI 签署且未部署**；目标边界最多为 `ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND / authorization=BLOCKED`，九项 blocker 一个都不移除。它不能解除镜像、daemon、live container 独立证明、quiesce、state writer、state path 或外部时间缺口。
+真实 daemon fixture 使用固定摘要测试镜像且由工作流外部创建/清理，不冒充产品容器。GitHub Actions run `39206352055` / job `117909922290` / commit `c9b466481614afe5deff1032b8b2bd1d31e59b29` 已通过真实 daemon ordinary/race 精确门、清理读回、整仓普通/race/vet、3466 个 Go 语义 run event、35 个包、158 个 Python 测试和 11 份 schema。当前状态仍为 **已验收仓库候选但未部署**；边界最多为 `ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND / authorization=BLOCKED`，九项 blocker 一个都不移除。它不能解除镜像、daemon、live container 独立证明、quiesce、state writer、state path 或外部时间缺口。

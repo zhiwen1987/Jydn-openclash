@@ -96,6 +96,19 @@ LOCAL_DAEMON_FIXTURE_COMPATIBILITY
 
 它不签署产品镜像或生产容器。
 
+## 仓库候选验收证据
+
+GitHub Actions run `39206352055` / job `117909922290` / commit `c9b466481614afe5deff1032b8b2bd1d31e59b29` 已通过：
+
+- `DOCKER_RUNTIME_FIXTURE=PASS transcripts=2 exact=1 skips=0 race=pass boundary=LOCAL_DAEMON_FIXTURE_COMPATIBILITY`；
+- `DOCKER_RUNTIME_OBSERVER_BOUNDARY=ADVISORY_LOCAL_DOCKER_RUNTIME_BOUND authorization=BLOCKED blockers=9 production=false`；
+- 真实 fixture 采集前后 container/image/start/restart/PID 身份不变，并确认容器与网络清理无残留；
+- `STATIC_GATE=PASS platform=linux tests=158 skips=0 schemas=11`；
+- `GO_JSON_GATE=PASS files=2 semanticRunEvents=3466 packages=35 skips=0`；
+- Go ordinary、race、vet 与 Draft 2020-12 schema metaschema 同步通过。
+
+这些证据签署的是仓库候选和本机 daemon fixture 兼容性，不是生产安装、产品镜像或生产容器读回。
+
 ## 尚未形成的能力
 
 当前仓库实现不等于已安装服务。正式部署至少还需要独立完成：

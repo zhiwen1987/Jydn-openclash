@@ -61,6 +61,7 @@ WINDOWS_PLATFORM_SKIPS = frozenset(
 )
 
 REQUIRED_GO_TEST_RUNS = {
+    "chengwang/cmd/docker-runtime-readonly-proxy": 1,
     "chengwang/cmd/probe-agent": 105,
     "chengwang/cmd/server": 17,
     "chengwang/cmd/verify-shadow": 5,
@@ -72,6 +73,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/authz": 80,
     "chengwang/internal/capability": 8,
     "chengwang/internal/control": 22,
+    "chengwang/internal/dockerreadonlyproxy": 20,
     "chengwang/internal/evidence": 40,
     "chengwang/internal/kernel": 2,
     "chengwang/internal/lease": 14,
@@ -85,13 +87,23 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/restoreclock": 13,
     "chengwang/internal/restorecurrent": 148,
     "chengwang/internal/restorelease": 2,
+    "chengwang/internal/restoreruntime": 50,
     "chengwang/internal/routing": 4,
     "chengwang/internal/store": 4,
     "chengwang/internal/truth": 20,
+    "chengwang/internal/runtimewire": 1,
     "chengwang/internal/webui": 3,
 }
 
 REQUIRED_GO_TEST_FINGERPRINTS = {
+    "chengwang/cmd/docker-runtime-readonly-proxy": {
+        "count": 1,
+        "sha256": "7d37f6a69b4a0dbe1954268fce30c54fcf73d4a008c3ccd94640d26563313e2d",
+    },
+    "chengwang/internal/dockerreadonlyproxy": {
+        "count": 20,
+        "sha256": "ca9b3fefd09d90a495db1297f0babf48999fe8c4e12b03cb6a6f5975415bcdcf",
+    },
     "chengwang/internal/restorecontracts": {
         "count": 227,
         "sha256": "36b2b9c67a3e742ccaf9a6694fb6665844002f27cd83a2422949df4c7073e7ff",
@@ -104,9 +116,28 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
         "count": 148,
         "sha256": "518d0474814e656cafd2012fcf400a56e52374f4cb184df652e38bd7822558cd",
     },
+    "chengwang/internal/restoreruntime": {
+        "count": 50,
+        "sha256": "78f5e0401f2b04b01e236d73defa02ea53f6b16ab5f58857ee0d3a995cc5415b",
+    },
+    "chengwang/internal/runtimewire": {
+        "count": 1,
+        "sha256": "7baf3d7086d45cffb3e0596325b145a905fb1d571358716a88c5a14b912f61f8",
+    },
 }
 
 REQUIRED_GO_TEST_NAMES = {
+    "chengwang/cmd/docker-runtime-readonly-proxy": frozenset(
+        {"TestProxyCommandKeepsFixedPrivilegeBoundary"}
+    ),
+    "chengwang/internal/dockerreadonlyproxy": frozenset(
+        {
+            "TestCollectorUsesOnlyFixedGETsAndReturnsSecretFreeProjection",
+            "TestCollectorRejectsRuntimeDriftAndAmbiguousJSON",
+            "TestServerRejectsEveryUnapprovedRequestShape",
+            "TestServerDoesNotExposeCollectorError",
+        }
+    ),
     "chengwang/internal/probe": frozenset(
         {
             "TestStateTreeDigestV1GoldenAndFieldBinding",
@@ -287,6 +318,19 @@ REQUIRED_GO_TEST_NAMES = {
             "TestNilAndZeroLeaseFailClosed",
             "TestProductionCandidatePathPolicy",
         }
+    ),
+    "chengwang/internal/restoreruntime": frozenset(
+        {
+            "TestCaptureFactsDoubleReadsAndKeepsEveryAuthorizationBlocker",
+            "TestCaptureFactsFailsClosedOnReleaseOrRuntimeDrift",
+            "TestRuntimeSnapshotAcceptsOnlyExactHardenedProductShape",
+            "TestRuntimeSnapshotDoubleReadDetectsEveryIdentityDrift",
+            "TestRuntimeSnapshotStrictDecoderRejectsAmbiguityAndSecretsRemainAbsent",
+            "TestObserverProductionSourcesForbidDockerWriteCapabilities",
+        }
+    ),
+    "chengwang/internal/runtimewire": frozenset(
+        {"TestSnapshotWireSchemaIsVersionedAndSecretFree"}
     ),
 }
 

@@ -275,4 +275,4 @@ M1 仍未完成：操作库只有单机跨进程互斥，没有分布式租约�
 
 P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了“观察器直接连接 Docker socket”的方案，现改为特权 GET-only 采集代理与无特权观察客户端两个权限域。代理只允许固定标签容器列表及完整 container/image/network ID inspect，输出不含 Env、health log、原始 labels、宿主 mount source 或 Docker 错误正文；客户端固定连接专用 socket，对代理投影和 `OpenReleaseBound` handle 分别双读。
 
-工作流新增固定摘要、隔离网络、无端口无生产挂载的短生命周期 daemon fixture，并要求 ordinary/race 精确 transcript 和清理读回。当前这些仍是 **待 Linux CI 签署的代码与验收定义**，不是已安装服务；即使通过，九项 blocker、`authorization=BLOCKED`、镜像/daemon/host 同源信任缺口和生产恢复禁令仍全部保留。
+工作流使用固定摘要、隔离网络、无端口无生产挂载的短生命周期 daemon fixture，并要求 ordinary/race 精确 transcript 和清理读回。run `39206352055` / job `117909922290` / commit `c9b466481614afe5deff1032b8b2bd1d31e59b29` 已通过该真实 daemon 门和整仓 3466 个 Go 语义 run event、35 个包、158 个 Python 测试、11 份 schema、普通/race/vet。它仍是 **已验收仓库候选但未安装**；九项 blocker、`authorization=BLOCKED`、镜像/daemon/host 同源信任缺口和生产恢复禁令全部保留。

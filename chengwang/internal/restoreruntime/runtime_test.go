@@ -252,4 +252,12 @@ func TestCaptureFactsFailsClosedOnReleaseOrRuntimeDrift(t *testing.T) {
 			t.Fatalf("expected invalid blocker set, got %v", err)
 		}
 	})
+	t.Run("wrong-blocker", func(t *testing.T) {
+		facts := validReleaseFacts()
+		facts.blockers[0] = "UNREVIEWED_BLOCKER"
+		observe := func() (releaseFacts, error) { return facts, nil }
+		if _, err := captureFacts(context.Background(), observe, &sequenceClient{}); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("expected invalid blocker set, got %v", err)
+		}
+	})
 }
