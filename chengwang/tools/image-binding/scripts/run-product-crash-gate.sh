@@ -31,6 +31,8 @@ product_id=''
 product_pid=''
 product_start=''
 last_relation=''
+last_helper_type=''
+last_helper_log=''
 helper_stopped=0
 sender_stopped=0
 phase=initialization
@@ -115,22 +117,70 @@ on_exit() {
   trap - EXIT HUP INT TERM
   if test "$result" -ne 0; then
     echo "D12_PRODUCT_CRASH_FAILURE_PHASE=$phase" >&3
-    /usr/bin/python3 -B - "$phase" "$stage" "$kind" "$private" "$last_action_log" > "$evidence/product-crash-failure-diagnostic.json" <<'PY'
+    /usr/bin/python3 -B - "$phase" "$stage" "$kind" "$private" "$last_action_log" "$last_helper_type" "$last_helper_log" > "$evidence/product-crash-failure-diagnostic.json" <<'PY'
 import json,os,pathlib,re,stat,sys
-phase,stage,kind,private,log=sys.argv[1:]
+phase,stage,kind,private,log,helper_type,helper_log=sys.argv[1:]
 assert re.fullmatch(r'[a-z0-9-]{1,128}',phase) and stage in ('','prepared','reserved','consumed') and kind in ('','message-signature','dsse')
+assert helper_type in ('','audit','blob')
+
+def safe_log_projection(raw):
+    """Pure closed-set projection: never return a log substring or message."""
+    result={'failureReason':'NONE','bootstrapStep':'NONE','exceptionClass':'NONE','sourceKind':'NONE','sourceLine':0,'errno':0}
+    if type(raw) is not bytes or len(raw)>256<<10: return result
+    reasons=frozenset(('ARGUMENTS','UNSUPPORTED','IDENTITY','CAPABILITIES','KERNEL_BREAK_TIME','UNSAFE_DIRECTORY','UNSAFE_FILE','PATH_CHANGED','CONTROL_CONTENT','CONTROL_WRITE','CONTROL_RELEASE','LEASE_UNAVAILABLE','LEASE_RELEASE','DEADLINE','TERMINATED','INTERNAL'))
+    classes=frozenset(('AssertionError','OSError','PermissionError','FileNotFoundError','FileExistsError','NotADirectoryError','IsADirectoryError','CalledProcessError','ValueError','TypeError','RuntimeError','ModuleNotFoundError','ImportError','UnicodeDecodeError','MemoryError','SystemExit','OverflowError','TimeoutError','INTERNAL'))
+    steps=frozenset(('ARGUMENTS','CONTAINER_IDENTITY','PID_IDENTITY','SOURCE_OPEN','SOURCE_VALIDATE','TARGET_VALIDATE','BIND_ALIAS','REMOUNT_ALIAS','BIND_IDENTITY','PID_RECHECK','BIND_BIN','REMOUNT_BIN','EXEC_SET_PRIV','RESOURCE_LIMITS','RECORD_IDENTITY','RECORD_PUBLISH','EXEC_HELPER'))
+    reason_count=bootstrap_count=0; frame=('NONE',0)
+    for line in raw.decode('utf-8',errors='replace').splitlines():
+        if line.startswith(('D12_BLOB_LEASE_FAILURE=','D12_LEASE_FAILURE=')):
+            reason_count+=1
+            match=re.fullmatch(r'D12_(?:BLOB_)?LEASE_FAILURE=([A-Z_]{1,40})',line)
+            result['failureReason']=match[1] if reason_count==1 and match and match[1] in reasons else 'INVALID'
+        match=re.fullmatch(r'D12_(BLOB|HOLDER)_BOOTSTRAP_FAILURE step=([A-Z_]{1,40}) class=([A-Za-z]{1,40}) line=([0-9]{1,5}) errno=([0-9]{1,4})',line)
+        if match:
+            bootstrap_count+=1; role,step,exception,number,errno=match.groups()
+            if bootstrap_count==1 and step in steps and exception in classes and 0<=int(number)<=65535 and 0<=int(errno)<=4095:
+                result.update(bootstrapStep=step,exceptionClass=exception,sourceKind='INLINE_STDIN' if role=='BLOB' else 'INLINE_STRING',sourceLine=int(number),errno=int(errno))
+            else: result.update(bootstrapStep='INVALID',exceptionClass='NONE',sourceKind='NONE',sourceLine=0,errno=0)
+            continue
+        if bootstrap_count: continue
+        match=re.fullmatch(r'\s*File "(<stdin>|<string>|/tmp/chengwang-product-lifecycle-[a-f0-9]{32}/bin/checker/fixture_(?:blob_)?lease\.py)", line ([1-9][0-9]{0,4})(?:, in [A-Za-z_][A-Za-z0-9_]*)?',line)
+        if match and int(match[2])<=65535:
+            name=match[1]
+            source_kind='INLINE_STDIN' if name=='<stdin>' else 'INLINE_STRING' if name=='<string>' else 'BLOB_HELPER' if name.endswith('/fixture_blob_lease.py') else 'AUDIT_HELPER'
+            frame=(source_kind,int(match[2]))
+            continue
+        match=re.match(r'^([A-Za-z]{1,40})(?::|$)',line)
+        if match and match[1] in classes:
+            errno=re.search(r'\[Errno ([1-9][0-9]{0,3})\]',line)
+            result.update(exceptionClass=match[1],sourceKind=frame[0],sourceLine=frame[1],errno=int(errno[1]) if errno and int(errno[1])<=4095 else 0)
+    return result
+
+def read_private_log(path):
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+    with os.fdopen(fd,'rb') as f:
+        before=os.fstat(f.fileno())
+        assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_uid==os.getuid() and stat.S_IMODE(before.st_mode)==0o600 and 0<=before.st_size<=256<<10
+        raw=f.read(before.st_size); after=os.fstat(f.fileno()); named=path.lstat()
+        identity=lambda s:(s.st_dev,s.st_ino,s.st_mode,s.st_nlink,s.st_uid,s.st_gid)
+        assert len(raw)==before.st_size and identity(before)==identity(after)==identity(named) and before.st_size<=after.st_size
+    return raw
+
 source_line=0
 if log:
     path=pathlib.Path(log)
     assert path.parent==pathlib.Path(private) and re.fullmatch(r'(prepared|reserved|consumed)-(message-signature|dsse)-(prepare|ready|send|reserved|blocked|cut|recovered|reopen-first|idempotent|probe|reopen-final)\.private\.log',path.name)
-    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
-    with os.fdopen(fd,'rb') as f:
-        info=os.fstat(f.fileno()); assert stat.S_ISREG(info.st_mode) and info.st_nlink==1 and 0<=info.st_size<=256<<10
-        raw=f.read((256<<10)+1); assert len(raw)==info.st_size
+    raw=read_private_log(path)
     for row in raw.splitlines():
         match=re.fullmatch(rb'D12_PRODUCT_CRASH_ASSERT_LINE=([1-9][0-9]{0,5})',row.strip())
         if match: source_line=int(match[1])
-print(json.dumps({'schema':'chengwang.product-crash-failure/v1','outcome':'FAIL','phase':phase,'stage':stage,'kind':kind,'driverSourceLine':source_line,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
+helper_projection=safe_log_projection(b'')
+if helper_log:
+    path=pathlib.Path(helper_log)
+    assert path.parent==pathlib.Path(private) and path.name==f'{stage}-{kind}-{helper_type}.private.log'
+    helper_projection=safe_log_projection(read_private_log(path))
+control_projection=safe_log_projection(read_private_log(pathlib.Path(private)/'shell.private.log'))
+print(json.dumps({'schema':'chengwang.product-crash-failure/v1','outcome':'FAIL','phase':phase,'stage':stage,'kind':kind,'driverSourceLine':source_line,'helperType':helper_type,'helperDiagnostic':helper_projection,'controlDiagnostic':control_projection,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
 PY
   fi
   if test "$cleaned" != true; then
@@ -568,35 +618,61 @@ blob_in_fixture() {
   /usr/bin/sudo --non-interactive /usr/bin/nsenter --net="/proc/$registry_pid/ns/net" -- \
     /usr/bin/unshare --mount --propagation private /usr/bin/python3 -B - "$fixture_root" "$stage" "$kind" "$config_digest" "$registry_pid" "$evidence/product-crash-registry-process.json" "$registry_id" "$@" <<'PY'
 import hashlib,json,os,pathlib,re,stat,subprocess,sys
-root,stage,kind,digest,pid,record,container,*command=sys.argv[1:]
-assert re.fullmatch(r'/tmp/chengwang-product-lifecycle-[a-f0-9]{32}',root) and stage in ('reserved','consumed') and kind in ('message-signature','dsse') and re.fullmatch(r'sha256:[a-f0-9]{64}',digest)
-identity=json.loads(pathlib.Path(record).read_bytes())
-assert identity['hostPID']==int(pid) and identity['registryContainerID']==container and re.fullmatch(r'[a-f0-9]{64}',container)
-actual=json.loads(subprocess.check_output(['/usr/bin/docker','inspect',container]))[0]
-assert actual['Id']==container and actual['State']['Running'] is True and actual['State']['Pid']==int(pid) and actual['Config']['Labels']['org.chengwang.product-crash-fixture']==root.rsplit('-',1)[1]
-held=os.pidfd_open(int(pid))
+bootstrap_step='ARGUMENTS'
 try:
-    process=pathlib.Path('/proc')/pid
-    assert int((process/'stat').read_text().rsplit(')',1)[1].split()[19])==json.loads(pathlib.Path(record).read_bytes())['startTime']
-    h=digest[7:]; original=process/'root/var/lib/registry/docker/registry/v2/blobs/sha256'/h[:2]/h/'data'
-    fd=os.open(original,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+    bootstrap_step='ARGUMENTS'
+    root,stage,kind,digest,pid,record,container,*command=sys.argv[1:]
+    assert re.fullmatch(r'/tmp/chengwang-product-lifecycle-[a-f0-9]{32}',root) and stage in ('reserved','consumed') and kind in ('message-signature','dsse') and re.fullmatch(r'sha256:[a-f0-9]{64}',digest)
+    identity=json.loads(pathlib.Path(record).read_bytes())
+    assert identity['hostPID']==int(pid) and identity['registryContainerID']==container and re.fullmatch(r'[a-f0-9]{64}',container)
+    bootstrap_step='CONTAINER_IDENTITY'
+    actual=json.loads(subprocess.check_output(['/usr/bin/docker','inspect',container]))[0]
+    assert actual['Id']==container and actual['State']['Running'] is True and actual['State']['Pid']==int(pid) and actual['Config']['Labels']['org.chengwang.product-crash-fixture']==root.rsplit('-',1)[1]
+    bootstrap_step='PID_IDENTITY'
+    held=os.pidfd_open(int(pid))
     try:
-        info=os.fstat(fd); assert stat.S_ISREG(info.st_mode) and info.st_nlink==1 and info.st_uid==info.st_gid==10001 and stat.S_IMODE(info.st_mode) in (0o600,0o644) and 0<info.st_size<=1<<20
-        raw=os.read(fd,(1<<20)+1); assert len(raw)==info.st_size and 'sha256:'+hashlib.sha256(raw).hexdigest()==digest
-        target=pathlib.Path(root)/'blob'/stage/kind/'data'; placeholder=target.lstat()
-        assert stat.S_ISREG(placeholder.st_mode) and placeholder.st_size==0 and placeholder.st_nlink==1 and placeholder.st_uid==placeholder.st_gid==10001 and stat.S_IMODE(placeholder.st_mode)==0o600
-        # Preserve the held FD magic-link: its resolved container path need not
-        # exist in this host-derived mount namespace. Recheck the exact inode.
-        subprocess.run(['/usr/bin/mount','--no-canonicalize','--bind',f'/proc/{os.getpid()}/fd/{fd}',str(target)],check=True)
-        subprocess.run(['/usr/bin/mount','-o','remount,bind,ro,noexec,nosuid,nodev',str(target)],check=True)
-        current=target.stat(); assert (current.st_dev,current.st_ino,current.st_size)==(info.st_dev,info.st_ino,info.st_size)
-    finally: os.close(fd)
-    assert int((process/'stat').read_text().rsplit(')',1)[1].split()[19])==json.loads(pathlib.Path(record).read_bytes())['startTime']
-    subprocess.run(['/usr/bin/mount','--bind',root+'/bin',root+'/bin'],check=True)
-    subprocess.run(['/usr/bin/mount','-o','remount,bind,ro',root+'/bin'],check=True)
-finally: os.close(held)
-os.chdir(root)
-os.execv('/usr/bin/setpriv',['/usr/bin/setpriv','--reuid=10001','--regid=10001','--clear-groups','--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs','/usr/bin/env','-i','PATH=/usr/bin:/bin','LANG=C.UTF-8','TZ=UTC','PYTHONOPTIMIZE=0','PYTHONDONTWRITEBYTECODE=1','HOME='+root,'TMPDIR='+root+'/tmp',*command])
+        process=pathlib.Path('/proc')/pid
+        assert int((process/'stat').read_text().rsplit(')',1)[1].split()[19])==json.loads(pathlib.Path(record).read_bytes())['startTime']
+        h=digest[7:]; original=process/'root/var/lib/registry/docker/registry/v2/blobs/sha256'/h[:2]/h/'data'
+        bootstrap_step='SOURCE_OPEN'
+        fd=os.open(original,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        try:
+            bootstrap_step='SOURCE_VALIDATE'
+            info=os.fstat(fd); assert stat.S_ISREG(info.st_mode) and info.st_nlink==1 and info.st_uid==info.st_gid==10001 and stat.S_IMODE(info.st_mode) in (0o600,0o644) and 0<info.st_size<=1<<20
+            raw=os.read(fd,(1<<20)+1); assert len(raw)==info.st_size and 'sha256:'+hashlib.sha256(raw).hexdigest()==digest
+            bootstrap_step='TARGET_VALIDATE'
+            target=pathlib.Path(root)/'blob'/stage/kind/'data'; placeholder=target.lstat()
+            assert stat.S_ISREG(placeholder.st_mode) and placeholder.st_size==0 and placeholder.st_nlink==1 and placeholder.st_uid==placeholder.st_gid==10001 and stat.S_IMODE(placeholder.st_mode)==0o600
+            # Preserve the held FD magic-link: its resolved container path need not
+            # exist in this host-derived mount namespace. Recheck the exact inode.
+            bootstrap_step='BIND_ALIAS'
+            subprocess.run(['/usr/bin/mount','--no-canonicalize','--bind',f'/proc/{os.getpid()}/fd/{fd}',str(target)],check=True)
+            bootstrap_step='REMOUNT_ALIAS'
+            subprocess.run(['/usr/bin/mount','-o','remount,bind,ro,noexec,nosuid,nodev',str(target)],check=True)
+            bootstrap_step='BIND_IDENTITY'
+            current=target.stat(); assert (current.st_dev,current.st_ino,current.st_size)==(info.st_dev,info.st_ino,info.st_size)
+        finally: os.close(fd)
+        bootstrap_step='PID_RECHECK'
+        assert int((process/'stat').read_text().rsplit(')',1)[1].split()[19])==json.loads(pathlib.Path(record).read_bytes())['startTime']
+        bootstrap_step='BIND_BIN'
+        subprocess.run(['/usr/bin/mount','--bind',root+'/bin',root+'/bin'],check=True)
+        bootstrap_step='REMOUNT_BIN'
+        subprocess.run(['/usr/bin/mount','-o','remount,bind,ro',root+'/bin'],check=True)
+    finally: os.close(held)
+    os.chdir(root)
+    bootstrap_step='EXEC_SET_PRIV'
+    os.execv('/usr/bin/setpriv',['/usr/bin/setpriv','--reuid=10001','--regid=10001','--clear-groups','--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs','/usr/bin/env','-i','PATH=/usr/bin:/bin','LANG=C.UTF-8','TZ=UTC','PYTHONOPTIMIZE=0','PYTHONDONTWRITEBYTECODE=1','HOME='+root,'TMPDIR='+root+'/tmp',*command])
+except BaseException as error:
+    allowed=frozenset(('AssertionError','OSError','PermissionError','FileNotFoundError','FileExistsError','NotADirectoryError','IsADirectoryError','CalledProcessError','ValueError','TypeError','RuntimeError','ModuleNotFoundError','ImportError','UnicodeDecodeError','MemoryError','SystemExit','OverflowError','TimeoutError'))
+    exception=type(error).__name__; exception=exception if exception in allowed else 'INTERNAL'
+    errno=getattr(error,'errno',0); errno=errno if type(errno) is int and 0<=errno<=4095 else 0
+    line=0; frame=error.__traceback__
+    while frame is not None:
+        if frame.tb_frame.f_code.co_filename=='<stdin>': line=frame.tb_lineno
+        frame=frame.tb_next
+    line=line if type(line) is int and 0<=line<=65535 else 0
+    print(f'D12_BLOB_BOOTSTRAP_FAILURE step={bootstrap_step} class={exception} line={line} errno={errno}',file=sys.stderr)
+    raise SystemExit(1) from None
 PY
 }
 
@@ -604,22 +680,38 @@ PY
 # actual helper/driver. The record never appears inside an empty control dir.
 record_exec_code='
 import ctypes,json,os,pathlib,resource,sys
-record,role,*command=sys.argv[1:]
-if role!="send":
-    for limit,value in ((resource.RLIMIT_CORE,0),(resource.RLIMIT_CPU,10),(resource.RLIMIT_AS,256<<20),(resource.RLIMIT_FSIZE,1<<20),(resource.RLIMIT_NOFILE,64),(resource.RLIMIT_NPROC,64)):
-        resource.setrlimit(limit,(value,value))
-path=pathlib.Path(record); pending=path.with_name(".process.private.pending")
-fd=os.open(pending,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
-with os.fdopen(fd,"wb") as output:
-    output.write(json.dumps({"pid":os.getpid(),"startTime":int(pathlib.Path("/proc/self/stat").read_text().rsplit(")",1)[1].split()[19])},sort_keys=True).encode()+b"\n"); output.flush(); os.fsync(output.fileno())
-directory=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+bootstrap_step="RESOURCE_LIMITS"
 try:
-    rename=ctypes.CDLL(None,use_errno=True).renameat2
-    rename.argtypes=(ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint); rename.restype=ctypes.c_int
-    assert rename(directory,pending.name.encode(),directory,path.name.encode(),1)==0
-    os.fsync(directory)
-finally: os.close(directory)
-os.execv(command[0],command)
+    record,role,*command=sys.argv[1:]
+    if role!="send":
+        for limit,value in ((resource.RLIMIT_CORE,0),(resource.RLIMIT_CPU,10),(resource.RLIMIT_AS,256<<20),(resource.RLIMIT_FSIZE,1<<20),(resource.RLIMIT_NOFILE,64),(resource.RLIMIT_NPROC,64)):
+            resource.setrlimit(limit,(value,value))
+    bootstrap_step="RECORD_IDENTITY"
+    path=pathlib.Path(record); pending=path.with_name(".process.private.pending")
+    fd=os.open(pending,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+    with os.fdopen(fd,"wb") as output:
+        output.write(json.dumps({"pid":os.getpid(),"startTime":int(pathlib.Path("/proc/self/stat").read_text().rsplit(")",1)[1].split()[19])},sort_keys=True).encode()+b"\n"); output.flush(); os.fsync(output.fileno())
+    bootstrap_step="RECORD_PUBLISH"
+    directory=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        rename=ctypes.CDLL(None,use_errno=True).renameat2
+        rename.argtypes=(ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint); rename.restype=ctypes.c_int
+        assert rename(directory,pending.name.encode(),directory,path.name.encode(),1)==0
+        os.fsync(directory)
+    finally: os.close(directory)
+    bootstrap_step="EXEC_HELPER"
+    os.execv(command[0],command)
+except BaseException as error:
+    allowed=frozenset(("AssertionError","OSError","PermissionError","FileNotFoundError","FileExistsError","NotADirectoryError","IsADirectoryError","CalledProcessError","ValueError","TypeError","RuntimeError","ModuleNotFoundError","ImportError","UnicodeDecodeError","MemoryError","SystemExit","OverflowError","TimeoutError"))
+    exception=type(error).__name__; exception=exception if exception in allowed else "INTERNAL"
+    errno=getattr(error,"errno",0); errno=errno if type(errno) is int and 0<=errno<=4095 else 0
+    line=0; frame=error.__traceback__
+    while frame is not None:
+        if frame.tb_frame.f_code.co_filename=="<string>": line=frame.tb_lineno
+        frame=frame.tb_next
+    line=line if type(line) is int and 0<=line<=65535 else 0
+    print(f"D12_HOLDER_BOOTSTRAP_FAILURE step={bootstrap_step} class={exception} line={line} errno={errno}",file=sys.stderr)
+    raise SystemExit(1) from None
 '
 
 fixture_action() {
@@ -650,6 +742,9 @@ fixture_action() {
 
 start_holder() {
   local which=$1 directory control_path
+  phase="start-holder-$which-$stage-$kind"
+  last_helper_type=$which
+  last_helper_log="$private/$stage-$kind-$which.private.log"
   directory="$fixture_root/holders/$which-$stage-$kind"
   if test "$which" = blob; then
     control_path="$fixture_root/control/blob-$stage-$kind"
@@ -658,6 +753,7 @@ start_holder() {
       --fixture-root "$fixture_root" --case "$stage" --kind "$kind" --control-dir "$control_path" \
       --digest "$config_digest" --deadline-seconds 8 > "$private/$stage-$kind-blob.private.log" 2>&1 &
     blob_job=$!
+    phase="wait-holder-ready-blob-$stage-$kind"
     control wait blob ready "$blob_job" > "$private/$stage-$kind-blob-ready.json"
   else
     control_path="$fixture_root/control/$stage-$kind"
@@ -666,13 +762,18 @@ start_holder() {
       --fixture-root "$fixture_root" --case "$stage" --kind "$kind" --control-dir "$control_path" \
       --deadline-seconds 8 > "$private/$stage-$kind-audit.private.log" 2>&1 &
     audit_job=$!
+    phase="wait-holder-ready-audit-$stage-$kind"
     control wait audit ready "$audit_job" > "$private/$stage-$kind-audit-ready.json"
   fi
 }
 observe_holder() {
   local which=$1 job
+  phase="wait-holder-blocked-$which-$stage-$kind"
+  last_helper_type=$which
+  last_helper_log="$private/$stage-$kind-$which.private.log"
   if test "$which" = blob; then job=$blob_job; else job=$audit_job; fi
   control wait "$which" blocked "$job" > "$private/$stage-$kind-$which-blocked.json"
+  phase="observe-holder-$which-$stage-$kind"
   last_relation="$private/$stage-$kind-$which-wait.json"
   control observe "$which" "$job" > "$last_relation"
 }
@@ -755,7 +856,7 @@ PY
 
 for stage in prepared reserved consumed; do
   for kind in message-signature dsse; do
-    last_relation=''; product_pid=''; product_start=''
+    last_relation=''; product_pid=''; product_start=''; last_helper_type=''; last_helper_log=''; last_action_log=''
     phase="prepare-$stage-$kind"
     snapshot prepare before
     fixture_action prepare
