@@ -43,6 +43,9 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
   /usr/bin/unshare --mount -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC \
     /usr/bin/bash --noprofile --norc "$3/scripts/run-lifecycle-fixture-preflight.sh" \
       "$9" "$4" "$7" "$8" "${13}" "$1" "$2" "$(/usr/bin/readlink /proc/self/ns/mnt)"
+  /usr/bin/unshare --mount -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC \
+    /usr/bin/bash --noprofile --norc "$3/scripts/run-source-fixture-preflight.sh" \
+      "$9" "$4" "$7" "$8" "${13}" "$1" "$2" "$(/usr/bin/readlink /proc/self/ns/mnt)"
   exec /usr/bin/setpriv \
     --reuid="$1" --regid="$2" --clear-groups \
     --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
