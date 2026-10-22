@@ -91,6 +91,14 @@ cd "$MODULE_ROOT"
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-crash-verifier-tests.log"
 /usr/bin/grep -qx 'PRODUCT_CRASH_VERIFIER_TESTS=PASS synthetic_only=true tests=27 skipped=0' \
   "$RUN_ROOT/evidence/product-crash-verifier-tests.log"
+/usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_state_image_profile.py" \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-state-profile-tests.log"
+/usr/bin/grep -qx 'D12_STATE_IMAGE_PROFILE_TESTS=PASS tests=8 skipped=0 synthetic_only=true' \
+  "$RUN_ROOT/evidence/product-state-profile-tests.log"
+/usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_check_product_state.py" \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-state-verifier-tests.log"
+/usr/bin/grep -qx 'PRODUCT_STATE_VERIFIER_TESTS=PASS synthetic_only=true tests=32 skipped=0' \
+  "$RUN_ROOT/evidence/product-state-verifier-tests.log"
 /usr/bin/python3 -B scripts/test-browser-process-guard.py \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 /usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
@@ -280,6 +288,10 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
   -tags productregistry,productlifecycle -o "$RUN_ROOT/bin/product-lifecycle.test" .
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry,productcrash -o "$RUN_ROOT/bin/product-crash.test" .
+# Preseeded-state startup matrix is a separate opt-in driver, not an addition
+# to the ordinary/race baseline or a replacement for actual crash evidence.
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -tags productregistry,productstate -o "$RUN_ROOT/bin/product-state.test" .
 # Only the Docker-save envelope parser's synthetic metadata cases run here.
 # This does not replace the actual image/Registry API lifecycle or enlarge the
 # ordinary/race 700-test contract. Both the unique marker and actual named PASS

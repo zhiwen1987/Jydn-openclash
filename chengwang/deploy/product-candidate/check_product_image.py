@@ -27,6 +27,12 @@ COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 ASSET = re.compile(r"assets/[A-Za-z0-9_-][A-Za-z0-9._-]*\.(?:js|css|svg|woff2)\Z")
 ENTRYPOINT = ["/app/image-trust-api"]
 BOUNDARY = "ISOLATED_PRODUCT_CANDIDATE"
+STATE_LANES = ("update", "verify-reserved", "verify-consumed")
+STATE_BOUNDARIES = ("after-journal-prepare", "after-prepared-audit", "before-result-audit",
+                    "after-journal-outcome", "after-result-audit", "after-journal-ack")
+STATE_FAULTS = ("acked-audit-missing", "prepared-audit-missing", "wrong-prefix",
+                "prepared-key-conflict", "result-key-conflict", "wrong-scope",
+                "bad-checkpoint", "later-invalid-acked")
 DOCKERFILE = """FROM scratch
 ARG SOURCE_COMMIT
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
@@ -362,7 +368,8 @@ def one_inspect(raw: bytes) -> dict:
 
 def inspect_projection(image: dict, container: dict, *, image_id: str, source: str,
                        private: str, state: str, network: str, status: str,
-                       fixture_kind: str = "product-image", planned_sigkill: bool = False) -> dict:
+                       fixture_kind: str = "product-image", planned_sigkill: bool = False,
+                       startup_rejected: bool = False) -> dict:
     require(bool(re.fullmatch(r"sha256:[0-9a-f]{64}", image_id)) and bool(COMMIT.fullmatch(source)), "image identity rejected")
     require(image.get("Id") == image_id and container.get("Image") == image_id, "actual image identity mismatch")
     require(image.get("Os") == "linux" and image.get("Architecture") == "amd64", "image platform rejected")
@@ -381,14 +388,22 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
     # The original CLI stays D10-only. Separate lifecycle checkers opt in to
     # their closed namespaces while reusing every runtime security check.
     # No caller-supplied arbitrary prefix, path rewrite or broad /tmp allowance.
-    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle", "product-crash"}, "fixture kind rejected")
+    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle", "product-crash", "product-state"}, "fixture kind rejected")
     require(type(planned_sigkill) is bool and (not planned_sigkill or fixture_kind == "product-crash" and status == "exited"), "planned abnormal exit scope rejected")
+    require(type(startup_rejected) is bool and (not startup_rejected or fixture_kind == "product-state" and status == "exited" and not planned_sigkill), "startup rejection scope rejected")
     if fixture_kind == "product-registry":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-registry-[0-9a-f]{32}/(?:message-signature|dsse)", private)), "private registry fixture path rejected")
     elif fixture_kind == "product-lifecycle":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/refresh/(?:message-signature|dsse)", private)), "private lifecycle fixture path rejected")
     elif fixture_kind == "product-crash":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/(?:prepared|reserved|consumed)/(?:message-signature|dsse)", private)), "private crash fixture path rejected")
+    elif fixture_kind == "product-state":
+        pattern = (r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/state/(?:"
+                   + "|".join(STATE_LANES) + r")/(" + "|".join((*STATE_BOUNDARIES, *STATE_FAULTS))
+                   + r")/(?:message-signature|dsse)")
+        match = re.fullmatch(pattern, private) if isinstance(private, str) else None
+        require(match is not None, "private state fixture path rejected")
+        require(startup_rejected is (match[1] in STATE_FAULTS), "state scenario and exit profile disagree")
     else:
         require(isinstance(private, str) and private.startswith("/tmp/chengwang-product-image-") and pathlib.PurePosixPath(private).as_posix() == private and all(x not in {"", ".", ".."} for x in private.split("/")[1:]), "private fixture path rejected")
     require(state == private + "/trust", "state mount binding rejected")
@@ -423,7 +438,7 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
     if status == "running":
         require(pid > 0 and current.get("Running") is True, "running process required")
     else:
-        require(status == "exited" and pid == 0 and current.get("Running") is False and type(current.get("ExitCode")) is int and current["ExitCode"] == (137 if planned_sigkill else 0), "expected exact exit required")
+        require(status == "exited" and pid == 0 and current.get("Running") is False and type(current.get("ExitCode")) is int and current["ExitCode"] == (137 if planned_sigkill else 1 if startup_rejected else 0), "expected exact exit required")
     require(bool(re.fullmatch(r"[0-9a-f]{64}", container.get("Id", ""))), "container identity rejected")
     return {"boundary": BOUNDARY, "authorization": "BLOCKED", "deviceActionsExecuted": False,
             "sourceCommit": source, "localImageID": image_id, "imageIdentityKind": "LOCAL_DOCKER_CONFIG_ID_NOT_REGISTRY_MANIFEST",
@@ -433,7 +448,7 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
             "hostPorts": 0, "bindMounts": {"privateReadOnly": True, "trustStateReadWrite": True, "productDataReadWrite": True},
             "memoryBytes": host["Memory"], "memorySwapBytes": host["MemorySwap"], "nanoCPUs": host["NanoCpus"], "pidsLimit": host["PidsLimit"], "nofile": 1024,
             "restartPolicy": "no", "stopTimeoutSeconds": 15, "state": status, "pid": pid,
-            "cleanExit": status == "exited" and not planned_sigkill, "rawEnvironmentIncluded": False, "rawMountSourcesIncluded": False}
+            "cleanExit": status == "exited" and not planned_sigkill and not startup_rejected, "rawEnvironmentIncluded": False, "rawMountSourcesIncluded": False}
 
 
 def main(argv=None) -> int:
