@@ -10,6 +10,8 @@ D12 先验证两个必要的外部测试机制，再接真实镜像。前置门�
 
 当前前置门已由代码605f67e在真实隔离Linux CI验收，见[实际结果与失败记录](P0D12-FIXTURE-PREFLIGHT-ACCEPTANCE.md)。正常自动刷新/重启子门另由957271a验收；三个真实verify中断边界由89dfade隔离验收，见[中断验收与剩余项](P0D12-INTERRUPTION-ACCEPTANCE.md)和[实施协议](P0D12-INTERRUPTION-PROTOCOL.md)。0633c4b另验[预置健康/拒绝启动矩阵](P0D12-STATE-MATRIX-ACCEPTANCE.md)，不是更多真实crash。来源负矩阵及其他真实边界仍未验。
 
+ed756d7进一步修复同一坏候选重复自动刷新耗尽journal的问题：[拒绝保护验收](P0D12-REFRESH-REJECTION-ACCEPTANCE.md)。新增28项（完整ordinary/race各728，保留原700），其中4项为同进程正常TLS runtime来源/追代集成；原全部真实镜像门重新通过，但不等于新增完整镜像来源负矩阵已验。
+
 | 层 | 本层能证明 | 不能据此宣称 |
 | --- | --- | --- |
 | 独立 fixture 前置门 | 真实 Linux 跨进程文件租约阻塞/解除；低权限正常 TLS 固定源站与安全访问记录 | 产品镜像已使用这些机制、已自动刷新/恢复 |

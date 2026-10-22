@@ -390,3 +390,11 @@ lease20/feed34/checker13、新profile5/verifier27均通过/0skip；旧700/Regist
 实际Linux新8/32测试、旧700/race700/Registry3/race3/父2320每轮、浏览器40/45/45及native14/原前置门均保持；旧D11 49、D12 65、crash151关联重放通过。676源记录/591unique逐Git原bytes及before-after一致。[验收与证据](P0D12-STATE-MATRIX-ACCEPTANCE.md)、[固定矩阵协议](P0D12-STATE-MATRIX-PROTOCOL.md)。
 
 **状态仅为 preseeded startup matrix implemented+tested isolated-only。** 此门不新增84次真实crash；早期持久语义重复不称独有状态。自动刷新实际崩溃/在途撤销竞态、来源负矩阵/追代组合、update等全实际中断边界、坏盘/断电/全盘回滚、长期soak、正式authority/发行/恢复授权和完整企业功能仍未闭合。仍authorization=BLOCKED、production=false、completeCrashMatrixProven=false；九项blocker不解除，未SSH、合并main或部署生产。
+
+## P0-d12 自动刷新重复拒绝保护已隔离验收（2026-10-23）
+
+ed756d74719891c2fc473b90867dbfda95f37f0c的绑定39865484513/job120126497803、父39865484625/job120126498445均success。发现并修复同一坏候选持续重试耗尽journal的实际缺陷：固定16槽/每次真实只读重验，首次完整拒绝审计，重复仍返回错误且不续Fresh，时间转有效后恢复原事务；不改变普通管理员Update。
+
+新增Store8/product16/runtime4，ordinary/race各728项实际run/pass、0skip/fail，精确保留原700摘要，父各2320及Registry各3不变。主代理和独立子代理下载1275原工件，重放49/65/151/909关联与CI canonical相同；686条源记录/597unique逐Git原bytes一致，原镜像/浏览器/前置/清理门保持。[实际验收及未完成项](P0D12-REFRESH-REJECTION-ACCEPTANCE.md)、[实施协议](P0D12-REFRESH-REJECTION-GUARD.md)。
+
+**状态仅为 rejection guard implemented+tested isolated-only。** 新4项是真实同进程正常TLS runtime来源/追代集成，不是新增Docker来源负矩阵；超过16种坏候选或重启仍可能增长journal，不宣称完整DoS防护。完整镜像来源拒绝/在途撤销/其他真实故障边界、长期soak及企业/生产闭环仍未完成；未改生产、main或正式发行，九项blocker不解除。

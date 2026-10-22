@@ -1,10 +1,12 @@
-# D12 自动刷新重复拒绝保护（实施中，未验收）
+# D12 自动刷新重复拒绝保护（本子门已隔离验收）
+
+代码ed756d74719891c2fc473b90867dbfda95f37f0c已通过实际Linux ordinary/race各728项、父各2320项及原全部镜像回归；主代理与独立代理下载工件重算一致。[实际验收与未完成项](P0D12-REFRESH-REJECTION-ACCEPTANCE.md)。本结论只覆盖本子门，以下完整来源矩阵仍待实施，不是生产上线。
 
 完整目标仍是企业系统闭环，生产禁动；本工作修复来源矩阵核对时发现的实际产品缺口，不取代尚未完成的来源/追代/TLS/撤销竞态矩阵。root唯一集成/提交/推送。旧全部镜像门、700个原普通/race测试及父2320测试保留。
 
 ## 缺口与选择
 
-现ApplyRefresh每次调用Update，坏签/过期候选虽不推进目录，仍生成新random operation，完整拒绝使sequence+4/journal+1/audit+2。Run持续重试，重复同一坏来源可耗尽MaxOperations4096。oneShot测试源不能当产品保护。
+修复前ApplyRefresh每次调用Update，坏签/过期候选虽不推进目录，仍生成新random operation，完整拒绝使sequence+4/journal+1/audit+2。Run持续重试，重复同一坏来源可耗尽MaxOperations4096。oneShot测试源不能当产品保护。
 
 本轮仅在trusted自动ApplyRefresh引入固定16槽、每Service进程内的拒绝工作集，无原candidate、凭据或无界map。key为本Service固定store/anchor/scope下的当前generation+catalogueSHA+candidate原bytes SHA；base变化清空，new Service/重启不继承。不同坏bytes超过工作集容量仍可增长journal，不能宣称完整抗DoS、跨重启去重或无限容量。
 
@@ -23,7 +25,7 @@
 
 新增顶层测试数量固定为Store8/product16/command4，共28，没有新子测试，完整ordinary/race集合应为728并完整保留原700。测试fake clock仅用于单元对象，不改宿主或Windows时间、不放宽生产时间检查；runtime future-NotBefore集成使用真实等待。
 
-本轮完成需要实际Linux ordinary/race/vet、新旧完整具名集合、原全部产品镜像门重新执行和独立工件/源码重算；命令进程/同进程runtime集成与Docker镜像证明必须分别标注。完整新来源负矩阵仍另门实施，尤其现fixture_feed仅200/503，不能宣称已测错误TLS、真实403/redirect/错误帧。
+本子门已完成实际Linux ordinary/race/vet、新旧完整具名集合、原全部产品镜像门重新执行和独立工件/源码重算；命令进程/同进程runtime集成与Docker镜像证明仍分别标注。完整新来源负矩阵仍另门实施，尤其现fixture_feed仅200/503，不能宣称已测错误TLS、真实403/redirect/错误帧。
 
 ## 后续矩阵不丢弃
 
