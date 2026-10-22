@@ -12,6 +12,8 @@ POLICY = ROOT + "/policy"
 REGISTRY = ROOT + "/registry"
 CATALOG = ROOT + "/trustcatalog"
 STATE = ROOT + "/truststate"
+PRODUCT = ROOT + "/product"
+COMMAND = ROOT + "/cmd/image-trust-api"
 # Actual ordinary/race run sets from accepted P0-d4 run 39749344500,
 # commit 90299930429c147ebde14c71739159ea20c5e6d7.  The encoding is
 # sorted (package + TAB + test + LF), UTF-8, case-sensitive.  New root
@@ -19,6 +21,17 @@ STATE = ROOT + "/truststate"
 BASELINE_PACKAGES = frozenset((ROOT, POLICY, REGISTRY))
 BASELINE_COUNT = 234
 BASELINE_SHA256 = "4b9a6d165db8f38febb92f0c9fd9e193a7816127c942d9732b423354090a81d8"
+# P0-d5 run 39755876523 / commit 6a387bcd8a11a0590e5990723c5638fefa445adf.
+# Both original ordinary/race artifacts contain precisely this 379-pair set.
+# New P0-d6 tests are excluded only under their reviewed package/prefix pairs.
+MANAGED_BASELINE_PACKAGES = frozenset((ROOT, POLICY, REGISTRY, CATALOG, STATE))
+MANAGED_BASELINE_COUNT = 379
+MANAGED_BASELINE_SHA256 = "5798a932b7ba01db90c067333c8ae93f6f0452f75f893f40669d7ba72534ac94"
+NEW_MANAGED_PREFIXES = {
+    ROOT: "TestManagedAPI",
+    CATALOG: "TestProductCatalogue",
+    STATE: "TestProductTrustState",
+}
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -35,6 +48,11 @@ REQUIRED_ORDINARY = {
         "TestManagedConcurrentSingleWinner", "TestManagedRevocationDuringRegistryRead",
         "TestManagedRevocationDuringRegistryRead/message-signature", "TestManagedRevocationDuringRegistryRead/dsse",
         "TestManagedOpaqueAndInvalidInputs", "TestManagedGrantRenewalAndRevocation",
+        "TestManagedAPIRealLifecycleAndBoundaries", "TestManagedAPINetworkRevocationAndBusy",
+        "TestManagedAPIAuditFailureAfterConsumption",
+    } | {"TestManagedAPIRealLifecycleAndBoundaries/" + case for case in (
+        "anonymous", "wrong-role", "tenant", "site", "object", "environment", "query",
+        "identity-injection", "duplicate", "noncanonical-base64", "operator-cannot-update")
     } | {"TestRejectInvalidBeforeRegistryAccess/" + case for case in (
         "approval", "bundle", "root", "key", "pin", "revision", "canceled", "nil_context")},
     POLICY: {
@@ -67,6 +85,7 @@ REQUIRED_ORDINARY = {
         "TestCatalogueHistoricalGrantIDCannotRebind/approver",
         "TestCatalogueStrictJSONAndSignatures", "TestCatalogueStructuralResourceLimits",
         "TestCatalogueHistoryLimits", "TestCatalogueZeroAndImportedReceiptsHaveNoAuthority",
+        "TestProductCatalogueSummaryDetachedAndRedacted",
     } | {"TestCatalogueRootThresholdRotation/" + case for case in (
         "old_only", "new_only", "partial_new", "duplicated_new", "wrong_signer", "retired_root",
         "initial_anchor_and_self")}
@@ -88,6 +107,8 @@ REQUIRED_ORDINARY = {
         "TestTrustStateProcessLockAndCrashDurability", "TestTrustStateRecordChecksumRejectsParseableMutation",
         "TestTrustStateFinalExpiryBurnsConsumedGrant", "TestTrustStateFinalExpiryBurnsConsumedGrant/approval",
         "TestTrustStateFinalExpiryBurnsConsumedGrant/catalogue", "TestTrustStateFinalExpiryBurnsConsumedGrant/clock-rollback",
+        "TestProductTrustStateInspectReadOnlyDetachedAndRedacted",
+        "TestProductTrustStateInspectExpiredAndClockReadOnly", "TestProductTrustStateInspectInvalidContextsAndClosed",
     } | {"TestTrustStateUpdateRevokesInFlightGrant/" + case for case in (
         "key", "approval", "manifest", "new-generation")}
       | {"TestTrustStateExpiryAndClockRollback/" + case for case in (
@@ -101,6 +122,37 @@ REQUIRED_ORDINARY = {
         "before-put", "before-commit", "after-commit")}
       | {"TestTrustStateProcessLockAndCrashDurability/" + case for case in (
         "locked", "reserve-crash", "consume-crash")},
+    PRODUCT: {
+        "TestProductBackendDirectRBACAndWriteGateNoConsumption",
+        "TestProductBackendStatusReadOnlyAndNoSecrets", "TestProductBackendCatalogueUpdateRealAuditAndSignature",
+        "TestProductBackendAuditFailureBeforeMutationAndAfterCommit",
+        "TestProductBackendRealVerifierBurnsGrantAndAuditsFailure", "TestProductBackendAuditFailureAfterVerifierBurn",
+        "TestProductBackendTamperedAuditRefusesWrites", "TestProductBackendBusyAndRateBudgetNoReservation",
+        "TestProductBackendConcurrentHealthyAuditAndUpdate", "TestProductBackendConstructorFixedScopeAndAuditHealth",
+        "TestProductBackendAuditStatusFreshness", "TestProductBackendAuditResultSemantics",
+    } | {"TestProductBackendDirectRBACAndWriteGateNoConsumption/" + case for case in (
+        "viewer", "operator", "approver", "auditor", "admin", "anonymous", "tenant", "site", "object",
+        "environment", "unknown-role")}
+      | {"TestProductBackendAuditFailureBeforeMutationAndAfterCommit/" + case for case in (
+        "before-pre-audit", "before-result-audit")}
+      | {"TestProductBackendConstructorFixedScopeAndAuditHealth/" + case for case in (
+        "nil-store", "nil-audit", "nil-roots", "wrong-store", "missing-tenant", "missing-site", "missing-env",
+        "wrong-type", "header-token", "space-token", "tab-token", "unicode-token")}
+      | {"TestProductBackendAuditStatusFreshness/" + case for case in (
+        "stale", "future", "invalid", "issue", "count", "head")}
+      | {"TestProductBackendAuditResultSemantics/" + case for case in (
+        "verification-consumed", "verification-rejected", "catalogue-committed", "catalogue-rejected")},
+    COMMAND: {
+        "TestCandidateStrictConfigurationDecode", "TestCandidatePrivateFilesRejectUnsafeInputs",
+        "TestCandidateNonLoopbackRequiresTLSBeforeListen", "TestCandidateMissingStoreNeverBootstraps",
+        "TestCandidateRunAuthenticatedReadDefaultLockedAndGracefulClose", "TestCandidateRejectRelativeStatePaths",
+    } | {"TestCandidateStrictConfigurationDecode/" + case for case in (
+        "duplicate", "nested_duplicate", "unknown", "null", "trailing", "deep", "empty",
+        "case_alias", "write_alias", "escaped_alias", "invalid_utf8")}
+      | {"TestCandidateRejectRelativeStatePaths/" + case for case in ("store", "audit", "identities")}
+      | {"TestCandidatePrivateFilesRejectUnsafeInputs/" + case for case in (
+        "symlink", "hardlink", "mode", "directory_mode", "directory_symlink", "ancestor_write", "relative",
+        "unclean", "missing", "directory", "empty", "oversized", "valid")},
 }
 REQUIRED_REGISTRY = {ROOT: {"TestRegistryCLIBindingLifecycle", "TestRegistryCLIBindingLifecycle/message-signature", "TestRegistryCLIBindingLifecycle/dsse"}}
 
@@ -172,6 +224,16 @@ def check_baseline(tests):
         raise ValueError(f"accepted P0-d4 test baseline changed: count={len(baseline)} sha256={digest}")
 
 
+def check_managed_baseline(tests):
+    baseline = sorted((package, name) for package, name in tests
+                      if package in MANAGED_BASELINE_PACKAGES and
+                      not name.startswith(NEW_MANAGED_PREFIXES.get(package, "\x00")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n"
+                                  for package, name in baseline).encode("utf-8")).hexdigest()
+    if len(baseline) != MANAGED_BASELINE_COUNT or digest != MANAGED_BASELINE_SHA256:
+        raise ValueError(f"accepted P0-d5 test baseline changed: count={len(baseline)} sha256={digest}")
+
+
 def self_test():
     negative_count = 0
     for required in (REQUIRED_ORDINARY, REQUIRED_REGISTRY):
@@ -204,14 +266,15 @@ def self_test():
             negative_count += 1
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
-    for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
-                  frozenset({(ROOT, "TestBindSignedRegistryImage")})):
-        try:
-            check_baseline(tests)
-        except ValueError:
-            negative_count += 1
-            continue
-        raise ValueError("gate accepted missing or substituted P0-d4 baseline")
+    for checker in (check_baseline, check_managed_baseline):
+        for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
+                      frozenset({(ROOT, "TestBindSignedRegistryImage")})):
+            try:
+                checker(tests)
+            except ValueError:
+                negative_count += 1
+                continue
+            raise ValueError("gate accepted missing or substituted accepted test baseline")
     print(f"IMAGE_BINDING_JSON_SELFTEST=PASS negative_cases={negative_count}")
 
 
@@ -238,6 +301,7 @@ def main():
         raise ValueError("ordinary/race test or package sets differ")
     if args.mode == "ordinary":
         check_baseline(results[0][0])
+        check_managed_baseline(results[0][0])
     print(f"IMAGE_BINDING_GO_JSON_GATE=PASS mode={args.mode} transcripts=2 "
           f"tests={len(results[0][0])} packages={len(results[0][1])} skips=0 race=pass "
           "authorization=BLOCKED production=false")

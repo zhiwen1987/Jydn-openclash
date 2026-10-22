@@ -9,6 +9,11 @@ on:
       - "chengwang/tools/image-binding/**"
       - "chengwang/tools/image-verifier/**"
       - "chengwang/internal/restoreimage/**"
+      - "chengwang/internal/api/**"
+      - "chengwang/internal/authn/**"
+      - "chengwang/internal/authz/**"
+      - "chengwang/internal/evidence/**"
+      - "chengwang/internal/imagetrust/**"
       - "chengwang/go.mod"
       - "chengwang/go.sum"
   push:
@@ -18,6 +23,11 @@ on:
       - "chengwang/tools/image-binding/**"
       - "chengwang/tools/image-verifier/**"
       - "chengwang/internal/restoreimage/**"
+      - "chengwang/internal/api/**"
+      - "chengwang/internal/authn/**"
+      - "chengwang/internal/authz/**"
+      - "chengwang/internal/evidence/**"
+      - "chengwang/internal/imagetrust/**"
       - "chengwang/go.mod"
       - "chengwang/go.sum"
 
@@ -30,7 +40,7 @@ concurrency:
 
 jobs:
   binding:
-    name: Offline managed trust binding and real Distribution Registry
+    name: Offline product API trust binding and real Distribution Registry
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:

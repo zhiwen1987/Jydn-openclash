@@ -79,7 +79,7 @@ echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/go-vet.log"
 /usr/bin/python3 -B scripts/check-go-json.py --mode ordinary "$RUN_ROOT/evidence/go-test.json" "$RUN_ROOT/evidence/go-race.json"
 # Independently retain the parent OCI verifier scenarios. This transcript is
-# not merged into the five-package child-module test contract.
+# not merged into the seven-package child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \
   | /usr/bin/tee "$RUN_ROOT/evidence/parent-restoreimage.json"
 # Compile genuine Registry integration test executables while still offline.

@@ -43,6 +43,9 @@ func Evaluate(request Request, now time.Time) Decision {
 	}
 
 	// These are invariant safety gates. Emergency elevation cannot bypass them.
+	if request.BreakGlass != nil && (request.Action == ActionReadImageTrust || request.Action == ActionUpdateImageTrust || request.Action == ActionVerifyImageTrust) {
+		return deny(ReasonDenyImageTrustBreakGlassForbidden)
+	}
 	if request.Action == ActionDisableAudit {
 		return deny(ReasonDenyAuditDisableForbidden)
 	}
@@ -96,7 +99,7 @@ func knownAction(action Action) bool {
 	switch action {
 	case ActionReadResource, ActionReadEvidence, ActionCreateDraft,
 		ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation,
-		ActionDisableAudit:
+		ActionDisableAudit, ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust:
 		return true
 	default:
 		return false
@@ -147,12 +150,12 @@ func roleAllows(roles []Role, action Action, risk Risk) (allowed bool, riskDenie
 	for _, role := range roles {
 		switch role {
 		case RoleViewer:
-			if action == ActionReadResource {
+			if action == ActionReadResource || action == ActionReadImageTrust {
 				return true, false
 			}
 		case RoleOperator:
 			switch action {
-			case ActionReadResource:
+			case ActionReadResource, ActionReadImageTrust, ActionVerifyImageTrust:
 				return true, false
 			case ActionCreateDraft, ActionCreateOperation, ActionExecuteOperation:
 				if risk == RiskLow || risk == RiskMedium {
@@ -161,17 +164,18 @@ func roleAllows(roles []Role, action Action, risk Risk) (allowed bool, riskDenie
 				riskDenied = true
 			}
 		case RoleApprover:
-			if action == ActionReadResource || action == ActionReadEvidence || action == ActionApproveOperation {
+			if action == ActionReadResource || action == ActionReadEvidence || action == ActionApproveOperation || action == ActionReadImageTrust {
 				return true, false
 			}
 		case RoleAuditor:
-			if action == ActionReadEvidence {
+			if action == ActionReadEvidence || action == ActionReadImageTrust {
 				return true, false
 			}
 		case RoleAdmin:
 			switch action {
 			case ActionReadResource, ActionReadEvidence, ActionCreateDraft,
-				ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation:
+				ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation,
+				ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust:
 				return true, false
 			}
 		}

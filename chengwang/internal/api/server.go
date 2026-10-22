@@ -18,6 +18,7 @@ import (
 	"chengwang/internal/control"
 	"chengwang/internal/domain"
 	"chengwang/internal/evidence"
+	"chengwang/internal/imagetrust"
 	"chengwang/internal/observation"
 	"chengwang/internal/operation"
 	"chengwang/internal/policy"
@@ -26,19 +27,21 @@ import (
 )
 
 type Options struct {
-	Mode                   string
-	AdminToken             string
-	AllowPublish           bool
-	Versions               *store.VersionStore
-	Mihomo                 MihomoReader
-	Evidence               EvidenceVerifier
-	Authn                  Authenticator
-	Operations             OperationLister
-	Control                *control.Service
-	OperationWritesEnabled bool
-	ManagementScope        authz.ResourceScope
-	EvidenceMaxAge         time.Duration
-	Observation            ObservationReader
+	Mode                    string
+	AdminToken              string
+	AllowPublish            bool
+	Versions                *store.VersionStore
+	Mihomo                  MihomoReader
+	Evidence                EvidenceVerifier
+	Authn                   Authenticator
+	Operations              OperationLister
+	Control                 *control.Service
+	OperationWritesEnabled  bool
+	ManagementScope         authz.ResourceScope
+	EvidenceMaxAge          time.Duration
+	Observation             ObservationReader
+	ImageTrust              imagetrust.Backend
+	ImageTrustWritesEnabled bool
 }
 
 type MihomoReader interface {
@@ -75,6 +78,7 @@ type server struct {
 	options          Options
 	runtime          *runtimeProvider
 	evidenceScanGate chan struct{}
+	imageTrustScope  authz.ResourceScope
 }
 
 func New(options Options) http.Handler {
@@ -84,6 +88,9 @@ func New(options Options) http.Handler {
 	s := &server{
 		options: options, runtime: newRuntimeProvider(options.Mihomo),
 		evidenceScanGate: make(chan struct{}, 1),
+	}
+	if options.ImageTrust != nil {
+		s.imageTrustScope = options.ImageTrust.Scope()
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", s.health)
@@ -107,6 +114,9 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("POST /api/v1/operations/{id}/transitions", s.transitionOperation)
 	mux.HandleFunc("/api/v1/operations", s.operationMethodNotAllowed)
 	mux.HandleFunc("/api/v1/operations/{id}/transitions", s.operationMethodNotAllowed)
+	mux.HandleFunc("/api/v1/image-trust", s.imageTrustStatus)
+	mux.HandleFunc("/api/v1/image-trust/catalogue", s.imageTrustCatalogue)
+	mux.HandleFunc("/api/v1/image-trust/verifications", s.imageTrustVerification)
 	return s.securityHeaders(s.requestID(mux))
 }
 

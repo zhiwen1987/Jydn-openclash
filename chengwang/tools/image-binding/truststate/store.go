@@ -78,6 +78,7 @@ type Ticket struct {
 	generation           uint64
 	catalogueSHA256      string
 	approvalNotAfterUnix int64
+	validUntilUnix       int64
 }
 
 func (t Ticket) Trust() policy.Trust     { r := t.trust; r.PublicKey = bytes.Clone(r.PublicKey); return r }
@@ -85,6 +86,10 @@ func (t Ticket) GrantID() string         { return t.grant.ID }
 func (t Ticket) Generation() uint64      { return t.generation }
 func (t Ticket) CatalogueSHA256() string { return t.catalogueSHA256 }
 func (t Ticket) ManifestSHA256() string  { return t.grant.ManifestSHA256 }
+
+// ValidUntilUnix is authenticated metadata, not a caller-selected deadline.
+// It is the earlier of the verified approval and current signed catalogue.
+func (t Ticket) ValidUntilUnix() int64 { return t.validUntilUnix }
 
 // Store deliberately exposes neither the database nor mutable sync options.
 // The lifetime database lock excludes other processes. Catalogue updates during
@@ -231,6 +236,10 @@ func (s *Store) Begin(ctx context.Context, policyID string, approvalRaw []byte) 
 			return ErrCapacity
 		}
 		ticket = Ticket{owner: s, grant: grant, trust: trust, generation: cat.Generation(), catalogueSHA256: cat.SHA256(), approvalNotAfterUnix: approved.NotAfterUnix()}
+		ticket.validUntilUnix = approved.NotAfterUnix()
+		if expiry := cat.Summary().NotAfterUnix; expiry < ticket.validUntilUnix {
+			ticket.validUntilUnix = expiry
+		}
 		if _, err = rand.Read(ticket.token[:]); err != nil {
 			return s.poison()
 		}

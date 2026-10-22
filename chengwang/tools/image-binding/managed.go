@@ -28,6 +28,7 @@ type ManagedResult struct {
 	catalogue  string
 	generation uint64
 	evidence   string
+	validUntil int64
 }
 
 func (r ManagedResult) Verified() bool { return r.managed && r.binding.Verified() }
@@ -43,6 +44,10 @@ func (r ManagedResult) GrantID() string             { return r.grant }
 func (r ManagedResult) CatalogueSHA256() string     { return r.catalogue }
 func (r ManagedResult) CatalogueGeneration() uint64 { return r.generation }
 func (r ManagedResult) EvidenceSHA256() string      { return r.evidence }
+
+// ValidUntilUnix is the earlier authenticated approval/catalogue expiry.
+// It does not make an old result immune to subsequent catalogue revocation.
+func (r ManagedResult) ValidUntilUnix() int64 { return r.validUntil }
 
 // ManagedBind resolves approval trust from a separately bootstrapped Store,
 // durably burns its signed grant before external work, and rechecks current
@@ -79,9 +84,11 @@ func ManagedBind(ctx context.Context, store *truststate.Store, policyID string, 
 		Generation                                                 uint64
 		Reference, Approval, Manifest, Config, Graph, Bundle, Root string
 		ObservedAtUnixNano                                         int64
+		ValidUntilUnix                                             int64
 	}{
 		"chengwang.managed-binding-evidence/v1", ticket.GrantID(), ticket.CatalogueSHA256(), ticket.Generation(),
 		result.Reference(), result.ApprovalSHA256(), result.ManifestSHA256(), result.ConfigSHA256(), result.GraphSHA256(), result.BundleSHA256(), result.TrustedRootSHA256(), result.ObservedAt().UnixNano(),
+		ticket.ValidUntilUnix(),
 	}
 	raw, err := json.Marshal(projection)
 	if err != nil {
@@ -95,5 +102,5 @@ func ManagedBind(ctx context.Context, store *truststate.Store, policyID string, 
 	if err := store.Complete(ctx, ticket, evidence); err != nil || ctx.Err() != nil {
 		return fail()
 	}
-	return ManagedResult{true, result, ticket.GrantID(), ticket.CatalogueSHA256(), ticket.Generation(), evidence}, nil
+	return ManagedResult{true, result, ticket.GrantID(), ticket.CatalogueSHA256(), ticket.Generation(), evidence, ticket.ValidUntilUnix()}, nil
 }

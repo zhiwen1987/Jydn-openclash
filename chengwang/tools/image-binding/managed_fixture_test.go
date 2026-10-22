@@ -15,7 +15,7 @@ import (
 
 func assertManaged(t *testing.T, r binding.ManagedResult, m managedMaterial) {
 	t.Helper()
-	if !r.Verified() || r.Authorization() != "BLOCKED" || r.Boundary() != binding.ManagedBoundary || r.GrantID() != m.document.Grants[0].ID || r.CatalogueGeneration() != m.document.Generation || r.CatalogueSHA256() != hashed(m.catalogue) || len(r.EvidenceSHA256()) != 71 {
+	if !r.Verified() || r.Authorization() != "BLOCKED" || r.Boundary() != binding.ManagedBoundary || r.GrantID() != m.document.Grants[0].ID || r.CatalogueGeneration() != m.document.Generation || r.CatalogueSHA256() != hashed(m.catalogue) || len(r.EvidenceSHA256()) != 71 || r.ValidUntilUnix() != m.document.NotAfterUnix {
 		t.Fatal("managed result omitted durable trust binding")
 	}
 	assertBinding(t, r.Binding(), m.material)
