@@ -18,14 +18,14 @@ registry:3@sha256:1290056e2357eceb0c047cb60ae9abb370305a218e2df650eb8d3ea021b1c1
 
 ## 本地 replace 的校验
 
-固定 Go 1.25.8 的 [`go mod verify` 实现](https://github.com/golang/go/blob/go1.25.8/src/cmd/go/internal/modcmd/verify.go)会对 build list 中的本地替换模块尝试 archive 校验。这些模块没有远端 zip，因此不能直接把其报错当作远端依赖验收通过。
+固定 Go 1.25.8 的 [`go mod verify` 实现](https://github.com/golang/go/blob/go1.25.8/src/cmd/go/internal/modcmd/verify.go)只跳过主 module；普通模式会对本地替换模块尝试不存在的远端 archive 校验。把每个远端 selected module 都提升为辅助 module 的直接 require 又会改变 lazy pruning，因此不能用它替代原项目依赖图。
 
-workflow 先 `go mod download all`，保存原始 `go list -m -json all`，严格检查仅有两个指定本地 replace。`module-verification.py prepare` 在外部临时目录生成辅助 module，保留所有远端精确 MVS 版本并复制原始 `go.sum`。任何远端缺少原始 archive 或 go.mod pin 都拒绝继续；三个本地 module 的 `go.mod/go.sum` 原始摘要单独绑定。
+workflow 在 `GOWORK=off` 下下载并记录原始 MVS 图，严格检查两个指定本地 replace 和固定 SDK。`module-verification.py prepare` 仅在外部临时目录生成 `go.work`，精确 `use` 三个原始本地 module，不添加任何 require/replace，也不执行 `go work sync`。三个源 module 的 `go.mod/go.sum` 原始字节摘要单独绑定，同一 module/version 的跨文件 checksum 冲突会拒绝。
 
-辅助 module 的远端 MVS 集合必须与原图完全相同，不能存在 replace。所有远端 zip、解压目录、module metadata 都必须存在，download 结果及 cache ziphash 必须与原始 `go.sum` 一致，再运行官方 `go mod verify`。在线准备和真实断外网后的检查都执行，任何远端校验错误都会使门禁失败；不会忽略错误、禁用内容校验或升级主 module。
+只有验证进程临时指定该工作区。必须恰好三个 Main module，目录及 go.mod 路径都与原源码相同；其余远端 module 的集合、版本必须与 `GOWORK=off` 原图完全一致，禁止任何远端 replace。所有远端 archive/go.mod pin 仍必须存在于原始子 module 的 `go.sum`，下载结果和缓存 ziphash 必须匹配，并执行官方 `go mod verify` 核对实际 zip 与解压源码。编译与测试继续使用 `GOWORK=off`。
 
-在线下载后立即保存 `evidence/go.sum.candidate` 和下载退出状态。候选锁文件只供审查；下载失败仍使步骤失败，下载造成的源码锁文件变化仍由 `git diff --exit-code` 拒绝，不会自动批准或提交。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 的三 package 门禁，也不自动更新主门禁的测试指纹。
+`go.work.sum` 初始化为空，Go 自行读取三个主 module 的源锁；任何新增工作区专用 checksum 都使原始不可变 manifest 检查失败，不自动重设基准。每次在线命令后导出工作区锁候选与退出状态，下载或校验失败仍使步骤失败；源锁变化仍由 `git diff --exit-code` 拒绝。离线阶段源码、模块缓存及整个验证工作区都挂载为只读，重新执行精确图、缓存 pin 和官方 verify 检查。
 
-辅助 module 把选中的全部远端 module 列为直接 require，因此可能需要额外的历史 `go.mod` 校验 pin。仅在线 bootstrap 在该临时 module 中以官方 Go 的 `-mod=mod` 补齐元数据；每个命令后立即保存 `auxiliary*.go.sum.candidate` 与退出状态，失败不吞。实际 MVS 图先要求完全相同，官方 `go mod verify` 的候选记录随后保存，再执行原始 prepare manifest 的不可变检查。任何新锁行仍导致明确失败；审查者需核对并追加源 `go.sum` 后重新跑稳定门禁，不存在自动重设基准。离线阶段辅助 module 目录也挂载为只读。
+`evidence/go.sum.candidate`、`workspace*.go.work.sum.candidate` 仅供审查，不能自动升级或污染真实依赖。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 三 package 门禁，也不自动更新主门禁指纹。若此前步骤失败，该父测试记录可能尚未生成；artifact 只保存实际已有文件。
 
 脚本中的 `GOMEMLIMIT` 是软目标。Registry 容器另有硬 memory/CPU/pids 上限，Go 测试进程另有超时与有限 ulimit；这些条件不代表产品部署的完整资源隔离。所有成功报告仍为 advisory，固定 `authorization=BLOCKED`、`production=false`。

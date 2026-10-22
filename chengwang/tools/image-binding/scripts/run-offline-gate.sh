@@ -7,6 +7,7 @@ ulimit -n 1024
 ulimit -f 131072
 ulimit -u 1024
 test "$(/usr/bin/id -u)" != 0
+test "$GOWORK" = off
 test "$("$GO_BINARY" env GOVERSION)" = go1.25.8
 test "$(/usr/bin/readlink /proc/self/ns/net)" != "$PARENT_NETNS"
 test "$(/usr/bin/readlink /proc/self/ns/mnt)" != "$PARENT_MOUNTNS"
@@ -48,13 +49,15 @@ cd "$MODULE_ROOT"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
 (
   cd "$RUN_ROOT/remote-verification"
-  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" list -m -json all \
+  GOWORK="$RUN_ROOT/remote-verification/go.work" /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" list -m -json all \
     > "$RUN_ROOT/evidence/remote-modules-offline.json"
   /usr/bin/python3 -B "$MODULE_ROOT/scripts/module-verification.py" check \
     "$RUN_ROOT" "$GOMODCACHE" "$RUN_ROOT/evidence/remote-modules-offline.json"
-  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" mod verify \
+  GOWORK="$RUN_ROOT/remote-verification/go.work" /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" mod verify \
     | /usr/bin/tee "$RUN_ROOT/evidence/module-verification-offline.txt"
 )
+test "$("$GO_BINARY" env GOWORK)" = off
+echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 ./... \
   | /usr/bin/tee "$RUN_ROOT/evidence/go-test.json"
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -race -timeout=4m -count=1 ./... \

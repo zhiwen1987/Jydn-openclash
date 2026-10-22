@@ -18,7 +18,7 @@
 ## 合同与预算
 
 - 仅支持主校验器当前平台：linux/amd64、linux/arm64（含规范 v8）。不支持 tag、manifest index 或自动选平台。
-- 批准 envelope 最多 64 KiB；bundle/root 使用兄弟验签模块预算。Registry manifest/config 各最多 1 MiB、最多 128 层、每层最多 128 MiB、总层字节最多 512 MiB；仍应在调用进程外限制内存/CPU。
+- 批准 envelope 最多 64 KiB；bundle/root 使用兄弟验签模块预算。Registry manifest/config 各最多 1 MiB、1 至 128 层、每层最多 128 MiB、总层字节最多 512 MiB；仍应在调用进程外限制内存/CPU。
 - Registry 单次读回最长 2 分钟，并受调用 context 与批准到期的更早截止时间限制。签名 SDK 不能保证中途被 context 打断；只保证取消后不返回成功，硬时限需要外部进程终止。
 - `Docker-Content-Digest` 可缺省；若存在必须唯一且等于期望摘要，不能代替对实际字节计算 SHA256。
 - 输入切片、公钥和证书池不得在调用期间被其他 goroutine 修改。TLS 叶公钥轮换需要新的独立批准；不自动相信线上读回的新公钥。
