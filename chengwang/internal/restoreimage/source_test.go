@@ -28,6 +28,7 @@ func checkImageProductionSource(name string, source []byte) error {
 		"compress/gzip": true, "context": true,
 		"bytes": true, "crypto/sha256": true, "encoding/hex": true,
 		"encoding/json": true, "errors": true, "io": true, "regexp": true,
+		"net/netip": true, "net/url": true,
 		"strconv": true, "strings": true, "unicode/utf8": true, "sort": true,
 		"chengwang/internal/restorecurrent": true,
 		"chengwang/internal/restoreruntime": true,
@@ -200,6 +201,8 @@ func TestProductionSourceScannerRejectsCapabilityChanges(t *testing.T) {
 func TestProductionSourceScannerAcceptsReviewedPureCode(t *testing.T) {
 	for _, tc := range []struct{ name, source string }{
 		{"single-import", `package restoreimage; import "bytes"; var _ = bytes.NewReader`},
+		{"pure-address-parser", `package restoreimage; import "net/netip"; var _ = netip.ParseAddr`},
+		{"pure-url-parser", `package restoreimage; import "net/url"; var _ = url.Parse`},
 		{"parent-types-and-constants", `package restoreimage; import ("chengwang/internal/restorecurrent"; "chengwang/internal/restoreruntime"); var _ restoreruntime.Observation; var _ restorecurrent.BlockerCode; const _ = restoreruntime.ObservationSchemaV1; const _ = restoreruntime.ObservationBoundary; const _ = restorecurrent.BlockerExternalTimeAnchorMissing`},
 		{"getter-on-observation", `package restoreimage; import "chengwang/internal/restoreruntime"; func f(value restoreruntime.Observation) string { return value.ImageID() }`},
 		{"ordinary-comment", "package restoreimage\n// This package parses bytes without IO.\nfunc f(){}"},

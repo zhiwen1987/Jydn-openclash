@@ -1,0 +1,116 @@
+name: Chengwang Image Binding Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/chengwang-image-binding.yml"
+      - "chengwang/tools/image-binding/**"
+      - "chengwang/tools/image-verifier/**"
+      - "chengwang/internal/restoreimage/**"
+      - "chengwang/go.mod"
+      - "chengwang/go.sum"
+  push:
+    branches: [main, codex/chengwang-security-hardening]
+    paths:
+      - ".github/workflows/chengwang-image-binding.yml"
+      - "chengwang/tools/image-binding/**"
+      - "chengwang/tools/image-verifier/**"
+      - "chengwang/internal/restoreimage/**"
+      - "chengwang/go.mod"
+      - "chengwang/go.sum"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-image-binding-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  binding:
+    name: Offline binding and real Distribution Registry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      GOWORK: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      CGO_ENABLED: "1"
+      # Official library/registry linux/amd64 manifest, resolved from registry:3.
+      REGISTRY_FIXTURE_IMAGE: registry:3@sha256:1290056e2357eceb0c047cb60ae9abb370305a218e2df650eb8d3ea021b1c151
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up the isolated toolchain
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.25.8
+          cache: false
+
+      - name: Acquire pinned dependencies and test-only Registry image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(go env GOVERSION)" = go1.25.8
+          /usr/bin/install -d -m 0700 "$RUNNER_TEMP/chengwang-image-binding/evidence"
+          cd chengwang/tools/image-binding
+          go version | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/go-version.txt"
+          download_status=0
+          go mod download all || download_status=$?
+          /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/go.sum.candidate"
+          echo "IMAGE_BINDING_DEPENDENCY_DOWNLOAD_EXIT=$download_status"
+          test "$download_status" -eq 0
+          go list -m -json all > "$RUNNER_TEMP/chengwang-image-binding/evidence/modules.json"
+          /usr/bin/python3 -B scripts/check-module-pins.py "$RUNNER_TEMP/chengwang-image-binding/evidence/modules.json"
+          /usr/bin/python3 -B scripts/module-verification.py prepare \
+            "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)"
+          (
+            cd "$RUNNER_TEMP/chengwang-image-binding/remote-verification"
+            go list -m -json all > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
+            go mod download -json all > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-downloads.json"
+            /usr/bin/python3 -B "$GITHUB_WORKSPACE/chengwang/tools/image-binding/scripts/module-verification.py" check \
+              "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)" \
+              "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
+            go mod verify | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/module-verification-online.txt"
+          )
+          /usr/bin/git diff --exit-code -- go.mod go.sum
+          /usr/bin/docker pull --platform linux/amd64 "$REGISTRY_FIXTURE_IMAGE"
+          test "$(/usr/bin/docker image inspect --format '{{.Os}}/{{.Architecture}}' "$REGISTRY_FIXTURE_IMAGE")" = linux/amd64
+          echo 'REGISTRY_FIXTURE_IMAGE_BOUNDARY=PINNED_TEST_HARNESS_NOT_PRODUCT_IMAGE'
+
+      - name: Run ordinary, race and vet with only isolated loopback networking
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/bash chengwang/tools/image-binding/scripts/run-linux-ci.sh \
+            "$RUNNER_TEMP/chengwang-image-binding" "$(command -v go)" "$(go env GOMODCACHE)"
+
+      - name: Verify real Distribution Registry binding on a private internal network
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/bash chengwang/tools/image-binding/scripts/run-registry-fixture.sh \
+            "$RUNNER_TEMP/chengwang-image-binding" "$(command -v go)" "$(go env GOMODCACHE)"
+
+      - name: Check source remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/git diff --check
+          /usr/bin/git diff --exit-code
+          test -z "$(/usr/bin/git status --porcelain --untracked-files=all)"
+
+      - name: Preserve binding test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: image-binding-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-image-binding/evidence/
+          if-no-files-found: error
+          retention-days: 14

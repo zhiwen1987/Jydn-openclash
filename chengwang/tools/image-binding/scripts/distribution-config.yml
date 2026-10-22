@@ -1,0 +1,19 @@
+# CI fixture only: TLS enabled, no host ports, storage exclusively in tmpfs.
+version: 0.1
+log:
+  level: info
+  formatter: json
+storage:
+  cache:
+    blobdescriptor: inmemory
+  filesystem:
+    rootdirectory: /var/lib/registry
+  maintenance:
+    uploadpurging:
+      enabled: false
+http:
+  addr: :5443
+  secret: isolated-ci-fixture-not-a-production-credential
+  tls:
+    certificate: /certs/server.pem
+    key: /certs/server-key.pem

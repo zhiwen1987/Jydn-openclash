@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/netip"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,7 +31,7 @@ const (
 var (
 	ErrInvalid     = errors.New("local OCI identity is invalid")
 	digestPattern  = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-	repositoryPart = regexp.MustCompile(`^[a-z0-9]+(?:[._-][a-z0-9]+)*$`)
+	repositoryPart = regexp.MustCompile(`^[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*$`)
 	hostLabel      = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 )
 
@@ -37,6 +39,13 @@ var (
 // Reference must name a single-platform manifest by digest, never a tag/index.
 type Expected struct {
 	Reference, OS, Architecture, Variant string
+}
+
+// ValidateExpected checks only canonical reference syntax and the supported
+// platform set. It performs no IO and authenticates neither policy nor source.
+func ValidateExpected(expected Expected) bool {
+	_, ok := referenceDigest(expected.Reference)
+	return ok && validPlatform(expected.OS, expected.Architecture, expected.Variant)
 }
 
 // Content holds only validated public identities. It retains no config bytes,
@@ -75,10 +84,10 @@ type manifest struct {
 // declared platform. It does not fetch Registry objects or read layer content.
 // In particular, matching bytes do not authenticate the Reference's repository.
 func ValidateLocal(expected Expected, manifestRaw, configRaw []byte) (Content, error) {
-	wantDigest, ok := referenceDigest(expected.Reference)
-	if !ok || !validPlatform(expected.OS, expected.Architecture, expected.Variant) {
+	if !ValidateExpected(expected) {
 		return Content{}, ErrInvalid
 	}
+	wantDigest, _ := referenceDigest(expected.Reference)
 	if !strictJSON(manifestRaw) || !strictJSON(configRaw) || hash(manifestRaw) != wantDigest {
 		return Content{}, ErrInvalid
 	}
@@ -189,20 +198,34 @@ func referenceDigest(reference string) (string, bool) {
 		return "", false
 	}
 	host := path[0]
-	if strings.Count(host, ":") > 1 || (!strings.ContainsAny(host, ".:") && host != "localhost") {
+	if host != strings.ToLower(host) || (!strings.ContainsAny(host, ".:") && host != "localhost") {
 		return "", false
 	}
-	if i := strings.IndexByte(host, ':'); i >= 0 {
-		port := host[i+1:]
-		value, err := strconv.Atoi(port)
-		if err != nil || value < 1 || value > 65535 || strconv.Itoa(value) != port {
+	u, err := url.Parse("https://" + host)
+	if err != nil || u.Host != host || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return "", false
+	}
+	if port := u.Port(); port != "" {
+		value, err := strconv.ParseUint(port, 10, 16)
+		if err != nil || value == 0 || strconv.FormatUint(value, 10) != port {
 			return "", false
 		}
-		host = host[:i]
+	} else if strings.HasSuffix(host, ":") {
+		return "", false
 	}
-	for _, label := range strings.Split(host, ".") {
-		if len(label) > 63 || !hostLabel.MatchString(label) {
+	hostname := u.Hostname()
+	if address, err := netip.ParseAddr(hostname); err == nil {
+		if address.String() != hostname || address.Zone() != "" || address.Is4In6() || address.IsUnspecified() || address.IsMulticast() || address.Is6() && !strings.HasPrefix(host, "[") || address.Is4() && strings.HasPrefix(host, "[") {
 			return "", false
+		}
+	} else {
+		if len(hostname) > 253 || strings.ContainsAny(hostname, ":[]%") {
+			return "", false
+		}
+		for _, label := range strings.Split(hostname, ".") {
+			if len(label) > 63 || !hostLabel.MatchString(label) {
+				return "", false
+			}
 		}
 	}
 	for _, part := range path[1:] {

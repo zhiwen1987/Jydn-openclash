@@ -4,6 +4,7 @@ go 1.25.8
 
 require (
 	github.com/sigstore/protobuf-specs v0.5.1
+	github.com/sigstore/rekor v1.5.3
 	github.com/sigstore/sigstore-go v1.3.0
 	google.golang.org/protobuf v1.36.11
 )
@@ -53,7 +54,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
-	github.com/sigstore/rekor v1.5.3 // indirect
 	github.com/sigstore/rekor-tiles/v2 v2.3.0 // indirect
 	github.com/sigstore/sigstore v1.10.8 // indirect
 	github.com/sigstore/timestamp-authority/v2 v2.1.3 // indirect

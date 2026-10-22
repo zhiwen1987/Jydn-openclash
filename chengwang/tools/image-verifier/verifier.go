@@ -14,6 +14,7 @@ import (
 
 	protocommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	prototrustroot "github.com/sigstore/protobuf-specs/gen/pb-go/trustroot/v1"
+	"github.com/sigstore/rekor/pkg/util"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/verify"
@@ -246,6 +247,12 @@ func validBundle(b *bundle.Bundle, e Expected) (int64, bool) {
 	}
 	// Checkpoint is multiline signed text, not a URL or a one-line policy field.
 	if len(p.GetCheckpoint().GetEnvelope()) == 0 || len(p.GetCheckpoint().GetEnvelope()) > 16384 {
+		return 0, false
+	}
+	// The SDK verifies the checkpoint signature and root hash. Also bind its
+	// signed tree size to the proof size; neither value is a free annotation.
+	var checkpoint util.SignedCheckpoint
+	if checkpoint.UnmarshalText([]byte(p.GetCheckpoint().GetEnvelope())) != nil || checkpoint.Size != uint64(p.GetTreeSize()) || !bytes.Equal(checkpoint.Hash, p.GetRootHash()) {
 		return 0, false
 	}
 	for _, hash := range p.GetHashes() {

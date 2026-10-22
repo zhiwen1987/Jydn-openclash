@@ -29,6 +29,9 @@ REQUIRED_TESTS = frozenset({
     "TestRejectProofMixingAndEntryBudgets",
     "TestRejectRootBudgetsAndDuplicateLogIDs",
     "TestRejectJSONResourceExhaustion",
+    "TestCheckpointTreeSizeIsBound",
+    "TestCheckpointTreeSizeIsBound/message-signature",
+    "TestCheckpointTreeSizeIsBound/dsse",
 })
 REQUIRED_CRYPTO_CASES = frozenset({
     "signature", "artifact", "certificate", "issuer", "san", "set", "sct",

@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sigstore/sigstore-go/pkg/bundle"
 )
 
 func TestStrictJSONBudgetsAndAmbiguity(t *testing.T) {
@@ -53,6 +55,34 @@ func TestOpaqueResultCannotBeImported(t *testing.T) {
 	}
 }
 
+func TestCheckpointTreeSizeIsBound(t *testing.T) {
+	for _, name := range []string{"message", "dsse"} {
+		t.Run(name, func(t *testing.T) {
+			raw, err := os.ReadFile("testdata/" + name + ".sigstore.json")
+			if err != nil {
+				t.Fatal(err)
+			}
+			b := &bundle.Bundle{}
+			if err := b.UnmarshalJSON(raw); err != nil {
+				t.Fatal(err)
+			}
+			e := Expected{Kind: KindMessageSignature, ArtifactSHA256: "sha256:a0cfc71271d6e278e57cd332ff957c3f7043fdda354c4cbb190a30d56efa01bf", LogID: "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"}
+			if name == "dsse" {
+				e.Kind = KindDSSE
+				e.SubjectName = "a.txt"
+				e.PredicateType = "https://slsa.dev/provenance/v1"
+			}
+			if _, ok := validBundle(b, e); !ok {
+				t.Fatal("official original shape rejected")
+			}
+			b.VerificationMaterial.TlogEntries[0].InclusionProof.TreeSize++
+			if _, ok := validBundle(b, e); ok {
+				t.Fatal("unsigned proof size diverged from signed checkpoint")
+			}
+		})
+	}
+}
+
 // This is a source-contract regression guard, not a general security audit.
 // Both production library files must remain pure, offline SDK wrappers. CLI
 // I/O is intentionally outside the library and cannot mint a library Result.
@@ -62,6 +92,7 @@ func TestOfflineSourceContract(t *testing.T) {
 		"bytes", "context", "crypto/sha256", "encoding/hex", "encoding/json", "errors", "io", "net/url", "strings", "time", "unicode/utf8",
 		"github.com/sigstore/protobuf-specs/gen/pb-go/common/v1",
 		"github.com/sigstore/protobuf-specs/gen/pb-go/trustroot/v1",
+		"github.com/sigstore/rekor/pkg/util",
 		"github.com/sigstore/sigstore-go/pkg/bundle",
 		"github.com/sigstore/sigstore-go/pkg/root",
 		"github.com/sigstore/sigstore-go/pkg/verify",
@@ -71,7 +102,8 @@ func TestOfflineSourceContract(t *testing.T) {
 		allowed[path] = true
 	}
 	sdkAllowed := map[string]bool{
-		"bundle.Bundle": true, "root.NewTrustedRootFromJSON": true, "root.TrustedRootMediaType01": true,
+		"util.SignedCheckpoint": true,
+		"bundle.Bundle":         true, "root.NewTrustedRootFromJSON": true, "root.TrustedRootMediaType01": true,
 		"verify.NewShortCertificateIdentity": true, "verify.NewVerifier": true,
 		"verify.WithTransparencyLog": true, "verify.WithIntegratedTimestamps": true,
 		"verify.WithSignedCertificateTimestamps": true, "verify.NewPolicy": true,
@@ -108,7 +140,7 @@ func TestOfflineSourceContract(t *testing.T) {
 				t.Fatal("library must not hide uninterruptible verification behind a goroutine")
 			}
 			if s, ok := n.(*ast.SelectorExpr); ok {
-				if id, ok := s.X.(*ast.Ident); ok && (id.Name == "verify" || id.Name == "root" || id.Name == "bundle") && !sdkAllowed[id.Name+"."+s.Sel.Name] {
+				if id, ok := s.X.(*ast.Ident); ok && (id.Name == "verify" || id.Name == "root" || id.Name == "bundle" || id.Name == "util") && !sdkAllowed[id.Name+"."+s.Sel.Name] {
 					t.Fatal("unexpected SDK API, fetch or unsafe option")
 				}
 			}

@@ -327,6 +327,18 @@ REQUIRED_GO_TEST_NAMES = {
     "chengwang/internal/restoreimage": frozenset(
         {
             "TestValidateLocalBindsRawOCIAndDockerBytes",
+            "TestCanonicalReferencesBindBothContentAndLayers",
+            "TestCanonicalReferencesBindBothContentAndLayers/ipv6",
+            "TestCanonicalReferencesBindBothContentAndLayers/ipv6-port",
+            "TestCanonicalReferencesBindBothContentAndLayers/double-underscore",
+            "TestCanonicalReferencesBindBothContentAndLayers/consecutive-hyphens",
+            "TestCanonicalReferencesBindBothContentAndLayers/maximum-name",
+            "TestCanonicalReferenceRejectionsAreShared",
+            "TestCanonicalReferenceRejectionsAreShared/ipv6-zone",
+            "TestCanonicalReferenceRejectionsAreShared/ipv6-mapped",
+            "TestCanonicalReferenceRejectionsAreShared/ipv6-expanded-alias",
+            "TestCanonicalReferenceRejectionsAreShared/name-overflow",
+            "TestValidateExpectedUsesSupportedPlatformContract",
             "TestValidateLocalRequiresExactRawByteDigests",
             "TestValidateLocalRequiresExactRawByteDigests/config-id-is-not-manifest-digest",
             "TestValidateLocalRequiresExactRawByteDigests/manifest-id-is-not-config-digest",
