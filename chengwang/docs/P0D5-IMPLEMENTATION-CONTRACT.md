@@ -1,4 +1,6 @@
-# P0-d5 实施合同（候选，验收前不视为完成）
+# P0-d5 实施合同（隔离候选库）
+
+实际实现、隔离验收证据及未完成项见 [P0-d5 验收记录](P0D5-TRUST-REVOCATION-REPLAY.md)。合同不是生产部署证明。
 
 范围：独立 image-binding module、开发分支与隔离 CI；不访问生产，不解除九项 blocker。低层 Bind 保留为非受管原语，新增 ManagedBind 才接入本阶段信任状态。结果仍 advisory/BLOCKED。
 

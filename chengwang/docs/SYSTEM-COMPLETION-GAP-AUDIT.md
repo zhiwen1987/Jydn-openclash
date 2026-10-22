@@ -291,6 +291,8 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 
 ## P0-d3 标准验签候选进展（2026-10-22）
 
+以下 P0-d3/P0-d4 是各阶段当时的缺口快照；P0-d5 补入受管信任/撤销/防回放候选库底座，但产品集成、生产可信发放与上线仍未完成，不能把历史缺口文字或后续库测试当成当前生产状态。
+
 新增独立 Go 1.25.8 `tools/image-verifier`，使用官方 `sigstore-go v1.3.0` 验证 messageSignature 与 DSSE 的 artifact digest、精确 issuer/SAN、Fulcio 链、SCT、同一 Rekor v1 条目的 SET/proof/checkpoint。它只产生 `ADVISORY_SIGSTORE_BUNDLE_VERIFIED / authorization=BLOCKED`，没有升级主项目 Go 1.23，也没有生产安装。已修复并回归官方分片样本的两个不同 index 语义，原始 fixtures 摘要不变；最终本地/CI 证据详见 `P0D3-STANDARD-SIGSTORE-VERIFIER.md`。
 
 这只填补标准验签底座的一部分：root/policy 独立批准、Registry 仓库平台读回、签名与OCI graph绑定、源码/builder准入、防重放、真实部署、出口与业务验证均未闭合。conformance 测试材料已补查固定 README 的 Apache 2.0 明确声明并保留来源，但产品完整依赖许可审查仍未完成。旧供应链校验与九项 blocker 保持不变，M2b、M3、M4 和整体生产运营仍未完成。
@@ -300,3 +302,11 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 新增独立 `tools/image-binding`，把 Ed25519 批准文档、精确 Sigstore 签名对象和实际 Registry 单平台 manifest/config/layer 图关联。批准绑定 Registry 仓库、域名、IP、正常 TLS 和叶 SPKI，以及签名身份与信任根摘要。候选提交 `90299930429c147ebde14c71739159ea20c5e6d7` 已通过隔离 Linux CI：新模块普通/race 各 234 场景、3 包；真实 Distribution 两类签名普通/race 读回；原主项目 4134 语义事件、36 包、0 skip。详见 [P0-d4 验收记录](P0D4-APPROVED-REGISTRY-BINDING.md)。
 
 这是 `implemented+tested isolated-only` 的库，不是已接入产品的批准/部署系统。测试批准密钥和惰性测试镜像不是生产批准者或澄网发布制品；可信策略存储、源码/builder 语义准入、吊销/防回放、运行容器绑定与发布恢复执行器仍缺。没有生产变更，所有结果 advisory/BLOCKED，九项 blocker、M2b/M3/M4 与整体生产运营状态不因这些测试而解除。
+
+## P0-d5 可信策略、撤销与单次 grant（2026-10-22）
+
+新增 `trustcatalog`、`truststate` 和不透明 `ManagedResult`，把带外 Anchor、Ed25519 根双阈值轮换、严格代际、永久撤销/floor 高水位和持久 RESERVED→CONSUMED 接入真实签名/Registry 绑定。网络读取期间允许同一实例更新撤销，最终持久读回后重新检查 catalog 与批准时效。失败/崩溃后的已预留 grant 不自动回收；可信根显式签发新 grant 才能重试。
+
+代码 `6a387bcd8a11a0590e5990723c5638fefa445adf` 已通过隔离 Linux CI：绑定 run `39755876523` / job `119747626282`，ordinary/race 各 379 场景、5 包、0 fail/skip，保留旧 234 场景指纹；真实 Distribution 两类签名均完成受管成功、重开与拒重放。主项目 run `39755876519` / job `119747626733` 保持 4134 语义事件、36 包、0 skip。37 个模块源码文件 CI 摘要逐一匹配 Git 原始 blob，386 远端模块/版本和 go.sum 无漂移。具体失败修复、独立复核与限制见 [P0-d5 验收记录](P0D5-TRUST-REVOCATION-REPLAY.md)。
+
+这只推进到 `implemented+tested isolated-only / ADVISORY_MANAGED_REGISTRY_SIGNATURE_BOUND / authorization=BLOCKED`。没有产品 API/UI/RBAC、生产信任发放、自动在线撤销刷新、外部单调见证、真实发布镜像准入、临执行复验或部署恢复集成；不抵御整个磁盘/Anchor 一并回滚，不证明物理掉电，不提供部署 exactly-once。64 代历史与 4096 消费账本是失败关闭预算，不是已实现长期自动运维。九项 blocker、生产环境和 M2b/M3/M4 状态全部不变；本阶段未访问或修改生产，也未合并 main。
