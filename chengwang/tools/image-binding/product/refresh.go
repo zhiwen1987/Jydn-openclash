@@ -1,13 +1,23 @@
 package product
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"time"
 
 	"chengwang/image-binding/truststate"
 	"chengwang/internal/authz"
 	"chengwang/internal/imagetrust"
 )
+
+const refreshRejectionCapacity = 16
+
+type refreshRejectionKey struct {
+	generation uint64
+	baseSHA256 string
+	rawSHA256  string
+}
 
 // These methods are trusted composition hooks, not HTTP routes. The fixed
 // automation identity can install only signed next-generation catalogues via
@@ -28,8 +38,106 @@ func (s *Service) ApplyRefresh(ctx context.Context, raw []byte) error {
 		return failure(imagetrust.CodeLocked, false)
 	}
 	actor := authz.Principal{ID: "image-trust-refresh", TenantID: s.scope.TenantID, Roles: []authz.Role{authz.RoleAdmin}, AllowedScopes: []authz.ResourceScope{s.scope}}
-	_, err := s.Update(ctx, actor, raw)
+	if err := s.authorize(ctx, actor, authz.ActionUpdateImageTrust, true); err != nil {
+		return err
+	}
+	// A second trusted caller cannot create a waiting queue or race the ring.
+	// This mutex is independent of the ordinary administrator Update path.
+	if !s.refreshApplyMu.TryLock() {
+		return failure(imagetrust.CodeBusy, false)
+	}
+	defer s.refreshApplyMu.Unlock()
+	if len(raw) == 0 || len(raw) > imagetrust.MaxCatalogueBytes {
+		return failure(imagetrust.CodeInvalid, false)
+	}
+	raw = bytes.Clone(raw)
+	if err := s.checkAudit(); err != nil {
+		s.poison()
+		return err
+	}
+	before, err := s.previewRefresh(ctx, raw, false)
+	if err != nil {
+		return err
+	}
+	s.refreshRejectionBase(before.BaseGeneration, before.BaseSHA256)
+	key := refreshRejectionKey{before.BaseGeneration, before.BaseSHA256, digest(raw)}
+	if !before.Eligible {
+		for _, retained := range s.refreshRejected {
+			if retained == key {
+				// Preview is a real current-state/signature/time check, not an
+				// imported receipt. A future NotBefore may now be eligible and
+				// must reach the original transactional Update instead.
+				if auditErr := s.checkAudit(); auditErr != nil {
+					s.poison()
+					return failure(imagetrust.CodeAuditDegraded, false)
+				}
+				if ctx.Err() != nil {
+					return failure(imagetrust.CodeCanceled, false)
+				}
+				if s.unavailable() {
+					return failure(imagetrust.CodeUnavailable, false)
+				}
+				return failure(imagetrust.CodeInvalid, false)
+			}
+		}
+	}
+	status, err := s.Update(ctx, actor, raw)
+	if err == nil {
+		s.refreshRejectionBase(status.Generation, status.CatalogueSHA256)
+		return nil
+	}
+	var rejected *imagetrust.Error
+	if !errors.As(err, &rejected) || rejected.Code != imagetrust.CodeInvalid || !rejected.StateMayHaveChanged {
+		return err
+	}
+	// CodeInvalid/changed=true is returned by Update only after its complete
+	// REJECTED result audit and ACK. Do not retain uncertain/canceled failures,
+	// and do not key on sequence: the rejection's own journal advanced it.
+	after, previewErr := s.previewRefresh(ctx, raw, true)
+	if previewErr != nil {
+		return previewErr
+	}
+	if auditErr := s.checkAudit(); auditErr != nil {
+		s.poison()
+		return failure(imagetrust.CodeAuditDegraded, true)
+	}
+	s.refreshRejectionBase(after.BaseGeneration, after.BaseSHA256)
+	if !after.Eligible && before.BaseGeneration == after.BaseGeneration && before.BaseSHA256 == after.BaseSHA256 {
+		s.refreshRejected[s.refreshRejectNext] = key
+		s.refreshRejectNext = (s.refreshRejectNext + 1) % len(s.refreshRejected)
+	}
 	return err
+}
+
+// previewRefresh distinguishes a healthy but ineligible candidate (nil error)
+// from a store/context/integrity failure. The latter must never become a cached
+// ordinary rejection or mask poison, even on a previously remembered digest.
+func (s *Service) previewRefresh(ctx context.Context, raw []byte, changed bool) (truststate.UpdatePreview, error) {
+	preview, err := s.store.PreviewUpdate(ctx, raw)
+	if err != nil {
+		if ctx == nil || ctx.Err() != nil {
+			return truststate.UpdatePreview{}, failure(imagetrust.CodeCanceled, changed)
+		}
+		s.poison()
+		return truststate.UpdatePreview{}, failure(imagetrust.CodeUnavailable, changed)
+	}
+	if ctx.Err() != nil {
+		return truststate.UpdatePreview{}, failure(imagetrust.CodeCanceled, changed)
+	}
+	if s.unavailable() {
+		return truststate.UpdatePreview{}, failure(imagetrust.CodeUnavailable, changed)
+	}
+	return preview, nil
+}
+
+// Called only under refreshApplyMu. The Service's store/anchor/scope are fixed;
+// a newly observed catalogue base invalidates the entire previous working set.
+func (s *Service) refreshRejectionBase(generation uint64, hash string) {
+	if generation != s.refreshRejectBase || hash != s.refreshRejectBaseSHA256 {
+		s.refreshRejected = [refreshRejectionCapacity]refreshRejectionKey{}
+		s.refreshRejectNext = 0
+		s.refreshRejectBase, s.refreshRejectBaseSHA256 = generation, hash
+	}
 }
 
 func (s *Service) ConfirmRefresh(ctx context.Context, generation uint64, hash string) error {

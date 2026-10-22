@@ -89,6 +89,49 @@ ACCEPTED_D9_COUNT = 700
 ACCEPTED_D9_SHA256 = "b3cd00ab4fd983026e777095b484e2a0e49b05867186a83df234b8a27b7bb999"
 ACCEPTED_D9_NEW_COUNT = 31
 ACCEPTED_D9_NEW_SHA256 = "ad257b3ad1676c525eff4a42c73c125b9ae95a9ad2d6688bc4da02f0a5b43313"
+# The D12 rejection guard extends, rather than recalibrates, the accepted 700.
+# Only these reviewed exact package/name pairs may be removed before running
+# every historical fingerprint check below. Prefix matches are never exclusions.
+D12_REQUIRED_TESTS = {
+    STATE: frozenset((
+        "TestProductTrustStateD12PreviewValidReadOnly",
+        "TestProductTrustStateD12PreviewInvalidReadOnly",
+        "TestProductTrustStateD12PreviewRechecksTimeWindow",
+        "TestProductTrustStateD12PreviewTracksCurrentBase",
+        "TestProductTrustStateD12PreviewRejectsInvalidContextsAndClosed",
+        "TestProductTrustStateD12PreviewFailsClosedOnClockRegression",
+        "TestProductTrustStateD12PreviewPreservesConsumedGrants",
+        "TestProductTrustStateD12PreviewDetachedProjectionHasNoAuthority",
+    )),
+    PRODUCT: frozenset((
+        "TestProductD12RefreshRejectionDuplicateCandidateNoRepeatedWrites",
+        "TestProductD12RefreshRejectionDifferentBytesRemainAudited",
+        "TestProductD12RefreshRejectionFixedRingCapacityAndEviction",
+        "TestProductD12RefreshRejectionFutureNotBeforeBecomesEligible",
+        "TestProductD12RefreshRejectionBaseChangeClearsWorkingSet",
+        "TestProductD12RefreshRejectionNewServiceDoesNotInheritWorkingSet",
+        "TestProductD12RefreshRejectionConcurrentApplyReturnsBusy",
+        "TestProductD12RefreshRejectionAuditFailureIsNotHiddenByHit",
+        "TestProductD12RefreshRejectionStoreFailureIsNotHiddenByHit",
+        "TestProductD12RefreshRejectionCanceledContextIsNotHiddenByHit",
+        "TestProductD12RefreshRejectionNilContextRejected",
+        "TestProductD12RefreshRejectionHeldLockReturnsBusyWithoutQueue",
+        "TestProductD12RefreshRejectionAdministratorUpdateStillAudits",
+        "TestProductD12RefreshRejectionHitDoesNotRenewFreshness",
+        "TestProductD12RefreshRejectionConsumedLedgerRemainsUnchanged",
+        "TestProductD12RefreshRejectionUncertainAuditOutcomeNeverCached",
+    )),
+    COMMAND: frozenset((
+        "TestCandidateD12RefreshRepeatedSignedRejectionDoesNotRenew",
+        "TestCandidateD12RefreshFutureCandidateBecomesEligible",
+        "TestCandidateD12RefreshSourceBytesChangeRecovers",
+        "TestCandidateD12RefreshSequentialCatchupAndPartialPrefixRecovers",
+    )),
+}
+D12_REQUIRED_PAIRS = frozenset((package, name) for package, names in D12_REQUIRED_TESTS.items() for name in names)
+D12_EXTENSION_COUNT = 28
+D12_ORDINARY_COUNT = 728
+D12_NAME_PREFIXES = ("TestProductTrustStateD12", "TestProductD12", "TestCandidateD12")
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -433,6 +476,25 @@ def check_d9_complete_packages(tests):
         raise ValueError("accepted complete 31 P0-d9 extension changed")
 
 
+def split_d12_extension(tests):
+    if (len(D12_REQUIRED_PAIRS) != D12_EXTENSION_COUNT or
+            {package: len(names) for package, names in D12_REQUIRED_TESTS.items()} != {STATE: 8, PRODUCT: 16, COMMAND: 4}):
+        raise ValueError("reviewed D12 extension protocol changed")
+    observed = frozenset((package, name) for package, name in tests if name.startswith(D12_NAME_PREFIXES))
+    if observed != D12_REQUIRED_PAIRS:
+        raise ValueError("missing, renamed, extra or wrong-package D12 rejection-guard test")
+    return frozenset(tests) - D12_REQUIRED_PAIRS
+
+
+def check_ordinary_test_set(tests):
+    baseline = split_d12_extension(tests)
+    if len(tests) != D12_ORDINARY_COUNT or len(baseline) != ACCEPTED_D9_COUNT:
+        raise ValueError("complete 728 set must preserve exactly 700 old and 28 reviewed new pairs")
+    for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline,
+                    check_complete_packages, check_current_packages, check_d9_complete_packages):
+        checker(baseline)
+
+
 def check_product_lifecycle_markers(events):
     for mode in ("consumed-recovery", "refresh-revocation"):
         marker = "PRODUCT_D7_REAL_API=PASS mode=" + mode
@@ -477,7 +539,7 @@ def self_test():
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
     for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline,
-                    check_complete_packages, check_current_packages, check_d9_complete_packages):
+                    check_complete_packages, check_current_packages, check_d9_complete_packages, check_ordinary_test_set):
         for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
                       frozenset({(ROOT, "TestBindSignedRegistryImage")})):
             try:
@@ -499,6 +561,20 @@ def self_test():
             negative_count += 1
             continue
         raise ValueError("gate accepted missing, repeated or misattributed lifecycle evidence")
+    old = frozenset(((ROOT, "TestOldRetained"),))
+    if split_d12_extension(old | D12_REQUIRED_PAIRS) != old:
+        raise ValueError("D12 extension changed retained old pairs")
+    pair = sorted(D12_REQUIRED_PAIRS)[0]
+    for invalid in (old, old | (D12_REQUIRED_PAIRS - {pair}),
+                    old | (D12_REQUIRED_PAIRS - {pair}) | {(ROOT, pair[1])},
+                    old | D12_REQUIRED_PAIRS | {(PRODUCT, "TestProductD12RefreshRejectionUnknown")},
+                    old | D12_REQUIRED_PAIRS | {(pair[0], pair[1] + "/unreviewed")}):
+        try:
+            split_d12_extension(invalid)
+        except ValueError:
+            negative_count += 1
+            continue
+        raise ValueError("gate accepted unreviewed or incomplete D12 extension")
     print(f"IMAGE_BINDING_JSON_SELFTEST=PASS negative_cases={negative_count}")
 
 
@@ -524,16 +600,12 @@ def main():
     if results[0] != results[1]:
         raise ValueError("ordinary/race test or package sets differ")
     if args.mode == "ordinary":
-        check_baseline(results[0][0])
-        check_managed_baseline(results[0][0])
-        check_product_packages(results[0][0])
-        check_product_baseline(results[0][0])
-        check_complete_packages(results[0][0])
-        check_current_packages(results[0][0])
-        check_d9_complete_packages(results[0][0])
+        check_ordinary_test_set(results[0][0])
         for path in args.transcripts:
             with path.open(encoding="utf-8") as stream:
                 check_product_lifecycle_markers([json.loads(line, object_pairs_hook=unique_object) for line in stream])
+    elif any(name.startswith(D12_NAME_PREFIXES) for _, name in results[0][0]):
+        raise ValueError("ordinary D12 extension cannot be claimed as real Registry lifecycle evidence")
     print(f"IMAGE_BINDING_GO_JSON_GATE=PASS mode={args.mode} transcripts=2 "
           f"tests={len(results[0][0])} packages={len(results[0][1])} skips=0 race=pass "
           "authorization=BLOCKED production=false")

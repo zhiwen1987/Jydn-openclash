@@ -55,7 +55,14 @@ type Service struct {
 	refreshUntil      time.Time
 	refreshGeneration uint64
 	refreshHash       string
-	recovered         int
+	// Only ApplyRefresh owns this bounded, process-local working set. Ordinary
+	// administrator Update retains its existing audited behavior.
+	refreshApplyMu          sync.Mutex
+	refreshRejectBase       uint64
+	refreshRejectBaseSHA256 string
+	refreshRejected         [refreshRejectionCapacity]refreshRejectionKey
+	refreshRejectNext       int
+	recovered               int
 	// Test-only hook. Never exported or configured by the HTTP composition.
 	fault func(string)
 }

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Exercise scoped D9 extension without requiring or mutating real Go inputs."""
+"""Exercise exact scoped extensions without requiring or mutating Go inputs."""
 import ast
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import pathlib
 import subprocess
@@ -82,6 +84,119 @@ class D9BaselineScopeTests(unittest.TestCase):
             self.validate(self.old | {(gate.COMMAND, "TestCandidateD10Unreviewed")})
         with self.assertRaises(ValueError):
             self.validate_full_d9(self.old | self.extension | {(gate.COMMAND, "TestCandidateD10Unreviewed")})
+
+
+class D12RejectionExtensionTests(unittest.TestCase):
+    """Exact synthetic run sets; no Go/runtime/cryptographic acceptance claim."""
+
+    old = D9BaselineScopeTests.old
+    extension = D9BaselineScopeTests.extension
+
+    def validate_pipeline(self, pairs):
+        baseline = self.old | self.extension
+        def digest(values):
+            return hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in sorted(values)).encode()).hexdigest()
+        fingerprints = {package: (len(names := sorted(name for actual, name in baseline if actual == package)),
+            hashlib.sha256("\n".join(names).encode()).hexdigest()) for package, _ in baseline}
+        historical = ("check_baseline", "check_managed_baseline", "check_product_packages", "check_product_baseline",
+                      "check_complete_packages", "check_current_packages")
+        with contextlib.ExitStack() as stack:
+            mocks = [stack.enter_context(mock.patch.object(gate, name)) for name in historical]
+            stack.enter_context(mock.patch.object(gate, "D9_PACKAGE_FINGERPRINTS", fingerprints))
+            stack.enter_context(mock.patch.object(gate, "ACCEPTED_D9_COUNT", len(baseline)))
+            stack.enter_context(mock.patch.object(gate, "ACCEPTED_D9_SHA256", digest(baseline)))
+            stack.enter_context(mock.patch.object(gate, "ACCEPTED_D9_NEW_COUNT", len(self.extension)))
+            stack.enter_context(mock.patch.object(gate, "ACCEPTED_D9_NEW_SHA256", digest(self.extension)))
+            stack.enter_context(mock.patch.object(gate, "D12_ORDINARY_COUNT", len(baseline) + 28))
+            gate.check_ordinary_test_set(pairs)
+            for checker in mocks: checker.assert_called_once_with(baseline)
+
+    def test_closed_28_top_level_names_have_exact_reviewed_packages(self):
+        self.assertEqual({package: len(names) for package, names in gate.D12_REQUIRED_TESTS.items()},
+                         {gate.STATE: 8, gate.PRODUCT: 16, gate.COMMAND: 4})
+        self.assertEqual(len(gate.D12_REQUIRED_PAIRS), 28)
+        self.assertEqual(gate.D12_ORDINARY_COUNT, 728)
+        self.assertTrue(all("/" not in name for _, name in gate.D12_REQUIRED_PAIRS))
+
+    def test_only_closed_exact_pairs_are_excluded_before_all_old_checks(self):
+        baseline = self.old | self.extension
+        self.assertEqual(gate.split_d12_extension(baseline | gate.D12_REQUIRED_PAIRS), baseline)
+        self.validate_pipeline(baseline | gate.D12_REQUIRED_PAIRS)
+
+    def test_each_missing_new_pair_is_rejected(self):
+        for pair in gate.D12_REQUIRED_PAIRS:
+            with self.subTest(pair=pair), self.assertRaises(ValueError):
+                gate.split_d12_extension((self.old | self.extension | gate.D12_REQUIRED_PAIRS) - {pair})
+
+    def test_each_renamed_new_pair_is_rejected_even_with_same_count(self):
+        for package, name in gate.D12_REQUIRED_PAIRS:
+            changed = (self.old | self.extension | gate.D12_REQUIRED_PAIRS) - {(package, name)} | {(package, name + "Renamed")}
+            with self.subTest(name=name), self.assertRaises(ValueError): gate.split_d12_extension(changed)
+
+    def test_unknown_d12_prefixes_never_become_broad_exclusions(self):
+        valid = self.old | self.extension | gate.D12_REQUIRED_PAIRS
+        for package, name in ((gate.STATE, "TestProductTrustStateD12Unreviewed"),
+                              (gate.PRODUCT, "TestProductD12Unreviewed"), (gate.COMMAND, "TestCandidateD12Unreviewed")):
+            with self.subTest(name=name), self.assertRaises(ValueError): gate.split_d12_extension(valid | {(package, name)})
+
+    def test_each_new_name_moved_to_another_package_is_rejected(self):
+        valid = self.old | self.extension | gate.D12_REQUIRED_PAIRS
+        for pair in gate.D12_REQUIRED_PAIRS:
+            with self.subTest(pair=pair), self.assertRaises(ValueError):
+                gate.split_d12_extension((valid - {pair}) | {(gate.ROOT, pair[1])})
+
+    def test_swapped_packages_cannot_preserve_extension_authority(self):
+        left, right = sorted(gate.D12_REQUIRED_PAIRS)[0], sorted(gate.D12_REQUIRED_PAIRS)[-1]
+        changed = (self.old | self.extension | gate.D12_REQUIRED_PAIRS) - {left, right} | {(right[0], left[1]), (left[0], right[1])}
+        with self.assertRaises(ValueError): gate.split_d12_extension(changed)
+
+    def test_added_subtest_is_not_a_reviewed_top_level_test(self):
+        valid = self.old | self.extension | gate.D12_REQUIRED_PAIRS
+        package, name = sorted(gate.D12_REQUIRED_PAIRS)[0]
+        for changed in (valid | {(package, name + "/extra")}, (valid - {(package, name)}) | {(package, name + "/extra")}):
+            with self.assertRaises(ValueError): gate.split_d12_extension(changed)
+
+    def test_old_deleted_or_same_count_substituted_pairs_still_fail(self):
+        valid = self.old | self.extension | gate.D12_REQUIRED_PAIRS
+        pair = sorted(self.old)[0]
+        for changed in (valid - {pair}, (valid - {pair}) | {(pair[0], "TestOldSubstituted")}, valid | {(gate.ROOT, "TestExtraOld")}):
+            with self.assertRaises(ValueError): self.validate_pipeline(changed)
+
+    def test_new_runs_require_unique_matching_pass_and_no_skip(self):
+        required = {package: set(names) for package, names in gate.D12_REQUIRED_TESTS.items()}
+        required[gate.ROOT] = {"TestOldRoot"}
+        events = gate.synthetic(required)
+        name = sorted(gate.D12_REQUIRED_TESTS[gate.PRODUCT])[0]
+        read = lambda values: gate.read_events(io.StringIO("".join(json.dumps(item) + "\n" for item in values)), required)
+        read(events)
+        for action in ("skip", "fail"):
+            changed = [dict(item, Action=action) if item.get("Test") == name and item["Action"] == "pass" else item for item in events]
+            with self.subTest(action=action), self.assertRaises(ValueError): read(changed)
+        duplicate = next(item for item in events if item.get("Test") == name and item["Action"] == "pass")
+        with self.assertRaises(ValueError): read(events + [duplicate])
+        with self.assertRaises(ValueError): read([item for item in events if not(item.get("Test") == name and item["Action"] == "pass")])
+
+    def test_historical_constants_and_fingerprints_are_not_recalibrated(self):
+        self.assertEqual((gate.ACCEPTED_D9_COUNT, gate.ACCEPTED_D9_SHA256),
+            (700, "b3cd00ab4fd983026e777095b484e2a0e49b05867186a83df234b8a27b7bb999"))
+        self.assertEqual((gate.ACCEPTED_D8_COUNT, gate.ACCEPTED_D8_SHA256),
+            (669, "a55d7427fd64491017c7a0fe20756cac0051cfb426218d7082e0ccb83baeb4eb"))
+        self.assertEqual(gate.D9_PACKAGE_FINGERPRINTS[gate.PRODUCT],
+            (90, "a13f6e205758f8c73774c5a57d20408984a098847a50b6dd0d5a280945ff0b26"))
+        self.assertEqual(gate.D9_PACKAGE_FINGERPRINTS[gate.COMMAND],
+            (128, "21a7ea8e3b507f2af78d46ead04b2d4f9ad38da835d9ffe61d6b4a7466b6242e"))
+        self.assertEqual(gate.D9_PACKAGE_FINGERPRINTS[gate.STATE],
+            (68, "0aff387f31c7c7688b5552ecc887f38082a33ded00faf20c7256f9915dece155"))
+
+    def test_registry_mode_cannot_import_ordinary_extension(self):
+        events = gate.synthetic(gate.REQUIRED_REGISTRY)
+        package = gate.ROOT; name = sorted(gate.D12_REQUIRED_TESTS[gate.COMMAND])[0]
+        events[-1:-1] = [{"Action": "run", "Package": package, "Test": name}, {"Action": "pass", "Package": package, "Test": name}]
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = [pathlib.Path(temporary) / name for name in ("ordinary.json", "race.json")]
+            for path in paths: path.write_text("".join(json.dumps(item) + "\n" for item in events), encoding="utf-8")
+            with mock.patch.object(sys, "argv", [str(source), "--mode", "registry", *map(str, paths)]), self.assertRaises(ValueError):
+                gate.main()
 
 
 class D9BrowserReportGateTests(unittest.TestCase):
@@ -188,7 +303,7 @@ class D9BrowserReportGateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     result = unittest.main(exit=False).result
-    passed = result.wasSuccessful() and not result.skipped and result.testsRun == 15
+    passed = result.wasSuccessful() and not result.skipped and result.testsRun == 27
     if passed:
-        print("D9_BINDING_GATE_TESTS=PASS tests=15 old_baseline_preserved=true scoped_extensions_only=true synthetic_report_validation=true")
+        print("D9_BINDING_GATE_TESTS=PASS tests=27 old_baseline_preserved=true scoped_extensions_only=true synthetic_report_validation=true")
     raise SystemExit(0 if passed else 1)
