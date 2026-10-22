@@ -94,6 +94,7 @@ private,log,phase,kind,action,case=sys.argv[1:]
 assert re.fullmatch(r'[a-z0-9-]{1,96}',phase)
 assert kind in ('','message-signature','dsse') and action in ('','prepare','exercise','resume','catalogue','verify') and case in ('','0','1','2','3','4','first','final')
 stages=[]
+fixture_source_line=0
 if log:
     path=pathlib.Path(log)
     assert path.parent==pathlib.Path(private) and re.fullmatch(r'(message-signature|dsse)-(prepare|exercise|resume|catalogue|verify)-(0|[1-4]|first|final)\.private\.log',path.name)
@@ -106,7 +107,9 @@ if log:
     for line in raw.splitlines():
         match=re.fullmatch(rb'D11_PRODUCT_REGISTRY_STAGE=(archive-validated|uploaded-readback-matched|signed-catalogues-validated|store-created) kind=(message-signature|dsse)',line)
         if match and match[2].decode('ascii')==kind: stages.append(match[1].decode('ascii'))
-print(json.dumps({'schema':'chengwang.product-registry-failure/v1','outcome':'FAIL','phase':phase,'kind':kind,'action':action,'case':case,'safeStages':stages,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
+        source_match=re.fullmatch(rb'\s*product_registry_d11_linux_test\.go:([1-9][0-9]{0,5}): isolated product registry fixture rejected',line)
+        if source_match: fixture_source_line=int(source_match[1])
+print(json.dumps({'schema':'chengwang.product-registry-failure/v1','outcome':'FAIL','phase':phase,'kind':kind,'action':action,'case':case,'safeStages':stages,'fixtureSourceLine':fixture_source_line,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
 PY
     then
       /usr/bin/rm -f -- "$evidence/product-registry-failure-diagnostic.json"
@@ -271,16 +274,47 @@ print(json.dumps({"schema":"chengwang.product-registry-network/v1","sourceCommit
 ' "$source_commit" "$registry_id" > "$evidence/product-registry-network.json"
 wait_tls registry 5443
 /usr/bin/python3 -B - "$private/registry-image-inspect.json" "$private/registry-container-inspect.json" "$registry_id" "$registry_image" "$fixture_root" "$source_commit" > "$evidence/product-registry-isolation.json" <<'PY'
-import json,pathlib,re,sys
+import hashlib,json,pathlib,re,sys
 ip,cp,identity,pin,root,commit=sys.argv[1:]; image=json.loads(pathlib.Path(ip).read_text())[0]; c=json.loads(pathlib.Path(cp).read_text())[0]
 h=c['HostConfig']; cfg=c['Config']; state=c['State']
 canonical_pin='registry@'+pin.split('@',1)[1]
 assert c['Id']==identity and c['Image']==image['Id'] and canonical_pin in image['RepoDigests'] and image['Os']=='linux' and image['Architecture']=='amd64'
 assert cfg['User']=='10001:10001' and cfg['Entrypoint']==image['Config']['Entrypoint'] and cfg['Cmd']==image['Config']['Cmd']
 otel=['OTEL_TRACES_EXPORTER=none','OTEL_METRICS_EXPORTER=none','OTEL_LOGS_EXPORTER=none']
-base_env=image['Config'].get('Env') or []
-assert all(isinstance(item,str) and '=' in item for item in base_env)
-assert cfg['Env']==[item for item in base_env if item.split('=',1)[0] not in {v.split('=',1)[0] for v in otel}]+otel
+def env_mapping(value):
+    # Docker's inherited/explicit merge has no meaningful ordering contract.
+    # Preserve every base name/value while rejecting duplicate keys and malformed
+    # records, rather than sorting a list that could hide duplicate authority.
+    shape=isinstance(value,list) and len(value)<=256
+    unique=True
+    result={}
+    if shape:
+        for item in value:
+            if not isinstance(item,str) or not 1<=len(item)<=32768 or '\0' in item or '=' not in item:
+                shape=False
+                continue
+            name,content=item.split('=',1)
+            if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',name) is None:
+                shape=False
+                continue
+            if name in result: unique=False
+            result[name]=content
+    return (result if shape and unique else None),shape,unique
+
+def registry_environment_projection(base,actual):
+    inherited,base_shape,base_unique=env_mapping(base)
+    observed,actual_shape,actual_unique=env_mapping(actual)
+    expected=None if inherited is None else {**inherited,**dict(item.split('=',1) for item in otel)}
+    equivalent=expected is not None and observed is not None and expected==observed
+    digest=lambda value: hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    return equivalent,{'schema':'chengwang.product-registry-env-diagnostic/v1','baseShapeValid':base_shape,'baseKeysUnique':base_unique,'actualShapeValid':actual_shape,'actualKeysUnique':actual_unique,'expectedCount':len(expected) if expected is not None else 0,'actualCount':len(observed) if observed is not None else 0,'expectedMappingSHA256':digest(expected),'actualMappingSHA256':digest(observed),'equivalent':equivalent}
+
+base_environment=image['Config'].get('Env')
+if base_environment is None: base_environment=[]
+environment_ok,environment_diagnostic=registry_environment_projection(base_environment,cfg.get('Env'))
+if not environment_ok:
+    print(json.dumps(environment_diagnostic,sort_keys=True),file=sys.stderr)
+    raise SystemExit('D11_REGISTRY_ENV_CHECK=FAIL raw_environment_suppressed=true')
 assert h['NetworkMode']=='none' and h['ReadonlyRootfs'] is True and h['Privileged'] is False and h['CapDrop']==['ALL'] and not h.get('CapAdd')
 assert h['SecurityOpt'] in (['no-new-privileges'],['no-new-privileges:true'],['no-new-privileges=true'])
 for key,value in {'Memory':268435456,'MemorySwap':268435456,'NanoCpus':1000000000,'PidsLimit':128}.items(): assert type(h[key]) is int and h[key]==value

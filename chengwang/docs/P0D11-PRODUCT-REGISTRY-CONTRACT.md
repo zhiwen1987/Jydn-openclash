@@ -2,6 +2,16 @@
 
 日期：2026-10-23。状态：实施中，**本文不是已验收、已发布或上线的证明**。承接 [D10真实镜像验收](P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)，继续不动生产、不合并main、不向正式Registry发布。
 
+## 首轮实际执行记录：未通过
+
+代码 `c6eae18d2f11596373a53e3cd25f1a2c5cd455ca` 的[父回归39817438430](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39817438430)成功，但[绑定39817438467/job119959512324](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39817438467/job/119959512324)失败。主代理与独立代理实际重放确认：父普通/race各2320、子各700、原真实Registry各3保持；新Linux合成门33通过/0skip。D10本轮浏览器及生命周期子检查完成，不代表整轮成功。
+
+D11仅到Registry正常TLS ready、隔离网络读回。`registry-start` 内联Python第10行的容器环境变量有序列表等式失败；原私有inspect按设计未上传，**不能断言只是排序或编造实际Env值**。随后Registry仍在运行而进入紧急清理，D11清理门保持FAIL；外层D10精确清理PASS。D11 prepare、实际API消费/撤销/重启与最终工件门均未执行，不存在49份实际关联证明。
+
+原[工件12441899750](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39817438467/artifacts/12441899750)实际101文件，其中失败诊断明确phase=registry-start、safeStages为空，isolation投影0B不能作为证明。原joblog LF1,773,127B，SHA256 `16d4f3758052f0ccdd7040680e4e70661aae9277a20a5785ef14e3f474fb7622`；父LF5,447,750B，SHA256 `62a033bc6590ff583b45375421b9ff10df964e11d2838ccfd11904b10fa3b096`。父2320完整指纹保持D9/D10的 `fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8`。原始637条源码摘要逐Git blob独立复核，不从本机dirty文件推导。
+
+修复应只把不涉及语义的顺序约束改为**严格唯一环境键值映射**：完整保留固定镜像原值，仅3个明确OTEL键覆盖为none；拒绝重复键、额外键、缺键或任意值变化，不允许任意Env。必须重新执行真实全链，不能拿本轮33项合成测试或父回归替代。
+
 ## 必须补上的实际缺口
 
 D10已执行真实产品镜像，但原Registry回归仍使用惰性测试制品。D11必须让同一次构建的真实config/layer字节进入一次性、无外网的Distribution，绑定精确manifest、正常TLS固定来源和真实Sigstore/批准，并由镜像内默认程序执行产品API消费/防重放。不能把旧测试成功或本地imageID直接当成产品镜像来源证明。
