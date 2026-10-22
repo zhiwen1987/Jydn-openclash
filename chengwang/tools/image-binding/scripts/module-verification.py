@@ -72,6 +72,18 @@ def local_manifest():
             for name, directory in LOCAL.items()}
 
 
+def check_graph(run, actual_path):
+    remote, pins = expected_remote(run)
+    actual = read_objects(actual_path)
+    main = actual.pop(AUXILIARY, {})
+    auxiliary = run / "remote-verification"
+    if main.get("Main") is not True or pathlib.Path(main.get("Dir", "")).resolve() != auxiliary:
+        raise ValueError("unexpected verification main module")
+    if any("Replace" in value for value in actual.values()) or {name: value.get("Version") for name, value in actual.items()} != remote:
+        raise ValueError("remote verification graph differs from original exact MVS graph")
+    return remote, pins
+
+
 def prepare(run):
     remote, _ = expected_remote(run)
     auxiliary = run / "remote-verification"
@@ -95,12 +107,7 @@ def check(run, cache, actual_path):
     auxiliary = run / "remote-verification"
     if manifest["auxiliary"] != {file: sha(auxiliary / file) for file in ("go.mod", "go.sum")}:
         raise ValueError("verification auxiliary module changed")
-    actual = read_objects(actual_path)
-    main = actual.pop(AUXILIARY, {})
-    if main.get("Main") is not True or pathlib.Path(main.get("Dir", "")).resolve() != auxiliary:
-        raise ValueError("unexpected verification main module")
-    if any("Replace" in value for value in actual.values()) or {name: value.get("Version") for name, value in actual.items()} != remote:
-        raise ValueError("remote verification graph differs from original exact MVS graph")
+    check_graph(run, actual_path)
     downloads = read_objects(run / "evidence/remote-downloads.json")
     if set(downloads) != set(remote):
         raise ValueError("remote archive coverage differs from expected modules")
@@ -126,7 +133,10 @@ if __name__ == "__main__":
         raise SystemExit("verification temp/cache locations are not isolated")
     if operation == "prepare" and not rest:
         prepare(run)
+    elif operation == "graph" and len(rest) == 1:
+        remote, _ = check_graph(run, pathlib.Path(rest[0]).resolve(strict=True))
+        print(f"IMAGE_BINDING_CANDIDATE_MVS_GRAPH=PASS remote_modules={len(remote)} immutable_lock_accepted=false")
     elif operation == "check" and len(rest) == 1:
         check(run, cache, pathlib.Path(rest[0]).resolve(strict=True))
     else:
-        raise SystemExit("expected prepare RUN CACHE or check RUN CACHE REMOTE_MODULES_JSON")
+        raise SystemExit("expected prepare RUN CACHE or graph/check RUN CACHE REMOTE_MODULES_JSON")

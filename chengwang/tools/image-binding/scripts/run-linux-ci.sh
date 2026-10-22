@@ -26,6 +26,8 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
   /usr/bin/mount -o remount,bind,ro "$9"
   /usr/bin/mount --bind "$5" "$5"
   /usr/bin/mount -o remount,bind,ro "$5"
+  /usr/bin/mount --bind "$4/remote-verification" "$4/remote-verification"
+  /usr/bin/mount -o remount,bind,ro "$4/remote-verification"
   /usr/sbin/ip link set lo up
   exec /usr/bin/setpriv \
     --reuid="$1" --regid="$2" --clear-groups \

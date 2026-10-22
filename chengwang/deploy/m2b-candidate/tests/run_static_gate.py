@@ -86,7 +86,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/restorecoordinator": 24,
     "chengwang/internal/restoreclock": 13,
     "chengwang/internal/restorecurrent": 148,
-    "chengwang/internal/restoreimage": 276,
+    "chengwang/internal/restoreimage": 333,
     "chengwang/internal/restorelease": 2,
     "chengwang/internal/restoreruntime": 50,
     "chengwang/internal/routing": 4,
@@ -118,8 +118,8 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
         "sha256": "518d0474814e656cafd2012fcf400a56e52374f4cb184df652e38bd7822558cd",
     },
     "chengwang/internal/restoreimage": {
-        "count": 276,
-        "sha256": "db8056dead127384bed7286d96621a0ad64835aafda6620f8a96f2842f338231",
+        "count": 333,
+        "sha256": "4bbb152498b74c6bae551b20f545240abd370d8fb07baed984c3fa0da4a310b4",
     },
     "chengwang/internal/restoreruntime": {
         "count": 50,

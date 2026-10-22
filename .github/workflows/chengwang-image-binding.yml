@@ -54,12 +54,22 @@ jobs:
 
       - name: Acquire pinned dependencies and test-only Registry image
         shell: bash
+        env:
+          GOENV: "off"
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+          GOPRIVATE: ""
+          GONOPROXY: ""
+          GONOSUMDB: ""
+          GOINSECURE: ""
         run: |
           set -euo pipefail
           test "$(go env GOVERSION)" = go1.25.8
           /usr/bin/install -d -m 0700 "$RUNNER_TEMP/chengwang-image-binding/evidence"
           cd chengwang/tools/image-binding
           go version | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/go-version.txt"
+          go env -json GOVERSION GOENV GOPROXY GOSUMDB GOPRIVATE GONOPROXY GONOSUMDB GOINSECURE \
+            > "$RUNNER_TEMP/chengwang-image-binding/evidence/go-env-online.json"
           download_status=0
           go mod download all || download_status=$?
           /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/go.sum.candidate"
@@ -71,12 +81,37 @@ jobs:
             "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)"
           (
             cd "$RUNNER_TEMP/chengwang-image-binding/remote-verification"
-            go list -m -json all > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
-            go mod download -json all > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-downloads.json"
+            # Bootstrap ONLY this disposable auxiliary lock with official Go
+            # checksum/SumDB validation. Any resulting lock change still fails
+            # the original immutable manifest check below and needs review.
+            bootstrap_list_status=0
+            GOFLAGS=-mod=mod go list -m -json all \
+              > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json" \
+              2> "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-bootstrap-list.log" \
+              || bootstrap_list_status=$?
+            /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-list.go.sum.candidate"
+            /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary.go.sum.candidate"
+            echo "IMAGE_BINDING_AUXILIARY_LIST_EXIT=$bootstrap_list_status"
+            /usr/bin/cat "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-bootstrap-list.log"
+            test "$bootstrap_list_status" -eq 0
+            /usr/bin/python3 -B "$GITHUB_WORKSPACE/chengwang/tools/image-binding/scripts/module-verification.py" graph \
+              "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)" \
+              "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
+            bootstrap_download_status=0
+            GOFLAGS=-mod=mod go mod download -json all \
+              > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-downloads.json" \
+              2> "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-bootstrap-download.log" \
+              || bootstrap_download_status=$?
+            /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary.go.sum.candidate"
+            echo "IMAGE_BINDING_AUXILIARY_DOWNLOAD_EXIT=$bootstrap_download_status"
+            /usr/bin/cat "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-bootstrap-download.log"
+            test "$bootstrap_download_status" -eq 0
+            # Preserve official verification evidence for the candidate even
+            # when the subsequent immutable-lock check correctly rejects it.
+            go mod verify | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/module-verification-online.txt"
             /usr/bin/python3 -B "$GITHUB_WORKSPACE/chengwang/tools/image-binding/scripts/module-verification.py" check \
               "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)" \
               "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
-            go mod verify | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/module-verification-online.txt"
           )
           /usr/bin/git diff --exit-code -- go.mod go.sum
           /usr/bin/docker pull --platform linux/amd64 "$REGISTRY_FIXTURE_IMAGE"

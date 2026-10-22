@@ -17,7 +17,7 @@ done
 test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
 test -z "$(/usr/sbin/ip -o route show default)"
 test -z "$(/usr/sbin/ip -6 -o route show default)"
-for mount_path in "$MODULE_ROOT" "$GOMODCACHE"; do
+for mount_path in "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification"; do
   /usr/bin/findmnt -n -T "$mount_path" -o OPTIONS | /usr/bin/grep -qE '(^|,)ro(,|$)'
 done
 /usr/bin/python3 -B - <<'PY'

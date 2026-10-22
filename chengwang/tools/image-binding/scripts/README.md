@@ -26,4 +26,6 @@ workflow 先 `go mod download all`，保存原始 `go list -m -json all`，严�
 
 在线下载后立即保存 `evidence/go.sum.candidate` 和下载退出状态。候选锁文件只供审查；下载失败仍使步骤失败，下载造成的源码锁文件变化仍由 `git diff --exit-code` 拒绝，不会自动批准或提交。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 的三 package 门禁，也不自动更新主门禁的测试指纹。
 
+辅助 module 把选中的全部远端 module 列为直接 require，因此可能需要额外的历史 `go.mod` 校验 pin。仅在线 bootstrap 在该临时 module 中以官方 Go 的 `-mod=mod` 补齐元数据；每个命令后立即保存 `auxiliary*.go.sum.candidate` 与退出状态，失败不吞。实际 MVS 图先要求完全相同，官方 `go mod verify` 的候选记录随后保存，再执行原始 prepare manifest 的不可变检查。任何新锁行仍导致明确失败；审查者需核对并追加源 `go.sum` 后重新跑稳定门禁，不存在自动重设基准。离线阶段辅助 module 目录也挂载为只读。
+
 脚本中的 `GOMEMLIMIT` 是软目标。Registry 容器另有硬 memory/CPU/pids 上限，Go 测试进程另有超时与有限 ulimit；这些条件不代表产品部署的完整资源隔离。所有成功报告仍为 advisory，固定 `authorization=BLOCKED`、`production=false`。

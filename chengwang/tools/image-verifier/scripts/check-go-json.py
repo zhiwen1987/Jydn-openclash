@@ -30,7 +30,7 @@ REQUIRED_TESTS = frozenset({
     "TestRejectRootBudgetsAndDuplicateLogIDs",
     "TestRejectJSONResourceExhaustion",
     "TestCheckpointTreeSizeIsBound",
-    "TestCheckpointTreeSizeIsBound/message-signature",
+    "TestCheckpointTreeSizeIsBound/message",
     "TestCheckpointTreeSizeIsBound/dsse",
 })
 REQUIRED_CRYPTO_CASES = frozenset({
