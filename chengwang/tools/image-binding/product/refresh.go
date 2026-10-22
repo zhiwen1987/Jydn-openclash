@@ -71,6 +71,26 @@ func (s *Service) sourceBound(ctx context.Context) (*truststate.SourceBound, err
 	return &truststate.SourceBound{Generation: s.refreshGeneration, CatalogueSHA256: s.refreshHash, FreshUntilUnixNano: s.refreshUntil.UnixNano()}, nil
 }
 
+// A second source read may itself observe a newer, freshly confirmed
+// catalogue. That is not permission to return a result from the old one.
+// Expiry/cancellation are tested after this potentially expensive read.
+func (s *Service) finalSourceState(ctx context.Context, generation uint64, hash string, validUntilUnix int64) error {
+	if ctx == nil {
+		return failure(imagetrust.CodeCanceled, true)
+	}
+	bound, err := s.sourceBound(ctx)
+	if err != nil {
+		return failure(imagetrust.CodeUnavailable, true)
+	}
+	if bound != nil && (bound.Generation != generation || bound.CatalogueSHA256 != hash) {
+		return failure(imagetrust.CodeConflict, true)
+	}
+	if validUntilUnix <= time.Now().Unix() || ctx.Err() != nil || s.unavailable() {
+		return failure(imagetrust.CodeInvalid, true)
+	}
+	return nil
+}
+
 // Maintenance refreshes cached audit verification and reports fatal integrity
 // or lifetime failures. It never silently clears poison or repairs files. A
 // trusted supervisor may restart a candidate, whose constructor reconciles

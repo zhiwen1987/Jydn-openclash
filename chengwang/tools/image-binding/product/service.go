@@ -263,13 +263,10 @@ func (s *Service) finalVerifyState(ctx context.Context, policyID string, r bindi
 			break
 		}
 	}
-	if !active || !consumed || r.ValidUntilUnix() <= time.Now().Unix() || ctx.Err() != nil || s.unavailable() {
+	if !active || !consumed {
 		return failure(imagetrust.CodeInvalid, true)
 	}
-	if _, err := s.sourceBound(ctx); err != nil {
-		return failure(imagetrust.CodeUnavailable, true)
-	}
-	return nil
+	return s.finalSourceState(ctx, r.CatalogueGeneration(), r.CatalogueSHA256(), r.ValidUntilUnix())
 }
 
 func (s *Service) authorize(ctx context.Context, actor authz.Principal, action authz.Action, write bool) error {

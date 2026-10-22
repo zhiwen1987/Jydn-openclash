@@ -127,6 +127,13 @@ func TestProductD7RefreshCanInstallWhileStaleAndRejectBadOrRacingConfirm(t *test
 	if entries[1].Operation.ActorID != "image-trust-refresh" {
 		t.Fatal("automation actor not distinct")
 	}
+	// Models the second read in the final product check observing a new,
+	// already confirmed epoch. A fresh gen2 is not fresh authority for gen1.
+	expectCode(t, f.service.finalSourceState(ctx, 1, digest(f.initial), time.Now().Add(time.Minute).Unix()), imagetrust.CodeConflict, true)
+	if err = f.service.finalSourceState(ctx, 2, digest(raw), time.Now().Add(time.Minute).Unix()); err != nil {
+		t.Fatal("matching final epoch rejected", err)
+	}
+	expectCode(t, f.service.finalSourceState(ctx, 2, digest(raw), time.Now().Unix()-1), imagetrust.CodeInvalid, true)
 }
 
 func TestProductD7MaintenanceRefreshesHealthWithoutStateWrites(t *testing.T) {
