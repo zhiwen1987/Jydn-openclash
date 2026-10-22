@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import errno
 import hashlib
 import json
@@ -18,11 +19,14 @@ import sys
 import time
 import unittest
 import uuid
+import zlib
 
 import fixture_source as source
 
 
 HERE = pathlib.Path(__file__).resolve().parent
+FEED_SOURCE = (HERE / 'fixture_feed.py').read_bytes()
+SOURCE_SOURCE = (HERE / 'fixture_source.py').read_bytes()
 DEFAULT_BODY = b'{"fixture":"source"}\n'
 BOUNDARY_BODY = b'x' * 262145
 ERROR_BODY = b'{"code":"fixture_source_unavailable"}\n'
@@ -86,6 +90,53 @@ def decode_startup_diagnostic(raw):
 
 def diagnostic_exit_code(value):
     return str(value) if type(value) is int and -64 <= value <= 255 else 'UNKNOWN'
+
+
+def build_bootstrap():
+    # Read-only original bytes travel in the bounded -c argument, never in a
+    # helper-writable copy. Register both modules before executing their code:
+    # dataclasses resolves fixture_source through sys.modules during import.
+    if any(not 0 < len(raw) <= 128 << 10 for raw in (FEED_SOURCE, SOURCE_SOURCE)):
+        raise ValueError('original bootstrap source exceeds its byte bound')
+    payloads = tuple((name, filename, base64.b85encode(zlib.compress(raw, 9)), len(raw), sha(raw))
+                     for name, filename, raw in (
+                         ('fixture_feed', '<fixture_feed.py>', FEED_SOURCE),
+                         ('fixture_source', '<fixture_source.py>', SOURCE_SOURCE)))
+    launch = '''import sys, types, hashlib, base64, zlib
+try:
+    for name, filename, payload, length, digest in PAYLOADS:
+        if type(length) is not int or not 0 < length <= 131072:
+            raise ValueError('source-length-invalid')
+        decoder = zlib.decompressobj()
+        raw = decoder.decompress(base64.b85decode(payload), length + 1)
+        if (len(raw) != length or not decoder.eof or decoder.unused_data
+                or decoder.unconsumed_tail or hashlib.sha256(raw).hexdigest() != digest):
+            raise ValueError('source-bytes-invalid')
+        module = types.ModuleType(name)
+        module.__file__ = filename
+        sys.modules[name] = module
+        exec(compile(raw, filename, 'exec'), module.__dict__)
+    fixture_source = sys.modules['fixture_source']
+except ModuleNotFoundError as error:
+    code = ('MODULE_NOT_FOUND_SOURCE' if type(error.name) is str and error.name == 'fixture_source'
+            else 'MODULE_NOT_FOUND_FEED' if type(error.name) is str and error.name == 'fixture_feed'
+            else 'MODULE_NOT_FOUND_OTHER')
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=' + code + '\\n')
+    raise SystemExit(1) from None
+except PermissionError:
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_PERMISSION\\n')
+    raise SystemExit(1) from None
+except ImportError:
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_ERROR\\n')
+    raise SystemExit(1) from None
+except Exception:
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_UNEXPECTED\\n')
+    raise SystemExit(1) from None
+raise SystemExit(fixture_source.main())
+'''.replace('PAYLOADS', repr(payloads), 1)
+    if len(launch.encode('utf-8')) > 96 << 10:
+        raise ValueError('isolated source code exceeds its argument bound')
+    return launch
 
 
 def sha(raw):
@@ -304,6 +355,24 @@ class ShapeTests(unittest.TestCase):
                             ('test_private_input_links_and_fifo_rejected', 'normal')):
             with self.assertRaises(ValueError):
                 observation(name, label, [])
+        self.assertTrue(FEED_SOURCE == (HERE / 'fixture_feed.py').read_bytes()
+                        and SOURCE_SOURCE == (HERE / 'fixture_source.py').read_bytes(),
+                        'bootstrap source bytes differ from the original files')
+        launch = build_bootstrap()
+        self.assertLessEqual(len(launch.encode('utf-8')), 96 << 10)
+        # Auxiliary module-loading smoke only. This process is deliberately not
+        # the UID10001/cap0/NNP native helper and must be rejected by main itself.
+        try:
+            smoke = subprocess.run([sys.executable, '-I', '-B', '-c', launch, 'serve',
+                '--fixture-root', '/tmp/chengwang-product-lifecycle-' + 'a' * 32,
+                '--case', 'shape', '--kind', 'dsse', '--port', '15443'],
+                capture_output=True, timeout=5, env={'PATH': os.defpath})
+        except subprocess.TimeoutExpired:
+            self.fail('isolated module-loading smoke exceeded its bound')
+        newline = b'\r\n' if sys.platform == 'win32' else b'\n'
+        self.assertTrue(smoke.returncode == 1 and not smoke.stdout
+                        and smoke.stderr == b'D12_SOURCE_ERROR=REJECTED reason=security-invalid' + newline,
+                        'isolated original-byte module loading did not reach the main profile rejection')
         for code in BOOTSTRAP_CODES:
             raw = ('D12_SOURCE_BOOTSTRAP_FAILURE=' + code + '\n').encode('ascii')
             self.assertEqual(decode_startup_diagnostic(raw), 'BOOTSTRAP_' + code)
@@ -361,30 +430,10 @@ class Session:
                 probe.bind(('127.0.0.1', 0))
                 port = probe.getsockname()[1]
         self.port = port
-        launch = '''import sys
-sys.path.insert(0, sys.argv.pop(1))
-try:
-    import fixture_source
-except ModuleNotFoundError as error:
-    code = ('MODULE_NOT_FOUND_SOURCE' if type(error.name) is str and error.name == 'fixture_source'
-            else 'MODULE_NOT_FOUND_FEED' if type(error.name) is str and error.name == 'fixture_feed'
-            else 'MODULE_NOT_FOUND_OTHER')
-    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=' + code + '\\n')
-    raise SystemExit(1) from None
-except PermissionError:
-    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_PERMISSION\\n')
-    raise SystemExit(1) from None
-except ImportError:
-    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_ERROR\\n')
-    raise SystemExit(1) from None
-except Exception:
-    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_UNEXPECTED\\n')
-    raise SystemExit(1) from None
-raise SystemExit(fixture_source.main())
-'''
+        launch = build_bootstrap()
         command = ['/usr/bin/setpriv', '--reuid=10001', '--regid=10001', '--clear-groups',
                    '--bounding-set=-all', '--inh-caps=-all', '--ambient-caps=-all', '--no-new-privs',
-                   sys.executable, '-I', '-B', '-c', launch, str(HERE), 'serve',
+                   sys.executable, '-I', '-B', '-c', launch, 'serve',
                    '--fixture-root', str(self.root), '--case', 'real-case', '--kind', 'message-signature',
                    '--port', str(port), '--deadline-seconds', str(deadline)]
         environment = {'PATH': '/usr/bin:/bin', 'LANG': 'C', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}

@@ -18,3 +18,14 @@
 - 父39870527899/job120143844311另外success：独立代理核原日志5,447,145B，SHA256 `a06485dcc3898de26ae36e5eac32772351e73d37ba9440eb4d7de3ccc36ef8cc`，普通/race各2320具名run/pass、0Test skip/fail；不能替代本新门。
 
 下一轮只先增加安全bootstrap诊断：固定异常类别与受控模块枚举，不输出原stderr/异常文本/traceback/私钥，不改UID/caps、只读源、期限、24测试或34观测集合，不skip失败。取得实际诊断前，不宣称源目录权限猜测已被确认或修复。
+
+## 7e6d405：安全诊断确认自身模块未导入，未通过
+
+代码7e6d40565abc948a59f945fffec64d6871c1843a，绑定39871183460/job120145729698，attempt1 completed/failure。该轮保留原启动路径，只增加闭集诊断和同一Shape方法内的诊断正反例，未放宽权限或跳过native。
+
+- 原API日志72,429B，SHA256 `055710c85bf847ef9d5fe4aafb1bf15133f97e0274ce690bd494c195b3200bdc`；工件12466207741/27文件，ZIP257,899B，SHA256 `3a5cc20e91b8dde77ac47d7a24a805e9dd3aec1c61295c7b54ded7961476d4d7`，多份独立下载/API digest一致。
+- 实际24项/0.451s，8Shape通过、16Linux失败、0skip；所有16项均为`BOOTSTRAP_MODULE_NOT_FOUND_SOURCE exitCode=1`。这确证`import fixture_source`阶段ModuleNotFoundError且name精确为fixture_source，尚不能断言具体目录EACCES/errno，也没有进入source.main/TLS/wire能力。
+- 新observations/checker-tests/preflight仍未产生，失败日志被准确head检查器拒绝；后续Go/Registry/镜像门未运行，不能算回归通过。旧fixture前置通过与新privateTreeRemoved=true/testExitCode1分别保留。
+- 父39871183672/job120145730690独立success，原日志5,447,444B/SHA256 `6f8cc499c930b2f39bda7f9dd0a84bab39c5fab1acf2d7f8e40e0386f19d3bf1`；普通/race各2320具名run/pass、0Test skip/fail。父成功仍不覆盖子失败。
+
+据此下一修复移除“降权进程必须遍历checkout并按路径import”这项新前提：由可信root测试orchestrator从原只读Git绑定文件读两个原始模块bytes，通过有界`-I -B -c`在低权进程注册固定内存模块后执行；不用可写helper源码副本、PYTHONPATH，不改目录权限、UID/cap0/NNP或产品逻辑。该修复仍须下一真实CI证明，不能将实施意图当旧轮通过。

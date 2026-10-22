@@ -41,6 +41,8 @@ checker从准确head Git原bytes提取测试名和source SHA，核全部ok/唯�
 
 CI另起`run-source-fixture-preflight.sh`子mount namespace，旧前置门不改。四个原输入为product-source-fixture-tests.log、checker-tests.log、observations.json、cleanup.json（均带同一product-source-fixture前缀），输出product-source-fixture-preflight.json；原Git来源8份：旧fixture_feed.py/check_lifecycle_preflight.py，新fixture_source.py/test_fixture_source.py/check_source_preflight.py/test_check_source_preflight.py，新runner及run-linux-ci.sh。Windows辅助目前Shape8通过/Linux16明确跳过、checker32合成通过；这不是Linux验收，仍待实际CI及独立工件重算。
 
+首轮真实Linux失败和闭集诊断轮均保留在[失败记录](P0D12-SOURCE-FIXTURE-FAILURES.md)。实际诊断确认SOURCE模块导入失败，不能猜测具体目录errno。修复启动方式沿旧feed的原bytes执行原则：可信root从实际RO Git绑定源码读fixture_feed/fixture_source两个原bytes，低权`-I -B -c`注册固定模块名及sys.modules再compile/exec，单argv严格有界，不创建可写源码副本，不更改目录权限或产品/UID/caps。为兼容Windows实际命令长度，原bytes仅作stdlib有界无损传输封装；子进程须核精确原长/SHA及解压结束状态，不把解压bufsize当上限。这不是新的下载/签名信任协议。新的模块加载smoke仍只辅助，真实24项/34段仍待验收。
+
 ## 后续不可丢弃
 
 fixture门通过后再接真实镜像来源负矩阵：CA/SAN/SPKI单因、HTTP/帧/timeout/hint/gap/fork/预算/取消、Apply重复拒绝、真实顺序追代与合法前缀后拒绝、no-op/自然陈旧/恢复/重启冷确认、在途撤销内核屏障及精确清理。完整签名/原bytes、产品状态、审计和Registry预算分别绑定，不把Fetch无写与Apply合法拒绝审计混为一谈。长期soak、全部故障边界、正式authority/发行、企业功能和生产灰度仍在全目标中。
