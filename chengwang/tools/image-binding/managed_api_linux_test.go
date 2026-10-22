@@ -64,6 +64,17 @@ func newManagedAPIFixture(t *testing.T, kind verifier.Kind, intercept func(http.
 	uploadImage(t, f.registry.Client(), f.registry.URL, f.m.material)
 	f.roots = x509.NewCertPool()
 	f.roots.AddCert(f.registry.Certificate())
+	prepareManagedAPI(t, f)
+	return f
+}
+
+// Shared by the loopback fixture and the unmodified Distribution integration.
+// Authentication, audit, state and product HTTP composition are all real.
+func prepareManagedAPI(t *testing.T, f *managedAPIFixture) {
+	t.Helper()
+	if f.tokens == nil {
+		f.tokens = map[string]string{}
+	}
 	base := t.TempDir()
 	if err := os.Chmod(base, 0700); err != nil {
 		t.Fatal(err)
@@ -119,7 +130,6 @@ func newManagedAPIFixture(t *testing.T, kind verifier.Kind, intercept func(http.
 		t.Fatal(err)
 	}
 	f.recompose(t, true)
-	return f
 }
 
 func (f *managedAPIFixture) recompose(t *testing.T, writes bool) {

@@ -150,22 +150,24 @@ done
 for mode in ordinary race; do
   for kind in message-signature dsse; do
     marker="MANAGED_REAL_DISTRIBUTION=PASS kind=$kind replay=rejected reopen=true"
+    product_marker="PRODUCT_API_REAL_DISTRIBUTION=PASS kind=$kind authenticated=true scoped=true consumed=true replay=rejected authorization=BLOCKED"
     # Check the actual per-kind test Output events, not a generic shell echo
     # or a fixture server log. Both ordinary and race must attest separately.
-    /usr/bin/python3 -B - "$run_root/evidence/registry-$mode.json" "$kind" "$marker" <<'PY'
+    /usr/bin/python3 -B - "$run_root/evidence/registry-$mode.json" "$kind" "$marker" "$product_marker" <<'PY'
 import json
 import pathlib
 import sys
-path, kind, marker = sys.argv[1:]
+path, kind, *markers = sys.argv[1:]
 events = [json.loads(line) for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines()]
-matches = [event for event in events
-           if event.get("Package") == "chengwang/image-binding"
-           and event.get("Action") == "output"
-           and event.get("Test") == "TestRegistryCLIBindingLifecycle/" + kind
-           and event.get("Output", "").strip() == marker]
-if len(matches) != 1:
-    raise SystemExit("missing or duplicate per-kind managed Registry lifecycle evidence")
-print("REGISTRY_MANAGED_LIFECYCLE_EVIDENCE=PASS kind=" + kind)
+for marker in markers:
+    matches = [event for event in events
+               if event.get("Package") == "chengwang/image-binding"
+               and event.get("Action") == "output"
+               and event.get("Test") == "TestRegistryCLIBindingLifecycle/" + kind
+               and event.get("Output", "").strip() == marker]
+    if len(matches) != 1:
+        raise SystemExit("missing or duplicate per-kind managed/product API Registry lifecycle evidence")
+print("REGISTRY_MANAGED_AND_PRODUCT_API_LIFECYCLE_EVIDENCE=PASS kind=" + kind)
 PY
   done
 done

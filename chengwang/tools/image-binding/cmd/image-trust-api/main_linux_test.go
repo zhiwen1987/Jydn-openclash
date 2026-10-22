@@ -217,6 +217,49 @@ func TestCandidateStrictIdentityProfile(t *testing.T) {
 	}
 }
 
+func TestCandidateMissingAuditNeverInitializes(t *testing.T) {
+	for _, kind := range []string{"directory", "log", "checkpoint"} {
+		t.Run(kind, func(t *testing.T) {
+			fixture := newCandidateFixture(t, true)
+			var missing string
+			switch kind {
+			case "directory":
+				missing = fixture.config.AuditDir
+				if err := os.Rename(missing, missing+".retained-fixture-backup"); err != nil {
+					t.Fatal(err)
+				}
+			case "log":
+				missing = filepath.Join(fixture.config.AuditDir, "events.jsonl")
+				if err := os.Remove(missing); err != nil {
+					t.Fatal(err)
+				}
+			case "checkpoint":
+				missing = filepath.Join(fixture.config.AuditDir, "checkpoint.json")
+				if err := os.Remove(missing); err != nil {
+					t.Fatal(err)
+				}
+			}
+			listened := false
+			if err := run(context.Background(), fixture.file, func(string, string) (net.Listener, error) {
+				listened = true
+				return nil, errors.New("unexpected listener")
+			}); err != errConfiguration || listened {
+				t.Fatal("missing audit history reached HTTP service")
+			}
+			if _, err := os.Lstat(missing); !os.IsNotExist(err) {
+				t.Fatal("candidate reinitialized missing audit")
+			}
+			store, err := truststate.Open(context.Background(), fixture.config.StorePath, fixture.anchor)
+			if err != nil {
+				t.Fatal("failed startup retained trust writer lock")
+			}
+			if err := store.Close(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestCandidatePrivateFilesRejectUnsafeInputs(t *testing.T) {
 	for _, kind := range []string{"symlink", "hardlink", "mode", "directory_mode", "directory_symlink", "ancestor_write", "relative", "unclean", "missing", "directory", "empty", "oversized"} {
 		t.Run(kind, func(t *testing.T) {

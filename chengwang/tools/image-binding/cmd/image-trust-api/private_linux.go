@@ -57,3 +57,16 @@ func readPrivate(path string, limit int64) ([]byte, error) {
 	}
 	return raw, nil
 }
+
+// The candidate opens an already provisioned audit history. evidence.Open's
+// general-purpose empty-log initialization must not hide accidental deletion.
+func requireExistingAudit(directory string) error {
+	if _, err := readPrivate(filepath.Join(directory, "checkpoint.json"), 8<<10); err != nil {
+		return errConfiguration
+	}
+	var event unix.Stat_t
+	if unix.Lstat(filepath.Join(directory, "events.jsonl"), &event) != nil || event.Mode&unix.S_IFMT != unix.S_IFREG || event.Mode&07777 != 0600 || event.Nlink != 1 || event.Uid != uint32(os.Geteuid()) || event.Gid != uint32(os.Getegid()) {
+		return errConfiguration
+	}
+	return nil
+}

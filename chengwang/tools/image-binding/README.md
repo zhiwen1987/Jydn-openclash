@@ -63,7 +63,7 @@ go build -trimpath -o image-trust-api ./cmd/image-trust-api
 # 只有另行批准后才以 --config /absolute/private/candidate.json 启动。
 ```
 
-配置必须是当前用户私有 0700 目录中的 0600 普通单链接文件，路径绝对规范，literal UTF-8/exact JSON 字段；身份文件也拒重复/大小写/转义别名。配置绑定 `storePath`、独立 `anchorFile`、`identitiesFile`、`auditDir`、`registryCAFile`、tenantId/siteId/environment；可选 Registry token 私有文件和 TLS cert/key 文件。只打开已有 Store，不创建/重置可信账本；`writesEnabled` 缺省 false，非回环必须 TLS。候选命令只开放 health 与上表三个路径，不启动无关版本、发布、设备或操作子系统。没有安装服务、配置生产信任或自动引导工具。
+配置必须是当前用户私有 0700 目录中的 0600 普通单链接文件，路径绝对规范，literal UTF-8/exact JSON 字段；身份文件也拒重复/大小写/转义别名。配置绑定 `storePath`、独立 `anchorFile`、`identitiesFile`、`auditDir`、`registryCAFile`、tenantId/siteId/environment；可选 Registry token 私有文件和 TLS cert/key 文件。只打开已有 Store 与已有审计 log/checkpoint，不创建/重置可信账本，不因审计丢失静默生成空历史；`writesEnabled` 缺省 false，非回环必须 TLS。候选命令只开放 health 与上表三个路径，不启动无关版本、发布、设备或操作子系统。没有安装服务、配置生产信任或自动引导工具。
 
 CI 运行器见 [scripts/README.md](scripts/README.md)。普通测试包含真实本机 TLS 服务，外网被 namespace 禁止；另在唯一临时 internal 网络内运行固定 digest 的真实 Distribution Registry，上传合法惰性 OCI fixture 后进行普通/race 读回。只测试服务器可写，产品函数只读，绝不执行镜像。
 

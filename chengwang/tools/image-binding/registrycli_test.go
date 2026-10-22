@@ -1,4 +1,4 @@
-//go:build registrycli
+//go:build registrycli && linux
 
 package binding_test
 
@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	verifier "chengwang-image-verifier"
 	binding "chengwang/image-binding"
 	"chengwang/image-binding/truststate"
+	"chengwang/internal/imagetrust"
 )
 
 func TestRegistryCLIBindingLifecycle(t *testing.T) {
@@ -93,6 +95,24 @@ func TestRegistryCLIBindingLifecycle(t *testing.T) {
 				t.Fatal("real Distribution grant replay after reopen was accepted")
 			}
 			fmt.Fprintf(os.Stdout, "MANAGED_REAL_DISTRIBUTION=PASS kind=%s replay=rejected reopen=true\n", kind)
+			// A separate signed grant proves the complete product HTTP path,
+			// not just a mock backend or an in-memory Registry adapter.
+			f := &managedAPIFixture{m: newManagedMaterial(t, m), roots: roots}
+			prepareManagedAPI(t, f)
+			code, raw := managedAPIRequest(t, f.api, http.MethodPost, "/api/v1/image-trust/verifications", f.tokens["operator"], f.body(t))
+			var receipt imagetrust.Receipt
+			if code != http.StatusOK || json.Unmarshal(raw, &receipt) != nil || !receipt.Verified || receipt.Authorization != "BLOCKED" || receipt.DeviceActionsExecuted || receipt.ManifestSHA256 != hashed(m.manifest) || receipt.GrantID != f.m.document.Grants[0].ID {
+				t.Fatal("product HTTP did not bind real Distribution")
+			}
+			state, err := f.store.Inspect(ctx)
+			if err != nil || state.LedgerUsed != 1 || state.Consumptions[0].Status != "CONSUMED" || state.Consumptions[0].EvidenceSHA256 != receipt.EvidenceSHA256 {
+				t.Fatal("product HTTP success omitted durable consumption")
+			}
+			code, _ = managedAPIRequest(t, f.api, http.MethodPost, "/api/v1/image-trust/verifications", f.tokens["operator"], f.body(t))
+			if code != http.StatusBadRequest {
+				t.Fatal("product HTTP replay was not rejected by managed binding")
+			}
+			fmt.Fprintf(os.Stdout, "PRODUCT_API_REAL_DISTRIBUTION=PASS kind=%s authenticated=true scoped=true consumed=true replay=rejected authorization=BLOCKED\n", kind)
 			m.approval = []byte(`{"status":"approved"}`)
 			result, err = binding.Bind(ctx, m.trust, m.approval, m.bundle, m.root, roots, "")
 			if err != binding.ErrInvalid || result.Verified() {

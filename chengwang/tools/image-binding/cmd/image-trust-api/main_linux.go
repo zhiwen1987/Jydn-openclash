@@ -141,6 +141,9 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 		return errConfiguration
 	}
 	defer store.Close()
+	if requireExistingAudit(config.AuditDir) != nil {
+		return errConfiguration
+	}
 	audit, err := evidence.Open(config.AuditDir)
 	if err != nil {
 		return errConfiguration
