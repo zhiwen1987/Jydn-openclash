@@ -56,6 +56,64 @@ type d11Graph struct {
 	Config        d11Descriptor   `json:"config"`
 	Layers        []d11Descriptor `json:"layers"`
 }
+
+// These are Docker-save envelope helpers, not Registry OCI descriptors or
+// authenticated provenance. Moby v28.0.4 manifestItem/Descriptor defines these
+// optional fields. This scratch fixture rejects all non-local auxiliary data.
+type d11SavedLayerSource struct {
+	MediaType   string            `json:"mediaType,omitempty"`
+	Size        int64             `json:"size,omitempty"`
+	Digest      string            `json:"digest,omitempty"`
+	URLs        []string          `json:"urls,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Platform    json.RawMessage   `json:"platform,omitempty"`
+}
+type d11SavedImage struct {
+	Config       string
+	RepoTags     []string
+	Layers       []string
+	Parent       string                         `json:",omitempty"`
+	LayerSources map[string]d11SavedLayerSource `json:",omitempty"`
+}
+
+func d11SavedLayerMetadata(saved d11SavedImage, diffIDs []string, layers [][]byte) bool {
+	if saved.Parent != "" || len(layers) == 0 || len(layers) != len(diffIDs) || len(saved.Layers) != len(layers) {
+		return false
+	}
+	seen := map[string]bool{}
+	for i, diffID := range diffIDs {
+		if !regexp.MustCompile(`^sha256:[0-9a-f]{64}$`).MatchString(diffID) || seen[diffID] || len(layers[i]) == 0 || len(layers[i]) > 128<<20 || hashed(layers[i]) != diffID {
+			return false
+		}
+		seen[diffID] = true
+	}
+	// Older Docker-save envelopes have no helper map. Its absence cannot
+	// bypass the real config/diffID/layer checks above or the OCI checks later.
+	if saved.LayerSources == nil {
+		return true
+	}
+	if len(saved.LayerSources) != len(layers) {
+		return false
+	}
+	for i, diffID := range diffIDs {
+		source, found := saved.LayerSources[diffID]
+		if !found || source.MediaType != "application/vnd.oci.image.layer.v1.tar" || source.Digest != diffID || source.Size != int64(len(layers[i])) || len(source.URLs) != 0 || len(source.Annotations) != 0 || len(source.Platform) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// This pure helper is only for the synthetic metadata test. The actual archive
+// uses d11Decode (the same DisallowUnknownFields plus EOF contract) for safe
+// rejection diagnostics, followed by d11SavedLayerMetadata on actual bytes.
+func d11SavedMetadataAccepts(raw []byte, diffIDs []string, layers [][]byte) bool {
+	var saved []d11SavedImage
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(&saved) == nil && decoder.Decode(new(any)) == io.EOF && len(saved) == 1 && d11SavedLayerMetadata(saved[0], diffIDs, layers)
+}
+
 type d11Policy struct {
 	Name                   string `json:"name"`
 	PolicyID               string `json:"policyID"`
@@ -261,11 +319,7 @@ func d11Archive(t *testing.T, root, commit, id string) ([]byte, []byte, [][]byte
 		d11Require(t, e == nil && int64(len(b)) == h.Size)
 		entries[h.Name] = b
 	}
-	var saved []struct {
-		Config   string
-		RepoTags []string
-		Layers   []string
-	}
+	var saved []d11SavedImage
 	d11Decode(t, entries["manifest.json"], &saved)
 	d11Require(t, len(saved) == 1 && len(saved[0].Layers) > 0 && len(saved[0].Layers) <= 128)
 	config := entries[saved[0].Config]
@@ -300,6 +354,7 @@ func d11Archive(t *testing.T, root, commit, id string) ([]byte, []byte, [][]byte
 		layers = append(layers, b)
 		descriptors = append(descriptors, d11Descriptor{"application/vnd.oci.image.layer.v1.tar", hashed(b), int64(len(b))})
 	}
+	d11Require(t, d11SavedLayerMetadata(saved[0], cfg.RootFS.DiffIDs, layers))
 	manifest := encode(t, d11Graph{2, imageType, d11Descriptor{"application/vnd.oci.image.config.v1+json", id, int64(len(config))}, descriptors})
 	return manifest, config, layers, cfg.RootFS.DiffIDs
 }
@@ -830,4 +885,101 @@ func expectedReceipt(t *testing.T, root, kind string) string {
 	r := d11LoadReport(t, root, kind, "exercise-1")
 	d11Require(t, len(r.Cases) == 1 && r.Cases[0].Receipt != nil)
 	return r.Cases[0].Receipt.EvidenceSHA256
+}
+
+// Deliberately independent of TestProductRegistryD11Fixture and its root/env.
+// Synthetic metadata success is never evidence of an actual image/API read.
+func TestProductRegistryD11DockerSaveMetadata(t *testing.T) {
+	layer := []byte("synthetic Docker-save layer metadata test; not a runnable image")
+	diffID := hashed(layer)
+	layers := [][]byte{layer}
+	diffIDs := []string{diffID}
+	base := d11SavedImage{Config: "config.json", RepoTags: []string{}, Layers: []string{"layer.tar"}, LayerSources: map[string]d11SavedLayerSource{diffID: {MediaType: "application/vnd.oci.image.layer.v1.tar", Digest: diffID, Size: int64(len(layer))}}}
+	secondLayer := []byte("second synthetic Docker-save layer; never executed")
+	secondID := hashed(secondLayer)
+	twoLayers := [][]byte{layer, secondLayer}
+	twoIDs := []string{diffID, secondID}
+	twoSources := func(v *d11SavedImage) {
+		v.Layers = []string{"layer.tar", "second.tar"}
+		v.LayerSources[secondID] = d11SavedLayerSource{MediaType: "application/vnd.oci.image.layer.v1.tar", Digest: secondID, Size: int64(len(secondLayer))}
+	}
+	type sample struct {
+		name   string
+		change func(*d11SavedImage)
+		raw    []byte
+		want   bool
+		diffs  []string
+		layers [][]byte
+	}
+	cases := []sample{
+		{name: "legacy-no-helpers", change: func(v *d11SavedImage) { v.LayerSources = nil }, want: true},
+		{name: "matching-local-source", want: true},
+		{name: "nonempty-parent", change: func(v *d11SavedImage) { v.Parent = diffID }},
+		{name: "missing-source", raw: []byte(`[{"Config":"config.json","RepoTags":[],"Layers":["layer.tar"],"LayerSources":{}}]`)},
+		{name: "extra-source", change: func(v *d11SavedImage) { v.LayerSources[hashed([]byte("other"))] = v.LayerSources[diffID] }},
+		{name: "wrong-source-digest", change: func(v *d11SavedImage) {
+			s := v.LayerSources[diffID]
+			s.Digest = hashed([]byte("wrong"))
+			v.LayerSources[diffID] = s
+		}},
+		{name: "wrong-source-size", change: func(v *d11SavedImage) { s := v.LayerSources[diffID]; s.Size++; v.LayerSources[diffID] = s }},
+		{name: "wrong-source-media-type", change: func(v *d11SavedImage) {
+			s := v.LayerSources[diffID]
+			s.MediaType = "application/vnd.oci.image.layer.v1.tar+gzip"
+			v.LayerSources[diffID] = s
+		}},
+		{name: "foreign-url", change: func(v *d11SavedImage) {
+			s := v.LayerSources[diffID]
+			s.URLs = []string{"https://unreachable.invalid/layer"}
+			v.LayerSources[diffID] = s
+		}},
+		{name: "platform", change: func(v *d11SavedImage) {
+			s := v.LayerSources[diffID]
+			s.Platform = json.RawMessage(`{"os":"linux"}`)
+			v.LayerSources[diffID] = s
+		}},
+		{name: "annotation", change: func(v *d11SavedImage) {
+			s := v.LayerSources[diffID]
+			s.Annotations = map[string]string{"untrusted": "value"}
+			v.LayerSources[diffID] = s
+		}},
+		{name: "unknown-outer-field", raw: []byte(`[{"Config":"config.json","RepoTags":[],"Layers":["layer.tar"],"Unknown":true}]`)},
+		{name: "unknown-source-field", raw: []byte(fmt.Sprintf(`[{"Config":"config.json","RepoTags":[],"Layers":["layer.tar"],"LayerSources":{%q:{"mediaType":"application/vnd.oci.image.layer.v1.tar","digest":%q,"size":%d,"Unknown":true}}}]`, diffID, diffID, len(layer)))},
+		{name: "source-key-not-diff-id", change: func(v *d11SavedImage) {
+			s := v.LayerSources[diffID]
+			delete(v.LayerSources, diffID)
+			v.LayerSources[hashed([]byte("wrong-key"))] = s
+		}},
+		{name: "two-layer-ordered", change: twoSources, want: true, diffs: twoIDs, layers: twoLayers},
+		{name: "two-layer-order-swapped", change: twoSources, diffs: twoIDs, layers: [][]byte{secondLayer, layer}},
+		{name: "two-layer-source-missing-one", change: func(v *d11SavedImage) {
+			twoSources(v)
+			delete(v.LayerSources, secondID)
+		}, diffs: twoIDs, layers: twoLayers},
+	}
+	d11Require(t, len(cases) == 17)
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			raw := test.raw
+			if raw == nil {
+				var value d11SavedImage
+				d11Decode(t, encode(t, base), &value)
+				if test.change != nil {
+					test.change(&value)
+				}
+				raw = encode(t, []d11SavedImage{value})
+			}
+			caseDiffs, caseLayers := test.diffs, test.layers
+			if caseDiffs == nil {
+				caseDiffs, caseLayers = diffIDs, layers
+			}
+			if d11SavedMetadataAccepts(raw, caseDiffs, caseLayers) != test.want {
+				t.Fatal("synthetic Docker-save metadata boundary mismatch")
+			}
+		})
+	}
+	if t.Failed() {
+		return
+	}
+	fmt.Println("D11_DOCKER_SAVE_METADATA=PASS cases=17 synthetic=true actual_registry_not_proven=true authorization=BLOCKED production=false")
 }

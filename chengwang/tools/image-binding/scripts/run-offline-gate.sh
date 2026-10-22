@@ -258,6 +258,17 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 # Registry. Its fixture is opt-in and never enters the ordinary 700-test set.
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry -o "$RUN_ROOT/bin/product-registry.test" .
+# Only the Docker-save envelope parser's synthetic metadata cases run here.
+# This does not replace the actual image/Registry API lifecycle or enlarge the
+# ordinary/race 700-test contract. Both the unique marker and actual named PASS
+# are required, so an absent or renamed test cannot silently exit green.
+/usr/bin/timeout --signal=TERM --kill-after=5s 60s "$RUN_ROOT/bin/product-registry.test" \
+  -test.run='^TestProductRegistryD11DockerSaveMetadata$' -test.v -test.timeout=50s \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-registry-metadata-tests.log"
+test "$(/usr/bin/grep -Fxc 'D11_DOCKER_SAVE_METADATA=PASS cases=17 synthetic=true actual_registry_not_proven=true authorization=BLOCKED production=false' \
+  "$RUN_ROOT/evidence/product-registry-metadata-tests.log")" -eq 1
+test "$(/usr/bin/grep -Ec -- '^--- PASS: TestProductRegistryD11DockerSaveMetadata \(' \
+  "$RUN_ROOT/evidence/product-registry-metadata-tests.log")" -eq 1
 # Independently retain the parent OCI verifier scenarios. This transcript is
 # not merged into the child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \

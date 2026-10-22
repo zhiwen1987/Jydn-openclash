@@ -20,6 +20,16 @@ D11仅到Registry正常TLS ready、隔离网络读回。`registry-start` 内联P
 
 原[工件12444147629](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39819925371/artifacts/12444147629)实际101文件；绑定原joblog LF1,772,694B、SHA256 `84b64a74d2c3e61559a05c48439950d1718f0c430bd1f19c009e0d97e8769982`。本轮不能从已删除的私有归档编造失败细节。下一修补仅增加失败断言的直接源码行与严格枚举JSON分类，不暴露原始错误、私有路径、字段内容或签名材料，不改验收阈值；确认具体原因后才修复。
 
+## 第三轮诊断执行记录：已定位，但仍未通过
+
+仅增强安全诊断的 `1c62d8bea45762eab374042fa51bc14585a2b005`，[父39821171661/job119972526638](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39821171661/job/119972526638)成功；[绑定39821171673/job119972527234](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39821171673/job/119972527234)仍失败。[工件12444497792](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39821171673/artifacts/12444497792)的安全诊断明确 `fixtureAssertionLine=200 / fixtureAssertionContextLine=269 / fixtureJSONRejection=UNKNOWN_FIELD`；精确提交第269行为把Docker-save外围 `manifest.json` 解码到仅含Config/RepoTags/Layers的结构。证实该外围格式存在未建模字段，**未归档具体字段名，不能声称实际读取到了LayerSources**。没有archive-validated或D11业务证明；紧急清理仍不算优雅验收。
+
+绑定原joblog LF1,772,352B、SHA256 `be25556d45ba0a9bd777e480b7900af440667e41bc8e07493226a307078ff698`；父LF5,447,271B、SHA256 `417c93daabd63e87e65e0d8c06df4cc760370ce5c5fd726fd1c9d669e658dfd4`，普通/race各2320完整指纹不变。
+
+修补依据为[Moby v28.0.4外围manifestItem定义](https://github.com/moby/moby/blob/v28.0.4/image/tarexport/tarexport.go)：另含可选Parent/LayerSources，后者的[实际导出代码](https://github.com/moby/moby/blob/v28.0.4/image/tarexport/save.go)可为普通层提供descriptor，并非仅外来层。[Descriptor定义](https://github.com/moby/moby/blob/v28.0.4/vendor/github.com/docker/distribution/blobs.go)也须明确建模。只允许本scratch候选的空Parent；可选LayerSources若出现，必须和真实config diffID/层摘要与长度严格交叉核对，不能从辅助URL取网或赋予信任，未知字段仍拒绝。真正Registry OCI manifest、签名、批准和运行权限均不改变；须新增正反测试并重新跑全链，本文不预告成功。
+
+新增独立 `TestProductRegistryD11DockerSaveMetadata` 的17项合成正反例，以具名PASS和唯一固定marker同时防止空跑；包括双层正确顺序、交换层顺序和缺一条source映射，不并入或缩减原700/Registry3/Python33集合。合成数据不是真实镜像或远端读回。正式执行结果须以修补后的Linux任务及后续全链原始工件为准。
+
 ## 必须补上的实际缺口
 
 D10已执行真实产品镜像，但原Registry回归仍使用惰性测试制品。D11必须让同一次构建的真实config/layer字节进入一次性、无外网的Distribution，绑定精确manifest、正常TLS固定来源和真实Sigstore/批准，并由镜像内默认程序执行产品API消费/防重放。不能把旧测试成功或本地imageID直接当成产品镜像来源证明。
