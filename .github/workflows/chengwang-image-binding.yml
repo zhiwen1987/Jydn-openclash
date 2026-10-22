@@ -16,6 +16,7 @@ on:
       - "chengwang/internal/evidence/**"
       - "chengwang/internal/imagetrust/**"
       - "chengwang/internal/serverruntime/**"
+      - "chengwang/deploy/product-candidate/**"
       - "chengwang/cmd/server/**"
       - "chengwang/go.mod"
       - "chengwang/go.sum"
@@ -33,6 +34,7 @@ on:
       - "chengwang/internal/evidence/**"
       - "chengwang/internal/imagetrust/**"
       - "chengwang/internal/serverruntime/**"
+      - "chengwang/deploy/product-candidate/**"
       - "chengwang/cmd/server/**"
       - "chengwang/go.mod"
       - "chengwang/go.sum"
@@ -195,6 +197,13 @@ jobs:
         run: |
           set -euo pipefail
           /usr/bin/bash chengwang/tools/image-binding/scripts/run-registry-fixture.sh \
+            "$RUNNER_TEMP/chengwang-image-binding" "$(command -v go)" "$(go env GOMODCACHE)"
+
+      - name: Build and execute the complete product candidate image without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/bash chengwang/tools/image-binding/scripts/run-product-image-gate.sh \
             "$RUNNER_TEMP/chengwang-image-binding" "$(command -v go)" "$(go env GOMODCACHE)"
 
       - name: Check source remained unchanged

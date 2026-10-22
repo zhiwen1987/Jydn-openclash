@@ -67,6 +67,10 @@ cd "$MODULE_ROOT"
 ) > "$RUN_ROOT/evidence/checkout-before.sha256"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
 /usr/bin/python3 -B scripts/test-check-go-json.py
+/usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_check_product_image.py" \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-image-checker-tests.log"
+/usr/bin/grep -qx 'PRODUCT_IMAGE_CHECKER_TESTS=PASS tests=18 skips=0 simulated_elf=true actual_image_not_proven=true' \
+  "$RUN_ROOT/evidence/product-image-checker-tests.log"
 /usr/bin/python3 -B scripts/test-browser-process-guard.py \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 /usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
@@ -228,6 +232,24 @@ test -f "$RUN_ROOT/web-dist/.vite/manifest.json"
 /usr/bin/timeout --signal=TERM --kill-after=1s 10s "$RUN_ROOT/bin/image-trust-api" --help \
   > "$RUN_ROOT/evidence/candidate-binary-help.txt" 2>&1
 echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_started=false store_opened=false release_signed=false product_image_executed=false'
+# Separate, actually static release-entry binary for the opt-in product image.
+# Keep the previously accepted CGO=1 command and all ordinary/race scenarios.
+# The later packaging gate checks real ELF program/dynamic headers; CGO=0 by
+# itself is not accepted as proof of a runnable scratch image.
+/usr/bin/timeout --signal=TERM --kill-after=10s 300s /usr/bin/env CGO_ENABLED=0 \
+  "$GO_BINARY" build -trimpath -buildvcs=true \
+  -o "$RUN_ROOT/bin/image-trust-api-static" ./cmd/image-trust-api
+/usr/bin/sha256sum -- "$RUN_ROOT/bin/image-trust-api-static" \
+  > "$RUN_ROOT/evidence/candidate-static-binary.sha256"
+"$GO_BINARY" version -m "$RUN_ROOT/bin/image-trust-api-static" \
+  > "$RUN_ROOT/evidence/candidate-static-binary-buildinfo.txt"
+/usr/bin/timeout --signal=TERM --kill-after=1s 10s "$RUN_ROOT/bin/image-trust-api-static" --help \
+  > "$RUN_ROOT/evidence/candidate-static-binary-help.txt" 2>&1
+# This tagged executable only provisions/verifies inert CI-owned material.
+# The image entrypoint remains the non-test binary above. The tagged fixture
+# does not enter, replace or inflate the accepted ordinary 700-test baseline.
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -tags productimage -o "$RUN_ROOT/bin/product-image.test" ./cmd/image-trust-api
 # Independently retain the parent OCI verifier scenarios. This transcript is
 # not merged into the child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \
