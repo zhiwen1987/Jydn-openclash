@@ -358,3 +358,9 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 最终代码 `3e766db7fd3aaa905abab0f439236a7fe91d021d` 的绑定39826356698/job119990563178、父39826356692/job119990563070均completed/success，主代理和独立代理实际重放最终49份关联输入、原700/Registry3/父各2320完整集合。两类真实测试签名/批准绑定本轮真实镜像：正常TLS上传后回拉原字节、config/layer/diffID/8打包文件关联、镜像内API消费/重放/篡改/交叉bundle、同容器重启、有效撤销/回滚拒绝/错误SPKI、健康双库重开全部通过；每类final seq44/journal10/audit20/ledger3，44独立流量快照中2次成功产品验证及18零HTTP窗口。4次产品正常退出0、Registry实际退出0、D11精确3容器及外层D10清理均PASS。五轮失败及其未知值边界保留，未删门换绿。详见[D11实际验收](P0D11-PRODUCT-REGISTRY-ACCEPTANCE.md)。
 
 此阶段只补上D10缺口中的**真实产品镜像隔离Registry读回、测试authority签名/批准和镜像内SDK验证写链**，不等于正式来源或发布。仍 `authorization=BLOCKED / releaseAuthorized=false / deviceActionsExecuted=false`。自动撤销刷新/跨库异常恢复在该镜像内的故障矩阵、正式Registry发行与企业密钥/IdP/审批、独立builder/source证明/SBOM、多架构、生产灰度恢复/长期soak、坏盘自修/WORM/外部见证、完整主App/多内核/DNS/节点业务仍未完成。九项恢复blocker、旧Dockerfile/M2b、设备执行器和生产环境均不变；没有main合并或生产流量变化。
+
+## P0-d12 前置机制已验，产品生命周期仍未完成（2026-10-23）
+
+605f67eb63b2a9c738ce703f9b6f78d7a71179b7的绑定39834169047/job120017946250、父39834169008/job120018134988均completed/success。主代理与独立代理分别下载151文件工件并复算：lease20、feed33、checker13项通过/0skip，8源文件及568+79=647条源码记录逐Git原bytes吻合；成功与已知失败轮的专用树清理均有原始结果。原700/Registry3/父2320、D11原49关联和浏览器40/45/45回归保留。已知d35目录错误分类失败保留，605只修具体错误枚举，不删门。[D12前置验收](P0D12-FIXTURE-PREFLIGHT-ACCEPTANCE.md)。
+
+**状态仅为fixture prerequisites implemented+tested isolated-only，不是D12整阶段完成。** 实际产品尚未接这两个新fixture；自动刷新、镜像在途异常和预置中间态恢复矩阵仍待验，三个productProven字段明确false。无产品故障开关、运行逻辑变更、正式发布、main合并或生产操作；原企业功能、九项blocker和长期运行缺口不解除。
