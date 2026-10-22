@@ -23,7 +23,7 @@ func TestBindSignedRegistryImage(t *testing.T) {
 	for _, kind := range []verifier.Kind{verifier.KindMessageSignature, verifier.KindDSSE} {
 		t.Run(string(kind), func(t *testing.T) {
 			var mutations, reads atomic.Int32
-			service := registry.New(registry.Logger(log.New(io.Discard, "", 0)))
+			service := minimalRegistryWithBlobMediaType(registry.New(registry.Logger(log.New(io.Discard, "", 0))))
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method == http.MethodGet || r.Method == http.MethodHead {
 					reads.Add(1)
@@ -106,9 +106,11 @@ func TestRejectInvalidBeforeRegistryAccess(t *testing.T) {
 
 func TestRejectOtherSignerAndRegistryTamper(t *testing.T) {
 	var tamper atomic.Bool
-	service := registry.New(registry.Logger(log.New(io.Discard, "", 0)))
+	var tamperHits atomic.Int32
+	service := minimalRegistryWithBlobMediaType(registry.New(registry.Logger(log.New(io.Discard, "", 0))))
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if tamper.Load() && r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/blobs/") {
+			tamperHits.Add(1)
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.Header().Set("Content-Length", "1")
 			w.Write([]byte("x"))
@@ -121,15 +123,20 @@ func TestRejectOtherSignerAndRegistryTamper(t *testing.T) {
 	uploadImage(t, server.Client(), server.URL, m)
 	roots := x509.NewCertPool()
 	roots.AddCert(server.Certificate())
+	result, err := binding.Bind(context.Background(), m.trust, m.approval, m.bundle, m.root, roots, "")
+	if err != nil {
+		t.Fatalf("valid image failed before signer/tamper negative tests: %v", err)
+	}
+	assertBinding(t, result, m)
 	other := signedImage(t, server.URL, verifier.KindDSSE, hashed(server.Certificate().RawSubjectPublicKeyInfo))
-	result, err := binding.Bind(context.Background(), m.trust, m.approval, other.bundle, other.root, roots, "")
+	result, err = binding.Bind(context.Background(), m.trust, m.approval, other.bundle, other.root, roots, "")
 	if err != binding.ErrInvalid || result.Verified() {
 		t.Fatal("other signer/root escaped approval")
 	}
 	tamper.Store(true)
 	result, err = binding.Bind(context.Background(), m.trust, m.approval, m.bundle, m.root, roots, "")
-	if err != binding.ErrInvalid || !reflect.DeepEqual(result, binding.Result{}) {
-		t.Fatal("Registry blob tamper escaped signature/digest graph")
+	if err != binding.ErrInvalid || !reflect.DeepEqual(result, binding.Result{}) || tamperHits.Load() == 0 {
+		t.Fatal("Registry blob tamper escaped signature/digest graph or rejection never exercised tampering")
 	}
 }
 
@@ -137,7 +144,7 @@ func TestRejectSameSignerDifferentManifest(t *testing.T) {
 	for _, kind := range []verifier.Kind{verifier.KindMessageSignature, verifier.KindDSSE} {
 		t.Run(string(kind), func(t *testing.T) {
 			var requests atomic.Int32
-			service := registry.New(registry.Logger(log.New(io.Discard, "", 0)))
+			service := minimalRegistryWithBlobMediaType(registry.New(registry.Logger(log.New(io.Discard, "", 0))))
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requests.Add(1)
 				service.ServeHTTP(w, r)
@@ -180,6 +187,45 @@ func TestRejectSameSignerDifferentManifest(t *testing.T) {
 			result, err = binding.Bind(context.Background(), m.trust, m.approval, bundleB, rootRaw, roots, "")
 			if err != binding.ErrInvalid || !reflect.DeepEqual(result, binding.Result{}) || requests.Load() != before {
 				t.Fatal("different image with same signer/root escaped approval or triggered Registry access")
+			}
+		})
+	}
+}
+
+func TestUnmodifiedMinimalRegistryIsRejected(t *testing.T) {
+	for _, kind := range []verifier.Kind{verifier.KindMessageSignature, verifier.KindDSSE} {
+		t.Run(string(kind), func(t *testing.T) {
+			var blobHeads atomic.Int32
+			// Intentionally NO media-type adapter: exercise the original SDK's
+			// missing metadata, rather than silently accepting it in production.
+			service := registry.New(registry.Logger(log.New(io.Discard, "", 0)))
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodHead && strings.Contains(r.URL.Path, "/blobs/") {
+					blobHeads.Add(1)
+				}
+				service.ServeHTTP(w, r)
+			}))
+			defer server.Close()
+			m := signedImage(t, server.URL, kind, hashed(server.Certificate().RawSubjectPublicKeyInfo))
+			uploadImage(t, server.Client(), server.URL, m)
+			req, err := http.NewRequest(http.MethodHead, server.URL+"/v2/chengwang/fixture/blobs/"+hashed(m.config), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response, err := server.Client().Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response.Body.Close()
+			if response.StatusCode != http.StatusOK || len(response.Header.Values("Content-Type")) != 0 || response.ContentLength != int64(len(m.config)) {
+				t.Fatal("original minimal Registry did not exhibit the claimed missing blob media type")
+			}
+			before := blobHeads.Load()
+			roots := x509.NewCertPool()
+			roots.AddCert(server.Certificate())
+			result, err := binding.Bind(context.Background(), m.trust, m.approval, m.bundle, m.root, roots, "")
+			if err != binding.ErrInvalid || !reflect.DeepEqual(result, binding.Result{}) || blobHeads.Load() <= before {
+				t.Fatal("unmodified incomplete Registry metadata was accepted or rejection did not reach blob readback")
 			}
 		})
 	}

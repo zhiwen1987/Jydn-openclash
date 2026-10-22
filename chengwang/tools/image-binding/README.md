@@ -21,6 +21,7 @@
 - 批准 envelope 最多 64 KiB；bundle/root 使用兄弟验签模块预算。Registry manifest/config 各最多 1 MiB、1 至 128 层、每层最多 128 MiB、总层字节最多 512 MiB；仍应在调用进程外限制内存/CPU。
 - Registry 单次读回最长 2 分钟，并受调用 context 与批准到期的更早截止时间限制。签名 SDK 不能保证中途被 context 打断；只保证取消后不返回成功，硬时限需要外部进程终止。
 - `Docker-Content-Digest` 可缺省；若存在必须唯一且等于期望摘要，不能代替对实际字节计算 SHA256。
+- 当前要求 manifest/blob 响应都带唯一、支持的 Content-Type；部分精简 Registry 服务会因此被拒绝。普通测试夹具可显式提供该元数据，但这种适配不算原服务兼容性证据；真实 Distribution 验收不使用适配。
 - 输入切片、公钥和证书池不得在调用期间被其他 goroutine 修改。TLS 叶公钥轮换需要新的独立批准；不自动相信线上读回的新公钥。
 - 库返回固定错误/零结果，不返回原始 config、响应体、token、认证 challenge 或私钥。
 

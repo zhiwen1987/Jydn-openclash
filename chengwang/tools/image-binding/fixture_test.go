@@ -41,6 +41,31 @@ func encode(t *testing.T, v any) []byte {
 	return b
 }
 
+// minimalRegistryWithBlobMediaType is a TEST-ONLY adapter for the deliberately
+// small go-containerregistry HTTP fixture. That handler omits blob Content-Type;
+// explicitly supply the strict reader's required octet-stream metadata only for
+// immutable fixture blob GET/HEAD. This is NOT proof of unmodified SDK Registry
+// compatibility. The genuine Distribution Registry integration uses no adapter,
+// and no product response parser or production Registry behavior is relaxed.
+func minimalRegistryWithBlobMediaType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const prefix = "/v2/chengwang/fixture/blobs/sha256:"
+		if (r.Method == http.MethodGet || r.Method == http.MethodHead) && strings.HasPrefix(r.URL.Path, prefix) {
+			digest := strings.TrimPrefix(r.URL.Path, prefix)
+			valid := len(digest) == 64
+			for _, c := range digest {
+				if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+					valid = false
+				}
+			}
+			if valid {
+				w.Header().Set("Content-Type", "application/octet-stream")
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // All bytes and approval keys are generated only for isolated tests. Signing
 // PKI and verification are real; none of these identities approve a release.
 func signedImage(t *testing.T, endpoint string, kind verifier.Kind, registrySPKI string) material {
