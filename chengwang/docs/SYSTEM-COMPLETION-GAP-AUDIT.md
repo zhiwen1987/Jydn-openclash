@@ -382,3 +382,11 @@ lease20/feed34/checker13、新profile5/verifier27均通过/0skip；旧700/Regist
 三轮失败分别留档：8b未取得helper根因、a415定位foreign bind失败、e3a完成六格但root0600计数文件交接失败；不补写旧报告或删断言。后续仅修测试屏障的跨namespace clone和受限计数读取，不修改产品运行逻辑。[三阶段实际验收及未完成项](P0D12-INTERRUPTION-ACCEPTANCE.md)、[失败记录](P0D12-INTERRUPTION-FAILURES.md)。
 
 **状态仅为 actual three-stage verify interruption subgate implemented+tested isolated-only。** update/verify全部六阶段与损坏拒绝矩阵、自动刷新崩溃/撤销竞态组合、坏盘/断电、长期soak、正式身份/发行/恢复授权、生产灰度及原完整企业功能仍未闭合。仍authorization=BLOCKED、production=false、completeCrashMatrixProven=false，九项blocker不解除；未合并main或操作生产。
+
+## P0-d12 预置状态启动矩阵已隔离验收，不冒充完整crash矩阵（2026-10-23）
+
+上节为89dfade历史边界。本轮0633c4b6e94cc2c95071bfd195e052a3c173e5b9，绑定39860200458/job120108634673、父39860200452/job120108635009均success；主代理及两独立子代理分别下载1275文件工件并重算906本门报告/909输入关联一致。三lane/六健康/八拒绝/两签名的36健康与48拒绝格，每格独立store/grant/签名authority/container；72正常退出0、96自然拒绝1、672快照/168启动零请求窗口、24真实SDK seed及85所属容器精确清理通过。负类logical record摘要/journal/审计与坏checkpoint原字节不变，健康二启幂等，later-invalid在前项修复前整体拒绝。
+
+实际Linux新8/32测试、旧700/race700/Registry3/race3/父2320每轮、浏览器40/45/45及native14/原前置门均保持；旧D11 49、D12 65、crash151关联重放通过。676源记录/591unique逐Git原bytes及before-after一致。[验收与证据](P0D12-STATE-MATRIX-ACCEPTANCE.md)、[固定矩阵协议](P0D12-STATE-MATRIX-PROTOCOL.md)。
+
+**状态仅为 preseeded startup matrix implemented+tested isolated-only。** 此门不新增84次真实crash；早期持久语义重复不称独有状态。自动刷新实际崩溃/在途撤销竞态、来源负矩阵/追代组合、update等全实际中断边界、坏盘/断电/全盘回滚、长期soak、正式authority/发行/恢复授权和完整企业功能仍未闭合。仍authorization=BLOCKED、production=false、completeCrashMatrixProven=false；九项blocker不解除，未SSH、合并main或部署生产。

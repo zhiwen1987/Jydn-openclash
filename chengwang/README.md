@@ -22,6 +22,7 @@
 - P0-d11 已让同轮真实镜像完成隔离Registry正常TLS回拉、两类测试签名/批准、镜像内真实API消费、撤销、防回放与同容器重启，最终49份证据关联及精确清理独立重放通过。**测试authority不是正式发行或上线授权**；自动刷新/跨库故障矩阵、企业密钥与正式发布仍待完成。见[D11实际验收与边界](docs/P0D11-PRODUCT-REGISTRY-ACCEPTANCE.md)。
 - P0-d12 已进一步在真实产品镜像验收自动刷新/撤销、来源陈旧/恢复及同容器正常重启，两签名64文件/65摘要关联独立复算通过；前置门lease20、feed34、checker13及旧回归保留。**仅此子门已验，不等于完整崩溃/跨库异常恢复矩阵完成，更不是生产上线**。见[D12镜像子门验收及剩余项](docs/P0D12-PRODUCT-LIFECYCLE-ACCEPTANCE.md)、[此前fixture前置验收](docs/P0D12-FIXTURE-PREFLIGHT-ACCEPTANCE.md)和[分层合同](docs/P0D12-LIFECYCLE-CONTRACT.md)。
 - P0-d12 的三个真实verify中断边界×两类签名已由89dfade独立隔离验收：6次SIGKILL、12次正常停止、跨库补审计及二次重启幂等，147文件/151关联、60计数快照和精确清理独立复算通过。**仍不是全部六阶段/损坏矩阵、正式恢复授权或生产上线**。见[三阶段中断验收](docs/P0D12-INTERRUPTION-ACCEPTANCE.md)及[三轮失败与修正记录](docs/P0D12-INTERRUPTION-FAILURES.md)。
+- P0-d12 的预置状态启动矩阵由0633c4b独立隔离验收：三lane×六健康/八拒绝×两签名，共36健康/48拒绝，906报告/909关联、672快照/168启动零请求窗口和85容器清理通过。**它不是84次真实crash，也不代表自动刷新竞态、坏盘/断电或生产上线完成**。见[预置状态矩阵验收](docs/P0D12-STATE-MATRIX-ACCEPTANCE.md)。
 
 > 源码实现不等于生产能力已经开放。`10.88.0.254` 已部署并验收默认锁定的 Shadow 操作 API 与“操作中心”，但没有配置身份文件，`CHENGWANG_OPERATION_WRITES_ENABLED=false`，也不存在设备执行器；因此线上只证明失败关闭、只读读回和界面边界，未形成生产写入闭环。见 [10.88.0.254 部署记录](docs/DEPLOYMENT-10.88.0.254.md)。
 

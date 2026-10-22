@@ -1,4 +1,6 @@
-# D12 预置状态启动恢复/拒绝矩阵协议（开发中，未验收）
+# D12 预置状态启动恢复/拒绝矩阵协议（有限隔离门已验收）
+
+0633c4b 的实际84格镜像证据及剩余范围见[验收记录](P0D12-STATE-MATRIX-ACCEPTANCE.md)。本协议仍不代表完整D12或生产权限。
 
 本门补齐真实产品镜像 constructor 的预置状态矩阵，不能代替89dfade的实际在途SIGKILL证明。先不动生产、不SSH、不合main/正式发行；原D10/D11/D12自动刷新与三阶段crash门不删减。root唯一集成/提交/推送，各owner只改指定文件。
 
@@ -44,7 +46,7 @@ driver只通过真实签名材料、truststate/evidence公共事务构造样本�
 - Go新driver `product_state_d12_linux_test.go`，tags `linux && productregistry && productstate`，入口 `TestProductStateD12Fixture`。env `CHENGWANG_STATE_ROOT/LANE/SCENARIO/KIND/COMMIT/IMAGE_ID/ARCHIVE/ACTION`。固定actor `d12-state-admin`、canonical scope为d12-tenant/d12-site/image-trust/storeID/candidate；managementObject=`d12-state-management`。
 - actions：每格 `prepare, seed, reopen-first, reopen-second`；健康另 `first-read, second-read`。prepare初始真实材料/空库；seed显式事务/注入完成并关闭全部库；read仅正常TLS实际产品Status+History；reopen真实两库逻辑读回/权威audit原字节，无product.New。负bad-checkpoint不可为采样而修复audit。
 - 报告schema `chengwang.product-state-action/v1`，共有sourceCommit/localImageID/kind/lane/scenario/caseKind、boundary=`ADVISORY_PRODUCT_STATE_FIXTURE`、authority=`EPHEMERAL_TEST_ONLY`、authorization=BLOCKED/production=false/deviceActionsExecuted=false。material、完整inspection/journal、实际audit events/bindings、auditLog/checkpoint bytes+SHA、canonical/configured scope及可选真实SDK投影由driver/checker owner对齐后冻结，不能纯布尔证明。
-- 独立checker逐实际事件重算Go序列化/hashchain/checkpoint、actor/scope/request/原批准/目录/消费绑定、seed→恢复→二启序列及精确负类差异。offline 的 `trustRecordSHA256` 为只读实际 bbolt logical record 原 bytes 的裸64位SHA256，不导出record内容、token hash或原history；负seed→两reopen以及健康首次恢复→第二次启动严格相同，健康seed→首次合法修复允许变化。不要求RW重开后的整个bbolt文件物理bytes恒定。坏checkpoint的权威原bytes则必须恒定。`caseKind` 严格为 `healthy / rejected`。
+- 独立checker逐实际事件重算Go序列化/hashchain/checkpoint、actor/scope/request/原批准/目录/消费绑定、seed→恢复→二启序列及精确负类差异。offline 的 `trustRecordSHA256` 为只读实际 bbolt logical record 原 bytes 的裸64位SHA256，不导出record内容、token hash或原始catalogue history；负seed→两reopen以及健康首次恢复→第二次启动严格相同，健康seed→首次合法修复允许变化。不要求RW重开后的整个bbolt文件物理bytes恒定。坏checkpoint的权威原bytes则必须恒定。`caseKind` 严格为 `healthy / rejected`。
 - 每格Registry窗口固定 `prepare / seed / first / second` 各before/after，共672个快照。prepare上传/读回预算独立，seed仅consumed领域已执行的场景允许真实SDK预算；168个first/second窗口全部零请求，所有窗口间隔不得隐藏请求。负类不运行业务写probe，避免污染恢复零窗口；原D11/crash重放拒绝API门保持。
 - 健康每次运行必须真实默认PID1/executable+inspect安全profile、正常TLS读回、正常停止0、离线严格快照；负格两次真实自然退出1/无OOM/PID0、固定安全CLI错误enum、启动/终止时间、同container身份、输入逻辑状态与audit/checkpoint不变。负格快退可能无/proc PID1样本，不冒充已捕获；用实际imageID/defaultentrypoint/封装二进制身份和自然退出/log关联，和健康直接PID1样本区分。
 - 负格保留实际有界正常TCP/TLS/API探测次数、固定transport分类/HTTP哨兵、时间范围及最终namespace无API LISTEN。有限探测不称绝对捕获所有瞬时监听；结合被验同源binary的constructor早于Listen源码关系。错误TLS身份不能当服务未就绪的通过依据。

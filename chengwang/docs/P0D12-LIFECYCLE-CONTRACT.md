@@ -80,3 +80,7 @@ source使用独立CA和SAN `feed.fixture.invalid`。源私钥、计划、body、
 正常停机后实际打开两库，导出journal、checkpoint校验及每个操作的真实prepared/result安全事件，独立重算actor、trace/target/data、哈希链与ACK。自动目录更新actor必须为 `image-trust-refresh`，不能用业务管理员替代。此子门仅正常停机/重启，不宣称已经验证计划内崩溃、六边界预置状态、损坏介质、来源负矩阵、完整追代或在途撤销竞态。
 
 新门有480秒总截止时间；保留原D10/D11与前置门。新运行清理报告固定 `product-lifecycle-runtime-cleanup.json`，不覆盖前置门的 `product-lifecycle-cleanup.json`；新检查器测试日志也不覆盖前置13项日志。只有具名全矩阵、独立流量、真实进程/两库与精确清理共同通过后才能归档本子门结果。
+
+## 6. 后续有限门的事实边界
+
+89dfade的三阶段verify实际中断门与0633c4b的预置状态矩阵均已独立隔离验收，分别见[实际中断记录](P0D12-INTERRUPTION-ACCEPTANCE.md)和[预置状态记录](P0D12-STATE-MATRIX-ACCEPTANCE.md)。后者覆盖三lane/六健康/八拒绝/两签名的84格实际镜像启动与二启，但不是84次真实crash，也不替代前者的Linux内核屏障/pidfd SIGKILL证据。两门及原自动刷新正常重启门同时保留；完整自动刷新竞态、实际update等中断边界、来源负矩阵、物理故障和生产恢复授权仍未闭合。
