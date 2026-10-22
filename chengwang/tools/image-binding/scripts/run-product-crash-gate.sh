@@ -997,10 +997,20 @@ for stage in prepared reserved consumed; do
     fi
   done
 done
-/usr/bin/python3 -B - "$private/snapshots.private.json" "$source_commit" "$image_id" "$registry_id" "$registry_image" \
+phase=safe-observations-export
+/usr/bin/sudo --non-interactive /usr/bin/python3 -B - "$private/snapshots.private.json" "$source_commit" "$image_id" "$registry_id" "$registry_image" \
   > "$evidence/product-crash-observations.json" <<'PY'
-import json,pathlib,sys
-path,commit,image,container,pin=sys.argv[1:]; values=json.loads(pathlib.Path(path).read_bytes()); assert len(values)==60
+import json,os,pathlib,stat,sys
+path,commit,image,container,pin=sys.argv[1:]; path=pathlib.Path(path)
+assert path.name=='snapshots.private.json' and path.parent.name=='product-crash-private'
+fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+with os.fdopen(fd,'rb') as handle:
+    before=os.fstat(handle.fileno())
+    assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_uid==before.st_gid==0 and stat.S_IMODE(before.st_mode)==0o600 and 0<before.st_size<=2<<20
+    raw=handle.read((2<<20)+1); after=os.fstat(handle.fileno()); named=path.lstat()
+    identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_nlink,value.st_uid,value.st_gid,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
+    assert len(raw)==before.st_size and identity(before)==identity(after)==identity(named)
+values=json.loads(raw); assert type(values) is list and len(values)==60
 print(json.dumps({'schema':'chengwang.product-crash-observations/v1','sourceCommit':commit,'localImageID':image,'registryContainerID':container,'pinnedRegistryImage':pin,'snapshots':values,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
 PY
 phase=graceful-registry-stop

@@ -27,3 +27,14 @@
 源码解释与实测分开：[Linux v6.8 namespace.c](https://github.com/torvalds/linux/blob/v6.8/fs/namespace.c) 的 `__do_loopback` 检查源mount属于当前namespace；传统 bind 和 `open_detached_copy` 都调用它。因此 host 侧直接对 Registry 的 foreign tmpfs FD 做传统bind，或仅改成 host侧 `open_tree(CLONE)`，均不能作为正确的跨namespace设计。此为源码分析，不冒充本轮实际取得的 mount errno。
 
 下一候选只修测试屏障：保存原私有namespace，暂进入已验证 Registry mount namespace，对持有的精确文件FD克隆 detached mount，再无条件恢复原namespace，在原私有namespace将克隆设为只读并连接到闭集alias。不得修改Registry原mount、复制blob、给helper增权或放宽期限；须新增真正foreign namespace的Linux测试，并重新验收实际镜像，候选设计本身不算通过。
+
+## e3a8a51：安全计数导出权限交接失败（2026-10-23）
+
+- 代码 `e3a8a517e5c548bc3445c2a078867b93d2c916e1`；[绑定运行39852580963 / job120082376127](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39852580963/job/120082376127) completed/failure。工件12458316709，ZIP4,469,917B，SHA256 `81ba12a9e3ea62a639d2530ebaa0f2f1c8981b0d63eafaaef21e27cc3edb4c1a`；原job API日志1,832,067B，SHA256 `55b5628ded2903701d0dd8be159c4ea2c332a2a5688802826863b7356bfd1bf3`。
+- 新跨namespace原生回归在本轮真实Linux通过，native14（保留旧13）、profile6、checker27完整具名且零跳过；主代理独立重算native具名集合，其SHA256 `ed707c5088ec1d768ccd7d64aa234132d95655687db615eae25944b041920dba`，测试原文SHA256 `0cd5cdc741754e47bda574aee61272f28f8944c796b072cdb484faca6627f973`，源文件SHA256 `6422344da3bd74ea1b4df95428b91f809e20383a4c1f29848ae406ff3f3fa2d4`。
+- 六格62份动作与6份graph已导出，动作链原函数可独立重算通过；各格最终seq10/journal2/audit4，6次计划SIGKILL137、12次产品正常退出0有安全投影。独立代理另外复核8条真实内核租约关系及runtime。**这仍只是本轮已有证据的部分重算，不是完整中断子门验收。**
+- 失败位于`safe-evidence-export`：control PermissionError/errno13；`product-crash-observations.json`为0B，成功cleanup/outcome均缺失。控制器以root写`0600 snapshots.private.json`，最终安全计数导出却由非root Python读取，导致权限交接失败。68份动作/graph成功导出以及0B observations共同定位到这个明确调用；不是据此推定产品动作失败。
+- 因缺少完整60计数快照的安全投影，不能验收恢复零Registry访问、完整drain关联、精确清理或151条整体关系；完整checker正确拒绝。不补写observations或cleanup，不在旧工件上伪造通过。旧D12/D11门独立重放仍通过。
+- [父运行39852580901 / job120082373641](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39852580901/job/120082373641) success，普通/race各2320项具名Test*完整一致、无跳过/失败；原日志5,447,566B，SHA256 `cd07d551ecb80bd13042844fe93fb126626b3f497a868571a1fdcfcfc167713e`。
+
+下一修正仅对固定私有计数文件使用已有root orchestrator做受限读取，增加NOFOLLOW、owner/mode/nlink/size及读前后FD/路径一致检查，再输出固定安全schema；不放宽0600权限、不改产品与测试期限，仍须新Linux/镜像完整验收。
