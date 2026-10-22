@@ -117,6 +117,7 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("/api/v1/image-trust", s.imageTrustStatus)
 	mux.HandleFunc("/api/v1/image-trust/catalogue", s.imageTrustCatalogue)
 	mux.HandleFunc("/api/v1/image-trust/verifications", s.imageTrustVerification)
+	mux.HandleFunc("/api/v1/image-trust/history", s.imageTrustHistory)
 	return s.securityHeaders(s.requestID(mux))
 }
 

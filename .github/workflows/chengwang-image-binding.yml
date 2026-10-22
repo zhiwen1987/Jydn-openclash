@@ -8,6 +8,7 @@ on:
       - ".github/workflows/chengwang-image-binding.yml"
       - "chengwang/tools/image-binding/**"
       - "chengwang/tools/image-verifier/**"
+      - "chengwang/web/**"
       - "chengwang/internal/restoreimage/**"
       - "chengwang/internal/api/**"
       - "chengwang/internal/authn/**"
@@ -22,6 +23,7 @@ on:
       - ".github/workflows/chengwang-image-binding.yml"
       - "chengwang/tools/image-binding/**"
       - "chengwang/tools/image-verifier/**"
+      - "chengwang/web/**"
       - "chengwang/internal/restoreimage/**"
       - "chengwang/internal/api/**"
       - "chengwang/internal/authn/**"
@@ -128,6 +130,20 @@ jobs:
               "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
           )
           /usr/bin/git diff --exit-code -- go.mod go.sum
+          # Acquire existing locked npm packages only. Repository scripts and
+          # the frontend build execute later, after external networking and
+          # source/node_modules writes are disabled by the offline gate.
+          node_binary="$(command -v node)"
+          chrome_binary="$(command -v google-chrome)"
+          test -x "$node_binary"
+          test -x "$chrome_binary"
+          "$node_binary" -e 'if(Number(process.versions.node.split(".")[0])<22||typeof WebSocket!=="function")process.exit(1);console.log(JSON.stringify({node:process.version,builtinWebSocket:true}))' \
+            > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-node-toolchain.json"
+          "$chrome_binary" --version > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-chrome-version.txt"
+          (
+            cd "$GITHUB_WORKSPACE/chengwang/web"
+            npm ci --ignore-scripts --no-audit --no-fund
+          )
           /usr/bin/docker pull --platform linux/amd64 "$REGISTRY_FIXTURE_IMAGE"
           test "$(/usr/bin/docker image inspect --format '{{.Os}}/{{.Architecture}}' "$REGISTRY_FIXTURE_IMAGE")" = linux/amd64
           echo 'REGISTRY_FIXTURE_IMAGE_BOUNDARY=PINNED_TEST_HARNESS_NOT_PRODUCT_IMAGE'

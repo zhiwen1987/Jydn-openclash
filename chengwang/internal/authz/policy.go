@@ -43,7 +43,7 @@ func Evaluate(request Request, now time.Time) Decision {
 	}
 
 	// These are invariant safety gates. Emergency elevation cannot bypass them.
-	if request.BreakGlass != nil && (request.Action == ActionReadImageTrust || request.Action == ActionUpdateImageTrust || request.Action == ActionVerifyImageTrust) {
+	if request.BreakGlass != nil && (request.Action == ActionReadImageTrust || request.Action == ActionUpdateImageTrust || request.Action == ActionVerifyImageTrust || request.Action == ActionHistoryImageTrust) {
 		return deny(ReasonDenyImageTrustBreakGlassForbidden)
 	}
 	if request.Action == ActionDisableAudit {
@@ -99,7 +99,7 @@ func knownAction(action Action) bool {
 	switch action {
 	case ActionReadResource, ActionReadEvidence, ActionCreateDraft,
 		ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation,
-		ActionDisableAudit, ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust:
+		ActionDisableAudit, ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust, ActionHistoryImageTrust:
 		return true
 	default:
 		return false
@@ -168,14 +168,14 @@ func roleAllows(roles []Role, action Action, risk Risk) (allowed bool, riskDenie
 				return true, false
 			}
 		case RoleAuditor:
-			if action == ActionReadEvidence || action == ActionReadImageTrust {
+			if action == ActionReadEvidence || action == ActionReadImageTrust || action == ActionHistoryImageTrust {
 				return true, false
 			}
 		case RoleAdmin:
 			switch action {
 			case ActionReadResource, ActionReadEvidence, ActionCreateDraft,
 				ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation,
-				ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust:
+				ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust, ActionHistoryImageTrust:
 				return true, false
 			}
 		}

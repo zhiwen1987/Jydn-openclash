@@ -48,12 +48,14 @@ PRODUCT_BASELINE_PACKAGES = MANAGED_BASELINE_PACKAGES | frozenset((PRODUCT, COMM
 PRODUCT_BASELINE_COUNT = 490
 PRODUCT_BASELINE_SHA256 = "3ada339b07afc868c856ed258a5e2efbff496a259562967ae04fda1366ed55b2"
 NEW_PRODUCT_PREFIXES = {
-    ROOT: "TestManagedAPID7",
-    CATALOG: "TestProductCatalogueD7",
-    STATE: "TestProductTrustStateD7",
-    PRODUCT: "TestProductD7",
-    COMMAND: "TestCandidateD7",
+    ROOT: ("TestManagedAPID7", "TestManagedAPID8"),
+    CATALOG: ("TestProductCatalogueD7", "TestProductCatalogueD8"),
+    STATE: ("TestProductTrustStateD7", "TestProductTrustStateD8"),
+    PRODUCT: ("TestProductD7", "TestProductD8"),
+    COMMAND: ("TestCandidateD7", "TestCandidateD8"),
 }
+NEW_D8_PREFIXES = {ROOT: "TestManagedAPID8", CATALOG: "TestProductCatalogueD8",
+                   STATE: "TestProductTrustStateD8", PRODUCT: "TestProductD8", COMMAND: "TestCandidateD8"}
 # Full ordinary/race package sets actually observed in accepted P0-d7 run
 # 39768330157 / commit cd2828e59d5ef18bb5aca78b19e5ef70c9016fa6.
 # Encoding remains sorted names joined by LF, without a terminal LF.
@@ -185,6 +187,16 @@ REQUIRED_ORDINARY = {
         "TestProductD7MaintenanceRefreshesHealthWithoutStateWrites",
         "TestProductD7RecoveryRealProcessExitAndIdempotence", "TestProductD7RecoveryProcessHelper",
         "TestProductD7RecoveryRejectsLostOrConflictingEvidence",
+        "TestProductD8HistoryRealAuditPaginationAndRedaction",
+        "TestProductD8HistoryRBACWriteDisabledAndInvalidBounds",
+        "TestProductD8HistoryUnknownAuditTimeAndSnapshotConflict",
+        "TestProductD8HistoryConcurrentWriterDoesNotPoison",
+        "TestProductD8HistoryBadAuditBindingFailsWithoutRepair",
+        "TestProductD8StatusObservationUsesActualAuditClockWithoutWrites",
+    } | {"TestProductD8HistoryRBACWriteDisabledAndInvalidBounds/" + role for role in (
+        "viewer", "operator", "approver", "auditor", "admin")
+    } | {"TestProductD8HistoryBadAuditBindingFailsWithoutRepair/" + case for case in (
+        "missing-acked-audit", "corrupt-checkpoint")
     } | {"TestProductD7RefreshStaleOrChangedStateCannotConsume/" + case for case in (
         "stale", "clock-backward", "manual-update", "restart")
     } | {"TestProductD7RecoveryRealProcessExitAndIdempotence/" + kind + "/" + stage
@@ -218,6 +230,15 @@ REQUIRED_ORDINARY = {
         "TestCandidateD7RefreshCancellationJoinsBeforeClose",
         "TestCandidateD7StartupReconcilesDurableUpdateWithoutReexecution",
         "TestCandidateD7MaintenanceStopsOnCorruptAuditWithoutRepair",
+        "TestCandidateD8WebManifestLoadsOnlyReachableImmutableResources",
+        "TestCandidateD8WebLoaderRejectsUnsafeBuilds",
+        "TestCandidateD8StaticRoutesUseRealCandidateAndHistory", "TestCandidateD8LiveUIFixture",
+    } | {"TestCandidateD8WebLoaderRejectsUnsafeBuilds/" + case for case in (
+        "relative", "root", "directory-symlink", "assets-symlink", "manifest-symlink", "file-symlink",
+        "hardlink", "directory-mode", "file-mode", "executable", "directory-asset", "unsupported-extension",
+        "traversal", "missing-asset", "missing-entry", "unknown-field", "case-alias", "escaped-alias",
+        "deep-graph", "too-many-assets", "oversized-asset", "oversized-html", "total-budget", "external-html",
+        "missing-manifest")
     } | {"TestCandidateD7RefreshConfigurationFailsClosed/" + case for case in (
         "default-off", "explicit-default-durations", "disabled-with-url", "write-locked", "missing-url",
         "missing-ip", "missing-spki", "missing-ca", "relative-ca", "bad-ca", "negative-interval",
@@ -353,7 +374,8 @@ def check_product_baseline(tests):
 
 def check_complete_packages(tests):
     for package, (count, expected) in COMPLETE_PACKAGE_FINGERPRINTS.items():
-        names = sorted(name for actual, name in tests if actual == package)
+        names = sorted(name for actual, name in tests if actual == package and
+                       not name.startswith(NEW_D8_PREFIXES.get(package, "\x00")))
         digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
         if len(names) != count or digest != expected:
             raise ValueError(f"accepted complete P0-d7 package changed: {package} count={len(names)} sha256={digest}")

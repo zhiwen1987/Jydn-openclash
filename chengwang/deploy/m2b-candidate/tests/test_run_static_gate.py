@@ -72,6 +72,8 @@ class GoJSONFingerprintTests(unittest.TestCase):
                 mock.patch.object(run_static_gate, "ALLOWED_GO_PACKAGE_SKIPS", frozenset()),
                 mock.patch.object(run_static_gate, "P0D6_GO_TEST_COUNT", len(fingerprint_names)),
                 mock.patch.object(run_static_gate, "P0D6_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
+                mock.patch.object(run_static_gate, "P0D7_GO_TEST_COUNT", len(fingerprint_names)),
+                mock.patch.object(run_static_gate, "P0D7_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
                 contextlib.redirect_stdout(output),
             ):
                 result = run_static_gate.validate_go_json([transcript])

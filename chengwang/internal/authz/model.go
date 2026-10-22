@@ -24,16 +24,17 @@ const (
 type Action string
 
 const (
-	ActionReadResource     Action = "resource.read"
-	ActionReadEvidence     Action = "evidence.read"
-	ActionCreateDraft      Action = "draft.create"
-	ActionCreateOperation  Action = "operation.create"
-	ActionExecuteOperation Action = "operation.execute"
-	ActionApproveOperation Action = "operation.approve"
-	ActionDisableAudit     Action = "audit.disable"
-	ActionReadImageTrust   Action = "image_trust.read"
-	ActionUpdateImageTrust Action = "image_trust.update"
-	ActionVerifyImageTrust Action = "image_trust.verify"
+	ActionReadResource      Action = "resource.read"
+	ActionReadEvidence      Action = "evidence.read"
+	ActionCreateDraft       Action = "draft.create"
+	ActionCreateOperation   Action = "operation.create"
+	ActionExecuteOperation  Action = "operation.execute"
+	ActionApproveOperation  Action = "operation.approve"
+	ActionDisableAudit      Action = "audit.disable"
+	ActionReadImageTrust    Action = "image_trust.read"
+	ActionUpdateImageTrust  Action = "image_trust.update"
+	ActionVerifyImageTrust  Action = "image_trust.verify"
+	ActionHistoryImageTrust Action = "image_trust.history"
 )
 
 // Risk is the immutable risk classification of a draft or operation.

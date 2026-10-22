@@ -16,6 +16,7 @@ const (
 	MaxVerifyBodyBytes = 3 << 20
 	StatusBoundary     = "ADVISORY_TRUST_POLICY_STATE"
 	VerifiedBoundary   = "ADVISORY_MANAGED_REGISTRY_SIGNATURE_BOUND"
+	HistoryBoundary    = "ADVISORY_TRUST_OPERATION_HISTORY"
 )
 
 type Code string
@@ -77,6 +78,45 @@ type Status struct {
 	RefreshLastSuccessUnix int64          `json:"refreshLastSuccessUnix"`
 	RefreshUntilUnix       int64          `json:"refreshUntilUnix"`
 	RecoveryCompleted      int            `json:"recoveryCompleted"`
+	ObservedAtUnix         int64          `json:"observedAtUnix"`
+	AuditVerifiedAtUnix    int64          `json:"auditVerifiedAtUnix"`
+}
+
+type HistoryRequest struct {
+	Limit    int
+	Offset   int
+	Sequence uint64
+}
+
+type HistoryEntry struct {
+	OperationID       string `json:"operationId"`
+	ActorID           string `json:"actorId"`
+	Kind              string `json:"kind"`
+	State             string `json:"state"`
+	Outcome           string `json:"outcome"`
+	Acknowledged      bool   `json:"acknowledged"`
+	PolicyID          string `json:"policyId"`
+	GrantID           string `json:"grantId"`
+	Generation        uint64 `json:"generation"`
+	CatalogueSHA256   string `json:"catalogueSHA256"`
+	PreparedAuditHash string `json:"preparedAuditHash"`
+	ResultAuditHash   string `json:"resultAuditHash"`
+	PreparedAtUnix    int64  `json:"preparedAtUnix"`
+	ResultAtUnix      int64  `json:"resultAtUnix"`
+}
+
+// History is a detached read projection. Audit timestamps of zero mean unknown,
+// not an inferred operation time. Sequence fences pagination against changes.
+type History struct {
+	Boundary              string         `json:"boundary"`
+	Authorization         string         `json:"authorization"`
+	DeviceActionsExecuted bool           `json:"deviceActionsExecuted"`
+	ObservedAtUnix        int64          `json:"observedAtUnix"`
+	Sequence              uint64         `json:"sequence"`
+	Total                 int            `json:"total"`
+	Offset                int            `json:"offset"`
+	Limit                 int            `json:"limit"`
+	Entries               []HistoryEntry `json:"entries"`
 }
 
 // VerifyRequest does not accept a principal, scope, URL, Registry roots/token,
@@ -110,4 +150,10 @@ type Backend interface {
 	Status(context.Context, authz.Principal) (Status, error)
 	Update(context.Context, authz.Principal, []byte) (Status, error)
 	Verify(context.Context, authz.Principal, VerifyRequest) (Receipt, error)
+}
+
+// HistoryBackend is optional so existing product backends cannot accidentally
+// expose journal records merely because they implement the mutation interface.
+type HistoryBackend interface {
+	History(context.Context, authz.Principal, HistoryRequest) (History, error)
 }

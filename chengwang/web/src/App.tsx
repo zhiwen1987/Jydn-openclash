@@ -12,11 +12,12 @@ import { MihomoReadback } from './MihomoReadback'
 import { SystemReadiness } from './SystemReadiness'
 import { OperationCenter } from './OperationCenter'
 import { ObservationStatus } from './ObservationStatus'
+import ImageTrustConsole from './ImageTrustConsole'
 
 const nav = [
   { group: '流量控制', items: [['运行总览', Home], ['配置方案', SlidersHorizontal], ['代理节点', Database], ['代理接口', Cable], ['策略路由', Route], ['DNS', Globe2], ['连接与流量', Activity]] },
   { group: '资源管理', items: [['订阅与提供者', CloudCog], ['内核与协议', Gauge], ['设备读回', FileDiff], ['透明代理', GitBranch], ['自动化', Wrench]] },
-  { group: '系统管理', items: [['操作中心', ClipboardList], ['系统闭环', ShieldCheck], ['日志与诊断', MonitorDot], ['备份与恢复', History], ['系统设置', Settings]] },
+  { group: '系统管理', items: [['操作中心', ClipboardList], ['可信策略', KeyRound], ['系统闭环', ShieldCheck], ['日志与诊断', MonitorDot], ['备份与恢复', History], ['系统设置', Settings]] },
 ] as const
 
 const demoSnapshot: Snapshot = {
@@ -70,7 +71,7 @@ function App() {
         <div className="mode-note"><ShieldCheck size={18}/><div><strong>安全运行</strong><span>{notice}</span></div></div>
       </aside>
       <main className="main-content">
-        {page === '运行总览' ? <Overview snapshot={snapshot} /> : page === '代理节点' ? <ObservationStatus /> : page === '代理接口' ? <ProxyInterfaces snapshot={snapshot} /> : page === '策略路由' ? <Policies snapshot={snapshot} /> : page === '内核与协议' ? <Kernels /> : page === '设备读回' ? <MihomoReadback snapshot={snapshot} /> : page === '操作中心' ? <OperationCenter /> : page === '系统闭环' ? <SystemReadiness /> : <EmptyPage page={page} />}
+        {page === '运行总览' ? <Overview snapshot={snapshot} /> : page === '代理节点' ? <ObservationStatus /> : page === '代理接口' ? <ProxyInterfaces snapshot={snapshot} /> : page === '策略路由' ? <Policies snapshot={snapshot} /> : page === '内核与协议' ? <Kernels /> : page === '设备读回' ? <MihomoReadback snapshot={snapshot} /> : page === '操作中心' ? <OperationCenter /> : page === '可信策略' ? <ImageTrustConsole /> : page === '系统闭环' ? <SystemReadiness /> : <EmptyPage page={page} />}
       </main>
     </div>
   )

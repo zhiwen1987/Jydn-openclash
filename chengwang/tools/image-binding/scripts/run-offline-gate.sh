@@ -29,7 +29,7 @@ test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
 test -z "$(/usr/sbin/ip -o route show default)"
 test -z "$(/usr/sbin/ip -6 -o route show default)"
 source_root=$(/usr/bin/git -C "$MODULE_ROOT" rev-parse --show-toplevel)
-for mount_path in "$source_root" "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification"; do
+for mount_path in "$source_root" "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification" "$source_root/chengwang/web/node_modules"; do
   /usr/bin/findmnt -n -T "$mount_path" -o OPTIONS | /usr/bin/grep -qE '(^|,)ro(,|$)'
 done
 /usr/bin/python3 -B - <<'PY'
@@ -66,6 +66,10 @@ cd "$MODULE_ROOT"
     | /usr/bin/xargs -0 /usr/bin/sha256sum --
 ) > "$RUN_ROOT/evidence/checkout-before.sha256"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
+/usr/bin/python3 -B scripts/test-browser-process-guard.py \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
+/usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
+  "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 (
   cd "$RUN_ROOT/remote-verification"
   test "$("$GO_BINARY" env GOWORK)" = off
@@ -80,6 +84,55 @@ cd "$MODULE_ROOT"
 )
 test "$("$GO_BINARY" env GOWORK)" = off
 echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
+# Existing locked packages were downloaded with --ignore-scripts. All
+# repository frontend code, native optional dependencies, test workers and
+# compilers execute only here: no external network, no capabilities, and
+# read-only source/node_modules. Generated output remains in the private run.
+test -x "$NODE_BINARY"
+test -x "$CHROME_BINARY"
+"$NODE_BINARY" -e 'if(Number(process.versions.node.split(".")[0])<22||typeof WebSocket!=="function")process.exit(1)'
+"$CHROME_BINARY" --version
+web_root="$source_root/chengwang/web"
+(
+  cd "$web_root"
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/typescript/bin/tsc \
+    -p tsconfig.app.json --noEmit --incremental --tsBuildInfoFile "$RUN_ROOT/app.tsbuildinfo"
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/typescript/bin/tsc \
+    -p tsconfig.node.json --noEmit --incremental --tsBuildInfoFile "$RUN_ROOT/node.tsbuildinfo"
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/vitest/vitest.mjs run --configLoader runner \
+    --reporter=default --reporter=json --outputFile "$RUN_ROOT/evidence/frontend-vitest.json" \
+    2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/frontend-vitest.log"
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/eslint/bin/eslint.js . \
+    2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/frontend-eslint.log"
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/vite/bin/vite.js build --configLoader runner \
+    --outDir "$RUN_ROOT/web-dist" --emptyOutDir \
+    2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/frontend-build.log"
+)
+/usr/bin/python3 -B - "$RUN_ROOT/evidence/frontend-vitest.json" <<'PY'
+import json
+import pathlib
+import sys
+report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests", 0) < 20 or report.get("numPassedTests") != report.get("numTotalTests"):
+    raise SystemExit("frontend unit transcript failed, skipped or incomplete")
+required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts"}
+results = report.get("testResults", [])
+if {pathlib.Path(result["name"]).name for result in results} != required:
+    raise SystemExit("frontend required test file set changed")
+if any(result.get("status") != "passed" or not result.get("assertionResults") or any(case.get("status") != "passed" for case in result["assertionResults"]) for result in results):
+    raise SystemExit("frontend test file has missing or non-passing cases")
+print("D8_FRONTEND_UNIT_GATE=PASS files=5 tests=" + str(report["numPassedTests"]) + " skips=0 mocks=unit_tests_only")
+PY
+test -f "$RUN_ROOT/web-dist/trust.html"
+test -f "$RUN_ROOT/web-dist/.vite/manifest.json"
+(
+  cd "$RUN_ROOT/web-dist"
+  /usr/bin/find . -type f -print0 | /usr/bin/sort -z | /usr/bin/xargs -0 /usr/bin/sha256sum
+) > "$RUN_ROOT/evidence/web-dist.sha256"
+# This generated bundle is permission-read-only and loaded once into memory;
+# source/module caches retain their independent read-only mount protection.
+/usr/bin/find "$RUN_ROOT/web-dist" -type f -exec /usr/bin/chmod 0444 {} +
+/usr/bin/find "$RUN_ROOT/web-dist" -type d -exec /usr/bin/chmod 0555 {} +
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 ./... \
   | /usr/bin/tee "$RUN_ROOT/evidence/go-test.json"
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -race -timeout=4m -count=1 ./... \
@@ -105,6 +158,9 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 # Their only later network access is inside the private Registry's own netns.
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c -tags registrycli -o "$RUN_ROOT/bin/registrycli.test" .
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c -race -tags registrycli -o "$RUN_ROOT/bin/registrycli-race.test" .
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -o "$RUN_ROOT/bin/candidate-ui.test" ./cmd/image-trust-api
+/usr/bin/bash "$MODULE_ROOT/scripts/run-browser-gate.sh"
 /usr/bin/python3 -B scripts/module-verification.py check \
   "$RUN_ROOT" "$GOMODCACHE" "$RUN_ROOT/evidence/remote-modules-offline.json"
 /usr/bin/find . -type f -print0 | /usr/bin/sort -z | /usr/bin/xargs -0 /usr/bin/sha256sum > "$RUN_ROOT/evidence/source-after.sha256"

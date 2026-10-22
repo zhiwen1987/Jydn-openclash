@@ -105,7 +105,15 @@ P0D6_GO_TEST_COUNT = 2252
 P0D6_GO_TEST_SHA256 = "2456a212437c0d916d86c0f4c8e53224e47e8e577e027490786313d71d2e153f"
 NEW_P0D7_GO_TEST_PREFIXES = {
     "chengwang/internal/evidence": "TestImageTrustD7",
+    "chengwang/internal/api": "TestImageTrustHistoryD8",
+    "chengwang/internal/authz": "TestImageTrustHistoryD8",
+    "chengwang/internal/imagetrust": "TestImageTrustD8",
 }
+NEW_P0D8_GO_TEST_PREFIXES = {package: prefix for package, prefix in NEW_P0D7_GO_TEST_PREFIXES.items()
+                            if package != "chengwang/internal/evidence"}
+# Actual P0-d7 main run 39769625246 / d4f413e808dc03c30e5aca15ca4a5d79aab531ec.
+P0D7_GO_TEST_COUNT = 2257
+P0D7_GO_TEST_SHA256 = "7a45962e28c5ab719bf968abbbd8a5b357b07a006218b4d496b3b9766524e4f0"
 
 REQUIRED_GO_TEST_FINGERPRINTS = {
     # Actual P0-d7 ordinary/race run 39767895689 (also 39768330222),
@@ -175,6 +183,10 @@ REQUIRED_GO_TEST_NAMES = {
     ),
     "chengwang/internal/api": frozenset(
         {
+            "TestImageTrustHistoryD8OptionalBackendAndRoleMatrix",
+            "TestImageTrustHistoryD8CanonicalQueryAndNoBodyReads",
+            "TestImageTrustHistoryD8AuthenticationScopeAndTransportPrecedeQuery",
+            "TestImageTrustHistoryD8SnapshotConflictDoesNotClaimMutation",
             "TestImageTrustHTTPRoleMatrix",
             "TestImageTrustHTTPPreflightDoesNotReadOrCallBackend",
             "TestImageTrustHTTPWritesLockedAndMethodsProtected",
@@ -186,6 +198,7 @@ REQUIRED_GO_TEST_NAMES = {
     ),
     "chengwang/internal/authz": frozenset(
         {
+            "TestImageTrustHistoryD8RoleScopeAndBreakGlass",
             "TestImageTrustRoleMatrix",
             "TestImageTrustBreakGlassAlwaysDenied",
             "TestImageTrustScopeAndUnknownIdentityDenied",
@@ -193,6 +206,7 @@ REQUIRED_GO_TEST_NAMES = {
     ),
     "chengwang/internal/imagetrust": frozenset(
         {
+            "TestImageTrustD8HistoryProjectionHasNoRawAuthority",
             "TestContractErrorHasOnlySafeOutcomeClassification",
             "TestContractIsAdvisoryAndContainsNoRequestAuthority",
         }
@@ -839,6 +853,14 @@ def _validate_p0d6_go_baseline(passed_tests: dict[str, set[str]]) -> None:
         raise RuntimeError(f"accepted P0-d6 Go test baseline changed: count={len(pairs)} sha256={digest}")
 
 
+def _validate_p0d7_go_baseline(passed_tests: dict[str, set[str]]) -> None:
+    pairs = sorted((package, name) for package, names in passed_tests.items() for name in names
+                   if not name.startswith(NEW_P0D8_GO_TEST_PREFIXES.get(package, "\x00")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in pairs).encode("utf-8")).hexdigest()
+    if len(pairs) != P0D7_GO_TEST_COUNT or digest != P0D7_GO_TEST_SHA256:
+        raise RuntimeError(f"accepted P0-d7 Go test baseline changed: count={len(pairs)} sha256={digest}")
+
+
 def validate_go_json(paths: list[pathlib.Path]) -> int:
     total_run_events = 0
     total_packages = set()
@@ -906,7 +928,8 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
                     f"Go package {package} has no terminal package pass event in {source}"
                 )
         for package, expected in REQUIRED_GO_TEST_FINGERPRINTS.items():
-            names = passed_tests[package]
+            names = {name for name in passed_tests[package]
+                     if not name.startswith(NEW_P0D8_GO_TEST_PREFIXES.get(package, "\x00"))}
             actual_count = len(names)
             actual_digest = _test_name_fingerprint(names)
             if actual_count != expected["count"] or actual_digest != expected["sha256"]:
@@ -931,6 +954,7 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
                 f"{SCHEMA_VALIDATOR_PACKAGE}::{SCHEMA_VALIDATOR_TEST}"
             )
         _validate_p0d6_go_baseline(passed_tests)
+        _validate_p0d7_go_baseline(passed_tests)
         total_run_events += sum(run_events.values())
     print(SCHEMA_METASCHEMA_PASS)
     print(

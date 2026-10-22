@@ -156,6 +156,13 @@ func (s *Service) status(ctx context.Context) (imagetrust.Status, error) {
 		status.RefreshUntilUnix = 0
 	}
 	now := time.Now()
+	// Observation and audit verification are separate real clocks. Reading
+	// status does not re-verify or refresh the audit log, nor its freshness.
+	status.ObservedAtUnix = now.UTC().Unix()
+	if !auditState.VerifiedAt.IsZero() {
+		status.AuditVerifiedAtUnix = auditState.VerifiedAt.UTC().Unix()
+	}
+	status.Healthy = validAuditStatus(auditState, now)
 	status.RefreshFresh = status.RefreshRequired && s.refreshGeneration == state.Catalogue.Generation && s.refreshHash == state.Catalogue.SHA256 && !s.refreshAt.IsZero() && !s.refreshAt.After(now) && now.UnixNano() >= s.refreshAt.UnixNano() && now.Before(s.refreshUntil) && now.UnixNano() < s.refreshUntil.UnixNano() && state.CatalogueValid
 	status.RecoveryCompleted = s.recovered
 	s.mu.RUnlock()

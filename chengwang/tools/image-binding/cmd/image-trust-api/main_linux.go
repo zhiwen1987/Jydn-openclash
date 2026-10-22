@@ -62,6 +62,7 @@ type configuration struct {
 	RefreshIntervalSeconds int64  `json:"refreshIntervalSeconds"`
 	RefreshMaxAgeSeconds   int64  `json:"refreshMaxAgeSeconds"`
 	RefreshTimeoutSeconds  int64  `json:"refreshTimeoutSeconds"`
+	WebDir                 string `json:"webDir"`
 }
 
 func main() {
@@ -153,6 +154,10 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 	if err != nil {
 		return errConfiguration
 	}
+	web, err := loadWebBundle(config.WebDir)
+	if err != nil {
+		return errConfiguration
+	}
 	refreshMaxAge := time.Duration(0)
 	if refreshClient != nil {
 		refreshMaxAge = refreshClient.MaxAge()
@@ -180,10 +185,14 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 	// Reuse the product's actual routes without exposing unrelated optional
 	// subsystems (versions, operations, publishing or device actions).
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		candidateSecurityHeaders(w)
 		switch r.URL.Path {
-		case "/api/v1/health", "/api/v1/image-trust", "/api/v1/image-trust/catalogue", "/api/v1/image-trust/verifications":
+		case "/api/v1/health", "/api/v1/image-trust", "/api/v1/image-trust/catalogue", "/api/v1/image-trust/verifications", "/api/v1/image-trust/history":
 			productAPI.ServeHTTP(w, r)
 		default:
+			if web != nil && web.serve(w, r) {
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Cache-Control", "no-store")
 			w.WriteHeader(http.StatusNotFound)
@@ -440,6 +449,16 @@ func exactFieldNames(supplied any, typ reflect.Type) bool {
 			return false
 		}
 		for _, nested := range values {
+			if !exactFieldNames(nested, typ.Elem()) {
+				return false
+			}
+		}
+	case reflect.Map:
+		object, ok := supplied.(map[string]any)
+		if !ok || typ.Key().Kind() != reflect.String {
+			return false
+		}
+		for _, nested := range object {
 			if !exactFieldNames(nested, typ.Elem()) {
 				return false
 			}

@@ -13,6 +13,8 @@ module_root=$(/usr/bin/realpath -e -- "$script_root/..")
 source_root=$(/usr/bin/realpath -e -- "$(/usr/bin/git -C "$module_root" rev-parse --show-toplevel)")
 runner_uid=$(/usr/bin/id -u)
 runner_gid=$(/usr/bin/id -g)
+node_binary=$(/usr/bin/realpath -e -- "$(command -v node)")
+chrome_binary=$(/usr/bin/realpath -e -- "$(command -v google-chrome)")
 test "$runner_uid" != 0
 test "$("$go_binary" env GOVERSION)" = go1.25.8
 case "$run_root/" in "$source_root/"*) echo 'run directory must be outside source' >&2; exit 2;; esac
@@ -24,6 +26,8 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
   /usr/bin/mount --make-rprivate /
   /usr/bin/mount --bind "$9" "$9"
   /usr/bin/mount -o remount,bind,ro "$9"
+  /usr/bin/mount --bind "$9/chengwang/web/node_modules" "$9/chengwang/web/node_modules"
+  /usr/bin/mount -o remount,bind,ro "$9/chengwang/web/node_modules"
   /usr/bin/mount --bind "$5" "$5"
   /usr/bin/mount -o remount,bind,ro "$5"
   /usr/bin/mount --bind "$4/remote-verification" "$4/remote-verification"
@@ -36,10 +40,11 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
       HOME="$4/home" TMPDIR="$4/tmp" GOTMPDIR="$4/go-tmp" GOCACHE="$4/build-cache" \
       GOMODCACHE="$5" GOWORK=off GOTOOLCHAIN=local GOFLAGS=-mod=readonly \
       GOPROXY=off GOSUMDB=off CGO_ENABLED=1 GOMEMLIMIT=2GiB \
-      PATH="$(/usr/bin/dirname -- "$6"):/usr/bin:/bin" \
+      PATH="$(/usr/bin/dirname -- "$6"):$(/usr/bin/dirname -- "${10}"):/usr/bin:/bin" \
       LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
       MODULE_ROOT="$3" RUN_ROOT="$4" GO_BINARY="$6" \
+      NODE_BINARY="${10}" CHROME_BINARY="${11}" CHENGWANG_VITE_CACHE_DIR="$4/vite-cache" \
       PARENT_NETNS="$7" PARENT_MOUNTNS="$8" \
       /usr/bin/bash --noprofile --norc "$3/scripts/run-offline-gate.sh"
-' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" \
+' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" "$node_binary" "$chrome_binary" \
   2>&1 | /usr/bin/tee "$run_root/evidence/offline-gate.log"
