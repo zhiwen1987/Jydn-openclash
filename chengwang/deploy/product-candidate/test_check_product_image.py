@@ -277,6 +277,23 @@ class InspectTests(unittest.TestCase):
         self.assertTrue(self.check(image, container, status="exited")["cleanExit"])
         container["HostConfig"]["NetworkMode"] = "container:" + "e" * 64
         self.check(image, container, status="exited", network="container:" + "e" * 64)
+        # Opt-in registry fixtures must not broaden the original CLI namespace.
+        image, container = synthetic_inspect()
+        registry_private = "/tmp/chengwang-product-registry-" + "d" * 32 + "/dsse"
+        args = ["--config", registry_private + "/trust-config.json", "--product-config", registry_private + "/product-config.json"]
+        container["Config"]["Cmd"], container["Args"] = args[:], args[:]
+        for mount in container["Mounts"]:
+            for field in ("Source", "Destination"):
+                mount[field] = mount[field].replace(PRIVATE, registry_private)
+        with self.assertRaises(checker.CheckError):
+            self.check(image, container, private=registry_private, state=registry_private + "/trust")
+        self.check(image, container, private=registry_private, state=registry_private + "/trust", fixture_kind="product-registry")
+        for options in [dict(fixture_kind="arbitrary"), dict(fixture_kind="product-registry"),
+                        dict(fixture_kind="product-registry", private=registry_private + "/.."),
+                        dict(fixture_kind="product-registry", private=registry_private.replace("/dsse", "/trusted")),
+                        dict(fixture_kind="product-registry", private=registry_private.replace("d" * 32, "D" * 32))]:
+            with self.subTest(options=options), self.assertRaises(checker.CheckError):
+                self.check(**options)
 
     def test_runtime_authority_and_resource_mutations_rejected(self):
         for key, value in [("ReadonlyRootfs", False), ("Privileged", True), ("NetworkMode", "host"), ("CapDrop", []), ("CapAdd", ["NET_ADMIN"]), ("SecurityOpt", ["seccomp=unconfined"]), ("Memory", 0), ("MemorySwap", -1), ("NanoCpus", 0), ("PidsLimit", -1), ("Ulimits", []), ("AutoRemove", True), ("Init", True), ("Devices", [{"PathOnHost": "/dev/kmsg"}]), ("Tmpfs", {"/tmp": "rw"}), ("PortBindings", {"8080/tcp": []}), ("PidMode", "host"), ("Dns", ["8.8.8.8"]), ("IpcMode", "host"), ("IpcMode", "container:" + CONTAINER_ID), ("CgroupnsMode", "host"), ("UsernsMode", "host"), ("Runtime", "unreviewed-custom-runtime")]:

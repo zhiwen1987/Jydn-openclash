@@ -71,6 +71,10 @@ cd "$MODULE_ROOT"
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-image-checker-tests.log"
 /usr/bin/grep -qx 'PRODUCT_IMAGE_CHECKER_TESTS=PASS tests=18 skips=0 simulated_elf=true actual_image_not_proven=true' \
   "$RUN_ROOT/evidence/product-image-checker-tests.log"
+/usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_check_product_registry.py" \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-registry-checker-tests.log"
+/usr/bin/grep -qx 'PRODUCT_REGISTRY_CHECK_TESTS=PASS tests=33 passed=33 skipped=0 synthetic_only=true' \
+  "$RUN_ROOT/evidence/product-registry-checker-tests.log"
 /usr/bin/python3 -B scripts/test-browser-process-guard.py \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 /usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
@@ -250,6 +254,10 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 # does not enter, replace or inflate the accepted ordinary 700-test baseline.
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productimage -o "$RUN_ROOT/bin/product-image.test" ./cmd/image-trust-api
+# D11 drives the same actual image via the product API and a private TLS
+# Registry. Its fixture is opt-in and never enters the ordinary 700-test set.
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -tags productregistry -o "$RUN_ROOT/bin/product-registry.test" .
 # Independently retain the parent OCI verifier scenarios. This transcript is
 # not merged into the child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \

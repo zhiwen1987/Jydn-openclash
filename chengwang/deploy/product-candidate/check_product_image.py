@@ -361,7 +361,8 @@ def one_inspect(raw: bytes) -> dict:
 
 
 def inspect_projection(image: dict, container: dict, *, image_id: str, source: str,
-                       private: str, state: str, network: str, status: str) -> dict:
+                       private: str, state: str, network: str, status: str,
+                       fixture_kind: str = "product-image") -> dict:
     require(bool(re.fullmatch(r"sha256:[0-9a-f]{64}", image_id)) and bool(COMMIT.fullmatch(source)), "image identity rejected")
     require(image.get("Id") == image_id and container.get("Image") == image_id, "actual image identity mismatch")
     require(image.get("Os") == "linux" and image.get("Architecture") == "amd64", "image platform rejected")
@@ -377,7 +378,14 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
         env = config.get("Env")
         require(env in (None, [], ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]), "unexpected environment rejected")
     require(ic.get("Cmd") in (None, []), "image must not bake configuration arguments")
-    require(isinstance(private, str) and private.startswith("/tmp/chengwang-product-image-") and pathlib.PurePosixPath(private).as_posix() == private and all(x not in {"", ".", ".."} for x in private.split("/")[1:]), "private fixture path rejected")
+    # The original CLI stays D10-only. The separate D11 checker opts in to its
+    # own closed namespace while reusing every image/runtime security check.
+    # No caller-supplied arbitrary prefix, path rewrite or broad /tmp allowance.
+    require(fixture_kind in {"product-image", "product-registry"}, "fixture kind rejected")
+    if fixture_kind == "product-registry":
+        require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-registry-[0-9a-f]{32}/(?:message-signature|dsse)", private)), "private registry fixture path rejected")
+    else:
+        require(isinstance(private, str) and private.startswith("/tmp/chengwang-product-image-") and pathlib.PurePosixPath(private).as_posix() == private and all(x not in {"", ".", ".."} for x in private.split("/")[1:]), "private fixture path rejected")
     require(state == private + "/trust", "state mount binding rejected")
     args = ["--config", private + "/trust-config.json", "--product-config", private + "/product-config.json"]
     require(cc.get("Cmd") == args and container.get("Path") == ENTRYPOINT[0] and container.get("Args") == args, "container default entrypoint arguments rejected")

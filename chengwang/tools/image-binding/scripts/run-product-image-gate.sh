@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Actual default product-image entrypoint, local Docker only. Never publishes,
-# never binds a host binary over /app, never uses production data or networks.
+# Actual default product-image entrypoint, local Docker only. Never publishes to
+# external/formal Registries; D11 seeds only its isolated disposable fixture.
+# Never binds a host binary over /app or uses production data or networks.
 set -euo pipefail
 umask 077
 if (( $# != 3 )); then
@@ -760,5 +761,8 @@ import json
 import sys
 print(json.dumps({"schema": "chengwang.product-image-gate/v1", "outcome": "PASS", "authorization": "BLOCKED", "production": False, "sourceCommit": sys.argv[1], "localImageID": sys.argv[2], "registryManifestDigestVerified": False, "imagePublished": False, "productImageExecuted": True, "defaultEntrypoint": True, "gracefulStops": 5, "stateReopenedAfterStops": True, "sameImageRestartReadback": True, "negativeStartupCases": 4, "browserChecks": 45, "browserHTTPSNormalVerification": True, "serverNegativeHTTPCountObserved": False}, sort_keys=True))
 PY
+phase=isolated-product-registry
+/usr/bin/bash "$script_root/run-product-registry-gate.sh" "$run_root" "$go_binary" "$module_cache" \
+  "$image_id" "$private/product-image.private.tar"
 acceptance_completed=true
 echo 'D10_PRODUCT_IMAGE_GATE=PASS actual_default_entrypoint=true actual_pid1_binary_hash=true graceful_stops=5 restart_readback=true fail_closed_startups=4 product_image_executed=true image_published=false authorization=BLOCKED production=false'
