@@ -121,10 +121,20 @@ P0D7_GO_TEST_SHA256 = "7a45962e28c5ab719bf968abbbd8a5b357b07a006218b4d496b3b9766
 P0D8_GO_TEST_COUNT = 2311
 P0D8_GO_TEST_SHA256 = "58b9ebb71b6261184580b9b2ed55b893fd7a4172c7326ba1f74d38e6b6281da1"
 # Only this new parent package/prefix may extend the already observed D8 set.
-# Do not infer or precompute an accepted D9 full-set fingerprint from source;
-# it will be pinned only after actual ordinary/race CI evidence exists.
+# The old baselines exclude only this reviewed extension. The complete D9
+# baseline below includes every pair, with no prefix exclusion.
 NEW_P0D9_GO_TEST_PREFIXES = {
     "chengwang/internal/serverruntime": "TestServerRuntimeD9",
+}
+# Actual ordinary/race raw evidence from successful parent run 39794461907,
+# commit 9be382cf56b72102a7d50b06177856ef2f8e7193, independently parsed.
+P0D9_GO_TEST_COUNT = 2320
+P0D9_GO_TEST_SHA256 = "fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8"
+P0D9_GO_TEST_FINGERPRINTS = {
+    "chengwang/internal/serverruntime": {
+        "count": 9,
+        "sha256": "9689d928515f0702b68256af5919a33a1ffe6a8ae4dcee391445a15f8dc97104",
+    },
 }
 CURRENT_GO_TEST_FINGERPRINTS = {
     "chengwang/internal/api": {"count": 223, "sha256": "257e1672078cb90fc3253b41eb66fdeb09e50ddd9a744a8626fb26a98ba5baa9"},
@@ -905,6 +915,17 @@ def _validate_p0d8_go_baseline(passed_tests: dict[str, set[str]]) -> None:
             raise RuntimeError(f"complete P0-d8 Go package fingerprint mismatch: {package}")
 
 
+def _validate_p0d9_go_baseline(passed_tests: dict[str, set[str]]) -> None:
+    pairs = sorted((package, name) for package, names in passed_tests.items() for name in names)
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in pairs).encode("utf-8")).hexdigest()
+    if len(pairs) != P0D9_GO_TEST_COUNT or digest != P0D9_GO_TEST_SHA256:
+        raise RuntimeError(f"accepted complete P0-d9 Go test set changed: count={len(pairs)} sha256={digest}")
+    for package, expected in P0D9_GO_TEST_FINGERPRINTS.items():
+        names = passed_tests.get(package, set())
+        if len(names) != expected["count"] or _test_name_fingerprint(names) != expected["sha256"]:
+            raise RuntimeError(f"complete P0-d9 Go package fingerprint mismatch: {package}")
+
+
 def validate_go_json(paths: list[pathlib.Path]) -> int:
     total_run_events = 0
     total_packages = set()
@@ -1000,6 +1021,7 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
         _validate_p0d6_go_baseline(passed_tests)
         _validate_p0d7_go_baseline(passed_tests)
         _validate_p0d8_go_baseline(passed_tests)
+        _validate_p0d9_go_baseline(passed_tests)
         total_run_events += sum(run_events.values())
     print(SCHEMA_METASCHEMA_PASS)
     print(

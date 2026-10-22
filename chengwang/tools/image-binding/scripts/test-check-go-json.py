@@ -19,6 +19,20 @@ spec.loader.exec_module(gate)
 
 class D9BaselineScopeTests(unittest.TestCase):
     old = frozenset(((gate.ROOT, "TestRootOld"), (gate.COMMAND, "TestCandidateOld"), (gate.PRODUCT, "TestProductOld")))
+    extension = frozenset(((gate.COMMAND, "TestCandidateD9Known"),))
+
+    def validate_full_d9(self, pairs):
+        accepted = self.old | self.extension
+        fingerprints = {package: (len(names := sorted(name for actual, name in accepted if actual == package)),
+                                  hashlib.sha256("\n".join(names).encode()).hexdigest()) for package, _ in accepted}
+        def digest(values):
+            return hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in sorted(values)).encode()).hexdigest()
+        with (mock.patch.object(gate, "D9_PACKAGE_FINGERPRINTS", fingerprints),
+              mock.patch.object(gate, "ACCEPTED_D9_COUNT", len(accepted)),
+              mock.patch.object(gate, "ACCEPTED_D9_SHA256", digest(accepted)),
+              mock.patch.object(gate, "ACCEPTED_D9_NEW_COUNT", len(self.extension)),
+              mock.patch.object(gate, "ACCEPTED_D9_NEW_SHA256", digest(self.extension))):
+            gate.check_d9_complete_packages(pairs)
 
     def validate(self, pairs):
         fingerprints = {package: (1, hashlib.sha256(name.encode()).hexdigest()) for package, name in self.old}
@@ -32,26 +46,42 @@ class D9BaselineScopeTests(unittest.TestCase):
 
     def test_original_exact_set_survives(self):
         self.validate(self.old)
+        self.validate_full_d9(self.old | self.extension)
+        with self.assertRaises(ValueError):
+            self.validate_full_d9(self.old)
 
     def test_only_reviewed_command_d9_extension_is_excluded(self):
         self.validate(self.old | {(gate.COMMAND, "TestCandidateD9LiveHTTPSProductBrowserFixture")})
+        self.validate_full_d9(self.old | self.extension)
+        # The older baseline may exclude reviewed D9 names; the new complete
+        # baseline must not exclude a missing or substituted D9 scenario.
+        with self.assertRaises(ValueError):
+            self.validate_full_d9(self.old | {(gate.COMMAND, "TestCandidateD9Renamed")})
 
     def test_deleted_old_name_is_not_replaced_by_d9(self):
         with self.assertRaises(ValueError):
             self.validate((self.old - {(gate.COMMAND, "TestCandidateOld")}) | {(gate.COMMAND, "TestCandidateD9New")})
+        with self.assertRaises(ValueError):
+            self.validate_full_d9((self.old - {(gate.COMMAND, "TestCandidateOld")}) | self.extension)
 
     def test_same_count_old_name_substitution_fails(self):
         with self.assertRaises(ValueError):
             self.validate((self.old - {(gate.COMMAND, "TestCandidateOld")}) | {(gate.COMMAND, "TestCandidateRenamed")})
+        with self.assertRaises(ValueError):
+            self.validate_full_d9((self.old - {(gate.COMMAND, "TestCandidateOld")}) | self.extension | {(gate.COMMAND, "TestCandidateRenamed")})
 
     def test_wrong_package_d9_name_is_not_excluded(self):
         for package in (gate.ROOT, gate.PRODUCT):
             with self.subTest(package=package), self.assertRaises(ValueError):
                 self.validate(self.old | {(package, "TestCandidateD9New")})
+            with self.subTest(package=package, full_d9=True), self.assertRaises(ValueError):
+                self.validate_full_d9(self.old | self.extension | {(package, "TestCandidateD9New")})
 
     def test_unreviewed_command_prefix_is_not_excluded(self):
         with self.assertRaises(ValueError):
             self.validate(self.old | {(gate.COMMAND, "TestCandidateD10Unreviewed")})
+        with self.assertRaises(ValueError):
+            self.validate_full_d9(self.old | self.extension | {(gate.COMMAND, "TestCandidateD10Unreviewed")})
 
 
 class D9BrowserReportGateTests(unittest.TestCase):

@@ -79,6 +79,16 @@ CURRENT_PACKAGE_FINGERPRINTS = COMPLETE_PACKAGE_FINGERPRINTS | {
 NEW_D9_PREFIXES = {COMMAND: "TestCandidateD9"}
 ACCEPTED_D8_COUNT = 669
 ACCEPTED_D8_SHA256 = "a55d7427fd64491017c7a0fe20756cac0051cfb426218d7082e0ccb83baeb4eb"
+# Independently downloaded ordinary/race transcripts from P0-d9 run
+# 39795835989 / bec75e806e39e8ca4a90124583454eb7932bee97. Keep the older
+# 669 baseline above AND require this exact full set, with no exclusions.
+D9_PACKAGE_FINGERPRINTS = CURRENT_PACKAGE_FINGERPRINTS | {
+    COMMAND: (128, "21a7ea8e3b507f2af78d46ead04b2d4f9ad38da835d9ffe61d6b4a7466b6242e"),
+}
+ACCEPTED_D9_COUNT = 700
+ACCEPTED_D9_SHA256 = "b3cd00ab4fd983026e777095b484e2a0e49b05867186a83df234b8a27b7bb999"
+ACCEPTED_D9_NEW_COUNT = 31
+ACCEPTED_D9_NEW_SHA256 = "ad257b3ad1676c525eff4a42c73c125b9ae95a9ad2d6688bc4da02f0a5b43313"
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -407,6 +417,22 @@ def check_current_packages(tests):
         raise ValueError("accepted full 669 P0-d8 baseline changed")
 
 
+def check_d9_complete_packages(tests):
+    for package, (count, expected) in D9_PACKAGE_FINGERPRINTS.items():
+        names = sorted(name for actual, name in tests if actual == package)
+        if len(names) != count or hashlib.sha256("\n".join(names).encode()).hexdigest() != expected:
+            raise ValueError(f"accepted complete P0-d9 package changed: {package}")
+    ordered = sorted(tests)
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in ordered).encode()).hexdigest()
+    if len(ordered) != ACCEPTED_D9_COUNT or digest != ACCEPTED_D9_SHA256:
+        raise ValueError("accepted full 700 P0-d9 set changed")
+    new = sorted((package, name) for package, name in tests
+                 if name.startswith(NEW_D9_PREFIXES.get(package, "\x00")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in new).encode()).hexdigest()
+    if len(new) != ACCEPTED_D9_NEW_COUNT or digest != ACCEPTED_D9_NEW_SHA256:
+        raise ValueError("accepted complete 31 P0-d9 extension changed")
+
+
 def check_product_lifecycle_markers(events):
     for mode in ("consumed-recovery", "refresh-revocation"):
         marker = "PRODUCT_D7_REAL_API=PASS mode=" + mode
@@ -451,7 +477,7 @@ def self_test():
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
     for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline,
-                    check_complete_packages, check_current_packages):
+                    check_complete_packages, check_current_packages, check_d9_complete_packages):
         for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
                       frozenset({(ROOT, "TestBindSignedRegistryImage")})):
             try:
@@ -504,6 +530,7 @@ def main():
         check_product_baseline(results[0][0])
         check_complete_packages(results[0][0])
         check_current_packages(results[0][0])
+        check_d9_complete_packages(results[0][0])
         for path in args.transcripts:
             with path.open(encoding="utf-8") as stream:
                 check_product_lifecycle_markers([json.loads(line, object_pairs_hook=unique_object) for line in stream])

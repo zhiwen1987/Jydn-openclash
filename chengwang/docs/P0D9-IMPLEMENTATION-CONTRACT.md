@@ -4,7 +4,7 @@
 
 ## 要交付的真实变化
 
-1. 将原主服务组合逻辑抽为父模块 Go1.23 的 `internal/serverruntime`，原 `cmd/server` 保留薄入口及原测试名，默认行为和写门不变。父模块只依赖既有 imagetrust 契约，不 import Go1.25 的签名模块。
+1. 将原主服务组合逻辑抽为父模块 Go1.23 的 `internal/serverruntime`，原 `cmd/server` 保留薄入口及原测试名，默认配置、监听、认证和写门不变；关服生命周期按本阶段强化。父模块只依赖既有 imagetrust 契约，不 import Go1.25 的签名模块。
 2. 已有 Go1.25.8 `image-trust-api` 通过显式 `-product-config`，把真实 trust backend 接入同一个完整产品 `api.New`。不通过 HTTP 反代转发身份、不注入假 backend，不复制一套产品服务器。原 `-config` 窄 allowlist 候选行为保留。
 3. Factory 只能取得共享 Audit 与固定 tenant/site/environment，返回 backend/独立写门/worker 生命周期/Close；不能替换认证或修改整份 API options。control-plane 与 image-trust/storeID 各自固定 scope。Trust 构造及恢复先于任何 worker 和监听；共享 Audit 只由 runtime 关闭。
 4. 完整候选强制 TLS、candidate 环境；私有严格 JSON 绑定 Addr、身份文件、TLS、租户/站点和已有 Audit。发布/Shadow operation 写入关闭，无 Mihomo 连接、设备执行或生产网络。原主服务不因为代码可组合而已被安装或升级。
@@ -31,3 +31,13 @@
 生产访问或变更、正式镜像构建/签名发布、IdP/SSO、完整企业功能、主 App 全页面 HTTPS、公共 CA/生产证书生命周期、浏览器全兼容矩阵、坏盘/坏 checkpoint 自愈、WORM/外部见证、分布式 HA、长期容量/浸泡及设备执行仍未完成。九项恢复 blocker 与 `authorization=BLOCKED` 不解除；不承诺免维护、零 bug 或任何可用率。
 
 当前 Docker 构建因未固定基础镜像仍受门禁阻断；本阶段不得绕过该门把二进制测试解释为容器或生产验收。任何生产变更需另行明确授权、先备份并验证恢复。
+
+候选配置/停止/恢复边界见 [完整产品候选操作说明](PRODUCT-CANDIDATE-OPERATOR-NOTES.md)。
+
+## 技术依据
+
+- [Chromium Linux 证书管理](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/cert_management.md)：NSS 的新旧 HOME 路径与根 CA 的 C,, 仅服务器信任标记。
+- [Chrome Root Store FAQ](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/chrome_root_store/faq.md)：本地受管证书参与 TCP TLS 的正常验证，不等于关闭校验。
+- [CDP Network.getCertificate](https://chromedevtools.github.io/devtools-protocol/tot/Network/#method-getCertificate)：取真实连接 DER 证书材料并与私有 fixture 的公开证书指纹对照。
+
+官方文档只支持实现机制；实际 runner 是否有 certutil、浏览器是否信任、三个错误证书是否拒绝，仍必须由本轮执行结果证明。

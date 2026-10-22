@@ -76,6 +76,9 @@ class GoJSONFingerprintTests(unittest.TestCase):
                 mock.patch.object(run_static_gate, "P0D7_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
                 mock.patch.object(run_static_gate, "P0D8_GO_TEST_COUNT", len(fingerprint_names)),
                 mock.patch.object(run_static_gate, "P0D8_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
+                mock.patch.object(run_static_gate, "P0D9_GO_TEST_COUNT", len(fingerprint_names)),
+                mock.patch.object(run_static_gate, "P0D9_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
+                mock.patch.object(run_static_gate, "P0D9_GO_TEST_FINGERPRINTS", expected),
                 mock.patch.object(run_static_gate, "CURRENT_GO_TEST_FINGERPRINTS", expected),
                 contextlib.redirect_stdout(output),
             ):
@@ -128,8 +131,10 @@ class GoJSONFingerprintTests(unittest.TestCase):
         required = run_static_gate.REQUIRED_GO_TEST_NAMES[runtime]
         baseline = hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(EXPECTED_NAMES)).encode("utf-8")).hexdigest()
         expected = {PACKAGE: {"count": len(EXPECTED_NAMES), "sha256": run_static_gate._test_name_fingerprint(EXPECTED_NAMES)}}
+        complete_pairs = sorted([(PACKAGE, name) for name in EXPECTED_NAMES] + [(runtime, name) for name in required])
+        complete_digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in complete_pairs).encode("utf-8")).hexdigest()
 
-        def validate(runtime_names: set[str], *, package: str = runtime, bad_baseline: str | None = None) -> int:
+        def validate(runtime_names: set[str], *, package: str = runtime, bad_baseline: str | None = None, check_required: bool = True) -> int:
             events = _transcript(EXPECTED_NAMES)
             for name in sorted(runtime_names):
                 events.extend(({"Action": "run", "Package": package, "Test": name}, {"Action": "pass", "Package": package, "Test": name}))
@@ -139,7 +144,7 @@ class GoJSONFingerprintTests(unittest.TestCase):
                 transcript.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
                 with (
                     mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_RUNS", {}),
-                    mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_NAMES", {runtime: required} if package == runtime else {}),
+                    mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_NAMES", {runtime: required} if package == runtime and check_required else {}),
                     mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_FINGERPRINTS", expected),
                     mock.patch.object(run_static_gate, "ALLOWED_GO_PACKAGE_SKIPS", frozenset()),
                     mock.patch.object(run_static_gate, "P0D6_GO_TEST_COUNT", len(EXPECTED_NAMES)),
@@ -148,6 +153,9 @@ class GoJSONFingerprintTests(unittest.TestCase):
                     mock.patch.object(run_static_gate, "P0D7_GO_TEST_SHA256", "0" * 64 if bad_baseline == "d7" else baseline),
                     mock.patch.object(run_static_gate, "P0D8_GO_TEST_COUNT", len(EXPECTED_NAMES)),
                     mock.patch.object(run_static_gate, "P0D8_GO_TEST_SHA256", "0" * 64 if bad_baseline == "d8" else baseline),
+                    mock.patch.object(run_static_gate, "P0D9_GO_TEST_COUNT", len(complete_pairs)),
+                    mock.patch.object(run_static_gate, "P0D9_GO_TEST_SHA256", "0" * 64 if bad_baseline == "d9" else complete_digest),
+                    mock.patch.object(run_static_gate, "P0D9_GO_TEST_FINGERPRINTS", {runtime: {"count": len(required), "sha256": "0" * 64 if bad_baseline == "d9-package" else run_static_gate._test_name_fingerprint(required)}}),
                     mock.patch.object(run_static_gate, "CURRENT_GO_TEST_FINGERPRINTS", expected),
                     contextlib.redirect_stdout(io.StringIO()),
                 ):
@@ -157,7 +165,7 @@ class GoJSONFingerprintTests(unittest.TestCase):
         for name in required:
             with self.subTest(missing=name), self.assertRaisesRegex(RuntimeError, "missing required top-level passing tests"):
                 validate(set(required) - {name})
-        for baseline_name, message in (("d6", "P0-d6 Go test baseline changed"), ("d7", "P0-d7 Go test baseline changed"), ("d8", "complete P0-d8 Go test set changed")):
+        for baseline_name, message in (("d6", "P0-d6 Go test baseline changed"), ("d7", "P0-d7 Go test baseline changed"), ("d8", "complete P0-d8 Go test set changed"), ("d9", "complete P0-d9 Go test set changed"), ("d9-package", "P0-d9 Go package fingerprint mismatch")):
             with self.subTest(bad_baseline=baseline_name), self.assertRaisesRegex(RuntimeError, message):
                 validate(set(required), bad_baseline=baseline_name)
         for package, extra in (("chengwang/cmd/server", "TestServerRuntimeD9WrongPackage"), (runtime, "TestUnreviewedRuntimeExtension")):
@@ -166,6 +174,12 @@ class GoJSONFingerprintTests(unittest.TestCase):
                     validate(set(required) | {extra})
                 else:
                     validate({extra}, package=package)
+        # The complete D9 guard is independent of the required-name guard and
+        # must reject a same-prefix substitution even at the accepted count.
+        first = sorted(required)[0]
+        for changed in (set(required) - {first}, (set(required) - {first}) | {first + "Renamed"}, set(required) | {"TestServerRuntimeD9Unexpected"}):
+            with self.subTest(complete_d9=sorted(changed)), self.assertRaisesRegex(RuntimeError, "complete P0-d9 Go test set changed"):
+                validate(changed, check_required=False)
 
     def test_added_name_is_rejected(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "fingerprint mismatch"):
