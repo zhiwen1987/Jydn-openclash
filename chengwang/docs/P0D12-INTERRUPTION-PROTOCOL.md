@@ -1,6 +1,6 @@
-# D12 真实中断子门实施协议（开发中，未验收）
+# D12 真实中断子门实施协议（三阶段子门已隔离验收）
 
-本文件冻结下一子门的接线，不是验收证明。保持生产/main/正式发行不变，所有 authority 为 EPHEMERAL_TEST_ONLY，authorization=BLOCKED、production=false、deviceActionsExecuted=false。旧 D10/D11/D12 自动刷新门不得缩减。
+本文件冻结接线约束，协议本身不是验收证明。三阶段×两签名子门已由89dfade实际运行并独立复算，见[验收证据与未完成项](P0D12-INTERRUPTION-ACCEPTANCE.md)及[失败轮记录](P0D12-INTERRUPTION-FAILURES.md)；完整矩阵仍未完成。保持生产/main/正式发行不变，所有 authority 为 EPHEMERAL_TEST_ONLY，authorization=BLOCKED、production=false、deviceActionsExecuted=false。旧 D10/D11/D12 自动刷新门不得缩减。
 
 ## 矩阵与证明
 
@@ -20,7 +20,7 @@ read lease、write lease都指Linux F_SETLEASE，非flock/F_SETLK。breaking期�
 
 Registry保留既有network-none/只读根/cap0/UID10001/私有tmpfs安全profile。root只在helper独立mount namespace中把精确blob文件只读bind到UUID alias，再降权；helper仅O_RDONLY且不改blob。新helper须先有真实Linux syscall测试，包括只读alias、活跃reader拒绝、写租约读阻塞/解除、失败/终止清理。
 
-跨namespace候选实现须先保存原helper namespace及必要FD，暂入已验证Registry mount namespace，对已持有blob FD用 `open_tree(CLONE|AT_EMPTY_PATH)` 创建detached mount，再在finally恢复原helper namespace；恢复后才将克隆设为只读、nosuid/nodev/noexec并 `move_mount` 到精确alias。临时Registry区间仅做必要FD syscall，不读host路径、不安装挂载、不改变Registry原mount。原13项同namespace测试不足以覆盖此差异，新增第14项foreign namespace回归，不删除旧测试；其实际通过仍以新Linux CI结果为准。
+本轮跨namespace实现先保存原helper namespace及必要FD，暂入已验证Registry mount namespace，对已持有blob FD用 `open_tree(CLONE|AT_EMPTY_PATH)` 创建detached mount，再在finally恢复原helper namespace；恢复后才将克隆设为只读、nosuid/nodev/noexec并 `move_mount` 到精确alias。临时Registry区间仅做必要FD syscall，不读host路径、不安装挂载、不改变Registry原mount。原13项同namespace测试不足以覆盖此差异，新增第14项foreign namespace回归，不删除旧测试；89dfade真实Linux已通过，不能用Windows辅助skip代替。
 
 SIGKILL必须由精确身份检查后对本轮container执行，检查实际exit137/noOOM/PID0；不能放宽正常停止exit0。客户端只发一次原POST，kill前pending，kill后无HTTP200/receipt；禁止重试业务写。SIGKILL后解除屏障，再用实际truststate/evidence Open做离线cut快照，禁止构造product.Service提前修复。该检查不得改领域序列或审计原字节。
 

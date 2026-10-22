@@ -38,3 +38,5 @@
 - [父运行39852580901 / job120082373641](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39852580901/job/120082373641) success，普通/race各2320项具名Test*完整一致、无跳过/失败；原日志5,447,566B，SHA256 `cd07d551ecb80bd13042844fe93fb126626b3f497a868571a1fdcfcfc167713e`。
 
 下一修正仅对固定私有计数文件使用已有root orchestrator做受限读取，增加NOFOLLOW、owner/mode/nlink/size及读前后FD/路径一致检查，再输出固定安全schema；不放宽0600权限、不改产品与测试期限，仍须新Linux/镜像完整验收。
+
+后续89dfade新一轮取得完整独立证明，见[三阶段验收](P0D12-INTERRUPTION-ACCEPTANCE.md)。这不更改上述三轮失败状态，不在旧工件中补写计数、cleanup或PASS。

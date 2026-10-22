@@ -371,4 +371,14 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 
 lease20/feed34/checker13、新profile5/verifier27均通过/0skip；旧700/Registry3/父2320及浏览器40/45/45保留，D11原49关联独立重放通过。655源码记录逐Git原blob一致；未放宽产品运行限制、修改时钟或新增产品故障开关。[D12实际镜像子门验收与剩余项](P0D12-PRODUCT-LIFECYCLE-ACCEPTANCE.md)。
 
-**状态仅为 actual automatic-refresh/graceful-restart subgate implemented+tested isolated-only。** 外部lease实际产品接线、异常终止/跨库补审计、六阶段健康中间态与损坏拒绝、追代/来源负矩阵/在途撤销仍未完成。物理掉电、长期soak、正式authority/发行/灰度及原完整企业功能缺口不变；九项blocker不解除，未合并main、未部署或变动生产。
+**957历史轮状态仅为 actual automatic-refresh/graceful-restart subgate implemented+tested isolated-only。** 当时外部lease实际产品接线、异常终止/跨库补审计、六阶段健康中间态与损坏拒绝、追代/来源负矩阵/在途撤销仍未完成；后续三阶段verify子门进度见下一节。物理掉电、长期soak、正式authority/发行/灰度及原完整企业功能缺口不变；九项blocker不解除，未合并main、未部署或变动生产。
+
+## P0-d12 三阶段verify中断恢复子门已隔离验收，完整矩阵仍缺（2026-10-23）
+
+代码89dfade40f4cf916a6ee3ea6670a581c27338ff3，绑定39854485066/job120088990361、父39854486241/job120088994194均completed/success。实际默认产品镜像在独立正常TLS Registry和静态catalogue下执行PREPARED/RESERVED/CONSUMED×两签名：外部Linux租约、真实pidfd SIGKILL、首次恢复补审计、同容器二次重启幂等、原批准末次probe。六格cut seq2/4/5→首次恢复5/6/6→最终10/journal2/audit4；RESERVED与CONSUMED保持烧毁状态，原在途POST均无HTTP成功且只发一次。
+
+主代理及两名独立代理各下载367文件工件并重算147本门文件/151摘要关系，与outcome相同。60计数快照，12恢复/二次启动零请求窗口，加四个拒绝probe共16零窗口；原请求SDK预算与排空单独核验。8条真实内核等待关系/16样本、6次137、12次正常0、Registry正常0与精确7容器/8helper/6请求进程join/清理通过。native14含真实foreign namespace只读alias回归，profile6/verifier27及原lease20/feed34/checker13均具名零skip；原700/Registry3/父2320、D11原49、D12原65及浏览器40/45/45保留。667源记录/584unique逐Git原bytes及before-after核对一致。
+
+三轮失败分别留档：8b未取得helper根因、a415定位foreign bind失败、e3a完成六格但root0600计数文件交接失败；不补写旧报告或删断言。后续仅修测试屏障的跨namespace clone和受限计数读取，不修改产品运行逻辑。[三阶段实际验收及未完成项](P0D12-INTERRUPTION-ACCEPTANCE.md)、[失败记录](P0D12-INTERRUPTION-FAILURES.md)。
+
+**状态仅为 actual three-stage verify interruption subgate implemented+tested isolated-only。** update/verify全部六阶段与损坏拒绝矩阵、自动刷新崩溃/撤销竞态组合、坏盘/断电、长期soak、正式身份/发行/恢复授权、生产灰度及原完整企业功能仍未闭合。仍authorization=BLOCKED、production=false、completeCrashMatrixProven=false，九项blocker不解除；未合并main或操作生产。
