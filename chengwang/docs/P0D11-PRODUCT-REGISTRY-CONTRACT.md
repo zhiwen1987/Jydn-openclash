@@ -1,6 +1,6 @@
 # P0-d11 真实产品镜像的隔离 Registry 与受管验签合同
 
-日期：2026-10-23。状态：实施中，**本文不是已验收、已发布或上线的证明**。承接 [D10真实镜像验收](P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)，继续不动生产、不合并main、不向正式Registry发布。
+日期：2026-10-23。状态：实施合同与逐轮失败记录；最终3e隔离验收结果见[D11实际验收](P0D11-PRODUCT-REGISTRY-ACCEPTANCE.md)，**不是已发布或上线的证明**。承接 [D10真实镜像验收](P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)，继续不动生产、不合并main、不向正式Registry发布。
 
 ## 首轮实际执行记录：未通过
 

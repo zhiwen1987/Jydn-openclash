@@ -352,3 +352,9 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 最终代码 `fbe6f0605abb3eb83f541bf62774c08df8a11456` 的绑定run `39808957939`、父run `39808957928` 均completed/success，子普通/race各700、父各2320完整集合保持，Linux18新检查器0skip。新镜像真实Chrome正常NSS HTTPS45检查/16GET/console错误警告0、3证书反证通过；旧HTTP40/HTTPS45和真Registry144不可变读取保持。95工件/12原始截图、553+76条源码逐Git原字节与386依赖复核完成。首轮5b016cc的browser路径/清理权限失败保留，fbe只修3文件只读且源码绑定的harness可达路径，未删检查。详见 [D10验收](P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)。
 
 状态仅为 `PRODUCT_CANDIDATE_IMAGE=BUILT_AND_EXECUTED_ISOLATED / authorization=BLOCKED`。本地Docker config imageID不是Registry manifest，产品镜像未远端读回、签名/批准或发布；旧Registry测试不是该产品镜像绑定。镜像内真实SDK/Registry写链及自动刷新故障矩阵、独立来源/builder attestation/SBOM/多架构、正式安装/生产灰度与长期soak、企业治理/证书/完整网络功能仍缺。健康状态重开不证明坏盘自修或物理掉电恢复；D10证书反证是客户端零请求观察，无镜像内服务端独立计数器。原主入口默认、九项blocker、M2b/M3/M4及生产环境均未改变，未合并main，不提供整体完成率或可用率承诺。
+
+## P0-d11 真实产品镜像与隔离受管Registry（2026-10-23归档）
+
+最终代码 `3e766db7fd3aaa905abab0f439236a7fe91d021d` 的绑定39826356698/job119990563178、父39826356692/job119990563070均completed/success，主代理和独立代理实际重放最终49份关联输入、原700/Registry3/父各2320完整集合。两类真实测试签名/批准绑定本轮真实镜像：正常TLS上传后回拉原字节、config/layer/diffID/8打包文件关联、镜像内API消费/重放/篡改/交叉bundle、同容器重启、有效撤销/回滚拒绝/错误SPKI、健康双库重开全部通过；每类final seq44/journal10/audit20/ledger3，44独立流量快照中2次成功产品验证及18零HTTP窗口。4次产品正常退出0、Registry实际退出0、D11精确3容器及外层D10清理均PASS。五轮失败及其未知值边界保留，未删门换绿。详见[D11实际验收](P0D11-PRODUCT-REGISTRY-ACCEPTANCE.md)。
+
+此阶段只补上D10缺口中的**真实产品镜像隔离Registry读回、测试authority签名/批准和镜像内SDK验证写链**，不等于正式来源或发布。仍 `authorization=BLOCKED / releaseAuthorized=false / deviceActionsExecuted=false`。自动撤销刷新/跨库异常恢复在该镜像内的故障矩阵、正式Registry发行与企业密钥/IdP/审批、独立builder/source证明/SBOM、多架构、生产灰度恢复/长期soak、坏盘自修/WORM/外部见证、完整主App/多内核/DNS/节点业务仍未完成。九项恢复blocker、旧Dockerfile/M2b、设备执行器和生产环境均不变；没有main合并或生产流量变化。
