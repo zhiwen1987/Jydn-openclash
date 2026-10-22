@@ -155,7 +155,8 @@ func (s *Service) status(ctx context.Context) (imagetrust.Status, error) {
 	if s.refreshUntil.IsZero() {
 		status.RefreshUntilUnix = 0
 	}
-	status.RefreshFresh = status.RefreshRequired && s.refreshGeneration == state.Catalogue.Generation && s.refreshHash == state.Catalogue.SHA256 && !s.refreshAt.After(time.Now()) && time.Now().Before(s.refreshUntil) && state.CatalogueValid
+	now := time.Now()
+	status.RefreshFresh = status.RefreshRequired && s.refreshGeneration == state.Catalogue.Generation && s.refreshHash == state.Catalogue.SHA256 && !s.refreshAt.IsZero() && !s.refreshAt.After(now) && now.UnixNano() >= s.refreshAt.UnixNano() && now.Before(s.refreshUntil) && now.UnixNano() < s.refreshUntil.UnixNano() && state.CatalogueValid
 	status.RecoveryCompleted = s.recovered
 	s.mu.RUnlock()
 	return status, nil

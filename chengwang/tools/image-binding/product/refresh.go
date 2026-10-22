@@ -47,7 +47,7 @@ func (s *Service) ConfirmRefresh(ctx context.Context, generation uint64, hash st
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.poisoned || !s.refreshAt.IsZero() && now.Before(s.refreshAt) || ctx.Err() != nil {
+	if s.poisoned || !s.refreshAt.IsZero() && (now.Before(s.refreshAt) || now.UnixNano() < s.refreshAt.UnixNano()) || ctx.Err() != nil {
 		return failure(imagetrust.CodeUnavailable, false)
 	}
 	s.refreshAt, s.refreshUntil, s.refreshGeneration, s.refreshHash = now, until, generation, hash
@@ -65,7 +65,7 @@ func (s *Service) sourceBound(ctx context.Context) (*truststate.SourceBound, err
 	now := time.Now()
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.poisoned || s.refreshAt.IsZero() || now.Before(s.refreshAt) || !now.Before(s.refreshUntil) || !state.CatalogueValid || state.Catalogue.Generation != s.refreshGeneration || state.Catalogue.SHA256 != s.refreshHash {
+	if s.poisoned || s.refreshAt.IsZero() || now.Before(s.refreshAt) || now.UnixNano() < s.refreshAt.UnixNano() || !now.Before(s.refreshUntil) || now.UnixNano() >= s.refreshUntil.UnixNano() || !state.CatalogueValid || state.Catalogue.Generation != s.refreshGeneration || state.Catalogue.SHA256 != s.refreshHash {
 		return nil, failure(imagetrust.CodeUnavailable, false)
 	}
 	return &truststate.SourceBound{Generation: s.refreshGeneration, CatalogueSHA256: s.refreshHash, FreshUntilUnixNano: s.refreshUntil.UnixNano()}, nil

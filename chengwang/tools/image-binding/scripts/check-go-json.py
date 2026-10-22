@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import pathlib
+import re
 
 ROOT = "chengwang/image-binding"
 POLICY = ROOT + "/policy"
@@ -52,6 +53,19 @@ NEW_PRODUCT_PREFIXES = {
     STATE: "TestProductTrustStateD7",
     PRODUCT: "TestProductD7",
     COMMAND: "TestCandidateD7",
+}
+# Full ordinary/race package sets actually observed in accepted P0-d7 run
+# 39768330157 / commit cd2828e59d5ef18bb5aca78b19e5ef70c9016fa6.
+# Encoding remains sorted names joined by LF, without a terminal LF.
+COMPLETE_PACKAGE_FINGERPRINTS = {
+    ROOT: (61, "f2df4324d321804ae8a49eb5c0f70ed82d0158defbc84adb34b438f115610c5c"),
+    COMMAND: (68, "683d68d7ce02da3c512c2bfbeb1dac26901a3e2884f7fe955e32234e8690a876"),
+    POLICY: (127, "2ebc3a6874e7723fe2954d2f84a59c98a9554dd3c43e2d5aa5590c4a228797ac"),
+    PRODUCT: (77, "8fdff0c0b443994f7f9e12aee3c2959f6d823232d16a8776de83a9b744f9e0c9"),
+    REFRESH: (64, "50f950ad09ed607f2cc38035325fc5f16a9ad1fbf9517117d32659b04d05f284"),
+    REGISTRY: (73, "663452c21c55917add3bc1392b05564ccdfc3a093a5b3eb9eb0212820a2e9d30"),
+    CATALOG: (89, "e1da45c450d07e3f0ecdac514ebe4723f42d66928365a9ee7b8f25b16bbaade0"),
+    STATE: (68, "0aff387f31c7c7688b5552ecc887f38082a33ded00faf20c7256f9915dece155"),
 }
 REQUIRED_ORDINARY = {
     ROOT: {
@@ -337,6 +351,25 @@ def check_product_baseline(tests):
         raise ValueError(f"accepted P0-d6 test baseline changed: count={len(baseline)} sha256={digest}")
 
 
+def check_complete_packages(tests):
+    for package, (count, expected) in COMPLETE_PACKAGE_FINGERPRINTS.items():
+        names = sorted(name for actual, name in tests if actual == package)
+        digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
+        if len(names) != count or digest != expected:
+            raise ValueError(f"accepted complete P0-d7 package changed: {package} count={len(names)} sha256={digest}")
+
+
+def check_product_lifecycle_markers(events):
+    for mode in ("consumed-recovery", "refresh-revocation"):
+        marker = "PRODUCT_D7_REAL_API=PASS mode=" + mode
+        count = sum(event.get("Package") == ROOT and event.get("Action") == "output" and
+                    event.get("Test") == "TestManagedAPID7FullRefreshAndConsumedRecovery/" + mode and
+                    re.fullmatch(r"[ \t]+managed_api_d7_linux_test\.go:[1-9][0-9]*: " + re.escape(marker) + r"\n",
+                                 event.get("Output", "")) is not None for event in events)
+        if count != 1:
+            raise ValueError("missing or repeated real product refresh/recovery lifecycle evidence")
+
+
 def self_test():
     negative_count = 0
     for required in (REQUIRED_ORDINARY, REQUIRED_REGISTRY):
@@ -369,7 +402,8 @@ def self_test():
             negative_count += 1
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
-    for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline):
+    for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline,
+                    check_complete_packages):
         for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
                       frozenset({(ROOT, "TestBindSignedRegistryImage")})):
             try:
@@ -378,6 +412,19 @@ def self_test():
                 negative_count += 1
                 continue
             raise ValueError("gate accepted missing or substituted accepted test baseline")
+    markers = [{"Package": ROOT, "Action": "output",
+                "Test": "TestManagedAPID7FullRefreshAndConsumedRecovery/" + mode,
+                "Output": "    managed_api_d7_linux_test.go:45: PRODUCT_D7_REAL_API=PASS mode=" + mode + "\n"}
+               for mode in ("consumed-recovery", "refresh-revocation")]
+    check_product_lifecycle_markers(markers)
+    for invalid in (markers[:-1], markers + [markers[0]],
+                    [dict(markers[0], Test="TestOther"), markers[1]]):
+        try:
+            check_product_lifecycle_markers(invalid)
+        except ValueError:
+            negative_count += 1
+            continue
+        raise ValueError("gate accepted missing, repeated or misattributed lifecycle evidence")
     print(f"IMAGE_BINDING_JSON_SELFTEST=PASS negative_cases={negative_count}")
 
 
@@ -407,6 +454,10 @@ def main():
         check_managed_baseline(results[0][0])
         check_product_packages(results[0][0])
         check_product_baseline(results[0][0])
+        check_complete_packages(results[0][0])
+        for path in args.transcripts:
+            with path.open(encoding="utf-8") as stream:
+                check_product_lifecycle_markers([json.loads(line, object_pairs_hook=unique_object) for line in stream])
     print(f"IMAGE_BINDING_GO_JSON_GATE=PASS mode={args.mode} transcripts=2 "
           f"tests={len(results[0][0])} packages={len(results[0][1])} skips=0 race=pass "
           "authorization=BLOCKED production=false")

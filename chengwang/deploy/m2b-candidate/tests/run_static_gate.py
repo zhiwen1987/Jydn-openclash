@@ -74,7 +74,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/capability": 8,
     "chengwang/internal/control": 22,
     "chengwang/internal/dockerreadonlyproxy": 20,
-    "chengwang/internal/evidence": 40,
+    "chengwang/internal/evidence": 52,
     "chengwang/internal/kernel": 2,
     "chengwang/internal/imagetrust": 2,
     "chengwang/internal/lease": 14,
@@ -108,6 +108,12 @@ NEW_P0D7_GO_TEST_PREFIXES = {
 }
 
 REQUIRED_GO_TEST_FINGERPRINTS = {
+    # Actual P0-d7 ordinary/race run 39767895689 (also 39768330222),
+    # commit 4e2ae97158f13fdc9910869ee2cf8e46374be0d8. All 2252 old pairs retained.
+    "chengwang/internal/evidence": {
+        "count": 52,
+        "sha256": "d3c5d2c4a662449874447a9d922e0f600e66e2142b3c97df15316dd6ffa23b8b",
+    },
     # P0-d6 actual ordinary/race evidence: run 39760575706, commit 59794e7.
     # All original P0-d5 2067 Test* pairs were independently retained; these
     # three package sets add 185 tests without counting Fuzz seed events.
