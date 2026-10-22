@@ -39,6 +39,45 @@ describe('image trust read-only transport', () => {
     Object.defineProperty(response, 'redirected', { value: true })
     await expect(getImageTrustStatus(options(vi.fn(async () => response)))).rejects.toMatchObject({ classification: 'transport' })
   })
+  it.each(['http-403', 'content-type', 'oversized-header', 'invalid-length', 'redirect'])('cancels the real unread response stream when rejecting %s', async kind => {
+    const cancel = vi.fn()
+    const stream = new ReadableStream<Uint8Array>({ cancel })
+    const response = new Response(stream, { status: kind === 'http-403' ? 403 : 200, headers: {
+      'Content-Type': kind === 'content-type' ? 'text/html' : 'application/json',
+      ...(kind === 'oversized-header' ? { 'Content-Length': '1048577' } : kind === 'invalid-length' ? { 'Content-Length': 'invalid' } : {}),
+    } })
+    if (kind === 'redirect') Object.defineProperty(response, 'redirected', { value: true })
+    await expect(getImageTrustStatus(options(vi.fn(async () => response)))).rejects.toMatchObject({ classification: kind === 'http-403' ? 'forbidden' : kind === 'redirect' ? 'transport' : 'format' })
+    expect(cancel).toHaveBeenCalledTimes(1)
+    expect(response.body?.locked).toBe(false)
+  })
+  it.each(['pending', 'rejected'])('does not wait for or expose a %s cancellation promise', async kind => {
+    const cancel = vi.fn(() => kind === 'pending' ? new Promise<void>(() => {}) : Promise.reject(new Error('private-cancellation-secret')))
+    const response = new Response(new ReadableStream<Uint8Array>({ cancel }), { status: 403 })
+    const result = getImageTrustStatus(options(vi.fn(async () => response))).catch(error => error)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const bounded = await Promise.race([result, new Promise(resolve => { timer = setTimeout(() => resolve('error was blocked by cancellation'), 1000) })])
+      expect(bounded).toMatchObject({ status: 403, classification: 'forbidden' })
+      expect(String(bounded)).not.toContain('private-cancellation-secret')
+      expect(cancel).toHaveBeenCalledTimes(1)
+    } finally { clearTimeout(timer) }
+  })
+  it('cancels only a forbidden history response while the parallel authorized status still succeeds', async () => {
+    const cancel = vi.fn()
+    const controller = new AbortController()
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => String(input).includes('/history?')
+      ? new Response(new ReadableStream<Uint8Array>({ cancel }), { status: 403 })
+      : trustResponse(trustStatus()))
+    const shared = { ...options(fetcher), signal: controller.signal }
+    const [status, history] = await Promise.allSettled([
+      getImageTrustStatus(shared), getImageTrustHistory(shared, { limit: 20, offset: 0, sequence: 0 }),
+    ])
+    expect(status).toMatchObject({ status: 'fulfilled', value: { generation: 2, authorization: 'BLOCKED' } })
+    expect(history).toMatchObject({ status: 'rejected', reason: { status: 403, classification: 'forbidden' } })
+    expect(controller.signal.aborted).toBe(false)
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
   it('rejects HTML, malformed UTF-8, oversized declared and streamed bodies', async () => {
     const invalid = [new Response('<html>secret</html>', { headers: { 'Content-Type': 'text/html' } }),
       new Response(new Uint8Array([0xff]), { headers: { 'Content-Type': 'application/json' } }),

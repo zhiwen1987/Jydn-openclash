@@ -45,7 +45,8 @@ const chromeArguments = [
 ]
 // The private group initially waits on a pipe. If its supervisor dies before
 // publishing the identity record, EOF exits the wrapper without launching
-// Chrome. exec preserves PID/start ticks after the durable handoff record.
+// Chrome. exec preserves PID/start ticks after the crash-visible handoff.
+// This CI supervisor does not claim physical power-loss durability.
 const child = spawn('/usr/bin/bash', ['--noprofile', '--norc', '-c',
   'IFS= read -r gate && test "$gate" = start || exit 78; exec "$@"',
   'chengwang-private-browser', chrome, ...chromeArguments,
@@ -70,6 +71,8 @@ let forbiddenRequests = 0
 let protectedDocument = false
 let screenshotCount = 0
 let browserGroupStopped = false
+let cjkFontVerified = false
+let cjkFonts = []
 let interrupted = false
 const deadline = Date.now() + 130000
 function check(ok, name) {
@@ -217,10 +220,18 @@ try {
   const target = await send('Target.createTarget', { url: 'about:blank' }, null)
   sessionId = (await send('Target.attachToTarget', { targetId: target.targetId, flatten: true }, null)).sessionId
   await Promise.all([send('Runtime.enable'), send('Page.enable'), send('Network.enable'), send('Log.enable')])
+  await send('DOM.enable')
+  await send('CSS.enable')
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false })
   await send('Page.navigate', { url: ready.url })
   await waitExpression(`document.querySelector('h1')?.textContent.includes('可信策略控制台')`, 'actual console mount')
   check(protectedDocument, 'actual browser document carries restrictive CSP no-store nosniff DENY and no-referrer')
+  const documentRoot = await send('DOM.getDocument', { depth: 0 })
+  const heading = await send('DOM.querySelector', { nodeId: documentRoot.root.nodeId, selector: '.it-heading h1' })
+  const platformFonts = await send('CSS.getPlatformFontsForNode', { nodeId: heading.nodeId })
+  cjkFonts = platformFonts.fonts.map(f => ({ family: f.familyName, postscript: f.postScriptName, glyphCount: f.glyphCount, custom: f.isCustomFont }))
+  cjkFontVerified = cjkFonts.some(f => f.family === 'Noto Sans CJK SC' && f.glyphCount >= 7 && f.custom === false)
+  check(cjkFontVerified, 'actual Chinese heading renders at least 7 glyphs using verified Noto Sans CJK SC')
   check(await evaluate(`document.body.innerText.includes('候选未部署 · 无设备执行授权') && document.body.innerText.includes('BLOCKED · 只读') && document.body.innerText.includes('尚未读取；所有状态未知。')`), 'unknown initial state and explicit candidate boundary')
   await delay(400)
   check(requests.length === 0, 'no automatic authenticated requests before connection')
@@ -334,7 +345,7 @@ try {
     chromeSandbox: 'DISABLED_CI_ONLY_OUTER_ISOLATION_REQUIRED',
     mockedResponses: false, injectedFetch: false, tlsBypass: false,
     checks, requestCount: requests.length, httpStatusCounts: responses.reduce((out, r) => { out[r.status] = (out[r.status] || 0) + 1; return out }, {}),
-    runtimeErrors, cspErrors, assetErrors, forbiddenRequests, screenshotCount, browserGroupStopped,
+    runtimeErrors, cspErrors, assetErrors, forbiddenRequests, screenshotCount, browserGroupStopped, cjkFontVerified, cjkFonts,
   }
   const raw = JSON.stringify(report, null, 2) + '\n'
   if (secrets.some(s => raw.includes(s))) throw new Error('report credential containment failed')

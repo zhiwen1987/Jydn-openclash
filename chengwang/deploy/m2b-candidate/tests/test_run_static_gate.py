@@ -74,6 +74,9 @@ class GoJSONFingerprintTests(unittest.TestCase):
                 mock.patch.object(run_static_gate, "P0D6_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
                 mock.patch.object(run_static_gate, "P0D7_GO_TEST_COUNT", len(fingerprint_names)),
                 mock.patch.object(run_static_gate, "P0D7_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
+                mock.patch.object(run_static_gate, "P0D8_GO_TEST_COUNT", len(fingerprint_names)),
+                mock.patch.object(run_static_gate, "P0D8_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
+                mock.patch.object(run_static_gate, "CURRENT_GO_TEST_FINGERPRINTS", expected),
                 contextlib.redirect_stdout(output),
             ):
                 result = run_static_gate.validate_go_json([transcript])
@@ -98,6 +101,23 @@ class GoJSONFingerprintTests(unittest.TestCase):
                     run_static_gate._validate_p0d6_go_baseline({PACKAGE: names})
             with self.assertRaisesRegex(RuntimeError, "P0-d6 Go test baseline changed"):
                 run_static_gate._validate_p0d6_go_baseline({PACKAGE: EXPECTED_NAMES, "chengwang/internal/api": {"TestImageTrustD7WrongPackage"}})
+
+    def test_complete_d8_set_rejects_missing_replaced_and_added_names(self) -> None:
+        names = EXPECTED_NAMES | {"TestD8Current"}
+        digest = hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(names)).encode("utf-8")).hexdigest()
+        expected = {PACKAGE: {"count": len(names), "sha256": run_static_gate._test_name_fingerprint(names)}}
+        with (
+            mock.patch.object(run_static_gate, "P0D8_GO_TEST_COUNT", len(names)),
+            mock.patch.object(run_static_gate, "P0D8_GO_TEST_SHA256", digest),
+            mock.patch.object(run_static_gate, "CURRENT_GO_TEST_FINGERPRINTS", expected),
+        ):
+            run_static_gate._validate_p0d8_go_baseline({PACKAGE: names})
+            for changed in (names - {"TestD8Current"}, (names - {"TestD8Current"}) | {"TestRenamed"}, names | {"TestNew"}):
+                with self.assertRaisesRegex(RuntimeError, "complete P0-d8 Go test set changed"):
+                    run_static_gate._validate_p0d8_go_baseline({PACKAGE: changed})
+            with mock.patch.object(run_static_gate, "CURRENT_GO_TEST_FINGERPRINTS", {PACKAGE: {"count": len(names), "sha256": "0" * 64}}):
+                with self.assertRaisesRegex(RuntimeError, "P0-d8 Go package fingerprint mismatch"):
+                    run_static_gate._validate_p0d8_go_baseline({PACKAGE: names})
 
     def test_deleted_name_is_rejected(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "fingerprint mismatch"):

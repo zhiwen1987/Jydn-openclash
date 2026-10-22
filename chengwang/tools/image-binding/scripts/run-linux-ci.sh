@@ -32,6 +32,8 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
   /usr/bin/mount -o remount,bind,ro "$5"
   /usr/bin/mount --bind "$4/remote-verification" "$4/remote-verification"
   /usr/bin/mount -o remount,bind,ro "$4/remote-verification"
+  /usr/bin/mount --bind "$4/fonts" "$4/fonts"
+  /usr/bin/mount -o remount,bind,ro "$4/fonts"
   /usr/sbin/ip link set lo up
   exec /usr/bin/setpriv \
     --reuid="$1" --regid="$2" --clear-groups \
@@ -44,6 +46,7 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
       LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
       MODULE_ROOT="$3" RUN_ROOT="$4" GO_BINARY="$6" \
       NODE_BINARY="${10}" CHROME_BINARY="${11}" CHENGWANG_VITE_CACHE_DIR="$4/vite-cache" \
+      FONTCONFIG_FILE="$4/fontconfig.conf" \
       PARENT_NETNS="$7" PARENT_MOUNTNS="$8" \
       /usr/bin/bash --noprofile --norc "$3/scripts/run-offline-gate.sh"
 ' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" "$node_binary" "$chrome_binary" \

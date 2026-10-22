@@ -59,12 +59,12 @@ CSP self-only，无 inline/eval/第三方脚本；no-store、nosniff、DENY、no
 
 1. 本地已有 lockfile 依赖执行全部 Vitest、TypeScript、ESLint、Vite build。当前 Windows Go 缓存不可信，不本机运行 Go。
 2. Browser 插件在本会话不可用，采用已有 Playwright MCP 检查本机真实页面的初始状态、桌面/375px、控制台、截图；这只是未认证静态交互层。
-3. Ubuntu 隔离 CI 在线阶段仅获取固定 Go 模块、Registry 测试镜像和 `npm ci --ignore-scripts` lockfile 依赖，不执行仓库构建或测试。
+3. Ubuntu 隔离 CI 在线阶段仅获取固定 Go 模块、Registry 测试镜像、`npm ci --ignore-scripts` lockfile 依赖及锁 commit/摘要的官方 Noto CJK 测试字库和原许可，不执行仓库构建或测试；不向生产镜像添加字体依赖。
 4. 无外网、non-root、cap=0、NoNewPrivs、源码及依赖只读的 namespace 中执行 Go ordinary/race/vet、前端测试/类型/lint/build；所有生成文件落 private run root。
-5. 启动真实候选 `run()`，使用真实 Store、真实 evidence、真实认证身份与 22 条受审计操作。预装 Chrome + Node builtin WebSocket 通过 CDP 实际点击：认证、200/401/403、搜索、详情、20→2 分页、刷新、断开、移动端、键盘和 reduced-motion。不得 route/mock/inject fetch 或跳过 TLS 校验。
+5. 启动真实候选 `run()`，使用真实 Store、真实 evidence、真实认证身份、25 项实际签名目录定义与 22 条受审计操作。预装 Chrome + Node builtin WebSocket 通过 CDP 实际点击：认证、200/401/403、搜索、详情、策略 20→5 / 历史 20→2 分页、刷新、断开、移动端、键盘和 reduced-motion。不得 route/mock/inject fetch 或跳过 TLS 校验。字库只读挂载、fontconfig/cache 私有，检查实际字体文件摘要及中文匹配；通过 CDP 读取真实标题所用平台字体与 glyphCount，并查看截图。DOM 含中文不代表已经可读，截图方框必须记为视觉失败。
 6. Chrome 的 CI-only `--no-sandbox` 必须显式记录；外层 namespace 不能取消。浏览器走 127.0.0.1 HTTP，**不声称已完成浏览器 HTTPS/证书验收**；Go 的既有实际 TLS 测试独立保留。
 7. 保留旧子模块 627 场景、父模块 2257 场景基线及真实 Distribution 链；新 D8 场景独立计数，最终按下载的完整 transcript 实测校准、锁定，不预编造总数。
-8. 归档只含脱敏报告/截图/摘要，不能包含 ready.json、私钥、配置、浏览器 profile。候选停止后检查 Store/journal/audit 未被 UI 读取改变，再清除临时身份与敏感文件。
+8. 归档只含脱敏报告/截图/摘要，不能包含 ready.json、私钥、配置、浏览器 profile。候选停止后检查 Store/journal/audit 未被 UI 读取改变，再清除临时身份与敏感文件。浏览器采用“管道门 → 私有身份记录原子发布 → exec”的进程崩溃可见交接，并由 Node finally 与独立 shell trap 共用 pidfd guard；惰性进程的 supervisor SIGKILL、父退子存、逃逸 crashpad、错 PID/start 和相似路径不误杀测试必须单独通过。它不是恶意进程 sandbox，也不是实际 Chrome SIGKILL 或断电测试；监督者本身同时被 SIGKILL/主机断电仍只能依靠外部 CI 生命周期回收，不能报告自身已完成清理。
 
 任一步失败均不能标验收成功。记录失败、修正及重新运行，不以删除旧用例、弱化断言、增加跳过、修改 trust/clock 或关闭生产安全门换绿。
 
@@ -72,4 +72,4 @@ CSP self-only，无 inline/eval/第三方脚本；no-store、nosniff、DENY、no
 
 没有生产部署/读回、长期浸泡、真实浏览器 HTTPS 证书路径、企业 SSO/IdP、WORM/外部单调见证、分布式事务、坏文件自动修复、journal 自动压缩、任意离线追赶、写操作 UI、镜像签发/正式 Registry 发布、主服务 backend 接线或真实设备执行。完整企业网络系统、多内核、反代/隧道、实际分流与业务评估等不能因本页完成而记为已交付。不承诺零 Bug 或 99.999999% 端到端可用率。
 
-参考：[Vite 多页构建](https://vite.dev/guide/build.html#multi-page-app)、[Vite build manifest](https://vite.dev/config/build-options.html)、[Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/)、[Node WebSocket](https://nodejs.org/api/globals.html#class-websocket)。runner 镜像清单只是工具可用性提示，实际 Chrome/Node 版本必须以当次 CI 探测和浏览器报告为准。
+参考：[Vite 多页构建](https://vite.dev/guide/build.html#multi-page-app)、[Vite build manifest](https://vite.dev/config/build-options.html)、[Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/)、[Node WebSocket](https://nodejs.org/api/globals.html#class-websocket)、[Linux pidfd_send_signal](https://www.man7.org/linux/man-pages/man2/pidfd_send_signal.2.html)、[Open Group 进程组 ID 生命周期](https://pubs.opengroup.org/onlinepubs/009696699/basedefs/xbd_chap04.html)、[Crashpad 官方参数说明](https://chromium.googlesource.com/crashpad/crashpad/%2Bshow/HEAD/handler/crashpad_handler.md)。runner 镜像清单只是工具可用性提示，实际 Chrome/Node 版本必须以当次 CI 探测和浏览器报告为准。

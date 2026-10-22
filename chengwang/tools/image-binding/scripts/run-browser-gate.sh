@@ -113,11 +113,22 @@ expected_fields = {
     "transport": "HTTP_127_LOOPBACK_ONLY_NOT_BROWSER_TLS_ACCEPTANCE",
     "chromeSandbox": "DISABLED_CI_ONLY_OUTER_ISOLATION_REQUIRED",
     "browserGroupStopped": True,
+    "cjkFontVerified": True,
 }
 if any(report.get(name) != value for name, value in expected_fields.items()):
     raise SystemExit("real browser evidence boundary or cleanup mismatch")
+fonts = report.get("cjkFonts")
+if not isinstance(fonts, list) or not 1 <= len(fonts) <= 16 or any(
+    not isinstance(font, dict) or set(font) != {"family", "postscript", "glyphCount", "custom"}
+    or not isinstance(font["family"], str) or not 1 <= len(font["family"]) <= 128
+    or not isinstance(font["postscript"], str) or not 1 <= len(font["postscript"]) <= 128
+    or type(font["glyphCount"]) is not int or not 0 <= font["glyphCount"] <= 10000
+    or type(font["custom"]) is not bool for font in fonts
+) or not any(font["family"] == "Noto Sans CJK SC" and font["glyphCount"] >= 7 and not font["custom"] for font in fonts):
+    raise SystemExit("actual browser Chinese glyph evidence missing or invalid")
 required_checks = {
     "actual browser document carries restrictive CSP no-store nosniff DENY and no-referrer",
+    "actual Chinese heading renders at least 7 glyphs using verified Noto Sans CJK SC",
     "unknown initial state and explicit candidate boundary",
     "no automatic authenticated requests before connection",
     "actual candidate generation and 22 persisted operation records",

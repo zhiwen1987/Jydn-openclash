@@ -81,6 +81,14 @@ export function decodeImageTrustHistory(value: unknown, requested: ImageTrustHis
   return v as unknown as ImageTrustHistory
 }
 
+function rejectUnreadResponse(response: Response, error: ImageTrustReadError): never {
+  // Only release this rejected response. Do not abort the shared request
+  // signal: an independent status/history read may still be authorized.
+  // A custom or stalled upstream cancellation must never hold the error open.
+  try { void response.body?.cancel().catch(() => {}) } catch { /* Never expose cancellation details. */ }
+  throw error
+}
+
 async function read(path: string, options: ImageTrustReadOptions): Promise<unknown> {
   const url = endpoint(path, options.baseUrl ?? '')
   if (!options.token || options.token.length > 4096 || !/^[\x21-\x2b\x2d-\x7e]+$/.test(options.token)) throw new ImageTrustReadError(401, 'authentication')
@@ -95,12 +103,12 @@ async function read(path: string, options: ImageTrustReadOptions): Promise<unkno
   }
   if (!response.ok) {
     const classification = response.status === 401 ? 'authentication' : response.status === 403 ? 'forbidden' : response.status === 409 ? 'conflict' : 'unavailable'
-    throw new ImageTrustReadError(response.status, classification)
+    rejectUnreadResponse(response, new ImageTrustReadError(response.status, classification))
   }
-  if (response.redirected || (response.url && new URL(response.url).origin !== window.location.origin)) throw new ImageTrustReadError(0, 'transport')
-  if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(response.headers.get('Content-Type') ?? '')) throw new ImageTrustReadError(0, 'format')
+  if (response.redirected || (response.url && new URL(response.url).origin !== window.location.origin)) rejectUnreadResponse(response, new ImageTrustReadError(0, 'transport'))
+  if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(response.headers.get('Content-Type') ?? '')) rejectUnreadResponse(response, new ImageTrustReadError(0, 'format'))
   const length = response.headers.get('Content-Length')
-  if (length && (!/^\d+$/.test(length) || Number(length) > MAX_RESPONSE_BYTES)) throw new ImageTrustReadError(0, 'format')
+  if (length && (!/^\d+$/.test(length) || Number(length) > MAX_RESPONSE_BYTES)) rejectUnreadResponse(response, new ImageTrustReadError(0, 'format'))
   if (!response.body) throw new ImageTrustReadError(0, 'format')
   const reader = response.body.getReader()
   const decoder = new TextDecoder('utf-8', { fatal: true })

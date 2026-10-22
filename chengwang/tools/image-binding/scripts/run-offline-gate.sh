@@ -29,7 +29,7 @@ test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
 test -z "$(/usr/sbin/ip -o route show default)"
 test -z "$(/usr/sbin/ip -6 -o route show default)"
 source_root=$(/usr/bin/git -C "$MODULE_ROOT" rev-parse --show-toplevel)
-for mount_path in "$source_root" "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification" "$source_root/chengwang/web/node_modules"; do
+for mount_path in "$source_root" "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification" "$source_root/chengwang/web/node_modules" "$RUN_ROOT/fonts"; do
   /usr/bin/findmnt -n -T "$mount_path" -o OPTIONS | /usr/bin/grep -qE '(^|,)ro(,|$)'
 done
 /usr/bin/python3 -B - <<'PY'
@@ -92,6 +92,59 @@ test -x "$NODE_BINARY"
 test -x "$CHROME_BINARY"
 "$NODE_BINARY" -e 'if(Number(process.versions.node.split(".")[0])<22||typeof WebSocket!=="function")process.exit(1)'
 "$CHROME_BINARY" --version
+# A DOM containing Chinese is not evidence that a Linux browser can render
+# Chinese. Verify pinned input data, use an exclusively private fontconfig
+# and cache, then prove both regular/bold SC faces are actually selected.
+/usr/bin/python3 -B - "$RUN_ROOT" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+import xml.etree.ElementTree as ET
+root = pathlib.Path(sys.argv[1])
+pins = {
+    "NotoSansCJKsc-Regular.otf": (16437364, "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b"),
+    "NotoSansCJKsc-Bold.otf": (17002248, "b5f0d1a190a7f9b43c310a8850630af12553df32c4c050543f9059732d9b4c0a"),
+    "LICENSE": (4301, "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2"),
+}
+files = []
+for name, (size, digest) in pins.items():
+    path = root / "fonts" / name
+    raw = path.read_bytes()
+    if path.is_symlink() or len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
+        raise SystemExit("test CJK font pin mismatch")
+    files.append({"name": name, "bytes": size, "sha256": digest})
+if {p.name for p in (root / "fonts").iterdir()} != set(pins):
+    raise SystemExit("unexpected test font input")
+conf = ET.Element("fontconfig")
+ET.SubElement(conf, "dir").text = str(root / "fonts")
+ET.SubElement(conf, "cachedir").text = str(root / "font-cache")
+for family in ("sans-serif", "system-ui"):
+    alias = ET.SubElement(conf, "alias")
+    ET.SubElement(alias, "family").text = family
+    ET.SubElement(ET.SubElement(alias, "prefer"), "family").text = "Noto Sans CJK SC"
+ET.ElementTree(conf).write(root / "fontconfig.conf", encoding="utf-8", xml_declaration=True)
+(root / "font-cache").mkdir(mode=0o700)
+(root / "evidence" / "browser-font-manifest.json").write_text(json.dumps({
+    "schema": "chengwang.ci-browser-fonts/v1", "testOnly": True,
+    "upstream": "https://github.com/notofonts/noto-cjk", "commit": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+    "license": "SIL Open Font License 1.1", "readonlyMount": True, "files": files,
+}, sort_keys=True) + "\n", encoding="utf-8")
+PY
+/usr/bin/cp -- "$RUN_ROOT/fonts/LICENSE" "$RUN_ROOT/evidence/browser-font-LICENSE.txt"
+/usr/bin/fc-cache --force "$RUN_ROOT/fonts"
+/usr/bin/fc-match -f '%{family}\n%{file}\n' ':lang=zh-cn' > "$RUN_ROOT/evidence/browser-font-regular.txt"
+/usr/bin/fc-match -f '%{family}\n%{file}\n' ':lang=zh-cn:weight=bold' > "$RUN_ROOT/evidence/browser-font-bold.txt"
+/usr/bin/python3 -B - "$RUN_ROOT" <<'PY'
+import pathlib
+import sys
+root = pathlib.Path(sys.argv[1])
+for kind, name in (("regular", "NotoSansCJKsc-Regular.otf"), ("bold", "NotoSansCJKsc-Bold.otf")):
+    observed = (root / "evidence" / ("browser-font-" + kind + ".txt")).read_text(encoding="utf-8").splitlines()
+    if observed != ["Noto Sans CJK SC", str(root / "fonts" / name)]:
+        raise SystemExit("actual Chinese font selection failed")
+print("D8_CJK_FONT_INPUTS=PASS pinned_commit=true sha256=true readonly_fonts=true private_fontconfig_cache=true regular_and_bold=true")
+PY
 web_root="$source_root/chengwang/web"
 (
   cd "$web_root"
@@ -110,11 +163,14 @@ web_root="$source_root/chengwang/web"
     2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/frontend-build.log"
 )
 /usr/bin/python3 -B - "$RUN_ROOT/evidence/frontend-vitest.json" <<'PY'
+import hashlib
 import json
 import pathlib
 import sys
 report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests", 0) < 20 or report.get("numPassedTests") != report.get("numTotalTests"):
+# Expected 77 includes eight new stream-cancellation cases independently run
+# on Windows; this gate still requires their actual Linux transcript.
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 77 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
 required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts"}
 results = report.get("testResults", [])
@@ -122,6 +178,26 @@ if {pathlib.Path(result["name"]).name for result in results} != required:
     raise SystemExit("frontend required test file set changed")
 if any(result.get("status") != "passed" or not result.get("assertionResults") or any(case.get("status") != "passed" for case in result["assertionResults"]) for result in results):
     raise SystemExit("frontend test file has missing or non-passing cases")
+# Retain all 69 actually accepted names from db1f018 run 39776115304.
+baseline = {
+    "App.test.tsx": (9, "ede9f83603b68390c1c61bfcdd8c2de171cc69e805cf318437dafdfcd4d3b94a"),
+    "OperationCenter.test.tsx": (8, "8e0a8700ad2d1d3d58b87c7f215798e12a1f4658e65a41b0557aea5d37b0992f"),
+    "api.test.ts": (3, "af87cc03df0bb1d89d064461dd8ad45e7accbb7811ca06d12ee37b5de3f9c670"),
+    "ImageTrustConsole.test.tsx": (21, "39d7c98703a268fc2e6810e36720df7738970a914d9e2a27170ae507859b4986"),
+    "image-trust-api.test.ts": (28, "0327632bcee80de191a3695700a2b65d39e6787f48b9bf2608b79ae1ccfecf69"),
+}
+new_prefixes = ("image trust read-only transport cancels the real unread response stream when rejecting ",
+                "image trust read-only transport does not wait for or expose a ",
+                "image trust read-only transport cancels only a forbidden history response ")
+for result in results:
+    filename = pathlib.Path(result["name"]).name
+    names = [case["fullName"] for case in result["assertionResults"]]
+    if len(set(names)) != len(names):
+        raise SystemExit("frontend duplicate test name")
+    old = sorted(name for name in names if filename != "image-trust-api.test.ts" or not name.startswith(new_prefixes))
+    count, digest = baseline[filename]
+    if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
+        raise SystemExit("accepted 69 frontend scenario baseline changed")
 print("D8_FRONTEND_UNIT_GATE=PASS files=5 tests=" + str(report["numPassedTests"]) + " skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"

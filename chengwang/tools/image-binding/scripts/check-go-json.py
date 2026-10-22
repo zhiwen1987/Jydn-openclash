@@ -69,6 +69,13 @@ COMPLETE_PACKAGE_FINGERPRINTS = {
     CATALOG: (89, "e1da45c450d07e3f0ecdac514ebe4723f42d66928365a9ee7b8f25b16bbaade0"),
     STATE: (68, "0aff387f31c7c7688b5552ecc887f38082a33ded00faf20c7256f9915dece155"),
 }
+# Complete ordinary/race sets independently downloaded from accepted P0-d8
+# run 39776115304 / db1f018af6ff255da68e2d0445ffd8c7dece50c8. The old
+# 627-set remains separately checked above; these exact sets include D8.
+CURRENT_PACKAGE_FINGERPRINTS = COMPLETE_PACKAGE_FINGERPRINTS | {
+    COMMAND: (97, "d7f3f56f374887def874a4debada87432ad87e3d40e6c73f83611b77fc1e1217"),
+    PRODUCT: (90, "a13f6e205758f8c73774c5a57d20408984a098847a50b6dd0d5a280945ff0b26"),
+}
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -381,6 +388,14 @@ def check_complete_packages(tests):
             raise ValueError(f"accepted complete P0-d7 package changed: {package} count={len(names)} sha256={digest}")
 
 
+def check_current_packages(tests):
+    for package, (count, expected) in CURRENT_PACKAGE_FINGERPRINTS.items():
+        names = sorted(name for actual, name in tests if actual == package)
+        digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
+        if len(names) != count or digest != expected:
+            raise ValueError(f"accepted complete P0-d8 package changed: {package} count={len(names)} sha256={digest}")
+
+
 def check_product_lifecycle_markers(events):
     for mode in ("consumed-recovery", "refresh-revocation"):
         marker = "PRODUCT_D7_REAL_API=PASS mode=" + mode
@@ -425,7 +440,7 @@ def self_test():
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
     for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline,
-                    check_complete_packages):
+                    check_complete_packages, check_current_packages):
         for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
                       frozenset({(ROOT, "TestBindSignedRegistryImage")})):
             try:
@@ -477,6 +492,7 @@ def main():
         check_product_packages(results[0][0])
         check_product_baseline(results[0][0])
         check_complete_packages(results[0][0])
+        check_current_packages(results[0][0])
         for path in args.transcripts:
             with path.open(encoding="utf-8") as stream:
                 check_product_lifecycle_markers([json.loads(line, object_pairs_hook=unique_object) for line in stream])
