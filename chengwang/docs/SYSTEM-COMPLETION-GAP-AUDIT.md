@@ -293,4 +293,4 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 
 新增独立 Go 1.25.8 `tools/image-verifier`，使用官方 `sigstore-go v1.3.0` 验证 messageSignature 与 DSSE 的 artifact digest、精确 issuer/SAN、Fulcio 链、SCT、同一 Rekor v1 条目的 SET/proof/checkpoint。它只产生 `ADVISORY_SIGSTORE_BUNDLE_VERIFIED / authorization=BLOCKED`，没有升级主项目 Go 1.23，也没有生产安装。已修复并回归官方分片样本的两个不同 index 语义，原始 fixtures 摘要不变；最终本地/CI 证据详见 `P0D3-STANDARD-SIGSTORE-VERIFIER.md`。
 
-这只填补标准验签底座的一部分：root/policy 独立批准、Registry 仓库平台读回、签名与OCI graph绑定、源码/builder准入、防重放、真实部署、出口与业务验证均未闭合；conformance 测试材料的独立许可仍待确认。旧供应链校验与九项 blocker 保持不变，M2b、M3、M4 和整体生产运营仍未完成。
+这只填补标准验签底座的一部分：root/policy 独立批准、Registry 仓库平台读回、签名与OCI graph绑定、源码/builder准入、防重放、真实部署、出口与业务验证均未闭合。conformance 测试材料已补查固定 README 的 Apache 2.0 明确声明并保留来源，但产品完整依赖许可审查仍未完成。旧供应链校验与九项 blocker 保持不变，M2b、M3、M4 和整体生产运营仍未完成。

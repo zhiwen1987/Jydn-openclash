@@ -43,10 +43,15 @@ Both bundles contain Fulcio certificates, SCTs, Rekor v1 SETs, inclusion proofs
 and signed checkpoints. They use verified Rekor integrated timestamps, not
 RFC3161 timestamp authority responses.
 
-License record: `LICENSE.sigstore-go` preserves the official sigstore-go Apache
-2.0 license for its trusted-root fixture. At the pinned sigstore-conformance
-commit, the repository root has no standalone LICENSE file (`LICENSE` returns
-404). No license is invented or inferred for its samples here. These public
-official samples are retained with their provenance for local compatibility
-tests; product redistribution and third-party-license approval remain separate
-unresolved release-review requirements.
+License record: `LICENSE.sigstore-go` preserves the official Apache 2.0 license
+text. At the pinned sigstore-conformance commit, there is no standalone root
+LICENSE file, but the official README's Licensing section explicitly states
+that sigstore-conformance is licensed under Apache 2.0:
+https://github.com/sigstore/sigstore-conformance/blob/43321d80f52958efa584c6c975716150db62180b/README.md#licensing
+The original README is 7050 bytes with SHA-256
+`a8ccbf4949623573056dd1bffb55f143b919aa3ae81c2faa4faae19db8add354`.
+This corrects the initial incomplete license search; the upstream declaration
+is verified, not inferred from the sigstore-go license. Keep this attribution
+and the Apache license text when copying these fixtures. This narrow record
+does not constitute a third-party-license audit of the complete product or
+its dependency graph, nor does it approve a production signing policy.

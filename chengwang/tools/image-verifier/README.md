@@ -1,6 +1,6 @@
 # 澄网标准来源验签候选（P0-d3）
 
-状态：**独立模块候选，不是已上线功能，不授权部署或恢复。**
+状态：**独立模块候选，已通过本地及 Linux 离线 CI，不是已上线功能，不授权部署或恢复。** 具体提交、任务与证据边界见 [P0-d3 验收记录](../../docs/P0D3-STANDARD-SIGSTORE-VERIFIER.md)。
 
 使用官方 `sigstore-go v1.3.0`，独立 Go 1.25.8 模块；不升级主控制面 Go 1.23 基线，也不修改 OpenClash。标准库与第三方依赖锁定于 `go.mod/go.sum`，fixture 原始字节与来源见 [testdata/SOURCES.md](testdata/SOURCES.md)。
 
@@ -59,7 +59,7 @@ message-signature 模式不允许设置 DSSE 专属策略。CLI 请求最多 3 M
 ## 尚未完成，不能误读
 
 1. root 摘要 pin 来自调用方策略，只证明字节一致；不是独立 TUF 认证、审批、密钥轮换、撤销或可信时间治理。
-2. 官方 fixture 只证明标准兼容性，其 signer/builder 不是澄网发布来源；不能批准本项目镜像。conformance fixture 的独立许可证未获上游明确确认，产品分发前需解决，不能宣称许可审查完成。
+2. 官方 fixture 只证明标准兼容性，其 signer/builder 不是澄网发布来源；不能批准本项目镜像。已从固定 conformance README 核实 Apache 2.0 许可声明并保留来源与许可证文本；这不是完整产品和依赖图的许可审查。
 3. 不支持 Rekor v2/RFC3161、其他 bundle 版本、key-only、证书链输入、多签名、多日志阈值、intoto Rekor v1 条目或任意 predicate 业务策略；不自动回退到较弱验证。
 4. 尚未连接 Registry GET/HEAD、仓库/平台远端读回、OCI layer graph、approved policy 版本、构建 commit/builder allowlist、耐久防重放或不可变部署。
 5. CLI 输出不是可导入的可信 receipt，不得以客户端提供的 `verified=true` 或 JSON 成功报告替代重新验签和独立证据绑定。
