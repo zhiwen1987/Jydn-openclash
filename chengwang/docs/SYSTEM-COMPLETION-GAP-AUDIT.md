@@ -294,3 +294,9 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 新增独立 Go 1.25.8 `tools/image-verifier`，使用官方 `sigstore-go v1.3.0` 验证 messageSignature 与 DSSE 的 artifact digest、精确 issuer/SAN、Fulcio 链、SCT、同一 Rekor v1 条目的 SET/proof/checkpoint。它只产生 `ADVISORY_SIGSTORE_BUNDLE_VERIFIED / authorization=BLOCKED`，没有升级主项目 Go 1.23，也没有生产安装。已修复并回归官方分片样本的两个不同 index 语义，原始 fixtures 摘要不变；最终本地/CI 证据详见 `P0D3-STANDARD-SIGSTORE-VERIFIER.md`。
 
 这只填补标准验签底座的一部分：root/policy 独立批准、Registry 仓库平台读回、签名与OCI graph绑定、源码/builder准入、防重放、真实部署、出口与业务验证均未闭合。conformance 测试材料已补查固定 README 的 Apache 2.0 明确声明并保留来源，但产品完整依赖许可审查仍未完成。旧供应链校验与九项 blocker 保持不变，M2b、M3、M4 和整体生产运营仍未完成。
+
+## P0-d4 镜像签名、批准与 Registry 绑定（2026-10-22）
+
+新增独立 `tools/image-binding`，把 Ed25519 批准文档、精确 Sigstore 签名对象和实际 Registry 单平台 manifest/config/layer 图关联。批准绑定 Registry 仓库、域名、IP、正常 TLS 和叶 SPKI，以及签名身份与信任根摘要。候选提交 `90299930429c147ebde14c71739159ea20c5e6d7` 已通过隔离 Linux CI：新模块普通/race 各 234 场景、3 包；真实 Distribution 两类签名普通/race 读回；原主项目 4134 语义事件、36 包、0 skip。详见 [P0-d4 验收记录](P0D4-APPROVED-REGISTRY-BINDING.md)。
+
+这是 `implemented+tested isolated-only` 的库，不是已接入产品的批准/部署系统。测试批准密钥和惰性测试镜像不是生产批准者或澄网发布制品；可信策略存储、源码/builder 语义准入、吊销/防回放、运行容器绑定与发布恢复执行器仍缺。没有生产变更，所有结果 advisory/BLOCKED，九项 blocker、M2b/M3/M4 与整体生产运营状态不因这些测试而解除。
