@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -23,6 +24,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -119,6 +121,13 @@ type d11Report struct {
 func d11Require(t *testing.T, ok bool) {
 	t.Helper()
 	if !ok {
+		_, ownFile, _, _ := runtime.Caller(0)
+		if _, file, line, found := runtime.Caller(1); found && file == ownFile {
+			fmt.Printf("D11_PRODUCT_REGISTRY_ASSERT_LINE=%d\n", line)
+		}
+		if _, file, line, found := runtime.Caller(2); found && file == ownFile {
+			fmt.Printf("D11_PRODUCT_REGISTRY_ASSERT_CONTEXT_LINE=%d\n", line)
+		}
 		t.Fatal("isolated product registry fixture rejected")
 	}
 }
@@ -174,7 +183,27 @@ func d11Decode(t *testing.T, raw []byte, v any) {
 	t.Helper()
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
-	d11Require(t, dec.Decode(v) == nil && dec.Decode(new(any)) == io.EOF)
+	first := dec.Decode(v)
+	if first != nil {
+		reason := "OTHER"
+		var syntax *json.SyntaxError
+		var mismatch *json.UnmarshalTypeError
+		switch {
+		case strings.HasPrefix(first.Error(), "json: unknown field "):
+			reason = "UNKNOWN_FIELD"
+		case errors.As(first, &syntax):
+			reason = "SYNTAX"
+		case errors.As(first, &mismatch):
+			reason = "TYPE"
+		}
+		fmt.Printf("D11_PRODUCT_REGISTRY_JSON_REJECTION=%s\n", reason)
+		d11Require(t, false)
+	}
+	trailing := dec.Decode(new(any))
+	if trailing != io.EOF {
+		fmt.Println("D11_PRODUCT_REGISTRY_JSON_REJECTION=TRAILING")
+		d11Require(t, false)
+	}
 }
 func d11Base(t *testing.T) (string, string, string, string) {
 	t.Helper()

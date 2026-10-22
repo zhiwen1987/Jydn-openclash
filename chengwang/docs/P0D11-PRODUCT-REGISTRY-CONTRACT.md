@@ -12,6 +12,14 @@ D11仅到Registry正常TLS ready、隔离网络读回。`registry-start` 内联P
 
 修复应只把不涉及语义的顺序约束改为**严格唯一环境键值映射**：完整保留固定镜像原值，仅3个明确OTEL键覆盖为none；拒绝重复键、额外键、缺键或任意值变化，不允许任意Env。必须重新执行真实全链，不能拿本轮33项合成测试或父回归替代。
 
+## 第二轮实际执行记录：准备阶段未通过
+
+环境映射修补代码 `65a66b7899d15a86f4ea00d99e706f49851d0114` 的[父39819925451/job119968194598](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39819925451/job/119968194598)已成功；主代理和独立代理对原始普通/race各2320及完整指纹复核一致，父日志LF5,447,546B、SHA256 `b1319149193801c5e866cc94fd1117274dbb92a96d2d4141d9fd8501ca2ad333`。这不能覆盖[绑定39819925371/job119968193542](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39819925371/job/119968193542)的失败。
+
+绑定实际通过原离线回归和旧Registry步骤、新Linux检查器33/33/0skip及D10浏览器45；D11越过严格环境映射、正常TLS、隔离/网络安全投影，但在 `prepare-message-signature-0`、首个 `archive-validated` marker之前失败。安全诊断 `fixtureSourceLine=196` 只是 `t.Helper` 折叠后的 `d11Prepare` 上层入口，**不是具体失败断言或根因**。未形成prepare/graph/实际消费/重启撤销证明，D11紧急清理仍FAIL，外层D10精确清理PASS。
+
+原[工件12444147629](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39819925371/artifacts/12444147629)实际101文件；绑定原joblog LF1,772,694B、SHA256 `84b64a74d2c3e61559a05c48439950d1718f0c430bd1f19c009e0d97e8769982`。本轮不能从已删除的私有归档编造失败细节。下一修补仅增加失败断言的直接源码行与严格枚举JSON分类，不暴露原始错误、私有路径、字段内容或签名材料，不改验收阈值；确认具体原因后才修复。
+
 ## 必须补上的实际缺口
 
 D10已执行真实产品镜像，但原Registry回归仍使用惰性测试制品。D11必须让同一次构建的真实config/layer字节进入一次性、无外网的Distribution，绑定精确manifest、正常TLS固定来源和真实Sigstore/批准，并由镜像内默认程序执行产品API消费/防重放。不能把旧测试成功或本地imageID直接当成产品镜像来源证明。

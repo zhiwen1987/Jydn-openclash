@@ -95,6 +95,9 @@ assert re.fullmatch(r'[a-z0-9-]{1,96}',phase)
 assert kind in ('','message-signature','dsse') and action in ('','prepare','exercise','resume','catalogue','verify') and case in ('','0','1','2','3','4','first','final')
 stages=[]
 fixture_source_line=0
+fixture_assertion_line=0
+fixture_assertion_context_line=0
+fixture_json_rejection=''
 if log:
     path=pathlib.Path(log)
     assert path.parent==pathlib.Path(private) and re.fullmatch(r'(message-signature|dsse)-(prepare|exercise|resume|catalogue|verify)-(0|[1-4]|first|final)\.private\.log',path.name)
@@ -109,7 +112,13 @@ if log:
         if match and match[2].decode('ascii')==kind: stages.append(match[1].decode('ascii'))
         source_match=re.fullmatch(rb'\s*product_registry_d11_linux_test\.go:([1-9][0-9]{0,5}): isolated product registry fixture rejected',line)
         if source_match: fixture_source_line=int(source_match[1])
-print(json.dumps({'schema':'chengwang.product-registry-failure/v1','outcome':'FAIL','phase':phase,'kind':kind,'action':action,'case':case,'safeStages':stages,'fixtureSourceLine':fixture_source_line,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
+        assertion_match=re.fullmatch(rb'D11_PRODUCT_REGISTRY_ASSERT_LINE=([1-9][0-9]{0,5})',line)
+        if assertion_match: fixture_assertion_line=int(assertion_match[1])
+        context_match=re.fullmatch(rb'D11_PRODUCT_REGISTRY_ASSERT_CONTEXT_LINE=([1-9][0-9]{0,5})',line)
+        if context_match: fixture_assertion_context_line=int(context_match[1])
+        json_match=re.fullmatch(rb'D11_PRODUCT_REGISTRY_JSON_REJECTION=(UNKNOWN_FIELD|SYNTAX|TYPE|TRAILING|OTHER)',line)
+        if json_match: fixture_json_rejection=json_match[1].decode('ascii')
+print(json.dumps({'schema':'chengwang.product-registry-failure/v1','outcome':'FAIL','phase':phase,'kind':kind,'action':action,'case':case,'safeStages':stages,'fixtureSourceLine':fixture_source_line,'fixtureAssertionLine':fixture_assertion_line,'fixtureAssertionContextLine':fixture_assertion_context_line,'fixtureJSONRejection':fixture_json_rejection,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
 PY
     then
       /usr/bin/rm -f -- "$evidence/product-registry-failure-diagnostic.json"
