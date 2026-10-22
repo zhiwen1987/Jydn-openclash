@@ -155,8 +155,14 @@ func Read(ctx context.Context, approval policy.Approved, roots *x509.CertPool, b
 	}
 	r := reader{approval: approval, host: host, repo: repo, bearer: bearerToken, dial: dial}
 	fail := func() (Observation, error) {
-		if callerCtx.Err() != nil {
-			return Observation{}, callerCtx.Err()
+		if err := callerCtx.Err(); err != nil {
+			return Observation{}, err
+		}
+		// A socket deadline may fire before the context timer publishes Err.
+		// Classify only the caller's elapsed deadline, never our shorter
+		// approval/transport deadline, and never wait on an arbitrary Done.
+		if end, ok := callerCtx.Deadline(); ok && !time.Now().Before(end) {
+			return Observation{}, context.DeadlineExceeded
 		}
 		return Observation{}, ErrInvalid
 	}

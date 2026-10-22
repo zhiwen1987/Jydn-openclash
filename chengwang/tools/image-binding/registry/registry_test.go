@@ -505,6 +505,15 @@ func TestRejectDeclaredImageBudgets(t *testing.T) {
 	}
 }
 
+// Models the scheduler window in which a caller deadline has elapsed but its
+// timer goroutine has not yet published Err or closed Done. Never wait on Done.
+type unpublishedDeadline struct {
+	context.Context
+	end time.Time
+}
+
+func (c unpublishedDeadline) Deadline() (time.Time, bool) { return c.end, true }
+
 func TestContextAndApprovalExpiry(t *testing.T) {
 	t.Run("nil_context", func(t *testing.T) {
 		f := newRegistry(t, "oci-raw")
@@ -528,6 +537,13 @@ func TestContextAndApprovalExpiry(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 80*time.Millisecond)
 		defer cancel()
 		failure(t, ctx, f.approval(t), f.roots, "", context.DeadlineExceeded)
+		// Deterministically reproduce the independent socket/context timer
+		// ordering without weakening the genuine 80ms network case above.
+		lagged := unpublishedDeadline{Context: context.Background(), end: time.Now().Add(-time.Second)}
+		if lagged.Err() != nil || lagged.Done() != nil {
+			t.Fatal("deadline publication fixture is not delayed")
+		}
+		failure(t, lagged, f.approval(t), f.roots, "", context.DeadlineExceeded)
 	})
 	t.Run("cancel_in_flight", func(t *testing.T) {
 		f := newRegistry(t, "oci-raw")
