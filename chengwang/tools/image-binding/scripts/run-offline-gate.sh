@@ -83,6 +83,10 @@ cd "$MODULE_ROOT"
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-lifecycle-verifier-tests.log"
 /usr/bin/grep -qx 'PRODUCT_LIFECYCLE_VERIFIER_TESTS=PASS synthetic_only=true tests=27 skipped=0' \
   "$RUN_ROOT/evidence/product-lifecycle-verifier-tests.log"
+/usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_crash_image_profile.py" \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-crash-profile-tests.log"
+/usr/bin/grep -qx 'D12_CRASH_IMAGE_PROFILE_TESTS=PASS tests=6 skipped=0 synthetic_only=true' \
+  "$RUN_ROOT/evidence/product-crash-profile-tests.log"
 /usr/bin/python3 -B scripts/test-browser-process-guard.py \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 /usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
@@ -270,6 +274,8 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 # original tagged test contract includes the opt-in D12 test.
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry,productlifecycle -o "$RUN_ROOT/bin/product-lifecycle.test" .
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -tags productregistry,productcrash -o "$RUN_ROOT/bin/product-crash.test" .
 # Only the Docker-save envelope parser's synthetic metadata cases run here.
 # This does not replace the actual image/Registry API lifecycle or enlarge the
 # ordinary/race 700-test contract. Both the unique marker and actual named PASS

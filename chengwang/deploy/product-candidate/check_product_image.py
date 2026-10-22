@@ -362,7 +362,7 @@ def one_inspect(raw: bytes) -> dict:
 
 def inspect_projection(image: dict, container: dict, *, image_id: str, source: str,
                        private: str, state: str, network: str, status: str,
-                       fixture_kind: str = "product-image") -> dict:
+                       fixture_kind: str = "product-image", planned_sigkill: bool = False) -> dict:
     require(bool(re.fullmatch(r"sha256:[0-9a-f]{64}", image_id)) and bool(COMMIT.fullmatch(source)), "image identity rejected")
     require(image.get("Id") == image_id and container.get("Image") == image_id, "actual image identity mismatch")
     require(image.get("Os") == "linux" and image.get("Architecture") == "amd64", "image platform rejected")
@@ -381,11 +381,14 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
     # The original CLI stays D10-only. Separate lifecycle checkers opt in to
     # their closed namespaces while reusing every runtime security check.
     # No caller-supplied arbitrary prefix, path rewrite or broad /tmp allowance.
-    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle"}, "fixture kind rejected")
+    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle", "product-crash"}, "fixture kind rejected")
+    require(type(planned_sigkill) is bool and (not planned_sigkill or fixture_kind == "product-crash" and status == "exited"), "planned abnormal exit scope rejected")
     if fixture_kind == "product-registry":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-registry-[0-9a-f]{32}/(?:message-signature|dsse)", private)), "private registry fixture path rejected")
     elif fixture_kind == "product-lifecycle":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/refresh/(?:message-signature|dsse)", private)), "private lifecycle fixture path rejected")
+    elif fixture_kind == "product-crash":
+        require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/(?:prepared|reserved|consumed)/(?:message-signature|dsse)", private)), "private crash fixture path rejected")
     else:
         require(isinstance(private, str) and private.startswith("/tmp/chengwang-product-image-") and pathlib.PurePosixPath(private).as_posix() == private and all(x not in {"", ".", ".."} for x in private.split("/")[1:]), "private fixture path rejected")
     require(state == private + "/trust", "state mount binding rejected")
@@ -420,7 +423,7 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
     if status == "running":
         require(pid > 0 and current.get("Running") is True, "running process required")
     else:
-        require(status == "exited" and pid == 0 and current.get("Running") is False and type(current.get("ExitCode")) is int and current["ExitCode"] == 0, "clean exit required")
+        require(status == "exited" and pid == 0 and current.get("Running") is False and type(current.get("ExitCode")) is int and current["ExitCode"] == (137 if planned_sigkill else 0), "expected exact exit required")
     require(bool(re.fullmatch(r"[0-9a-f]{64}", container.get("Id", ""))), "container identity rejected")
     return {"boundary": BOUNDARY, "authorization": "BLOCKED", "deviceActionsExecuted": False,
             "sourceCommit": source, "localImageID": image_id, "imageIdentityKind": "LOCAL_DOCKER_CONFIG_ID_NOT_REGISTRY_MANIFEST",
@@ -430,7 +433,7 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
             "hostPorts": 0, "bindMounts": {"privateReadOnly": True, "trustStateReadWrite": True, "productDataReadWrite": True},
             "memoryBytes": host["Memory"], "memorySwapBytes": host["MemorySwap"], "nanoCPUs": host["NanoCpus"], "pidsLimit": host["PidsLimit"], "nofile": 1024,
             "restartPolicy": "no", "stopTimeoutSeconds": 15, "state": status, "pid": pid,
-            "cleanExit": status == "exited", "rawEnvironmentIncluded": False, "rawMountSourcesIncluded": False}
+            "cleanExit": status == "exited" and not planned_sigkill, "rawEnvironmentIncluded": False, "rawMountSourcesIncluded": False}
 
 
 def main(argv=None) -> int:

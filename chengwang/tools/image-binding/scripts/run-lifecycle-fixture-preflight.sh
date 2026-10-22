@@ -40,10 +40,15 @@ handoff_reports() {
       /usr/bin/chown "$runner_uid:$runner_gid" "$path"
     fi
   done
+  if test -f "$run_root/evidence/product-crash-blob-lease-tests.log"; then
+    /usr/bin/chmod 0600 "$run_root/evidence/product-crash-blob-lease-tests.log"
+    /usr/bin/chown "$runner_uid:$runner_gid" "$run_root/evidence/product-crash-blob-lease-tests.log"
+  fi
 }
 for suffix in lease-tests.log feed-tests.log checker-tests.log preflight.json cleanup.json; do
   test ! -e "$prefix-$suffix" && test ! -L "$prefix-$suffix"
 done
+test ! -e "$run_root/evidence/product-crash-blob-lease-tests.log" && test ! -L "$run_root/evidence/product-crash-blob-lease-tests.log"
 test ! -e "$private" && test ! -L "$private"
 cleanup_private() {
   # No host /tmp enumeration/deletion. This brand-new root-owned backing
@@ -136,6 +141,13 @@ for suite in lease feed; do
       /usr/bin/python3 -B "$base/test_fixture_$suite.py" \
       2>&1 | /usr/bin/tee "$prefix-$suite-tests.log"
 done
+/usr/bin/timeout --signal=TERM --kill-after=5s 120s \
+  /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC \
+    PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
+    /usr/bin/python3 -B "$base/test_fixture_blob_lease.py" \
+    2>&1 | /usr/bin/tee "$run_root/evidence/product-crash-blob-lease-tests.log"
+/usr/bin/grep -qx 'D12_BLOB_LEASE_TESTS=PASS tests=12 passed=12 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true' \
+  "$run_root/evidence/product-crash-blob-lease-tests.log"
 /usr/bin/timeout --signal=TERM --kill-after=5s 30s \
   /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \
     /usr/bin/python3 -B "$base/test_check_lifecycle_preflight.py" \
