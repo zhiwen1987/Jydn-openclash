@@ -1,6 +1,6 @@
 # P0-d10 实际候选镜像与隔离运行合同
 
-日期：2026-10-22。状态：实施中；本文不是镜像已构建、已批准或上线的证明。承接 P0-d9 代码 `875db6da`、归档 `0c2988f`；后者父回归 run `39801395231` 已 completed/success。
+日期：2026-10-22；2026-10-23补归档链接。本文为实施合同，本身不是镜像已构建、已批准或上线的证明。最终代码 `fbe6f060` 已完成真实隔离验收，具体结果与未完成边界见 [D10验收报告](P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)。承接 P0-d9 代码 `875db6da`、归档 `0c2988f`；后者父回归 run `39801395231` 已 completed/success。
 
 ## 要交付的端到端变化
 
@@ -19,7 +19,7 @@
 
 - 必须针对提交的实际源码执行，再读回原始 transcript/工件。旧父2320、子700和所有更早完整集合保持；新增带 `productimage` tag 的 fixture 单独运行，不拿无环境分支或合成报告充作真实镜像证明。
 - 镜像检查器必须有拒绝负例；真实镜像启动/浏览器/停止/持久读回不能由检查器单测替代。首轮失败须保留原因并重跑真实端到端，而不是删检查。
-- Browser plugin not available，沿用既有 Playwright 静态层、预装 Chrome/CDP 真实层，无新浏览器依赖；CI-only `--no-sandbox` 继续明确记录，外层隔离不等于启用 Chrome sandbox。
+- Browser plugin not available，既有 Playwright 静态层仅为历史证据，本轮新增真实浏览器验收由预装 Chrome/CDP 执行，不声称本轮重新运行 Playwright；无新浏览器依赖。CI-only `--no-sandbox` 继续明确记录，外层隔离不等于启用 Chrome sandbox。
 - 原 `chengwang/Dockerfile`、offline 镜像和 M2b/探针镜像的浮动基础来源仍被原门阻断。本阶段是新增独立完整产品候选，不修改旧生产启动路径或给旧镜像放行。
 - 只有实际通过后才能称 `PRODUCT_CANDIDATE_IMAGE=BUILT_AND_EXECUTED_ISOLATED`，始终 `authorization=BLOCKED`、`deviceActionsExecuted=false`。不解除九项恢复 blocker、M2b/M3/M4 或生产切换限制。
 

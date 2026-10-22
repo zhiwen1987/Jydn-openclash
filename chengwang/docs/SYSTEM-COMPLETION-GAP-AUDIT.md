@@ -344,3 +344,11 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 最终代码 `875db6da9a68c03f3ea0588071925550cfb94fee`，绑定run `39799680041` 与父run `39799679868` 均completed/success。子普通/race各700 Test pair、D9新增31，父各2320、runtime新增9，所有旧完整集合保留。另77前端、6 Node、11进程guard、52 JSON负例、15门测试、Linux160 Python/0skip、13 shell、11 metaschema通过。真实Chrome→完整产品候选HTTP40/HTTPS45检查，精确title/URL、console错误/警告0、三类坏证书在HTTP/Bearer前拒绝；正常私有NSS验证TLS1.3与父API200，journal22/audit44只读不变。8张实际中文截图、546/74条源码逐Git blob和386远端依赖核对通过；真实Registry144不可变读取200保持。初轮Vitest误收Node文件失败和后来title/console证明缺口均保留记录，不拿旧成功替代新断言验收。详见 [P0-d9 验收](P0D9-PRODUCT-HTTPS-ACCEPTANCE.md)与[候选操作说明](PRODUCT-CANDIDATE-OPERATOR-NOTES.md)。
 
 状态仍为 `implemented+tested isolated-only / authorization=BLOCKED`。完整主App/企业IdP/审批、正式容器与签名发布、真实release部署、公共/企业证书生命周期、跨浏览器/IPv6/LAN、完整入口SDK网络中途崩溃、长期soak、坏库自愈、外部见证/WORM、分布式HA、全网络与设备执行均未完成。Docker基础镜像未固定门不绕过；CI-only Chrome仍为no-sandbox，外层隔离不等同浏览器sandbox。九项恢复blocker和M2b/M3/M4状态不解除，未访问/改变生产，未合并main，不承诺无bug、免维护或可用率。
+
+## P0-d10 真实产品候选镜像与隔离运行（2026-10-23归档）
+
+新增独立scratch路径，不修改旧Dockerfile/M2b浮动基础来源门。真实Go1.25.8静态产品程序与7个trust Web文件经严格ELF/buildinfo/源码与摘要白名单打包，实际Docker构建/镜像层文件读回，默认非root入口运行，不挂载替代程序。4个镜像端点与可信实例同容器重启共5次运行，实际PID1程序摘要、只读根、cap0/NNP、精确mount/资源限额/无host端口分别有读回。5次退出0、3轮四组Store/Audit独立重开、正常TLS/API重启读回与4类真入口启动失败关闭实际通过；gen3/25测试定义/journal22/audit44/零消费不变。
+
+最终代码 `fbe6f0605abb3eb83f541bf62774c08df8a11456` 的绑定run `39808957939`、父run `39808957928` 均completed/success，子普通/race各700、父各2320完整集合保持，Linux18新检查器0skip。新镜像真实Chrome正常NSS HTTPS45检查/16GET/console错误警告0、3证书反证通过；旧HTTP40/HTTPS45和真Registry144不可变读取保持。95工件/12原始截图、553+76条源码逐Git原字节与386依赖复核完成。首轮5b016cc的browser路径/清理权限失败保留，fbe只修3文件只读且源码绑定的harness可达路径，未删检查。详见 [D10验收](P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)。
+
+状态仅为 `PRODUCT_CANDIDATE_IMAGE=BUILT_AND_EXECUTED_ISOLATED / authorization=BLOCKED`。本地Docker config imageID不是Registry manifest，产品镜像未远端读回、签名/批准或发布；旧Registry测试不是该产品镜像绑定。镜像内真实SDK/Registry写链及自动刷新故障矩阵、独立来源/builder attestation/SBOM/多架构、正式安装/生产灰度与长期soak、企业治理/证书/完整网络功能仍缺。健康状态重开不证明坏盘自修或物理掉电恢复；D10证书反证是客户端零请求观察，无镜像内服务端独立计数器。原主入口默认、九项blocker、M2b/M3/M4及生产环境均未改变，未合并main，不提供整体完成率或可用率承诺。
