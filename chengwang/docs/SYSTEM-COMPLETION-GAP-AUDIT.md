@@ -328,3 +328,11 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 最终代码 `d4f413e808dc03c30e5aca15ca4a5d79aab531ec`：绑定 run `39769625166` / job `119793601116`、父 run `39769625246` / job `119793601382` 均 success。子模块普通/race 各 627 场景、8 包，保留旧 234/379/490；父 4514 次 Test 运行、37 包，保留旧 2252 pair，零 fail/skip。12 个真实 product 子进程退出持久边界、真正 API/Sigstore CONSUMED 后审计故障恢复、真实 TLS 源网络中撤销及原无适配 Distribution 均实际执行；507/61 项源码摘要逐 Git raw blob 核对、386 依赖集合不变。失败任务与静态竞态修正未隐藏，详见 [P0-d7 验收记录](P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)。
 
 状态仍为 `implemented+tested isolated-only / authorization=BLOCKED`。并非完整 TUF、即时未知撤销、坏文件自愈、WORM/独立副本、外部时间/单调见证、长期容量与资源治理、企业身份/UI/审批、分布式 HA 或正式镜像发布。过期中间代与固定源故障会失败关闭；journal/审计满后需受控运维，不承诺免维护、无 bug 或任何高可用率。九项 blocker、M2b/M3/M4、整体正式运营状态不变；本轮没有访问/变更生产主机、爱快、DNS、OpenClash，没有 main 合并或设备执行授权。
+
+## P0-d8 可信状态与受保护操作记录界面（2026-10-22）
+
+在 P0-d7 基础上新增只读 history API、独立 `image_trust.history` RBAC，以及真实候选的独立 `trust.html`。来源新鲜度、目录有效期、审计核验和启动补审计分别显示，未知不视为健康。历史读取核对 journal 与审计的全部保留绑定，正常并发返回 409 而非误 poison；读取不刷新源、不消费 grant、不补审计。前端支持显式内存凭据、搜索、分页、摘要展开、手工刷新、断开清除和权限失败状态，没有部署/写入入口。
+
+最终代码 `ecb1a4e6fc3206d7cb87abd51eb60ee8352a46bb`，绑定 run `39778238811` / job `119822560806` 与父 run `39778238648` / job `119822560164` 均 success。子模块普通/race 各 669 个 Test pair、8 包；父各 2311 个 Test pair，37 包中 36 pass、1 个显式允许的 domain 无测试包 skip，测试场景零 fail/skip。另 77 前端测试、11 个 pidfd guard 测试、159 Python、13 shell、11 schema 通过；真实 Chrome→真实候选执行 38 项检查、14 个同源 GET、4 张实际截图，并验证 25 项签名定义、22 条 journal、44 条审计经只读访问后不变。保留 P0-d7 与更早完整基线，真实 Distribution 签名/API 链继续通过。535/70 项源码清单逐 Git 原始 blob 复核，386 远端依赖版本不变。首轮只读缓存失败及随后绿色 CI 的中文字形方框均未计最终验收，修正并重跑后才通过。详见 [P0-d8 验收记录](P0D8-TRUST-CONSOLE-ACCEPTANCE.md)。
+
+状态仅为 `implemented+tested isolated-only / authorization=BLOCKED`。企业身份/审批、原主入口真实后端装配、浏览器 HTTPS/证书验收、正式签名产品镜像、生产灰度/读回/观察、长期资源治理、坏库自动修复、独立 WORM/见证和分布式 HA 仍未完成。浏览器 CI 使用 loopback HTTP 与显式记录的 CI-only `--no-sandbox`，不冒充生产安全边界。九项 blocker、M2b/M3/M4 和整体正式运营状态不变；未访问或修改生产，未合并 main。
