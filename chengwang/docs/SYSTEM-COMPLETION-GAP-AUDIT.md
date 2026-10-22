@@ -336,3 +336,11 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 最终代码 `ecb1a4e6fc3206d7cb87abd51eb60ee8352a46bb`，绑定 run `39778238811` / job `119822560806` 与父 run `39778238648` / job `119822560164` 均 success。子模块普通/race 各 669 个 Test pair、8 包；父各 2311 个 Test pair，37 包中 36 pass、1 个显式允许的 domain 无测试包 skip，测试场景零 fail/skip。另 77 前端测试、11 个 pidfd guard 测试、159 Python、13 shell、11 schema 通过；真实 Chrome→真实候选执行 38 项检查、14 个同源 GET、4 张实际截图，并验证 25 项签名定义、22 条 journal、44 条审计经只读访问后不变。保留 P0-d7 与更早完整基线，真实 Distribution 签名/API 链继续通过。535/70 项源码清单逐 Git 原始 blob 复核，386 远端依赖版本不变。首轮只读缓存失败及随后绿色 CI 的中文字形方框均未计最终验收，修正并重跑后才通过。详见 [P0-d8 验收记录](P0D8-TRUST-CONSOLE-ACCEPTANCE.md)。
 
 状态仅为 `implemented+tested isolated-only / authorization=BLOCKED`。企业身份/审批、原主入口真实后端装配、浏览器 HTTPS/证书验收、正式签名产品镜像、生产灰度/读回/观察、长期资源治理、坏库自动修复、独立 WORM/见证和分布式 HA 仍未完成。浏览器 CI 使用 loopback HTTP 与显式记录的 CI-only `--no-sandbox`，不冒充生产安全边界。九项 blocker、M2b/M3/M4 和整体正式运营状态不变；未访问或修改生产，未合并 main。
+
+## P0-d9 完整产品候选组合与正常 HTTPS（2026-10-22）
+
+从父主服务抽取Go1.23共享runtime，原主入口保留原测试与默认门；独立Go1.25.8候选通过显式 `-product-config` 将真实trust backend装配到同一个完整基础API和共享Audit。私有typed配置绑定身份/TLS/租户/站点/已有状态，强制candidate+TLS，不继承全局发布开关。启动恢复先于监听，停止admission、取消并等待handler/worker后才关库；超时失败且保留资源，不称为成功关服。此处完整指既有基础API组合，并非全部企业模块完成；原主入口默认仍无trust backend。
+
+最终代码 `875db6da9a68c03f3ea0588071925550cfb94fee`，绑定run `39799680041` 与父run `39799679868` 均completed/success。子普通/race各700 Test pair、D9新增31，父各2320、runtime新增9，所有旧完整集合保留。另77前端、6 Node、11进程guard、52 JSON负例、15门测试、Linux160 Python/0skip、13 shell、11 metaschema通过。真实Chrome→完整产品候选HTTP40/HTTPS45检查，精确title/URL、console错误/警告0、三类坏证书在HTTP/Bearer前拒绝；正常私有NSS验证TLS1.3与父API200，journal22/audit44只读不变。8张实际中文截图、546/74条源码逐Git blob和386远端依赖核对通过；真实Registry144不可变读取200保持。初轮Vitest误收Node文件失败和后来title/console证明缺口均保留记录，不拿旧成功替代新断言验收。详见 [P0-d9 验收](P0D9-PRODUCT-HTTPS-ACCEPTANCE.md)与[候选操作说明](PRODUCT-CANDIDATE-OPERATOR-NOTES.md)。
+
+状态仍为 `implemented+tested isolated-only / authorization=BLOCKED`。完整主App/企业IdP/审批、正式容器与签名发布、真实release部署、公共/企业证书生命周期、跨浏览器/IPv6/LAN、完整入口SDK网络中途崩溃、长期soak、坏库自愈、外部见证/WORM、分布式HA、全网络与设备执行均未完成。Docker基础镜像未固定门不绕过；CI-only Chrome仍为no-sandbox，外层隔离不等同浏览器sandbox。九项恢复blocker和M2b/M3/M4状态不解除，未访问/改变生产，未合并main，不承诺无bug、免维护或可用率。

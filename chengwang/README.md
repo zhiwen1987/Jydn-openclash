@@ -17,7 +17,7 @@
 - M2b-0 已在本地实现默认关闭的主动探针执行链：命令入口、严格许可目录、固定 DoT、安全解析/固定拨号、业务分类、耐久启动账本、有界调度、独立 spool、去敏聚合和仅反映进程/调度/时钟/存储的健康协议。M2b-1 已有默认不启动的隔离容器候选文件，但当前开发机未完成 Docker 构建或运行验收，出口和 canary 仍被阻断；没有 API、控制面挂载或生产部署。
 - 主动探针状态校验新增显式生命周期的 `LockedStateSnapshot`：按 spool→ledger 获取既有写锁，报告读取前重新核对锁路径与完整状态树，失败后永久失效，并在关闭时逆序释放。它仍是 process-local、依赖协作式文件锁的 advisory 只读原语；`Verify` 与外部消费者动作之间仍存在边界外 TOCTOU，且尚未接入恢复协调器，也不证明 Docker 当前镜像、Compose、拓扑或 live 容器身份。
 - 每次发布都使用乐观锁和原子版本存储，为后续灰度、回滚和设备适配器留出明确边界。
-- 独立 image-trust 候选已实现受保护的可信策略、撤销/防回放 API、固定来源自动刷新、健康两库间的审计补投递，以及只读状态/操作记录控制台；已通过隔离 CI，**未装配到原主服务、未部署生产**。见 [P0-d7 验收](docs/P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)、[P0-d8 验收](docs/P0D8-TRUST-CONSOLE-ACCEPTANCE.md)与[候选控制台操作说明](docs/TRUST-CONSOLE-OPERATOR-NOTES.md)。
+- image-trust 候选已实现受保护的可信策略、撤销/防回放 API、固定来源自动刷新、健康两库间的审计补投递，以及只读状态/操作记录控制台；新增显式完整产品候选入口，共用主服务 runtime、基础产品 API 与审计，并通过正常浏览器 HTTPS/证书拒绝验收。**原主入口默认仍不注入 trust backend，未部署生产**。见 [P0-d7](docs/P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)、[P0-d8](docs/P0D8-TRUST-CONSOLE-ACCEPTANCE.md)、[P0-d9 验收](docs/P0D9-PRODUCT-HTTPS-ACCEPTANCE.md)及[完整候选操作说明](docs/PRODUCT-CANDIDATE-OPERATOR-NOTES.md)；这不是全企业功能已完成或发布授权。
 
 > 源码实现不等于生产能力已经开放。`10.88.0.254` 已部署并验收默认锁定的 Shadow 操作 API 与“操作中心”，但没有配置身份文件，`CHENGWANG_OPERATION_WRITES_ENABLED=false`，也不存在设备执行器；因此线上只证明失败关闭、只读读回和界面边界，未形成生产写入闭环。见 [10.88.0.254 部署记录](docs/DEPLOYMENT-10.88.0.254.md)。
 
