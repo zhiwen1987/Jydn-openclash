@@ -152,6 +152,8 @@ expected_fields = {
     "chromeSandbox": "DISABLED_CI_ONLY_OUTER_ISOLATION_REQUIRED",
     "browserGroupStopped": True,
     "cjkFontVerified": True,
+    "consoleErrors": 0,
+    "consoleWarnings": 0,
 }
 if any(report.get(name) != value for name, value in expected_fields.items()):
     raise SystemExit("real browser evidence boundary or cleanup mismatch")
@@ -203,6 +205,8 @@ required_checks = {
     "disconnected observations remain cleared",
     "credentials absent from URL visible text storage and cookies",
     "all observed API calls same origin read-only GET",
+    "no application browser console errors",
+    "no application browser console warnings",
 }
 if https:
     required_checks |= {
@@ -218,8 +222,8 @@ if not isinstance(checks, list) or any(not isinstance(name, str) for name in che
 status_counts = report.get("httpStatusCounts", {})
 if any(not isinstance(status_counts.get(str(code)), int) or status_counts[str(code)] < 1 for code in (200, 401, 403)):
     raise SystemExit("real browser missing authenticated and rejection HTTP evidence")
-if any(report.get(name) != 0 for name in ("runtimeErrors", "cspErrors", "assetErrors", "forbiddenRequests")):
-    raise SystemExit("real browser reported runtime, CSP, resource or scope errors")
+if any(type(report.get(name)) is not int or report[name] != 0 for name in ("runtimeErrors", "cspErrors", "assetErrors", "forbiddenRequests", "consoleErrors", "consoleWarnings")):
+    raise SystemExit("real browser reported runtime, console, CSP, resource or scope errors")
 screenshots = list(evidence.glob(screen_prefix + "*.png"))
 if len(screenshots) != 4 or any(p.stat().st_size > 5 * 1024 * 1024 or p.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n" for p in screenshots):
     raise SystemExit("missing, oversized or invalid real browser screenshots")

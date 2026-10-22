@@ -114,6 +114,7 @@ class D9BrowserReportGateTests(unittest.TestCase):
             "checks": sorted(self.checks | (self.extra_checks if https else set())),
             "httpStatusCounts": {"200": 1, "401": 1, "403": 1},
             "runtimeErrors": 0, "cspErrors": 0, "assetErrors": 0, "forbiddenRequests": 0,
+            "consoleErrors": 0, "consoleWarnings": 0,
         }
         if https:
             report.update({
@@ -173,6 +174,10 @@ class D9BrowserReportGateTests(unittest.TestCase):
 
     def test_complete_parent_api_evidence_is_required(self):
         self.assertNotEqual(self.exercise(mutate=lambda report: report.update(parentAPI=None)), 0)
+        for field in ("consoleErrors", "consoleWarnings"):
+            for value in (1, False, "0", None):
+                with self.subTest(field=field, value=value):
+                    self.assertNotEqual(self.exercise(mutate=lambda report: report.update({field: value})), 0)
 
     def test_secret_log_is_withheld(self):
         self.assertNotEqual(self.exercise(secret_log=True), 0)

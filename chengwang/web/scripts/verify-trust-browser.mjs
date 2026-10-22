@@ -74,6 +74,8 @@ let positiveDocument
 let tlsProof
 let parentAPI
 let runtimeErrors = 0
+let consoleErrors = 0
+let consoleWarnings = 0
 let cspErrors = 0
 let assetErrors = 0
 let forbiddenRequests = 0
@@ -218,6 +220,10 @@ try {
     }
     if (message.sessionId !== sessionId) return
     if (message.method === 'Runtime.exceptionThrown') runtimeErrors++
+    // Count only severity on the positive application target. Console arguments
+    // may contain private fixture data and must never enter acceptance artifacts.
+    if (message.method === 'Runtime.consoleAPICalled' && p.type === 'error') consoleErrors++
+    if (message.method === 'Runtime.consoleAPICalled' && p.type === 'warning') consoleWarnings++
     if (message.method === 'Log.entryAdded' && p.entry?.source === 'security' && p.entry?.level === 'error') cspErrors++
     if (message.method === 'Network.requestWillBeSent') {
       const u = new URL(p.request.url)
@@ -272,7 +278,7 @@ try {
   await send('CSS.enable')
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false })
   await send('Page.navigate', { url: ready.url })
-  await waitExpression(`document.querySelector('h1')?.textContent.includes('可信策略控制台')`, 'actual console mount')
+  await waitExpression(`document.title==='澄网 · 可信策略控制台（候选只读）' && location.href===${JSON.stringify(ready.url)} && document.querySelector('h1')?.textContent.includes('可信策略控制台')`, 'actual console identity and mount')
   if (httpsReady) {
     const certificates = await send('Network.getCertificate', { origin: url.origin })
     tlsProof = browserTLSProof(positiveDocument, certificates.tableNames, privateTrust.verified)
@@ -368,6 +374,8 @@ try {
     check(parentAPI?.operationsStatus === 200 && parentAPI?.capabilitiesStatus === 200, 'actual parent operations and capabilities read over normally verified HTTPS')
   }
   check(runtimeErrors === 0, 'no uncaught browser runtime exceptions')
+  check(consoleErrors === 0, 'no application browser console errors')
+  check(consoleWarnings === 0, 'no application browser console warnings')
   check(cspErrors === 0, 'no browser CSP security errors')
   check(assetErrors === 0, 'all actual built browser resources load successfully')
   check(forbiddenRequests === 0 && requests.every(r => r.method === 'GET'), 'all observed API calls same origin read-only GET')
@@ -405,7 +413,7 @@ try {
     chromeSandbox: 'DISABLED_CI_ONLY_OUTER_ISOLATION_REQUIRED',
     mockedResponses: false, injectedFetch: false, tlsBypass: false,
     checks, requestCount: requests.length, httpStatusCounts: responses.reduce((out, r) => { out[r.status] = (out[r.status] || 0) + 1; return out }, {}),
-    runtimeErrors, cspErrors, assetErrors, forbiddenRequests, screenshotCount, browserGroupStopped, cjkFontVerified, cjkFonts,
+    runtimeErrors, consoleErrors, consoleWarnings, cspErrors, assetErrors, forbiddenRequests, screenshotCount, browserGroupStopped, cjkFontVerified, cjkFonts,
   }
   const raw = JSON.stringify(report, null, 2) + '\n'
   if (secrets.some(s => raw.includes(s))) throw new Error('report credential containment failed')
