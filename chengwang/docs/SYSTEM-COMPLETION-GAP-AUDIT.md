@@ -359,8 +359,16 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 
 此阶段只补上D10缺口中的**真实产品镜像隔离Registry读回、测试authority签名/批准和镜像内SDK验证写链**，不等于正式来源或发布。仍 `authorization=BLOCKED / releaseAuthorized=false / deviceActionsExecuted=false`。自动撤销刷新/跨库异常恢复在该镜像内的故障矩阵、正式Registry发行与企业密钥/IdP/审批、独立builder/source证明/SBOM、多架构、生产灰度恢复/长期soak、坏盘自修/WORM/外部见证、完整主App/多内核/DNS/节点业务仍未完成。九项恢复blocker、旧Dockerfile/M2b、设备执行器和生产环境均不变；没有main合并或生产流量变化。
 
-## P0-d12 前置机制已验，产品生命周期仍未完成（2026-10-23）
+## P0-d12 前置机制历史轮605，产品生命周期当时未完成（2026-10-23）
 
 605f67eb63b2a9c738ce703f9b6f78d7a71179b7的绑定39834169047/job120017946250、父39834169008/job120018134988均completed/success。主代理与独立代理分别下载151文件工件并复算：lease20、feed33、checker13项通过/0skip，8源文件及568+79=647条源码记录逐Git原bytes吻合；成功与已知失败轮的专用树清理均有原始结果。原700/Registry3/父2320、D11原49关联和浏览器40/45/45回归保留。已知d35目录错误分类失败保留，605只修具体错误枚举，不删门。[D12前置验收](P0D12-FIXTURE-PREFLIGHT-ACCEPTANCE.md)。
 
 **状态仅为fixture prerequisites implemented+tested isolated-only，不是D12整阶段完成。** 实际产品尚未接这两个新fixture；自动刷新、镜像在途异常和预置中间态恢复矩阵仍待验，三个productProven字段明确false。无产品故障开关、运行逻辑变更、正式发布、main合并或生产操作；原企业功能、九项blocker和长期运行缺口不解除。
+
+## P0-d12 自动刷新/正常重启镜像子门已验，异常矩阵仍缺（2026-10-23）
+
+上节605为历史前置门范围。本轮957271a855fa19991b77ebd5b1d2a8e4200c0aa0的绑定39840587359/job120040237746、父39840587362/job120040240510均completed/success。真实默认入口产品镜像在独立正常TLS source/Registry下执行两类签名各18动作：未确认拒绝、自动更新撤销B、精确同代no-op、消费/重放、自然陈旧拒绝、恢复、同容器正常重启重新确认。主代理及独立子代理各下载217文件工件，64本门文件/65摘要关联与outcome重算相同；72计数快照、4成功产品读取/30零请求窗口、最终seq31/gen2/journal7/audit14/ledger2、4产品正常退出及3容器/2来源清理通过。来源各18完整响应/0未完整；停止窗口无新增事件，不宣称触发在途取消。
+
+lease20/feed34/checker13、新profile5/verifier27均通过/0skip；旧700/Registry3/父2320及浏览器40/45/45保留，D11原49关联独立重放通过。655源码记录逐Git原blob一致；未放宽产品运行限制、修改时钟或新增产品故障开关。[D12实际镜像子门验收与剩余项](P0D12-PRODUCT-LIFECYCLE-ACCEPTANCE.md)。
+
+**状态仅为 actual automatic-refresh/graceful-restart subgate implemented+tested isolated-only。** 外部lease实际产品接线、异常终止/跨库补审计、六阶段健康中间态与损坏拒绝、追代/来源负矩阵/在途撤销仍未完成。物理掉电、长期soak、正式authority/发行/灰度及原完整企业功能缺口不变；九项blocker不解除，未合并main、未部署或变动生产。
