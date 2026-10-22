@@ -291,7 +291,7 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 
 ## P0-d3 标准验签候选进展（2026-10-22）
 
-以下 P0-d3/P0-d4/P0-d5 是各阶段当时的缺口快照；P0-d5 补入受管信任/撤销/防回放候选库底座，P0-d6 已补入产品 API/RBAC 和独立候选入口，但 UI、原主入口后端注入、生产可信发放与上线仍未完成。不能把历史缺口文字或后续测试当成当前生产状态。
+以下 P0-d3 至 P0-d6 是各阶段当时的缺口快照；P0-d5 补入受管信任/撤销/防回放候选库底座，P0-d6 补入产品 API/RBAC 和独立候选入口，P0-d7 再补入自动刷新及健康跨库审计恢复，但 UI、原主入口后端注入、生产可信发放与上线仍未完成。不能把历史缺口文字或后续测试当成当前生产状态。
 
 新增独立 Go 1.25.8 `tools/image-verifier`，使用官方 `sigstore-go v1.3.0` 验证 messageSignature 与 DSSE 的 artifact digest、精确 issuer/SAN、Fulcio 链、SCT、同一 Rekor v1 条目的 SET/proof/checkpoint。它只产生 `ADVISORY_SIGSTORE_BUNDLE_VERIFIED / authorization=BLOCKED`，没有升级主项目 Go 1.23，也没有生产安装。已修复并回归官方分片样本的两个不同 index 语义，原始 fixtures 摘要不变；最终本地/CI 证据详见 `P0D3-STANDARD-SIGSTORE-VERIFIER.md`。
 
@@ -318,3 +318,13 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 代码与最终场景门 `5107ebd5b51f42d9b70cddf3027b4626ade99942` 已通过绑定 run `39763836641` / job `119774275129` 与主项目 run `39763836481` / job `119774274234`。子模块普通/race 各 490 场景、7 包、0 skip；主项目 4504 个 Test 语义运行事件、37 包、0 skip。完整产品 HTTPS API 到无适配真实 Distribution 的两类签名验证与持久拒重放均实际执行；491 项跨模块源码、49 项子模块源码逐 Git 原始 blob 复核，386 依赖集合不变。候选二进制已在 CI 构建并核对 revision/help/摘要，但未发布或安装。详见 [P0-d6 验收记录](P0D6-PRODUCT-API-RBAC-ACCEPTANCE.md)。
 
 状态仅为 `implemented+tested isolated-only / authorization=BLOCKED`。UI、企业身份/审批/根密钥运维、多 Store/分布式租约、周期审计健康刷新、更新/全局资源配额、两库持久协调与自动恢复、在线撤销送达、外部单调见证、正式签名镜像、设备执行器与生产灰度均未完成。审计消费记录不代表客户端已收到成功；进程内预算/poison 不是持久治理闭环。九项 blocker、M2b/M3/M4 与整体运营状态全部不变；本阶段未访问或改动任何生产主机、爱快、DNS 或 OpenClash，未合并 main。
+
+## P0-d7 自动撤销刷新与健康跨库审计恢复（2026-10-22）
+
+新增固定 HTTPS/CA/hostname/IP/SPKI 来源的有界自动刷新、顺序中间代下载、真实受管验签安装和精确 generation/hash 新鲜度。BeginTracked 在预留事务内检查源截止与版本，Complete 和结果审计后继续检查；最终第二次观测不能把新代确认误用到旧结果。独立候选显式启用自动刷新、每 15 秒重新核验审计，后台取消并等待后再关库。原 cmd/server 未装配，所有生产服务未更新。
+
+新增同一 bbolt record 的 operation journal/outbox，使 catalog 提交、RESERVED/CONSUMED 与恢复事实原子绑定。启动在 HTTP 前核对全部保留操作的 scope/原审计前缀/prepared hash/ACK hash，只幂等补健康两库之间的审计投递缺口，不重做业务、回收 grant 或伪造 HTTP 成功。旧业务必须已经停止；这不是热切换 API。坏 checkpoint/路径/盘/整盘回滚不自动修复，致命错误停止候选，未安装 supervisor。
+
+最终代码 `d4f413e808dc03c30e5aca15ca4a5d79aab531ec`：绑定 run `39769625166` / job `119793601116`、父 run `39769625246` / job `119793601382` 均 success。子模块普通/race 各 627 场景、8 包，保留旧 234/379/490；父 4514 次 Test 运行、37 包，保留旧 2252 pair，零 fail/skip。12 个真实 product 子进程退出持久边界、真正 API/Sigstore CONSUMED 后审计故障恢复、真实 TLS 源网络中撤销及原无适配 Distribution 均实际执行；507/61 项源码摘要逐 Git raw blob 核对、386 依赖集合不变。失败任务与静态竞态修正未隐藏，详见 [P0-d7 验收记录](P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)。
+
+状态仍为 `implemented+tested isolated-only / authorization=BLOCKED`。并非完整 TUF、即时未知撤销、坏文件自愈、WORM/独立副本、外部时间/单调见证、长期容量与资源治理、企业身份/UI/审批、分布式 HA 或正式镜像发布。过期中间代与固定源故障会失败关闭；journal/审计满后需受控运维，不承诺免维护、无 bug 或任何高可用率。九项 blocker、M2b/M3/M4、整体正式运营状态不变；本轮没有访问/变更生产主机、爱快、DNS、OpenClash，没有 main 合并或设备执行授权。

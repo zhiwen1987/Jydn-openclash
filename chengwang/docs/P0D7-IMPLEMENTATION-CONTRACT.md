@@ -1,4 +1,6 @@
-# P0-d7 自动撤销刷新与跨库异常恢复（候选合同，尚未验收）
+# P0-d7 自动撤销刷新与跨库异常恢复（隔离候选已验收，未上线）
+
+代码 `d4f413e` 已通过隔离 CI 与独立工件复核；具体结果、失败修正与未完成项见 [P0-d7 验收记录](P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)。这不是生产部署批准。
 
 本轮仅开发分支与隔离 CI，不访问或改变生产、OpenClash、DNS、爱快或 ERP；不合并 main。Go 1.23 主模块及 Go 1.25.8 独立验证模块保持原边界。所有结果继续 advisory / authorization=BLOCKED，九项恢复 blocker 不解除。
 
