@@ -1,4 +1,6 @@
-# D12 异常来源独立fixture协议（实施中，未验收）
+# D12 异常来源独立fixture协议（本前置子门已隔离验收）
+
+代码57fd54c56a256da04ceb3f28e5450e56dab062a8已通过实际Linux24项、checker32项、34个观测分段及原全部镜像回归；主代理与独立代理下载原工件重算一致。[实际验收与未完成项](P0D12-SOURCE-FIXTURE-ACCEPTANCE.md)。这不是完整产品来源矩阵或生产上线。
 
 本门是完整镜像来源拒绝/追代/在途撤销矩阵的必要前置，不替代后续实际产品镜像门，也不缩小企业系统目标。生产禁动，root唯一集成/提交/推送；旧fixture_feed及34测试、所有原700+28普通/race、父2320、全部镜像门保留。上一拒绝保护接受代码ed756d7及归档83d1dea不改写。
 
@@ -39,9 +41,9 @@ helper和test接口由A/C据此对齐，冻结后root接线。真实Linux测试�
 
 checker从准确head Git原bytes提取测试名和source SHA，核全部ok/唯一summary/marker/0skip，拒绝未知输出；验证新runner实际清理成功，并绑定所有fixture/checker/test/runner接线原blob。报告显式fixturePrerequisitesOnly=true、actualProductSourceMatrixProven=false、production=false、authorization=BLOCKED。单元checker反例使用synthetic数据，必须标注，不能当真实Linux证据。
 
-CI另起`run-source-fixture-preflight.sh`子mount namespace，旧前置门不改。四个原输入为product-source-fixture-tests.log、checker-tests.log、observations.json、cleanup.json（均带同一product-source-fixture前缀），输出product-source-fixture-preflight.json；原Git来源8份：旧fixture_feed.py/check_lifecycle_preflight.py，新fixture_source.py/test_fixture_source.py/check_source_preflight.py/test_check_source_preflight.py，新runner及run-linux-ci.sh。Windows辅助目前Shape8通过/Linux16明确跳过、checker32合成通过；这不是Linux验收，仍待实际CI及独立工件重算。
+CI另起`run-source-fixture-preflight.sh`子mount namespace，旧前置门不改。四个原输入为product-source-fixture-tests.log、checker-tests.log、observations.json、cleanup.json（均带同一product-source-fixture前缀），输出product-source-fixture-preflight.json；原Git来源8份：旧fixture_feed.py/check_lifecycle_preflight.py，新fixture_source.py/test_fixture_source.py/check_source_preflight.py/test_check_source_preflight.py，新runner及run-linux-ci.sh。此前Windows辅助仅Shape8通过/Linux16明确跳过、checker32合成通过；最终Linux及独立工件验收另见上链，不把辅助当Linux证据。
 
-首轮真实Linux失败和闭集诊断轮均保留在[失败记录](P0D12-SOURCE-FIXTURE-FAILURES.md)。实际诊断确认SOURCE模块导入失败，不能猜测具体目录errno。修复启动方式沿旧feed的原bytes执行原则：可信root从实际RO Git绑定源码读fixture_feed/fixture_source两个原bytes，低权`-I -B -c`注册固定模块名及sys.modules再compile/exec，单argv严格有界，不创建可写源码副本，不更改目录权限或产品/UID/caps。为兼容Windows实际命令长度，原bytes仅作stdlib有界无损传输封装；子进程须核精确原长/SHA及解压结束状态，不把解压bufsize当上限。这不是新的下载/签名信任协议。新的模块加载smoke仍只辅助，真实24项/34段仍待验收。
+首轮真实Linux失败和闭集诊断轮均保留在[失败记录](P0D12-SOURCE-FIXTURE-FAILURES.md)。实际诊断确认SOURCE模块导入失败，不能猜测具体目录errno。修复启动方式沿旧feed的原bytes执行原则：可信root从实际RO Git绑定源码读fixture_feed/fixture_source两个原bytes，低权`-I -B -c`注册固定模块名及sys.modules再compile/exec，单argv严格有界，不创建可写源码副本，不更改目录权限或产品/UID/caps。为兼容Windows实际命令长度，原bytes仅作stdlib有界无损传输封装；子进程须核精确原长/SHA及解压结束状态，不把解压bufsize当上限。这不是新的下载/签名信任协议。模块加载smoke仍只辅助，最终实际24项/34段已由57fd另验，不倒写旧失败。
 
 ## 后续不可丢弃
 

@@ -29,3 +29,7 @@
 - 父39871183672/job120145730690独立success，原日志5,447,444B/SHA256 `6f8cc499c930b2f39bda7f9dd0a84bab39c5fab1acf2d7f8e40e0386f19d3bf1`；普通/race各2320具名run/pass、0Test skip/fail。父成功仍不覆盖子失败。
 
 据此下一修复移除“降权进程必须遍历checkout并按路径import”这项新前提：由可信root测试orchestrator从原只读Git绑定文件读两个原始模块bytes，通过有界`-I -B -c`在低权进程注册固定内存模块后执行；不用可写helper源码副本、PYTHONPATH，不改目录权限、UID/cap0/NNP或产品逻辑。该修复仍须下一真实CI证明，不能将实施意图当旧轮通过。
+
+## 后续57fd54c独立验收，不改写以上失败
+
+57fd54c的新实际Linux24项/0skip及独立观测重放通过，见[最终前置验收及剩余项](P0D12-SOURCE-FIXTURE-ACCEPTANCE.md)。这是后续代码的新结论，不把3573取消、5d/7e失败改成成功，也不据此补造旧stderr或推断旧errno。

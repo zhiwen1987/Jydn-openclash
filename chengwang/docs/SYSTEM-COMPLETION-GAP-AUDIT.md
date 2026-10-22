@@ -398,3 +398,9 @@ ed756d74719891c2fc473b90867dbfda95f37f0c的绑定39865484513/job120126497803、�
 新增Store8/product16/runtime4，ordinary/race各728项实际run/pass、0skip/fail，精确保留原700摘要，父各2320及Registry各3不变。主代理和独立子代理下载1275原工件，重放49/65/151/909关联与CI canonical相同；686条源记录/597unique逐Git原bytes一致，原镜像/浏览器/前置/清理门保持。[实际验收及未完成项](P0D12-REFRESH-REJECTION-ACCEPTANCE.md)、[实施协议](P0D12-REFRESH-REJECTION-GUARD.md)。
 
 **状态仅为 rejection guard implemented+tested isolated-only。** 新4项是真实同进程正常TLS runtime来源/追代集成，不是新增Docker来源负矩阵；超过16种坏候选或重启仍可能增长journal，不宣称完整DoS防护。完整镜像来源拒绝/在途撤销/其他真实故障边界、长期soak及企业/生产闭环仍未完成；未改生产、main或正式发行，九项blocker不解除。
+
+## P0-d12 异常来源fixture前置已隔离验收（2026-10-23）
+
+57fd54c56a256da04ceb3f28e5450e56dab062a8的绑定39871985050/job120148358838、父39871985012/job120148358676均success。新fixture24项（8格式/16Linux）、checker32合成项具名0skip；34观测段/54连接/201事件/19wire经root及独立代理重算一致。40条HTTP阶段事件不等于40个成功HTTP，当前stall不证明产品timeout。旧728/race728/父2320/Registry3及全部49/65/151/909镜像门保持，695条/605unique源记录逐Git原bytes一致。[实际验收与未完成项](P0D12-SOURCE-FIXTURE-ACCEPTANCE.md)、[失败记录](P0D12-SOURCE-FIXTURE-FAILURES.md)。
+
+**状态仅为 source fixture prerequisites implemented+tested isolated-only。** 产品运行逻辑未改；完整真实镜像来源拒绝/顺序追代/在途撤销尚未接入，单因TLS及probe污染窗口、真实timeout hold/屏障需继续完成。所有企业功能、长期soak、正式authority/发行、生产灰度及九项恢复blocker保持未闭合；无生产/main/正式Registry变更。
