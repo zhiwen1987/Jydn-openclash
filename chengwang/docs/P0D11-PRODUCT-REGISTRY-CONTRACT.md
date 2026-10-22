@@ -38,6 +38,16 @@ D11仅到Registry正常TLS ready、隔离网络读回。`registry-start` 内联P
 
 源码确认该准备器GET未发OCI `Accept`，而[Distribution v3.1.2官方实现](https://github.com/distribution/distribution/blob/v3.1.2/registry/handlers/manifests.go)会在OCI清单未被Accept声明支持时拒绝；这是有源码依据的修补，不代替原始响应证据。仅给固定测试Registry的manifest GET/HEAD补明确OCI Accept，blob/API不继承，并增独立4项无真实取网的请求头合成测试。原HTTP状态/摘要/原字节断言和正常TLS不删除；失败诊断只允许固定状态整数和相等布尔，不暴露响应正文或头值。必须重新完成后续真实回拉与API链后才能验收。
 
+## 第五轮实际执行记录：业务链通过，Registry退出门未通过
+
+`711493287018bcbf5ffaaa32328914996f9e9f39` 的[父39824008938/job119982357741](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39824008938/job/119982357741)成功，原各2320完整集合保留；父原日志LF5,447,259B、SHA256 `1ee0d00e2605d6d1b773940b274d9d40b57dff691d9a123b5d26539dfad065cb`。[绑定39824008997/job119982357459](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39824008997/job/119982357459)仍失败，不能只取前段PASS宣称验收完成。
+
+[工件12446715443](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39824008997/artifacts/12446715443)实际146文件；原joblog LF1,781,797B、SHA256 `1223775cf5caf5b19ca677654ec9511c59ed3e01cbc84b93462d41b8b6270660`。两类签名prepare、实际正常TLS上传/回拉、graph、首次4案例、停后重开、同容器重启、撤销/回滚与后4案例、最终重开均实际通过。独立检查器对原始安全投影重放确认：每类first seq19/journal4/audit8、final seq44/journal10/audit20/ledger3，4次产品退出0、44快照中2次成功产品读取和18个零HTTP请求窗口，原700/Registry3/33及17+4合成测试保持。
+
+失败在 `graceful-registry-stop` 的退出State联合断言，不是产品API；actual Registry ExitCode等字段未导出，**不能声称实测143或其他具体值**。cleanup/outcome文件未形成，最终49文件门不能判PASS。外层D10精确清理PASS。
+
+[Distribution v3.1.2生命周期实现](https://github.com/distribution/distribution/blob/v3.1.2/registry/registry.go)在 `HTTP.DrainTimeout==0` 时直接Serve，仅在非零时注册SIGTERM并调用Shutdown。当前测试配置缺该项；下一修补明确 `http.draintimeout: 5s`，仍保持Docker stop15秒及ExitCode0门，不允许把143/强杀当成优雅退出。只增加安全退出状态/数字/布尔投影，不输出原错误或私有inspect；待重新真实运行与精确清理后才验收。
+
 ## 必须补上的实际缺口
 
 D10已执行真实产品镜像，但原Registry回归仍使用惰性测试制品。D11必须让同一次构建的真实config/layer字节进入一次性、无外网的Distribution，绑定精确manifest、正常TLS固定来源和真实Sigstore/批准，并由镜像内默认程序执行产品API消费/防重放。不能把旧测试成功或本地imageID直接当成产品镜像来源证明。

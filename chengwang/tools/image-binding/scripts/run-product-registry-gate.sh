@@ -186,6 +186,7 @@ storage:
       enabled: false
 http:
   addr: 127.0.0.1:5443
+  draintimeout: 5s
   secret: isolated-d11-fixture-not-production
   tls:
     certificate: /certs/server.pem
@@ -561,7 +562,11 @@ phase=graceful-registry-stop
 /usr/bin/python3 -B - "$private/registry-exited.private.json" <<'PY'
 import json,pathlib,sys
 s=json.loads(pathlib.Path(sys.argv[1]).read_text())[0]['State']
+assert type(s['ExitCode']) is int
+status=s['Status'] if s['Status'] in ('created','running','paused','restarting','removing','exited','dead') else 'unknown'
+print(f"D11_REGISTRY_EXIT_STATE status={status} exit_code={s['ExitCode']} running={str(s['Running'] is True).lower()} oom={str(bool(s['OOMKilled'])).lower()} pid_zero={str(s['Pid']==0).lower()} error={str(bool(s.get('Error'))).lower()}",file=sys.stderr)
 assert s['Status']=='exited' and s['Running'] is False and type(s['ExitCode']) is int and s['ExitCode']==0 and s['Pid']==0 and not s['OOMKilled'] and not s.get('Error')
+print('D11_REGISTRY_GRACEFUL_STOP=PASS exit_code=0 oom=false pid=0')
 PY
 phase=exact-owned-cleanup
 test "${#owned_ids[@]}" -eq 3
