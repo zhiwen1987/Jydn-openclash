@@ -89,6 +89,13 @@ class LinuxBlobLeaseTests(unittest.TestCase):
             self.file(self.root / "bin" / name, (BASE / name).read_bytes(), 0o444, owner=0)
 
     def tearDown(self):
+        self.reap()
+        self.assertRegex(str(self.root), lease.ROOT)
+        self.assertEqual(self.root.resolve().parent, pathlib.Path("/tmp"))
+        self.assertEqual(self.root.stat().st_uid, 10001)
+        shutil.rmtree(self.root)
+
+    def reap(self):
         for process in reversed(self.processes):
             if process.poll() is None:
                 process.terminate()
@@ -100,10 +107,7 @@ class LinuxBlobLeaseTests(unittest.TestCase):
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
                     stream.close()
-        self.assertRegex(str(self.root), lease.ROOT)
-        self.assertEqual(self.root.resolve().parent, pathlib.Path("/tmp"))
-        self.assertEqual(self.root.stat().st_uid, 10001)
-        shutil.rmtree(self.root)
+        self.processes.clear()
 
     def directory(self, path):
         path.mkdir(mode=0o700)
@@ -209,6 +213,33 @@ class LinuxBlobLeaseTests(unittest.TestCase):
         finally:
             os.close(held)
 
+    def test_registry_style_tmpfs_blob_with_readonly_alias_blocks_reader(self):
+        # The runtime Registry keeps its original private tmpfs profile. Test
+        # that filesystem too; an ext4-only lease result is insufficient.
+        backend = self.root / "tmpfs-blob"
+        self.directory(backend)
+        self.assertEqual(backend.resolve().parent, self.root.resolve())
+        subprocess.run(["/usr/bin/mount", "-t", "tmpfs", "-o", "size=1m,mode=0700,uid=10001,gid=10001,nodev,nosuid,noexec",
+                        "tmpfs", str(backend)], check=True)
+        original_source = self.source
+        try:
+            self.source = backend / "data"
+            self.file(self.source, self.original, 0o644)
+            helper = self.helper()
+            self.event(helper, "READY")
+            reader = self.reader()
+            self.event(helper, "BLOCKED")
+            self.assertEqual(select.select([reader.stdout], [], [], .1)[0], [])
+            self.released()
+            self.exit(helper)
+            self.event(helper, "RELEASED")
+            self.reader_done(reader)
+        finally:
+            self.reap()
+            self.source = original_source
+            self.assertEqual(backend.resolve().parent, self.root.resolve())
+            subprocess.run(["/usr/bin/umount", "--", str(backend)], check=True)
+
     def test_release_without_reader_does_not_claim_break(self):
         helper = self.helper()
         self.event(helper, "READY")
@@ -286,9 +317,9 @@ class LinuxBlobLeaseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False).result
-    success = result.wasSuccessful() and not result.skipped and result.testsRun == 12
+    success = result.wasSuccessful() and not result.skipped and result.testsRun == 13
     if success:
-        print("D12_BLOB_LEASE_TESTS=PASS tests=12 passed=12 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true")
+        print("D12_BLOB_LEASE_TESTS=PASS tests=13 passed=13 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true")
     elif sys.platform != "linux" and result.wasSuccessful():
         print("D12_BLOB_LEASE_TESTS=AUXILIARY_ONLY real_linux=false")
     raise SystemExit(0 if success or sys.platform != "linux" and result.wasSuccessful() else 1)

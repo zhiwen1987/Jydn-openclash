@@ -146,7 +146,7 @@ done
     PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
     /usr/bin/python3 -B "$base/test_fixture_blob_lease.py" \
     2>&1 | /usr/bin/tee "$run_root/evidence/product-crash-blob-lease-tests.log"
-/usr/bin/grep -qx 'D12_BLOB_LEASE_TESTS=PASS tests=12 passed=12 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true' \
+/usr/bin/grep -qx 'D12_BLOB_LEASE_TESTS=PASS tests=13 passed=13 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true' \
   "$run_root/evidence/product-crash-blob-lease-tests.log"
 /usr/bin/timeout --signal=TERM --kill-after=5s 30s \
   /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \

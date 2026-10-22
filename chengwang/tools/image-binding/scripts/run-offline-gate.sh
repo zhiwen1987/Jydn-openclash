@@ -87,6 +87,10 @@ cd "$MODULE_ROOT"
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-crash-profile-tests.log"
 /usr/bin/grep -qx 'D12_CRASH_IMAGE_PROFILE_TESTS=PASS tests=6 skipped=0 synthetic_only=true' \
   "$RUN_ROOT/evidence/product-crash-profile-tests.log"
+/usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_check_product_crash.py" \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-crash-verifier-tests.log"
+/usr/bin/grep -qx 'PRODUCT_CRASH_VERIFIER_TESTS=PASS synthetic_only=true tests=27 skipped=0' \
+  "$RUN_ROOT/evidence/product-crash-verifier-tests.log"
 /usr/bin/python3 -B scripts/test-browser-process-guard.py \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 /usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
