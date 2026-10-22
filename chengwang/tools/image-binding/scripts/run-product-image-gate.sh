@@ -34,6 +34,8 @@ test -f "$run_root/evidence/candidate-static-binary-buildinfo.txt"
 fixture_uuid=$(/usr/bin/python3 -c 'import uuid; print(uuid.uuid4().hex)')
 [[ "$fixture_uuid" =~ ^[a-f0-9]{32}$ ]]
 fixture_root="/tmp/chengwang-product-image-$fixture_uuid"
+browser_source="$fixture_root/bin/browser-source"
+browser_guard="$browser_source/chengwang/tools/image-binding/scripts/browser-process-guard.py"
 image_tag="chengwang-product-candidate:ci-$fixture_uuid-${source_commit:0:12}"
 label_key=org.chengwang.product-image-fixture
 context="$run_root/product-image-context"
@@ -58,11 +60,67 @@ as_fixture() {
     --inh-caps=-all --ambient-caps=-all --no-new-privs "$@"
 }
 
+record_failure_diagnostic() {
+  # Only a fixed classification is exported. No raw Node/CDP stderr, ready
+  # object, credentials, private URL, configuration or remote body is printed.
+  /usr/bin/sudo --non-interactive /usr/bin/python3 -B - "$phase" "$fixture_root" "$private" \
+    > "$evidence/product-image-failure-diagnostic.json" <<'PY'
+import json
+import os
+import pathlib
+import re
+import stat
+import sys
+phase, root, private = sys.argv[1], pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3])
+if not re.fullmatch(r"[a-z0-9-]{1,64}", phase):
+    raise SystemExit("invalid fixed diagnostic phase")
+def bounded(path, maximum):
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(descriptor, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 0 <= info.st_size <= maximum:
+                return b""
+            return handle.read(maximum + 1)
+    except OSError:
+        return b""
+secrets = []
+try:
+    ready = json.loads(bounded(root / "ready.json", 16384))
+    secrets = [ready[key].encode() for key in ("auditorToken", "viewerToken", "wrongToken") if isinstance(ready.get(key), str) and 32 <= len(ready[key]) <= 4096]
+except (ValueError, TypeError, AttributeError):
+    pass
+admin = bounded(root / "admin-token.private", 4096).strip()
+if admin:
+    secrets.append(admin)
+log = bounded(private / "browser-supervisor.log", 1 << 20)
+report = bounded(root / "evidence" / "trust-https-browser-report.json", 256 << 10)
+material = log + report
+if any(secret in material for secret in secrets) or b"PRIVATE KEY" in material:
+    reason = "PRIVATE_DIAGNOSTIC_WITHHELD"
+elif b"Permission denied" in log or b"EACCES" in log:
+    reason = "BROWSER_RUNTIME_PATH_ACCESS_DENIED"
+elif b"Cannot find module" in log or b"MODULE_NOT_FOUND" in log:
+    reason = "BROWSER_HARNESS_MODULE_UNAVAILABLE"
+elif report:
+    reason = "BROWSER_REPORT_AVAILABLE_AT_PHASE_FAILURE"
+else:
+    reason = "PHASE_FAILED_WITHOUT_SAFE_BROWSER_DETAILS"
+print(json.dumps({"schema": "chengwang.product-image-failure/v1", "outcome": "FAIL", "phase": phase, "reason": reason, "rawPrivateLogPublished": False, "authorization": "BLOCKED", "production": False}, sort_keys=True))
+PY
+}
+
 cleanup() {
   original_status=$?
   trap - EXIT HUP INT TERM
   cleanup_failed=0
-  if test "$original_status" -ne 0; then echo "D10_PRODUCT_IMAGE_FAILURE_PHASE=$phase" >&2; fi
+  if test "$original_status" -ne 0; then
+    echo "D10_PRODUCT_IMAGE_FAILURE_PHASE=$phase" >&2
+    if ! record_failure_diagnostic; then
+      /usr/bin/rm -f -- "$evidence/product-image-failure-diagnostic.json"
+      echo 'D10_PRODUCT_IMAGE_FAILURE_DIAGNOSTIC=WITHHELD' >&2
+    fi
+  fi
   if test "$original_status" -eq 0 && test "$acceptance_completed" != true; then cleanup_failed=1; fi
   for owned_id in "${container_ids[@]}"; do
     if /usr/bin/docker container inspect "$owned_id" >/dev/null 2>&1; then
@@ -83,7 +141,7 @@ cleanup() {
     fi
   done
   if /usr/bin/sudo --non-interactive /usr/bin/test -d "$fixture_root"; then
-    if ! as_fixture /usr/bin/python3 -B "$script_root/browser-process-guard.py" cleanup "$fixture_root" >/dev/null; then
+    if ! as_fixture /usr/bin/python3 -B "$browser_guard" cleanup "$fixture_root" >/dev/null; then
       echo 'product-image browser cleanup unproven; private fixture retained' >&2
       cleanup_failed=1
     elif ! /usr/bin/sudo --non-interactive /usr/bin/python3 -B - "$fixture_root" "$fixture_uuid" <<'PY'
@@ -304,6 +362,90 @@ PY
 /usr/bin/sudo --non-interactive /usr/bin/install -m 0555 -o 10001 -g 10001 \
   "$run_root/bin/product-image.test" "$fixture_root/bin/product-image.test"
 
+# The hosted runner's workspace ancestors need not be traversable by UID10001.
+# Do not chmod them or elevate Chrome. Copy only the three required, exact Git
+# blobs into a root-owned, permission-read-only mirror with the original layout.
+phase=browser-harness-binding
+/usr/bin/python3 -B - "$source_root" "$source_commit" > "$private/browser-harness-input.json" <<'PY'
+import hashlib
+import json
+import pathlib
+import subprocess
+import sys
+source, commit = pathlib.Path(sys.argv[1]), sys.argv[2]
+names = ("chengwang/web/scripts/verify-trust-browser.mjs", "chengwang/web/scripts/trust-browser-tls.mjs", "chengwang/tools/image-binding/scripts/browser-process-guard.py")
+files = {}
+for name in names:
+    path = source / name
+    if path.is_symlink() or not path.is_file():
+        raise SystemExit("browser harness source is not a regular checkout file")
+    raw = path.read_bytes()
+    committed = subprocess.check_output(["/usr/bin/git", "-C", str(source), "show", commit + ":" + name])
+    if raw != committed or not 0 < len(raw) <= 128 * 1024:
+        raise SystemExit("browser harness checkout differs from the accepted source commit")
+    files[name] = hashlib.sha256(raw).hexdigest()
+print(json.dumps({"sourceCommit": commit, "files": files}, sort_keys=True))
+PY
+/usr/bin/sudo --non-interactive /usr/bin/python3 -B - "$source_root" "$source_commit" \
+  "$browser_source" "$private/browser-harness-input.json" \
+  > "$evidence/product-image-browser-harness.json" <<'PY'
+import hashlib
+import json
+import os
+import pathlib
+import re
+import stat
+import sys
+source, commit, destination, manifest = sys.argv[1:]
+source, destination = pathlib.Path(source), pathlib.Path(destination)
+expected = json.loads(pathlib.Path(manifest).read_text(encoding="utf-8"))
+names = {"chengwang/web/scripts/verify-trust-browser.mjs", "chengwang/web/scripts/trust-browser-tls.mjs", "chengwang/tools/image-binding/scripts/browser-process-guard.py"}
+if not re.fullmatch(r"[a-f0-9]{40}", commit) or expected.get("sourceCommit") != commit or set(expected.get("files", {})) != names or not re.fullmatch(r"/tmp/chengwang-product-image-[a-f0-9]{32}/bin/browser-source", str(destination)):
+    raise SystemExit("browser harness binding inputs rejected")
+parent = destination.parent.lstat()
+if not stat.S_ISDIR(parent.st_mode) or parent.st_uid != 10001 or parent.st_gid != 10001 or stat.S_IMODE(parent.st_mode) != 0o700 or destination.exists() or destination.is_symlink():
+    raise SystemExit("browser harness private parent rejected")
+os.mkdir(destination, 0o555)
+os.chmod(destination, 0o555)
+for name in sorted(names):
+    original = source / name
+    descriptor = os.open(original, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as handle:
+        info = os.fstat(handle.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 0 < info.st_size <= 128 * 1024:
+            raise SystemExit("browser harness source metadata rejected")
+        raw = handle.read(128 * 1024 + 1)
+    if hashlib.sha256(raw).hexdigest() != expected["files"][name]:
+        raise SystemExit("browser harness source changed before copy")
+    target = destination / name
+    relative = pathlib.PurePosixPath(name).parts[:-1]
+    parent_path = destination
+    for part in relative:
+        parent_path = parent_path / part
+        if not parent_path.exists():
+            os.mkdir(parent_path, 0o555)
+            os.chmod(parent_path, 0o555)
+        parent_info = parent_path.lstat()
+        if not stat.S_ISDIR(parent_info.st_mode) or parent_info.st_uid != 0 or parent_info.st_gid != 0 or stat.S_IMODE(parent_info.st_mode) != 0o555:
+            raise SystemExit("browser harness copied directory rejected")
+    output = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o444)
+    with os.fdopen(output, "wb") as handle:
+        handle.write(raw)
+        os.fchmod(handle.fileno(), 0o444)
+    if target.read_bytes() != raw:
+        raise SystemExit("browser harness copied bytes differ")
+print(json.dumps({"schema": "chengwang.product-image-browser-harness/v1", "authorization": "BLOCKED", "production": False, "sourceCommit": commit, "files": expected["files"], "fileCount": 3, "checkoutMatchesGitBlobs": True, "copiedBytesMatchCheckout": True, "copiedFilesRootOwned": True, "fileMode": "0444", "directoryMode": "0555", "kernelReadOnlyMountRequired": True}, sort_keys=True))
+PY
+phase=browser-harness-accessibility
+for harness in "$browser_source/chengwang/web/scripts/verify-trust-browser.mjs" \
+  "$browser_source/chengwang/web/scripts/trust-browser-tls.mjs" "$browser_guard"; do
+  as_fixture /usr/bin/test -r "$harness"
+done
+for executable in "$node_binary" "$chrome_binary" "$certutil_binary"; do
+  as_fixture /usr/bin/test -x "$executable"
+done
+echo 'D10_PRODUCT_IMAGE_BROWSER_HARNESS=PASS files=3 source_bound=true uid10001_readable=true toolchain_executable=true root_owned_readonly_copy=true'
+
 validate_fixture_log() {
   /usr/bin/python3 -B - "$1" "$2" <<'PY'
 import pathlib
@@ -481,23 +623,23 @@ phase=actual-image-browser
   /usr/bin/unshare --mount -- /usr/bin/bash --noprofile --norc -c '
     set -euo pipefail
     /usr/bin/mount --make-rprivate /
-    for readonly in "$1" "$2" "$3/fonts"; do
+    for readonly in "$1" "$2/fonts"; do
       /usr/bin/mount --bind "$readonly" "$readonly"
       /usr/bin/mount -o remount,bind,ro "$readonly"
     done
-    test "$(/usr/bin/readlink /proc/self/ns/net)" != "$7"
-    test "$(/usr/bin/readlink /proc/self/ns/mnt)" != "$8"
+    test "$(/usr/bin/readlink /proc/self/ns/net)" != "$6"
+    test "$(/usr/bin/readlink /proc/self/ns/mnt)" != "$7"
     test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
     /usr/sbin/ip -o link show lo | /usr/bin/grep -q LOOPBACK
     exec /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups \
       --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
-      /usr/bin/env -i PATH="$(/usr/bin/dirname "$4"):/usr/bin:/bin" \
-      HOME="$3" TMPDIR="$3/tmp" LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \
-      CERTUTIL_BINARY="$6" FONTCONFIG_FILE="$3/fontconfig.conf" \
-      /usr/bin/timeout --signal=TERM --kill-after=5s 160s "$4" \
+      /usr/bin/env -i PATH="$(/usr/bin/dirname "$3"):/usr/bin:/bin" \
+      HOME="$2" TMPDIR="$2/tmp" LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \
+      CERTUTIL_BINARY="$5" FONTCONFIG_FILE="$2/fontconfig.conf" \
+      /usr/bin/timeout --signal=TERM --kill-after=5s 160s "$3" \
         "$1/chengwang/web/scripts/verify-trust-browser.mjs" \
-        --fixture-root "$3" --chrome "$5" --evidence-dir "$3/evidence" --transport https
-  ' chengwang-product-image-browser "$source_root" "$module_cache" "$fixture_root" \
+        --fixture-root "$2" --chrome "$4" --evidence-dir "$2/evidence" --transport https
+  ' chengwang-product-image-browser "$browser_source" "$fixture_root" \
     "$node_binary" "$chrome_binary" "$certutil_binary" "$parent_netns" "$parent_mountns" \
   > "$private/browser-supervisor.log" 2>&1
 
