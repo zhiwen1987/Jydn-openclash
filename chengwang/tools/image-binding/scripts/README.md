@@ -18,14 +18,14 @@ registry:3@sha256:1290056e2357eceb0c047cb60ae9abb370305a218e2df650eb8d3ea021b1c1
 
 ## 本地 replace 的校验
 
-固定 Go 1.25.8 的 [`go mod verify` 实现](https://github.com/golang/go/blob/go1.25.8/src/cmd/go/internal/modcmd/verify.go)只跳过主 module；普通模式会对本地替换模块尝试不存在的远端 archive 校验。把每个远端 selected module 都提升为辅助 module 的直接 require 又会改变 lazy pruning，因此不能用它替代原项目依赖图。
+固定 Go 1.25.8 的 [`go mod verify` 实现](https://github.com/golang/go/blob/go1.25.8/src/cmd/go/internal/modcmd/verify.go)会跳过主 module；本项目两个无域名 module 名称则使缓存路径校验报错。合法的 dotted 路径在没有任何缓存 archive/解压目录时，官方实现正常跳过。把所有 selected module 提升为直接 require，或者把三个本地 module 提升为 workspace Main，都会改变原始 lazy pruning；本运行器不使用这些方案。
 
-workflow 在 `GOWORK=off` 下下载并记录原始 MVS 图，严格检查两个指定本地 replace 和固定 SDK。`module-verification.py prepare` 仅在外部临时目录生成 `go.work`，精确 `use` 三个原始本地 module，不添加任何 require/replace，也不执行 `go work sync`。三个源 module 的 `go.mod/go.sum` 原始字节摘要单独绑定，同一 module/version 的跨文件 checksum 冲突会拒绝。
+workflow 始终在 `GOWORK=off` 下下载并记录原始 MVS 图，严格检查两个指定本地 replace 和固定 SDK。`module-verification.py prepare` 在外部临时目录复制原始子 module 的 `go.mod/go.sum`，仅将两个本地 require/replace 的名称改为固定 `chengwang-ci.invalid/local-main`、`chengwang-ci.invalid/local-verifier`，并将 replace 目标设为原始源码绝对目录。其他原始声明字节保持不变，不运行 tidy，不提升远端依赖。Go 1.25.8 [官方本地 replace 加载实现](https://github.com/golang/go/blob/go1.25.8/src/cmd/go/internal/modload/modfile.go)允许这种本地 module 声明路径差异。三个源 module 的 `go.mod/go.sum` 原始字节摘要单独绑定，同一 module/version 的跨文件 checksum 冲突会拒绝。
 
-只有验证进程临时指定该工作区。必须恰好三个 Main module，目录及 go.mod 路径都与原源码相同；其余远端 module 的集合、版本必须与 `GOWORK=off` 原图完全一致，禁止任何远端 replace。所有远端 archive/go.mod pin 仍必须存在于原始子 module 的 `go.sum`，下载结果和缓存 ziphash 必须匹配，并执行官方 `go mod verify` 核对实际 zip 与解压源码。编译与测试继续使用 `GOWORK=off`。
+验证图必须恰好包含一个临时 Main、两个固定版本 `v0.0.0` 的本地 alias；alias 的目标、Dir、GoMod 必须匹配原始源码，禁止 alias 缓存归档、解压目录或下载元数据。其余远端 module 的集合、版本必须与原图完全一致，禁止任何远端 replace。所有远端 archive/go.mod pin 仍必须存在于原始子 module 的 `go.sum`，实际归档、解压目录和 go.mod 必须存在，下载结果和缓存 ziphash 必须匹配，再执行官方 `go mod verify` 核对实际 zip 与解压源码。本地源码只作独立 manifest 绑定，不宣称通过远端 archive 校验；编译与测试始终使用原始 module。
 
-`go.work.sum` 初始化为空，Go 自行读取三个主 module 的源锁；任何新增工作区专用 checksum 都使原始不可变 manifest 检查失败，不自动重设基准。每次在线命令后导出工作区锁候选与退出状态，下载或校验失败仍使步骤失败；源锁变化仍由 `git diff --exit-code` 拒绝。离线阶段源码、模块缓存及整个验证工作区都挂载为只读，重新执行精确图、缓存 pin 和官方 verify 检查。
+临时 module 的 `go.sum` 是原始子 module 锁的逐字复制，任何新增 checksum 都使原始不可变 manifest 检查失败，不自动重设基准。每次在线命令后导出临时锁候选与退出状态，下载或校验失败仍使步骤失败；源锁变化仍由 `git diff --exit-code` 拒绝。离线阶段源码、模块缓存及整个临时验证目录都挂载为只读，重新执行精确图、缓存 pin 和官方 verify 检查。
 
-`evidence/go.sum.candidate`、`workspace*.go.work.sum.candidate` 仅供审查，不能自动升级或污染真实依赖。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 三 package 门禁，也不自动更新主门禁指纹。若此前步骤失败，该父测试记录可能尚未生成；artifact 只保存实际已有文件。
+`evidence/go.sum.candidate`、`auxiliary*.go.sum.candidate` 仅供审查，不能自动升级或污染真实依赖。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 三 package 门禁，也不自动更新主门禁指纹。若此前步骤失败，该父测试记录可能尚未生成；artifact 只保存实际已有文件。
 
 脚本中的 `GOMEMLIMIT` 是软目标。Registry 容器另有硬 memory/CPU/pids 上限，Go 测试进程另有超时与有限 ulimit；这些条件不代表产品部署的完整资源隔离。所有成功报告仍为 advisory，固定 `authorization=BLOCKED`、`production=false`。

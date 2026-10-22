@@ -81,35 +81,38 @@ jobs:
             "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)"
           (
             cd "$RUNNER_TEMP/chengwang-image-binding/remote-verification"
-            # Verification alone uses an explicit external workspace with the
-            # three real local modules. Compilation/tests keep GOWORK=off.
-            verification_work="$RUNNER_TEMP/chengwang-image-binding/remote-verification/go.work"
-            workspace_list_status=0
-            GOWORK="$verification_work" go list -m -json all \
+            # Exact original go.mod, with only two local names replaced by
+            # dotted aliases. No require-all or workspace pruning changes.
+            test "$(go env GOWORK)" = off
+            auxiliary_list_status=0
+            go list -m -json all \
               > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json" \
-              2> "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace-list.log" \
-              || workspace_list_status=$?
-            /usr/bin/cp -- go.work "$RUNNER_TEMP/chengwang-image-binding/evidence/verification.go.work"
-            /usr/bin/cp -- go.work.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace-list.go.work.sum.candidate"
-            /usr/bin/cp -- go.work.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace.go.work.sum.candidate"
-            echo "IMAGE_BINDING_WORKSPACE_LIST_EXIT=$workspace_list_status"
-            /usr/bin/cat "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace-list.log"
-            test "$workspace_list_status" -eq 0
+              2> "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-list.log" \
+              || auxiliary_list_status=$?
+            /usr/bin/cp -- go.mod "$RUNNER_TEMP/chengwang-image-binding/evidence/verification.go.mod"
+            /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-list.go.sum.candidate"
+            /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary.go.sum.candidate"
+            echo "IMAGE_BINDING_AUXILIARY_LIST_EXIT=$auxiliary_list_status"
+            /usr/bin/cat "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-list.log"
+            test "$auxiliary_list_status" -eq 0
             /usr/bin/python3 -B "$GITHUB_WORKSPACE/chengwang/tools/image-binding/scripts/module-verification.py" graph \
               "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)" \
               "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
-            workspace_download_status=0
-            GOWORK="$verification_work" go mod download -json all \
+            auxiliary_download_status=0
+            go mod download -json all \
               > "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-downloads.json" \
-              2> "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace-download.log" \
-              || workspace_download_status=$?
-            /usr/bin/cp -- go.work.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace.go.work.sum.candidate"
-            echo "IMAGE_BINDING_WORKSPACE_DOWNLOAD_EXIT=$workspace_download_status"
-            /usr/bin/cat "$RUNNER_TEMP/chengwang-image-binding/evidence/workspace-download.log"
-            test "$workspace_download_status" -eq 0
-            # Preserve official verification evidence for the candidate even
-            # when the subsequent immutable-lock check correctly rejects it.
-            GOWORK="$verification_work" go mod verify | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/module-verification-online.txt"
+              2> "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-download.log" \
+              || auxiliary_download_status=$?
+            /usr/bin/cp -- go.sum "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary.go.sum.candidate"
+            echo "IMAGE_BINDING_AUXILIARY_DOWNLOAD_EXIT=$auxiliary_download_status"
+            /usr/bin/cat "$RUNNER_TEMP/chengwang-image-binding/evidence/auxiliary-download.log"
+            test "$auxiliary_download_status" -eq 0
+            # Prove complete archive/pin coverage and immutable inputs before
+            # official verification; preserve the same contract afterwards.
+            /usr/bin/python3 -B "$GITHUB_WORKSPACE/chengwang/tools/image-binding/scripts/module-verification.py" check \
+              "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)" \
+              "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"
+            go mod verify | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-binding/evidence/module-verification-online.txt"
             /usr/bin/python3 -B "$GITHUB_WORKSPACE/chengwang/tools/image-binding/scripts/module-verification.py" check \
               "$RUNNER_TEMP/chengwang-image-binding" "$(go env GOMODCACHE)" \
               "$RUNNER_TEMP/chengwang-image-binding/evidence/remote-modules-online.json"

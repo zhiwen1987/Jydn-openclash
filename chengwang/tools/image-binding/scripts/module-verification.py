@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Verify the original remote graph using a verification-only Go workspace.
+"""Verify the unchanged remote graph using two fixed local-only dotted aliases.
 
-Only the three real local modules become workspace main modules, so official
-Go verification skips their nonexistent remote archives. Remote modules are
-never promoted to direct requirements. Tests/builds continue with GOWORK=off.
+Copy the original module, changing only its two local require/replace names
+and replacement directories. Never promote remote dependencies to roots or
+use a Go workspace. Local source manifests are checked separately, not claimed
+to have remote archives. Official Go verifies every pinned remote archive.
 """
 import hashlib
 import json
@@ -15,6 +16,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LOCAL = {"chengwang/image-binding": ROOT, "chengwang": ROOT.parent.parent,
          "chengwang-image-verifier": ROOT.parent / "image-verifier"}
+ALIASES = {"chengwang-ci.invalid/local-main": "chengwang",
+           "chengwang-ci.invalid/local-verifier": "chengwang-image-verifier"}
 
 
 def read_objects(path):
@@ -81,37 +84,61 @@ def local_manifest():
             for name, directory in LOCAL.items()}
 
 
+def check_alias_cache(cache):
+    for alias in ALIASES:
+        # No archive, ziphash, extracted directory or download metadata may
+        # masquerade as either deliberately local-only verification alias.
+        candidates = [cache / "cache/download" / alias,
+                      cache / (alias + "@v0.0.0")]
+        if any(path.exists() or path.is_symlink() for path in candidates):
+            raise ValueError("local-only alias unexpectedly exists in module cache")
+
+
+def auxiliary_mod():
+    raw = (ROOT / "go.mod").read_bytes()
+    for alias, original in ALIASES.items():
+        token = re.escape(original.encode("ascii"))
+        pattern = rb"(?m)^([ \t]+)" + token + rb"([ \t]+)v0\.0\.0(?=[ \t]*(?://[^\r\n]*)?\r?$)"
+        raw, count = re.subn(pattern, lambda match: match[1] + alias.encode("ascii") + match[2] + b"v0.0.0", raw)
+        if count != 1:
+            raise ValueError("expected exactly one original local require")
+        pattern = rb"(?m)^replace[ \t]+" + token + rb"[ \t]+=>[ \t]+[^\r\n]+(?=\r?$)"
+        replacement = ("replace " + alias + " => " + json.dumps(str(LOCAL[original].resolve()), ensure_ascii=True)).encode("ascii")
+        raw, count = re.subn(pattern, lambda match: replacement, raw)
+        if count != 1:
+            raise ValueError("expected exactly one original local replace")
+    return raw
+
+
 def check_graph(run, actual_path):
     remote, pins = expected_remote(run)
     actual = read_objects(actual_path)
-    for name, directory in LOCAL.items():
-        main = actual.pop(name, {})
-        if main.get("Main") is not True or main.get("Version") or pathlib.Path(main.get("Dir", "")).resolve() != directory.resolve() or pathlib.Path(main.get("GoMod", "")).resolve() != (directory / "go.mod").resolve():
-            raise ValueError("workspace main module does not match the original local source")
-        if "Replace" in main:
-            replacement = main["Replace"]
-            if name == "chengwang/image-binding" or replacement.get("Version") or pathlib.Path(replacement.get("Dir", "")).resolve() != directory.resolve():
-                raise ValueError("unexpected replacement for a workspace main module")
+    directory = run / "remote-verification"
+    main = actual.pop("chengwang/image-binding", {})
+    if main.get("Main") is not True or main.get("Version") or "Replace" in main or pathlib.Path(main.get("Dir", "")).resolve() != directory.resolve() or pathlib.Path(main.get("GoMod", "")).resolve() != (directory / "go.mod").resolve():
+        raise ValueError("verification main module does not match its temporary directory")
+    for alias, original in ALIASES.items():
+        module = actual.pop(alias, {})
+        replacement = module.get("Replace", {})
+        directory = LOCAL[original].resolve()
+        if module.get("Main") or module.get("Version") != "v0.0.0" or replacement.get("Version") or pathlib.Path(replacement.get("Path", "")).resolve() != directory or pathlib.Path(replacement.get("Dir", "")).resolve() != directory or pathlib.Path(replacement.get("GoMod", "")).resolve() != directory / "go.mod" or pathlib.Path(module.get("Dir", "")).resolve() != directory or pathlib.Path(module.get("GoMod", "")).resolve() != directory / "go.mod":
+            raise ValueError("verification alias is not the exact approved local replacement")
     if any(value.get("Main") or "Replace" in value for value in actual.values()) or {name: value.get("Version") for name, value in actual.items()} != remote:
         raise ValueError("remote verification graph differs from original exact MVS graph")
     return remote, pins
 
 
-def prepare(run):
+def prepare(run, cache):
     remote, _ = expected_remote(run)
-    workspace = run / "remote-verification"
-    workspace.mkdir(mode=0o700, exist_ok=False)
-    text = "go 1.25.8\n\nuse (\n"
-    text += "".join("\t" + json.dumps(str(path.resolve()), ensure_ascii=True) + "\n" for _, path in sorted(LOCAL.items()))
-    text += ")\n"
-    (workspace / "go.work").write_text(text, encoding="utf-8", newline="\n")
-    # Workspace Go reads the three original module sums itself. Start empty;
-    # any new workspace-only checksum remains an explicit immutable-lock fail.
-    (workspace / "go.work.sum").write_bytes(b"")
+    check_alias_cache(cache)
+    auxiliary = run / "remote-verification"
+    auxiliary.mkdir(mode=0o700, exist_ok=False)
+    (auxiliary / "go.mod").write_bytes(auxiliary_mod())
+    (auxiliary / "go.sum").write_bytes((ROOT / "go.sum").read_bytes())
     manifest = {"local": local_manifest(), "remote": remote,
-                "workspace": {file: sha(workspace / file) for file in ("go.work", "go.work.sum")}}
+                "auxiliary": {file: sha(auxiliary / file) for file in ("go.mod", "go.sum")}}
     (run / "evidence/module-manifest.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"IMAGE_BINDING_MODULE_MANIFEST=PASS local_modules=3 remote_modules={len(remote)} verification_only_workspace=true")
+    print(f"IMAGE_BINDING_MODULE_MANIFEST=PASS local_modules=3 remote_modules={len(remote)} local_only_aliases=2 workspace=off")
 
 
 def check(run, cache, actual_path):
@@ -119,11 +146,12 @@ def check(run, cache, actual_path):
     remote, pins = expected_remote(run)
     if manifest["local"] != local_manifest() or manifest["remote"] != remote:
         raise ValueError("local manifests or remote pins changed")
-    workspace = run / "remote-verification"
-    if set(path.name for path in workspace.iterdir()) != {"go.work", "go.work.sum"}:
-        raise ValueError("unexpected files in verification workspace")
-    if manifest["workspace"] != {file: sha(workspace / file) for file in ("go.work", "go.work.sum")}:
-        raise ValueError("verification workspace changed")
+    auxiliary = run / "remote-verification"
+    if set(path.name for path in auxiliary.iterdir()) != {"go.mod", "go.sum"}:
+        raise ValueError("unexpected files in verification module")
+    if manifest["auxiliary"] != {file: sha(auxiliary / file) for file in ("go.mod", "go.sum")} or (auxiliary / "go.mod").read_bytes() != auxiliary_mod() or (auxiliary / "go.sum").read_bytes() != (ROOT / "go.sum").read_bytes():
+        raise ValueError("verification module or checksum lock changed")
+    check_alias_cache(cache)
     check_graph(run, actual_path)
     downloads = read_objects(run / "evidence/remote-downloads.json")
     if set(downloads) != set(remote):
@@ -149,10 +177,11 @@ if __name__ == "__main__":
     if run.is_relative_to(ROOT) or cache.is_relative_to(run):
         raise SystemExit("verification temp/cache locations are not isolated")
     if operation == "prepare" and not rest:
-        prepare(run)
+        prepare(run, cache)
     elif operation == "graph" and len(rest) == 1:
         remote, _ = check_graph(run, pathlib.Path(rest[0]).resolve(strict=True))
-        print(f"IMAGE_BINDING_WORKSPACE_MVS_GRAPH=PASS remote_modules={len(remote)} local_main_modules=3 final_verification_pending=true")
+        check_alias_cache(cache)
+        print(f"IMAGE_BINDING_EXACT_MVS_GRAPH=PASS remote_modules={len(remote)} local_only_aliases=2 workspace=off final_verification_pending=true")
     elif operation == "check" and len(rest) == 1:
         check(run, cache, pathlib.Path(rest[0]).resolve(strict=True))
     else:

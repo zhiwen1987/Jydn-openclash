@@ -49,12 +49,15 @@ cd "$MODULE_ROOT"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
 (
   cd "$RUN_ROOT/remote-verification"
-  GOWORK="$RUN_ROOT/remote-verification/go.work" /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" list -m -json all \
+  test "$("$GO_BINARY" env GOWORK)" = off
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" list -m -json all \
     > "$RUN_ROOT/evidence/remote-modules-offline.json"
   /usr/bin/python3 -B "$MODULE_ROOT/scripts/module-verification.py" check \
     "$RUN_ROOT" "$GOMODCACHE" "$RUN_ROOT/evidence/remote-modules-offline.json"
-  GOWORK="$RUN_ROOT/remote-verification/go.work" /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" mod verify \
+  /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" mod verify \
     | /usr/bin/tee "$RUN_ROOT/evidence/module-verification-offline.txt"
+  /usr/bin/python3 -B "$MODULE_ROOT/scripts/module-verification.py" check \
+    "$RUN_ROOT" "$GOMODCACHE" "$RUN_ROOT/evidence/remote-modules-offline.json"
 )
 test "$("$GO_BINARY" env GOWORK)" = off
 echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
