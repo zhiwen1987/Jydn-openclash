@@ -60,6 +60,32 @@ EVENT_KEYS = frozenset((
     'wireComplete', 'authPresent', 'tls',
 ))
 OBSERVATIONS = []
+BOOTSTRAP_CODES = (
+    'MODULE_NOT_FOUND_SOURCE', 'MODULE_NOT_FOUND_FEED', 'MODULE_NOT_FOUND_OTHER',
+    'IMPORT_PERMISSION', 'IMPORT_ERROR', 'IMPORT_UNEXPECTED',
+)
+SOURCE_ERROR_CODES = (
+    'planned', 'request-invalid', 'method-invalid', 'auth-present', 'plan-unavailable',
+    'plan-invalid', 'epoch-rollback', 'epoch-conflict', 'not-planned',
+    'body-unavailable', 'body-mismatch', 'stopping', 'security-invalid',
+    'arguments-invalid', 'runtime-failed', 'filesystem-or-tls-invalid',
+)
+
+
+def decode_startup_diagnostic(raw):
+    """Pure closed projection: never return input text, paths or exceptions."""
+    if type(raw) is not bytes or len(raw) > 65536:
+        return 'UNCLASSIFIED'
+    allowed = {('D12_SOURCE_BOOTSTRAP_FAILURE=' + code + '\n').encode('ascii'):
+               'BOOTSTRAP_' + code for code in BOOTSTRAP_CODES}
+    allowed.update({('D12_SOURCE_ERROR=REJECTED reason=' + code + '\n').encode('ascii'):
+                    'SOURCE_' + code.upper().replace('-', '_') for code in SOURCE_ERROR_CODES})
+    allowed[b'D12_SOURCE_ERROR=FAILED\n'] = 'SOURCE_FAILED'
+    return allowed.get(raw, 'UNCLASSIFIED')
+
+
+def diagnostic_exit_code(value):
+    return str(value) if type(value) is int and -64 <= value <= 255 else 'UNKNOWN'
 
 
 def sha(raw):
@@ -278,6 +304,15 @@ class ShapeTests(unittest.TestCase):
                             ('test_private_input_links_and_fifo_rejected', 'normal')):
             with self.assertRaises(ValueError):
                 observation(name, label, [])
+        for code in BOOTSTRAP_CODES:
+            raw = ('D12_SOURCE_BOOTSTRAP_FAILURE=' + code + '\n').encode('ascii')
+            self.assertEqual(decode_startup_diagnostic(raw), 'BOOTSTRAP_' + code)
+        for code in SOURCE_ERROR_CODES:
+            raw = ('D12_SOURCE_ERROR=REJECTED reason=' + code + '\n').encode('ascii')
+            self.assertEqual(decode_startup_diagnostic(raw), 'SOURCE_' + code.upper().replace('-', '_'))
+        for raw in (b'PRIVATE_SENTINEL', b'D12_SOURCE_BOOTSTRAP_FAILURE=PRIVATE_SENTINEL\n',
+                    b'D12_SOURCE_ERROR=FAILED\nPRIVATE_SENTINEL\n', b'x' * 65537, None):
+            self.assertEqual(decode_startup_diagnostic(raw), 'UNCLASSIFIED')
 
 
 class Session:
@@ -326,8 +361,27 @@ class Session:
                 probe.bind(('127.0.0.1', 0))
                 port = probe.getsockname()[1]
         self.port = port
-        launch = ('import sys;sys.path.insert(0,sys.argv.pop(1));'
-                  'import fixture_source;raise SystemExit(fixture_source.main())')
+        launch = '''import sys
+sys.path.insert(0, sys.argv.pop(1))
+try:
+    import fixture_source
+except ModuleNotFoundError as error:
+    code = ('MODULE_NOT_FOUND_SOURCE' if type(error.name) is str and error.name == 'fixture_source'
+            else 'MODULE_NOT_FOUND_FEED' if type(error.name) is str and error.name == 'fixture_feed'
+            else 'MODULE_NOT_FOUND_OTHER')
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=' + code + '\\n')
+    raise SystemExit(1) from None
+except PermissionError:
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_PERMISSION\\n')
+    raise SystemExit(1) from None
+except ImportError:
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_ERROR\\n')
+    raise SystemExit(1) from None
+except Exception:
+    sys.stderr.write('D12_SOURCE_BOOTSTRAP_FAILURE=IMPORT_UNEXPECTED\\n')
+    raise SystemExit(1) from None
+raise SystemExit(fixture_source.main())
+'''
         command = ['/usr/bin/setpriv', '--reuid=10001', '--regid=10001', '--clear-groups',
                    '--bounding-set=-all', '--inh-caps=-all', '--ambient-caps=-all', '--no-new-privs',
                    sys.executable, '-I', '-B', '-c', launch, str(HERE), 'serve',
@@ -338,14 +392,21 @@ class Session:
         if rejected:
             out, err = self.communicate(5)
             self.test.assertTrue(self.process.returncode == 1 and not out, 'startup must naturally reject with exit one')
-            self.test.assertTrue(err.startswith(b'D12_SOURCE_ERROR=') and b'PRIVATE_SENTINEL' not in err,
-                                 'startup diagnostic must be a fixed safe code')
+            diagnostic = decode_startup_diagnostic(err)
+            self.test.assertTrue(diagnostic.startswith('SOURCE_'),
+                                 'startup diagnostic must be a fixed safe code diagnostic=' + diagnostic
+                                 + ' exitCode=' + diagnostic_exit_code(self.process.returncode))
             return
         ready_path = self.feed / 'ready.json'
         until = time.monotonic() + 5
         while not ready_path.exists() and time.monotonic() < until and self.process.poll() is None:
             time.sleep(0.005)
-        self.test.assertTrue(ready_path.exists() and self.process.poll() is None, 'actual helper ready was not published')
+        if not ready_path.exists() or self.process.poll() is not None:
+            if self.process.poll() is not None:
+                _, err = self.communicate(1)
+                self.test.fail('actual helper ready was not published diagnostic=' + decode_startup_diagnostic(err)
+                               + ' exitCode=' + diagnostic_exit_code(self.process.returncode))
+            self.test.fail('actual helper ready was not published diagnostic=UNCLASSIFIED exitCode=PENDING')
         ready_raw = self.private_read(ready_path, 4096)
         try:
             ready = json.loads(ready_raw, object_pairs_hook=unique_object)
