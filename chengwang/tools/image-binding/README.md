@@ -38,6 +38,33 @@
 
 ## 验证与边界
 
+## 可选产品 API 组合（P0-d6）
+
+主模块 `internal/imagetrust` 定义 Go 1.23 接口，`internal/api` 注册受保护路由；本模块 `product.Service` 实现真实受管后端。独立候选命令 `cmd/image-trust-api` 将它注入同一个产品 `api.New`。原 `cmd/server` 没有注入后端，仍未配置/失败关闭；没有更新生产二进制或发布镜像。实际验收和未完成项以 [P0-d6 合同](../../docs/P0D6-IMPLEMENTATION-CONTRACT.md) 及阶段验收记录为准。
+
+| 接口 | 角色 | 状态影响 |
+| --- | --- | --- |
+| GET `/api/v1/image-trust` | viewer/operator/approver/auditor/admin | 只读安全摘要，不前进账本或时钟高水位 |
+| PUT `/api/v1/image-trust/catalogue` | admin | 仅安装下一代有效签名 catalog；撤销也走此路径，不能 HTTP bootstrap/reset |
+| POST `/api/v1/image-trust/verifications` | operator/admin | 验证且消费 grant，必须启用独立写门 |
+
+所有接口同时检查 tenant/site/object/environment，三个动作不允许 break-glass。Bearer 必须经 TLS 或直连回环传输；不接受客户端身份/scope/Anchor/CA/token/URL/nonce，不使用旧 AdminToken 降级。后端直接调用也做 RBAC/写门检查。请求 body 有严格字段/base64/字节预算。
+
+后端实际写入准备/结果审计；`verification_consumed` 只表示真实验签和持久消费完成，不表示 HTTP 返回成功或客户端已经收到响应。结果审计后还会复验当前 catalog、消费摘要与较早过期时间。两份持久库不是原子事务，出现不确定状态返回 `stateMayHaveChanged=true`；不能自动重试、重发 grant 或伪造成功。持久审计不含凭据/原始 bundle，匿名拒绝路径不写库；独立限额访问日志与审计查询界面仍未实现。
+
+当前候选限制为进程级单验证并发、每分钟 4 次启动，无排队；限速预算随进程重启重置，防回放状态不会。它是保护性候选预算，不是企业吞吐承诺。HTTP 超时不等于 SDK CPU 硬终止，真实生产接入仍需进程级隔离/硬限额。
+
+在独立、受控的 Linux 候选环境中可构建（不是部署命令）：
+
+```sh
+# 在 tools/image-binding，使用干净且固定的 Go 1.25.8 工具链。
+go build -trimpath -o image-trust-api ./cmd/image-trust-api
+./image-trust-api --help
+# 只有另行批准后才以 --config /absolute/private/candidate.json 启动。
+```
+
+配置必须是当前用户私有 0700 目录中的 0600 普通单链接文件，路径绝对规范，literal UTF-8/exact JSON 字段；身份文件也拒重复/大小写/转义别名。配置绑定 `storePath`、独立 `anchorFile`、`identitiesFile`、`auditDir`、`registryCAFile`、tenantId/siteId/environment；可选 Registry token 私有文件和 TLS cert/key 文件。只打开已有 Store，不创建/重置可信账本；`writesEnabled` 缺省 false，非回环必须 TLS。候选命令只开放 health 与上表三个路径，不启动无关版本、发布、设备或操作子系统。没有安装服务、配置生产信任或自动引导工具。
+
 CI 运行器见 [scripts/README.md](scripts/README.md)。普通测试包含真实本机 TLS 服务，外网被 namespace 禁止；另在唯一临时 internal 网络内运行固定 digest 的真实 Distribution Registry，上传合法惰性 OCI fixture 后进行普通/race 读回。只测试服务器可写，产品函数只读，绝不执行镜像。
 
-支持少于完整 OCI/Registry 生态是明确的失败关闭限制：尚未支持认证挑战换 token、CDN 重定向、OCI index、制品多签阈值、在线 TUF/自动撤销刷新、企业批准工作流和生产密钥分发。catalog 的根阈值不等于镜像制品多签。没有产品调用方、CLI 服务、发布构建镜像签发、运行中容器身份绑定或恢复执行接入。九项恢复 blocker 不变；成功不表示镜像内容安全，也不表示已经部署。
+支持少于完整 OCI/Registry 生态是明确的失败关闭限制：尚未支持认证挑战换 token、CDN 重定向、OCI index、制品多签阈值、在线 TUF/自动撤销刷新、企业批准工作流和生产密钥分发。catalog 的根阈值不等于镜像制品多签。已有可选产品 API 后端与候选组合命令，但没有原发布入口装配、发布构建镜像签发、运行中容器身份绑定或恢复执行接入。九项恢复 blocker 不变；成功不表示镜像内容安全，也不表示已经部署。

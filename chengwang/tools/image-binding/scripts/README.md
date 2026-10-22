@@ -28,6 +28,8 @@ workflow 始终在 `GOWORK=off` 下下载并记录原始 MVS 图，严格检查�
 
 `evidence/go.sum.candidate`、`auxiliary*.go.sum.candidate` 仅供审查，不能自动升级或污染真实依赖。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 五 package 门禁，也不自动更新主门禁指纹。若此前步骤失败，该父测试记录可能尚未生成；artifact 只保存实际已有文件。
 
-P0-d5 新增 `trustcatalog`、`truststate`，普通/race 门精确要求五个 package，另对原 P0-d4 三包的 234 个测试名称集合核对固定 SHA256，防止新增场景掩盖旧场景缺失。状态测试临时目录必须是本次 RUN_ROOT 下的私有原生 ext4/XFS；包含真实子进程锁、`os.Exit` 后 reserved/consumed 重开，不能称为真实掉电证明。真实 Distribution 的两类签名在 ordinary/race 中分别要求 managed 成功、关闭重开和拒重放的精确输出，不能拿 SDK 测试服务替代真实 Registry。
+P0-d5 新增 `trustcatalog`、`truststate`；P0-d6 再增 `product`、候选命令，普通/race 门现精确要求七个 package，分别保留 P0-d4 的 234 与 P0-d5 的 379 场景固定 SHA256，防止新增场景掩盖旧场景缺失。状态测试临时目录必须是本次 RUN_ROOT 下的私有原生 ext4/XFS；包含真实子进程锁、`os.Exit` 后 reserved/consumed 重开，不能称为真实掉电证明。真实 Distribution 的两类签名在 ordinary/race 中分别要求 managed 成功、关闭重开和拒重放的精确输出，不能拿 SDK 测试服务替代真实 Registry。
+
+P0-d6 在原模块 before/after 清单之外，增加全部 tracked `chengwang/**` 与本绑定 workflow 的 checkout before/after SHA256 清单，覆盖父 API/RBAC/合同和兄弟验签器等真实源码依赖，不读取无关生产 OpenClash 配置。普通门还实际构建 trimpath 候选命令，记录 binary SHA256、`go version -m` 和无副作用 `--help`；二进制不上传。候选真实 run/HTTP/TLS 测试不等于正式签发的发布镜像或真实生产进程部署。父项目新增 API/RBAC/合同完整测试指纹基于实际 Linux transcript 校准，并独立核对原 2067 个 Test 场景全部保留；不把 Fuzz seed 混入语义 Test 计数。
 
 脚本中的 `GOMEMLIMIT` 是软目标。Registry 容器另有硬 memory/CPU/pids 上限，Go 测试进程另有超时与有限 ulimit；这些条件不代表产品部署的完整资源隔离。所有成功报告仍为 advisory，固定 `authorization=BLOCKED`、`production=false`。

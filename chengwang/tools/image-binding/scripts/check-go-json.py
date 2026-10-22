@@ -146,10 +146,14 @@ REQUIRED_ORDINARY = {
         "TestCandidateStrictConfigurationDecode", "TestCandidatePrivateFilesRejectUnsafeInputs",
         "TestCandidateNonLoopbackRequiresTLSBeforeListen", "TestCandidateMissingStoreNeverBootstraps",
         "TestCandidateRunAuthenticatedReadDefaultLockedAndGracefulClose", "TestCandidateRejectRelativeStatePaths",
+        "TestCandidateTLSListenerRequiresValidExplicitTrust",
+        "TestCandidateStrictIdentityProfile",
     } | {"TestCandidateStrictConfigurationDecode/" + case for case in (
         "duplicate", "nested_duplicate", "unknown", "null", "trailing", "deep", "empty",
         "case_alias", "write_alias", "escaped_alias", "invalid_utf8")}
       | {"TestCandidateRejectRelativeStatePaths/" + case for case in ("store", "audit", "identities")}
+      | {"TestCandidateStrictIdentityProfile/" + case for case in (
+        "role-case-alias", "role-duplicate", "scope-case-alias")}
       | {"TestCandidatePrivateFilesRejectUnsafeInputs/" + case for case in (
         "symlink", "hardlink", "mode", "directory_mode", "directory_symlink", "ancestor_write", "relative",
         "unclean", "missing", "directory", "empty", "oversized", "valid")},

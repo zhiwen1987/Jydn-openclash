@@ -28,7 +28,8 @@ done
 test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
 test -z "$(/usr/sbin/ip -o route show default)"
 test -z "$(/usr/sbin/ip -6 -o route show default)"
-for mount_path in "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification"; do
+source_root=$(/usr/bin/git -C "$MODULE_ROOT" rev-parse --show-toplevel)
+for mount_path in "$source_root" "$MODULE_ROOT" "$GOMODCACHE" "$RUN_ROOT/remote-verification"; do
   /usr/bin/findmnt -n -T "$mount_path" -o OPTIONS | /usr/bin/grep -qE '(^|,)ro(,|$)'
 done
 /usr/bin/python3 -B - <<'PY'
@@ -56,6 +57,14 @@ PY
 /usr/sbin/ip -o route show table all
 cd "$MODULE_ROOT"
 /usr/bin/find . -type f -print0 | /usr/bin/sort -z | /usr/bin/xargs -0 /usr/bin/sha256sum > "$RUN_ROOT/evidence/source-before.sha256"
+# The backend now composes the parent API, authn/authz, evidence and DTO
+# packages as well as the sibling signature verifier. Bind their actual
+# checkout bytes too, not only the nested module's source directory.
+(
+  cd "$source_root"
+  /usr/bin/git ls-files -z -- 'chengwang/**' '.github/workflows/chengwang-image-binding.yml' \
+    | /usr/bin/xargs -0 /usr/bin/sha256sum --
+) > "$RUN_ROOT/evidence/checkout-before.sha256"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
 (
   cd "$RUN_ROOT/remote-verification"
@@ -78,6 +87,16 @@ echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
 /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$GO_BINARY" vet ./... \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/go-vet.log"
 /usr/bin/python3 -B scripts/check-go-json.py --mode ordinary "$RUN_ROOT/evidence/go-test.json" "$RUN_ROOT/evidence/go-race.json"
+# Build and exercise the actual opt-in candidate command, rather than calling
+# a test binary a release artifact. --help exits before opening any stores or
+# starting a listener. Only its digest/build metadata/help become evidence.
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" build -trimpath \
+  -o "$RUN_ROOT/bin/image-trust-api" ./cmd/image-trust-api
+/usr/bin/sha256sum -- "$RUN_ROOT/bin/image-trust-api" > "$RUN_ROOT/evidence/candidate-binary.sha256"
+"$GO_BINARY" version -m "$RUN_ROOT/bin/image-trust-api" > "$RUN_ROOT/evidence/candidate-binary-buildinfo.txt"
+/usr/bin/timeout --signal=TERM --kill-after=1s 10s "$RUN_ROOT/bin/image-trust-api" --help \
+  > "$RUN_ROOT/evidence/candidate-binary-help.txt" 2>&1
+echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_started=false store_opened=false release_signed=false product_image_executed=false'
 # Independently retain the parent OCI verifier scenarios. This transcript is
 # not merged into the seven-package child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \
@@ -90,4 +109,10 @@ echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
   "$RUN_ROOT" "$GOMODCACHE" "$RUN_ROOT/evidence/remote-modules-offline.json"
 /usr/bin/find . -type f -print0 | /usr/bin/sort -z | /usr/bin/xargs -0 /usr/bin/sha256sum > "$RUN_ROOT/evidence/source-after.sha256"
 /usr/bin/cmp "$RUN_ROOT/evidence/source-before.sha256" "$RUN_ROOT/evidence/source-after.sha256"
+(
+  cd "$source_root"
+  /usr/bin/git ls-files -z -- 'chengwang/**' '.github/workflows/chengwang-image-binding.yml' \
+    | /usr/bin/xargs -0 /usr/bin/sha256sum --
+) > "$RUN_ROOT/evidence/checkout-after.sha256"
+/usr/bin/cmp "$RUN_ROOT/evidence/checkout-before.sha256" "$RUN_ROOT/evidence/checkout-after.sha256"
 echo 'IMAGE_BINDING_OFFLINE_GATE=PASS toolchain=go1.25.8 readonly_source=true readonly_module_cache=true capabilities=none no_new_privileges=true authorization=BLOCKED production=false'

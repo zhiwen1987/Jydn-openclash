@@ -67,15 +67,16 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/cmd/verify-shadow": 5,
     "chengwang/deploy/m2b-candidate/cmd/candidate-guard": 5,
     "chengwang/internal/adapter/mihomo": 7,
-    "chengwang/internal/api": 39,
+    "chengwang/internal/api": 181,
     "chengwang/internal/attestation": 29,
     "chengwang/internal/authn": 28,
-    "chengwang/internal/authz": 80,
+    "chengwang/internal/authz": 122,
     "chengwang/internal/capability": 8,
     "chengwang/internal/control": 22,
     "chengwang/internal/dockerreadonlyproxy": 20,
     "chengwang/internal/evidence": 40,
     "chengwang/internal/kernel": 2,
+    "chengwang/internal/imagetrust": 2,
     "chengwang/internal/lease": 14,
     "chengwang/internal/observation": 13,
     "chengwang/internal/operation": 61,
@@ -97,6 +98,21 @@ REQUIRED_GO_TEST_RUNS = {
 }
 
 REQUIRED_GO_TEST_FINGERPRINTS = {
+    # P0-d6 actual ordinary/race evidence: run 39760575706, commit 59794e7.
+    # All original P0-d5 2067 Test* pairs were independently retained; these
+    # three package sets add 185 tests without counting Fuzz seed events.
+    "chengwang/internal/api": {
+        "count": 181,
+        "sha256": "3fc76ff8a581903d432fd9087d58588a501f64fa50aee5df5e8fb746cc076ac3",
+    },
+    "chengwang/internal/authz": {
+        "count": 122,
+        "sha256": "9afa148555ca6555daeca66ee73df96f9372d864e8a356773ca1b5b0d1a3406b",
+    },
+    "chengwang/internal/imagetrust": {
+        "count": 2,
+        "sha256": "b54cccba37db13b67eec1be9aab1a16d5f940a8e59eec1ba1d62563e6bf99c6d",
+    },
     "chengwang/cmd/docker-runtime-readonly-proxy": {
         "count": 1,
         "sha256": "7d37f6a69b4a0dbe1954268fce30c54fcf73d4a008c3ccd94640d26563313e2d",
@@ -132,6 +148,30 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
 }
 
 REQUIRED_GO_TEST_NAMES = {
+    "chengwang/internal/api": frozenset(
+        {
+            "TestImageTrustHTTPRoleMatrix",
+            "TestImageTrustHTTPPreflightDoesNotReadOrCallBackend",
+            "TestImageTrustHTTPWritesLockedAndMethodsProtected",
+            "TestImageTrustHTTPBadJSONNeverCallsBackend",
+            "TestImageTrustHTTPRequestBudgetsAndHeaders",
+            "TestImageTrustHTTPBackendErrorsAreSafeAndBlocked",
+            "TestImageTrustHTTPFixedConfigurationAndTLSSucceed",
+        }
+    ),
+    "chengwang/internal/authz": frozenset(
+        {
+            "TestImageTrustRoleMatrix",
+            "TestImageTrustBreakGlassAlwaysDenied",
+            "TestImageTrustScopeAndUnknownIdentityDenied",
+        }
+    ),
+    "chengwang/internal/imagetrust": frozenset(
+        {
+            "TestContractErrorHasOnlySafeOutcomeClassification",
+            "TestContractIsAdvisoryAndContainsNoRequestAuthority",
+        }
+    ),
     "chengwang/cmd/docker-runtime-readonly-proxy": frozenset(
         {"TestProxyCommandKeepsFixedPrivilegeBoundary"}
     ),
