@@ -181,6 +181,42 @@ func TestCandidateRejectRelativeStatePaths(t *testing.T) {
 	}
 }
 
+func TestCandidateStrictIdentityProfile(t *testing.T) {
+	fixture := newCandidateFixture(t, true)
+	raw, err := readPrivate(fixture.config.IdentitiesFile, 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, bad := range map[string][]byte{
+		"role-case-alias":  bytes.Replace(raw, []byte(`"roles":`), []byte(`"Roles":`), 1),
+		"role-duplicate":   bytes.Replace(raw, []byte(`"roles":`), []byte(`"roles":["viewer"],"roles":`), 1),
+		"scope-case-alias": bytes.Replace(raw, []byte(`"allowedScopes":`), []byte(`"AllowedScopes":`), 1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			var file authn.File
+			if strictDecode(bad, &file) != errConfiguration {
+				t.Fatal("ambiguous private identity profile accepted")
+			}
+		})
+	}
+	var profile authn.File
+	if strictDecode(raw, &profile) != nil {
+		t.Fatal("valid identity profile rejected")
+	}
+	// Exact field checks must not reject legitimate explicitly false/zero
+	// omitempty fields or typed timestamp scalars merely because marshal omits them.
+	var object map[string]any
+	if json.Unmarshal(raw, &object) != nil {
+		t.Fatal("invalid identity fixture")
+	}
+	identity := object["identities"].([]any)[0].(map[string]any)
+	identity["disabled"] = false
+	identity["expiresAt"] = time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano)
+	if strictDecode(candidateJSON(t, object), &profile) != nil || profile.Identities[0].Disabled || profile.Identities[0].ExpiresAt == nil {
+		t.Fatal("valid explicit identity defaults/timestamp rejected")
+	}
+}
+
 func TestCandidatePrivateFilesRejectUnsafeInputs(t *testing.T) {
 	for _, kind := range []string{"symlink", "hardlink", "mode", "directory_mode", "directory_symlink", "ancestor_write", "relative", "unclean", "missing", "directory", "empty", "oversized"} {
 		t.Run(kind, func(t *testing.T) {

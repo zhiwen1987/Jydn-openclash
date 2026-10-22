@@ -102,18 +102,18 @@ func TestProductTrustStateInspectExpiredAndClockReadOnly(t *testing.T) {
 func TestProductTrustStateInspectInvalidContextsAndClosed(t *testing.T) {
 	f := newStateFixture(t)
 	s, _ := createFixture(t, f)
-	if _, err = s.Inspect(nil); err == nil {
+	if _, err := s.Inspect(nil); err == nil {
 		t.Fatal("nil context")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err = s.Inspect(ctx); err == nil {
+	if _, err := s.Inspect(ctx); err == nil {
 		t.Fatal("canceled context")
 	}
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.Inspect(context.Background()); !errors.Is(err, ErrClosed) {
+	if _, err := s.Inspect(context.Background()); !errors.Is(err, ErrClosed) {
 		t.Fatalf("closed Inspect: %v", err)
 	}
 	var absent *Store

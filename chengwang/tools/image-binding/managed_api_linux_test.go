@@ -244,7 +244,7 @@ func TestManagedAPIRealLifecycleAndBoundaries(t *testing.T) {
 	f.recompose(t, true)
 	count := f.requests.Load()
 	code, raw = managedAPIRequest(t, f.api, http.MethodPost, "/api/v1/image-trust/verifications", f.tokens["operator"], body)
-	if code == 200 || f.requests.Load() != count || bytes.Contains(raw, []byte(`"verified":true`)) {
+	if code != http.StatusBadRequest || !bytes.Contains(raw, []byte(`"code":"image_trust_invalid"`)) || f.requests.Load() != count || bytes.Contains(raw, []byte(`"verified":true`)) {
 		t.Fatal("HTTP replay or restart reached Registry/success")
 	}
 	code, raw = managedAPIRequest(t, f.api, http.MethodGet, "/api/v1/image-trust", f.tokens["viewer"], nil)

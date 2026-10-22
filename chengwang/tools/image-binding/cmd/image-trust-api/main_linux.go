@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"syscall"
 	"time"
@@ -109,7 +110,9 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 	if strictDecode(anchorRaw, &anchor) != nil {
 		return errConfiguration
 	}
-	if _, err := readPrivate(config.IdentitiesFile, 1<<20); err != nil {
+	identityRaw, err := readPrivate(config.IdentitiesFile, 1<<20)
+	var identityProfile authn.File
+	if err != nil || strictDecode(identityRaw, &identityProfile) != nil {
 		return errConfiguration
 	}
 	identities, err := authn.Open(config.IdentitiesFile)
@@ -250,37 +253,61 @@ func strictDecode(raw []byte, destination any) error {
 	if decoder.Decode(destination) != nil || decoder.Decode(new(any)) != io.EOF {
 		return errConfiguration
 	}
-	canonical, err := json.Marshal(destination)
-	if err != nil {
-		return errConfiguration
-	}
-	var supplied, exact any
-	if json.Unmarshal(raw, &supplied) != nil || json.Unmarshal(canonical, &exact) != nil || !exactFieldNames(supplied, exact) {
+	var supplied any
+	if json.Unmarshal(raw, &supplied) != nil || !exactFieldNames(supplied, reflect.TypeOf(destination)) {
 		return errConfiguration
 	}
 	return nil
 }
 
-func exactFieldNames(supplied, exact any) bool {
-	switch value := supplied.(type) {
-	case map[string]any:
-		canonical, ok := exact.(map[string]any)
+func exactFieldNames(supplied any, typ reflect.Type) bool {
+	if supplied == nil {
+		return true
+	}
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+	// time.Time and other explicitly typed JSON scalars parse themselves.
+	if reflect.PointerTo(typ).Implements(reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()) {
+		return true
+	}
+	switch typ.Kind() {
+	case reflect.Struct:
+		object, ok := supplied.(map[string]any)
 		if !ok {
 			return false
 		}
-		for key, nested := range value {
-			expected, ok := canonical[key]
-			if !ok || !exactFieldNames(nested, expected) {
+		fields := map[string]reflect.Type{}
+		for i := 0; i < typ.NumField(); i++ {
+			field := typ.Field(i)
+			if field.PkgPath != "" {
+				continue
+			}
+			name := strings.Split(field.Tag.Get("json"), ",")[0]
+			if name == "-" {
+				continue
+			}
+			if name == "" {
+				name = field.Name
+			}
+			fields[name] = field.Type
+		}
+		for key, nested := range object {
+			field, ok := fields[key]
+			if !ok || !exactFieldNames(nested, field) {
 				return false
 			}
 		}
-	case []any:
-		canonical, ok := exact.([]any)
-		if !ok || len(value) != len(canonical) {
+	case reflect.Slice, reflect.Array:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return true
+		}
+		values, ok := supplied.([]any)
+		if !ok {
 			return false
 		}
-		for i, nested := range value {
-			if !exactFieldNames(nested, canonical[i]) {
+		for _, nested := range values {
+			if !exactFieldNames(nested, typ.Elem()) {
 				return false
 			}
 		}
