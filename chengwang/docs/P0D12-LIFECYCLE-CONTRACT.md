@@ -1,0 +1,59 @@
+# P0-d12 自动刷新与跨库恢复：分层验收合同
+
+本阶段沿用“先不要动生产环境”。所有构建和实验只在开发分支与一次性 CI 中执行；不 SSH、不操作任何生产路由器/服务，不合并 main，不向正式 Registry 发布镜像。
+
+## 1. 当前交付边界
+
+D11 的真实镜像/Registry/签名/批准/消费/重放验收继续保留，其后台刷新未启用，撤销通过管理员手动 PUT。因此不能把 D11 写成已完成实际镜像的自动撤销刷新。
+
+D12 先验证两个必要的外部测试机制，再接真实镜像。前置门即使通过，仍不代表自动刷新或真实产品进程故障矩阵已经通过。
+
+| 层 | 本层能证明 | 不能据此宣称 |
+| --- | --- | --- |
+| 独立 fixture 前置门 | 真实 Linux 跨进程文件租约阻塞/解除；低权限正常 TLS 固定源站与安全访问记录 | 产品镜像已使用这些机制、已自动刷新/恢复 |
+| 真实镜像自动刷新门（待接线） | 实际默认程序自行 Fetch→Apply→Confirm；自动 actor 与两库/来源日志关联 | 手工 PUT 或直接 ConfirmRefresh 等于自动刷新 |
+| 真实 API 中断恢复门（待接线） | 特定实际在途操作被外部阻塞后终止，重启仅补审计、不释放批准 | 所有六个内部边界均被真实镜像命中、坏盘/断电自修 |
+| 预置中间态恢复门（待接线） | 真实 constructor 对明确预置的健康 outbox 状态恢复 | 预置状态等于真实 API 崩溃 |
+
+## 2. 前置门实施与验收
+
+入口：`tools/image-binding/scripts/run-linux-ci.sh` 在既有私有 mount/net namespace 中运行独立 fixture runner，然后原样进入原非 root offline gate。
+
+- source、依赖缓存为只读；namespace 只有 loopback、没有默认路由；不获取新依赖。
+- root 仅为可信测试 orchestrator，用于建立严格 UUID 测试目录、设置 owner/mode、启动/回收指定子进程；它不是产品权限模型，也不宣称宿主 Unix sockets 已隐藏。
+- 被测 lease/feed helper 必须实际运行于 UID/GID `10001`、所有 capability 集为空、`NoNewPrivs=1`；helper 自检失败立即拒绝。
+- 每套真实 Linux 测试有 180 秒总截止时间，缺内核能力/权限/工具必须失败，不得 skip 或回退为模拟。Windows 仅 shape 辅助测试，明确跳过 Linux 部分，不能生成前置 PASS。
+- 前置门另建子 mount namespace，将本轮专用 native `/tmp` backing tree 挂为 `/tmp`；超时后的清理不枚举或删除宿主 `/tmp`。本 CI 的 source/run root 必须位于 `/tmp` 之外，避免被遮蔽。仅清理事先核对的专用 UUID 子目录；未知对象应失败而不是扩大删除范围。清理成功和退出0共同满足后才可生成最终 PASS。
+- 独立 checker 从本次 Git 原 bytes 提取完整具名测试集合，核对每一项 `ok`、唯一 summary 和严格 marker；缺项、重命名、重复、skip、辅助 marker、任意额外输出均拒绝。
+- 发布安全 test transcript 和 `product-lifecycle-preflight.json`；源文件摘要必须与当前 commit 原 bytes 一致。报告明确 `actualProductLifecycleProven=false`、`productAutomaticRefreshProven=false`、`productImageFaultInjectionProven=false`。
+- D10/D11 原门、49 份关联集合及普通/race 的 700/父 2320 集合不修改、不缩减、不合并计数。
+
+### 外部审计写屏障
+
+`fixture_lease.py` 仅读取指定 `events.jsonl` 并持有 Linux read lease；不改日志、checkpoint、数据库或权限，不向产品发送信号。测试实际检查：读打开成功、写打开阻塞、显式 release 后写打开成功、TERM/deadline 失败解除，以及 SIGKILL holder 后内核释放；文件原 bytes 保持不变。拒绝错误 owner/gid/mode、symlink、hardlink、FIFO、替换 inode、过期 control 和不合法路径。
+
+只读取 `/proc/sys/fs/lease-break-time`，不改 sysctl；自身 deadline 必须先于内核强制解除。`BLOCKED` 表示观察到 SIGIO，**不能单凭这个 JSON 证明指定产品正阻塞**；后续必须同时绑定实际操作/持久状态和独立进程观察。
+
+产品接线必须先确认产品 ready，再安装租约；否则会阻塞 `evidence.Open` 自身的写打开，而不是目标操作阶段。租约的内核语义见 [Linux file leases](https://man7.org/linux/man-pages/man2/F_GETLEASE.2const.html)。
+
+### 独立 TLS feed
+
+`fixture_feed.py` 只在 loopback 提供固定 `/feed/latest.json` 和 canonical 正整数代文件；无 HTTP 控制路由。私有原子 plan 绑定单调 epoch 和原始 plan bytes，200 body 按内容摘要读取；一次响应模式在并发下至多提供一次。回退、同 epoch 分叉、坏 plan、错误摘要、非法方法/路径/Authorization 均失败关闭。
+
+日志只保存固定 schema、ordinal/epoch、固定路径类别/代、状态、实际响应 body 摘要、字节和发送完成状态、TLS/Authorization 布尔及错误枚举，不回显任意 URL/header/body/证书私钥。正常 CA/SAN 客户端和错误信任/SAN 反证属于独立 fixture 的能力；产品 SPKI 拒绝必须另由真实产品门证明。
+
+其中 `sentComplete=false` 时摘要仅绑定拟发送的表示，`bytes=0` 是“未确认完整发送”的哨兵，不证明对端实际收到零字节，也不假定已知部分发送量。已完成事件才可按完整 body bytes 关联。
+
+## 3. 真实镜像后续必验项（目前未完成）
+
+自动刷新：未确认来源拒绝且不消费；顺序追赶；精确同代 no-op；自动撤销；回滚/同代分叉/缺代拒绝；坏签与过期候选拒绝；断源自然变陈旧；恢复来源后重新确认；同容器重启丢弃内存 freshness 但保留烧毁记录；在途刷新停机取消并 join。来源正常 TLS/固定 IP/CA/SPKI 及真实 Registry 流量分别独立观察，不硬编码带抖动的轮询总次数。
+
+区分 Fetch 拒绝与 Apply 拒绝：前者不产生更新操作，后者可能合法增加 REJECTED journal/audit；不能用“一切计数不变”掩盖真实执行。当前实际 interval 下限 1 秒；每进程每分钟 4 次是 verify 启动预算，不是刷新间隔。不得放宽产品限制或修改系统时钟来加速验收。
+
+实际中断：先覆盖 PREPARED→prepared audit 打开、RESERVED→真实 Registry 响应、CONSUMED→result audit 打开的独立外部屏障；保留两类签名。精确终止本轮指定容器，分别报告计划内异常退出与正常退出0；重启仅补审计/ACK，不重做领域验证、不解烧毁，第二次重启幂等。
+
+另列 update/verify×六阶段×两签名的预置健康中间态，以及审计缺失/错误前缀/键冲突/scope/checkpoint 损坏的启动拒绝矩阵。不得为此给产品暴露 fault HTTP/env/config 开关。不可恢复的数据冲突应继续失败关闭，不能自动采信不明日志尾部。
+
+## 4. 不变的发布边界
+
+所有测试 authority 均为 `EPHEMERAL_TEST_ONLY`，`authorization=BLOCKED`、`production=false`、`deviceActionsExecuted=false`。即使 D12 全矩阵通过，也不等于正式密钥/SLSA/发布安装/企业身份/全功能或生产上线，不解除九项恢复 blocker，不证明物理掉电、磁盘损坏、整盘回滚、WORM 或 exactly-once。

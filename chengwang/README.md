@@ -20,6 +20,7 @@
 - image-trust 候选已实现受保护的可信策略、撤销/防回放 API、固定来源自动刷新、健康两库间的审计补投递，以及只读状态/操作记录控制台；新增显式完整产品候选入口，共用主服务 runtime、基础产品 API 与审计，并通过正常浏览器 HTTPS/证书拒绝验收。**原主入口默认仍不注入 trust backend，未部署生产**。见 [P0-d7](docs/P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)、[P0-d8](docs/P0D8-TRUST-CONSOLE-ACCEPTANCE.md)、[P0-d9 验收](docs/P0D9-PRODUCT-HTTPS-ACCEPTANCE.md)及[完整候选操作说明](docs/PRODUCT-CANDIDATE-OPERATOR-NOTES.md)；这不是全企业功能已完成或发布授权。
 - P0-d10 新增独立scratch产品候选镜像，已在隔离CI实际执行镜像默认程序、正常HTTPS浏览器、停止重开、同状态重启读回与4类失败关闭；原回归保留。**只证明该候选实际构建/运行，不是已签名发布或生产上线**；本地imageID不是Registry manifest，旧Dockerfile/M2b门与九项恢复blocker不解除。见 [D10验收与未完成项](docs/P0D10-IMAGE-RUNTIME-ACCEPTANCE.md)。
 - P0-d11 已让同轮真实镜像完成隔离Registry正常TLS回拉、两类测试签名/批准、镜像内真实API消费、撤销、防回放与同容器重启，最终49份证据关联及精确清理独立重放通过。**测试authority不是正式发行或上线授权**；自动刷新/跨库故障矩阵、企业密钥与正式发布仍待完成。见[D11实际验收与边界](docs/P0D11-PRODUCT-REGISTRY-ACCEPTANCE.md)。
+- P0-d12 正补自动刷新/异常恢复的独立 Linux 测试机制：低权限 TLS 来源与外部文件租约屏障。**前置机制通过不等于真实镜像生命周期已验收**；实际镜像自动刷新和故障矩阵仍待接线，见[D12分层合同](docs/P0D12-LIFECYCLE-CONTRACT.md)。
 
 > 源码实现不等于生产能力已经开放。`10.88.0.254` 已部署并验收默认锁定的 Shadow 操作 API 与“操作中心”，但没有配置身份文件，`CHENGWANG_OPERATION_WRITES_ENABLED=false`，也不存在设备执行器；因此线上只证明失败关闭、只读读回和界面边界，未形成生产写入闭环。见 [10.88.0.254 部署记录](docs/DEPLOYMENT-10.88.0.254.md)。
 

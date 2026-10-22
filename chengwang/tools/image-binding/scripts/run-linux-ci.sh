@@ -11,6 +11,7 @@ module_cache=$(/usr/bin/realpath -e -- "$3")
 script_root=$(/usr/bin/realpath -e -- "$(/usr/bin/dirname -- "${BASH_SOURCE[0]}")")
 module_root=$(/usr/bin/realpath -e -- "$script_root/..")
 source_root=$(/usr/bin/realpath -e -- "$(/usr/bin/git -C "$module_root" rev-parse --show-toplevel)")
+source_commit=$(/usr/bin/git -C "$source_root" rev-parse HEAD)
 runner_uid=$(/usr/bin/id -u)
 runner_gid=$(/usr/bin/id -g)
 node_binary=$(/usr/bin/realpath -e -- "$(command -v node)")
@@ -36,6 +37,12 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
   /usr/bin/mount --bind "$4/fonts" "$4/fonts"
   /usr/bin/mount -o remount,bind,ro "$4/fonts"
   /usr/sbin/ip link set lo up
+  # Separate root fixture provisioning from the original unprivileged suite.
+  # Root never runs a product or gains a production network: source/cache are
+  # already read-only and this fresh namespace contains only loopback.
+  /usr/bin/unshare --mount -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC \
+    /usr/bin/bash --noprofile --norc "$3/scripts/run-lifecycle-fixture-preflight.sh" \
+      "$9" "$4" "$7" "$8" "${13}" "$1" "$2" "$(/usr/bin/readlink /proc/self/ns/mnt)"
   exec /usr/bin/setpriv \
     --reuid="$1" --regid="$2" --clear-groups \
     --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
@@ -51,5 +58,5 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
       CERTUTIL_BINARY="${12}" \
       PARENT_NETNS="$7" PARENT_MOUNTNS="$8" \
       /usr/bin/bash --noprofile --norc "$3/scripts/run-offline-gate.sh"
-' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" "$node_binary" "$chrome_binary" "$certutil_binary" \
+' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" "$node_binary" "$chrome_binary" "$certutil_binary" "$source_commit" \
   2>&1 | /usr/bin/tee "$run_root/evidence/offline-gate.log"
