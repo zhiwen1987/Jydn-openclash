@@ -100,6 +100,7 @@ web_root="$source_root/chengwang/web"
   /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/typescript/bin/tsc \
     -p tsconfig.node.json --noEmit --incremental --tsBuildInfoFile "$RUN_ROOT/node.tsbuildinfo"
   /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/vitest/vitest.mjs run --configLoader runner \
+    --fsModuleCachePath "$RUN_ROOT/vitest-module-cache" \
     --reporter=default --reporter=json --outputFile "$RUN_ROOT/evidence/frontend-vitest.json" \
     2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/frontend-vitest.log"
   /usr/bin/timeout --signal=TERM --kill-after=10s 180s "$NODE_BINARY" node_modules/eslint/bin/eslint.js . \
