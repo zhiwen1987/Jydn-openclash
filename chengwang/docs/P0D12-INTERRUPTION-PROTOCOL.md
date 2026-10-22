@@ -20,6 +20,8 @@ read lease、write lease都指Linux F_SETLEASE，非flock/F_SETLK。breaking期�
 
 Registry保留既有network-none/只读根/cap0/UID10001/私有tmpfs安全profile。root只在helper独立mount namespace中把精确blob文件只读bind到UUID alias，再降权；helper仅O_RDONLY且不改blob。新helper须先有真实Linux syscall测试，包括只读alias、活跃reader拒绝、写租约读阻塞/解除、失败/终止清理。
 
+跨namespace候选实现须先保存原helper namespace及必要FD，暂入已验证Registry mount namespace，对已持有blob FD用 `open_tree(CLONE|AT_EMPTY_PATH)` 创建detached mount，再在finally恢复原helper namespace；恢复后才将克隆设为只读、nosuid/nodev/noexec并 `move_mount` 到精确alias。临时Registry区间仅做必要FD syscall，不读host路径、不安装挂载、不改变Registry原mount。原13项同namespace测试不足以覆盖此差异，新增第14项foreign namespace回归，不删除旧测试；其实际通过仍以新Linux CI结果为准。
+
 SIGKILL必须由精确身份检查后对本轮container执行，检查实际exit137/noOOM/PID0；不能放宽正常停止exit0。客户端只发一次原POST，kill前pending，kill后无HTTP200/receipt；禁止重试业务写。SIGKILL后解除屏障，再用实际truststate/evidence Open做离线cut快照，禁止构造product.Service提前修复。该检查不得改领域序列或审计原字节。
 
 释放Registry屏障后排空旧请求（网络活动、目标FD和完成计数共同观察），再建立恢复前基线；不能把尚未完成的请求误报为零访问，或把旧请求尾部记成恢复重读。分别围住首次恢复、第二次启动、最终probe，归档固定schema安全计数；不发布原URL/query/upload UUID/密钥/配置内容。

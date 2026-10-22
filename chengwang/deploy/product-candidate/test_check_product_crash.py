@@ -455,7 +455,7 @@ def final_fixture(root):
         "ownedSendersJoined":6,"senderExitCodes":[0]*6,"privateFixtureRemoved":True,"outerProductImagePreserved":True,
         "registryImagePreserved":True,"outcome":"PASS",**check.BOUNDARY}
     for label,test_file,marker in (
-        ("blob-lease","test_fixture_blob_lease.py","D12_BLOB_LEASE_TESTS=PASS tests=13 passed=13 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true"),
+        ("blob-lease","test_fixture_blob_lease.py","D12_BLOB_LEASE_TESTS=PASS tests=14 passed=14 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true"),
         ("profile","test_crash_image_profile.py","D12_CRASH_IMAGE_PROFILE_TESTS=PASS tests=6 skipped=0 synthetic_only=true"),
         ("verifier","test_check_product_crash.py","PRODUCT_CRASH_VERIFIER_TESTS=PASS synthetic_only=true tests=27 skipped=0")):
         source=pathlib.Path(check.__file__).with_name(test_file).read_bytes()

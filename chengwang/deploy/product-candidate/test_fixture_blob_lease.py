@@ -33,6 +33,53 @@ os.execv('/usr/bin/setpriv',['/usr/bin/setpriv','--reuid=10001','--regid=10001',
  sys.executable,'-B',script,*args])
 """
 
+FOREIGN_SOURCE = """
+import json,os,pathlib,subprocess,sys
+backend=pathlib.Path(sys.argv[1])
+subprocess.run(['/usr/bin/mount','-t','tmpfs','-o','size=1m,mode=0700,uid=10001,gid=10001,nodev,nosuid,noexec','tmpfs',str(backend)],check=True)
+fd=os.open(backend/'data',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o644)
+os.fchown(fd,10001,10001); os.fchmod(fd,0o644)
+os.write(fd,b'private fixture bytes never exported\\n'); os.fsync(fd); os.close(fd)
+code=r'''
+import os,pathlib,sys
+path=pathlib.Path(sys.argv[1])
+print('SOURCE_READY',flush=True)
+assert sys.stdin.buffer.read(1)==b'W'
+fd=os.open(path,os.O_WRONLY|os.O_NOFOLLOW|os.O_CLOEXEC); os.close(fd)
+assert path.read_bytes()==b'private fixture bytes never exported\\n'
+print('SOURCE_RW',flush=True)
+assert sys.stdin.buffer.read(1)==b'X'
+'''
+os.execv('/usr/bin/setpriv',['/usr/bin/setpriv','--reuid=10001','--regid=10001','--clear-groups','--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs',sys.executable,'-B','-c',code,str(backend/'data')])
+"""
+
+FOREIGN_WRAPPER = """
+import os,pathlib,subprocess,sys
+pid,root,script,*args=sys.argv[1:]
+root=pathlib.Path(root); sys.path.insert(0,str(root/'bin'))
+import fixture_blob_lease as blob
+target=root/'blob/reserved/message-signature/data'
+source=os.open('/proc/'+pid+'/root'+str(root/'foreign-tmpfs/data'),os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+namespace=os.open('/proc/'+pid+'/ns/mnt',os.O_RDONLY|os.O_CLOEXEC)
+try:
+    original=os.fstat(source)
+    identity=lambda path:(os.stat(path).st_dev,os.stat(path).st_ino)
+    before_ns,before_root,before_cwd=identity('/proc/self/ns/mnt'),identity('/'),identity('.')
+    assert before_ns!=identity('/proc/'+pid+'/ns/mnt')
+    old=subprocess.run(['/usr/bin/mount','--no-canonicalize','--bind','/proc/'+str(os.getpid())+'/fd/'+str(source),str(target)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    assert old.returncode!=0
+    before_fds=set(os.listdir('/proc/self/fd'))
+    blob.bind_readonly_foreign_blob(source,namespace,str(target))
+    assert set(os.listdir('/proc/self/fd'))==before_fds
+    assert identity('/proc/self/ns/mnt')==before_ns and identity('/')==before_root and identity('.')==before_cwd
+    actual=target.stat()
+    assert (actual.st_dev,actual.st_ino,actual.st_size)==(original.st_dev,original.st_ino,original.st_size)
+    assert {'ro','nosuid','nodev','noexec'}<=set(blob.mount_projection(str(target),actual.st_dev)[4].split(','))
+finally:
+    os.close(namespace); os.close(source)
+os.execv('/usr/bin/setpriv',['/usr/bin/setpriv','--reuid=10001','--regid=10001','--clear-groups','--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs',sys.executable,'-B',script,*args])
+"""
+
 
 class ShapeTests(unittest.TestCase):
     def test_closed_path_digest_and_deadline(self):
@@ -142,7 +189,7 @@ class LinuxBlobLeaseTests(unittest.TestCase):
                    "--inh-caps=-all", "--ambient-caps=-all", "--no-new-privs", sys.executable, "-B", str(script), *args]
         return self.spawn(cmd)
 
-    def event(self, process, name):
+    def event(self, process, name, source_info=None):
         target = self.control / (name.lower() + ".json")
         end = time.monotonic() + 3
         while time.monotonic() < end:
@@ -159,7 +206,7 @@ class LinuxBlobLeaseTests(unittest.TestCase):
                 self.assertIs(value["readOnlyBind"], True)
                 self.assertIs(value["capNone"], True)
                 self.assertIs(value["production"], False)
-                original = self.source.stat()
+                original = self.source.stat() if source_info is None else source_info
                 self.assertEqual((value["deviceMajor"], value["deviceMinor"], value["inode"], value["size"]),
                                  (os.major(original.st_dev), os.minor(original.st_dev), original.st_ino, original.st_size))
                 self.assertNotIn(self.original, raw)
@@ -174,12 +221,15 @@ class LinuxBlobLeaseTests(unittest.TestCase):
         self.assertEqual((process.returncode, stdout, stderr),
                          (code, b"", b"" if reason is None else ("D12_BLOB_LEASE_FAILURE=" + reason + "\n").encode()))
 
-    def reader(self, *, held=False):
+    def reader(self, *, held=False, namespace_pid=None, source=None):
         code = ("import os,sys; print('START',flush=True); fd=os.open(sys.argv[1],os.O_RDONLY|os.O_NOFOLLOW); "
                 "print('OPENED',flush=True); " + ("sys.stdin.buffer.read(1); " if held else "") + "os.close(fd)")
-        process = self.spawn(["/usr/bin/setpriv", "--reuid=10001", "--regid=10001", "--clear-groups",
+        command = ["/usr/bin/setpriv", "--reuid=10001", "--regid=10001", "--clear-groups",
                               "--bounding-set=-all", "--inh-caps=-all", "--ambient-caps=-all", "--no-new-privs",
-                              sys.executable, "-B", "-c", code, str(self.source)], input_pipe=held)
+                              sys.executable, "-B", "-c", code, str(self.source if source is None else source)]
+        if namespace_pid is not None:
+            command = ["/usr/bin/nsenter", "--mount=/proc/" + str(namespace_pid) + "/ns/mnt", "--", *command]
+        process = self.spawn(command, input_pipe=held)
         self.assertTrue(select.select([process.stdout], [], [], 2)[0])
         self.assertEqual(process.stdout.readline(), b"START\n")
         return process
@@ -239,6 +289,65 @@ class LinuxBlobLeaseTests(unittest.TestCase):
             self.source = original_source
             self.assertEqual(backend.resolve().parent, self.root.resolve())
             subprocess.run(["/usr/bin/umount", "--", str(backend)], check=True)
+
+    def test_foreign_tmpfs_detached_clone_restores_namespace_and_blocks_reader(self):
+        # This root API accepts only a fresh empty alias placeholder. Preserve
+        # the older direct-bind tests' nonempty placeholder fixture unchanged.
+        self.alias.unlink()
+        self.file(self.alias, b"")
+        backend = self.root / "foreign-tmpfs"
+        self.directory(backend)
+        keeper = self.spawn(["/usr/bin/unshare", "--mount", "--propagation", "private",
+                             sys.executable, "-B", "-c", FOREIGN_SOURCE, str(backend)], input_pipe=True)
+        try:
+            self.assertTrue(select.select([keeper.stdout], [], [], 3)[0])
+            self.assertEqual(keeper.stdout.readline(), b"SOURCE_READY\n")
+            own_ns = pathlib.Path("/proc/self/ns/mnt").stat().st_ino
+            foreign_ns = pathlib.Path("/proc", str(keeper.pid), "ns/mnt").stat().st_ino
+            self.assertNotEqual(own_ns, foreign_ns)
+            foreign_file = pathlib.Path("/proc", str(keeper.pid), "root") / str(backend / "data").lstrip("/")
+            original = foreign_file.stat()
+            self.assertEqual(foreign_file.read_bytes(), self.original)
+            source_status = dict(line.split(":", 1) for line in pathlib.Path("/proc", str(keeper.pid), "status").read_text().splitlines())
+            self.assertEqual(source_status["Uid"].split(), ["10001"] * 4)
+            self.assertEqual(source_status["Gid"].split(), ["10001"] * 4)
+            for name in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb"):
+                self.assertEqual(int(source_status[name], 16), 0)
+            self.assertEqual(source_status["NoNewPrivs"].strip(), "1")
+            rows = pathlib.Path("/proc", str(keeper.pid), "mountinfo").read_text().splitlines()
+            source_row = [row.split() for row in rows if row.split()[4] == str(backend)]
+            self.assertEqual(len(source_row), 1)
+            self.assertIn("rw", source_row[0][5].split(","))
+            self.assertEqual(source_row[0][source_row[0].index("-") + 1], "tmpfs")
+            args = ["hold", "--fixture-root", str(self.root), "--case", "reserved", "--kind", "message-signature",
+                    "--control-dir", str(self.control), "--digest", "sha256:" + hashlib.sha256(self.original).hexdigest(),
+                    "--deadline-seconds", "6"]
+            helper = self.spawn(["/usr/bin/unshare", "--mount", "--propagation", "private", sys.executable, "-B", "-c",
+                                 FOREIGN_WRAPPER, str(keeper.pid), str(self.root), str(self.root / "bin/fixture_blob_lease.py"), *args])
+            self.event(helper, "READY", original)
+            reader = self.reader(namespace_pid=keeper.pid, source=backend / "data")
+            self.event(helper, "BLOCKED", original)
+            self.assertIsNone(reader.poll())
+            self.assertEqual(select.select([reader.stdout], [], [], .1)[0], [])
+            self.released()
+            self.exit(helper)
+            self.event(helper, "RELEASED", original)
+            output, error = reader.communicate(timeout=3)
+            self.assertEqual((reader.returncode, output, error), (0, b"OPENED\n", b""))
+            self.assertEqual(foreign_file.read_bytes(), self.original)
+            self.assertEqual(pathlib.Path("/proc", str(keeper.pid), "ns/mnt").stat().st_ino, foreign_ns)
+            after_rows = pathlib.Path("/proc", str(keeper.pid), "mountinfo").read_text().splitlines()
+            self.assertEqual([row.split() for row in after_rows if row.split()[4] == str(backend)], source_row)
+            keeper.stdin.write(b"W"); keeper.stdin.flush()
+            self.assertTrue(select.select([keeper.stdout], [], [], 2)[0])
+            self.assertEqual(keeper.stdout.readline(), b"SOURCE_RW\n")
+            keeper.stdin.write(b"X"); keeper.stdin.flush()
+            self.exit(keeper)
+            self.assertFalse((backend / "data").exists())
+        finally:
+            # The tmpfs is private to this exact child namespace. Reap all
+            # holders/readers before UUID teardown; never umount a host path.
+            self.reap()
 
     def test_release_without_reader_does_not_claim_break(self):
         helper = self.helper()
@@ -317,9 +426,9 @@ class LinuxBlobLeaseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False).result
-    success = result.wasSuccessful() and not result.skipped and result.testsRun == 13
+    success = result.wasSuccessful() and not result.skipped and result.testsRun == 14
     if success:
-        print("D12_BLOB_LEASE_TESTS=PASS tests=13 passed=13 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true")
+        print("D12_BLOB_LEASE_TESTS=PASS tests=14 passed=14 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true")
     elif sys.platform != "linux" and result.wasSuccessful():
         print("D12_BLOB_LEASE_TESTS=AUXILIARY_ONLY real_linux=false")
     raise SystemExit(0 if success or sys.platform != "linux" and result.wasSuccessful() else 1)

@@ -179,6 +179,120 @@ class BlobTree:
         self.nodes = []
 
 
+def bind_readonly_foreign_blob(source_fd, source_mount_ns_fd, target):
+    """Root bootstrap only: clone one foreign file into our private namespace.
+
+    Caller-owned FDs are never closed. No namespace is modified while joined to
+    the source namespace; only the detached clone gets new mount attributes.
+    The low-privilege CLI neither exposes nor calls this function.
+    """
+    base.require(sys.platform == "linux", "UNSUPPORTED")
+    base.require(os.getuid() == os.geteuid() == 0, "IDENTITY")
+    import fcntl
+    match = re.fullmatch(r"(/tmp/chengwang-product-lifecycle-[a-f0-9]{32})/blob/(reserved|consumed)/(message-signature|dsse)/data", target) if isinstance(target, str) else None
+    base.require(match is not None and type(source_fd) is int and source_fd >= 3
+                 and type(source_mount_ns_fd) is int and source_mount_ns_fd >= 3
+                 and source_fd != source_mount_ns_fd, "ARGUMENTS")
+    # Resolve all libc symbols before setns changes our root/cwd. No guessed
+    # syscall numbers or subprocess/path lookups occur in the source namespace.
+    class MountAttr(ctypes.Structure):
+        _fields_ = [(name, ctypes.c_uint64) for name in ("attr_set", "attr_clr", "propagation", "userns_fd")]
+    libc = ctypes.CDLL(None, use_errno=True)
+    signatures = {
+        "setns": (ctypes.c_int, ctypes.c_int),
+        "open_tree": (ctypes.c_int, ctypes.c_char_p, ctypes.c_uint),
+        "move_mount": (ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint),
+        "mount_setattr": (ctypes.c_int, ctypes.c_char_p, ctypes.c_uint, ctypes.POINTER(MountAttr), ctypes.c_size_t),
+    }
+    calls = {}
+    for name, args in signatures.items():
+        base.require(hasattr(libc, name), "UNSUPPORTED")
+        calls[name] = getattr(libc, name)
+        calls[name].argtypes, calls[name].restype = args, ctypes.c_int
+    def checked(value):
+        if value < 0:
+            raise OSError(ctypes.get_errno(), "foreign blob mount operation failed")
+        return value
+    owned, nodes = [], []
+    def retain(fd):
+        owned.append(fd)
+        return fd
+    def opened(name, flags, parent=None):
+        return retain(os.open(name, flags, dir_fd=parent))
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+    try:
+        source = retain(os.dup(source_fd))
+        source_ns = retain(os.dup(source_mount_ns_fd))
+        original = os.fstat(source)
+        BlobTree.regular(original)
+        base.require(fcntl.fcntl(source, fcntl.F_GETFL) & os.O_ACCMODE == os.O_RDONLY
+                     and not fcntl.fcntl(source, fcntl.F_GETFL) & os.O_PATH, "UNSAFE_FILE")
+        original_contents = (original.st_size, original.st_mtime_ns, original.st_ctime_ns)
+        saved_ns = opened("/proc/self/ns/mnt", os.O_RDONLY | os.O_CLOEXEC)
+        saved_root = opened("/", directory_flags)
+        saved_cwd = opened(".", directory_flags)
+        ns_identity = lambda fd: (os.fstat(fd).st_dev, os.fstat(fd).st_ino)
+        base.require(ns_identity(saved_ns) != ns_identity(source_ns), "UNSAFE_FILE")
+        base.require(re.fullmatch(r"mnt:\[[0-9]+\]", os.readlink("/proc/self/fd/" + str(source_ns))) is not None, "UNSAFE_FILE")
+        parent = opened("/tmp", directory_flags)
+        info = os.fstat(parent)
+        base.require(info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o1777, "UNSAFE_DIRECTORY")
+        nodes.append((None, "/tmp", parent, base.identity(info)))
+        for name in target.split("/")[2:-1]:
+            child = opened(name, directory_flags, parent)
+            info = os.fstat(child)
+            base.require(info.st_uid == info.st_gid == 10001 and stat.S_IMODE(info.st_mode) == 0o700, "UNSAFE_DIRECTORY")
+            nodes.append((parent, name, child, base.identity(info)))
+            parent = child
+        alias = opened("data", os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC, parent)
+        placeholder = os.fstat(alias)
+        base.regular_file(placeholder)
+        base.require(placeholder.st_size == 0, "UNSAFE_FILE")
+        def verify_paths():
+            for directory, name, fd, identity in nodes:
+                base.require(base.identity(os.stat(name, dir_fd=directory, follow_symlinks=False)) == identity
+                             and base.identity(os.fstat(fd)) == identity, "PATH_CHANGED")
+            base.require(base.identity(os.stat("data", dir_fd=parent, follow_symlinks=False)) == base.identity(placeholder)
+                         and base.identity(os.fstat(alias)) == base.identity(placeholder), "PATH_CHANGED")
+        verify_paths()
+        entered = False
+        try:
+            checked(calls["setns"](source_ns, 0x00020000))  # CLONE_NEWNS
+            entered = True
+            tree = retain(checked(calls["open_tree"](source, b"", 1 | os.O_CLOEXEC | 0x1000)))
+        finally:
+            if entered:
+                # If restoration fails, raise before any host path operation or
+                # attachment. Numeric-FD cleanup below is safe in either namespace.
+                checked(calls["setns"](saved_ns, 0x00020000))
+                os.fchdir(saved_cwd)
+        current_ns = os.stat("/proc/self/ns/mnt")
+        base.require((current_ns.st_dev, current_ns.st_ino) == ns_identity(saved_ns)
+                     and os.path.samestat(os.stat("/"), os.fstat(saved_root))
+                     and os.path.samestat(os.stat("."), os.fstat(saved_cwd)), "PATH_CHANGED")
+        verify_paths()
+        cloned = os.fstat(tree)
+        base.require(base.identity(cloned) == base.identity(original), "PATH_CHANGED")
+        # Per-mount flags on the detached clone only; MS_PRIVATE prevents mount
+        # propagation. The Registry's original mount/superblock stays writable.
+        attrs = MountAttr(0xF, 0, 0x00040000, 0)
+        checked(calls["mount_setattr"](tree, b"", 0x1000, ctypes.byref(attrs), ctypes.sizeof(attrs)))
+        checked(calls["move_mount"](tree, b"", alias, b"", 0x4 | 0x40))
+        current = os.stat("data", dir_fd=parent, follow_symlinks=False)
+        base.require(base.identity(current) == base.identity(original)
+                     and (current.st_size, current.st_mtime_ns, current.st_ctime_ns) == original_contents, "PATH_CHANGED")
+        projection = mount_projection(target, current.st_dev)
+        base.require({"ro", "nosuid", "nodev", "noexec"} <= set(projection[4].split(",")), "UNSAFE_FILE")
+    finally:
+        close_failed = False
+        for fd in reversed(owned):
+            try:
+                os.close(fd)
+            except OSError:
+                close_failed = True
+        base.require(not close_failed, "UNSAFE_FILE")
+
+
 def hold(config):
     base.require(sys.platform == "linux", "UNSUPPORTED")
     import fcntl

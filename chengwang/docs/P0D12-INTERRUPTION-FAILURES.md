@@ -16,3 +16,14 @@
 处理方向仅为补齐闭集安全诊断：区分启动/等待阶段，输出固定步骤、异常类别、整数行号/errno或既有 helper 错误枚举；不导出异常消息、路径、token、私钥或原始日志。不放宽租约、权限、期限或验收断言；新增诊断后仍须重新取得真实 Linux 运行证据。
 
 诊断改动的本机辅助验证：bash语法检查、25段Python AST（18 heredoc、6字面量`-c`、1 record wrapper）及10个闭集过滤器合成样例通过。样例包含任意secret/路径、未知reason、重复标记、坏编码和超限日志。它们只验证诊断代码形态与不回显原文，**不证明底层启动故障已修复，也不算新的Linux产品验收**。
+
+## a415419：明确 bind alias 命令失败（2026-10-23）
+
+- 代码 `a41541970d57cc45108cc66d541adeb39200db46`；[绑定运行39849854526 / job120072788804](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39849854526/job/120072788804) completed/failure，未取消或原地重试。
+- 安全诊断 phase=`wait-holder-ready-blob-reserved-message-signature`；helper `BIND_ALIAS / CalledProcessError / INLINE_STDIN line30 / errno0`，对应 `mount --no-canonicalize --bind /proc/<holder>/fd/<blobfd> <UUIDalias>`。这是实际失败命令；errno0表示没有取得底层 mount errno，不能写成本轮已捕获 EINVAL。控制端的 FileNotFoundError 只是没有 READY 文件，不是根因。
+- 工件12457845403，ZIP4,341,237B，SHA256 `353f75af1d34d2e70dc137eb73f860124e43891c652c27ff3a224ae0fc541e60`；job API 原日志1,823,052B，SHA256 `746d48f4f46664c5ecc48a34506f2f44881bfdfbafb31dead714ea52f7d232dd`。主代理及独立代理各取副本，失败诊断没有发布原私有日志。native13/profile6/checker27与旧门继续通过，但新完整outcome和成功cleanup报告仍缺失，整体不验收。
+- [父运行39849854656 / job120072789206](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39849854656/job/120072789206) success；普通/race各2320个 Test* run/pass完整一致，无跳过/失败；原日志5,447,548B，SHA256 `3805dd05192c5515f2ac524e61e14010e7b309a18a983cdd47ddf12ce8cd8f69`。
+
+源码解释与实测分开：[Linux v6.8 namespace.c](https://github.com/torvalds/linux/blob/v6.8/fs/namespace.c) 的 `__do_loopback` 检查源mount属于当前namespace；传统 bind 和 `open_detached_copy` 都调用它。因此 host 侧直接对 Registry 的 foreign tmpfs FD 做传统bind，或仅改成 host侧 `open_tree(CLONE)`，均不能作为正确的跨namespace设计。此为源码分析，不冒充本轮实际取得的 mount errno。
+
+下一候选只修测试屏障：保存原私有namespace，暂进入已验证 Registry mount namespace，对持有的精确文件FD克隆 detached mount，再无条件恢复原namespace，在原私有namespace将克隆设为只读并连接到闭集alias。不得修改Registry原mount、复制blob、给helper增权或放宽期限；须新增真正foreign namespace的Linux测试，并重新验收实际镜像，候选设计本身不算通过。

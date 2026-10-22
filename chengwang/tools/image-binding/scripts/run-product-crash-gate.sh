@@ -643,12 +643,15 @@ try:
             bootstrap_step='TARGET_VALIDATE'
             target=pathlib.Path(root)/'blob'/stage/kind/'data'; placeholder=target.lstat()
             assert stat.S_ISREG(placeholder.st_mode) and placeholder.st_size==0 and placeholder.st_nlink==1 and placeholder.st_uid==placeholder.st_gid==10001 and stat.S_IMODE(placeholder.st_mode)==0o600
-            # Preserve the held FD magic-link: its resolved container path need not
-            # exist in this host-derived mount namespace. Recheck the exact inode.
+            # The validated blob mount belongs to Registry, not this helper
+            # namespace. Clone there, restore here, then attach only read-only.
             bootstrap_step='BIND_ALIAS'
-            subprocess.run(['/usr/bin/mount','--no-canonicalize','--bind',f'/proc/{os.getpid()}/fd/{fd}',str(target)],check=True)
-            bootstrap_step='REMOUNT_ALIAS'
-            subprocess.run(['/usr/bin/mount','-o','remount,bind,ro,noexec,nosuid,nodev',str(target)],check=True)
+            sys.path.insert(0,root+'/bin/checker')
+            import fixture_blob_lease
+            source_mount_ns_fd=os.open(process/'ns/mnt',os.O_RDONLY|os.O_CLOEXEC)
+            try:
+                fixture_blob_lease.bind_readonly_foreign_blob(fd,source_mount_ns_fd,str(target))
+            finally: os.close(source_mount_ns_fd)
             bootstrap_step='BIND_IDENTITY'
             current=target.stat(); assert (current.st_dev,current.st_ino,current.st_size)==(info.st_dev,info.st_ino,info.st_size)
         finally: os.close(fd)

@@ -743,7 +743,7 @@ def verify(args):
                 "running crash helper/test differs from exact bound source")
     suites={}
     for label,test_name,count,marker in (
-        ("blob-lease","test_fixture_blob_lease.py",13,"D12_BLOB_LEASE_TESTS=PASS tests=13 passed=13 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true"),
+        ("blob-lease","test_fixture_blob_lease.py",14,"D12_BLOB_LEASE_TESTS=PASS tests=14 passed=14 skipped=0 real_linux=true helper_uid=10001 helper_capabilities=none readonly_file_bind=true"),
         ("profile","test_crash_image_profile.py",6,"D12_CRASH_IMAGE_PROFILE_TESTS=PASS tests=6 skipped=0 synthetic_only=true"),
         ("verifier","test_check_product_crash.py",VERIFIER_TEST_COUNT,"PRODUCT_CRASH_VERIFIER_TESTS=PASS synthetic_only=true tests="+str(VERIFIER_TEST_COUNT)+" skipped=0")):
         suites[label]=test_transcript(load("product-crash-"+label+"-tests.log",binary=True),
