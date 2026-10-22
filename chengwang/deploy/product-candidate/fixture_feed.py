@@ -359,7 +359,10 @@ def write_all(fd, raw):
 
 
 class FeedServer(http.server.HTTPServer):
-    allow_reuse_address = False
+    # Sequential, explicitly stopped fixtures may reuse the fixed source port
+    # despite TIME_WAIT. No SO_REUSEPORT: a live listener must still exclude a
+    # second process, and the only bind address remains loopback.
+    allow_reuse_address = True
 
     def __init__(self, files, port, stop):
         self.files, self.stop = files, stop

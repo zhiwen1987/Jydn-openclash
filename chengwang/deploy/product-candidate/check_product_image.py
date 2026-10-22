@@ -378,12 +378,14 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
         env = config.get("Env")
         require(env in (None, [], ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]), "unexpected environment rejected")
     require(ic.get("Cmd") in (None, []), "image must not bake configuration arguments")
-    # The original CLI stays D10-only. The separate D11 checker opts in to its
-    # own closed namespace while reusing every image/runtime security check.
+    # The original CLI stays D10-only. Separate lifecycle checkers opt in to
+    # their closed namespaces while reusing every runtime security check.
     # No caller-supplied arbitrary prefix, path rewrite or broad /tmp allowance.
-    require(fixture_kind in {"product-image", "product-registry"}, "fixture kind rejected")
+    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle"}, "fixture kind rejected")
     if fixture_kind == "product-registry":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-registry-[0-9a-f]{32}/(?:message-signature|dsse)", private)), "private registry fixture path rejected")
+    elif fixture_kind == "product-lifecycle":
+        require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/refresh/(?:message-signature|dsse)", private)), "private lifecycle fixture path rejected")
     else:
         require(isinstance(private, str) and private.startswith("/tmp/chengwang-product-image-") and pathlib.PurePosixPath(private).as_posix() == private and all(x not in {"", ".", ".."} for x in private.split("/")[1:]), "private fixture path rejected")
     require(state == private + "/trust", "state mount binding rejected")

@@ -59,3 +59,20 @@ D12 先验证两个必要的外部测试机制，再接真实镜像。前置门�
 ## 4. 不变的发布边界
 
 所有测试 authority 均为 `EPHEMERAL_TEST_ONLY`，`authorization=BLOCKED`、`production=false`、`deviceActionsExecuted=false`。即使 D12 全矩阵通过，也不等于正式密钥/SLSA/发布安装/企业身份/全功能或生产上线，不解除九项恢复 blocker，不证明物理掉电、磁盘损坏、整盘回滚、WORM 或 exactly-once。
+
+## 5. 真实镜像自动刷新子门（实现中，尚未验收）
+
+使用同轮实际镜像与私有 archive，D11 原门返回后另起独立 Registry 和 UUID。两类签名各自使用一个真实产品容器，正常停止后启动同一个容器，不更换 grant、不重置验证预算。所有业务 POST 各发一次；只读状态等待可以有界重读，不重试已消费或不确定的写请求。
+
+| 进程 | 固定案例顺序 |
+| --- | --- |
+| 初次运行 | 来源503未确认→自动获取cat2并撤销B→同代精确no-op→A消费→A重放拒绝→B撤销拒绝→断源自然变陈旧且验证503→同cat2恢复→只发布来源503 |
+| 同容器重启 | 持久cat2/消费保留但内存freshness未确认→真实来源重新确认→旧A重放拒绝→新C消费→C重放拒绝→只发布来源503 |
+
+每种模式18份动作报告、一个graph、4个真实inspect、2个真实PID1、来源进程/停止/ready/完整events分别归档。两类共72个独立Registry before/after快照；只有A/C成功消费窗口允许产品不可变镜像读请求，其余步骤必须增量为零，准备上传单列。来源完整安全日志按实际完成顺序保存，不硬编码轮询次数，不把完成ordinal当请求开始顺序或要求跨epoch完成严格单调。
+
+source使用独立CA和SAN `feed.fixture.invalid`。源私钥、计划、body、日志位于 `root/source/<kind>/feed`，不在产品的 `root/refresh/<kind>` 三个挂载内；产品只拿public CA和固定IP/SPKI。未确认案例需先观察实际来源503，再发验证请求。来源503不应立即抹掉之前仍有效的Fresh，须等真实期限到期；恢复同代也必须实际GET后确认，不能直接调用Confirm或用管理员PUT替代。
+
+正常停机后实际打开两库，导出journal、checkpoint校验及每个操作的真实prepared/result安全事件，独立重算actor、trace/target/data、哈希链与ACK。自动目录更新actor必须为 `image-trust-refresh`，不能用业务管理员替代。此子门仅正常停机/重启，不宣称已经验证计划内崩溃、六边界预置状态、损坏介质、来源负矩阵、完整追代或在途撤销竞态。
+
+新门有480秒总截止时间；保留原D10/D11与前置门。新运行清理报告固定 `product-lifecycle-runtime-cleanup.json`，不覆盖前置门的 `product-lifecycle-cleanup.json`；新检查器测试日志也不覆盖前置13项日志。只有具名全矩阵、独立流量、真实进程/两库与精确清理共同通过后才能归档本子门结果。

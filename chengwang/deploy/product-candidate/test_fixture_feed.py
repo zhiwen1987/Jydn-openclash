@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import copy
+import errno
 import hashlib
 import http.client
 import json
@@ -286,10 +287,12 @@ class LinuxRealFeedTests(unittest.TestCase):
         os.chown(temporary, 10001, 10001)
         temporary.replace(path)
 
-    def start(self, deadline=20, *, expect_ready=True):
-        with socket.socket() as probe:
-            probe.bind(("127.0.0.1", 0))
-            self.port = probe.getsockname()[1]
+    def start(self, deadline=20, *, expect_ready=True, port=None):
+        if port is None:
+            with socket.socket() as probe:
+                probe.bind(("127.0.0.1", 0))
+                port = probe.getsockname()[1]
+        self.port = port
         command = ["/usr/bin/setpriv", "--reuid=10001", "--regid=10001", "--clear-groups",
                    "--bounding-set=-all", "--inh-caps=-all", "--ambient-caps=-all", "--no-new-privs",
                    sys.executable, "-I", "-B", "-c", SOURCE.decode("utf-8"), "serve", "--fixture-root",
@@ -394,6 +397,30 @@ class LinuxRealFeedTests(unittest.TestCase):
         event = self.events(1)[0]
         self.assertEqual((event["status"], event["bodySHA256"], event["bytes"], event["reason"], event["sentComplete"]),
                          (200, feed.sha(self.body), len(self.body), "ok", True))
+        self.stop()
+
+    def test_fixed_port_rebind_after_term_but_active_listener_is_exclusive(self):
+        self.start()
+        port = self.port
+        self.assertEqual(self.request(), (200, self.body))
+        self.events(1)
+        with socket.socket() as contender:
+            contender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            with self.assertRaises(OSError) as rejected:
+                contender.bind(("127.0.0.1", port))
+            self.assertEqual(rejected.exception.errno, errno.EADDRINUSE)
+        self.stop()
+        # Only this test's exact, validated, disposable output files are reset;
+        # the real source process exited0 and released its listener first.
+        for name in ("ready.json", "events.jsonl"):
+            path = self.directory / name
+            self.assertFalse(path.is_symlink())
+            self.assertEqual((path.stat().st_uid, path.stat().st_gid, path.stat().st_nlink), (10001, 10001, 1))
+            path.unlink()
+        self.start(port=port)
+        self.assertEqual(self.port, port)
+        self.assertEqual(self.request(), (200, self.body))
+        self.assertEqual(self.events(1)[0]["ordinal"], 1)
         self.stop()
 
     def test_fixture_certificate_spki_identity_from_real_tls_peer(self):
