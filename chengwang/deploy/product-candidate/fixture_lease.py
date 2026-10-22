@@ -160,7 +160,10 @@ class FixtureTree:
             raise
 
     def directory(self, parent, name):
-        descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
+        try:
+            descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
+        except OSError:
+            raise LeaseFailure("UNSAFE_DIRECTORY") from None
         info = os.fstat(descriptor)
         self.nodes.append((parent, name, descriptor, identity(info)))
         require(stat.S_ISDIR(info.st_mode) and info.st_uid == UID and

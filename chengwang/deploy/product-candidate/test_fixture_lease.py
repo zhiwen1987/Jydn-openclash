@@ -305,7 +305,7 @@ class LinuxProcessTests(unittest.TestCase):
         saved = self.evidence.with_name("saved-evidence")
         self.evidence.rename(saved)
         self.evidence.symlink_to(saved, target_is_directory=True)
-        self.assert_exit(self.helper(), 1, "UNSAFE_FILE")
+        self.assert_exit(self.helper(), 1, "UNSAFE_DIRECTORY")
         self.assertFalse((self.control / "ready.json").exists())
 
     def test_control_directory_must_be_private_and_owned(self):
