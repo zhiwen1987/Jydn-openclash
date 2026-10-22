@@ -504,9 +504,10 @@ class LinuxRealFeedTests(unittest.TestCase):
 
     def test_invalid_duplicate_and_oversized_plan_fail_closed_then_recover(self):
         self.start()
-        for raw in (b'{"epoch":1,"epoch":2}', b"[", b"x" * (feed.MAX_PLAN + 1)):
+        for index, raw in enumerate((b'{"epoch":1,"epoch":2}', b"[", b"x" * (feed.MAX_PLAN + 1)), 1):
             self.put("plan.json", raw)
             self.assertEqual(self.request(), (503, feed.ERROR_BODY))
+            self.events(index)
         self.put("plan.json", encoded(plan(2, self.body)))
         self.assertEqual(self.request(), (200, self.body))
         self.assertEqual([v["status"] for v in self.events(4)], [503, 503, 503, 200])
