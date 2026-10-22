@@ -1,0 +1,8 @@
+*.go text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+# Cryptographic compatibility fixtures are original immutable upstream bytes.
+testdata/*.json -text
+testdata/artifact.txt -text

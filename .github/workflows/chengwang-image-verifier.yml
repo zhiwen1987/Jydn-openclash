@@ -1,0 +1,94 @@
+name: Chengwang Image Verifier Offline Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/chengwang-image-verifier.yml"
+      - "chengwang/tools/image-verifier/**"
+  push:
+    branches:
+      - main
+      - codex/chengwang-security-hardening
+    paths:
+      - ".github/workflows/chengwang-image-verifier.yml"
+      - "chengwang/tools/image-verifier/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-image-verifier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-verifier:
+    name: Standard Sigstore offline compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GOWORK: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      CGO_ENABLED: "1"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up the isolated toolchain
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.25.8
+          cache: false
+
+      - name: Acquire and verify dependencies before isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd chengwang/tools/image-verifier
+          test "$(go env GOVERSION)" = go1.25.8
+          /usr/bin/install -d -m 0700 "$RUNNER_TEMP/chengwang-image-verifier/evidence"
+          go version | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-verifier/evidence/go-version.txt"
+          go mod download
+          go mod verify | /usr/bin/tee "$RUNNER_TEMP/chengwang-image-verifier/evidence/module-verification-online.txt"
+          go list -m -json all > "$RUNNER_TEMP/chengwang-image-verifier/evidence/modules.json"
+          go list -m -json github.com/sigstore/sigstore-go > "$RUNNER_TEMP/chengwang-image-verifier/evidence/sigstore-module.json"
+          /usr/bin/python3 -B - "$RUNNER_TEMP/chengwang-image-verifier/evidence/sigstore-module.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+          module = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if module.get("Path") != "github.com/sigstore/sigstore-go" or module.get("Version") != "v1.3.0" or "Replace" in module:
+              raise SystemExit("Sigstore module must be exactly v1.3.0 without replacement")
+          print("IMAGE_VERIFIER_DEPENDENCY_PIN=PASS sigstore-go=v1.3.0 replacement=false")
+          PY
+          /usr/bin/git diff --exit-code -- go.mod go.sum
+
+      - name: Test inside an unprivileged offline mount and network namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/bash chengwang/tools/image-verifier/scripts/run-linux-ci.sh \
+            "$RUNNER_TEMP/chengwang-image-verifier" "$(command -v go)" "$(go env GOMODCACHE)"
+
+      - name: Check source remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/git diff --check
+          /usr/bin/git diff --exit-code
+          test -z "$(/usr/bin/git status --porcelain --untracked-files=all)"
+
+      - name: Preserve offline gate evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: image-verifier-offline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-image-verifier/evidence/
+          if-no-files-found: error
+          retention-days: 14

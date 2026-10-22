@@ -54,3 +54,5 @@ Go AST 门禁仅增加经过审查的 `compress/gzip` 和 `context` 标准库导
 P0-d3 优先复用标准 Sigstore bundle 验证器，不实现自定义 X.509 或 Merkle 验签。已核实候选 `sigstore-go v1.3.0` 的[官方 go.mod](https://github.com/sigstore/sigstore-go/blob/v1.3.0/go.mod)要求 Go 1.25.8，与当前主门禁 Go 1.23.12 不同；不能直接加入依赖后宣称原基线兼容。后续先建立独立模块/工具链候选及禁网验证门，再接受独立提供的信任根、精确证书身份、artifact digest 和完整透明日志证明。这里只记录实施方向，尚未安装该依赖或升级任何工具链。
 
 即使标准验签成功，Registry 仓库读回、企业审批、不可变部署、当前运行态和持久防重放仍须单独完成，不自动解除九项 blocker。官方实现方向参考 [sigstore-go verification](https://github.com/sigstore/sigstore-go/blob/v1.3.0/docs/verification.md)。
+
+2026-10-22 后续实现记录：独立 Go 1.25.8 模块 `tools/image-verifier` 已接入上述官方库，推进 message signature 与 DSSE 的标准离线验签；本段原“尚未安装”是 P0-d2 当时状态，不再代表新增独立模块。当前验收与剩余缺口以 [P0-d3 记录](P0D3-STANDARD-SIGSTORE-VERIFIER.md) 为准，主项目工具链及生产环境没有升级。
