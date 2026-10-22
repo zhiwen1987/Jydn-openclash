@@ -241,7 +241,7 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 /usr/bin/bash "$MODULE_ROOT/scripts/run-browser-gate.sh"
 (
   cd "$source_root/chengwang"
-  "$NODE_BINARY" --test web/scripts/trust-browser-tls.test.mjs \
+  "$NODE_BINARY" --test web/scripts/check-trust-browser-tls.mjs \
     2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-tls-helper-tests.log"
 )
 /usr/bin/bash "$MODULE_ROOT/scripts/run-browser-gate.sh" --d9-https

@@ -1,4 +1,5 @@
 // Pure contract tests. These do not substitute for the actual Linux NSS/Chrome gate.
+// Explicit node --test entry; deliberately not a Vitest *.test.* file.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { generateKeyPairSync, sign } from 'node:crypto'
