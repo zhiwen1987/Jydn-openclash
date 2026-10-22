@@ -66,6 +66,7 @@ cd "$MODULE_ROOT"
     | /usr/bin/xargs -0 /usr/bin/sha256sum --
 ) > "$RUN_ROOT/evidence/checkout-before.sha256"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
+/usr/bin/python3 -B scripts/test-check-go-json.py
 /usr/bin/python3 -B scripts/test-browser-process-guard.py \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-process-guard-tests.log"
 /usr/bin/grep -qx 'D8_BROWSER_PROCESS_GUARD_TESTS=PASS real_linux_processes=true simulated_chrome=true' \
@@ -238,6 +239,12 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -o "$RUN_ROOT/bin/candidate-ui.test" ./cmd/image-trust-api
 /usr/bin/bash "$MODULE_ROOT/scripts/run-browser-gate.sh"
+(
+  cd "$source_root/chengwang"
+  "$NODE_BINARY" --test web/scripts/trust-browser-tls.test.mjs \
+    2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/browser-tls-helper-tests.log"
+)
+/usr/bin/bash "$MODULE_ROOT/scripts/run-browser-gate.sh" --d9-https
 /usr/bin/python3 -B scripts/module-verification.py check \
   "$RUN_ROOT" "$GOMODCACHE" "$RUN_ROOT/evidence/remote-modules-offline.json"
 /usr/bin/find . -type f -print0 | /usr/bin/sort -z | /usr/bin/xargs -0 /usr/bin/sha256sum > "$RUN_ROOT/evidence/source-after.sha256"

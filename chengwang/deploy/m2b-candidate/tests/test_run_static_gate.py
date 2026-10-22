@@ -123,6 +123,50 @@ class GoJSONFingerprintTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "fingerprint mismatch"):
             self._validate(_transcript({"TestContract"}))
 
+    def test_d9_extension_requires_cases_and_preserves_all_old_fingerprints(self) -> None:
+        runtime = "chengwang/internal/serverruntime"
+        required = run_static_gate.REQUIRED_GO_TEST_NAMES[runtime]
+        baseline = hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(EXPECTED_NAMES)).encode("utf-8")).hexdigest()
+        expected = {PACKAGE: {"count": len(EXPECTED_NAMES), "sha256": run_static_gate._test_name_fingerprint(EXPECTED_NAMES)}}
+
+        def validate(runtime_names: set[str], *, package: str = runtime, bad_baseline: str | None = None) -> int:
+            events = _transcript(EXPECTED_NAMES)
+            for name in sorted(runtime_names):
+                events.extend(({"Action": "run", "Package": package, "Test": name}, {"Action": "pass", "Package": package, "Test": name}))
+            events.append({"Action": "pass", "Package": package})
+            with tempfile.TemporaryDirectory() as directory:
+                transcript = pathlib.Path(directory) / "go-test.json"
+                transcript.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+                with (
+                    mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_RUNS", {}),
+                    mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_NAMES", {runtime: required} if package == runtime else {}),
+                    mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_FINGERPRINTS", expected),
+                    mock.patch.object(run_static_gate, "ALLOWED_GO_PACKAGE_SKIPS", frozenset()),
+                    mock.patch.object(run_static_gate, "P0D6_GO_TEST_COUNT", len(EXPECTED_NAMES)),
+                    mock.patch.object(run_static_gate, "P0D6_GO_TEST_SHA256", "0" * 64 if bad_baseline == "d6" else baseline),
+                    mock.patch.object(run_static_gate, "P0D7_GO_TEST_COUNT", len(EXPECTED_NAMES)),
+                    mock.patch.object(run_static_gate, "P0D7_GO_TEST_SHA256", "0" * 64 if bad_baseline == "d7" else baseline),
+                    mock.patch.object(run_static_gate, "P0D8_GO_TEST_COUNT", len(EXPECTED_NAMES)),
+                    mock.patch.object(run_static_gate, "P0D8_GO_TEST_SHA256", "0" * 64 if bad_baseline == "d8" else baseline),
+                    mock.patch.object(run_static_gate, "CURRENT_GO_TEST_FINGERPRINTS", expected),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    return run_static_gate.validate_go_json([transcript])
+
+        self.assertEqual(validate(set(required)), 0)
+        for name in required:
+            with self.subTest(missing=name), self.assertRaisesRegex(RuntimeError, "missing required top-level passing tests"):
+                validate(set(required) - {name})
+        for baseline_name, message in (("d6", "P0-d6 Go test baseline changed"), ("d7", "P0-d7 Go test baseline changed"), ("d8", "complete P0-d8 Go test set changed")):
+            with self.subTest(bad_baseline=baseline_name), self.assertRaisesRegex(RuntimeError, message):
+                validate(set(required), bad_baseline=baseline_name)
+        for package, extra in (("chengwang/cmd/server", "TestServerRuntimeD9WrongPackage"), (runtime, "TestUnreviewedRuntimeExtension")):
+            with self.subTest(package=package), self.assertRaisesRegex(RuntimeError, "P0-d6 Go test baseline changed"):
+                if package == runtime:
+                    validate(set(required) | {extra})
+                else:
+                    validate({extra}, package=package)
+
     def test_added_name_is_rejected(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "fingerprint mismatch"):
             self._validate(_transcript(EXPECTED_NAMES | {"TestUnexpected"}))

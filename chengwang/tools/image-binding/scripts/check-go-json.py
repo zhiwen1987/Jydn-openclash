@@ -52,7 +52,7 @@ NEW_PRODUCT_PREFIXES = {
     CATALOG: ("TestProductCatalogueD7", "TestProductCatalogueD8"),
     STATE: ("TestProductTrustStateD7", "TestProductTrustStateD8"),
     PRODUCT: ("TestProductD7", "TestProductD8"),
-    COMMAND: ("TestCandidateD7", "TestCandidateD8"),
+    COMMAND: ("TestCandidateD7", "TestCandidateD8", "TestCandidateD9"),
 }
 NEW_D8_PREFIXES = {ROOT: "TestManagedAPID8", CATALOG: "TestProductCatalogueD8",
                    STATE: "TestProductTrustStateD8", PRODUCT: "TestProductD8", COMMAND: "TestCandidateD8"}
@@ -76,6 +76,9 @@ CURRENT_PACKAGE_FINGERPRINTS = COMPLETE_PACKAGE_FINGERPRINTS | {
     COMMAND: (97, "d7f3f56f374887def874a4debada87432ad87e3d40e6c73f83611b77fc1e1217"),
     PRODUCT: (90, "a13f6e205758f8c73774c5a57d20408984a098847a50b6dd0d5a280945ff0b26"),
 }
+NEW_D9_PREFIXES = {COMMAND: "TestCandidateD9"}
+ACCEPTED_D8_COUNT = 669
+ACCEPTED_D8_SHA256 = "a55d7427fd64491017c7a0fe20756cac0051cfb426218d7082e0ccb83baeb4eb"
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -226,6 +229,7 @@ REQUIRED_ORDINARY = {
       | {"TestProductBackendAuditResultSemantics/" + case for case in (
         "verification-consumed", "verification-rejected", "catalogue-committed", "catalogue-rejected")},
     COMMAND: {
+        "TestCandidateD9LiveHTTPSProductBrowserFixture",
         "TestCandidateStrictConfigurationDecode", "TestCandidatePrivateFilesRejectUnsafeInputs",
         "TestCandidateNonLoopbackRequiresTLSBeforeListen", "TestCandidateMissingStoreNeverBootstraps",
         "TestCandidateRunAuthenticatedReadDefaultLockedAndGracefulClose", "TestCandidateRejectRelativeStatePaths",
@@ -382,7 +386,8 @@ def check_product_baseline(tests):
 def check_complete_packages(tests):
     for package, (count, expected) in COMPLETE_PACKAGE_FINGERPRINTS.items():
         names = sorted(name for actual, name in tests if actual == package and
-                       not name.startswith(NEW_D8_PREFIXES.get(package, "\x00")))
+                       not name.startswith(NEW_D8_PREFIXES.get(package, "\x00")) and
+                       not name.startswith(NEW_D9_PREFIXES.get(package, "\x00")))
         digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
         if len(names) != count or digest != expected:
             raise ValueError(f"accepted complete P0-d7 package changed: {package} count={len(names)} sha256={digest}")
@@ -390,10 +395,16 @@ def check_complete_packages(tests):
 
 def check_current_packages(tests):
     for package, (count, expected) in CURRENT_PACKAGE_FINGERPRINTS.items():
-        names = sorted(name for actual, name in tests if actual == package)
+        names = sorted(name for actual, name in tests if actual == package and
+                       not name.startswith(NEW_D9_PREFIXES.get(package, "\x00")))
         digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
         if len(names) != count or digest != expected:
             raise ValueError(f"accepted complete P0-d8 package changed: {package} count={len(names)} sha256={digest}")
+    baseline = sorted((package, name) for package, name in tests
+                      if not name.startswith(NEW_D9_PREFIXES.get(package, "\x00")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in baseline).encode()).hexdigest()
+    if len(baseline) != ACCEPTED_D8_COUNT or digest != ACCEPTED_D8_SHA256:
+        raise ValueError("accepted full 669 P0-d8 baseline changed")
 
 
 def check_product_lifecycle_markers(events):

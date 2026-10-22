@@ -15,6 +15,8 @@ on:
       - "chengwang/internal/authz/**"
       - "chengwang/internal/evidence/**"
       - "chengwang/internal/imagetrust/**"
+      - "chengwang/internal/serverruntime/**"
+      - "chengwang/cmd/server/**"
       - "chengwang/go.mod"
       - "chengwang/go.sum"
   push:
@@ -30,6 +32,8 @@ on:
       - "chengwang/internal/authz/**"
       - "chengwang/internal/evidence/**"
       - "chengwang/internal/imagetrust/**"
+      - "chengwang/internal/serverruntime/**"
+      - "chengwang/cmd/server/**"
       - "chengwang/go.mod"
       - "chengwang/go.sum"
 
@@ -137,6 +141,15 @@ jobs:
           chrome_binary="$(command -v google-chrome)"
           test -x "$node_binary"
           test -x "$chrome_binary"
+          certutil_binary="$(command -v certutil)"
+          dpkg_binary="$(command -v dpkg)"
+          test -x "$certutil_binary"
+          test -x "$dpkg_binary"
+          "$dpkg_binary" --version > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-dpkg-version.txt"
+          /usr/bin/dpkg-query -W -f='${Package}\t${Version}\n' libnss3-tools libnss3 libnspr4 \
+            > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-nss-toolchain.txt"
+          /usr/bin/sha256sum -- "$(/usr/bin/realpath -e -- "$certutil_binary")" \
+            > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-certutil.sha256"
           "$node_binary" -e 'if(Number(process.versions.node.split(".")[0])<22||typeof WebSocket!=="function")process.exit(1);console.log(JSON.stringify({node:process.version,builtinWebSocket:true}))' \
             > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-node-toolchain.json"
           "$chrome_binary" --version > "$RUNNER_TEMP/chengwang-image-binding/evidence/browser-chrome-version.txt"

@@ -5,8 +5,10 @@ import { readFile, writeFile, mkdir, stat, rename } from 'node:fs/promises'
 import { resolve, join, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
+import { verifierTransport, validateHTTPSReadiness, preparePrivateNSS, browserTLSProof, negativeTLSResult } from './trust-browser-tls.mjs'
 
 const args = process.argv.slice(2)
+const transport = verifierTransport(args)
 function option(name) {
   const at = args.indexOf(name)
   if (at < 0 || !args[at + 1] || args.filter(v => v === name).length !== 1) throw new Error('invalid browser verifier arguments')
@@ -15,7 +17,7 @@ function option(name) {
 const fixtureRoot = option('--fixture-root')
 const chrome = option('--chrome')
 const evidenceDir = option('--evidence-dir')
-if (args.length !== 6 || ![fixtureRoot, chrome, evidenceDir].every(isAbsolute) || ![fixtureRoot, evidenceDir].every(p => resolve(p) === p)) throw new Error('absolute private paths required')
+if (![fixtureRoot, chrome, evidenceDir].every(isAbsolute) || ![fixtureRoot, evidenceDir].every(p => resolve(p) === p)) throw new Error('absolute private paths required')
 if (process.platform !== 'linux' || typeof WebSocket !== 'function') throw new Error('isolated Linux and builtin WebSocket required')
 const rootInfo = await stat(fixtureRoot)
 if (!rootInfo.isDirectory() || rootInfo.mode & 0o077 || rootInfo.uid !== process.getuid()) throw new Error('private fixture root required')
@@ -23,9 +25,10 @@ const readyPath = join(fixtureRoot, 'ready.json')
 const readyInfo = await stat(readyPath)
 if (!readyInfo.isFile() || readyInfo.nlink !== 1 || readyInfo.mode & 0o077 || readyInfo.size > 16384 || readyInfo.uid !== process.getuid()) throw new Error('private fixture readiness required')
 const ready = JSON.parse(await readFile(readyPath, 'utf8'))
-if (Object.keys(ready).sort().join(',') !== 'auditorToken,url,viewerToken,wrongToken') throw new Error('invalid readiness shape')
-const url = new URL(ready.url)
-if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || !url.port || url.pathname !== '/trust.html' || url.username || url.password || url.search || url.hash) throw new Error('loopback candidate required')
+const httpsReady = transport === 'https' ? validateHTTPSReadiness(ready, fixtureRoot) : null
+if (!httpsReady && Object.keys(ready).sort().join(',') !== 'auditorToken,url,viewerToken,wrongToken') throw new Error('invalid readiness shape')
+const url = httpsReady?.positive ?? new URL(ready.url)
+if (!httpsReady && (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || !url.port || url.pathname !== '/trust.html' || url.username || url.password || url.search || url.hash)) throw new Error('loopback candidate required')
 const secrets = [ready.auditorToken, ready.viewerToken, ready.wrongToken]
 if (new Set(secrets).size !== 3 || !secrets.every(v => typeof v === 'string' && v.length >= 32 && v.length <= 4096 && /^[\x21-\x2b\x2d-\x7e]+$/.test(v))) throw new Error('invalid private fixture identities')
 
@@ -33,6 +36,7 @@ await mkdir(evidenceDir, { recursive: true, mode: 0o700 })
 const profile = join(fixtureRoot, 'chrome-profile')
 const guardPath = fileURLToPath(new URL('../../tools/image-binding/scripts/browser-process-guard.py', import.meta.url))
 await mkdir(profile, { mode: 0o700 })
+const privateTrust = httpsReady ? await preparePrivateNSS(ready, fixtureRoot, profile) : null
 // This explicit CI-only sandbox exception is recorded below. Outer isolation
 // remains non-root, no capabilities, NoNewPrivs, read-only source and loopback.
 const chromeArguments = [
@@ -52,7 +56,7 @@ const child = spawn('/usr/bin/bash', ['--noprofile', '--norc', '-c',
   'chengwang-private-browser', chrome, ...chromeArguments,
 ], {
   stdio: ['pipe', 'ignore', 'ignore'], detached: true,
-  env: { ...process.env, XDG_CONFIG_HOME: join(profile, 'config'), XDG_CACHE_HOME: join(profile, 'cache') },
+  env: { ...process.env, XDG_CONFIG_HOME: join(profile, 'config'), XDG_CACHE_HOME: join(profile, 'cache'), ...privateTrust?.environment },
 })
 let launchFailed = false
 child.on('error', () => { launchFailed = true })
@@ -64,6 +68,11 @@ let sessionId
 const checks = []
 const requests = []
 const responses = []
+const negativeObservers = new Map()
+const negativeTLS = []
+let positiveDocument
+let tlsProof
+let parentAPI
 let runtimeErrors = 0
 let cspErrors = 0
 let assetErrors = 0
@@ -141,7 +150,7 @@ async function screenshot(name) {
   const height = Math.ceil(metrics.cssContentSize.height)
   check(width > 0 && height > 0 && width <= 1600 && height <= 12000, 'bounded real page screenshot')
   const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height, scale: 1 } })
-  await writeFile(join(evidenceDir, name), Buffer.from(capture.data, 'base64'), { mode: 0o600, flag: 'wx' })
+  await writeFile(join(evidenceDir, httpsReady ? name.replace('trust-console-', 'trust-https-console-') : name), Buffer.from(capture.data, 'base64'), { mode: 0o600, flag: 'wx' })
   screenshotCount++
 }
 let browserVersion = ''
@@ -191,21 +200,38 @@ try {
       else task.resolve(message.result)
       return
     }
-    if (message.sessionId !== sessionId) return
     const p = message.params || {}
+    const negative = negativeObservers.get(message.sessionId)
+    if (negative) {
+      if (message.method === 'Network.requestWillBeSent') {
+        const requestURL = new URL(p.request.url)
+        if (['http:', 'https:'].includes(requestURL.protocol)) {
+          if (p.type === 'Document' && p.request.url === negative.url && p.request.method === 'GET') { negative.navigationRequests++; negative.documentId = p.requestId }
+          else negative.unexpectedRequests++
+          if (requestURL.pathname.startsWith('/api/')) negative.apiRequests++
+          negative.authorizationHeaders += Object.keys(p.request.headers ?? {}).filter(name => name.toLowerCase() === 'authorization').length
+        }
+      }
+      if (message.method === 'Network.responseReceived' && /^https?:/.test(p.response.url)) negative.httpResponses++
+      if (message.method === 'Network.loadingFailed' && p.requestId === negative.documentId) negative.errorText = p.errorText
+      return
+    }
+    if (message.sessionId !== sessionId) return
     if (message.method === 'Runtime.exceptionThrown') runtimeErrors++
     if (message.method === 'Log.entryAdded' && p.entry?.source === 'security' && p.entry?.level === 'error') cspErrors++
     if (message.method === 'Network.requestWillBeSent') {
       const u = new URL(p.request.url)
-      if (u.protocol !== 'http:' || u.origin !== url.origin || secrets.some(s => p.request.url.includes(s))) forbiddenRequests++
+      if (u.protocol !== url.protocol || u.origin !== url.origin || secrets.some(s => p.request.url.includes(s))) forbiddenRequests++
       if (u.pathname.startsWith('/api/')) {
-        if (p.request.method !== 'GET' || !['/api/v1/image-trust', '/api/v1/image-trust/history'].includes(u.pathname)) forbiddenRequests++
+        const allowed = ['/api/v1/image-trust', '/api/v1/image-trust/history', ...(httpsReady ? ['/api/v1/operations', '/api/v1/capabilities'] : [])]
+        if (p.request.method !== 'GET' || !allowed.includes(u.pathname)) forbiddenRequests++
         requests.push({ method: p.request.method, path: u.pathname })
       }
     }
     if (message.method === 'Network.responseReceived') {
       const u = new URL(p.response.url)
       if (p.type === 'Document' && u.pathname === '/trust.html') {
+        positiveDocument = p.response
         const headers = Object.fromEntries(Object.entries(p.response.headers).map(([k, v]) => [k.toLowerCase(), v]))
         const csp = headers['content-security-policy'] || ''
         protectedDocument = csp.includes("default-src 'none'") && csp.includes("script-src 'self'") && csp.includes("connect-src 'self'") && csp.includes("frame-ancestors 'none'") && !csp.includes('unsafe-inline') && !csp.includes('unsafe-eval') && headers['cache-control'] === 'no-store' && headers['x-content-type-options'] === 'nosniff' && headers['x-frame-options'] === 'DENY' && headers['referrer-policy'] === 'no-referrer'
@@ -217,6 +243,28 @@ try {
   })
   const version = await send('Browser.getVersion', {}, null)
   browserVersion = version.product
+  if (httpsReady) {
+    for (const endpoint of httpsReady.negatives) {
+      const negativeTarget = await send('Target.createTarget', { url: 'about:blank' }, null)
+      const negativeSession = (await send('Target.attachToTarget', { targetId: negativeTarget.targetId, flatten: true }, null)).sessionId
+      const observed = { url: endpoint.url, navigationRequests: 0, httpResponses: 0, apiRequests: 0, authorizationHeaders: 0, unexpectedRequests: 0, businessMounted: false, errorText: '' }
+      negativeObservers.set(negativeSession, observed)
+      try {
+        await Promise.all(['Runtime.enable', 'Page.enable', 'Network.enable'].map(method => send(method, {}, negativeSession)))
+        // No credentials or application commands are ever sent to these targets.
+        const navigation = await send('Page.navigate', { url: endpoint.url }, negativeSession)
+        await until(() => observed.errorText !== '', 'negative certificate navigation')
+        const mounted = await send('Runtime.evaluate', { expression: "Boolean(document.querySelector('.image-trust-console'))", returnByValue: true }, negativeSession)
+        if (mounted.exceptionDetails) throw new Error('browser expression failed')
+        observed.businessMounted = mounted.result?.value
+        check(observed.unexpectedRequests === 0, `negative ${endpoint.kind} certificate refusal`)
+        negativeTLS.push(negativeTLSResult(endpoint.kind, endpoint.expected, navigation, observed))
+      } finally {
+        await send('Target.closeTarget', { targetId: negativeTarget.targetId }, null)
+        negativeObservers.delete(negativeSession)
+      }
+    }
+  }
   const target = await send('Target.createTarget', { url: 'about:blank' }, null)
   sessionId = (await send('Target.attachToTarget', { targetId: target.targetId, flatten: true }, null)).sessionId
   await Promise.all([send('Runtime.enable'), send('Page.enable'), send('Network.enable'), send('Log.enable')])
@@ -225,6 +273,11 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false })
   await send('Page.navigate', { url: ready.url })
   await waitExpression(`document.querySelector('h1')?.textContent.includes('可信策略控制台')`, 'actual console mount')
+  if (httpsReady) {
+    const certificates = await send('Network.getCertificate', { origin: url.origin })
+    tlsProof = browserTLSProof(positiveDocument, certificates.tableNames, privateTrust.verified)
+    check(Boolean(tlsProof.leafSignatureVerified), 'positive normal certificate chain without browser TLS exceptions')
+  }
   check(protectedDocument, 'actual browser document carries restrictive CSP no-store nosniff DENY and no-referrer')
   const documentRoot = await send('DOM.getDocument', { depth: 0 })
   const heading = await send('DOM.querySelector', { nodeId: documentRoot.root.nodeId, selector: '.it-heading h1' })
@@ -308,6 +361,12 @@ try {
   const count = requests.length
   await delay(1100)
   check(requests.length === count, 'no idle automatic network polling')
+  if (httpsReady) {
+    // These are normal browser fetches, not mocks or a replacement of UI fetch.
+    // Scope comes from the actual private fixture, never a hardcoded tenant.
+    parentAPI = await evaluate(`(async()=>{const read=async(path,token)=>{const response=await fetch(path,{method:'GET',headers:token?{Authorization:'Bearer '+token}:{},redirect:'error',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer'});if(!response.headers.get('content-type')?.startsWith('application/json'))return null;const text=await response.text();if(text.length>1048576)return null;return {status:response.status,body:JSON.parse(text)}};const operations=await read('/api/v1/operations?'+new URLSearchParams(${JSON.stringify(httpsReady.scope)}),${JSON.stringify(ready.viewerToken)});const capabilities=await read('/api/v1/capabilities');if(operations?.status!==200||operations.body.effect!=='local_record_only'||operations.body.deviceActionsExecuted!==false||!Array.isArray(operations.body.operations)||operations.body.total!==0||operations.body.operations.length!==0||operations.body.truncated!==false||capabilities?.status!==200||capabilities.body.productionControlEnabled!==false||!Array.isArray(capabilities.body.capabilities)||capabilities.body.capabilities.length===0)return null;return {operationsStatus:200,capabilitiesStatus:200}})()`)
+    check(parentAPI?.operationsStatus === 200 && parentAPI?.capabilitiesStatus === 200, 'actual parent operations and capabilities read over normally verified HTTPS')
+  }
   check(runtimeErrors === 0, 'no uncaught browser runtime exceptions')
   check(cspErrors === 0, 'no browser CSP security errors')
   check(assetErrors === 0, 'all actual built browser resources load successfully')
@@ -338,10 +397,11 @@ try {
   if (!browserGroupStopped) { outcome = 'FAIL'; failure = 'browser process group cleanup failed' }
   await writeFile(join(fixtureRoot, 'stop'), 'stop\n', { mode: 0o600 })
   const report = {
-    schema: 'chengwang.trust-console-browser/v1', outcome, failure,
+    schema: httpsReady ? 'chengwang.trust-console-browser-https/v1' : 'chengwang.trust-console-browser/v1', outcome, failure,
     boundary: 'ISOLATED_REAL_BROWSER_REAL_CANDIDATE', authorization: 'BLOCKED', deviceActionsExecuted: false,
     realBrowser: browserVersion, node: process.version,
-    transport: 'HTTP_127_LOOPBACK_ONLY_NOT_BROWSER_TLS_ACCEPTANCE',
+    transport: httpsReady ? 'HTTPS_127_PRIVATE_NSS_NORMAL_VERIFICATION' : 'HTTP_127_LOOPBACK_ONLY_NOT_BROWSER_TLS_ACCEPTANCE',
+    ...(httpsReady ? { normalTrust: privateTrust.evidence, tls: tlsProof ?? null, negativeTLS, parentAPI: parentAPI ?? null } : {}),
     chromeSandbox: 'DISABLED_CI_ONLY_OUTER_ISOLATION_REQUIRED',
     mockedResponses: false, injectedFetch: false, tlsBypass: false,
     checks, requestCount: requests.length, httpStatusCounts: responses.reduce((out, r) => { out[r.status] = (out[r.status] || 0) + 1; return out }, {}),
@@ -349,7 +409,7 @@ try {
   }
   const raw = JSON.stringify(report, null, 2) + '\n'
   if (secrets.some(s => raw.includes(s))) throw new Error('report credential containment failed')
-  await writeFile(join(evidenceDir, 'trust-browser-report.json'), raw, { mode: 0o600, flag: 'wx' })
-  console.log(`D8_REAL_BROWSER_${outcome} checks=${checks.length} screenshots=${screenshotCount}`)
+  await writeFile(join(evidenceDir, httpsReady ? 'trust-https-browser-report.json' : 'trust-browser-report.json'), raw, { mode: 0o600, flag: 'wx' })
+  console.log(`${httpsReady ? 'D9_REAL_HTTPS_BROWSER' : 'D8_REAL_BROWSER'}_${outcome} checks=${checks.length} screenshots=${screenshotCount}`)
   if (outcome !== 'PASS') { console.error(failure); process.exitCode = 1 }
 }

@@ -67,10 +67,19 @@ type configuration struct {
 
 func main() {
 	file := flag.String("config", "", "absolute private candidate configuration file (no HTTP bootstrap)")
+	productFile := flag.String("product-config", "", "optional absolute private full-product candidate configuration (normal TLS required)")
 	flag.Parse()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if flag.NArg() != 0 || run(ctx, *file, net.Listen) != nil {
+	var err error
+	if flag.NArg() != 0 {
+		err = errConfiguration
+	} else if *productFile != "" {
+		err = runProduct(ctx, *file, *productFile, net.Listen)
+	} else {
+		err = run(ctx, *file, net.Listen)
+	}
+	if err != nil {
 		// No raw paths, file contents, TLS parser errors or Registry credentials.
 		log.Print("image trust candidate stopped without deployment authorization")
 		os.Exit(1)

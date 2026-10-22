@@ -29,7 +29,7 @@ REQUIRED_TEST_SUITES = {
     "supply-chain/tests": 45,
     "egress/tests": 19,
     "bootstrap/tests": 29,
-    "tests": 27,
+    "tests": 28,
 }
 
 REQUIRED_SCHEMA_COUNT = 11
@@ -95,6 +95,7 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/truth": 20,
     "chengwang/internal/runtimewire": 1,
     "chengwang/internal/webui": 3,
+    "chengwang/internal/serverruntime": 9,
 }
 
 # Actual complete P0-d6 Test* pair set from main run 39763836481 / commit
@@ -119,6 +120,12 @@ P0D7_GO_TEST_SHA256 = "7a45962e28c5ab719bf968abbbd8a5b357b07a006218b4d496b3b9766
 # older 2252/2257 baselines independently; no extension is excluded here.
 P0D8_GO_TEST_COUNT = 2311
 P0D8_GO_TEST_SHA256 = "58b9ebb71b6261184580b9b2ed55b893fd7a4172c7326ba1f74d38e6b6281da1"
+# Only this new parent package/prefix may extend the already observed D8 set.
+# Do not infer or precompute an accepted D9 full-set fingerprint from source;
+# it will be pinned only after actual ordinary/race CI evidence exists.
+NEW_P0D9_GO_TEST_PREFIXES = {
+    "chengwang/internal/serverruntime": "TestServerRuntimeD9",
+}
 CURRENT_GO_TEST_FINGERPRINTS = {
     "chengwang/internal/api": {"count": 223, "sha256": "257e1672078cb90fc3253b41eb66fdeb09e50ddd9a744a8626fb26a98ba5baa9"},
     "chengwang/internal/authz": {"count": 133, "sha256": "1c0ce5411fe2e109c915378fb28b209da3dc91d9b6f2ec4330edf532b939dca6"},
@@ -182,6 +189,19 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
 }
 
 REQUIRED_GO_TEST_NAMES = {
+    "chengwang/internal/serverruntime": frozenset(
+        {
+            "TestServerRuntimeD9TypedConfigDoesNotReadOrMutateEnvironment",
+            "TestServerRuntimeD9AcceptedHandlersDrainBeforeStoresClose",
+            "TestServerRuntimeD9FactoryRecoveryPrecedesListenerAndUsesSharedScope",
+            "TestServerRuntimeD9ValidationBeforeDataAndNilTrustRemainUnavailable",
+            "TestServerRuntimeD9ValidationBeforeDataAndNilTrustRemainUnavailable/negative-write-timeout",
+            "TestServerRuntimeD9ValidationBeforeDataAndNilTrustRemainUnavailable/negative-header-limit",
+            "TestServerRuntimeD9ValidationBeforeDataAndNilTrustRemainUnavailable/missing-real-identity",
+            "TestServerRuntimeD9ValidationBeforeDataAndNilTrustRemainUnavailable/cleartext-non-loopback",
+            "TestServerRuntimeD9AdmissionStopsBeforeWait",
+        }
+    ),
     "chengwang/internal/evidence": frozenset(
         {
             "TestImageTrustD7RecoveryViewVerifiedDetachedAndReadOnly",
@@ -857,7 +877,8 @@ def _validate_unittest_outcomes(result: RecordingResult) -> None:
 
 def _validate_p0d6_go_baseline(passed_tests: dict[str, set[str]]) -> None:
     pairs = sorted((package, name) for package, names in passed_tests.items() for name in names
-                   if not name.startswith(NEW_P0D7_GO_TEST_PREFIXES.get(package, "\x00")))
+                   if not name.startswith(NEW_P0D7_GO_TEST_PREFIXES.get(package, "\x00"))
+                   and not name.startswith(NEW_P0D9_GO_TEST_PREFIXES.get(package, "\x00")))
     digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in pairs).encode("utf-8")).hexdigest()
     if len(pairs) != P0D6_GO_TEST_COUNT or digest != P0D6_GO_TEST_SHA256:
         raise RuntimeError(f"accepted P0-d6 Go test baseline changed: count={len(pairs)} sha256={digest}")
@@ -865,14 +886,16 @@ def _validate_p0d6_go_baseline(passed_tests: dict[str, set[str]]) -> None:
 
 def _validate_p0d7_go_baseline(passed_tests: dict[str, set[str]]) -> None:
     pairs = sorted((package, name) for package, names in passed_tests.items() for name in names
-                   if not name.startswith(NEW_P0D8_GO_TEST_PREFIXES.get(package, "\x00")))
+                   if not name.startswith(NEW_P0D8_GO_TEST_PREFIXES.get(package, "\x00"))
+                   and not name.startswith(NEW_P0D9_GO_TEST_PREFIXES.get(package, "\x00")))
     digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in pairs).encode("utf-8")).hexdigest()
     if len(pairs) != P0D7_GO_TEST_COUNT or digest != P0D7_GO_TEST_SHA256:
         raise RuntimeError(f"accepted P0-d7 Go test baseline changed: count={len(pairs)} sha256={digest}")
 
 
 def _validate_p0d8_go_baseline(passed_tests: dict[str, set[str]]) -> None:
-    pairs = sorted((package, name) for package, names in passed_tests.items() for name in names)
+    pairs = sorted((package, name) for package, names in passed_tests.items() for name in names
+                   if not name.startswith(NEW_P0D9_GO_TEST_PREFIXES.get(package, "\x00")))
     digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in pairs).encode("utf-8")).hexdigest()
     if len(pairs) != P0D8_GO_TEST_COUNT or digest != P0D8_GO_TEST_SHA256:
         raise RuntimeError(f"accepted complete P0-d8 Go test set changed: count={len(pairs)} sha256={digest}")

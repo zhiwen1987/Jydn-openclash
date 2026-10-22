@@ -15,6 +15,7 @@ runner_uid=$(/usr/bin/id -u)
 runner_gid=$(/usr/bin/id -g)
 node_binary=$(/usr/bin/realpath -e -- "$(command -v node)")
 chrome_binary=$(/usr/bin/realpath -e -- "$(command -v google-chrome)")
+certutil_binary=$(/usr/bin/realpath -e -- "$(command -v certutil)")
 test "$runner_uid" != 0
 test "$("$go_binary" env GOVERSION)" = go1.25.8
 case "$run_root/" in "$source_root/"*) echo 'run directory must be outside source' >&2; exit 2;; esac
@@ -47,7 +48,8 @@ parent_mountns=$(/usr/bin/readlink /proc/self/ns/mnt)
       MODULE_ROOT="$3" RUN_ROOT="$4" GO_BINARY="$6" \
       NODE_BINARY="${10}" CHROME_BINARY="${11}" CHENGWANG_VITE_CACHE_DIR="$4/vite-cache" \
       FONTCONFIG_FILE="$4/fontconfig.conf" \
+      CERTUTIL_BINARY="${12}" \
       PARENT_NETNS="$7" PARENT_MOUNTNS="$8" \
       /usr/bin/bash --noprofile --norc "$3/scripts/run-offline-gate.sh"
-' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" "$node_binary" "$chrome_binary" \
+' chengwang-image-binding "$runner_uid" "$runner_gid" "$module_root" "$run_root" "$module_cache" "$go_binary" "$parent_netns" "$parent_mountns" "$source_root" "$node_binary" "$chrome_binary" "$certutil_binary" \
   2>&1 | /usr/bin/tee "$run_root/evidence/offline-gate.log"
