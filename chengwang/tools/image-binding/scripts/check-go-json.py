@@ -86,6 +86,8 @@ REQUIRED_ORDINARY = {
         "TestTrustStateTransactionFaultsFailClosed", "TestTrustStateLedgerCapacityNeverEvicts",
         "TestTrustStateTicketsAndInvalidInputsHaveNoAuthority", "TestTrustStateAnchorIsCopied",
         "TestTrustStateProcessLockAndCrashDurability", "TestTrustStateRecordChecksumRejectsParseableMutation",
+        "TestTrustStateFinalExpiryBurnsConsumedGrant", "TestTrustStateFinalExpiryBurnsConsumedGrant/approval",
+        "TestTrustStateFinalExpiryBurnsConsumedGrant/catalogue", "TestTrustStateFinalExpiryBurnsConsumedGrant/clock-rollback",
     } | {"TestTrustStateUpdateRevokesInFlightGrant/" + case for case in (
         "key", "approval", "manifest", "new-generation")}
       | {"TestTrustStateExpiryAndClockRollback/" + case for case in (

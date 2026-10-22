@@ -1,6 +1,6 @@
 # 镜像、批准策略与 Registry 来源绑定（候选库）
 
-本模块是独立 Go 1.25.8 候选库，不是部署器。主项目仍用原 Go 基线；不修改生产容器、旁路由、DNS 或恢复权限。当前验收状态以 [阶段记录](../../docs/P0D4-APPROVED-REGISTRY-BINDING.md) 为准，文件存在不代表已通过验收。
+本模块是独立 Go 1.25.8 候选库，不是部署器。主项目仍用原 Go 基线；不修改生产容器、旁路由、DNS 或恢复权限。低层绑定验收见 [P0-d4](../../docs/P0D4-APPROVED-REGISTRY-BINDING.md)，新增受管能力的合同见 [P0-d5](../../docs/P0D5-IMPLEMENTATION-CONTRACT.md)；文件存在不代表已通过验收。
 
 ## 一次调用实际检查什么
 
@@ -25,8 +25,19 @@
 - 输入切片、公钥和证书池不得在调用期间被其他 goroutine 修改。TLS 叶公钥轮换需要新的独立批准；不自动相信线上读回的新公钥。
 - 库返回固定错误/零结果，不返回原始 config、响应体、token、认证 challenge 或私钥。
 
+## 受管信任、撤销和单次批准
+
+`ManagedBind` 是与低层 `Bind` 不同的类型边界：先从带外引导的 `truststate.Store` 解析批准者、精确批准摘要和 revision，持久化预留由可信签署者签入 catalog 的单次 grant，再执行原有签名与真实 Registry 读回，最后复验当前代际、撤销与时效并持久消费。它只返回不透明 `ManagedResult`，仍为 `authorization=BLOCKED`；目前没有产品执行器消费这个类型。
+
+- `trustcatalog` 使用标准 Ed25519 阈值签名；初始 envelope 摘要与根公钥由独立 Anchor 钉住。后续版本精确 +1，换根须同时满足旧/新根阈值。永久撤销集合和 policy floor 不可回退，历史 grant ID 不得改绑。它参考 TUF 原则，但不是 TUF 客户端或兼容实现。
+- `truststate.Create` 只创建不存在的叶目录，`Open` 不创建、不自动修复缺失或损坏状态。仅支持原生 Linux ext4/XFS、当前用户私有目录和安全路径；非 Linux 返回 unsupported。使用固定版本 bbolt、默认同步事务、生命周期独占锁和路径/文件身份复核。
+- 同一签名 grant 只能尝试一次，失败、取消或进程崩溃也不回收；可信签署者必须显式签发新的 grant 才能重试。调用方换 request ID/policy ID、重启或重复请求不能重置账本。这是至多一次尝试，不是部署 exactly-once。
+- 单 catalog 最多 256 KiB、有效期不超过 24 小时；保留最多 64 代且总计 4 MiB、4096 个历史 grant。账本最多 4096 项，record 最多 8 MiB、DB 最多 64 MiB；满容量失败关闭，不淘汰已消费记录。长期运行需要另行设计有独立见证的归档/迁移，不能删库清账。
+- 数据库仅存签名公共元数据和摘要；校验和用于检测意外损坏，不是能抵御恶意管理员的签名。故障/提交不确定后当前 handle 永久 poisoned，不能自动重试为成功。
+- 撤销更新须送达同一个 Store；离线未知撤销、整盘连同 Anchor 回滚、已返回结果或运行镜像的撤回不在该库保证范围。需要在线刷新、外部单调见证、受保护密钥分发和未来执行器临执行复核，不能用本地账本代替。
+
 ## 验证与边界
 
 CI 运行器见 [scripts/README.md](scripts/README.md)。普通测试包含真实本机 TLS 服务，外网被 namespace 禁止；另在唯一临时 internal 网络内运行固定 digest 的真实 Distribution Registry，上传合法惰性 OCI fixture 后进行普通/race 读回。只测试服务器可写，产品函数只读，绝不执行镜像。
 
-支持少于完整 OCI/Registry 生态是明确的失败关闭限制：尚未支持认证挑战换 token、CDN 重定向、OCI index、多签阈值、在线 TUF/撤销、持久化防回放、批准工作流和密钥轮换管理。没有产品调用方、CLI 服务、发布构建镜像签发、运行中容器身份绑定或恢复执行接入。九项恢复 blocker 不变；成功不表示镜像内容安全，也不表示已经部署。
+支持少于完整 OCI/Registry 生态是明确的失败关闭限制：尚未支持认证挑战换 token、CDN 重定向、OCI index、制品多签阈值、在线 TUF/自动撤销刷新、企业批准工作流和生产密钥分发。catalog 的根阈值不等于镜像制品多签。没有产品调用方、CLI 服务、发布构建镜像签发、运行中容器身份绑定或恢复执行接入。九项恢复 blocker 不变；成功不表示镜像内容安全，也不表示已经部署。

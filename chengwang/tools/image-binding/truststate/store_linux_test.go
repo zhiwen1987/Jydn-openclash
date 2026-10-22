@@ -274,6 +274,61 @@ func TestTrustStateExpiryAndClockRollback(t *testing.T) {
 	}
 }
 
+func TestTrustStateFinalExpiryBurnsConsumedGrant(t *testing.T) {
+	for _, kind := range []string{"approval", "catalogue", "clock-rollback"} {
+		t.Run(kind, func(t *testing.T) {
+			f := newStateFixture(t)
+			if kind == "catalogue" {
+				// Catalogue expires first in this case, so the two expiry gates are
+				// independently exercised rather than both failing at the same time.
+				f.document.NotAfterUnix = time.Now().Unix() + 900
+				f.initial = f.sign(t, f.document)
+				f.anchor.InitialSHA256 = hash(f.initial)
+			}
+			s, path := createFixture(t, f)
+			ticket := beginFixture(t, s, f)
+			finalTime := time.Unix(ticket.approvalNotAfterUnix, 0)
+			if kind == "catalogue" {
+				finalTime = time.Unix(f.document.NotAfterUnix, 0)
+			}
+			if kind == "clock-rollback" {
+				finalTime = time.Now().Add(-time.Hour)
+			}
+			s.fault = func(stage string) error {
+				if stage == "after-commit" {
+					s.clock = func() time.Time { return finalTime }
+				}
+				return nil
+			}
+			err := s.Complete(context.Background(), ticket, hash([]byte("evidence")))
+			want := ErrInvalid
+			if kind == "clock-rollback" {
+				want = ErrPoisoned
+			}
+			if !errors.Is(err, want) {
+				t.Fatalf("Complete crossed final %s boundary but returned %v", kind, err)
+			}
+			if len(s.current.Ledger) != 1 || s.current.Ledger[0].Status != "CONSUMED" {
+				t.Fatal("post-commit failure undid consumed grant")
+			}
+			if err = s.Close(); err != nil {
+				t.Fatal(err)
+			}
+			reopened, err := Open(context.Background(), path, f.anchor)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+			if len(reopened.current.Ledger) != 1 || reopened.current.Ledger[0].Status != "CONSUMED" {
+				t.Fatal("consumption did not survive restart")
+			}
+			if _, err = reopened.Begin(context.Background(), "fixture-policy", f.approval); !errors.Is(err, ErrReplay) {
+				t.Fatalf("final expiry failure revived grant after reopen: %v", err)
+			}
+		})
+	}
+}
+
 func TestTrustStateSafeOpenRejectsMissingTruncatedAndLinks(t *testing.T) {
 	for _, kind := range []string{"missing-dir", "missing-db", "empty-db", "truncated-db", "missing-marker", "bad-marker", "db-symlink", "db-hardlink", "db-mode", "directory-symlink", "wrong-anchor"} {
 		t.Run(kind, func(t *testing.T) {

@@ -278,7 +278,25 @@ func (s *Store) Complete(ctx context.Context, ticket Ticket, evidenceSHA256 stri
 		}
 		return ErrReplay
 	})
-	return s.afterTransaction(ctx, err)
+	if err = s.afterTransaction(ctx, err); err != nil {
+		return err
+	}
+	// Sync and authoritative readback can cross an expiry boundary. A durable
+	// CONSUMED record is never rolled back merely because the final freshness
+	// check fails; the grant remains burned even when no result is returned.
+	cat, err := trustcatalog.Replay(s.anchor, s.current.History)
+	if err != nil {
+		return s.poison()
+	}
+	now, err := s.now(s.current)
+	if err != nil {
+		return s.poison()
+	}
+	grant, trust, found := cat.Resolve(ticket.grant.PolicyID, now)
+	if !cat.ValidAt(now) || !found || now.Unix() >= ticket.approvalNotAfterUnix || cat.Generation() != ticket.generation || cat.SHA256() != ticket.catalogueSHA256 || grant != ticket.grant || !sameTrust(trust, ticket.trust) || contextError(ctx) != nil {
+		return ErrInvalid
+	}
+	return nil
 }
 
 func (s *Store) Update(ctx context.Context, raw []byte) error {

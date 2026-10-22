@@ -26,6 +26,8 @@ workflow 始终在 `GOWORK=off` 下下载并记录原始 MVS 图，严格检查�
 
 临时 module 的 `go.sum` 是原始子 module 锁的逐字复制，任何新增 checksum 都使原始不可变 manifest 检查失败，不自动重设基准。每次在线命令后导出临时锁候选与退出状态，下载或校验失败仍使步骤失败；源锁变化仍由 `git diff --exit-code` 拒绝。离线阶段源码、模块缓存及整个临时验证目录都挂载为只读，重新执行精确图、缓存 pin 和官方 verify 检查。
 
-`evidence/go.sum.candidate`、`auxiliary*.go.sum.candidate` 仅供审查，不能自动升级或污染真实依赖。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 三 package 门禁，也不自动更新主门禁指纹。若此前步骤失败，该父测试记录可能尚未生成；artifact 只保存实际已有文件。
+`evidence/go.sum.candidate`、`auxiliary*.go.sum.candidate` 仅供审查，不能自动升级或污染真实依赖。断外网阶段另存 `parent-restoreimage.json`，记录主 module OCI 校验器的实际 Linux 测试事件；它不混入子 module 五 package 门禁，也不自动更新主门禁指纹。若此前步骤失败，该父测试记录可能尚未生成；artifact 只保存实际已有文件。
+
+P0-d5 新增 `trustcatalog`、`truststate`，普通/race 门精确要求五个 package，另对原 P0-d4 三包的 234 个测试名称集合核对固定 SHA256，防止新增场景掩盖旧场景缺失。状态测试临时目录必须是本次 RUN_ROOT 下的私有原生 ext4/XFS；包含真实子进程锁、`os.Exit` 后 reserved/consumed 重开，不能称为真实掉电证明。真实 Distribution 的两类签名在 ordinary/race 中分别要求 managed 成功、关闭重开和拒重放的精确输出，不能拿 SDK 测试服务替代真实 Registry。
 
 脚本中的 `GOMEMLIMIT` 是软目标。Registry 容器另有硬 memory/CPU/pids 上限，Go 测试进程另有超时与有限 ulimit；这些条件不代表产品部署的完整资源隔离。所有成功报告仍为 advisory，固定 `authorization=BLOCKED`、`production=false`。
