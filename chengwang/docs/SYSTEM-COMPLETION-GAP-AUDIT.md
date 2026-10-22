@@ -291,7 +291,7 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 
 ## P0-d3 标准验签候选进展（2026-10-22）
 
-以下 P0-d3/P0-d4 是各阶段当时的缺口快照；P0-d5 补入受管信任/撤销/防回放候选库底座，但产品集成、生产可信发放与上线仍未完成，不能把历史缺口文字或后续库测试当成当前生产状态。
+以下 P0-d3/P0-d4/P0-d5 是各阶段当时的缺口快照；P0-d5 补入受管信任/撤销/防回放候选库底座，P0-d6 已补入产品 API/RBAC 和独立候选入口，但 UI、原主入口后端注入、生产可信发放与上线仍未完成。不能把历史缺口文字或后续测试当成当前生产状态。
 
 新增独立 Go 1.25.8 `tools/image-verifier`，使用官方 `sigstore-go v1.3.0` 验证 messageSignature 与 DSSE 的 artifact digest、精确 issuer/SAN、Fulcio 链、SCT、同一 Rekor v1 条目的 SET/proof/checkpoint。它只产生 `ADVISORY_SIGSTORE_BUNDLE_VERIFIED / authorization=BLOCKED`，没有升级主项目 Go 1.23，也没有生产安装。已修复并回归官方分片样本的两个不同 index 语义，原始 fixtures 摘要不变；最终本地/CI 证据详见 `P0D3-STANDARD-SIGSTORE-VERIFIER.md`。
 
@@ -310,3 +310,11 @@ P0-c 已进入仓库候选实现，但没有进入生产。安全审计否决了
 代码 `6a387bcd8a11a0590e5990723c5638fefa445adf` 已通过隔离 Linux CI：绑定 run `39755876523` / job `119747626282`，ordinary/race 各 379 场景、5 包、0 fail/skip，保留旧 234 场景指纹；真实 Distribution 两类签名均完成受管成功、重开与拒重放。主项目 run `39755876519` / job `119747626733` 保持 4134 语义事件、36 包、0 skip。37 个模块源码文件 CI 摘要逐一匹配 Git 原始 blob，386 远端模块/版本和 go.sum 无漂移。具体失败修复、独立复核与限制见 [P0-d5 验收记录](P0D5-TRUST-REVOCATION-REPLAY.md)。
 
 这只推进到 `implemented+tested isolated-only / ADVISORY_MANAGED_REGISTRY_SIGNATURE_BOUND / authorization=BLOCKED`。没有产品 API/UI/RBAC、生产信任发放、自动在线撤销刷新、外部单调见证、真实发布镜像准入、临执行复验或部署恢复集成；不抵御整个磁盘/Anchor 一并回滚，不证明物理掉电，不提供部署 exactly-once。64 代历史与 4096 消费账本是失败关闭预算，不是已实现长期自动运维。九项 blocker、生产环境和 M2b/M3/M4 状态全部不变；本阶段未访问或修改生产，也未合并 main。
+
+## P0-d6 产品 API、RBAC 与候选入口（2026-10-22）
+
+新增主模块纯接口 `imagetrust`、产品三个受保护 image-trust API 与分动作/固定 scope RBAC；独立 Go 1.25.8 product 后端接入真实 Store、ManagedBind 与审计。独立候选入口使用同一个产品 api.New，私有配置、已有 Store/审计、默认写关闭、非回环 TLS、仅固定 allowlist；原 cmd/server 未注入后端或部署更新。撤销仍需有效阈值签名的新 catalog，API admin 不能直接替代签名。成功仍为 advisory，不是执行权限。
+
+代码与最终场景门 `5107ebd5b51f42d9b70cddf3027b4626ade99942` 已通过绑定 run `39763836641` / job `119774275129` 与主项目 run `39763836481` / job `119774274234`。子模块普通/race 各 490 场景、7 包、0 skip；主项目 4504 个 Test 语义运行事件、37 包、0 skip。完整产品 HTTPS API 到无适配真实 Distribution 的两类签名验证与持久拒重放均实际执行；491 项跨模块源码、49 项子模块源码逐 Git 原始 blob 复核，386 依赖集合不变。候选二进制已在 CI 构建并核对 revision/help/摘要，但未发布或安装。详见 [P0-d6 验收记录](P0D6-PRODUCT-API-RBAC-ACCEPTANCE.md)。
+
+状态仅为 `implemented+tested isolated-only / authorization=BLOCKED`。UI、企业身份/审批/根密钥运维、多 Store/分布式租约、周期审计健康刷新、更新/全局资源配额、两库持久协调与自动恢复、在线撤销送达、外部单调见证、正式签名镜像、设备执行器与生产灰度均未完成。审计消费记录不代表客户端已收到成功；进程内预算/poison 不是持久治理闭环。九项 blocker、M2b/M3/M4 与整体运营状态全部不变；本阶段未访问或改动任何生产主机、爱快、DNS 或 OpenClash，未合并 main。

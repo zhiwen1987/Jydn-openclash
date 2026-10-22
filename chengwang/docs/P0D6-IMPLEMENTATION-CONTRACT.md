@@ -1,4 +1,6 @@
-# P0-d6 产品 API 与 RBAC 实施合同（候选，尚未验收）
+# P0-d6 产品 API 与 RBAC 实施合同（隔离候选已验收，未上线）
+
+本阶段代码与精确场景门 `5107ebd` 已通过隔离 CI 与独立工件复核；实际结果、证据链接和未完成项见 [P0-d6 验收记录](P0D6-PRODUCT-API-RBAC-ACCEPTANCE.md)。本合同不是生产部署批准。
 
 仅开发分支、隔离 Linux CI，不访问或修改生产。主模块 Go 1.23 不升级；独立 image-binding 后端使用 Go 1.25.8。依赖倒置：主模块 `internal/imagetrust` 只定义安全 DTO/Backend，产品 `api.New` 依赖接口；子模块 product 实现真实 Store/ManagedBind，通过候选 composition 入口注入同一个产品 API。原主入口保持未配置/失败关闭，不暗中安装新后端。
 
