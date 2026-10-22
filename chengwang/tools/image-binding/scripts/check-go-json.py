@@ -2,6 +2,7 @@
 """Require actual run/pass evidence for each binding layer and real Registry gate."""
 import argparse
 import collections
+import hashlib
 import io
 import json
 import pathlib
@@ -9,6 +10,15 @@ import pathlib
 ROOT = "chengwang/image-binding"
 POLICY = ROOT + "/policy"
 REGISTRY = ROOT + "/registry"
+CATALOG = ROOT + "/trustcatalog"
+STATE = ROOT + "/truststate"
+# Actual ordinary/race run sets from accepted P0-d4 run 39749344500,
+# commit 90299930429c147ebde14c71739159ea20c5e6d7.  The encoding is
+# sorted (package + TAB + test + LF), UTF-8, case-sensitive.  New root
+# scenarios must use TestManaged*, rather than changing the old baseline.
+BASELINE_PACKAGES = frozenset((ROOT, POLICY, REGISTRY))
+BASELINE_COUNT = 234
+BASELINE_SHA256 = "4b9a6d165db8f38febb92f0c9fd9e193a7816127c942d9732b423354090a81d8"
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -20,6 +30,11 @@ REQUIRED_ORDINARY = {
         "TestGeneratedSigningMaterial", "TestGeneratedSigningMaterial/message-signature", "TestGeneratedSigningMaterial/dsse",
         "TestGeneratedSameSignerPair", "TestGeneratedSameSignerPair/message-signature", "TestGeneratedSameSignerPair/dsse",
         "TestRejectSameSignerDifferentManifest", "TestRejectSameSignerDifferentManifest/message-signature", "TestRejectSameSignerDifferentManifest/dsse",
+        "TestManagedBindPersistentReplay", "TestManagedBindPersistentReplay/message-signature",
+        "TestManagedBindPersistentReplay/dsse", "TestManagedFailureBurnsGrant",
+        "TestManagedConcurrentSingleWinner", "TestManagedRevocationDuringRegistryRead",
+        "TestManagedRevocationDuringRegistryRead/message-signature", "TestManagedRevocationDuringRegistryRead/dsse",
+        "TestManagedOpaqueAndInvalidInputs", "TestManagedGrantRenewalAndRevocation",
     } | {"TestRejectInvalidBeforeRegistryAccess/" + case for case in (
         "approval", "bundle", "root", "key", "pin", "revision", "canceled", "nil_context")},
     POLICY: {
@@ -45,6 +60,45 @@ REQUIRED_ORDINARY = {
         "TestApprovalExpiryInterruptsBlockedResponse/eof", "TestRawHeaderRejectsHiddenDuplicateLength",
         "TestRegistrySPKIPinRejectsDifferentTrustedKey", "TestRegistrySPKIPinMissingOrWrong",
     },
+    CATALOG: {
+        "TestCatalogueLifecycle", "TestCatalogueRootThresholdRotation",
+        "TestCatalogueExpiredHistoryAndFinalFreshness", "TestCatalogueGenerationAndAnchorBinding",
+        "TestCatalogueMonotonicFloorsAndRevocation", "TestCatalogueHistoricalGrantIDCannotRebind",
+        "TestCatalogueHistoricalGrantIDCannotRebind/approver",
+        "TestCatalogueStrictJSONAndSignatures", "TestCatalogueStructuralResourceLimits",
+        "TestCatalogueHistoryLimits", "TestCatalogueZeroAndImportedReceiptsHaveNoAuthority",
+    } | {"TestCatalogueRootThresholdRotation/" + case for case in (
+        "old_only", "new_only", "partial_new", "duplicated_new", "wrong_signer", "retired_root",
+        "initial_anchor_and_self")}
+      | {"TestCatalogueMonotonicFloorsAndRevocation/" + case for case in (
+        "floor_raise", "floor_rollback_nonzero", "key", "approval", "manifest", "floor_delete", "floor_zero", "floor_mismatch",
+        "unapproved_key", "revoked_old_root_rotation", "revoked_active_root")}
+      | {"TestCatalogueHistoryLimits/" + case for case in ("count", "total_bytes", "historical_grants")}
+      | {"TestCatalogueStrictJSONAndSignatures/" + case for case in (
+        "payload_duplicate", "payload_case_alias", "payload_escape_alias", "payload_float", "payload_exponent",
+        "payload_negative", "payload_overflow", "payload_null_array", "payload_duplicate_floor",
+        "payload_invalid_utf8", "payload_depth", "envelope_wrong_domain", "envelope_duplicate_signature",
+        "envelope_unknown_signer", "envelope_short_signature", "base64_unpadded")},
+    STATE: {
+        "TestTrustStateCreateReserveConsumeReopen", "TestTrustStateConcurrentSingleWinner",
+        "TestTrustStateUpdateRevokesInFlightGrant", "TestTrustStateExpiryAndClockRollback",
+        "TestTrustStateSafeOpenRejectsMissingTruncatedAndLinks", "TestTrustStateLiveIdentityChangePoisons",
+        "TestTrustStateTransactionFaultsFailClosed", "TestTrustStateLedgerCapacityNeverEvicts",
+        "TestTrustStateTicketsAndInvalidInputsHaveNoAuthority", "TestTrustStateAnchorIsCopied",
+        "TestTrustStateProcessLockAndCrashDurability", "TestTrustStateRecordChecksumRejectsParseableMutation",
+    } | {"TestTrustStateUpdateRevokesInFlightGrant/" + case for case in (
+        "key", "approval", "manifest", "new-generation")}
+      | {"TestTrustStateExpiryAndClockRollback/" + case for case in (
+        "approval-expiry", "catalogue-expiry", "clock-rollback", "expired-catalogue-refresh")}
+      | {"TestTrustStateSafeOpenRejectsMissingTruncatedAndLinks/" + case for case in (
+        "missing-dir", "missing-db", "empty-db", "truncated-db", "missing-marker", "bad-marker",
+        "db-symlink", "db-hardlink", "db-mode", "directory-symlink", "wrong-anchor")}
+      | {"TestTrustStateLiveIdentityChangePoisons/" + case for case in (
+        "directory", "database", "marker", "mode", "database-hardlink")}
+      | {"TestTrustStateTransactionFaultsFailClosed/" + case for case in (
+        "before-put", "before-commit", "after-commit")}
+      | {"TestTrustStateProcessLockAndCrashDurability/" + case for case in (
+        "locked", "reserve-crash", "consume-crash")},
 }
 REQUIRED_REGISTRY = {ROOT: {"TestRegistryCLIBindingLifecycle", "TestRegistryCLIBindingLifecycle/message-signature", "TestRegistryCLIBindingLifecycle/dsse"}}
 
@@ -106,6 +160,16 @@ def synthetic(required):
     return events
 
 
+def check_baseline(tests):
+    baseline = sorted((package, name) for package, name in tests
+                      if package in BASELINE_PACKAGES and
+                      not (package == ROOT and name.startswith("TestManaged")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n"
+                                  for package, name in baseline).encode("utf-8")).hexdigest()
+    if len(baseline) != BASELINE_COUNT or digest != BASELINE_SHA256:
+        raise ValueError(f"accepted P0-d4 test baseline changed: count={len(baseline)} sha256={digest}")
+
+
 def self_test():
     negative_count = 0
     for required in (REQUIRED_ORDINARY, REQUIRED_REGISTRY):
@@ -138,6 +202,14 @@ def self_test():
             negative_count += 1
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
+    for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
+                  frozenset({(ROOT, "TestBindSignedRegistryImage")})):
+        try:
+            check_baseline(tests)
+        except ValueError:
+            negative_count += 1
+            continue
+        raise ValueError("gate accepted missing or substituted P0-d4 baseline")
     print(f"IMAGE_BINDING_JSON_SELFTEST=PASS negative_cases={negative_count}")
 
 
@@ -162,6 +234,8 @@ def main():
             results.append(read_events(stream, required))
     if results[0] != results[1]:
         raise ValueError("ordinary/race test or package sets differ")
+    if args.mode == "ordinary":
+        check_baseline(results[0][0])
     print(f"IMAGE_BINDING_GO_JSON_GATE=PASS mode={args.mode} transcripts=2 "
           f"tests={len(results[0][0])} packages={len(results[0][1])} skips=0 race=pass "
           "authorization=BLOCKED production=false")

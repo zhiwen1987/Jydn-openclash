@@ -9,6 +9,16 @@ ulimit -u 1024
 test "$(/usr/bin/id -u)" != 0
 test "$GOWORK" = off
 test "$("$GO_BINARY" env GOVERSION)" = go1.25.8
+# Durable state tests need native Linux filesystems, not tmpfs/overlay/NFS.
+# No additional source/cache write permission is granted: TMPDIR is already
+# the run-owned, private temporary directory established by run-linux-ci.sh.
+test "$TMPDIR" = "$RUN_ROOT/tmp"
+test "$(/usr/bin/stat -c '%u:%g:%a' -- "$TMPDIR")" = "$(/usr/bin/id -u):$(/usr/bin/id -g):700"
+case "$(/usr/bin/findmnt -n -T "$TMPDIR" -o FSTYPE)" in
+  ext4|xfs) ;;
+  *) echo 'durable trust-state tests require native ext4 or XFS' >&2; exit 1;;
+esac
+echo 'IMAGE_BINDING_TRUSTSTATE_FILESYSTEM=PASS private_run_tmp=true native_ext4_or_xfs=true'
 test "$(/usr/bin/readlink /proc/self/ns/net)" != "$PARENT_NETNS"
 test "$(/usr/bin/readlink /proc/self/ns/mnt)" != "$PARENT_MOUNTNS"
 /usr/bin/grep -qE '^NoNewPrivs:[[:space:]]+1$' /proc/self/status
@@ -69,7 +79,7 @@ echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/go-vet.log"
 /usr/bin/python3 -B scripts/check-go-json.py --mode ordinary "$RUN_ROOT/evidence/go-test.json" "$RUN_ROOT/evidence/go-race.json"
 # Independently retain the parent OCI verifier scenarios. This transcript is
-# not merged into the three-package child-module test contract.
+# not merged into the five-package child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \
   | /usr/bin/tee "$RUN_ROOT/evidence/parent-restoreimage.json"
 # Compile genuine Registry integration test executables while still offline.

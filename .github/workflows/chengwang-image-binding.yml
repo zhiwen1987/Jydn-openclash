@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   binding:
-    name: Offline binding and real Distribution Registry
+    name: Offline managed trust binding and real Distribution Registry
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -122,7 +122,7 @@ jobs:
           test "$(/usr/bin/docker image inspect --format '{{.Os}}/{{.Architecture}}' "$REGISTRY_FIXTURE_IMAGE")" = linux/amd64
           echo 'REGISTRY_FIXTURE_IMAGE_BOUNDARY=PINNED_TEST_HARNESS_NOT_PRODUCT_IMAGE'
 
-      - name: Run ordinary, race and vet with only isolated loopback networking
+      - name: Run ordinary, race, durable trust-state and vet with only isolated loopback networking
         shell: bash
         run: |
           set -euo pipefail

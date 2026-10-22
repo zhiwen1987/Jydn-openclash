@@ -7,15 +7,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	verifier "chengwang-image-verifier"
 	binding "chengwang/image-binding"
+	"chengwang/image-binding/truststate"
 )
 
 func TestRegistryCLIBindingLifecycle(t *testing.T) {
@@ -62,6 +65,34 @@ func TestRegistryCLIBindingLifecycle(t *testing.T) {
 				t.Fatalf("real Distribution binding: %v", err)
 			}
 			assertBinding(t, result, m)
+			// The same unmodified Distribution service also exercises managed
+			// trust resolution and durable one-use consumption. No SDK metadata
+			// adapter is present in this test or in the product reader.
+			managed := newManagedMaterial(t, m)
+			statePath := filepath.Join(t.TempDir(), "managed-trust")
+			store, err := truststate.Create(ctx, statePath, managed.anchor, managed.catalogue)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { store.Close() })
+			managedResult, err := binding.ManagedBind(ctx, store, "isolated-fixture", managed.approval, managed.bundle, managed.root, roots, "")
+			if err != nil {
+				t.Fatalf("real Distribution managed binding: %v", err)
+			}
+			assertManaged(t, managedResult, managed)
+			if err := store.Close(); err != nil {
+				t.Fatal(err)
+			}
+			reopened, err := truststate.Open(ctx, statePath, managed.anchor)
+			if err != nil {
+				t.Fatal(err)
+			}
+			store = reopened
+			managedResult, err = binding.ManagedBind(ctx, store, "isolated-fixture", managed.approval, managed.bundle, managed.root, roots, "")
+			if err != binding.ErrManagedInvalid || managedResult.Verified() {
+				t.Fatal("real Distribution grant replay after reopen was accepted")
+			}
+			fmt.Fprintf(os.Stdout, "MANAGED_REAL_DISTRIBUTION=PASS kind=%s replay=rejected reopen=true\n", kind)
 			m.approval = []byte(`{"status":"approved"}`)
 			result, err = binding.Bind(ctx, m.trust, m.approval, m.bundle, m.root, roots, "")
 			if err != binding.ErrInvalid || result.Verified() {

@@ -147,4 +147,26 @@ for mode in ordinary race; do
 done
 /usr/bin/python3 -B "$script_root/check-go-json.py" --mode registry \
   "$run_root/evidence/registry-ordinary.json" "$run_root/evidence/registry-race.json"
+for mode in ordinary race; do
+  for kind in message-signature dsse; do
+    marker="MANAGED_REAL_DISTRIBUTION=PASS kind=$kind replay=rejected reopen=true"
+    # Check the actual per-kind test Output events, not a generic shell echo
+    # or a fixture server log. Both ordinary and race must attest separately.
+    /usr/bin/python3 -B - "$run_root/evidence/registry-$mode.json" "$kind" "$marker" <<'PY'
+import json
+import pathlib
+import sys
+path, kind, marker = sys.argv[1:]
+events = [json.loads(line) for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines()]
+matches = [event for event in events
+           if event.get("Package") == "chengwang/image-binding"
+           and event.get("Action") == "output"
+           and event.get("Test") == "TestRegistryCLIBindingLifecycle/" + kind
+           and event.get("Output", "").strip() == marker]
+if len(matches) != 1:
+    raise SystemExit("missing or duplicate per-kind managed Registry lifecycle evidence")
+print("REGISTRY_MANAGED_LIFECYCLE_EVIDENCE=PASS kind=" + kind)
+PY
+  done
+done
 echo 'REGISTRY_BINDING_REAL_DISTRIBUTION=PASS transcripts=2 registry=3 image_pinned=true tls=true internal_network=true no_host_ports=true product_images_executed=0 authorization=BLOCKED production=false'
