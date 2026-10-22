@@ -67,4 +67,23 @@ go build -trimpath -o image-trust-api ./cmd/image-trust-api
 
 CI 运行器见 [scripts/README.md](scripts/README.md)。普通测试包含真实本机 TLS 服务，外网被 namespace 禁止；另在唯一临时 internal 网络内运行固定 digest 的真实 Distribution Registry，上传合法惰性 OCI fixture 后进行普通/race 读回。只测试服务器可写，产品函数只读，绝不执行镜像。
 
-支持少于完整 OCI/Registry 生态是明确的失败关闭限制：尚未支持认证挑战换 token、CDN 重定向、OCI index、制品多签阈值、在线 TUF/自动撤销刷新、企业批准工作流和生产密钥分发。catalog 的根阈值不等于镜像制品多签。已有可选产品 API 后端与候选组合命令，但没有原发布入口装配、发布构建镜像签发、运行中容器身份绑定或恢复执行接入。九项恢复 blocker 不变；成功不表示镜像内容安全，也不表示已经部署。
+支持少于完整 OCI/Registry 生态是明确的失败关闭限制：尚未支持认证挑战换 token、CDN 重定向、OCI index、制品多签阈值、完整在线 TUF、企业批准工作流和生产密钥分发。catalog 的根阈值不等于镜像制品多签。已有可选产品 API 后端与候选组合命令，但没有原发布入口装配、发布构建镜像签发、运行中容器身份绑定或恢复执行接入。九项恢复 blocker 不变；成功不表示镜像内容安全，也不表示已经部署。
+
+## 自动撤销刷新与启动恢复（P0-d7 候选）
+
+实际状态以 [P0-d7 合同](../../docs/P0D7-IMPLEMENTATION-CONTRACT.md) 和阶段验收记录为准。以下仅是独立候选的配置/恢复说明，不是生产部署命令。
+
+自动刷新默认关闭。启用须同时设置 `writesEnabled: true`、`refreshEnabled: true` 和完整的 `refreshURL`、`refreshIP`、`refreshSPKI`、`refreshCAFile`。来源 CA 文件仍须私有安全路径。关闭刷新时不得遗留其他 refresh 参数，否则启动拒绝，避免把半配置误认为保护生效。
+
+- `refreshURL` 是固定 HTTPS 基路径，无用户信息、query、fragment、路径转义或跳转；只直连 `refreshIP`，正常校验证书主机名与独立 CA 后核对 `refreshSPKI`（`sha256:` + 64 位小写十六进制）。不发送 Registry token，不使用系统代理或动态 DNS。
+- 来源发布原始签名 envelope：`latest.json` 为最新代，`2.json`、`3.json` 等为中间代。非回环来源仍必须由独立签署/发布流程维护，候选不会签名或发布自己的 catalog，也不自动信任来源新证书。
+- `refreshIntervalSeconds` 默认 60 秒（1–3600）；`refreshMaxAgeSeconds` 默认 300 秒（不小于 interval，最多 3600）；`refreshTimeoutSeconds` 默认 30 秒（候选整数配置 1–120）。失败有界指数退避与 jitter，无无限并行队列。未实现 HTTP Retry-After 协商或多来源容灾。
+- 同代同原始摘要是 no-op；其他代逐次真实验签安装，不因 HTTPS 成功就可信。单文件 256 KiB、单批 4 MiB/最多 64 代，仍受 Store 历史上限。过期中间代会失败关闭，不能任意离线追赶。
+- 首次及重启后从“未确认”开始。只有完整获取/安装和精确读回后才确认 generation/hash，新鲜度最多到 max-age 与签名到期的较早者。过期或当前版本不一致时 Verify 不得烧 grant；在途 Complete 也检查源截止和撤销。网络失败不续期，但先前确认可在剩余窗口内继续使用；不保证即时未知撤销送达。
+- `GET /api/v1/image-trust` 增加 `refreshRequired`、`refreshFresh`、`refreshLastSuccessUnix`、`refreshUntilUnix`、`recoveryCompleted`。关闭刷新时前两个均 false。`recoveryCompleted` 是本次构造补齐的操作数，不是历史成功请求数。没有公开任意来源 URL、手工“确认新鲜”或恢复授权端点。
+
+跨库恢复由 `product.New` 在接受请求前执行，前提是旧 Service/业务已经停止。候选从独占生命周期锁打开已有 Store，再构造后端；不要在旧实例联网时把同一个 Store 指针用于热重建。journal/outbox 与 grant/catalog 在同一 bbolt record 原子记录，原始 audit 前缀、prepared hash 和 ACK 的结果 hash 均需匹配。
+
+允许自动修复的是健康两库之间未投递/未 ACK 的审计缺口，采用相同 key/语义幂等追加；恢复记录只描述数据库事实，不代表 HTTP 成功或客户收讫。已 ACK 的审计缺失、错 scope、错误前缀/冲突、损坏 checkpoint、Store poison 均拒绝，不自动删文件、补 checkpoint、重做验证或释放 grant。旧 v1 无 journal 可兼容打开，但不能补造旧操作证明；整盘/两库/Anchor 同时回滚仍需外部见证。
+
+候选每 15 秒重新验证审计和 Store 健康；致命错误会停止候选，关闭前取消并等待刷新任务结束。底层文件系统/完整性故障仍需受控修复并重新打开；本阶段没有安装 Docker/systemd 自动重启策略，也没有实时自愈坏文件。journal 最多 4096 操作、恢复 audit 快照最多 16384 事件，满容量失败关闭，不自动清理历史。这些自动化不等于免维护或跨库 exactly-once。

@@ -173,7 +173,6 @@ REQUIRED_ORDINARY = {
         "TestProductD7RecoveryRejectsLostOrConflictingEvidence",
     } | {"TestProductD7RefreshStaleOrChangedStateCannotConsume/" + case for case in (
         "stale", "clock-backward", "manual-update", "restart")
-    } | {"TestProductD7RecoveryRealProcessExitAndIdempotence/" + kind for kind in ("update", "verify")
     } | {"TestProductD7RecoveryRealProcessExitAndIdempotence/" + kind + "/" + stage
          for kind in ("update", "verify") for stage in (
              "after-journal-prepare", "after-prepared-audit", "before-result-audit", "after-journal-outcome",

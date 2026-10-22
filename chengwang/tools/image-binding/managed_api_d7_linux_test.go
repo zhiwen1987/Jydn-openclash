@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -54,7 +55,7 @@ func TestManagedAPID7FullRefreshAndConsumedRecovery(t *testing.T) {
 	default:
 		t.Fatal("invalid test subprocess mode")
 	}
-	t.Log("PRODUCT_D7_REAL_API=PASS mode=" + mode)
+	fmt.Println("PRODUCT_D7_REAL_API=PASS mode=" + mode)
 }
 
 func d7ConsumedRecovery(t *testing.T) {

@@ -229,8 +229,17 @@ func TestManagedAPIRealLifecycleAndBoundaries(t *testing.T) {
 		}
 	}
 	after, err = f.store.Inspect(context.Background())
-	if err != nil || after.Sequence != before.Sequence || after.LedgerUsed != 0 {
-		t.Fatal("invalid signed update mutated state")
+	if err != nil || after.Catalogue.Generation != before.Catalogue.Generation || after.Catalogue.SHA256 != before.Catalogue.SHA256 || after.LedgerUsed != 0 {
+		t.Fatal("invalid signed update mutated authoritative catalogue or grant ledger")
+	}
+	rejectedJournal, err := f.store.Journal(context.Background())
+	if err != nil || len(rejectedJournal) != 2 {
+		t.Fatal("invalid updates missing durable rejection journal")
+	}
+	for _, entry := range rejectedJournal {
+		if entry.State != "PREPARED" || entry.Outcome != truststate.OutcomeRejected || !entry.Acknowledged {
+			t.Fatal("invalid update acquired committed outcome")
+		}
 	}
 	code, raw := managedAPIRequest(t, f.api, http.MethodPost, "/api/v1/image-trust/verifications", f.tokens["operator"], body)
 	var receipt imagetrust.Receipt
