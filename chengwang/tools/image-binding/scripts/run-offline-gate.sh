@@ -269,6 +269,14 @@ test "$(/usr/bin/grep -Fxc 'D11_DOCKER_SAVE_METADATA=PASS cases=17 synthetic=tru
   "$RUN_ROOT/evidence/product-registry-metadata-tests.log")" -eq 1
 test "$(/usr/bin/grep -Ec -- '^--- PASS: TestProductRegistryD11DockerSaveMetadata \(' \
   "$RUN_ROOT/evidence/product-registry-metadata-tests.log")" -eq 1
+# HTTP content negotiation is tested separately from any real Registry claim.
+/usr/bin/timeout --signal=TERM --kill-after=5s 60s "$RUN_ROOT/bin/product-registry.test" \
+  -test.run='^TestProductRegistryD11ManifestAcceptHeader$' -test.v -test.timeout=50s \
+  2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-registry-manifest-accept-tests.log"
+test "$(/usr/bin/grep -Fxc 'D11_MANIFEST_ACCEPT_HEADER=PASS cases=4 synthetic=true actual_registry_not_proven=true authorization=BLOCKED production=false' \
+  "$RUN_ROOT/evidence/product-registry-manifest-accept-tests.log")" -eq 1
+test "$(/usr/bin/grep -Ec -- '^--- PASS: TestProductRegistryD11ManifestAcceptHeader \(' \
+  "$RUN_ROOT/evidence/product-registry-manifest-accept-tests.log")" -eq 1
 # Independently retain the parent OCI verifier scenarios. This transcript is
 # not merged into the child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \

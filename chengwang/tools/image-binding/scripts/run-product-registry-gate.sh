@@ -98,6 +98,9 @@ fixture_source_line=0
 fixture_assertion_line=0
 fixture_assertion_context_line=0
 fixture_json_rejection=''
+readback_status=0
+readback_digest=None
+readback_bytes=None
 if log:
     path=pathlib.Path(log)
     assert path.parent==pathlib.Path(private) and re.fullmatch(r'(message-signature|dsse)-(prepare|exercise|resume|catalogue|verify)-(0|[1-4]|first|final)\.private\.log',path.name)
@@ -118,7 +121,13 @@ if log:
         if context_match: fixture_assertion_context_line=int(context_match[1])
         json_match=re.fullmatch(rb'D11_PRODUCT_REGISTRY_JSON_REJECTION=(UNKNOWN_FIELD|SYNTAX|TYPE|TRAILING|OTHER)',line)
         if json_match: fixture_json_rejection=json_match[1].decode('ascii')
-print(json.dumps({'schema':'chengwang.product-registry-failure/v1','outcome':'FAIL','phase':phase,'kind':kind,'action':action,'case':case,'safeStages':stages,'fixtureSourceLine':fixture_source_line,'fixtureAssertionLine':fixture_assertion_line,'fixtureAssertionContextLine':fixture_assertion_context_line,'fixtureJSONRejection':fixture_json_rejection,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
+        readback_match=re.fullmatch(rb'D11_PRODUCT_REGISTRY_MANIFEST_READBACK status=([1-5][0-9]{2}) digest_matches=(true|false) bytes_match=(true|false)',line)
+        if readback_match:
+            readback_status=int(readback_match[1])
+            readback_digest=readback_match[2]==b'true'
+            readback_bytes=readback_match[3]==b'true'
+readback_observed=100<=readback_status<=599 and type(readback_digest) is bool and type(readback_bytes) is bool
+print(json.dumps({'schema':'chengwang.product-registry-failure/v1','outcome':'FAIL','phase':phase,'kind':kind,'action':action,'case':case,'safeStages':stages,'fixtureSourceLine':fixture_source_line,'fixtureAssertionLine':fixture_assertion_line,'fixtureAssertionContextLine':fixture_assertion_context_line,'fixtureJSONRejection':fixture_json_rejection,'fixtureRegistryReadbackObserved':readback_observed,'fixtureRegistryReadbackStatus':readback_status if readback_observed else 0,'fixtureRegistryReadbackDigestMatch':readback_digest if readback_observed else False,'fixtureRegistryReadbackBytesMatch':readback_bytes if readback_observed else False,'rawPrivateLogPublished':False,'authorization':'BLOCKED','production':False,'deviceActionsExecuted':False},sort_keys=True))
 PY
     then
       /usr/bin/rm -f -- "$evidence/product-registry-failure-diagnostic.json"

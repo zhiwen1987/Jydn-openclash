@@ -30,6 +30,14 @@ D11仅到Registry正常TLS ready、隔离网络读回。`registry-start` 内联P
 
 新增独立 `TestProductRegistryD11DockerSaveMetadata` 的17项合成正反例，以具名PASS和唯一固定marker同时防止空跑；包括双层正确顺序、交换层顺序和缺一条source映射，不并入或缩减原700/Registry3/Python33集合。合成数据不是真实镜像或远端读回。正式执行结果须以修补后的Linux任务及后续全链原始工件为准。
 
+## 第四轮实际执行记录：真实归档通过，清单回读未通过
+
+`433fddab4e75332de558a80c8d02d2c313085c94` 的[父39822733678/job119977955684](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39822733678/job/119977955684)成功，普通/race各2320完整集合不变；父原日志LF5,447,552B、SHA256 `07e76ea5e86d1125e08b7b44c188363b2a0b42fa8c1838fa028803e89ca46270`。[绑定39822733653/job119977955081](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39822733653/job/119977955081)仍失败，但17项元数据具名用例及唯一marker已实际通过，`archive-validated` 证明真实归档/层校验也已越过。
+
+[工件12445906034](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39822733653/artifacts/12445906034)实际102文件；原joblog LF1,776,277B、SHA256 `ab422a7ddcb9f156f5d9e20de547d45879be60e7bc2ccef6c1e6a5292607361d`。诊断 `fixtureAssertionLine=431 / fixtureAssertionContextLine=453` 对应精确提交中的prepare上传后manifest GET联合断言：status200、Docker-Content-Digest相等及原字节相等。前面的blob/manifest PUT201已越过，但本轮并未公开该GET具体状态/头/正文，因此**不能声称已经观测HTTP404**。未到签名/Store/业务API验收。
+
+源码确认该准备器GET未发OCI `Accept`，而[Distribution v3.1.2官方实现](https://github.com/distribution/distribution/blob/v3.1.2/registry/handlers/manifests.go)会在OCI清单未被Accept声明支持时拒绝；这是有源码依据的修补，不代替原始响应证据。仅给固定测试Registry的manifest GET/HEAD补明确OCI Accept，blob/API不继承，并增独立4项无真实取网的请求头合成测试。原HTTP状态/摘要/原字节断言和正常TLS不删除；失败诊断只允许固定状态整数和相等布尔，不暴露响应正文或头值。必须重新完成后续真实回拉与API链后才能验收。
+
 ## 必须补上的实际缺口
 
 D10已执行真实产品镜像，但原Registry回归仍使用惰性测试制品。D11必须让同一次构建的真实config/layer字节进入一次性、无外网的Distribution，绑定精确manifest、正常TLS固定来源和真实Sigstore/批准，并由镜像内默认程序执行产品API消费/防重放。不能把旧测试成功或本地imageID直接当成产品镜像来源证明。

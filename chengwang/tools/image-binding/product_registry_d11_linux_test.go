@@ -393,6 +393,9 @@ func d11HTTP(t *testing.T, c *http.Client, method, target, token, contentType st
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
+	if (method == http.MethodGet || method == http.MethodHead) && req.URL.Scheme == "https" && req.URL.Host == "registry.fixture.invalid:5443" && req.URL.User == nil && req.URL.RawPath == "" && req.URL.RawQuery == "" && !req.URL.ForceQuery && req.URL.Fragment == "" && regexp.MustCompile(`^/v2/chengwang/product-candidate/manifests/sha256:[0-9a-f]{64}$`).MatchString(req.URL.Path) {
+		req.Header.Set("Accept", imageType)
+	}
 	res, e := c.Do(req)
 	d11Require(t, e == nil)
 	defer res.Body.Close()
@@ -428,7 +431,13 @@ func d11Upload(t *testing.T, root, endpoint string, manifest, config []byte, lay
 	d11Mkdir(t, filepath.Join(endpoint, "graph"))
 	d11Mkdir(t, filepath.Join(endpoint, "graph", "blobs"))
 	status, h, b := d11HTTP(t, c, "GET", d11Registry+prefix+"manifests/"+hashed(manifest), "", "", nil)
-	d11Require(t, status == 200 && h.Get("Docker-Content-Digest") == hashed(manifest) && bytes.Equal(b, manifest))
+	digestMatched, bytesMatched := h.Get("Docker-Content-Digest") == hashed(manifest), bytes.Equal(b, manifest)
+	if status != 200 || !digestMatched || !bytesMatched {
+		if status >= 100 && status <= 599 {
+			fmt.Printf("D11_PRODUCT_REGISTRY_MANIFEST_READBACK status=%d digest_matches=%t bytes_match=%t\n", status, digestMatched, bytesMatched)
+		}
+	}
+	d11Require(t, status == 200 && digestMatched && bytesMatched)
 	d11Write(t, filepath.Join(endpoint, "graph", "manifest.json"), b)
 	seen := map[string]bool{}
 	for _, original := range append([][]byte{config}, layers...) {
@@ -982,4 +991,42 @@ func TestProductRegistryD11DockerSaveMetadata(t *testing.T) {
 		return
 	}
 	fmt.Println("D11_DOCKER_SAVE_METADATA=PASS cases=17 synthetic=true actual_registry_not_proven=true authorization=BLOCKED production=false")
+}
+
+type d11HeaderRoundTripper func(*http.Request) (*http.Response, error)
+
+func (roundTrip d11HeaderRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return roundTrip(request)
+}
+
+// A synthetic request-construction test only. Its transport cannot dial, and
+// neither a successful header check nor its fake response proves Registry IO.
+func TestProductRegistryD11ManifestAcceptHeader(t *testing.T) {
+	digest := hashed([]byte("synthetic header target"))
+	cases := []struct{ name, method, target, accept string }{
+		{"manifest-get", http.MethodGet, d11Registry + "/v2/chengwang/product-candidate/manifests/" + digest, imageType},
+		{"manifest-head", http.MethodHead, d11Registry + "/v2/chengwang/product-candidate/manifests/" + digest, imageType},
+		{"blob-get", http.MethodGet, d11Registry + "/v2/chengwang/product-candidate/blobs/" + digest, ""},
+		{"api-post", http.MethodPost, d11APIBase("message-signature") + d11VerifyPath, ""},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			calls := 0
+			client := &http.Client{Transport: d11HeaderRoundTripper(func(request *http.Request) (*http.Response, error) {
+				calls++
+				if request.Method != test.method || request.URL.String() != test.target || request.Header.Get("Accept") != test.accept {
+					t.Fatal("synthetic manifest Accept scope mismatch")
+				}
+				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("")), Request: request}, nil
+			})}
+			status, _, body := d11HTTP(t, client, test.method, test.target, "", "", nil)
+			if status != 200 || calls != 1 || len(body) != 0 {
+				t.Fatal("synthetic header transport mismatch")
+			}
+		})
+	}
+	if t.Failed() {
+		return
+	}
+	fmt.Println("D11_MANIFEST_ACCEPT_HEADER=PASS cases=4 synthetic=true actual_registry_not_proven=true authorization=BLOCKED production=false")
 }
