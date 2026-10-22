@@ -97,6 +97,16 @@ REQUIRED_GO_TEST_RUNS = {
     "chengwang/internal/webui": 3,
 }
 
+# Actual complete P0-d6 Test* pair set from main run 39763836481 / commit
+# 5107ebd5b51f42d9b70cddf3027b4626ade99942: 2252 pairs, each ordinary/race.
+# This protects packages which previously had only a minimum count. Fuzz
+# seed events are deliberately not part of the semantic Test* baseline.
+P0D6_GO_TEST_COUNT = 2252
+P0D6_GO_TEST_SHA256 = "2456a212437c0d916d86c0f4c8e53224e47e8e577e027490786313d71d2e153f"
+NEW_P0D7_GO_TEST_PREFIXES = {
+    "chengwang/internal/evidence": "TestImageTrustD7",
+}
+
 REQUIRED_GO_TEST_FINGERPRINTS = {
     # P0-d6 actual ordinary/race evidence: run 39760575706, commit 59794e7.
     # All original P0-d5 2067 Test* pairs were independently retained; these
@@ -148,6 +158,15 @@ REQUIRED_GO_TEST_FINGERPRINTS = {
 }
 
 REQUIRED_GO_TEST_NAMES = {
+    "chengwang/internal/evidence": frozenset(
+        {
+            "TestImageTrustD7RecoveryViewVerifiedDetachedAndReadOnly",
+            "TestImageTrustD7RecoveryViewRejectsCorruptOrStaleAudit",
+            "TestImageTrustD7RecoveryViewRejectsCorruptOrStaleAudit/checkpoint-stale",
+            "TestImageTrustD7RecoveryViewRejectsCorruptOrStaleAudit/changed-record",
+            "TestImageTrustD7RecoveryViewRejectsCorruptOrStaleAudit/missing-checkpoint",
+        }
+    ),
     "chengwang/internal/api": frozenset(
         {
             "TestImageTrustHTTPRoleMatrix",
@@ -806,6 +825,14 @@ def _validate_unittest_outcomes(result: RecordingResult) -> None:
         raise RuntimeError(f"unexpected successes are forbidden: {tests}")
 
 
+def _validate_p0d6_go_baseline(passed_tests: dict[str, set[str]]) -> None:
+    pairs = sorted((package, name) for package, names in passed_tests.items() for name in names
+                   if not name.startswith(NEW_P0D7_GO_TEST_PREFIXES.get(package, "\x00")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n" for package, name in pairs).encode("utf-8")).hexdigest()
+    if len(pairs) != P0D6_GO_TEST_COUNT or digest != P0D6_GO_TEST_SHA256:
+        raise RuntimeError(f"accepted P0-d6 Go test baseline changed: count={len(pairs)} sha256={digest}")
+
+
 def validate_go_json(paths: list[pathlib.Path]) -> int:
     total_run_events = 0
     total_packages = set()
@@ -897,6 +924,7 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
                 f"required Draft 2020-12 validator test did not pass in {source}: "
                 f"{SCHEMA_VALIDATOR_PACKAGE}::{SCHEMA_VALIDATOR_TEST}"
             )
+        _validate_p0d6_go_baseline(passed_tests)
         total_run_events += sum(run_events.values())
     print(SCHEMA_METASCHEMA_PASS)
     print(

@@ -7,8 +7,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -21,11 +23,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"unicode/utf8"
 
 	"chengwang/image-binding/product"
+	"chengwang/image-binding/refresh"
 	"chengwang/image-binding/trustcatalog"
 	"chengwang/image-binding/truststate"
 	"chengwang/internal/api"
@@ -37,19 +41,27 @@ import (
 var errConfiguration = errors.New("image trust candidate configuration rejected")
 
 type configuration struct {
-	Addr              string `json:"addr"`
-	StorePath         string `json:"storePath"`
-	AnchorFile        string `json:"anchorFile"`
-	IdentitiesFile    string `json:"identitiesFile"`
-	AuditDir          string `json:"auditDir"`
-	RegistryCAFile    string `json:"registryCAFile"`
-	RegistryTokenFile string `json:"registryTokenFile"`
-	TLSCertFile       string `json:"tlsCertFile"`
-	TLSKeyFile        string `json:"tlsKeyFile"`
-	TenantID          string `json:"tenantId"`
-	SiteID            string `json:"siteId"`
-	Environment       string `json:"environment"`
-	WritesEnabled     bool   `json:"writesEnabled"`
+	Addr                   string `json:"addr"`
+	StorePath              string `json:"storePath"`
+	AnchorFile             string `json:"anchorFile"`
+	IdentitiesFile         string `json:"identitiesFile"`
+	AuditDir               string `json:"auditDir"`
+	RegistryCAFile         string `json:"registryCAFile"`
+	RegistryTokenFile      string `json:"registryTokenFile"`
+	TLSCertFile            string `json:"tlsCertFile"`
+	TLSKeyFile             string `json:"tlsKeyFile"`
+	TenantID               string `json:"tenantId"`
+	SiteID                 string `json:"siteId"`
+	Environment            string `json:"environment"`
+	WritesEnabled          bool   `json:"writesEnabled"`
+	RefreshEnabled         bool   `json:"refreshEnabled"`
+	RefreshURL             string `json:"refreshURL"`
+	RefreshIP              string `json:"refreshIP"`
+	RefreshSPKI            string `json:"refreshSPKI"`
+	RefreshCAFile          string `json:"refreshCAFile"`
+	RefreshIntervalSeconds int64  `json:"refreshIntervalSeconds"`
+	RefreshMaxAgeSeconds   int64  `json:"refreshMaxAgeSeconds"`
+	RefreshTimeoutSeconds  int64  `json:"refreshTimeoutSeconds"`
 }
 
 func main() {
@@ -68,6 +80,8 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 	if ctx == nil || listen == nil || ctx.Err() != nil {
 		return errConfiguration
 	}
+	ctx, cancelBackground := context.WithCancel(ctx)
+	defer cancelBackground()
 	raw, err := readPrivate(file, 16<<10)
 	if err != nil {
 		return errConfiguration
@@ -135,6 +149,14 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 		}
 		bearer = strings.TrimSuffix(strings.TrimSuffix(string(secret), "\n"), "\r")
 	}
+	refreshClient, err := configuredRefresh(config)
+	if err != nil {
+		return errConfiguration
+	}
+	refreshMaxAge := time.Duration(0)
+	if refreshClient != nil {
+		refreshMaxAge = refreshClient.MaxAge()
+	}
 	// Never Create or reset from this process. Deletion is not recovery.
 	store, err := truststate.Open(ctx, config.StorePath, anchor)
 	if err != nil {
@@ -150,7 +172,7 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 	}
 	defer audit.Close()
 	scope := authz.ResourceScope{TenantID: config.TenantID, SiteID: config.SiteID, ObjectType: "image-trust", ObjectID: anchor.StoreID, Environment: config.Environment}
-	backend, err := product.New(ctx, product.Config{Store: store, Audit: audit, Scope: scope, WritesEnabled: config.WritesEnabled, RegistryRoots: roots, RegistryBearerToken: bearer})
+	backend, err := product.New(ctx, product.Config{Store: store, Audit: audit, Scope: scope, WritesEnabled: config.WritesEnabled, RegistryRoots: roots, RegistryBearerToken: bearer, RefreshMaxAge: refreshMaxAge})
 	if err != nil {
 		return errConfiguration
 	}
@@ -177,6 +199,49 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 	if tlsConfig != nil {
 		listener = tls.NewListener(listener, tlsConfig)
 	}
+	// Workers are joined before either persistent Store closes, including a
+	// listener/Serve failure. Cancellation alone is not permission to leave a
+	// refresh callback writing into a closed audit or trust database.
+	var workers sync.WaitGroup
+	backgroundErrors := make(chan error, 2)
+	defer func() {
+		cancelBackground()
+		workers.Wait()
+	}()
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := backend.Maintenance(ctx); err != nil {
+					if ctx.Err() == nil {
+						backgroundErrors <- errConfiguration
+					}
+					return
+				}
+			}
+		}
+	}()
+	if refreshClient != nil {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			err := refreshClient.Run(ctx, func(attempt context.Context) error {
+				return refreshOnce(attempt, backend, refreshClient)
+			})
+			if ctx.Err() == nil {
+				// A driver unexpectedly returning is not a silently healthy
+				// refresh loop. Never log its configured endpoint or TLS error.
+				_ = err
+				backgroundErrors <- errConfiguration
+			}
+		}()
+	}
 	finished := make(chan error, 1)
 	go func() { finished <- server.Serve(listener) }()
 	select {
@@ -185,6 +250,11 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 			return errConfiguration
 		}
 		return nil
+	case <-backgroundErrors:
+		cancelBackground()
+		_ = server.Close()
+		<-finished
+		return errConfiguration
 	case <-ctx.Done():
 		shutdown, stop := context.WithTimeout(context.Background(), 10*time.Second)
 		defer stop()
@@ -198,6 +268,66 @@ func run(ctx context.Context, file string, listen func(string, string) (net.List
 		}
 		return nil
 	}
+}
+
+// Automatic refresh is an explicit privileged composition choice, never an
+// HTTP-supplied URL or an implicit side effect of enabling ordinary writes.
+func configuredRefresh(c configuration) (*refresh.Client, error) {
+	configured := c.RefreshURL != "" || c.RefreshIP != "" || c.RefreshSPKI != "" || c.RefreshCAFile != "" || c.RefreshIntervalSeconds != 0 || c.RefreshMaxAgeSeconds != 0 || c.RefreshTimeoutSeconds != 0
+	if !c.RefreshEnabled {
+		if configured {
+			return nil, errConfiguration
+		}
+		return nil, nil
+	}
+	if !c.WritesEnabled || c.RefreshURL == "" || c.RefreshIP == "" || c.RefreshSPKI == "" || c.RefreshCAFile == "" {
+		return nil, errConfiguration
+	}
+	for _, seconds := range []int64{c.RefreshIntervalSeconds, c.RefreshMaxAgeSeconds, c.RefreshTimeoutSeconds} {
+		if seconds < 0 || seconds > 24*60*60 {
+			return nil, errConfiguration
+		}
+	}
+	ca, err := readPrivate(c.RefreshCAFile, 256<<10)
+	if err != nil {
+		return nil, errConfiguration
+	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(ca) {
+		return nil, errConfiguration
+	}
+	client, err := refresh.New(refresh.Config{BaseURL: c.RefreshURL, IP: c.RefreshIP, SPKI: c.RefreshSPKI, Roots: roots, Interval: time.Duration(c.RefreshIntervalSeconds) * time.Second, MaxAge: time.Duration(c.RefreshMaxAgeSeconds) * time.Second, Timeout: time.Duration(c.RefreshTimeoutSeconds) * time.Second})
+	if err != nil {
+		return nil, errConfiguration
+	}
+	return client, nil
+}
+
+func refreshOnce(ctx context.Context, backend *product.Service, client *refresh.Client) error {
+	generation, hash, err := backend.RefreshSnapshot(ctx)
+	if err != nil {
+		return err
+	}
+	raws, err := client.Fetch(ctx, generation, hash)
+	if err != nil {
+		return err
+	}
+	// Fetch verifies transport framing and a contiguous generation sequence;
+	// only ApplyRefresh verifies catalogue signatures and commits trust state.
+	for _, raw := range raws {
+		if generation == ^uint64(0) {
+			return errConfiguration
+		}
+		if err := backend.ApplyRefresh(ctx, raw); err != nil {
+			return err
+		}
+		generation++
+		sum := sha256.Sum256(raw)
+		hash = "sha256:" + hex.EncodeToString(sum[:])
+	}
+	// A concurrent manual update is not evidence that this fetch observed its
+	// newer generation. Confirm the exact fetched target, never a blind readback.
+	return backend.ConfirmRefresh(ctx, generation, hash)
 }
 
 // Strict duplicate rejection precedes typed decoding at every nesting depth.

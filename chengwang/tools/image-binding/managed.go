@@ -56,6 +56,20 @@ func (r ManagedResult) ValidUntilUnix() int64 { return r.validUntil }
 // input slices concurrently. Cryptographic verification still requires external
 // process hard limits: context cancellation cannot interrupt every SDK call.
 func ManagedBind(ctx context.Context, store *truststate.Store, policyID string, approvalRaw, bundleRaw, rootRaw []byte, roots *x509.CertPool, bearerToken string) (ManagedResult, error) {
+	return managedBind(ctx, store, "", policyID, approvalRaw, bundleRaw, rootRaw, roots, bearerToken, nil)
+}
+
+// ManagedBindTracked uses a durable product intent and optional independently
+// enforced refresh freshness bound. The older low-level API remains advisory
+// and does not acquire journal authority by importing a receipt.
+func ManagedBindTracked(ctx context.Context, store *truststate.Store, opID, policyID string, approvalRaw, bundleRaw, rootRaw []byte, roots *x509.CertPool, bearerToken string, bound *truststate.SourceBound) (ManagedResult, error) {
+	if opID == "" {
+		return ManagedResult{}, ErrManagedInvalid
+	}
+	return managedBind(ctx, store, opID, policyID, approvalRaw, bundleRaw, rootRaw, roots, bearerToken, bound)
+}
+
+func managedBind(ctx context.Context, store *truststate.Store, opID, policyID string, approvalRaw, bundleRaw, rootRaw []byte, roots *x509.CertPool, bearerToken string, bound *truststate.SourceBound) (ManagedResult, error) {
 	if ctx == nil {
 		return ManagedResult{}, ErrManagedInvalid
 	}
@@ -69,7 +83,13 @@ func ManagedBind(ctx context.Context, store *truststate.Store, policyID string, 
 		return fail()
 	}
 	approvalRaw, bundleRaw, rootRaw = bytes.Clone(approvalRaw), bytes.Clone(bundleRaw), bytes.Clone(rootRaw)
-	ticket, err := store.Begin(ctx, policyID, approvalRaw)
+	var ticket truststate.Ticket
+	var err error
+	if opID != "" {
+		ticket, err = store.BeginTracked(ctx, policyID, approvalRaw, opID, bound)
+	} else {
+		ticket, err = store.Begin(ctx, policyID, approvalRaw)
+	}
 	if err != nil {
 		return fail()
 	}

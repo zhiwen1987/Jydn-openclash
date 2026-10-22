@@ -35,18 +35,27 @@ type Config struct {
 	WritesEnabled       bool
 	RegistryRoots       *x509.CertPool
 	RegistryBearerToken string
+	// Zero preserves explicit refresh-disabled compatibility. A positive value
+	// is trusted candidate configuration, never an HTTP request parameter.
+	RefreshMaxAge time.Duration
 }
 
 type Service struct {
-	store         *truststate.Store
-	audit         *evidence.Store
-	scope         authz.ResourceScope
-	writesEnabled bool
-	roots         *x509.CertPool
-	bearer        string
-	mu            sync.RWMutex
-	auditMu       sync.Mutex
-	poisoned      bool
+	store             *truststate.Store
+	audit             *evidence.Store
+	scope             authz.ResourceScope
+	writesEnabled     bool
+	roots             *x509.CertPool
+	bearer            string
+	mu                sync.RWMutex
+	auditMu           sync.Mutex
+	poisoned          bool
+	refreshMaxAge     time.Duration
+	refreshAt         time.Time
+	refreshUntil      time.Time
+	refreshGeneration uint64
+	refreshHash       string
+	recovered         int
 	// Test-only hook. Never exported or configured by the HTTP composition.
 	fault func(string)
 }
@@ -64,15 +73,18 @@ var processVerificationBudget = struct {
 }{}
 
 func New(ctx context.Context, c Config) (*Service, error) {
-	if ctx == nil || ctx.Err() != nil || c.Store == nil || c.Audit == nil || c.RegistryRoots == nil || !scopeValid(c.Scope) || !validBearer(c.RegistryBearerToken) {
+	if ctx == nil || ctx.Err() != nil || c.Store == nil || c.Audit == nil || c.RegistryRoots == nil || !scopeValid(c.Scope) || !validBearer(c.RegistryBearerToken) || c.RefreshMaxAge < 0 || c.RefreshMaxAge > time.Hour || c.RefreshMaxAge > 0 && !c.WritesEnabled {
 		return nil, failure(imagetrust.CodeInvalid, false)
 	}
 	state, err := c.Store.Inspect(ctx)
 	if err != nil || state.Authorization != "BLOCKED" || state.Catalogue.StoreID != c.Scope.ObjectID {
 		return nil, failure(imagetrust.CodeUnavailable, false)
 	}
-	s := &Service{store: c.Store, audit: c.Audit, scope: c.Scope, writesEnabled: c.WritesEnabled, roots: c.RegistryRoots.Clone(), bearer: c.RegistryBearerToken}
+	s := &Service{store: c.Store, audit: c.Audit, scope: c.Scope, writesEnabled: c.WritesEnabled, roots: c.RegistryRoots.Clone(), bearer: c.RegistryBearerToken, refreshMaxAge: c.RefreshMaxAge}
 	if err = s.checkAudit(); err != nil {
+		return nil, err
+	}
+	if err = s.reconcile(ctx); err != nil {
 		return nil, err
 	}
 	if ctx.Err() != nil {
@@ -132,7 +144,21 @@ func (s *Service) status(ctx context.Context) (imagetrust.Status, error) {
 	if ctx.Err() != nil {
 		return imagetrust.Status{}, failure(imagetrust.CodeCanceled, false)
 	}
-	return imagetrust.Status{Boundary: imagetrust.StatusBoundary, Authorization: "BLOCKED", DeviceActionsExecuted: false, Healthy: validAuditStatus(auditState, time.Now()), Fresh: state.CatalogueValid, StoreID: state.Catalogue.StoreID, Generation: state.Catalogue.Generation, CatalogueSHA256: state.Catalogue.SHA256, NotAfterUnix: state.Catalogue.NotAfterUnix, Sequence: state.Sequence, LedgerEntries: state.LedgerUsed, LedgerCapacity: state.LedgerCapacity, Reserved: reserved, Consumed: consumed, RevokedKeys: state.Catalogue.RevokedKeyCount, RevokedApprovals: state.Catalogue.RevokedApprovalCount, RevokedManifests: state.Catalogue.RevokedManifestCount, Policies: policies}, nil
+	status := imagetrust.Status{Boundary: imagetrust.StatusBoundary, Authorization: "BLOCKED", DeviceActionsExecuted: false, Healthy: validAuditStatus(auditState, time.Now()), Fresh: state.CatalogueValid, StoreID: state.Catalogue.StoreID, Generation: state.Catalogue.Generation, CatalogueSHA256: state.Catalogue.SHA256, NotAfterUnix: state.Catalogue.NotAfterUnix, Sequence: state.Sequence, LedgerEntries: state.LedgerUsed, LedgerCapacity: state.LedgerCapacity, Reserved: reserved, Consumed: consumed, RevokedKeys: state.Catalogue.RevokedKeyCount, RevokedApprovals: state.Catalogue.RevokedApprovalCount, RevokedManifests: state.Catalogue.RevokedManifestCount, Policies: policies}
+	s.mu.RLock()
+	status.RefreshRequired = s.refreshMaxAge > 0
+	status.RefreshLastSuccessUnix = s.refreshAt.Unix()
+	if s.refreshAt.IsZero() {
+		status.RefreshLastSuccessUnix = 0
+	}
+	status.RefreshUntilUnix = s.refreshUntil.Unix()
+	if s.refreshUntil.IsZero() {
+		status.RefreshUntilUnix = 0
+	}
+	status.RefreshFresh = status.RefreshRequired && s.refreshGeneration == state.Catalogue.Generation && s.refreshHash == state.Catalogue.SHA256 && !s.refreshAt.After(time.Now()) && time.Now().Before(s.refreshUntil) && state.CatalogueValid
+	status.RecoveryCompleted = s.recovered
+	s.mu.RUnlock()
+	return status, nil
 }
 
 func (s *Service) Update(ctx context.Context, actor authz.Principal, raw []byte) (imagetrust.Status, error) {
@@ -148,9 +174,9 @@ func (s *Service) Update(ctx context.Context, actor authz.Principal, raw []byte)
 		return imagetrust.Status{}, err
 	}
 	if s.unavailable() {
-		return imagetrust.Status{}, failure(imagetrust.CodeUnavailable, false)
+		return imagetrust.Status{}, failure(imagetrust.CodeUnavailable, true)
 	}
-	storeErr := s.store.Update(ctx, raw)
+	storeErr := s.store.UpdateTracked(ctx, raw, op)
 	if err = s.resultAudit(actor, op, "image_trust.update", storeErr == nil, nil); err != nil {
 		return imagetrust.Status{}, err
 	}
@@ -171,6 +197,10 @@ func (s *Service) Verify(ctx context.Context, actor authz.Principal, request ima
 	if !policyIDValid(request.PolicyID) || len(request.Approval) == 0 || len(request.Approval) > imagetrust.MaxApprovalBytes || len(request.Bundle) == 0 || len(request.Bundle) > imagetrust.MaxBundleBytes || len(request.TrustedRoot) == 0 || len(request.TrustedRoot) > imagetrust.MaxRootBytes {
 		return imagetrust.Receipt{}, failure(imagetrust.CodeInvalid, false)
 	}
+	bound, err := s.sourceBound(ctx)
+	if err != nil {
+		return imagetrust.Receipt{}, err
+	}
 	if !reserveVerification(time.Now()) {
 		return imagetrust.Receipt{}, failure(imagetrust.CodeBusy, false)
 	}
@@ -181,9 +211,9 @@ func (s *Service) Verify(ctx context.Context, actor authz.Principal, request ima
 		return imagetrust.Receipt{}, err
 	}
 	if s.unavailable() {
-		return imagetrust.Receipt{}, failure(imagetrust.CodeUnavailable, false)
+		return imagetrust.Receipt{}, failure(imagetrust.CodeUnavailable, true)
 	}
-	result, bindErr := binding.ManagedBind(ctx, s.store, request.PolicyID, request.Approval, request.Bundle, request.TrustedRoot, s.roots, s.bearer)
+	result, bindErr := binding.ManagedBindTracked(ctx, s.store, op, request.PolicyID, request.Approval, request.Bundle, request.TrustedRoot, s.roots, s.bearer, bound)
 	valid := bindErr == nil && result.Verified() && result.Authorization() == "BLOCKED" && result.Boundary() == imagetrust.VerifiedBoundary
 	projection := map[string]string{}
 	if valid {
@@ -235,6 +265,9 @@ func (s *Service) finalVerifyState(ctx context.Context, policyID string, r bindi
 	if !active || !consumed || r.ValidUntilUnix() <= time.Now().Unix() || ctx.Err() != nil || s.unavailable() {
 		return failure(imagetrust.CodeInvalid, true)
 	}
+	if _, err := s.sourceBound(ctx); err != nil {
+		return failure(imagetrust.CodeUnavailable, true)
+	}
 	return nil
 }
 
@@ -276,16 +309,41 @@ func (s *Service) preAudit(ctx context.Context, actor authz.Principal, action st
 	if s.fault != nil {
 		s.fault("before-pre-audit")
 	}
-	if err := s.appendAudit(evidence.EvidenceEvent{TraceID: op, ActorID: actor.ID, Action: action, Target: "image-trust/" + s.scope.ObjectID, Result: "prepared", Data: data}, "image-trust/"+op+"/prepared"); err != nil {
-		s.poison()
-		return "", failure(imagetrust.CodeAuditDegraded, false)
-	}
 	if err := s.checkAudit(); err != nil {
 		s.poison()
 		return "", failure(imagetrust.CodeAuditDegraded, false)
 	}
+	report := s.audit.Status()
+	kind := "verify"
+	if action == "image_trust.update" {
+		kind = "update"
+	}
+	intent := truststate.Operation{ID: op, ActorID: actor.ID, ScopeSHA256: s.scopeDigest(), Kind: kind, Data: data, AuditBaseCount: report.Count, AuditBaseHash: report.LastHash}
+	if err := s.store.PrepareOperation(ctx, intent); err != nil {
+		s.poison()
+		return "", failure(imagetrust.CodeUnavailable, true)
+	}
+	if s.fault != nil {
+		s.fault("after-journal-prepare")
+	}
+	persisted, err := s.appendDurableAudit(s.preparedEvent(intent), "image-trust/"+op+"/prepared", false)
+	if err != nil {
+		s.poison()
+		return "", failure(imagetrust.CodeAuditDegraded, true)
+	}
+	if s.fault != nil {
+		s.fault("after-prepared-audit")
+	}
+	if err := s.store.BindPreparedAudit(ctx, op, persisted.Hash); err != nil {
+		s.poison()
+		return "", failure(imagetrust.CodeUnavailable, true)
+	}
+	if err := s.checkAudit(); err != nil {
+		s.poison()
+		return "", failure(imagetrust.CodeAuditDegraded, true)
+	}
 	if ctx.Err() != nil {
-		return "", failure(imagetrust.CodeCanceled, false)
+		return "", failure(imagetrust.CodeCanceled, true)
 	}
 	return op, nil
 }
@@ -298,14 +356,33 @@ func (s *Service) resultAudit(actor authz.Principal, op, action string, success 
 	// success or delivery receipt. The final catalogue/freshness check can still
 	// reject after this audit; neither that rejection nor lost delivery unburns
 	// the grant. Audit and trust state deliberately remain separate stores.
-	result := auditResultLabel(action, success)
 	if err := s.checkAudit(); err != nil {
 		s.poison()
 		return failure(imagetrust.CodeAuditDegraded, true)
 	}
-	if err := s.appendAudit(evidence.EvidenceEvent{TraceID: op, ActorID: actor.ID, Action: action, Target: "image-trust/" + s.scope.ObjectID, Result: result, Data: data}, "image-trust/"+op+"/result"); err != nil {
+	ctx := context.Background()
+	entry, err := s.sealOperation(ctx, op, false)
+	if err != nil {
+		s.poison()
+		return failure(imagetrust.CodeUnavailable, true)
+	}
+	if s.fault != nil {
+		s.fault("after-journal-outcome")
+	}
+	persisted, err := s.appendDurableAudit(s.resultEvent(entry), "image-trust/"+op+"/result", false)
+	if err != nil {
 		s.poison()
 		return failure(imagetrust.CodeAuditDegraded, true)
+	}
+	if s.fault != nil {
+		s.fault("after-result-audit")
+	}
+	if err := s.store.AcknowledgeOperation(ctx, op, persisted.Hash); err != nil {
+		s.poison()
+		return failure(imagetrust.CodeUnavailable, true)
+	}
+	if s.fault != nil {
+		s.fault("after-journal-ack")
 	}
 	if err := s.checkAudit(); err != nil {
 		s.poison()

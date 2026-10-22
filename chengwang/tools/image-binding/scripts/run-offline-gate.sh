@@ -98,7 +98,7 @@ echo 'IMAGE_BINDING_BUILD_WORKSPACE=off'
   > "$RUN_ROOT/evidence/candidate-binary-help.txt" 2>&1
 echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_started=false store_opened=false release_signed=false product_image_executed=false'
 # Independently retain the parent OCI verifier scenarios. This transcript is
-# not merged into the seven-package child-module test contract.
+# not merged into the child-module test contract.
 /usr/bin/timeout --signal=TERM --kill-after=10s 600s "$GO_BINARY" test -json -timeout=4m -count=1 chengwang/internal/restoreimage \
   | /usr/bin/tee "$RUN_ROOT/evidence/parent-restoreimage.json"
 # Compile genuine Registry integration test executables while still offline.

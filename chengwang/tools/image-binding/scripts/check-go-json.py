@@ -14,6 +14,7 @@ CATALOG = ROOT + "/trustcatalog"
 STATE = ROOT + "/truststate"
 PRODUCT = ROOT + "/product"
 COMMAND = ROOT + "/cmd/image-trust-api"
+REFRESH = ROOT + "/refresh"
 # Actual ordinary/race run sets from accepted P0-d4 run 39749344500,
 # commit 90299930429c147ebde14c71739159ea20c5e6d7.  The encoding is
 # sorted (package + TAB + test + LF), UTF-8, case-sensitive.  New root
@@ -39,6 +40,19 @@ PRODUCT_PACKAGE_FINGERPRINTS = {
     PRODUCT: (47, "3ca2523c7135cea4d0023460ebdc27e3a52f3cc1960650227ec69d915206554c"),
     COMMAND: (46, "54ff84975166165b073c1844ce727a23fdd3582295683663b8fb7d9cf67ec365"),
 }
+# Actual complete P0-d6 run 39763836641 / commit 5107ebd5b51f42d9b70cddf3027b4626ade99942.
+# Preserve every original pair, not merely a minimum total. Only the reviewed
+# package-specific D7 prefixes can extend these seven package sets.
+PRODUCT_BASELINE_PACKAGES = MANAGED_BASELINE_PACKAGES | frozenset((PRODUCT, COMMAND))
+PRODUCT_BASELINE_COUNT = 490
+PRODUCT_BASELINE_SHA256 = "3ada339b07afc868c856ed258a5e2efbff496a259562967ae04fda1366ed55b2"
+NEW_PRODUCT_PREFIXES = {
+    ROOT: "TestManagedAPID7",
+    CATALOG: "TestProductCatalogueD7",
+    STATE: "TestProductTrustStateD7",
+    PRODUCT: "TestProductD7",
+    COMMAND: "TestCandidateD7",
+}
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -57,6 +71,9 @@ REQUIRED_ORDINARY = {
         "TestManagedOpaqueAndInvalidInputs", "TestManagedGrantRenewalAndRevocation",
         "TestManagedAPIRealLifecycleAndBoundaries", "TestManagedAPINetworkRevocationAndBusy",
         "TestManagedAPIAuditFailureAfterConsumption",
+        "TestManagedAPID7FullRefreshAndConsumedRecovery",
+        "TestManagedAPID7FullRefreshAndConsumedRecovery/consumed-recovery",
+        "TestManagedAPID7FullRefreshAndConsumedRecovery/refresh-revocation",
     } | {"TestManagedAPIRealLifecycleAndBoundaries/" + case for case in (
         "anonymous", "wrong-role", "tenant", "site", "object", "environment", "query",
         "identity-injection", "duplicate", "noncanonical-base64", "operator-cannot-update")
@@ -116,6 +133,17 @@ REQUIRED_ORDINARY = {
         "TestTrustStateFinalExpiryBurnsConsumedGrant/catalogue", "TestTrustStateFinalExpiryBurnsConsumedGrant/clock-rollback",
         "TestProductTrustStateInspectReadOnlyDetachedAndRedacted",
         "TestProductTrustStateInspectExpiredAndClockReadOnly", "TestProductTrustStateInspectInvalidContextsAndClosed",
+        "TestProductTrustStateD7AtomicVerifyOutcomeAndAcknowledgement",
+        "TestProductTrustStateD7AtomicUpdateRequiresPreparedAudit",
+        "TestProductTrustStateD7FreshnessBoundBeforeReservation",
+        "TestProductTrustStateD7InterruptedReservationNeverResumes",
+        "TestProductTrustStateD7IntentCopiesAndRejectsForgedOutcomes",
+        "TestProductTrustStateD7JournalCapacityFailsClosed",
+        "TestProductTrustStateD7ProcessCrashKeepsAtomicFacts", "TestProductTrustStateD7ProcessHelper",
+    } | {"TestProductTrustStateD7FreshnessBoundBeforeReservation/" + case for case in (
+        "generation", "digest", "expired", "beyond-catalogue")}
+      | {"TestProductTrustStateD7ProcessCrashKeepsAtomicFacts/" + case for case in (
+        "intent", "prepared-audit", "reserved", "consumed", "committed", "acked")
     } | {"TestTrustStateUpdateRevokesInFlightGrant/" + case for case in (
         "key", "approval", "manifest", "new-generation")}
       | {"TestTrustStateExpiryAndClockRollback/" + case for case in (
@@ -137,6 +165,22 @@ REQUIRED_ORDINARY = {
         "TestProductBackendTamperedAuditRefusesWrites", "TestProductBackendBusyAndRateBudgetNoReservation",
         "TestProductBackendConcurrentHealthyAuditAndUpdate", "TestProductBackendConstructorFixedScopeAndAuditHealth",
         "TestProductBackendAuditStatusFreshness", "TestProductBackendAuditResultSemantics",
+        "TestProductD7RefreshRequiresConfirmedExactStateBeforeConsumption",
+        "TestProductD7RefreshStaleOrChangedStateCannotConsume",
+        "TestProductD7RefreshCanInstallWhileStaleAndRejectBadOrRacingConfirm",
+        "TestProductD7MaintenanceRefreshesHealthWithoutStateWrites",
+        "TestProductD7RecoveryRealProcessExitAndIdempotence", "TestProductD7RecoveryProcessHelper",
+        "TestProductD7RecoveryRejectsLostOrConflictingEvidence",
+    } | {"TestProductD7RefreshStaleOrChangedStateCannotConsume/" + case for case in (
+        "stale", "clock-backward", "manual-update", "restart")
+    } | {"TestProductD7RecoveryRealProcessExitAndIdempotence/" + kind for kind in ("update", "verify")
+    } | {"TestProductD7RecoveryRealProcessExitAndIdempotence/" + kind + "/" + stage
+         for kind in ("update", "verify") for stage in (
+             "after-journal-prepare", "after-prepared-audit", "before-result-audit", "after-journal-outcome",
+             "after-result-audit", "after-journal-ack")
+    } | {"TestProductD7RecoveryRejectsLostOrConflictingEvidence/" + case for case in (
+        "acked-audit-missing", "prepared-audit-missing", "wrong-prefix", "prepared-key-conflict",
+        "result-key-conflict", "wrong-scope", "bad-checkpoint")
     } | {"TestProductBackendDirectRBACAndWriteGateNoConsumption/" + case for case in (
         "viewer", "operator", "approver", "auditor", "admin", "anonymous", "tenant", "site", "object",
         "environment", "unknown-role")}
@@ -156,6 +200,17 @@ REQUIRED_ORDINARY = {
         "TestCandidateTLSListenerRequiresValidExplicitTrust",
         "TestCandidateStrictIdentityProfile",
         "TestCandidateMissingAuditNeverInitializes",
+        "TestCandidateD7RefreshConfigurationFailsClosed",
+        "TestCandidateD7AutomaticTLSRefreshAndRestart",
+        "TestCandidateD7RefreshCancellationJoinsBeforeClose",
+        "TestCandidateD7StartupReconcilesDurableUpdateWithoutReexecution",
+        "TestCandidateD7MaintenanceStopsOnCorruptAuditWithoutRepair",
+    } | {"TestCandidateD7RefreshConfigurationFailsClosed/" + case for case in (
+        "default-off", "explicit-default-durations", "disabled-with-url", "write-locked", "missing-url",
+        "missing-ip", "missing-spki", "missing-ca", "relative-ca", "bad-ca", "negative-interval",
+        "overflow-duration", "noncanonical-json")}
+      | {"TestCandidateD7StartupReconcilesDurableUpdateWithoutReexecution/" + case for case in (
+        "intent", "prepared-audit", "committed", "result-audit")
     } | {"TestCandidateStrictConfigurationDecode/" + case for case in (
         "duplicate", "nested_duplicate", "unknown", "null", "trailing", "deep", "empty",
         "case_alias", "write_alias", "escaped_alias", "invalid_utf8")}
@@ -167,6 +222,22 @@ REQUIRED_ORDINARY = {
       | {"TestCandidatePrivateFilesRejectUnsafeInputs/" + case for case in (
         "symlink", "hardlink", "mode", "directory_mode", "directory_symlink", "ancestor_write", "relative",
         "unclean", "missing", "directory", "empty", "oversized", "valid")},
+    REFRESH: {
+        "TestRefreshSequentialCatchupAndExactNoop", "TestRefreshRejectsRollbackForkGapAndIncompleteBatch",
+        "TestRefreshPinsTLSIPAndRejectsProxyRedirectAuth", "TestRefreshHTTPResponseAndBatchBudgets",
+        "TestRefreshCancellationDeadlineAndSingleFlight", "TestRefreshStrictWireHintsDoNotGrantSignatureAuthority",
+        "TestRefreshConfigurationRejectsMutableSources", "TestRefreshRunImmediatePeriodicAndStops",
+        "TestRefreshRunFailureBackoffAndDeadline",
+    } | {"TestRefreshRejectsRollbackForkGapAndIncompleteBatch/" + case for case in (
+        "rollback", "same_generation_fork", "gap_budget", "wrong_intermediate", "missing_intermediate",
+        "invalid_hint", "signature_shape")}
+      | {"TestRefreshPinsTLSIPAndRejectsProxyRedirectAuth/" + case for case in (
+        "wrong_spki", "wrong_ca", "wrong_hostname", "301", "302", "307", "308", "401", "404", "304")}
+      | {"TestRefreshHTTPResponseAndBatchBudgets/" + case for case in (
+        "oversized", "encoding", "wrong_type", "missing_length", "short_body", "duplicate_type", "trailer", "total_batch")}
+      | {"TestRefreshStrictWireHintsDoNotGrantSignatureAuthority/" + case for case in (
+        "duplicate", "alias", "escaped", "invalid_utf8", "trailing", "depth", "bad_base64", "0", "-1",
+        "1.0", "1e0", "18446744073709551616")},
 }
 REQUIRED_REGISTRY = {ROOT: {"TestRegistryCLIBindingLifecycle", "TestRegistryCLIBindingLifecycle/message-signature", "TestRegistryCLIBindingLifecycle/dsse"}}
 
@@ -250,10 +321,21 @@ def check_managed_baseline(tests):
 
 def check_product_packages(tests):
     for package, (count, expected) in PRODUCT_PACKAGE_FINGERPRINTS.items():
-        names = sorted(name for actual, name in tests if actual == package)
+        names = sorted(name for actual, name in tests if actual == package and
+                       not name.startswith(NEW_PRODUCT_PREFIXES.get(package, "\x00")))
         digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
         if len(names) != count or digest != expected:
             raise ValueError(f"accepted product package test set changed: {package} count={len(names)} sha256={digest}")
+
+
+def check_product_baseline(tests):
+    baseline = sorted((package, name) for package, name in tests
+                      if package in PRODUCT_BASELINE_PACKAGES and
+                      not name.startswith(NEW_PRODUCT_PREFIXES.get(package, "\x00")))
+    digest = hashlib.sha256("".join(package + "\t" + name + "\n"
+                                  for package, name in baseline).encode("utf-8")).hexdigest()
+    if len(baseline) != PRODUCT_BASELINE_COUNT or digest != PRODUCT_BASELINE_SHA256:
+        raise ValueError(f"accepted P0-d6 test baseline changed: count={len(baseline)} sha256={digest}")
 
 
 def self_test():
@@ -288,7 +370,7 @@ def self_test():
             negative_count += 1
             continue
         raise ValueError("gate accepted malformed synthetic JSON")
-    for checker in (check_baseline, check_managed_baseline, check_product_packages):
+    for checker in (check_baseline, check_managed_baseline, check_product_packages, check_product_baseline):
         for tests in (frozenset(), frozenset({(ROOT, "TestManagedForgedBaseline")}),
                       frozenset({(ROOT, "TestBindSignedRegistryImage")})):
             try:
@@ -325,6 +407,7 @@ def main():
         check_baseline(results[0][0])
         check_managed_baseline(results[0][0])
         check_product_packages(results[0][0])
+        check_product_baseline(results[0][0])
     print(f"IMAGE_BINDING_GO_JSON_GATE=PASS mode={args.mode} transcripts=2 "
           f"tests={len(results[0][0])} packages={len(results[0][1])} skips=0 race=pass "
           "authorization=BLOCKED production=false")

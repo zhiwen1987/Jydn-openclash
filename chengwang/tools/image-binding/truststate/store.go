@@ -46,6 +46,7 @@ var bucketName = []byte("trusted-state-v1")
 var recordName = []byte("state")
 
 type ledgerEntry struct {
+	OperationID          string `json:"operationID,omitempty"`
 	GrantID              string `json:"grantID"`
 	PolicyID             string `json:"policyID"`
 	ApprovalSHA256       string `json:"approvalSHA256"`
@@ -59,13 +60,14 @@ type ledgerEntry struct {
 }
 
 type stateRecord struct {
-	Schema           string        `json:"schema"`
-	RecordSHA256     string        `json:"recordSHA256"`
-	AnchorSHA256     string        `json:"anchorSHA256"`
-	History          [][]byte      `json:"history"`
-	Sequence         uint64        `json:"sequence"`
-	LastWallUnixNano int64         `json:"lastWallUnixNano"`
-	Ledger           []ledgerEntry `json:"ledger"`
+	Schema           string         `json:"schema"`
+	RecordSHA256     string         `json:"recordSHA256"`
+	AnchorSHA256     string         `json:"anchorSHA256"`
+	History          [][]byte       `json:"history"`
+	Sequence         uint64         `json:"sequence"`
+	LastWallUnixNano int64          `json:"lastWallUnixNano"`
+	Ledger           []ledgerEntry  `json:"ledger"`
+	Journal          []JournalEntry `json:"journal,omitempty"`
 }
 
 // Ticket is an in-process capability. Its zero value and JSON imports cannot
@@ -79,6 +81,8 @@ type Ticket struct {
 	catalogueSHA256      string
 	approvalNotAfterUnix int64
 	validUntilUnix       int64
+	operationID          string
+	sourceBound          *SourceBound
 }
 
 func (t Ticket) Trust() policy.Trust     { r := t.trust; r.PublicKey = bytes.Clone(r.PublicKey); return r }
@@ -200,6 +204,21 @@ func openStore(ctx context.Context, path string, anchor trustcatalog.Anchor, ini
 }
 
 func (s *Store) Begin(ctx context.Context, policyID string, approvalRaw []byte) (Ticket, error) {
+	return s.begin(ctx, policyID, approvalRaw, "", nil)
+}
+
+func (s *Store) BeginTracked(ctx context.Context, policyID string, approvalRaw []byte, opID string, bound *SourceBound) (Ticket, error) {
+	if !validID(opID) {
+		return Ticket{}, ErrInvalid
+	}
+	if bound != nil {
+		copy := *bound
+		bound = &copy
+	}
+	return s.begin(ctx, policyID, approvalRaw, opID, bound)
+}
+
+func (s *Store) begin(ctx context.Context, policyID string, approvalRaw []byte, opID string, bound *SourceBound) (Ticket, error) {
 	if s == nil || contextError(ctx) != nil || len(approvalRaw) == 0 || len(approvalRaw) > policy.MaxEnvelopeBytes {
 		return Ticket{}, ErrInvalid
 	}
@@ -219,6 +238,16 @@ func (s *Store) Begin(ctx context.Context, policyID string, approvalRaw []byte) 
 		if err != nil {
 			return s.poison()
 		}
+		var tracked *JournalEntry
+		if opID != "" {
+			tracked = journalByID(&r, opID)
+			if !readyOperation(tracked, "verify") || tracked.Operation.Data["policyId"] != policyID || tracked.Operation.Data["approvalSHA256"] != hash(approvalRaw) {
+				return ErrInvalid
+			}
+		}
+		if !validSourceBound(bound, cat, now) {
+			return ErrInvalid
+		}
 		grant, trust, found := cat.Resolve(policyID, now)
 		if !found {
 			return ErrInvalid
@@ -235,15 +264,25 @@ func (s *Store) Begin(ctx context.Context, policyID string, approvalRaw []byte) 
 		if len(r.Ledger) >= maxLedgerEntries {
 			return ErrCapacity
 		}
-		ticket = Ticket{owner: s, grant: grant, trust: trust, generation: cat.Generation(), catalogueSHA256: cat.SHA256(), approvalNotAfterUnix: approved.NotAfterUnix()}
+		ticket = Ticket{owner: s, grant: grant, trust: trust, generation: cat.Generation(), catalogueSHA256: cat.SHA256(), approvalNotAfterUnix: approved.NotAfterUnix(), operationID: opID, sourceBound: bound}
 		ticket.validUntilUnix = approved.NotAfterUnix()
 		if expiry := cat.Summary().NotAfterUnix; expiry < ticket.validUntilUnix {
 			ticket.validUntilUnix = expiry
 		}
+		if bound != nil && bound.FreshUntilUnixNano/int64(time.Second) < ticket.validUntilUnix {
+			ticket.validUntilUnix = bound.FreshUntilUnixNano / int64(time.Second)
+		}
 		if _, err = rand.Read(ticket.token[:]); err != nil {
 			return s.poison()
 		}
-		r.Ledger = append(r.Ledger, ledgerEntry{GrantID: grant.ID, PolicyID: grant.PolicyID, ApprovalSHA256: grant.ApprovalSHA256, ManifestSHA256: grant.ManifestSHA256, Generation: cat.Generation(), CatalogueSHA256: cat.SHA256(), TokenSHA256: hash(ticket.token[:]), ApprovalNotAfterUnix: approved.NotAfterUnix(), Status: "RESERVED"})
+		r.Ledger = append(r.Ledger, ledgerEntry{OperationID: opID, GrantID: grant.ID, PolicyID: grant.PolicyID, ApprovalSHA256: grant.ApprovalSHA256, ManifestSHA256: grant.ManifestSHA256, Generation: cat.Generation(), CatalogueSHA256: cat.SHA256(), TokenSHA256: hash(ticket.token[:]), ApprovalNotAfterUnix: approved.NotAfterUnix(), Status: "RESERVED"})
+		if tracked != nil {
+			tracked.State = "RESERVED"
+			tracked.GrantID = grant.ID
+			tracked.Generation = cat.Generation()
+			tracked.CatalogueSHA256 = cat.SHA256()
+			tracked.ManifestSHA256 = grant.ManifestSHA256
+		}
 		return s.put(tx, &r, now)
 	})
 	if err = s.afterTransaction(ctx, err); err != nil {
@@ -271,18 +310,28 @@ func (s *Store) Complete(ctx context.Context, ticket Ticket, evidenceSHA256 stri
 			return s.poison()
 		}
 		grant, trust, found := cat.Resolve(ticket.grant.PolicyID, now)
-		if !found || now.Unix() >= ticket.approvalNotAfterUnix || cat.Generation() != ticket.generation || cat.SHA256() != ticket.catalogueSHA256 || grant != ticket.grant || !sameTrust(trust, ticket.trust) {
+		if !found || !validSourceBound(ticket.sourceBound, cat, now) || now.Unix() >= ticket.approvalNotAfterUnix || cat.Generation() != ticket.generation || cat.SHA256() != ticket.catalogueSHA256 || grant != ticket.grant || !sameTrust(trust, ticket.trust) {
 			return ErrInvalid
 		}
 		for i, entry := range r.Ledger {
 			if entry.GrantID != ticket.grant.ID {
 				continue
 			}
-			if entry.Status != "RESERVED" || entry.ApprovalNotAfterUnix != ticket.approvalNotAfterUnix || entry.TokenSHA256 != hash(ticket.token[:]) || entry.PolicyID != grant.PolicyID || entry.ApprovalSHA256 != grant.ApprovalSHA256 || entry.ManifestSHA256 != grant.ManifestSHA256 || entry.Generation != ticket.generation || entry.CatalogueSHA256 != ticket.catalogueSHA256 {
+			if entry.OperationID != ticket.operationID || entry.Status != "RESERVED" || entry.ApprovalNotAfterUnix != ticket.approvalNotAfterUnix || entry.TokenSHA256 != hash(ticket.token[:]) || entry.PolicyID != grant.PolicyID || entry.ApprovalSHA256 != grant.ApprovalSHA256 || entry.ManifestSHA256 != grant.ManifestSHA256 || entry.Generation != ticket.generation || entry.CatalogueSHA256 != ticket.catalogueSHA256 {
 				return ErrReplay
 			}
 			r.Ledger[i].Status = "CONSUMED"
 			r.Ledger[i].EvidenceSHA256 = evidenceSHA256
+			if ticket.operationID != "" {
+				tracked := journalByID(&r, ticket.operationID)
+				if tracked == nil || tracked.State != "RESERVED" || tracked.Outcome != "" || tracked.Acknowledged {
+					return ErrInvalid
+				}
+				tracked.State = "CONSUMED"
+				tracked.Outcome = OutcomeVerificationConsumed
+				tracked.EvidenceSHA256 = evidenceSHA256
+				tracked.OutcomeData = verificationOutcomeData(*tracked)
+			}
 			return s.put(tx, &r, now)
 		}
 		return ErrReplay
@@ -302,13 +351,24 @@ func (s *Store) Complete(ctx context.Context, ticket Ticket, evidenceSHA256 stri
 		return s.poison()
 	}
 	grant, trust, found := cat.Resolve(ticket.grant.PolicyID, now)
-	if !cat.ValidAt(now) || !found || now.Unix() >= ticket.approvalNotAfterUnix || cat.Generation() != ticket.generation || cat.SHA256() != ticket.catalogueSHA256 || grant != ticket.grant || !sameTrust(trust, ticket.trust) || contextError(ctx) != nil {
+	if !cat.ValidAt(now) || !validSourceBound(ticket.sourceBound, cat, now) || !found || now.Unix() >= ticket.approvalNotAfterUnix || cat.Generation() != ticket.generation || cat.SHA256() != ticket.catalogueSHA256 || grant != ticket.grant || !sameTrust(trust, ticket.trust) || contextError(ctx) != nil {
 		return ErrInvalid
 	}
 	return nil
 }
 
 func (s *Store) Update(ctx context.Context, raw []byte) error {
+	return s.update(ctx, raw, "")
+}
+
+func (s *Store) UpdateTracked(ctx context.Context, raw []byte, opID string) error {
+	if !validID(opID) {
+		return ErrInvalid
+	}
+	return s.update(ctx, raw, opID)
+}
+
+func (s *Store) update(ctx context.Context, raw []byte, opID string) error {
 	if s == nil || contextError(ctx) != nil || len(raw) == 0 || len(raw) > 256<<10 {
 		return ErrInvalid
 	}
@@ -327,12 +387,27 @@ func (s *Store) Update(ctx context.Context, raw []byte) error {
 		if err != nil {
 			return s.poison()
 		}
-		if _, err = trustcatalog.Advance(cat, raw, now); err != nil {
+		var tracked *JournalEntry
+		if opID != "" {
+			tracked = journalByID(&r, opID)
+			if !readyOperation(tracked, "update") || tracked.Operation.Data["catalogueSHA256"] != hash(raw) {
+				return ErrInvalid
+			}
+		}
+		next, advanceErr := trustcatalog.Advance(cat, raw, now)
+		if advanceErr != nil {
 			return ErrInvalid
 		}
 		r.History = append(r.History, raw)
 		if _, err = trustcatalog.Replay(s.anchor, r.History); err != nil {
 			return ErrCapacity
+		}
+		if tracked != nil {
+			tracked.State = "COMMITTED"
+			tracked.Outcome = OutcomeCatalogueCommitted
+			tracked.Generation = next.Generation()
+			tracked.CatalogueSHA256 = next.SHA256()
+			tracked.OutcomeData = map[string]string{"catalogueSHA256": next.SHA256()}
 		}
 		return s.put(tx, &r, now)
 	})
@@ -478,6 +553,9 @@ func (s *Store) read(tx *bolt.Tx) (stateRecord, trustcatalog.Catalogue, error) {
 	}
 	cat, err := trustcatalog.Replay(s.anchor, r.History)
 	if err != nil {
+		return r, trustcatalog.Catalogue{}, ErrInvalid
+	}
+	if err = validateJournal(r); err != nil {
 		return r, trustcatalog.Catalogue{}, ErrInvalid
 	}
 	return r, cat, nil

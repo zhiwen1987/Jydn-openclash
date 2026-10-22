@@ -220,8 +220,8 @@ func TestProductBackendCatalogueUpdateRealAuditAndSignature(t *testing.T) {
 		}
 	}
 	state, err := f.store.Inspect(ctx)
-	if err != nil || state.Sequence != 1 {
-		t.Fatal("rejected catalogue changed state")
+	if err != nil || state.Catalogue.Generation != 1 || state.Catalogue.SHA256 != digest(f.initial) || state.LedgerUsed != 0 {
+		t.Fatal("rejected catalogue changed authoritative catalogue or grant ledger")
 	}
 	doc := f.doc
 	doc.Generation = 2

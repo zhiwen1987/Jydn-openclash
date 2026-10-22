@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import contextlib
+
+import hashlib
 import io
 import json
 import pathlib
@@ -68,6 +70,8 @@ class GoJSONFingerprintTests(unittest.TestCase):
                 mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_NAMES", {PACKAGE: frozenset({"TestContract"})}),
                 mock.patch.object(run_static_gate, "REQUIRED_GO_TEST_FINGERPRINTS", expected),
                 mock.patch.object(run_static_gate, "ALLOWED_GO_PACKAGE_SKIPS", frozenset()),
+                mock.patch.object(run_static_gate, "P0D6_GO_TEST_COUNT", len(fingerprint_names)),
+                mock.patch.object(run_static_gate, "P0D6_GO_TEST_SHA256", hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(fingerprint_names)).encode("utf-8")).hexdigest()),
                 contextlib.redirect_stdout(output),
             ):
                 result = run_static_gate.validate_go_json([transcript])
@@ -77,6 +81,21 @@ class GoJSONFingerprintTests(unittest.TestCase):
     def test_exact_passed_name_set_is_accepted(self) -> None:
         self.assertEqual(self._validate(_transcript(EXPECTED_NAMES)), 0)
         self.assertIn(run_static_gate.SCHEMA_METASCHEMA_PASS, self.last_output)
+        # The whole-parent baseline is independent of individual package
+        # fingerprints and must reject renamed/missing old names even when
+        # a reviewed D7 extension is present.
+        digest = hashlib.sha256("".join(PACKAGE + "\t" + name + "\n" for name in sorted(EXPECTED_NAMES)).encode("utf-8")).hexdigest()
+        with (
+            mock.patch.object(run_static_gate, "P0D6_GO_TEST_COUNT", len(EXPECTED_NAMES)),
+            mock.patch.object(run_static_gate, "P0D6_GO_TEST_SHA256", digest),
+        ):
+            run_static_gate._validate_p0d6_go_baseline({PACKAGE: EXPECTED_NAMES})
+            run_static_gate._validate_p0d6_go_baseline({PACKAGE: EXPECTED_NAMES, "chengwang/internal/evidence": {"TestImageTrustD7New"}})
+            for names in (EXPECTED_NAMES - {"TestContract"}, (EXPECTED_NAMES - {"TestContract"}) | {"TestRenamed"}):
+                with self.assertRaisesRegex(RuntimeError, "P0-d6 Go test baseline changed"):
+                    run_static_gate._validate_p0d6_go_baseline({PACKAGE: names})
+            with self.assertRaisesRegex(RuntimeError, "P0-d6 Go test baseline changed"):
+                run_static_gate._validate_p0d6_go_baseline({PACKAGE: EXPECTED_NAMES, "chengwang/internal/api": {"TestImageTrustD7WrongPackage"}})
 
     def test_deleted_name_is_rejected(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "fingerprint mismatch"):

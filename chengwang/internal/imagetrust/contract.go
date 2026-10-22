@@ -54,24 +54,29 @@ type PolicyStatus struct {
 }
 
 type Status struct {
-	Boundary              string         `json:"boundary"`
-	Authorization         string         `json:"authorization"`
-	DeviceActionsExecuted bool           `json:"deviceActionsExecuted"`
-	Healthy               bool           `json:"healthy"`
-	Fresh                 bool           `json:"fresh"`
-	StoreID               string         `json:"storeId"`
-	Generation            uint64         `json:"generation"`
-	CatalogueSHA256       string         `json:"catalogueSHA256"`
-	NotAfterUnix          int64          `json:"notAfterUnix"`
-	Sequence              uint64         `json:"sequence"`
-	LedgerEntries         int            `json:"ledgerEntries"`
-	LedgerCapacity        int            `json:"ledgerCapacity"`
-	Reserved              int            `json:"reserved"`
-	Consumed              int            `json:"consumed"`
-	RevokedKeys           int            `json:"revokedKeys"`
-	RevokedApprovals      int            `json:"revokedApprovals"`
-	RevokedManifests      int            `json:"revokedManifests"`
-	Policies              []PolicyStatus `json:"policies"`
+	Boundary               string         `json:"boundary"`
+	Authorization          string         `json:"authorization"`
+	DeviceActionsExecuted  bool           `json:"deviceActionsExecuted"`
+	Healthy                bool           `json:"healthy"`
+	Fresh                  bool           `json:"fresh"`
+	StoreID                string         `json:"storeId"`
+	Generation             uint64         `json:"generation"`
+	CatalogueSHA256        string         `json:"catalogueSHA256"`
+	NotAfterUnix           int64          `json:"notAfterUnix"`
+	Sequence               uint64         `json:"sequence"`
+	LedgerEntries          int            `json:"ledgerEntries"`
+	LedgerCapacity         int            `json:"ledgerCapacity"`
+	Reserved               int            `json:"reserved"`
+	Consumed               int            `json:"consumed"`
+	RevokedKeys            int            `json:"revokedKeys"`
+	RevokedApprovals       int            `json:"revokedApprovals"`
+	RevokedManifests       int            `json:"revokedManifests"`
+	Policies               []PolicyStatus `json:"policies"`
+	RefreshRequired        bool           `json:"refreshRequired"`
+	RefreshFresh           bool           `json:"refreshFresh"`
+	RefreshLastSuccessUnix int64          `json:"refreshLastSuccessUnix"`
+	RefreshUntilUnix       int64          `json:"refreshUntilUnix"`
+	RecoveryCompleted      int            `json:"recoveryCompleted"`
 }
 
 // VerifyRequest does not accept a principal, scope, URL, Registry roots/token,
