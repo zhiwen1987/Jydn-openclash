@@ -32,16 +32,13 @@ NEW_MANAGED_PREFIXES = {
     CATALOG: "TestProductCatalogue",
     STATE: "TestProductTrustState",
 }
-# Actual ordinary/race package sets from run 39762152848,
-# commit 17d35e16725b5a51d33d1ee70e72aac0c8b2f26f. Each hash encodes
+# Actual complete ordinary/race package sets from run 39763157348,
+# commit 9590cce61b3d26dad3a93a7be80c07700c5fa5a1. Each hash encodes
 # sorted test names joined by LF, without a terminal LF (parent-gate format).
-# The command's final new missing-audit scenarios remain separately required
-# until actual post-change transcripts allow a complete fingerprint refresh.
 PRODUCT_PACKAGE_FINGERPRINTS = {
     PRODUCT: (47, "3ca2523c7135cea4d0023460ebdc27e3a52f3cc1960650227ec69d915206554c"),
-    COMMAND: (42, "05f59c304a0a71df20e0a6eb824f43f1ccc99b53962db857818d27588fcee2f1"),
+    COMMAND: (46, "54ff84975166165b073c1844ce727a23fdd3582295683663b8fb7d9cf67ec365"),
 }
-COMMAND_PENDING_NEW_TEST = "TestCandidateMissingAuditNeverInitializes"
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -253,8 +250,7 @@ def check_managed_baseline(tests):
 
 def check_product_packages(tests):
     for package, (count, expected) in PRODUCT_PACKAGE_FINGERPRINTS.items():
-        names = sorted(name for actual, name in tests if actual == package and not (
-            package == COMMAND and (name == COMMAND_PENDING_NEW_TEST or name.startswith(COMMAND_PENDING_NEW_TEST + "/"))))
+        names = sorted(name for actual, name in tests if actual == package)
         digest = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
         if len(names) != count or digest != expected:
             raise ValueError(f"accepted product package test set changed: {package} count={len(names)} sha256={digest}")
