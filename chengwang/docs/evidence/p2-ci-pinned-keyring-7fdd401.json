@@ -1,0 +1,820 @@
+{
+  "archiveCount": 8,
+  "artifacts": [
+    {
+      "bytes": 706628,
+      "id": 12532588957,
+      "name": "subscription-ui-create_receipt-chrome-cdp-40027039958-1",
+      "sha256": "1b5e2047a519994eb82e93336791db93ae1baee90332be195a9d10cfd02e03a7"
+    },
+    {
+      "bytes": 706566,
+      "id": 12533536350,
+      "name": "subscription-ui-create_receipt-playwright-40027039958-1",
+      "sha256": "d7150b13f23252d9e86e6bdd480882379dcc812a231cf07845ffd3107174aa67"
+    },
+    {
+      "bytes": 3272,
+      "id": 12532598898,
+      "name": "subscription-ui-fresh-create_receipt-chrome-cdp-40027039958-1",
+      "sha256": "dd985d944b24c7e1c4b56484f371c9c77a2bd198d7a722a5cf701a5abece73fb"
+    },
+    {
+      "bytes": 3277,
+      "id": 12533042701,
+      "name": "subscription-ui-fresh-create_receipt-playwright-40027039958-1",
+      "sha256": "433cf6e40d9a7e2f24d987054d5e95f4e96034bd5a274f9cfcdae088c01a16a7"
+    },
+    {
+      "bytes": 3430,
+      "id": 12533471668,
+      "name": "subscription-ui-fresh-local_admission-chrome-cdp-40027039958-1",
+      "sha256": "884be6241aafd28b9bcaf5fec832f3af00c5c71ef04d26e17e7dc6aa363f2c26"
+    },
+    {
+      "bytes": 3434,
+      "id": 12532713867,
+      "name": "subscription-ui-fresh-local_admission-playwright-40027039958-1",
+      "sha256": "cdceaab7dc2e328ca0a3c9e7bd82c8f6005ddf55ea82e51b3f4d3cecb219e9a5"
+    },
+    {
+      "bytes": 738294,
+      "id": 12533735405,
+      "name": "subscription-ui-local_admission-chrome-cdp-40027039958-1",
+      "sha256": "5833e4a7e3dfef9311c43eba6d8b2bdf42787154f5913d278495dcd32115cfbd"
+    },
+    {
+      "bytes": 738655,
+      "id": 12533825158,
+      "name": "subscription-ui-local_admission-playwright-40027039958-1",
+      "sha256": "42ca32ac1fb3477aa4e9d81118d8d6bc3ec3b14d383cb4c28c5fa3eb60a5424c"
+    }
+  ],
+  "attempt": 1,
+  "authorization": "BLOCKED",
+  "bOriginals": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\chengwang-7fdd401-ui-b-original-review-20261024",
+  "cOriginals": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\chengwang-keyring-v3-c-7fdd401-78b2bd8b833b42a18ccc826138528d8b",
+  "canaryDeployed": false,
+  "cases": [
+    {
+      "actualExternalAuditEvents": 2,
+      "actualMutations": 1,
+      "actualRequests": 14,
+      "actualSteps": 11,
+      "aptVersion": {
+        "architecture": "amd64",
+        "version": "2.8.3"
+      },
+      "case": "create_receipt-chrome-cdp",
+      "dependencyReportSHA256": "2391d860df93c58b372d4399730b19660cf8d73d51c7c01dc75b42b20f9b895c",
+      "dependencyReportsProducerFreshRootBCByteEqual": true,
+      "eightCounters": {
+        "assetErrors": 0,
+        "captureErrors": 0,
+        "consoleErrors": 0,
+        "consoleWarnings": 0,
+        "cspErrors": 0,
+        "failedRequests": 0,
+        "forbiddenRequests": 0,
+        "runtimeErrors": 0
+      },
+      "extraSourcesProbe": {
+        "argv": [
+          "/usr/bin/sudo",
+          "--non-interactive",
+          "/usr/bin/env",
+          "-u",
+          "APT_CONFIG",
+          "DEBIAN_FRONTEND=noninteractive",
+          "LC_ALL=C",
+          "/usr/bin/apt-config",
+          "-o",
+          "Acquire::Retries=1",
+          "-o",
+          "Acquire::http::Timeout=15",
+          "-o",
+          "Acquire::https::Timeout=15",
+          "-o",
+          "Dir::Etc::sourcelist=/tmp/chengwang-ci-apt-p43wp8qj/ubuntu.sources",
+          "-o",
+          "Dir::Etc::sourceparts=/tmp/chengwang-ci-apt-p43wp8qj/sourceparts",
+          "-o",
+          "APT::Get::AllowUnauthenticated=false",
+          "-o",
+          "Acquire::AllowInsecureRepositories=false",
+          "-o",
+          "Acquire::AllowDowngradeToInsecureRepositories=false",
+          "-o",
+          "Acquire::Check-Date=true",
+          "-o",
+          "Acquire::Check-Valid-Until=true",
+          "-o",
+          "Acquire::https::Verify-Peer=true",
+          "-o",
+          "Acquire::https::Verify-Host=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "APT::Config::Dump::EmptyValue=false",
+          "dump",
+          "APT::Sources::With",
+          "Binary::apt-get::APT::Sources::With"
+        ],
+        "elapsedMilliseconds": 10,
+        "emptyOutput": true,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "keyring": {
+        "bytes": 3607,
+        "gid": 1001,
+        "mode": 420,
+        "path": "/tmp/chengwang-ci-apt-p43wp8qj/ubuntu-archive-keyring.gpg",
+        "sha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31",
+        "sha512": "4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40",
+        "uid": 1001
+      },
+      "mobileScope": "FIRST_VIEWPORT_NOT_FULL_MOBILE_WORKFLOW",
+      "normalTLSOfflineVerifiedAtCapture": true,
+      "normalizedSource": {
+        "bytes": 3053,
+        "gid": 1001,
+        "mode": 420,
+        "normalizedHostSHA256": "4508181e0dd5578c33d1247db48ab4847910b25da85e0789c8e7b3140d1fb289",
+        "path": "/tmp/chengwang-ci-apt-p43wp8qj/ubuntu.sources",
+        "replacedSigners": 2,
+        "replacedURIs": 2,
+        "sha256": "78ba87e3d0c63f5b0b7d0b75d470b9dc31f59b711b1eeb25b4fa5331fd0e3a53",
+        "uid": 1001
+      },
+      "old84AndNew76OriginalCLIReplayed": true,
+      "originalDependencyReportSHA256": "b09d15a80771d8db6599583aa462641bd2c9716b37e2e4d8b92fb959ad0a21fc",
+      "productReportSHA256": "12a65a367cb96041f2805451d2f3da433b16c2853dd306322352330d6a9e1e2d",
+      "productReportsProducerFreshRootBByteEqual": true,
+      "remaining": [
+        "remaining B01-B23 items in P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md",
+        "all roles and scope isolation",
+        "import approval fetch admission rollback and paging",
+        "real restart and failure recovery",
+        "old product regression on this candidate",
+        "canary production and independent rollback acceptance"
+      ],
+      "rootAndBViewedBothScreenshots": true,
+      "screenshots": [
+        {
+          "bytes": 252208,
+          "capturedWallTimeUs": 1792790987459000,
+          "path": "created-desktop.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "78547eaa16456a1c8f2895b3c9f68b96d3133bcdb579bdbf8210f5869a38a65d",
+          "step": "created_desktop",
+          "viewport": {
+            "height": 900,
+            "width": 1440
+          }
+        },
+        {
+          "bytes": 108664,
+          "capturedWallTimeUs": 1792790987536000,
+          "path": "created-mobile.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "572a5df17c80946b51da5e0ec963be28f2f43432e51df2b2e30c1d98e6409a15",
+          "step": "created_mobile",
+          "viewport": {
+            "height": 900,
+            "width": 375
+          }
+        }
+      ],
+      "sourceGitBlobs": 886,
+      "uniqueSyntheticTests": 86,
+      "unitLogSHA256": "eb4a7a4fca04fb85b49cf379b0132a31e1b1370ffdce176b6847b319778c666d",
+      "updateAndInstallElapsedMilliseconds": [
+        6034,
+        8290
+      ]
+    },
+    {
+      "actualExternalAuditEvents": 2,
+      "actualMutations": 1,
+      "actualRequests": 14,
+      "actualSteps": 11,
+      "aptVersion": {
+        "architecture": "amd64",
+        "version": "2.8.3"
+      },
+      "case": "create_receipt-playwright",
+      "dependencyReportSHA256": "02c0df115caa79ee41d97c3f15555bb77cd132e185161932001d3286de54d68b",
+      "dependencyReportsProducerFreshRootBCByteEqual": true,
+      "eightCounters": {
+        "assetErrors": 0,
+        "captureErrors": 0,
+        "consoleErrors": 0,
+        "consoleWarnings": 0,
+        "cspErrors": 0,
+        "failedRequests": 0,
+        "forbiddenRequests": 0,
+        "runtimeErrors": 0
+      },
+      "extraSourcesProbe": {
+        "argv": [
+          "/usr/bin/sudo",
+          "--non-interactive",
+          "/usr/bin/env",
+          "-u",
+          "APT_CONFIG",
+          "DEBIAN_FRONTEND=noninteractive",
+          "LC_ALL=C",
+          "/usr/bin/apt-config",
+          "-o",
+          "Acquire::Retries=1",
+          "-o",
+          "Acquire::http::Timeout=15",
+          "-o",
+          "Acquire::https::Timeout=15",
+          "-o",
+          "Dir::Etc::sourcelist=/tmp/chengwang-ci-apt-_l5yqwmc/ubuntu.sources",
+          "-o",
+          "Dir::Etc::sourceparts=/tmp/chengwang-ci-apt-_l5yqwmc/sourceparts",
+          "-o",
+          "APT::Get::AllowUnauthenticated=false",
+          "-o",
+          "Acquire::AllowInsecureRepositories=false",
+          "-o",
+          "Acquire::AllowDowngradeToInsecureRepositories=false",
+          "-o",
+          "Acquire::Check-Date=true",
+          "-o",
+          "Acquire::Check-Valid-Until=true",
+          "-o",
+          "Acquire::https::Verify-Peer=true",
+          "-o",
+          "Acquire::https::Verify-Host=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "APT::Config::Dump::EmptyValue=false",
+          "dump",
+          "APT::Sources::With",
+          "Binary::apt-get::APT::Sources::With"
+        ],
+        "elapsedMilliseconds": 20,
+        "emptyOutput": true,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "keyring": {
+        "bytes": 3607,
+        "gid": 1001,
+        "mode": 420,
+        "path": "/tmp/chengwang-ci-apt-_l5yqwmc/ubuntu-archive-keyring.gpg",
+        "sha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31",
+        "sha512": "4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40",
+        "uid": 1001
+      },
+      "mobileScope": "FIRST_VIEWPORT_NOT_FULL_MOBILE_WORKFLOW",
+      "normalTLSOfflineVerifiedAtCapture": true,
+      "normalizedSource": {
+        "bytes": 3053,
+        "gid": 1001,
+        "mode": 420,
+        "normalizedHostSHA256": "4508181e0dd5578c33d1247db48ab4847910b25da85e0789c8e7b3140d1fb289",
+        "path": "/tmp/chengwang-ci-apt-_l5yqwmc/ubuntu.sources",
+        "replacedSigners": 2,
+        "replacedURIs": 2,
+        "sha256": "c2719754c9e7be117f4765a15786eb5faa9b45ba9a1d29b0fdc25f96ee5aacff",
+        "uid": 1001
+      },
+      "old84AndNew76OriginalCLIReplayed": true,
+      "originalDependencyReportSHA256": "15f7690540ec6cfaaf01f4a0ab2d60958e399009c8e32979943a5eca68a8230d",
+      "productReportSHA256": "d526a25fb88a3d93831cd2a6f7d4ffcd9fdfd78ef6072df7598aa590e96a030d",
+      "productReportsProducerFreshRootBByteEqual": true,
+      "remaining": [
+        "remaining B01-B23 items in P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md",
+        "all roles and scope isolation",
+        "import approval fetch admission rollback and paging",
+        "real restart and failure recovery",
+        "old product regression on this candidate",
+        "canary production and independent rollback acceptance"
+      ],
+      "rootAndBViewedBothScreenshots": true,
+      "screenshots": [
+        {
+          "bytes": 252388,
+          "capturedWallTimeUs": 1792791004189000,
+          "path": "created-desktop.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "c58a90b6c5fdad481bfa2bd02e319ef2113eb93f7cf07848e56437c7cb74b23e",
+          "step": "created_desktop",
+          "viewport": {
+            "height": 900,
+            "width": 1440
+          }
+        },
+        {
+          "bytes": 108055,
+          "capturedWallTimeUs": 1792791004260000,
+          "path": "created-mobile.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "94a0cea0439b202e2da210b0fb110d7b34e01b86a2c8add83845dd63bc2d044d",
+          "step": "created_mobile",
+          "viewport": {
+            "height": 900,
+            "width": 375
+          }
+        }
+      ],
+      "sourceGitBlobs": 886,
+      "uniqueSyntheticTests": 86,
+      "unitLogSHA256": "da030e7b4926e3e1b64d154cb7711336f7d68d166213265d8bf6f928ceea5406",
+      "updateAndInstallElapsedMilliseconds": [
+        14980,
+        8798
+      ]
+    },
+    {
+      "actualExternalAuditEvents": 20,
+      "actualMutations": 10,
+      "actualRequests": 100,
+      "actualSteps": 37,
+      "aptVersion": {
+        "architecture": "amd64",
+        "version": "2.8.3"
+      },
+      "case": "local_admission-chrome-cdp",
+      "dependencyReportSHA256": "9373273c2f3270549dc041f01842afe6ebab4c12dd8c46b157d699cc967adf3c",
+      "dependencyReportsProducerFreshRootBCByteEqual": true,
+      "eightCounters": {
+        "assetErrors": 0,
+        "captureErrors": 0,
+        "consoleErrors": 0,
+        "consoleWarnings": 0,
+        "cspErrors": 0,
+        "failedRequests": 0,
+        "forbiddenRequests": 0,
+        "runtimeErrors": 0
+      },
+      "extraSourcesProbe": {
+        "argv": [
+          "/usr/bin/sudo",
+          "--non-interactive",
+          "/usr/bin/env",
+          "-u",
+          "APT_CONFIG",
+          "DEBIAN_FRONTEND=noninteractive",
+          "LC_ALL=C",
+          "/usr/bin/apt-config",
+          "-o",
+          "Acquire::Retries=1",
+          "-o",
+          "Acquire::http::Timeout=15",
+          "-o",
+          "Acquire::https::Timeout=15",
+          "-o",
+          "Dir::Etc::sourcelist=/tmp/chengwang-ci-apt-ccp4b0j5/ubuntu.sources",
+          "-o",
+          "Dir::Etc::sourceparts=/tmp/chengwang-ci-apt-ccp4b0j5/sourceparts",
+          "-o",
+          "APT::Get::AllowUnauthenticated=false",
+          "-o",
+          "Acquire::AllowInsecureRepositories=false",
+          "-o",
+          "Acquire::AllowDowngradeToInsecureRepositories=false",
+          "-o",
+          "Acquire::Check-Date=true",
+          "-o",
+          "Acquire::Check-Valid-Until=true",
+          "-o",
+          "Acquire::https::Verify-Peer=true",
+          "-o",
+          "Acquire::https::Verify-Host=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "APT::Config::Dump::EmptyValue=false",
+          "dump",
+          "APT::Sources::With",
+          "Binary::apt-get::APT::Sources::With"
+        ],
+        "elapsedMilliseconds": 22,
+        "emptyOutput": true,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "keyring": {
+        "bytes": 3607,
+        "gid": 1001,
+        "mode": 420,
+        "path": "/tmp/chengwang-ci-apt-ccp4b0j5/ubuntu-archive-keyring.gpg",
+        "sha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31",
+        "sha512": "4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40",
+        "uid": 1001
+      },
+      "mobileScope": "FIRST_VIEWPORT_NOT_FULL_MOBILE_WORKFLOW",
+      "normalTLSOfflineVerifiedAtCapture": true,
+      "normalizedSource": {
+        "bytes": 3053,
+        "gid": 1001,
+        "mode": 420,
+        "normalizedHostSHA256": "4508181e0dd5578c33d1247db48ab4847910b25da85e0789c8e7b3140d1fb289",
+        "path": "/tmp/chengwang-ci-apt-ccp4b0j5/ubuntu.sources",
+        "replacedSigners": 2,
+        "replacedURIs": 2,
+        "sha256": "2a73191c80e2e54aa62988d5ebcc2fdaae394454f0f12356997073ca108bc156",
+        "uid": 1001
+      },
+      "old84AndNew76OriginalCLIReplayed": true,
+      "originalDependencyReportSHA256": "2d50f6b6f49c3ee186addc2fe130c3adf4962327ced5e90a652c70f5a481c971",
+      "productReportSHA256": "68461433e66fa8f848989e69cd512004ff8e3f799834b8c0d525958c2f70ad41",
+      "productReportsProducerFreshRootBByteEqual": true,
+      "remaining": [
+        "remaining B01-B23 requirements",
+        "real unauthorized API rejection and scope matrix",
+        "remote source policy approval handoff and DoT fetch",
+        "real paging concurrent revision and degraded writes",
+        "same database restart and system backup recovery",
+        "old product regression and image gates",
+        "canary production and independent rollback acceptance"
+      ],
+      "rootAndBViewedBothScreenshots": true,
+      "screenshots": [
+        {
+          "bytes": 262583,
+          "capturedWallTimeUs": 1792791009683000,
+          "path": "created-desktop.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "e0f0ec5cff5511d52037e0dae0ed53e021924e22f1ee7c44174e5f1f578801b8",
+          "step": "final_desktop",
+          "viewport": {
+            "height": 900,
+            "width": 1440
+          }
+        },
+        {
+          "bytes": 108674,
+          "capturedWallTimeUs": 1792791009781000,
+          "path": "created-mobile.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "86ba6b28cf88acf606df308aad86739a14d3bd71b12a82c351a7e1425b7043d3",
+          "step": "final_mobile",
+          "viewport": {
+            "height": 900,
+            "width": 375
+          }
+        }
+      ],
+      "sourceGitBlobs": 886,
+      "uniqueSyntheticTests": 86,
+      "unitLogSHA256": "051b942b0ed8e0122b06b91d895ae15852b763846fa64695e2b2322cc91dba88",
+      "updateAndInstallElapsedMilliseconds": [
+        14991,
+        8615
+      ]
+    },
+    {
+      "actualExternalAuditEvents": 20,
+      "actualMutations": 10,
+      "actualRequests": 100,
+      "actualSteps": 37,
+      "aptVersion": {
+        "architecture": "amd64",
+        "version": "2.8.3"
+      },
+      "case": "local_admission-playwright",
+      "dependencyReportSHA256": "d0a102202731c9656c5e41bee9dc9694821799872409ccbbadf1705b0a437307",
+      "dependencyReportsProducerFreshRootBCByteEqual": true,
+      "eightCounters": {
+        "assetErrors": 0,
+        "captureErrors": 0,
+        "consoleErrors": 0,
+        "consoleWarnings": 0,
+        "cspErrors": 0,
+        "failedRequests": 0,
+        "forbiddenRequests": 0,
+        "runtimeErrors": 0
+      },
+      "extraSourcesProbe": {
+        "argv": [
+          "/usr/bin/sudo",
+          "--non-interactive",
+          "/usr/bin/env",
+          "-u",
+          "APT_CONFIG",
+          "DEBIAN_FRONTEND=noninteractive",
+          "LC_ALL=C",
+          "/usr/bin/apt-config",
+          "-o",
+          "Acquire::Retries=1",
+          "-o",
+          "Acquire::http::Timeout=15",
+          "-o",
+          "Acquire::https::Timeout=15",
+          "-o",
+          "Dir::Etc::sourcelist=/tmp/chengwang-ci-apt-nquw1c8g/ubuntu.sources",
+          "-o",
+          "Dir::Etc::sourceparts=/tmp/chengwang-ci-apt-nquw1c8g/sourceparts",
+          "-o",
+          "APT::Get::AllowUnauthenticated=false",
+          "-o",
+          "Acquire::AllowInsecureRepositories=false",
+          "-o",
+          "Acquire::AllowDowngradeToInsecureRepositories=false",
+          "-o",
+          "Acquire::Check-Date=true",
+          "-o",
+          "Acquire::Check-Valid-Until=true",
+          "-o",
+          "Acquire::https::Verify-Peer=true",
+          "-o",
+          "Acquire::https::Verify-Host=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::security.ubuntu.com::Verify-Host=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Peer=true",
+          "-o",
+          "Acquire::https::azure.archive.ubuntu.com::Verify-Host=true",
+          "-o",
+          "APT::Config::Dump::EmptyValue=false",
+          "dump",
+          "APT::Sources::With",
+          "Binary::apt-get::APT::Sources::With"
+        ],
+        "elapsedMilliseconds": 10,
+        "emptyOutput": true,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "keyring": {
+        "bytes": 3607,
+        "gid": 1001,
+        "mode": 420,
+        "path": "/tmp/chengwang-ci-apt-nquw1c8g/ubuntu-archive-keyring.gpg",
+        "sha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31",
+        "sha512": "4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40",
+        "uid": 1001
+      },
+      "mobileScope": "FIRST_VIEWPORT_NOT_FULL_MOBILE_WORKFLOW",
+      "normalTLSOfflineVerifiedAtCapture": true,
+      "normalizedSource": {
+        "bytes": 3053,
+        "gid": 1001,
+        "mode": 420,
+        "normalizedHostSHA256": "4508181e0dd5578c33d1247db48ab4847910b25da85e0789c8e7b3140d1fb289",
+        "path": "/tmp/chengwang-ci-apt-nquw1c8g/ubuntu.sources",
+        "replacedSigners": 2,
+        "replacedURIs": 2,
+        "sha256": "e1f72d23b93ff92c5b827a1aba96fb199cb84d89991d2ebac922f4f0c4d386c7",
+        "uid": 1001
+      },
+      "old84AndNew76OriginalCLIReplayed": true,
+      "originalDependencyReportSHA256": "4ab8b5028f8b08b3ca1af40f9a6fa675a71db0b567ab6ffeefaae6d9368f82c1",
+      "productReportSHA256": "c17c5dff9f405714254078bda38ee9737ad0e143f2c20ad54f25dcad93e4178a",
+      "productReportsProducerFreshRootBByteEqual": true,
+      "remaining": [
+        "remaining B01-B23 requirements",
+        "real unauthorized API rejection and scope matrix",
+        "remote source policy approval handoff and DoT fetch",
+        "real paging concurrent revision and degraded writes",
+        "same database restart and system backup recovery",
+        "old product regression and image gates",
+        "canary production and independent rollback acceptance"
+      ],
+      "rootAndBViewedBothScreenshots": true,
+      "screenshots": [
+        {
+          "bytes": 263071,
+          "capturedWallTimeUs": 1792791001180000,
+          "path": "created-desktop.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "66206a8c2d01faf5d826e382066098b234caa31e83e85c03baf705073717bcd4",
+          "step": "final_desktop",
+          "viewport": {
+            "height": 900,
+            "width": 1440
+          }
+        },
+        {
+          "bytes": 108055,
+          "capturedWallTimeUs": 1792791001259000,
+          "path": "created-mobile.png",
+          "scrollX": 0,
+          "scrollY": 0,
+          "sha256": "94a0cea0439b202e2da210b0fb110d7b34e01b86a2c8add83845dd63bc2d044d",
+          "step": "final_mobile",
+          "viewport": {
+            "height": 900,
+            "width": 375
+          }
+        }
+      ],
+      "sourceGitBlobs": 886,
+      "uniqueSyntheticTests": 86,
+      "unitLogSHA256": "1fb4c65381b3e259803df66d86b8b66ef81f4f77f349f34579aabf1086d08db6",
+      "updateAndInstallElapsedMilliseconds": [
+        12179,
+        6643
+      ]
+    }
+  ],
+  "conclusion": "success",
+  "custodyCorrections": {
+    "earlierSnapshotsAndLogsPreserved": true,
+    "historicalExactLFOriginalCLIRejections": 12,
+    "historicalRunsRemainFailed": true,
+    "historicalThreeRunAuditByA": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\chengwang-private-apt-root-4afd984111a84af597aa58d949c78767\\historical-crlf-custody-audit.json",
+    "historicalThreeRunAuditSHA256": "6c149e9aaac029932d26428e2d0ddd9d2a22239597cda1c727be057412176a33",
+    "initialRootCRLFCheckoutRejected": true,
+    "longLFCheckoutGitShowFilenameTooLong": true,
+    "originalCheckersOrEvidenceAdapted": false,
+    "shortLFCheckoutMatchesExactGitBytes": true
+  },
+  "executionBoundaryDeviation": {
+    "actor": "subscription_ui_checker",
+    "bytes": 3607,
+    "details": "P2-CI-PRIVATE-APT-SOURCES.md",
+    "executed": false,
+    "furtherBinaryFetchStopped": true,
+    "installed": false,
+    "publicKeyringReadIntoLocalMemory": true,
+    "usedToApprovePin": false,
+    "writtenToDisk": false
+  },
+  "fullSubscriptionPlanAccepted": false,
+  "fullSystemAccepted": false,
+  "hostAPTConfigurationEntriesUnchanged": 27,
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 120665719493,
+      "name": "Real product local_admission (chrome-cdp)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120665719855,
+      "name": "Real product create_receipt (chrome-cdp)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120665719914,
+      "name": "Real product local_admission (playwright)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120665720062,
+      "name": "Real product create_receipt (playwright)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120666432297,
+      "name": "Fresh original local_admission replay (playwright)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120666432324,
+      "name": "Fresh original local_admission replay (chrome-cdp)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120666432455,
+      "name": "Fresh original create_receipt replay (chrome-cdp)"
+    },
+    {
+      "conclusion": "success",
+      "id": 120666432471,
+      "name": "Fresh original create_receipt replay (playwright)"
+    }
+  ],
+  "limitedDependencyAndTwoFlowScopeAccepted": true,
+  "localCPUOnly": {
+    "bashSyntaxBlocks": 10,
+    "mockedCrossLayerPassed": true,
+    "old64And26NamesPreserved": true,
+    "realLinuxPermissionsProven": false,
+    "skipped": 0,
+    "transcriptSHA256": "4dbc64fae4f1fedbe2e80e6dcfc1ed372fdabc578bd8d80afa68611b18d061d2",
+    "uniqueTests": 86
+  },
+  "manifestSignatureAttestationProven": false,
+  "originalEntryCount": 160,
+  "originalRun": 40027039958,
+  "production": false,
+  "parentRegression": {
+    "run": 40027039955,
+    "job": 120665721182,
+    "attempt": 1,
+    "conclusion": "success",
+    "detailedReviewer": "subscription_ui_driver",
+    "rootVerificationScope": "TERMINAL_API_NOT_FULL_TRANSCRIPT_REPLAY",
+    "rawAPILogBytes": 6069683,
+    "rawAPILogSHA256": "b8b431e2091f61a168f6fd159afcf7740fa68982a522d6400872c0b5c7a97ba6",
+    "ordinaryAndRaceTestPassesEach": 2644,
+    "testFailOrSkipEvents": 0,
+    "testNamesSHA256": "c6c9617757bfa72321738f76d60650be6b047a4ca133e3bd3ade891f05b074fb",
+    "fuzzTopLevelEach": 4,
+    "fuzzSeedsEach": 8,
+    "sustainedRandomizedFuzzProven": false,
+    "derivedTranscriptOriginalGateReplayExitCodeByA": 0,
+    "schemaCount": 11,
+    "derivedTranscriptIsOriginalTee": false
+  },
+  "oldSubscriptionRegression": {
+    "run": 40027039924,
+    "attempt": 1,
+    "producerJob": 120665718841,
+    "freshJob": 120666096407,
+    "conclusion": "success",
+    "detailedReviewer": "subscription_ui_driver",
+    "rootVerificationScope": "TERMINAL_API_NOT_FULL_POSIX_CUSTODY_CLI",
+    "actualUniqueUnitTests": 80,
+    "unitSkips": 0,
+    "publicFilesVerifiedByA": 20,
+    "sourceGitBlobsVerifiedByA": 875,
+    "originalLinuxProducerAndFreshPassed": true,
+    "producerAndFreshReportsByteEqual": true,
+    "reportBytes": 2496,
+    "reportSHA256": "0b095c0c357eddd8245e5075daa868833a70b2b2822d36b7993b6182aa03eab1",
+    "windowsOriginalCustodyAccepted": false,
+    "windowsOriginalRejection": "public-file-open-race",
+    "privateDatabaseRawIndependentlyVerified": false,
+    "realInternetProven": false,
+    "aOriginals": "C:/Users/Administrator/AppData/Local/Temp/chengwang-parent-oldsub-7fdd401-agent-3396eccc08274c2998824ad6c53891a9"
+  },
+  "realInternetBusinessAvailabilityProven": false,
+  "reproduciblePackageProvenanceProven": false,
+  "reviewedPin": {
+    "bootstrapDownloadsAdded": false,
+    "bytes": 3607,
+    "candidateTreatedAsUntrusted": true,
+    "hostPermissionRepairPerformed": false,
+    "manifestSignatureIndependentlyVerified": false,
+    "manifestURL": "https://git.launchpad.net/ubuntu/+source/ubuntu-keyring/plain/SHA512SUMS.txt.asc?id=edc0a0be9a90f364bc39a87d3837ad4c15395950",
+    "sha512": "4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40"
+  },
+  "rootBCAllOriginalMemberBytesEqual": true,
+  "rootExactGitSnapshot": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-7fdd401-root-lf",
+  "rootOriginals": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\chengwang-private-apt-root-4afd984111a84af597aa58d949c78767\\40027039958",
+  "schema": "chengwang.ci-pinned-keyring-acceptance/v1",
+  "sourceCommit": "7fdd4010d82d19858ed866ee1af4a4a4616353cc",
+  "strictReadersASTIdenticalToFe8968e": true,
+  "visualQA": {
+    "blankOrFrameworkOverlayObserved": false,
+    "browserPlugin": "ABSENT_NO_BROWSER_SKILL",
+    "desktop": [
+      1440,
+      900
+    ],
+    "fallback": "EXISTING_APPROVED_ISOLATED_CI_CDP_AND_PLAYWRIGHT_NO_LOCAL_BROWSER",
+    "fullMobileWorkflowProven": false,
+    "mobile": [
+      375,
+      900
+    ],
+    "origin": "https://127.0.0.1:17891",
+    "screenshotsViewedByB": 8,
+    "screenshotsViewedByRoot": 8,
+    "skill": "frontend-testing-debugging"
+  }
+}

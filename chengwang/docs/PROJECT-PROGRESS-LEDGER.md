@@ -2,9 +2,11 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-**本轮实现进度：v3 私有固定字节密钥副本已实现，真实 CI 待验。** 三个子代理分别承担 helper/旧测试、独立 checker/合同、独立 pin 反例；根单一集成。候选必须匹配固定官方提交的 3607B/SHA512，才写入私有0644副本，并将 Signed-By 改指该副本；宿主不 chmod、不下载新密钥、原严格 reader AST 不变。根实际通过冻结86项纯CPU测试、模拟跨层接口及10块bash语法，原64名称保留；这些不能填作APT、双浏览器、fresh或上线通过。[实现、官方依据与执行偏差记录](P2-CI-PRIVATE-APT-SOURCES.md)。最新真实结果仍为下方fe8968e失败，不覆盖。
+**本轮有限隔离CI通过：7fdd401固定pin私有Signed-By。** 原UI40027039958/attempt1四producer＋四fresh success；根/B/C四个原依赖完整CLI报告、根/B四个原产品完整CLI报告分别与producer/fresh逐字一致，160原成员三方逐byte核对。实际原86项35＋26＋10＋15保留旧64且零skip；旧84/新76产品辅助项单列，每份新产品报告886个Git源blob、八错误计数全0。B与根已实际看8张原桌面1440/手机375首屏PNG。根初次CRLF及后续临时长路径拒绝均保留，最终在新短exact-LF副本完成同原门，不改原checker。仅两个既定场景/两个引擎范围，不等于完整B01–B23、长期稳定或上线。[实际成果与边界](P2-CI-PRIVATE-APT-SOURCES.md)、[机器证据](evidence/p2-ci-pinned-keyring-7fdd401.json)。
 
-**当前执行阶段：keyring MODE拒绝已定位，UI矩阵仍未通过**。[最新原件](P2-CI-PRIVATE-APT-SOURCES.md)：源码fe8968e的原UI40025542946/attempt1四producer均PRIVATE_KEYRING_MODE，fresh skipped，整体failure。四份原64项纯测试（35＋19＋10，原51/26名称保留）均通过；根/B/C分别核24个原成员/摘要/CRC及精确名单，根/C各四个原完整依赖CLI均exit1、无成功报告。APT2.8.3、27宿主配置前后同，原无022条件拒绝但实际mode值/来源未知；不修权限、不放宽信任。私有配置/额外源probe/update/install/产品/浏览器未执行。A分别核同源码父门40025542997的ordinary/race各2644实际Test及旧基线转录重放、旧订阅40025542937的80项/20文件/873 Git与两Linux同报告；Windows原POSIX拒绝保留。这些分层通过不能抵销UI失败，前序失败/完整系统与生产未完成均保留。[机器台账](evidence/p2-ci-keyring-mode-fe8968e.json)
+**本轮父门/旧后端另行分层通过。** A独立核7fdd401父门40027039955/job120665721182的ordinary/race各2644实际Test配对及原gate/旧基线转录重放，Fuzz各4顶层＋8 seeds另计；旧订阅40027039924两Linux原门、80实际单测/20文件/875 Git和逐字同报告通过。Windows原POSIX custody仍拒绝public-file-open-race，未绕过。这些结果不替代新UI完整原件验收，也不证明公网业务、完整系统或生产。
+
+**历史失败与保管勘误保留。** fe8968e原UI40025542946四producer仍为PRIVATE_KEYRING_MODE、fresh skipped，原64/24成员事实不变；a76ec5e/5657e33同样不回填成功。A后审根三旧CRLF clone：初次CLI虽exit1/noPASS，但sourcebind先行阻断，不能当作已验证outcome拒绝。另建exact-LF副本核原Git字节和sourceInputs后，12次原完整依赖CLI均exit1/noPASS，补足拒绝验证；旧clone/原JSON/logs未改。追加审计23909B、SHA `6c149e9aaac029932d26428e2d0ddd9d2a22239597cda1c727be057412176a33`，已归档[机器勘误](evidence/p2-ci-historical-custody-correction-20261024.json)，路径及分轮解释见[保管勘误](P2-CI-PRIVATE-APT-SOURCES.md)。不以新的成功覆盖历史失败。
 
 **前序c7失败保留**：[c7b64c4实际验收](P2-CI-DEPENDENCY-ACQUISITION.md)：原run40018960129终态failure；两PW实际安装/包字体读回及既定产品原CLI通过，根/B产品报告逐字同、各879 Git blobs，根/B/C依赖报告逐字同；两CDP均INSTALL240s退出124，浏览器未启动，fresh跳过。四份新26原输出均逐名核验零skip，80原ZIP成员三方同；这些证明限时退出/拒绝生效，**不证明下载可用性修复或整组UI回归通过**。具体网络根因未证，后续方案已先核GitHub源码/测试，未改生产。父门40018960021及旧订阅40018960055成功，根核状态/A分层原件复验，不冒称根完整旧POSIX CLI通过。[机器台账](evidence/p2-ci-dependency-acquisition-c7b64c4.json)
 
@@ -58,7 +60,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
 | P2-06a | 订阅资源界面与安全权限元数据 | `8f610a4` 已实现并完成部分隔离验收：Go各2644、前端190、子模块各732及旧名单通过，镜像CI/旧订阅后端成功；但旧CDP一次取消导致整体未验收。[实际记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md) | CDP原因未定，不能被PW成功抵销；新订阅浏览器/跨角色批准上下文自动读回/任意URL与私有CA目录编辑器仍未实现；未上线 |
 | P2-06b-0 | 固定浏览器原件消费与正常TLS协议前置矩阵 | `409aa9c` pin/解压与 `7291655` CDP/PW五场景及fresh原件均隔离验收，完整四方重放一致 | 独立协议fixture，不是产品新页面、历史取消根因或生产验收 |
-| P2-06b | 真实订阅页面双浏览器闭环 | `8c4852c` 创建/回执及双来源本地导入/接纳/拒绝/当前CAS回退、历史决定资格修复，四producer/fresh/根/子代理原CLI逐字一致；实际4张新准入PNG，旧84/新76辅助项独立计数。[实际进度](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md) | 旧探针CDP回归本轮失败；完整B01–B23、来源批准/交接/DoT抓取、跨scope后端拒绝、分页/故障/同库重启仍待完成，未上线 |
+| P2-06b | 真实订阅页面双浏览器闭环 | `7fdd401` 在v3私有Signed-By下四producer/fresh与根/B原完整产品报告逐字一致，每份886 Git、8PNG已看，旧84/新76单列；限创建/回执和双来源本地准入两个既定流程。[最新依赖与复验](P2-CI-PRIVATE-APT-SOURCES.md)，业务原计划见[原验收](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md) | 历史8c旧CDP失败不回填；完整B01–B23、来源批准/交接/DoT抓取、跨scope后端拒绝、分页/故障/同库重启、全部旧产品回归仍待完成，未上线 |
 | P2-06 诊断增量 | 有界取消观察与订阅DOM collector | `ad3e4db`历史独立80合成门与诊断原件重放通过；该轮PW严格失败不覆盖 | 原因未唯一证明，不能回填该轮缺失的revision/Node stdout；订阅DOM仅合成。[记录](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md) |
 | P2-06 身份与保管前置 | 真实revision/ELF/进程绑定、原80输出、候选获取 | `22f0757`双浏览器真实身份及原12 CLI报告根重放；原80/新56分别通过；候选两Linux获取与来源审核通过 | 参考pin尚未被执行门消费；alpha候选尚未运行、严格正负矩阵/新订阅E2E未做；本轮成功不证明历史偶发取消消除。[记录](P2-BROWSER-IDENTITY-ACQUISITION.md) |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
@@ -87,9 +89,10 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 
 | 提交或阶段 | 结果 | 不应误读为 |
 | --- | --- | --- |
-| `fe8968e` | 原64项纯测试四份全通过，但真实UI四producer为PRIVATE_KEYRING_MODE、fresh跳过；根/B/C分别核24原件及原测试名单，根/C各四原依赖CLI均严格拒绝。A分别核父门各2644/旧名单、旧订阅80/20文件/873 Git及两Linux报告一致 | 实际mode数值或权限来源已知、keyring已修复、下载/UI/fresh验收通过；父门与旧后端成功可抵销整组failure；Windows完整POSIX CLI通过或生产上线 |
-| `5657e33` | 18个闭集诊断原因已实现，原51测试通过；真实四producer进一步定位PRIVATE_KEYRING_READ，24原件/四原CLI拒绝根复验，fresh跳过 | keyring具体坏权限/软链等原因已证、私有源整体成功、安装/UI/fresh验收通过或上线 |
-| `a76ec5e` | 私有官方镜像/版本读回/安全覆盖及49唯一纯测试已实现；原UI四producer止于PRIVATE_SOURCES，实际APT2.8.3、host指纹仍同，update/install未执行；24原件及四原依赖拒绝根复验 | 私有镜像已经生效、安装期限本轮已验证、下载已修复、产品或fresh验收通过 |
+| `7fdd401` | 原四producer/四fresh成功；原86/旧64、根/B/C四依赖与根/B四完整产品报告逐字同，每份886 Git/84＋76/八计数0，160原成员、8PNG已核；两次本地保管失败保留后根短LF副本完成。A另核父门各2644及旧后端80/20/875 Git | 手机完整交互、全部B01–B23/旧子门、清单PGP独立验证、长期下载/自动轮换或生产完成 |
+| `fe8968e` | 原64项纯测试四份全通过，但真实UI四producer为PRIVATE_KEYRING_MODE、fresh跳过；原24成员保留。根初次CRLF源绑定拒绝不作outcome证据，A新LF副本四CLI拒绝补验；父门与旧后端分层通过 | 实际mode数值/来源已知、历史UI转绿；初次泛型exit1即证明正确业务拒绝；Windows完整POSIX CLI通过或上线 |
+| `5657e33` | 18个闭集原因/原51测试；四producer定位PRIVATE_KEYRING_READ、fresh跳过。根初次CRLF sourcebind拒绝保留，A新LF副本四CLIexit1/noPASS补验 | 具体坏权限/软链等原因已证、初次泛型拒绝已到outcome、私有源/安装/UI成功或上线 |
+| `a76ec5e` | 原49测试；四producer PRIVATE_SOURCES，APT2.8.3、host指纹同且未update/install。原24成员保留；根初次CRLF拒绝勘误，A新LF副本四原CLI拒绝补验 | 私有镜像已生效、初次CRLF副本符合精确原字节、安装期限/下载/UI/fresh通过 |
 | `c7b64c4` | CI依赖有界准备/读回实现及26唯一测试；两PW真实安装与既定产品流程/879源/84+76原辅助门，根/代理原件复验；两CDP安装240s退出124，fresh跳过，原run整体failure | 下载阻塞已解决、两CDP浏览器通过、fresh已复验、所有业务/全系统完成或生产已上线 |
 | `8c4852c` | 新UI资格及正常流程四方原CLI验收；859 Git、历史false/当前待审true；前端193原件/原190基线复验、镜像CI成功。父门各2644与旧订阅分层复验；旧探针CDP failedRequests1严格失败保留 | 本轮整体回归通过、全部旧子CLI已独立重放、根因已证明、完整订阅/节点可用或上线 |
 | `c15eda3` | 双来源正常流四方原CLI验收；实际发现历史候选决定按钮资格缺口 | 正常流通过等于完整交互通过，或后续补丁能回填原缺口 |
