@@ -1,0 +1,588 @@
+{
+  "schema": "chengwang.p2-subscription-core-acceptance/v1",
+  "sourceCommit": "d0e55c6ac7e9528f2c27bd6cbc872fc6e544d3de",
+  "authorization": "BLOCKED",
+  "production": false,
+  "deviceActionsExecuted": false,
+  "acceptanceScope": "ISOLATED_CORE_AND_EXISTING_PRODUCT_REGRESSIONS_NOT_SUBSCRIPTION_PRODUCT_API",
+  "parent": {
+    "runId": 39934230035,
+    "jobId": 120349700791,
+    "sourceCommit": "d0e55c6ac7e9528f2c27bd6cbc872fc6e544d3de",
+    "attempt": 1,
+    "rawBytes": 5773281,
+    "rawSHA256": "366f45c17534b32b3984def4d9743eba65053d69805a9c3e70f8255e65df051e",
+    "rawSource": "GitHub jobs/logs API original bytes, not artifact ZIP",
+    "independentReportSHA256": "f00f4b5f4479d06adf00fd819d989dae15c5dedcdde267cfcd8d778b68500671",
+    "sourceGitRaw": {
+      "chengwang/deploy/m2b-candidate/tests/run_static_gate.py": {
+        "bytes": 57678,
+        "sha256": "e25b2e7fa6c665922892a1b937e31986552af4305a14d3537977d85a05bbac1d"
+      },
+      "chengwang/deploy/m2b-candidate/tests/probe_test_extension.py": {
+        "bytes": 13979,
+        "sha256": "30cae340860b4875b97d999402765f5a4d49eb7515db4470b7ed30c244113468"
+      },
+      "chengwang/deploy/m2b-candidate/tests/subscription_test_extension.py": {
+        "bytes": 11750,
+        "sha256": "2e6a08f4a61f06f011bd19b76871ec1cae174e565a5514697a0a41d584febb0c"
+      }
+    },
+    "rounds": [
+      {
+        "round": "ordinary",
+        "testRun": 2490,
+        "testPass": 2490,
+        "testFail": 0,
+        "testSkip": 0,
+        "packages": 40,
+        "packageSkips": [
+          "chengwang/internal/domain"
+        ],
+        "sets": {
+          "all": {
+            "count": 2490,
+            "sha256": "1c3d08f5f99f1d34861a6439d8cde3d95422232dc8fa70206e2d0f09ea229dd4"
+          },
+          "old2403": {
+            "count": 2403,
+            "sha256": "4988f181a389575003152bfd2194485f030506f63859133229019f8d5db4441b"
+          },
+          "old2391": {
+            "count": 2391,
+            "sha256": "5faa2eeda5f6c6db5cbc52dead9bdf3e84d00bf67acd5d25f599a0fce33a4fdc"
+          },
+          "old2320": {
+            "count": 2320,
+            "sha256": "fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8"
+          },
+          "new87": {
+            "count": 87,
+            "sha256": "9d5d10f17c264e20f3173320db1dc29e045cc9449d78d46424b255d9bc3ea09a"
+          },
+          "new71": {
+            "count": 71,
+            "sha256": "011ab60836f83cd89a3952c173f851d9a45e6cd64f9e28189829d71f22f06ca6"
+          },
+          "new12": {
+            "count": 12,
+            "sha256": "2daf951da91974d83b2030dfdbd03cbfde528ce9172b429fb0f33e3f3764cc43"
+          }
+        },
+        "fuzzRun": 12,
+        "fuzzPass": 12,
+        "fuzzSHA256": "fadc2249e94d23a18311290a543a4b7995946e5f9b8e862dd556c284c13e1f66"
+      },
+      {
+        "round": "race",
+        "testRun": 2490,
+        "testPass": 2490,
+        "testFail": 0,
+        "testSkip": 0,
+        "packages": 40,
+        "packageSkips": [
+          "chengwang/internal/domain"
+        ],
+        "sets": {
+          "all": {
+            "count": 2490,
+            "sha256": "1c3d08f5f99f1d34861a6439d8cde3d95422232dc8fa70206e2d0f09ea229dd4"
+          },
+          "old2403": {
+            "count": 2403,
+            "sha256": "4988f181a389575003152bfd2194485f030506f63859133229019f8d5db4441b"
+          },
+          "old2391": {
+            "count": 2391,
+            "sha256": "5faa2eeda5f6c6db5cbc52dead9bdf3e84d00bf67acd5d25f599a0fce33a4fdc"
+          },
+          "old2320": {
+            "count": 2320,
+            "sha256": "fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8"
+          },
+          "new87": {
+            "count": 87,
+            "sha256": "9d5d10f17c264e20f3173320db1dc29e045cc9449d78d46424b255d9bc3ea09a"
+          },
+          "new71": {
+            "count": 71,
+            "sha256": "011ab60836f83cd89a3952c173f851d9a45e6cd64f9e28189829d71f22f06ca6"
+          },
+          "new12": {
+            "count": 12,
+            "sha256": "2daf951da91974d83b2030dfdbd03cbfde528ce9172b429fb0f33e3f3764cc43"
+          }
+        },
+        "fuzzRun": 12,
+        "fuzzPass": 12,
+        "fuzzSHA256": "fadc2249e94d23a18311290a543a4b7995946e5f9b8e862dd556c284c13e1f66"
+      }
+    ],
+    "exactGitCLIReplay": "SCHEMA_METASCHEMA=PASS validator=santhosh-tekuri-jsonschema-v6.0.3 schemas=11\r\nGO_JSON_GATE=PASS files=2 semanticRunEvents=4980 packages=40 skips=0"
+  },
+  "native": {
+    "runId": 39934230138,
+    "jobId": 120349701194,
+    "sourceCommit": "d0e55c6ac7e9528f2c27bd6cbc872fc6e544d3de",
+    "attempt": 1,
+    "conclusion": "success",
+    "artifact": {
+      "apiDigest": "sha256:0f4530fad607b64869f7c57650ed53e15d4349e7a0baa47fa3d693a031c5fb87",
+      "bytes": 212167,
+      "id": 12492694345,
+      "sha256": "0f4530fad607b64869f7c57650ed53e15d4349e7a0baa47fa3d693a031c5fb87"
+    },
+    "checker": {
+      "byteIdenticalToCIReport": true,
+      "bytes": 60020,
+      "exitCode": 0,
+      "inputs": 22,
+      "reportSHA256": "b388515c93401a02fc43fc93a88c387d514491b8888f208a313c232247848fc0",
+      "sha256": "8d6750d831ca50968ea3b6b916d118e4d0f7df8e5c72363e26f960d249103d2a"
+    },
+    "source": {
+      "allOriginalGitBlobBytesMatched": true,
+      "beforeAfterIdentical": true,
+      "bytes": 31862626,
+      "records": 710,
+      "unique": 710
+    },
+    "pureUnitCounts": {
+      "test_check_probe_readback": 32,
+      "test_run_probe_readback": 12
+    },
+    "nativeWireTests": 24,
+    "boundary": "NATIVE_BACKEND_ONLY; no browser/Internet/production proof; independent safe exported bytes replay, not live private store access"
+  },
+  "browsers": {
+    "chrome-cdp": {
+      "artifact": {
+        "apiDigest": "sha256:e2e2f3488a1f94bee1ae612cebbca82c09ebb55670a24835528d64044f127485",
+        "bytes": 1568575,
+        "id": 12492923797,
+        "sha256": "e2e2f3488a1f94bee1ae612cebbca82c09ebb55670a24835528d64044f127485"
+      },
+      "attempt": 1,
+      "backend": {
+        "byteIdenticalToCI": true,
+        "exitCode": 0,
+        "inputs": 22,
+        "ledger": [
+          7,
+          13
+        ],
+        "normalStops": {
+          "agent": 1,
+          "server": 2,
+          "wire": 1
+        },
+        "results": 6,
+        "sha256": "3d1eb6d472b7ea45b0cc641c7869f8ca8466c5bdfd9eef682b877a2fed5f76d2",
+        "wireConnections": 18,
+        "wireEvents": 72
+      },
+      "boundary": "ISOLATED_REAL_BROWSER_READ_ONLY_NOT_PRODUCTION; normal TLS independently checked at capture times; trusted-runner/launcher joins, no independent signal audit; PNG framing/decompression not visual QA or OCR",
+      "browser": {
+        "apiSamples": {
+          "expired": 0,
+          "fresh": 6,
+          "withdrawn": 6
+        },
+        "byteIdenticalToCI": true,
+        "captures": 18,
+        "certificateChainLength": 2,
+        "chrome": "Chrome/155.0.8059.39",
+        "chromeExit": {
+          "engine": "chrome-cdp",
+          "exitCode": 0,
+          "fixtureId": "0e131a40fa1142b88a5b002c1938bb85",
+          "forced": false,
+          "joined": true,
+          "pid": 47,
+          "schema": "chengwang.probe-chrome-exit/v1",
+          "startTicks": 47378
+        },
+        "close": {
+          "chromeExit": {
+            "engine": "chrome-cdp",
+            "exitCode": 0,
+            "fixtureId": "0e131a40fa1142b88a5b002c1938bb85",
+            "forced": false,
+            "joined": true,
+            "pid": 47,
+            "schema": "chengwang.probe-chrome-exit/v1",
+            "startTicks": 47378
+          },
+          "guardExitCode": 0,
+          "guardSignalIntervention": false,
+          "noLiveOwnedProcessesAfterGuard": true,
+          "noLiveOwnedProcessesBeforeGuard": true,
+          "normalCloseCommandCompleted": true
+        },
+        "controllerExitCode": 0,
+        "counters": {
+          "assetErrors": 0,
+          "captureErrors": 0,
+          "consoleErrors": 0,
+          "consoleWarnings": 0,
+          "cspErrors": 0,
+          "failedRequests": 0,
+          "forbiddenRequests": 0,
+          "runtimeErrors": 0
+        },
+        "exitCode": 0,
+        "manifest": {
+          "bytes": 898,
+          "sha256": "7274c996064b6d5be8def99b0267f99436390c9aa48bbc59020d4c2a517a61b1"
+        },
+        "networkEvents": 17,
+        "normalTrust": {
+          "caSHA256": "d56c677a4783fabd8507197022033e20c550967fb2c25ad3b828efd1ce367c06",
+          "homeEnvironmentAbsent": true,
+          "leafSHA256": "001b7e096df36e1729526eb4b43747d51374918ca88c1f8bc73eee38ad5b8955",
+          "legacyDatabaseAbsent": true,
+          "method": "PRIVATE_NSS_SQL_XDG_LOCAL_CA",
+          "trustFlags": "C,,"
+        },
+        "outcome": "PASS",
+        "sha256": "7a88f42b836b3e44fba973c23cfccbbcb6acc46be58650aa543e0d2889f07f1b",
+        "tls": {
+          "caSHA256": "d56c677a4783fabd8507197022033e20c550967fb2c25ad3b828efd1ce367c06",
+          "cipher": "AES_128_GCM",
+          "ipSANVerified": true,
+          "leafSHA256": "001b7e096df36e1729526eb4b43747d51374918ca88c1f8bc73eee38ad5b8955",
+          "leafSignatureVerified": true,
+          "protocol": "TLS 1.3",
+          "securityState": "secure",
+          "serverChainLength": 2
+        },
+        "visibleLayers": 15,
+        "visibleTargets": 3,
+        "webFiles": 10,
+        "withdrawalDeadlineKind": "EVIDENCE_TTL"
+      },
+      "conclusion": "success",
+      "engine": "chrome-cdp",
+      "extraction": {
+        "bytes": 2582806,
+        "files": 63
+      },
+      "head": "d0e55c6ac7e9528f2c27bd6cbc872fc6e544d3de",
+      "helpers": {
+        "check_probe_browser.py": {
+          "bytes": 35049,
+          "sha256": "22c44d13bb1bab3f4df7fa43a3e62ee444a8e89fd79b6efd5677c6029c5ea034"
+        },
+        "check_probe_readback.py": {
+          "bytes": 60020,
+          "sha256": "8d6750d831ca50968ea3b6b916d118e4d0f7df8e5c72363e26f960d249103d2a"
+        }
+      },
+      "jobId": 120349778801,
+      "rawLog": {
+        "bytes": 90470,
+        "sha256": "28d0c9e80c3187870fc47a259079d9037cfd817decce433d9834dbe4e32e811e"
+      },
+      "runId": 39934230107,
+      "source": {
+        "allOriginalGitBytesMatched": true,
+        "recordsChecked": 2158,
+        "scopeCounts": {
+          "backendIsolation": 716,
+          "browserBuild": 716,
+          "gitCopiedInputs": 10,
+          "outer": 716
+        },
+        "unique": 716,
+        "uniqueBytes": 31967649
+      }
+    },
+    "playwright": {
+      "artifact": {
+        "apiDigest": "sha256:2ac374f5522a35101ad7b1a85bb7f472509dbce2dd3241f369ee027e96b8858d",
+        "bytes": 1677189,
+        "id": 12492968215,
+        "sha256": "2ac374f5522a35101ad7b1a85bb7f472509dbce2dd3241f369ee027e96b8858d"
+      },
+      "attempt": 1,
+      "backend": {
+        "byteIdenticalToCI": true,
+        "exitCode": 0,
+        "inputs": 22,
+        "ledger": [
+          7,
+          13
+        ],
+        "normalStops": {
+          "agent": 1,
+          "server": 2,
+          "wire": 1
+        },
+        "results": 6,
+        "sha256": "d25383900345cab0768b056c17161c3d138406ae1ddb8a81ecc9839604afd46e",
+        "wireConnections": 18,
+        "wireEvents": 72
+      },
+      "boundary": "ISOLATED_REAL_BROWSER_READ_ONLY_NOT_PRODUCTION; normal TLS independently checked at capture times; trusted-runner/launcher joins, no independent signal audit; PNG framing/decompression not visual QA or OCR",
+      "browser": {
+        "apiSamples": {
+          "expired": 0,
+          "fresh": 6,
+          "withdrawn": 6
+        },
+        "byteIdenticalToCI": true,
+        "captures": 18,
+        "certificateChainLength": 2,
+        "chrome": "Chrome/155.0.8059.39",
+        "chromeExit": {
+          "engine": "playwright",
+          "exitCode": 0,
+          "fixtureId": "36ab880888644f63be2ad5ab88a835e2",
+          "forced": false,
+          "joined": true,
+          "pid": 47,
+          "schema": "chengwang.probe-chrome-exit/v1",
+          "startTicks": 14517
+        },
+        "close": {
+          "chromeExit": {
+            "engine": "playwright",
+            "exitCode": 0,
+            "fixtureId": "36ab880888644f63be2ad5ab88a835e2",
+            "forced": false,
+            "joined": true,
+            "pid": 47,
+            "schema": "chengwang.probe-chrome-exit/v1",
+            "startTicks": 14517
+          },
+          "guardExitCode": 0,
+          "guardSignalIntervention": false,
+          "noLiveOwnedProcessesAfterGuard": true,
+          "noLiveOwnedProcessesBeforeGuard": true,
+          "normalCloseCommandCompleted": true
+        },
+        "controllerExitCode": 0,
+        "counters": {
+          "assetErrors": 0,
+          "captureErrors": 0,
+          "consoleErrors": 0,
+          "consoleWarnings": 0,
+          "cspErrors": 0,
+          "failedRequests": 0,
+          "forbiddenRequests": 0,
+          "runtimeErrors": 0
+        },
+        "exitCode": 0,
+        "manifest": {
+          "bytes": 898,
+          "sha256": "7274c996064b6d5be8def99b0267f99436390c9aa48bbc59020d4c2a517a61b1"
+        },
+        "networkEvents": 17,
+        "normalTrust": {
+          "caSHA256": "e84282f627b76fbdec857da31ed80f79ad1171a23b4222c98f06bd06a73fb3d2",
+          "homeEnvironmentAbsent": true,
+          "leafSHA256": "7cf329422fab393354c0d73a78e163e9cf86258bd63d7aa656b424ca151b873b",
+          "legacyDatabaseAbsent": true,
+          "method": "PRIVATE_NSS_SQL_XDG_LOCAL_CA",
+          "trustFlags": "C,,"
+        },
+        "outcome": "PASS",
+        "sha256": "7ecd93f3912f6d642af208669d0b060032b69ba197d6ddad2a06a0beeb3fcec9",
+        "tls": {
+          "caSHA256": "e84282f627b76fbdec857da31ed80f79ad1171a23b4222c98f06bd06a73fb3d2",
+          "cipher": "AES_128_GCM",
+          "ipSANVerified": true,
+          "leafSHA256": "7cf329422fab393354c0d73a78e163e9cf86258bd63d7aa656b424ca151b873b",
+          "leafSignatureVerified": true,
+          "protocol": "TLS 1.3",
+          "securityState": "secure",
+          "serverChainLength": 2
+        },
+        "visibleLayers": 15,
+        "visibleTargets": 3,
+        "webFiles": 10,
+        "withdrawalDeadlineKind": "EVIDENCE_TTL"
+      },
+      "conclusion": "success",
+      "engine": "playwright",
+      "extraction": {
+        "bytes": 2689989,
+        "files": 63
+      },
+      "head": "d0e55c6ac7e9528f2c27bd6cbc872fc6e544d3de",
+      "helpers": {
+        "check_probe_browser.py": {
+          "bytes": 35049,
+          "sha256": "22c44d13bb1bab3f4df7fa43a3e62ee444a8e89fd79b6efd5677c6029c5ea034"
+        },
+        "check_probe_readback.py": {
+          "bytes": 60020,
+          "sha256": "8d6750d831ca50968ea3b6b916d118e4d0f7df8e5c72363e26f960d249103d2a"
+        }
+      },
+      "jobId": 120349778808,
+      "rawLog": {
+        "bytes": 90474,
+        "sha256": "02c26e4a60ea60a5de8997a6856509ef4e3c7c99f107f1bf002f0f8f2d30fe29"
+      },
+      "runId": 39934230107,
+      "source": {
+        "allOriginalGitBytesMatched": true,
+        "recordsChecked": 2158,
+        "scopeCounts": {
+          "backendIsolation": 716,
+          "browserBuild": 716,
+          "gitCopiedInputs": 10,
+          "outer": 716
+        },
+        "unique": 716,
+        "uniqueBytes": 31967649
+      }
+    }
+  },
+  "browserIndependentCombinedReportSHA256": "d2d25e92d8f7318ae97cbe29968fda524b567aacb204d3702f5ca34b9d095894",
+  "rootIndependentBrowserReplay": {
+    "gitOriginalCheckerBytesMatched": true,
+    "engines": [
+      "chrome-cdp",
+      "playwright"
+    ],
+    "fullCheckerPass": true,
+    "byteIdenticalToCI": true,
+    "actualBrowserLaunchedLocally": false
+  },
+  "binding": {
+    "runId": 39934230001,
+    "jobId": 120349701065,
+    "attempt": 1,
+    "sourceCommit": "d0e55c6ac7e9528f2c27bd6cbc872fc6e544d3de",
+    "conclusion": "success",
+    "originalRawLog": {
+      "source": "GitHub jobs/logs API",
+      "bytes": 2037278,
+      "sha256": "21332669f9314e5f02bd617acd660c6b3d34c057d1b3594fb4f9ca452f5f40a9"
+    },
+    "artifact": {
+      "id": 12494450003,
+      "bytes": 6376423,
+      "sha256": "75ad1aef278c235440d37c71634e40c4dbe795385491c507af05c801ebe863f1",
+      "apiDigestMatched": true,
+      "extractedFiles": 1470,
+      "extractedBytes": 15605661
+    },
+    "independentReportSHA256": "c18a64c72c138ca45b23b1a5ee216dc1a8bf5727cb19f6524c52f387e0db30f4",
+    "ordinary": [
+      {
+        "file": "go-test.json",
+        "tests": 732,
+        "run": 732,
+        "pass": 732,
+        "skip": 0,
+        "fail": 0,
+        "allSHA256": "47a2e1455240e8a565ac214e463ff59e059e4beaad19c993548d4b6dcc93b24c",
+        "old728SHA256": "6557b5f9621b6d691133c2242ab1c35308dfcd376424b43c6a9c2644830d0811",
+        "old700SHA256": "b3cd00ab4fd983026e777095b484e2a0e49b05867186a83df234b8a27b7bb999",
+        "transcriptSHA256": "2e22d0ed7db7f04788d7b9f35c0e27490fd4fe9c1baa955b29956e25ecd00c52"
+      },
+      {
+        "file": "go-race.json",
+        "tests": 732,
+        "run": 732,
+        "pass": 732,
+        "skip": 0,
+        "fail": 0,
+        "allSHA256": "47a2e1455240e8a565ac214e463ff59e059e4beaad19c993548d4b6dcc93b24c",
+        "old728SHA256": "6557b5f9621b6d691133c2242ab1c35308dfcd376424b43c6a9c2644830d0811",
+        "old700SHA256": "b3cd00ab4fd983026e777095b484e2a0e49b05867186a83df234b8a27b7bb999",
+        "transcriptSHA256": "3164f16adbbb05ec437cb16d635a21ff2f9bf1e178d997c08dea274bbbcb57d2"
+      }
+    ],
+    "registry": [
+      {
+        "file": "registry-ordinary.json",
+        "tests": 3,
+        "run": 3,
+        "pass": 3,
+        "skip": 0,
+        "fail": 0,
+        "transcriptSHA256": "cbd552055d17b057e91e23519fdf1ceed92b5fe0b7fe72460e3c25e133630240"
+      },
+      {
+        "file": "registry-race.json",
+        "tests": 3,
+        "run": 3,
+        "pass": 3,
+        "skip": 0,
+        "fail": 0,
+        "transcriptSHA256": "658f03bea242174c906a9ae97b1d252dddb0097765effd533a2f0348a6789fff"
+      }
+    ],
+    "gitRawBinding": {
+      "uniquePaths": 710,
+      "totalBytes": 31859856,
+      "allMatched": true,
+      "pathsSHA256": "22e2f77a2d69ea4d2295a825931b1a66a96ae896a83a8eefea5725cf2775f84f"
+    },
+    "sourceManifests": [
+      {
+        "name": "checkout",
+        "entries": 710,
+        "beforeBytes": 84181,
+        "afterBytes": 84181,
+        "beforeSHA256": "f9a9dcadd591c3766d9f0c67fd5b4dff1edc8ed81db05e4b66ce0696f55479bd",
+        "afterSHA256": "f9a9dcadd591c3766d9f0c67fd5b4dff1edc8ed81db05e4b66ce0696f55479bd",
+        "identical": true
+      },
+      {
+        "name": "source",
+        "entries": 97,
+        "beforeBytes": 9450,
+        "afterBytes": 9450,
+        "beforeSHA256": "b5098bd4f91f20f1ee438aecee446d1a308f347b2089fa3cf019406c52bbe1c2",
+        "afterSHA256": "b5098bd4f91f20f1ee438aecee446d1a308f347b2089fa3cf019406c52bbe1c2",
+        "identical": true
+      }
+    ],
+    "scopeBoundary": {
+      "actualFrontendUnitTranscriptReplayedSeparately": true,
+      "oldProductCLIsIndependentlyReplayed": false,
+      "oldProductCLIs": "CI success only; no independent replay of image/lifecycle/crash/state/source/TLS product CLI gates in this audit",
+      "production": false,
+      "localGoExecuted": false
+    },
+    "frontend": {
+      "scope": "ACTUAL_CI_FRONTEND_AND_SYNTHETIC_TRANSCRIPT_MUTATIONS_NOT_BROWSER",
+      "actualPassed": 117,
+      "actualSkipped": 0,
+      "old77": 77,
+      "retainedProbe33": 33,
+      "new7SHA256": "1ac0f0ac2b63cf57b4a8e5f26e1ddf1101842407b9d6097d0c9afc7fcdead76a",
+      "frontendBytes": 50325,
+      "frontendSHA256": "486fb541d4963119f902274e58916a11d1aed821e3583bf9a7ee7a9b538126d7",
+      "mutationBaselinesPassed": 9,
+      "mutationsRejected": [
+        "new-name-substitution",
+        "old-twelve-renamed",
+        "duplicate-new-name",
+        "skipped-new-case",
+        "missing-new-case",
+        "missing-old-case",
+        "wrong-total",
+        "wrong-file-owner",
+        "old-77-renamed"
+      ],
+      "independentReportSHA256": "b4e30fe51dd821d9f7b2d2a3229fb237f6b5fe09f06fd6171a6a29359015f234"
+    }
+  },
+  "notImplemented": [
+    "product_subscription_API_RBAC_and_default_off_write_gate",
+    "trusted_source_approval_and_secret_reference_product_adapter",
+    "external_durable_attempt_audit_and_cross_store_recovery",
+    "real_subscription_resource_UI",
+    "automatic_refresh_and_complete_kernel_validation",
+    "runtime_publication_and_production_gray_rollout",
+    "system_backup_restore_and_RPO_RTO",
+    "enterprise_capacity_long_soak_and_hostile_parser_process_sandbox"
+  ],
+  "retentionBoundary": "GitHub CI artifacts 14 days; local Temp is not permanent backup; hashes and entry points do not replace raw archives"
+}
