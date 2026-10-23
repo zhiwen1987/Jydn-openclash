@@ -1,0 +1,124 @@
+{
+  "schema": "chengwang.subscription-ui-real-flow-acceptance/v1",
+  "sourceCommit": "aedd1946b3dd15290fd6b2675c7eeb0b8593509c",
+  "outcome": "ISOLATED_REAL_CREATE_RECEIPT_FLOW_ACCEPTED_FULL_SUBSCRIPTION_PENDING",
+  "run": 39998551196,
+  "attempt": 1,
+  "runConclusion": "success",
+  "jobs": {
+    "chromeCDP": 120568348152,
+    "playwright": 120568347731,
+    "freshChromeCDP": 120571031711,
+    "freshPlaywright": 120571031840
+  },
+  "allFourJobsSuccess": true,
+  "retryCancelOrRestartUsed": false,
+  "actualBrowser": {
+    "product": "Chrome/157.0.8103.6",
+    "revision": "@41520584daa68d0040db7746ae562a0ff82187f6",
+    "protocolVersion": "1.3",
+    "elfBytes": 305061192,
+    "elfSHA256": "ec4e78d65a5382c2b50aaf28c6a655a624973b3d3c711a2a4ae34369fd9a3444"
+  },
+  "perEngineVerified": {
+    "requests": 14,
+    "requestKinds": {"DOCUMENT": 1, "ASSET": 4, "SNAPSHOT": 1, "COLLECTION_ACCESS": 2, "SOURCES": 2, "CREATE": 1, "SOURCE_ACCESS": 1, "CANDIDATES": 1, "RECEIPT": 1},
+    "domSteps": 11,
+    "mutations": 1,
+    "commands": 1,
+    "externalAuditEvents": 2,
+    "publicOriginals": 14,
+    "sourceGitBlobs": 846,
+    "compiledDistFiles": 10,
+    "serverBytes": 11628961,
+    "serverSHA256": "b3d12739f9ae22a907010f4f1374f0871967fd6e9190335ef775b7c5de7dc962",
+    "screenshots": 2,
+    "normalTLSVerifiedAtCapture": true,
+    "uid": 10001,
+    "capabilitiesZero": true,
+    "noNewPrivileges": true,
+    "loopbackOnly": true,
+    "chromeExitCode": 0,
+    "controllerExitCode": 0,
+    "serverExitCode": 0,
+    "forcedSignals": 0,
+    "noLiveOwnedProcesses": true,
+    "eightErrorCountersAllZero": true
+  },
+  "replays": {
+    "method": "COMPLETE_ORIGINAL_CHECKER_CLI_ON_BOTH_ENGINES_NOT_SEMANTIC_BYPASS",
+    "producerFreshRootAgentByteEqual": true,
+    "canonicalReportBytesEach": 2671,
+    "chromeCDPReportSHA256": "b7489dce444507c9cd565d535ee69d888da7ee3a1c13151754a3a63d86bc702f",
+    "playwrightReportSHA256": "71afee0e5b138b90a6b647be9856b6deedb94ab697166a0c756c5ac52cea7780",
+    "rootEvidencePath": "C:/Users/Administrator/AppData/Local/Temp/chengwang-subscription-ui-aedd194-root-849ec0cd08264eb9a3d0f8e7805adfa8",
+    "agentEvidencePath": "C:/Users/Administrator/AppData/Local/Temp/chengwang-subscription-ui-aedd194-c-audit-db2c74fb21e34fe39efe7c65af9809fc",
+    "privateDatabaseRawIndependentlyVerified": false,
+    "independentReproducibleBuildProven": false
+  },
+  "actualSyntheticOutputs": {
+    "node": 32, "runner": 16, "checker": 36, "totalEachEngine": 84, "skipped": 0,
+    "rootAndAgentReplayedOriginalTranscripts": true,
+    "countsAreProductAcceptance": false,
+    "chromeCDPReportSHA256": "8087e6eaf31c565a04675afc9ee3812e48255204134d32d1aac03b737a3d0436",
+    "playwrightReportSHA256": "a0f1dfae81c55b2240b36eaab0501126a7da7638af21eafc6c8762490a66e52b"
+  },
+  "artifacts": [
+    {"id": 12521181851, "engine": "chrome-cdp", "bytes": 686506, "files": 25, "sha256": "b93e39c9d923c522ff98f88c9d70c6d84f511e96c84f97739799e127062db6e6"},
+    {"id": 12521487218, "engine": "playwright", "bytes": 686866, "files": 25, "sha256": "b0c76690240f7cdb05ac723a17a41def5de48f9b8236c1aeef61dc309869d539"},
+    {"id": 12520972948, "engine": "fresh-chrome-cdp", "bytes": 1985, "files": 2, "sha256": "6acfe374035e08a9aa9a9412b5bb8cc042726b9857ac55ce1f35c8bb9390f1c6"},
+    {"id": 12520653738, "engine": "fresh-playwright", "bytes": 1989, "files": 2, "sha256": "d34ce296c2aebdaf65301a5ec8b5d678f89843d8fff030ea2b44f6c2aa87fc7a"}
+  ],
+  "artifactDigestAndExactEntryBytesChecked": true,
+  "browserZIPOrELFDownloadedToWindows": false,
+  "visualReview": {
+    "rootViewedAllFourOriginalPNGs": true,
+    "desktopViewport": [1440, 900], "mobileViewport": [375, 900], "scrollX": 0, "scrollY": 0,
+    "scope": "CREATED_STATE_FIRST_VIEWPORT_ONLY_NOT_ALL_SCROLLED_CONTROLS_OR_ERROR_STATES",
+    "pageIdentityNonBlankNoOverlayReadableNoHorizontalOverflow": true,
+    "sha256": [
+      "d4f953a9ab2a6b27e429fcbbf4d51b8825198dab5173728e7537b2fccbb98545",
+      "572a5df17c80946b51da5e0ec963be28f2f43432e51df2b2e30c1d98e6409a15",
+      "6c9e1cba81121b53e4247d6f176be22323d53a0ac807d4d19c5a196844c063d3",
+      "94a0cea0439b202e2da210b0fb110d7b34e01b86a2c8add83845dd63bc2d044d"
+    ]
+  },
+  "sameSourceParent": {
+    "run": 39998551042, "job": 120568347105, "conclusion": "success",
+    "rootAndAgentExactGitCheckerReplay": true, "checkerGitFiles": 7,
+    "httpOriginalBytes": 6069650,
+    "httpOriginalSHA256": "4ac86bece64efaebd96b034f8f489754e71ef13f62942705d35569a0be585826",
+    "eachVariantTestRunPassExactlyOnce": 2644, "eachVariantFuzzSeparatelyCounted": 12,
+    "eachVariantEvents": 10811, "testSkipFail": 0,
+    "testNamesSHA256": "cae9dc917b3b289bb949626a20ab43906a0686fe78fb8cf3d5b2657d1893d530"
+  },
+  "sameSourceOldSubscription": {
+    "run": 39998551197, "producerJob": 120568347786, "freshJob": 120568762689,
+    "bothLinuxCompleteCLISuccess": true,
+    "rootAndAgentSemanticReplay": true,
+    "windowsCompleteCLI": "REJECTED_PUBLIC_FILE_OPEN_RACE_WINDOWS_NOT_POSIX_CUSTODY",
+    "windowsAdapter": "ONLY_READ_INPUTS_REPLACED_WITH_ORIGINAL_BYTES_NOT_COMPLETE_POSIX_CLI",
+    "producerFreshRootAgentSemanticReportByteEqual": true,
+    "reportSHA256": "c376638185276a395a4615e682fd2d0042dab5b44ee3bc6dd2bbbed190c05d28",
+    "publicFiles": 20, "captures": 46, "epochs": 4, "wireConnections": 26, "wireEvents": 102, "sourceGitBlobs": 835,
+    "artifacts": [
+      {"id": 12520577642, "bytes": 119763, "files": 25, "sha256": "28fe7de75e50a5423195d3d91759386b312b8b6b3149ff855a2df31622036868"},
+      {"id": 12520473340, "bytes": 1607, "files": 1, "sha256": "f06145212bc9a90d250dd85f358e197f8f3985f6eee67911237277b69cdccfb9"}
+    ]
+  },
+  "fullPlanCoverage": {
+    "completePath": ["B01"],
+    "partial": ["B02", "B04", "B05", "B06", "B20", "B21", "B22", "B23"],
+    "notCovered": ["B03", "B07", "B08", "B09", "B10", "B11", "B12", "B13", "B14", "B15", "B16", "B17", "B18", "B19"],
+    "coverageCountsAreSystemCompletionPercent": false
+  },
+  "fullSubscriptionE2EProven": false,
+  "fetchDNSWireEvaluatedByNewUIFlow": false,
+  "oldProductBrowserAndImageRegressionOnThisCandidateComplete": false,
+  "permanentCentralArchiveComplete": false,
+  "artifactRetentionDays": 14,
+  "production": false,
+  "mainMerged": false,
+  "formalImageReleased": false,
+  "authorization": "BLOCKED"
+}

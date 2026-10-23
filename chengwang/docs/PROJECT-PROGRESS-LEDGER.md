@@ -2,7 +2,9 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-订阅页前序结果：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故该轮整体 **未验收通过**。详见[该轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待实现/运行，CDP 与固定版本 Playwright 都必须完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
+**最新实际进展 `aedd194`**：真实订阅页创建/回执的 CDP 与 Playwright、两个 fresh Linux 原门均成功；根/独立子代理完整原件 CLI 重放通过，四方报告逐字一致。每引擎 14 请求/11 DOM/唯一创建/2 PNG，正常 TLS 与三进程 wait=0、八计数全 0、846 Git blobs；四张原 PNG 已实际查看。84 辅助测试与父门各2644分别计数。详见[实际验收与完整缺口](P2-SUBSCRIPTION-UI-REAL-FLOW.md)。**完整 B01–B23、候选旧产品全回归、灰度与生产未完成**；下文前序记录是历史，不用本轮成功回填历史失败。
+
+订阅页前序结果：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故该轮整体 **未验收通过**。详见[该轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器完整计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待逐项完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
 
 前序增量 `ad3e4db`：闭集诊断与新订阅DOM collector已实现，五条隔离CI均终态。父门各2644、前端190/子模块各732、订阅两Linux原门及原生backend22均按原工件复验；旧浏览器该轮CDP成功、PW因一次取消严格失败，整体未验收。两诊断均收81条、无观察的应用ABORT/cleanup且流到EOF，缩小排查范围但未证明唯一根因。该轮Chrome未pin、revision/Node原stdout未归档，不能事后补造。详见[该轮实际验收](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md)及[机器记录](evidence/p2-status-diagnostic-ad3e4db.json)。历史失败保留，新的保管成果见下文，不能回填旧工件。生产未动。
 
@@ -46,7 +48,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
 | P2-06a | 订阅资源界面与安全权限元数据 | `8f610a4` 已实现并完成部分隔离验收：Go各2644、前端190、子模块各732及旧名单通过，镜像CI/旧订阅后端成功；但旧CDP一次取消导致整体未验收。[实际记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md) | CDP原因未定，不能被PW成功抵销；新订阅浏览器/跨角色批准上下文自动读回/任意URL与私有CA目录编辑器仍未实现；未上线 |
 | P2-06b-0 | 固定浏览器原件消费与正常TLS协议前置矩阵 | `409aa9c` pin/解压与 `7291655` CDP/PW五场景及fresh原件均隔离验收，完整四方重放一致 | 独立协议fixture，不是产品新页面、历史取消根因或生产验收 |
-| P2-06b | 真实订阅页面双浏览器闭环 | 创建/回执流程驱动、运行器、独立原件门已接线；84 项合成反例和静态语法通过，首次真实 CI 待执行。[当前进度](P2-SUBSCRIPTION-UI-REAL-FLOW.md) | 尚无本增量的真实页面/PNG/运行验收；完整 B01–B23、角色交接、导入/批准/抓取/回退/分页/重启仍待完成 |
+| P2-06b | 真实订阅页面双浏览器闭环 | `aedd194` 创建/回执部分真实隔离验收通过：两 producer/两 fresh、根/子代理完整原 CLI 四方逐字一致；实际 4 PNG 已查，84 辅助项独立计数。[实际进度](P2-SUBSCRIPTION-UI-REAL-FLOW.md) | 完整 B01–B23：1 整项路径/8 部分/14 未覆盖；角色交接、双来源导入/批准/抓取/接纳/回退/分页/故障/重启仍待完成，未上线 |
 | P2-06 诊断增量 | 有界取消观察与订阅DOM collector | `ad3e4db`历史独立80合成门与诊断原件重放通过；该轮PW严格失败不覆盖 | 原因未唯一证明，不能回填该轮缺失的revision/Node stdout；订阅DOM仅合成。[记录](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md) |
 | P2-06 身份与保管前置 | 真实revision/ELF/进程绑定、原80输出、候选获取 | `22f0757`双浏览器真实身份及原12 CLI报告根重放；原80/新56分别通过；候选两Linux获取与来源审核通过 | 参考pin尚未被执行门消费；alpha候选尚未运行、严格正负矩阵/新订阅E2E未做；本轮成功不证明历史偶发取消消除。[记录](P2-BROWSER-IDENTITY-ACQUISITION.md) |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
@@ -75,6 +77,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 
 | 提交或阶段 | 结果 | 不应误读为 |
 | --- | --- | --- |
+| `aedd194` | 实际订阅页 CDP/PW 创建/回执，四原 job 成功，846 Git/14请求/11DOM/唯一POST/正常TLS/wait0/八计数0；四方原CLI逐字一致、四张PNG实际查看；父门各2644及旧订阅分层复验 | B01–B23全部完成、候选旧产品全回归、抓取/节点可用、镜像/灰度/生产或历史取消唯一根因已解决 |
 | `7291655` | 精确Chromium源码支持的时间语义修正；双引擎真实157/五场景/正常TLS/退出、104新辅助事件及四方原件重放通过；父门各2644与订阅原门分别复验 | 实际产品已切候选、订阅页E2E、补丁二进制祖先、历史偶发问题或生产已解决 |
 | `de875c0` | 原run39992474501首轮96合成通过、两实际执行成功，但独立CLI时间假设拒绝，整体failure/fresh skipped；原件与失败保留 | 新源码通过可以回填旧源码成功 |
 | `409aa9c` | 两Linux真实强制pin/安全解压/CRC/落地hash/ELF结构验证通过 | 已执行浏览器或已修复产品问题 |
@@ -102,4 +105,4 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | `f0c23d6` | 订阅本地准入 API/RBAC/批准/耐久回执与恢复隔离验收：新 130、全主模块每轮 2620 与旧名单保持；原生/CDP/PW 原工件双重重放，同源码镜像 CI success 与原三 CLI/前端门独立重放；两轮父门失败、一次 native stop 失败和未执行 pending 均保留。详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 订阅资源页、完整公共来源抓取/内核、自动调度、所有旧产品 CLI 独立重放、完整编排或生产已完成 |
 | `2a68973` / `2b0a472` | 独立订阅产品实验首轮严格失败并保留；修正fixture有界发送计数、独立门不放宽，第二轮producer+freshLinux完整原门通过，原报告三方一致；同源码父门2620/旧名单完整复验。详见[P2-05b记录](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md) | fixture公网地址等于真实互联网、节点业务健康、订阅UI、调度、系统恢复或生产已完成 |
 
-下一顺序：在已验真实身份/原件与已审候选字节上，实现实际消费参考pin的隔离执行门，取得候选真实revision并通过no-store正负矩阵，再跑候选完整CDP/PW原门，按证据选择修复 → 新订阅资源页双浏览器 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。不放宽失败计数、TLS、no-store或字节/时间预算，不以多次运行挑绿灯。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
+下一顺序：已审候选 pin 消费和正常 TLS 协议矩阵已完成，真实订阅页目前仅创建/回执部分通过。继续双来源私有文件导入、角色隔离、安全节点读回、接纳/拒绝及当前版本回退 → 来源批准/交接/实际 DoT 抓取 → 分页、未决命令、故障与同库重启 → 候选旧探针/旧产品完整回归和镜像门 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。不放宽失败计数、TLS、no-store或字节/时间预算，不以多次运行挑绿灯。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
