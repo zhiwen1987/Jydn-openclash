@@ -375,7 +375,7 @@ jobs:
           set -euo pipefail
           lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
           sudo --non-interactive unshare --mount --net --fork /usr/bin/bash -s -- \
-            "$GITHUB_WORKSPACE" "$lab" "$(command -v node)" "$(id -u)" "$(id -g)" <<'SH'
+            "$GITHUB_WORKSPACE" "$lab" "$(command -v node)" "$(id -u)" "$(id -g)" "$GITHUB_SHA" <<'SH'
           set -euo pipefail
           source_root="$1"; lab="$2"; node_binary="$3"; task_uid="$4"; task_gid="$5"
           mount --make-rprivate /
@@ -387,7 +387,7 @@ jobs:
           test -z "$(ip -6 route show default)"
           exec setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups --bounding-set=-all \
             --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
-            PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/bash -s -- "$source_root" "$lab" "$node_binary" <<'TEST'
+            PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/bash -s -- "$source_root" "$lab" "$node_binary" "$6" <<'TEST'
           set -euo pipefail
           cd "$1"
           "$3" chengwang/tools/probe-browser/check-toolchain.mjs > "$2/evidence/toolchain.json"
@@ -448,7 +448,7 @@ jobs:
               2>&1 | tee "$2/evidence/request-binding-python.log"
           )
           python3 -B chengwang/deploy/probe-readback/check_request_binding_contract_outputs.py \
-            --evidence "$2/evidence" --source-commit "$GITHUB_SHA" \
+            --evidence "$2/evidence" --source-commit "$4" \
             --report "$2/evidence/request-binding-contract-originals.json"
           "$3" --test --test-reporter=tap \
             chengwang/tools/probe-browser/test-browser-identity.mjs \

@@ -1,6 +1,6 @@
 # P2：隔离探针请求关联与取消结果观察
 
-当前状态：实现与纯CPU增量检查完成；首次真实CI因新增TypeScript类型错误在构建阶段失败，保留失败原件。两行类型修正待新源码首次CI验收。不是网络取消修复、系统上线或生产操作记录。
+当前状态：实现与纯CPU增量检查完成；首次真实CI因新增TypeScript类型错误在构建阶段失败，后续类型修正已通过CI构建。第二次Probe在新增辅助门的提交SHA传参处失败，真实浏览器仍未执行，保留原失败并修正显式参数传递。不是网络取消修复、系统上线或生产操作记录。
 
 ## 要解决的证据缺口
 
@@ -37,6 +37,8 @@
 根据锁定TypeScript6.0.3的[官方DOM定义](https://github.com/microsoft/TypeScript/blob/v6.0.3/src/lib/dom.generated.d.ts)及[TypedArray定义](https://github.com/microsoft/TypeScript/blob/v6.0.3/src/lib/es5.d.ts)，只将随机数回调和新增测试reader的缓冲区显式限定为 `ArrayBuffer`，不使用any、不升级依赖或放宽strict。两文件修正前后的纯CPU转译JS逐字一致，16项纯检查再次通过；转译不是完整类型检查，修正仍待新的原CI验证。原失败run不重跑、不取消、不覆盖。
 
 首次CI主代理日志：`C:/Users/Administrator/AppData/Local/Temp/chengwang-request-binding-4ecaedd-root-6d1779c2f2d840789488056c59ef218d`。前序文档提交 `9104264` 的原父门40008278980现已终态success，但不能代替本次源码回归。
+
+类型修正源码 `b68a55e5cfea743c92db0d52a293c70a35734111` 的 [Probe原CI40013129942](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40013129942) 已通过真实编译；PW原job120618389518中新增16前端/24Node/48Python均实际通过，但新原输出门调用依赖的 `GITHUB_SHA` 在既有 `env -i` 子shell内不存在，触发unbound-variable拒绝，后续真实runtime跳过。根负责的CI接线遗漏不是浏览器故障。只通过原有显式位置参数逐层传入同一CI提交SHA，保留env -i、严格模式、失败门和全部名单；不恢复整个环境。新源码仍须首次原CI验收，不重跑旧失败。
 
 ## 真实运行退出条件
 
