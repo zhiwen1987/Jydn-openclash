@@ -287,6 +287,21 @@ def control_projection(value):
         for k in ('width','height'): integer(value['rect'][k],0,100000)
 
 
+def validate_decision_controls(controls,role,candidate,current_revision):
+    """Stable rendered controls must reflect actual candidate eligibility.
+
+    This never authorizes a write or changes rollback requirements. The API
+    metadata and independent state machine still verify role/source/CAS.
+    """
+    need(role in (*ROLES,'anonymous'))
+    eligible=False
+    if candidate is not None:
+        integer(candidate['baseRevision'],1); integer(current_revision,1)
+        need(candidate['state'] in ('quarantined','admitted_local','rejected'))
+        eligible=role=='approver' and candidate['state']=='quarantined' and candidate['baseRevision']==current_revision
+    for key in ('prepare_admit','prepare_reject'): same(controls[key]['enabled'],eligible)
+
+
 def validate_dom(rows,captures,decoded,facts):
     need(type(rows) is list and len(rows)==37); count=0; previous_capture=0; last_receipt=None
     for ordinal,(row,step) in enumerate(zip(rows,STEPS),1):
@@ -318,6 +333,7 @@ def validate_dom(rows,captures,decoded,facts):
         expected_dom_sources=[dict(id=s['id'],revision=s['revision'],selected=s['id']==selected_sid,accepted='acceptedCandidateId' in s,disabled=False) for s in expected_sources]
         same(d['sources'],expected_dom_sources)
         cid_alias=SELECTED_CANDIDATES.get(step); selected_cid=facts['aliases']['candidates'].get(cid_alias)
+        validate_decision_controls(ctl,role,state['candidates'].get(selected_cid),state['sources'][selected_sid]['revision'] if selected_sid else None)
         expected_candidates=[] if selected_sid is None else sorted([c for c in state['candidates'].values() if c['sourceId']==selected_sid],key=lambda c:c['id'])
         same(d['candidates'],[dict(id=c['id'],state=c['state'],nodeCount=2,format='mihomo-provider-yaml',baseRevision=c['baseRevision'],selected=c['id']==selected_cid) for c in expected_candidates])
         same(d['nodes'],[{k:v for k,v in n.items() if k!='label'} for n in facts['nodeViews'][selected_cid]] if selected_cid else [])

@@ -4,7 +4,7 @@
 
 **最新实际进展 `aedd194`**：真实订阅页创建/回执的 CDP 与 Playwright、两个 fresh Linux 原门均成功；根/独立子代理完整原件 CLI 重放通过，四方报告逐字一致。每引擎 14 请求/11 DOM/唯一创建/2 PNG，正常 TLS 与三进程 wait=0、八计数全 0、846 Git blobs；四张原 PNG 已实际查看。84 辅助测试与父门各2644分别计数。详见[实际验收与完整缺口](P2-SUBSCRIPTION-UI-REAL-FLOW.md)。**完整 B01–B23、候选旧产品全回归、灰度与生产未完成**；下文前序记录是历史，不用本轮成功回填历史失败。
 
-当前实现中：[双来源本地准入 UI](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md)，已冻结 37 步/10 写入合同；三子代理分别实施真实驱动、隔离私有文件与角色运行器、独立状态机验收。尚无本场景真实运行证据，不计入已验收成果。
+新增实际进展 `c15eda3`：[双来源本地准入 UI](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md) 两浏览器与四fresh原件通过，根/独立子代理完整原CLI报告逐字一致；每引擎100请求/37DOM/10写入/两来源四候选，A r8/B r2与20外审事件。旧84/新76辅助项分别复验、四张新PNG首屏实际查看。**发现6条真实DOM历史候选仍可准备决定的交互缺口，正常流通过不能代替完整交互**。[机器证据](evidence/p2-subscription-local-admission-c15eda3.json)保留原值；当前补丁及3个新增前端反例待新CI验收，生产未动。
 
 订阅页前序结果：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故该轮整体 **未验收通过**。详见[该轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器完整计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待逐项完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
 

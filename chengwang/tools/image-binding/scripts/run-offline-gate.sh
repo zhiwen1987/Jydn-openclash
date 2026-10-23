@@ -205,8 +205,9 @@ report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 # Retain all 77 prior cases and the 33 exact P1 unit scenarios. The seven
 # single-flight cases are a separate increment, never a replacement baseline.
 # Subscription increment: 40 transport + 32 component + one App integration.
+# Three decision-eligibility cases extend, never replace, that baseline.
 # These are mocked checks, not real agent/subscription/browser evidence.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 190 or report.get("numPassedTests") != report.get("numTotalTests"):
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 193 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
 required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx"}
 results = report.get("testResults", [])
@@ -243,6 +244,11 @@ subscription_increment = {
     "subscription-api.test.ts": (40, "de4c10feb1681a8cc53b4678b094831943404ee59ceb8fbf6be3680a3a3569b6"),
     "Subscriptions.test.tsx": (32, "8a38de66374776ecfd5b6d11bbdb7b990a6bfa99fa1c9723a5c3cad85d142ad4"),
 }
+subscription_decision_increment = frozenset((
+    "Subscriptions disables decisions for an already admitted candidate without preparing or writing",
+    "Subscriptions disables decisions for an already rejected candidate without preparing or writing",
+    "Subscriptions disables decisions for a quarantined candidate from an older source revision",
+))
 subscription_app_increment = "App opens real subscription resources and retains session across navigation"
 if len(summary_singleflight_increment) != 7 or hashlib.sha256("\n".join(sorted(summary_singleflight_increment)).encode()).hexdigest() != summary_singleflight_sha256:
     raise SystemExit("single-flight frontend increment definition changed")
@@ -253,6 +259,11 @@ for result in results:
         raise SystemExit("frontend duplicate test name")
     if filename in subscription_increment:
         count, digest = subscription_increment[filename]
+        if filename == "Subscriptions.test.tsx":
+            increment = frozenset(name for name in names if name in subscription_decision_increment)
+            if len(names) != count + 3 or increment != subscription_decision_increment:
+                raise SystemExit("subscription decision eligibility scenarios missing, renamed or substituted")
+            names = [name for name in names if name not in subscription_decision_increment]
         if len(names) != count or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != digest:
             raise SystemExit("pre-CI subscription frontend scenarios missing, renamed or substituted")
         continue
@@ -280,7 +291,7 @@ for result in results:
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=9 tests=" + str(report["numPassedTests"]) + " retained=117 subscription_transport=40 subscription_component=32 subscription_app=1 skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=9 tests=" + str(report["numPassedTests"]) + " retained=117 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"

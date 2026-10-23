@@ -34,9 +34,14 @@ async function select() {
   await waitFor(() => expect(button('准备导入候选')).toBeEnabled())
 }
 async function ready() { setup(); await login(); await select() }
-async function chooseCandidate() {
-  fireEvent.click(screen.getByRole('button', { name: /本地已接纳 · 2 个节点/ }))
+async function chooseCandidate(name = /本地已接纳 · 2 个节点/) {
+  fireEvent.click(screen.getByRole('button', { name }))
   await screen.findByText('节点-55555555')
+}
+function mockUndecidedCandidate(baseRevision = 3) {
+  const sources = subscriptionSourcePage(); delete sources.sources[0].acceptedCandidateId
+  const page = subscriptionCandidatePage(); page.candidates[0] = { ...page.candidates[0], state: 'quarantined', baseRevision }
+  readSources.mockResolvedValue(sources); readCandidates.mockResolvedValue(page)
 }
 function prepareCreate() { fireEvent.change(screen.getByLabelText('来源名称'), { target: { value: 'New local source' } }); fireEvent.click(button('准备创建来源')) }
 function confirm() { fireEvent.click(button('确认并提交本地操作')) }
@@ -263,13 +268,37 @@ describe('Subscriptions', () => {
     await act(async () => slow.resolve(subscriptionReceipt({ kind: 'fetch', revision: 4 })))
   })
   it('admits a selected candidate after inline confirmation', async () => {
-    await ready(); await chooseCandidate(); fireEvent.click(button('准备接纳候选')); expect(write).not.toHaveBeenCalled(); confirm()
+    mockUndecidedCandidate(); await ready(); await chooseCandidate(/待审候选 · 2 个节点/); fireEvent.click(button('准备接纳候选')); expect(write).not.toHaveBeenCalled(); confirm()
     await waitFor(() => expect(write).toHaveBeenCalledTimes(1)); expect(write.mock.calls[0][2]).toMatchObject({ kind: 'decide', candidateId: subscriptionCandidateId, decision: 'admitted_local', expectedRevision: 3 })
     expect(screen.getAllByText(/未评估/).length).toBeGreaterThan(0)
   })
   it('rejects a selected candidate after inline confirmation', async () => {
-    await ready(); await chooseCandidate(); fireEvent.click(button('准备拒绝候选')); expect(write).not.toHaveBeenCalled(); confirm()
+    mockUndecidedCandidate(); await ready(); await chooseCandidate(/待审候选 · 2 个节点/); fireEvent.click(button('准备拒绝候选')); expect(write).not.toHaveBeenCalled(); confirm()
     await waitFor(() => expect(write).toHaveBeenCalledTimes(1)); expect(write.mock.calls[0][2]).toMatchObject({ kind: 'decide', decision: 'rejected', candidateId: subscriptionCandidateId })
+  })
+  it('disables decisions for an already admitted candidate without preparing or writing', async () => {
+    await ready(); await chooseCandidate()
+    expect(button('准备接纳候选')).toBeDisabled(); expect(button('准备拒绝候选')).toBeDisabled()
+    expect(screen.getByText('候选状态为“本地已接纳”，仅待审候选可接纳或拒绝。')).toBeInTheDocument()
+    fireEvent.click(button('准备接纳候选')); fireEvent.click(button('准备拒绝候选'))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(); expect(api.createSubscriptionIntent).not.toHaveBeenCalled(); expect(write).not.toHaveBeenCalled()
+  })
+  it('disables decisions for an already rejected candidate without preparing or writing', async () => {
+    const sources = subscriptionSourcePage(); delete sources.sources[0].acceptedCandidateId
+    const page = subscriptionCandidatePage(); page.candidates[0] = { ...page.candidates[0], state: 'rejected' }
+    readSources.mockResolvedValue(sources); readCandidates.mockResolvedValue(page)
+    await ready(); await chooseCandidate(/已拒绝 · 2 个节点/)
+    expect(button('准备接纳候选')).toBeDisabled(); expect(button('准备拒绝候选')).toBeDisabled()
+    expect(screen.getByText('候选状态为“已拒绝”，仅待审候选可接纳或拒绝。')).toBeInTheDocument()
+    fireEvent.click(button('准备接纳候选')); fireEvent.click(button('准备拒绝候选'))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(); expect(api.createSubscriptionIntent).not.toHaveBeenCalled(); expect(write).not.toHaveBeenCalled()
+  })
+  it('disables decisions for a quarantined candidate from an older source revision', async () => {
+    mockUndecidedCandidate(2); await ready(); await chooseCandidate(/待审候选 · 2 个节点/)
+    expect(button('准备接纳候选')).toBeDisabled(); expect(button('准备拒绝候选')).toBeDisabled()
+    expect(screen.getByText('候选基准版本与当前来源版本不一致，请刷新并选择当前版本的待审候选。')).toBeInTheDocument()
+    fireEvent.click(button('准备接纳候选')); fireEvent.click(button('准备拒绝候选'))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(); expect(api.createSubscriptionIntent).not.toHaveBeenCalled(); expect(write).not.toHaveBeenCalled()
   })
   it('requires a separate rollback confirmation and revision', async () => {
     await ready(); await chooseCandidate(); fireEvent.click(button('准备回退候选'))

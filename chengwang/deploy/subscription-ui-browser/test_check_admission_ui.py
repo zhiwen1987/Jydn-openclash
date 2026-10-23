@@ -98,7 +98,21 @@ class AdmissionVerifierContracts(unittest.TestCase):
         r,v=fixture(); r[-1]['path']=r[-1]['path'].replace('/rollbacks','/rollback'); self.reject(C.reconstruct,r,v)
     def test_13_viewer_writes_gate_is_not_permission(self):
         e=C.expected_access('viewer','src_'+'1'*32); self.assertTrue(e['writesEnabled']); self.assertEqual(e['actions'],['subscription.read'])
-    def test_14_approver_source_actions_ordered(self): self.assertEqual(C.expected_access('approver','src_'+'1'*32)['actions'],['subscription.read','subscription.admission.decide','subscription.source.approve','subscription.rollback'])
+    def test_14_approver_source_actions_ordered(self):
+        self.assertEqual(C.expected_access('approver','src_'+'1'*32)['actions'],['subscription.read','subscription.admission.decide','subscription.source.approve','subscription.rollback'])
+        enabled={k:dict(enabled=True) for k in ('prepare_admit','prepare_reject')}
+        disabled={k:dict(enabled=False) for k in ('prepare_admit','prepare_reject')}
+        current=dict(state='quarantined',baseRevision=2)
+        C.validate_decision_controls(enabled,'approver',current,2)
+        self.reject(C.validate_decision_controls,disabled,'approver',current,2)
+        for state,base,revision in (('admitted_local',2,8),('rejected',6,8),('quarantined',2,8)):
+            candidate=dict(state=state,baseRevision=base)
+            C.validate_decision_controls(disabled,'approver',candidate,revision)
+            self.reject(C.validate_decision_controls,enabled,'approver',candidate,revision)
+        C.validate_decision_controls(disabled,'approver',None,None)
+        for role in ('operator','viewer','auditor','anonymous'):
+            C.validate_decision_controls(disabled,role,current,2)
+            self.reject(C.validate_decision_controls,enabled,role,current,2)
     def test_15_nodes_private_address_rejected(self):
         n=nodes(1); n[0]['server']='private'; self.reject(C.safe_nodes,n)
     def test_16_node_label_must_match_actual_id(self):

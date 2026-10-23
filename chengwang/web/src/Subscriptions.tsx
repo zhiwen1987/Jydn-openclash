@@ -397,7 +397,9 @@ export function Subscriptions() {
   const fetchReason = disabledReason('subscription.fetch') || (sourceAccess?.policyState !== 'ready' ? '受信目录未就绪。' : '') ||
     (fetchMode === 'session' ? !knownApproval ? '本会话尚无匹配当前来源、引用与版本的已读回批准。' : ''
       : !handoffValid ? '请输入有效的交接批准 ID 与正十进制安全整数策略版本；页面尚未核验该批准。' : '')
-  const decideReason = disabledReason('subscription.admission.decide') || (!candidate ? '请先选择当前版本中的候选。' : '')
+  const decideReason = disabledReason('subscription.admission.decide') || (!candidate ? '请先选择当前版本中的候选。'
+    : candidate.state !== 'quarantined' ? `候选状态为“${states[candidate.state]}”，仅待审候选可接纳或拒绝。`
+      : !selected || candidate.baseRevision !== selected.revision ? '候选基准版本与当前来源版本不一致，请刷新并选择当前版本的待审候选。' : '')
   const rollbackReason = disabledReason('subscription.rollback') || (!candidate || candidate.state !== 'admitted_local' ? '请先选择已在本地接纳的历史候选。' : '')
 
   return <section className="subscriptions" aria-label="订阅资源工作区">
