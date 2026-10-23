@@ -34,6 +34,8 @@ CHENGWANG_PROBE_CACHE_MAX_AGE=30s
 
 Windows 不运行 Go build/test/mod/download、Docker 或 WSL。仅 gofmt 和本地前端/Python 检查。实际 Linux CI 结果必须另行读回并记录。
 
+首次开发提交 `8f2a32c` 的父 CI `39889973028` 失败，不能计为验收通过：安全 reader 的 32 项已执行 30 pass、2 个 catalog fixture fail，另 runtime 正例未能监听；race/vet 尚未运行。定位为这些新测试用 `t.TempDir()` 后未显式设置 catalog 近父目录 0700，不能假设临时目录天然私有。修正限于测试准备目录的权限前置，保留生产 custody/文件系统/超时/全部断言；下一提交仍需重新跑完整 CI。前端门额外锁定旧传输测试全部 36 个实际名称，保留原 28 名历史哈希，关闭原 8 项只按前缀排除的改名缝隙。
+
 ## 尚未完成
 
 1. 新能力的真实 Linux 普通/race/vet 与原始回归读回（提交时待执行）。

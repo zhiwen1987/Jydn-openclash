@@ -24,6 +24,9 @@ func runtimeProbeInputs(t *testing.T) (Config, []byte) {
 	t.Helper()
 	c := runtimeD9Config(t)
 	root := t.TempDir()
+	if os.Chmod(root, 0700) != nil {
+		t.Fatal("provision private probe catalog directory")
+	}
 	c.ProbeReadEnabled = true
 	c.ProbeCatalogFile = filepath.Join(root, "catalog.json")
 	c.ProbeSpoolDir = filepath.Join(root, "spool")

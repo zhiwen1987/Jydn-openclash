@@ -461,6 +461,9 @@ func TestProbeSecureP1StoreDoesNotLeakDescriptors(t *testing.T) {
 
 func TestProbeSecureP1CatalogValidBytesAndNoMutation(t *testing.T) {
 	dir := t.TempDir()
+	if os.Chmod(dir, 0o700) != nil {
+		t.Fatal("cannot provision private catalog parent")
+	}
 	path := secureTestCatalog(t, dir)
 	before, _ := os.ReadFile(path)
 	catalog, err := ReadCatalogSecure(context.Background(), path, secureTestOwner())
@@ -472,6 +475,9 @@ func TestProbeSecureP1CatalogValidBytesAndNoMutation(t *testing.T) {
 
 func TestProbeSecureP1CatalogRejectsSymlinkAndHardlink(t *testing.T) {
 	dir := t.TempDir()
+	if os.Chmod(dir, 0o700) != nil {
+		t.Fatal("cannot provision private catalog parent")
+	}
 	path := secureTestCatalog(t, dir)
 	link := filepath.Join(dir, "catalog-link.json")
 	if os.Symlink(path, link) != nil {
@@ -490,6 +496,9 @@ func TestProbeSecureP1CatalogRejectsSymlinkAndHardlink(t *testing.T) {
 
 func TestProbeSecureP1CatalogRejectsPermissionsAndRawErrors(t *testing.T) {
 	dir := t.TempDir()
+	if os.Chmod(dir, 0o700) != nil {
+		t.Fatal("cannot provision private catalog parent")
+	}
 	path := secureTestCatalog(t, dir)
 	if os.Chmod(path, 0o644) != nil {
 		t.Fatal("cannot arrange unsafe catalog mode")

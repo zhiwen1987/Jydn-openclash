@@ -232,6 +232,11 @@ for result in results:
     names = [case["fullName"] for case in result["assertionResults"]]
     if len(set(names)) != len(names):
         raise SystemExit("frontend duplicate test name")
+    # Also pin all 36 actual names here. The original 28-name baseline below
+    # remains unchanged; the former eight prefix exclusions cannot be renamed
+    # or substituted while preserving only their count.
+    if filename == "image-trust-api.test.ts" and (len(names) != 36 or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != "a2febdcfd345b9464200ab7c4a1255ec4a8b0550364ed129b364639d61c111bb"):
+        raise SystemExit("accepted complete 36 transport scenarios changed")
     if filename in probe_increment:
         count, digest = probe_increment[filename]
         if len(names) != count or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != digest:
