@@ -1,6 +1,6 @@
 # 下一产品切片：真实探针只读接入
 
-最新状态：基础接线及原镜像回归已完成[2cf4a34隔离验收](P1-PROBE-READBACK-ACCEPTANCE.md)，真实agent端到端仍未完成。以下“尚无接线”等是原b8abe16设计基线，不能当作当前源码现状。
+最新状态：基础接线及原镜像回归见[2cf4a34隔离验收](P1-PROBE-READBACK-ACCEPTANCE.md)；真实 agent→API/重启/自然过期见[700ea9e后端隔离验收](P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)。正常 TLS 浏览器读取真实样本仍未完成，未上线。以下“尚无接线”“尚未运行实验”等是原b8abe16设计基线，不能当作当前源码现状；当前进度见[台账](PROJECT-PROGRESS-LEDGER.md)。
 
 状态：基础只读接线已实现于开发分支，Linux/真实探针端到端验收尚未完成；详见 [实现与证据边界](P1-PROBE-READBACK-IMPLEMENTATION.md)。本协议不是已上线声明。2026-10-23 原设计以 `b8abe163fdd40f0dffe327c97989cf6f858fb762` 源码为基线；本批未启动真实探针、配置网络或改生产。它推进真实控制台能力，不替代尚未完成的 TLS/撤销/完整来源与恢复测试。[完整能力缺口](SYSTEM-COMPLETION-GAP-AUDIT.md)。
 

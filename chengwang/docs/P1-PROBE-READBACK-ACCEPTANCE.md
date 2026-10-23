@@ -1,5 +1,7 @@
 # P1 安全探针读回基础：实际隔离验收
 
+本页保留基础 `2cf4a34` 的验收范围；后续真实 agent→API 的原生后端已通过[700ea9e独立验收](P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)，正常 TLS 浏览器全链路仍未完成。当前进度见[项目台账](PROJECT-PROGRESS-LEDGER.md)，下文后续实验计划不能当作最新状态。
+
 状态：`implemented+tested isolated-only`，仅限下列基础接线和原有回归。**真实 probe-agent→DoT/HTTPS→主 API→浏览器的完整闭环仍未完成，未上线**。生产、main、正式 Registry、设备写入均未改。源码提交 `2cf4a34a613bfb39a1caa019ac0f9d44d372faec`；早期失败及取消不计为通过。[实现范围与配置](P1-PROBE-READBACK-IMPLEMENTATION.md)。
 
 ## 权威执行

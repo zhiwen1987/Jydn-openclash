@@ -1,10 +1,12 @@
 # 澄网 · 网络自治中心
 
+[项目进度台账](docs/PROJECT-PROGRESS-LEDGER.md)：查看已实现、已验收、未完成与未上线事项；本阶段证据见[真实探针只读后端隔离验收](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)。
+
 澄网是一套独立于 OpenClash/LuCI 的多内核网络代理、策略路由与自治控制系统。它参考成熟代理软件的能力，但拥有自己的领域模型、可插拔内核适配层、版本管理、可解释精确路由、节点能力评估和中文管理界面。
 
 当前源码阶段是 **可离线运行、可选连接 Mihomo 只读控制器，并带受保护本地操作记录的 Shadow 控制面基础版**：
 
-- P1 新增默认关闭的安全探针证据 reader、单 worker 缓存、匿名脱敏摘要、RBAC 明细与代理节点工作台；f443666 的 Linux 父普通/race各2391已读回，旧2320完整保留。**真实 probe-agent→正常 DoT/HTTPS→主 API→浏览器端到端尚未实施，未上线**。见[实现、失败修正与验收边界](docs/P1-PROBE-READBACK-IMPLEMENTATION.md)。
+- P1 默认关闭的安全探针 reader、缓存、RBAC 明细和工作台已有基础验收；`700ea9e` 进一步完成真实 agent→正常 DoT/HTTPS→主 API、重启与自然过期的隔离后端验收，ordinary/race各2391且旧2320保留。**真实 API 的正常 TLS 浏览器闭环仍未完成，未上线**。见[本阶段原始证据与范围](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)及[基础实现边界](docs/P1-PROBE-READBACK-IMPLEMENTATION.md)。
 - 默认只监听 `127.0.0.1:7811`。
 - 默认运行在 `shadow` 模式，不接管生产流量。
 - 未设置管理员令牌时，发布接口保持关闭。
@@ -15,7 +17,7 @@
 - 可选加载只保存 SHA-256 摘要的静态高熵 Bearer 身份文件，并以默认拒绝的角色、租户、站点、对象和环境范围策略保护本地操作接口。
 - 本地操作库使用 schema v2 原子快照，持久绑定发起人和审批人；schema v1 只能迁移为 `legacy_unbound` 并冻结，系统不会猜测旧身份。
 - 操作创建和有限状态转换采用前置/结果证据、幂等键和 `commit_unknown` 语义；所有接口只记录本地 Shadow 状态，不执行设备动作。
-- M2b-0 已在本地实现默认关闭的主动探针执行链：命令入口、严格许可目录、固定 DoT、安全解析/固定拨号、业务分类、耐久启动账本、有界调度、独立 spool、去敏聚合和仅反映进程/调度/时钟/存储的健康协议。M2b-1 已有默认不启动的隔离容器候选文件，但当前开发机未完成 Docker 构建或运行验收，出口和 canary 仍被阻断；没有 API、控制面挂载或生产部署。
+- M2b-0 已有默认关闭的主动探针执行链：许可目录、固定 DoT、安全解析/固定拨号、业务分类、启动账本、有界调度和独立 spool。其安全只读 API 已接线并通过上述封闭 Linux 后端实验；这不是原 M2b-1 容器 canary、生产挂载或公网业务验收，不能解除其出口/部署 blocker。
 - 主动探针状态校验新增显式生命周期的 `LockedStateSnapshot`：按 spool→ledger 获取既有写锁，报告读取前重新核对锁路径与完整状态树，失败后永久失效，并在关闭时逆序释放。它仍是 process-local、依赖协作式文件锁的 advisory 只读原语；`Verify` 与外部消费者动作之间仍存在边界外 TOCTOU，且尚未接入恢复协调器，也不证明 Docker 当前镜像、Compose、拓扑或 live 容器身份。
 - 每次发布都使用乐观锁和原子版本存储，为后续灰度、回滚和设备适配器留出明确边界。
 - image-trust 候选已实现受保护的可信策略、撤销/防回放 API、固定来源自动刷新、健康两库间的审计补投递，以及只读状态/操作记录控制台；新增显式完整产品候选入口，共用主服务 runtime、基础产品 API 与审计，并通过正常浏览器 HTTPS/证书拒绝验收。**原主入口默认仍不注入 trust backend，未部署生产**。见 [P0-d7](docs/P0D7-REFRESH-RECOVERY-ACCEPTANCE.md)、[P0-d8](docs/P0D8-TRUST-CONSOLE-ACCEPTANCE.md)、[P0-d9 验收](docs/P0D9-PRODUCT-HTTPS-ACCEPTANCE.md)及[完整候选操作说明](docs/PRODUCT-CANDIDATE-OPERATOR-NOTES.md)；这不是全企业功能已完成或发布授权。
@@ -27,9 +29,9 @@
 - P0-d12 的自动刷新重复拒绝保护由ed756d7隔离验收：有界16槽且每次重新执行真实只读验证，避免同一坏候选持续追加拒绝审计；新增28项使ordinary/race各728，原700及全部镜像门保留。**新4项来源/追代是同进程runtime集成，完整镜像来源负矩阵、跨重启去重及生产上线未完成**。见[拒绝保护验收与剩余项](docs/P0D12-REFRESH-REJECTION-ACCEPTANCE.md)。
 - P0-d12 的异常HTTPS来源fixture前置由57fd54c隔离验收：24项（8格式/16Linux）、32项合成checker、34观测段/19wire均通过，原全部镜像回归保留；真实启动失败与诊断修复留档。**仅测试工具前置，不是完整产品来源拒绝/超时/追代/在途撤销矩阵，更不是上线**。见[来源fixture验收与未完成项](docs/P0D12-SOURCE-FIXTURE-ACCEPTANCE.md)。
 - P0-d12 的真实产品来源第一批由563e51a隔离验收：403陈旧/恢复、坏签名去重/恢复、合法前缀提交后坏签拒绝/恢复，三流程×两签名六格，原镜像回归均保留。**仅本批六格已证；TLS单因负例、在途撤销、来源重启及完整故障矩阵仍未完成，未上线**。见[实际验收与剩余项](docs/P0D12-PRODUCT-SOURCE-WAVE1-ACCEPTANCE.md)。
-- P0-d12 的首次来源 TLS CA/SAN/SPKI 故障×两签名六格已由 b8abe16 隔离验收：坏源 12 次真实尝试/零 HTTP，修正后 6 次完整 G1 响应及同 PID Fresh，持久状态零写，原五门与回归保留。**仅首次故障→同进程恢复已证，不是已确认后陈旧、在线轮换、完整矩阵或上线**。见[TLS 实际验收](docs/P0D12-PRODUCT-SOURCE-TLS-ACCEPTANCE.md)；下一实质产品切片为[真实探针 API/工作台接入（待实施）](docs/P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md)。
+- P0-d12 的首次来源 TLS CA/SAN/SPKI 故障×两签名六格已由 b8abe16 隔离验收：坏源 12 次真实尝试/零 HTTP，修正后 6 次完整 G1 响应及同 PID Fresh，持久状态零写，原五门与回归保留。**仅首次故障→同进程恢复已证，不是已确认后陈旧、在线轮换、完整矩阵或上线**。见[TLS 实际验收](docs/P0D12-PRODUCT-SOURCE-TLS-ACCEPTANCE.md)；此后的探针工作见[接入协议与后续浏览器边界](docs/P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md)。
 
-> 源码实现不等于生产能力已经开放。`10.88.0.254` 已部署并验收默认锁定的 Shadow 操作 API 与“操作中心”，但没有配置身份文件，`CHENGWANG_OPERATION_WRITES_ENABLED=false`，也不存在设备执行器；因此线上只证明失败关闭、只读读回和界面边界，未形成生产写入闭环。见 [10.88.0.254 部署记录](docs/DEPLOYMENT-10.88.0.254.md)。
+> 源码实现不等于生产能力已经开放。既有 [10.88.0.254 部署记录](docs/DEPLOYMENT-10.88.0.254.md)仅证明当时默认锁定的 Shadow API、只读读回与界面边界，不是生产写入闭环。本轮未访问生产确认当前版本、身份文件或开关状态，历史部署记录不能冒充实时状态。
 
 ## 本地启动
 
