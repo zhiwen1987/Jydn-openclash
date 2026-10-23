@@ -404,3 +404,11 @@ ed756d74719891c2fc473b90867dbfda95f37f0c的绑定39865484513/job120126497803、�
 57fd54c56a256da04ceb3f28e5450e56dab062a8的绑定39871985050/job120148358838、父39871985012/job120148358676均success。新fixture24项（8格式/16Linux）、checker32合成项具名0skip；34观测段/54连接/201事件/19wire经root及独立代理重算一致。40条HTTP阶段事件不等于40个成功HTTP，当前stall不证明产品timeout。旧728/race728/父2320/Registry3及全部49/65/151/909镜像门保持，695条/605unique源记录逐Git原bytes一致。[实际验收与未完成项](P0D12-SOURCE-FIXTURE-ACCEPTANCE.md)、[失败记录](P0D12-SOURCE-FIXTURE-FAILURES.md)。
 
 **状态仅为 source fixture prerequisites implemented+tested isolated-only。** 产品运行逻辑未改；完整真实镜像来源拒绝/顺序追代/在途撤销尚未接入，单因TLS及probe污染窗口、真实timeout hold/屏障需继续完成。所有企业功能、长期soak、正式authority/发行、生产灰度及九项恢复blocker保持未闭合；无生产/main/正式Registry变更。
+
+## P0-d12 真实产品异常来源第一批已隔离验收（2026-10-23）
+
+上节57fd为历史前置范围。本批代码563e51aa855079ad7c0ffd7d830356e3a4cde6a2，绑定39877834480/job120167678960、父39877834614/job120167678578均attempt1/success。三个独立流程×两签名六格实际默认产品镜像，原始签名目录/原计划/来源JSONL/API/离线双库交叉重放：403后未确认或自然陈旧再恢复；坏签首拒绝后反复请求不追加journal/审计、不续Fresh再有效G2恢复；真实2.json的合法G2提交、坏G3拒绝且整批不确认，再有效G3恢复。各流程两格式最终分别seq1/J0/A0/G1、seq9/J2/A4/G2、seq13/J3/A6/G3，ledger均0，本门未调用SDK消费。
+
+主代理及三名独立子代理分别下载1354原工件，重算新72工件/75输入关系和原49/65/151/909门；67条完整TLS/HTTP连接、268事件、18动作、10journal/20实际审计、36Registry快照/12运行及重开零请求窗口、6产品正常退出0/6来源TERM join0/7所属容器精确清理保持。原728/race728、父各2320、Registry各3、浏览器40/45/45均保留；新8profile/32verifier为合成检查器测试，不当产品业务证据。612checkout+92module＝704源记录，612唯一文件逐Git原blob一致，无CRLF归一化。[实际验收、原证据与未完成项](P0D12-PRODUCT-SOURCE-WAVE1-ACCEPTANCE.md)。
+
+**状态仅为 actual-product source wave1 implemented+tested isolated-only。** 没有修改产品运行逻辑或生产服务。TLS CA/SAN/SPKI单因负矩阵、完整HTTP/帧/真实超时/hint/gap/fork/两类64及字节预算、来源重启、实际在途撤销内核屏障、其他异常恢复边界、长期soak、正式authority/发行/企业功能和生产灰度仍未闭合；不解除九项blocker，不承诺可用率或零bug。无SSH、main合并、正式Registry发布或生产变更。
