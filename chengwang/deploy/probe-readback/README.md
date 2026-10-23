@@ -43,6 +43,8 @@
 - Chrome 的真实等待结果由 `probe_chrome_launcher.py` 保存。关闭命令返回不等于进程退出；正常通过要求 Chrome 和 Node 实际退出 0，且未用强制清理获得绿色结果。
 - 公开浏览器输出另在 `browser/`，包括 18 个固定 capture 文件、flow/driver/build/processes 四个记录，以及构建静态资源。令牌、私钥、完整页面 HTML 快照、profile、trace、HAR、storageState 和原始控制台内容不导出。静态构建的公开 `index.html` 不属于页面快照。
 - 控制器失败后，只把已由白名单 writer 写入且再次经令牌/私钥扫描的完整候选文件保存在 `failed-browser/`，不复制 profile 或日志；对应 `failure-candidates.json` 固定 `runtimeAcceptanceProven=false`。它们用于定位断点，不能替代完整 gate，也不能因存在截图而宣告通过。
+- 上传前单独限制隐藏项：仅允许公开 `lab/browser/web/.vite/manifest.json` 及其父目录，并拒绝链接、非普通文件和超预算文件；边界成功后才启用隐藏文件上传。这不是通用秘密内容扫描器，内容过滤仍由既有导出器负责。实际完整 ZIP 必须再次重放，不能用上传前的本机 PASS 替代。
+- 请求失败诊断只输出四个固定 API 类别、取消三态、有限错误类别和运行/关闭阶段，不输出原 URL、错误内容、请求头或响应体；不改变失败计数。界面主动取消、关闭中取消和真实传输失败必须有证据区分，不能自动当成功。
 
 采样时最终后端验收摘要尚不存在，因此 capture/flow 始终标为 `API_CAPTURE_UNBOUND`、`runtimeProven=false`，不填占位摘要。完成原 22 输入和清理后，独立 `check_probe_browser.py` 才重新验证后端原字节，并把真实摘要、API、白名单 DOM、PNG、正常 TLS 链、实际静态资源、进程/挂载/参数和正常退出关联到单独的 `chengwang.probe-browser-runtime-gate/v1` 报告。既有纯合同 schema 不会升级成运行证明。
 

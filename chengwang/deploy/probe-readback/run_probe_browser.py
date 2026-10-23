@@ -56,6 +56,7 @@ def public_failure_diagnostic(bundle):
         ('logs/browser.private', r'^PROBE_BROWSER_FLOW_STAGE=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_PAIR_STAGE=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_OPERATION=([A-Z_]+)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_NETWORK_FAILURE=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(CANCELED|NOT_CANCELED|CANCEL_UNKNOWN):(ABORTED|OTHER):(RUNNING|CLOSING)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_ERROR=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_FATAL=((?:base|chrome|content|components|sandbox|third_party)/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.cc):([1-9][0-9]{0,5})$'),
     ):
@@ -66,6 +67,9 @@ def public_failure_diagnostic(bundle):
         for line in raw.decode('utf-8', errors='replace').splitlines():
             match = re.fullmatch(pattern, line)
             if not match:
+                continue
+            if line.startswith('PROBE_BROWSER_NETWORK_FAILURE='):
+                sys.stderr.write(line + '\n')
                 continue
             if line.startswith('PROBE_BROWSER_LAUNCH_FATAL='):
                 if len(match[1]) <= 200:
@@ -82,6 +86,26 @@ def public_failure_diagnostic(bundle):
                       'PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN'}
             if match[1] in stages and (len(match.groups()) == 1 or match[2] in ERRORS):
                 sys.stderr.write(line + '\n')
+
+
+def check_public_archive(root):
+    """Only the exported Vite build manifest may cross as a hidden entry."""
+    need(root.is_dir() and not root.is_symlink(), 'BROWSER_EXPORT')
+    count, total = 0, 0
+    for path in root.rglob('*'):
+        need(not path.is_symlink(), 'BROWSER_EXPORT')
+        relative = path.relative_to(root).as_posix()
+        hidden = any(part.startswith('.') for part in path.relative_to(root).parts)
+        if hidden:
+            need(relative in ('lab/browser/web/.vite', 'lab/browser/web/.vite/manifest.json'), 'BROWSER_EXPORT')
+            need(path.is_dir() if relative.endswith('/.vite') else path.is_file(), 'BROWSER_EXPORT')
+        if path.is_dir():
+            continue
+        info = path.lstat()
+        need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 < info.st_size <= 16 << 20, 'BROWSER_EXPORT')
+        count += 1; total += info.st_size
+        need(count <= 4096 and total <= 64 << 20, 'BROWSER_EXPORT')
+    need(count > 0, 'BROWSER_EXPORT')
 
 
 def configuration(bundle):
@@ -512,6 +536,9 @@ def outer(options):
                 rel = entry['path'][len('built-web/'):]
                 target = web / rel; target.parent.mkdir(parents=True, exist_ok=True)
                 N.exclusive(target, N.stable_read(bundle / 'web' / rel, 8 << 20)[0])
+        # A complete capture can still fail the independent browser gate.
+        # Expose only fixed diagnostic projections before private logs vanish.
+        public_failure_diagnostic(bundle)
         N.cleanup_bundle(bundle); bundle = None
         N.report(options, 'cleanup', 'cleanup', ownedProcessesJoined=4, exitCodes=[0] * 4, forcedKills=0,
             privateFixtureRemoved=True, privateToolsRemoved=True, hostNamespaceUnchanged=True,

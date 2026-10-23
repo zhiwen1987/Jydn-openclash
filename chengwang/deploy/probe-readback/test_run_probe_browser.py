@@ -62,6 +62,8 @@ class TestBrowserOrchestration(unittest.TestCase):
                    b'PROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_FLOW_STAGE=SECRET\n'
                    b'PROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_PAIR_STAGE=SECRET\n'
                    b'PROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_DRIVER_OPERATION=SECRET\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE=PROBE_STATUS:CANCELED:ABORTED:RUNNING\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE=SECRET:CANCELED:ABORTED:RUNNING\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/../SECRET.cc:123\n'
                    b'PROBE_BROWSER_LAB=FAIL stage=PREWARM code=SECRET raw_input_suppressed=true\n')
@@ -69,7 +71,7 @@ class TestBrowserOrchestration(unittest.TestCase):
              mock.patch.object(browser.N, 'stable_read', return_value=(private, None)), \
              contextlib.redirect_stderr(diagnostic):
             browser.public_failure_diagnostic(pathlib.Path('/private'))
-        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_DRIVER_STAGE=CLOSE_DRAIN\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
+        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_DRIVER_STAGE=CLOSE_DRAIN\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_NETWORK_FAILURE=PROBE_STATUS:CANCELED:ABORTED:RUNNING\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory) / 'fixture'
             (root / 'browser/out').mkdir(parents=True)
@@ -87,6 +89,24 @@ class TestBrowserOrchestration(unittest.TestCase):
                 with mock.patch.object(browser.N, 'stable_read', return_value=(b'PRIVATE_TOKEN_123', None)):
                     with self.assertRaises(browser.N.Failure):
                         browser.preserve_failed_captures(root, pathlib.Path(directory))
+            # Enabling hidden uploads admits only this exact public manifest,
+            # never profiles, .env files, links or an empty archive.
+            archive = pathlib.Path(directory) / 'public'
+            archive.mkdir()
+            with self.assertRaises(browser.N.Failure): browser.check_public_archive(archive)
+            manifest = archive / 'lab/browser/web/.vite/manifest.json'
+            manifest.parent.mkdir(parents=True)
+            manifest.touch()
+            with self.assertRaises(browser.N.Failure): browser.check_public_archive(archive)
+            with mock.patch.object(pathlib.Path, 'lstat', return_value=types.SimpleNamespace(st_mode=0o100644, st_nlink=1, st_size=2)):
+                browser.check_public_archive(archive)
+                secret = archive / '.env'; secret.touch()
+                with self.assertRaises(browser.N.Failure): browser.check_public_archive(archive)
+            secret.unlink()
+            with mock.patch.object(pathlib.Path, 'is_symlink', return_value=True):
+                with self.assertRaises(browser.N.Failure): browser.check_public_archive(archive)
+            with mock.patch.object(pathlib.Path, 'lstat', return_value=types.SimpleNamespace(st_mode=0o100644, st_nlink=2, st_size=2)):
+                with self.assertRaises(browser.N.Failure): browser.check_public_archive(archive)
 
     def test_original_default_hooks_are_noops_and_entrypoint_remains_runner(self):
         lab = object.__new__(browser.N.Lab); lab.bundle = pathlib.Path('/private/bundle')

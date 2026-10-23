@@ -73,6 +73,18 @@ export function driverOperationFailure(operation) {
   return `PROBE_BROWSER_DRIVER_OPERATION=${operation}\n`
 }
 
+export function networkFailureDiagnostic(url, canceled, errorText, lifePhase) {
+  if (typeof url !== 'string' || !['RUNNING', 'CLOSING'].includes(lifePhase)) return null
+  const kind = new Map([[ORIGIN + '/api/v1/snapshot', 'SNAPSHOT'],
+    [ORIGIN + '/api/v1/observations/status', 'OBSERVATIONS'],
+    [ORIGIN + '/api/v1/probes/status', 'PROBE_STATUS'],
+    [ORIGIN + '/api/v1/probes/details', 'PROBE_DETAILS']]).get(url)
+  if (!kind) return null
+  const cancellation = canceled === true ? 'CANCELED' : canceled === false ? 'NOT_CANCELED' : 'CANCEL_UNKNOWN'
+  const code = errorText === 'net::ERR_ABORTED' ? 'ABORTED' : 'OTHER'
+  return `PROBE_BROWSER_NETWORK_FAILURE=${kind}:${cancellation}:${code}:${lifePhase}\n`
+}
+
 export function validateLaunchOptions(value) {
   need(exact(value, ['engine', 'root', 'chrome', 'sourceRoot', 'launcher']))
   need(['chrome-cdp', 'playwright'].includes(value.engine))
@@ -282,6 +294,7 @@ export class NetworkJournal {
   constructor(send, proveTLS) {
     this.send = send; this.proveTLS = proveTLS; this.active = new Map(); this.tasks = new Set()
     this.network = []; this.probe = []; this.ordinal = 0; this.totalBytes = 0; this.failure = false
+    this.lifePhase = 'RUNNING'; this.failureDiagnostics = 0
     this.counters = { runtimeErrors: 0, consoleErrors: 0, consoleWarnings: 0, cspErrors: 0,
       assetErrors: 0, forbiddenRequests: 0, failedRequests: 0, captureErrors: 0 }
   }
@@ -313,6 +326,13 @@ export class NetworkJournal {
           const item = this.active.get(p.requestId); this.active.delete(p.requestId)
           this.counters.failedRequests++
           if (!API.has(new URL(item.url).pathname)) this.counters.assetErrors++
+          try {
+            const diagnostic = networkFailureDiagnostic(item.url, p.canceled, p.errorText, this.lifePhase)
+            if (diagnostic !== null && this.failureDiagnostics < 128) {
+              this.failureDiagnostics++
+              process.stderr.write(diagnostic)
+            }
+          } catch { /* Diagnostics never change event outcomes. */ }
         }
       }
       if (method === 'Network.loadingFinished' && this.active.has(p.requestId)) {
@@ -566,6 +586,7 @@ async function launchImplementation(input) {
         if (closed) return copy(closeEvidence)
         checkpoint('CLOSE_DRAIN')
         await journal.flush(); need(journal.active.size === 0)
+        journal.lifePhase = 'CLOSING'
         checkpoint('CLOSE_COMMAND')
         if (context) await context.close()
         else await browserSend('Browser.close')

@@ -512,11 +512,30 @@ jobs:
           print('PROBE_BROWSER_SOURCE=UNCHANGED')
           PY
 
-      - name: Preserve public evidence only including failed attempts
+      - name: Validate hidden-file boundary of public evidence archive
+        id: public_archive_boundary
         if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          python3 -I -B - "$evidence" <<'PY'
+          import pathlib, sys
+          sys.path.insert(0, str(pathlib.Path('chengwang/deploy/probe-readback').resolve()))
+          import run_probe_browser
+          try:
+              run_probe_browser.check_public_archive(pathlib.Path(sys.argv[1]))
+          except Exception:
+              raise SystemExit('PROBE_BROWSER_ARCHIVE_BOUNDARY=FAIL raw_input_suppressed=true')
+          print('PROBE_BROWSER_ARCHIVE_BOUNDARY=PASS hidden_scope=VITE_PUBLIC_MANIFEST_ONLY')
+          PY
+
+      - name: Preserve public evidence only including failed attempts
+        if: always() && steps.public_archive_boundary.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: probe-browser-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/chengwang-probe-browser-runtime/evidence/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

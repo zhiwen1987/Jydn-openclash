@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { validateLaunchOptions, parseProcessStat, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
   collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError, launchFatalLocations,
-  driverOperationFailure } from './browser-driver.mjs'
+  driverOperationFailure, networkFailureDiagnostic } from './browser-driver.mjs'
 
 const sha = raw => createHash('sha256').update(raw).digest('hex')
 const uuid = 'a'.repeat(32), root = '/tmp/chengwang-probe-readback-' + uuid
@@ -139,6 +139,57 @@ test('driver all-site evidence strips response body and all header values', asyn
 })
 
 test('driver asynchronous capture failures are fatal and console messages stay private', async () => {
+  const apiKinds = [['/api/v1/snapshot', 'SNAPSHOT'], ['/api/v1/observations/status', 'OBSERVATIONS'],
+    ['/api/v1/probes/status', 'PROBE_STATUS'], ['/api/v1/probes/details', 'PROBE_DETAILS']]
+  for (const [path, kind] of apiKinds) for (const phase of ['RUNNING', 'CLOSING']) {
+    for (const [canceled, label] of [[true, 'CANCELED'], [false, 'NOT_CANCELED'], [undefined, 'CANCEL_UNKNOWN'], ['private-sentinel', 'CANCEL_UNKNOWN']]) {
+      assert.equal(networkFailureDiagnostic('https://127.0.0.1:17861' + path, canceled, 'net::ERR_ABORTED', phase),
+        `PROBE_BROWSER_NETWORK_FAILURE=${kind}:${label}:ABORTED:${phase}\n`)
+      assert.equal(networkFailureDiagnostic('https://127.0.0.1:17861' + path, canceled, 'private-sentinel', phase),
+        `PROBE_BROWSER_NETWORK_FAILURE=${kind}:${label}:OTHER:${phase}\n`)
+    }
+  }
+  for (const url of ['private-sentinel', 'https://foreign.example/private-sentinel', 'https://127.0.0.1:17861/api/v1/unknown', {}, null]) {
+    assert.equal(networkFailureDiagnostic(url, true, 'private-sentinel', 'RUNNING'), null)
+  }
+  assert.equal(networkFailureDiagnostic('https://127.0.0.1:17861/api/v1/snapshot', true, 'private-sentinel', 'private-sentinel'), null)
+  const privateError = { toString() { throw Error('private-sentinel') } }
+  assert.equal(networkFailureDiagnostic('https://127.0.0.1:17861/api/v1/snapshot', true, privateError, 'RUNNING'),
+    'PROBE_BROWSER_NETWORK_FAILURE=SNAPSHOT:CANCELED:OTHER:RUNNING\n')
+  const originalWrite = process.stderr.write, diagnosticWrites = []
+  process.stderr.write = value => { diagnosticWrites.push(value); return true }
+  try {
+    const failed = new NetworkJournal(async () => ({}), async () => {})
+    assert.equal(failed.lifePhase, 'RUNNING')
+    for (let index = 0; index < 132; index++) {
+      const [path] = apiKinds[index % apiKinds.length]
+      if (index === 4) failed.lifePhase = 'CLOSING'
+      failed.handle('Network.requestWillBeSent', { requestId: String(index), type: 'Fetch', request: request(path,
+        path === '/api/v1/probes/details' ? { Authorization: 'Bearer private-sentinel' } : {}) })
+      failed.handle('Network.loadingFailed', { requestId: String(index), canceled: index % 3 === 0 ? true : index % 3 === 1 ? false : undefined,
+        errorText: index % 2 === 0 ? 'net::ERR_ABORTED' : 'private-sentinel' })
+    }
+    assert.equal(failed.counters.failedRequests, 132); assert.equal(failed.counters.assetErrors, 0)
+    assert.equal(failed.failure, false); assert.equal(failed.active.size, 0)
+    failed.handle('Network.requestWillBeSent', { requestId: 'asset', type: 'Stylesheet', request: request('/assets/main.css') })
+    failed.handle('Network.loadingFailed', { requestId: 'asset', canceled: true, errorText: 'private-sentinel' })
+    failed.handle('Network.loadingFailed', { requestId: 'untracked-private-sentinel', canceled: true, errorText: 'private-sentinel' })
+    assert.equal(failed.counters.failedRequests, 133); assert.equal(failed.counters.assetErrors, 1)
+    assert.equal(diagnosticWrites.length, 128)
+    assert.ok(Buffer.byteLength(diagnosticWrites.join('')) < 16 << 10)
+    assert.ok(!diagnosticWrites.join('').includes('private-sentinel'))
+    assert.ok(diagnosticWrites.every(line => /^PROBE_BROWSER_NETWORK_FAILURE=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(CANCELED|NOT_CANCELED|CANCEL_UNKNOWN):(ABORTED|OTHER):(RUNNING|CLOSING)\n$/.test(line)))
+    assert.ok(diagnosticWrites[0].endsWith(':RUNNING\n')); assert.ok(diagnosticWrites[4].endsWith(':CLOSING\n'))
+    const writeFailure = new NetworkJournal(async () => ({}), async () => {})
+    process.stderr.write = () => { throw Error('private-sentinel') }
+    writeFailure.handle('Network.requestWillBeSent', { requestId: 'write-failure', type: 'Fetch', request: request('/api/v1/probes/status') })
+    writeFailure.handle('Network.loadingFailed', { requestId: 'write-failure', canceled: false, errorText: 'private-sentinel' })
+    assert.equal(writeFailure.counters.failedRequests, 1); assert.equal(writeFailure.failure, false)
+    writeFailure.handle('Network.requestWillBeSent', { requestId: 'accessor-failure', type: 'Fetch', request: request('/api/v1/probes/status') })
+    writeFailure.handle('Network.loadingFailed', Object.defineProperty({ requestId: 'accessor-failure' }, 'errorText',
+      { get() { throw Error('private-sentinel') } }))
+    assert.equal(writeFailure.counters.failedRequests, 2); assert.equal(writeFailure.failure, false)
+  } finally { process.stderr.write = originalWrite }
   for (const operation of ['NAVIGATE', 'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK']) {
     assert.equal(driverOperationFailure(operation), `PROBE_BROWSER_DRIVER_OPERATION=${operation}\n`)
   }
@@ -241,6 +292,8 @@ test('driver DOM extractor reads presentation without HTML state clock or fetch 
     ['NAVIGATE', 'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK'])
   assert.ok(source.includes('if (!operationFailurePrinted)'))
   assert.ok(source.includes('operationFailurePrinted = true\n          process.stderr.write(driverOperationFailure(operation))'))
+  assert.ok(source.indexOf("journal.lifePhase = 'CLOSING'") < source.indexOf("checkpoint('CLOSE_COMMAND')"))
+  assert.ok(source.includes('this.failureDiagnostics < 128'))
 })
 
 test('driver invalid factory invocation is sanitized before any launch or filesystem work', async () => {
