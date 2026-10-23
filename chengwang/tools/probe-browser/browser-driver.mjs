@@ -340,6 +340,7 @@ export class NetworkJournal {
 async function launchImplementation(input) {
   const options = validateLaunchOptions(input)
   // Closed checkpoints mean entry into a factory step, never its completion.
+  // Evidence and close checkpoints also mark entry only, not acceptance.
   const checkpoint = stage => process.stderr.write(`PROBE_BROWSER_DRIVER_STAGE=${stage}\n`)
   checkpoint('ENVIRONMENT')
   need(process.platform === 'linux' && process.getuid?.() === 10001 && process.getgid?.() === 10001
@@ -551,14 +552,17 @@ async function launchImplementation(input) {
         need(raw.length > 8 && raw.length <= 16 << 20 && raw.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))); return Uint8Array.from(raw)
       }),
       networkSince: guarded('NETWORK', async (cursor = 0) => { await journal.flush(); return journal.since(cursor) }),
-      getEvidence: async () => { try { await journal.flush(); return evidence() } catch { reject() } },
+      getEvidence: async () => { checkpoint('EVIDENCE'); try { await journal.flush(); return evidence() } catch { reject() } },
       close: async () => {
         try {
         if (closed) return copy(closeEvidence)
+        checkpoint('CLOSE_DRAIN')
         await journal.flush(); need(journal.active.size === 0)
+        checkpoint('CLOSE_COMMAND')
         if (context) await context.close()
         else await browserSend('Browser.close')
         let exit
+        checkpoint('CLOSE_WAIT')
         await until(async () => {
           try { exit = await processRecord(join(options.browserRoot, 'chrome-exit.private.json')); return true } catch (error) { if (error?.code === 'ENOENT') return false; throw error }
         }, 15000)
@@ -566,12 +570,16 @@ async function launchImplementation(input) {
           && exit.schema === 'chengwang.probe-chrome-exit/v1' && exit.engine === options.engine && exit.fixtureId === options.fixtureId
           && exit.pid === record.pid && exit.startTicks === record.startTicks && exit.exitCode === 0 && exit.joined === true && exit.forced === false)
         if (childResult) { const status = await Promise.race([childResult, delay(2000).then(() => null)]); need(status?.code === 0 && status.signal === null) }
+        checkpoint('CLOSE_SCAN')
         await until(async () => !(await liveOwnedChrome(options, record)), 5000)
         const guardPath = join(options.sourceRoot, 'chengwang/tools/image-binding/scripts/browser-process-guard.py')
         // The existing guard is invoked only after a complete live scan proves
         // it has no target to signal. Any forced intervention fails before it.
+        checkpoint('CLOSE_GUARD')
         try { await execute('/usr/bin/python3', ['-B', guardPath, 'cleanup', options.browserRoot], { env: environment, timeout: 10000, maxBuffer: 4096 }) } catch { reject() }
+        checkpoint('CLOSE_RESCAN')
         need(!(await liveOwnedChrome(options, record)))
+        checkpoint('CLOSE_DONE')
         closed = true; transport?.socket.close()
         closeEvidence = { normalCloseCommandCompleted: true, chromeExit: copy(exit), guardExitCode: 0,
           noLiveOwnedProcessesBeforeGuard: true, noLiveOwnedProcessesAfterGuard: true, guardSignalIntervention: false }

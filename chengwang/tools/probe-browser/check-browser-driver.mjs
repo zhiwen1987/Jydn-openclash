@@ -194,8 +194,21 @@ test('driver DOM extractor reads presentation without HTML state clock or fetch 
   assert.ok(source.includes("TMPDIR: '/var/tmp'")); assert.ok(!source.includes("TMPDIR: join("))
   assert.ok(source.includes('info.uid === 10001 && info.gid === 10001 && (info.mode & 0o7777) === 0o700'))
   assert.ok(source.includes("'chrome-exit.private.json'")); assert.ok(source.includes('exit.exitCode === 0'))
-  assert.deepEqual([...source.matchAll(/checkpoint\('([A-Z_]+)'\)/g)].map(match => match[1]),
-    ['ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES', 'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY'])
+  const checkpointStages = ['ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES', 'NSS_INIT',
+    'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY', 'EVIDENCE', 'CLOSE_DRAIN',
+    'CLOSE_COMMAND', 'CLOSE_WAIT', 'CLOSE_SCAN', 'CLOSE_GUARD', 'CLOSE_RESCAN', 'CLOSE_DONE']
+  assert.deepEqual([...source.matchAll(/checkpoint\('([A-Z_]+)'\)/g)].map(match => match[1]), checkpointStages)
+  const checkpointExpression = source.match(/const checkpoint = (stage => process\.stderr\.write\(`[^`]*`\))/)?.[1]
+  assert.ok(checkpointExpression)
+  const checkpointWrites = []
+  const mockCheckpoint = new Function('process', `return (${checkpointExpression})`)(
+    { stderr: { write: value => { checkpointWrites.push(value); return true } } })
+  for (const stage of checkpointStages) mockCheckpoint(stage)
+  assert.deepEqual(checkpointWrites, checkpointStages.map(stage => `PROBE_BROWSER_DRIVER_STAGE=${stage}\n`))
+  const closeEntries = checkpointWrites.filter(value => value.startsWith('PROBE_BROWSER_DRIVER_STAGE=CLOSE_'))
+  assert.equal(closeEntries.length, 7)
+  assert.ok(Buffer.byteLength([...closeEntries, ...closeEntries, 'PROBE_BROWSER_DRIVER_STAGE=EVIDENCE\n'].join('')) < 1024)
+  assert.ok(!checkpointWrites.join('').includes('private-sentinel'))
   assert.ok(source.includes('Closed checkpoints mean entry into a factory step, never its completion.'))
   assert.ok(source.indexOf('const options = validateLaunchOptions(input)') < source.indexOf("checkpoint('ENVIRONMENT')"))
   assert.deepEqual([...source.matchAll(/guarded\('([A-Z_]+)'/g)].map(match => match[1]),

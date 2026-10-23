@@ -74,6 +74,7 @@ def public_failure_diagnostic(bundle):
             stages = {'ARGUMENTS', 'PREWARM', 'FLOW', 'WAIT_EXPIRED', 'EXPIRED', 'CLOSE', 'DONE', 'FRESH', 'UNEXPECTED',
                       'ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES',
                       'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY',
+                      'CLOSE_DRAIN', 'CLOSE_COMMAND', 'CLOSE_WAIT', 'CLOSE_SCAN', 'CLOSE_GUARD', 'CLOSE_RESCAN', 'CLOSE_DONE', 'EVIDENCE',
                       'NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
                       'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN',
                       'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK',

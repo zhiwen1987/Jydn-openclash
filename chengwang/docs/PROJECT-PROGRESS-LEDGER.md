@@ -2,7 +2,7 @@
 
 更新日期：2026-10-23。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-当前结果：真实 agent 到只读产品 API 的隔离后端链路通过 CI 并独立重放；新增机器能力事实已完成父门及原生后端复验，候选镜像回归 CI 终态 success。用户选择 CDP 和 Playwright 两条验收路径均实施；两引擎目前已实际启动，走过 fresh 桌面/移动端、清除令牌和旧结论撤回流程，并保留失败候选截图，但完整过期流程与独立浏览器 gate 尚未通过。预检和本地纯/mock 测试不能替代真实运行；当前正修复自动轮询摘要与手动读回的世代竞态。本轮未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
+当前结果：真实 agent 到只读产品 API 的隔离后端链路通过 CI 并独立重放；新增机器能力事实已完成父门及原生后端复验，候选镜像回归 CI 终态 success。用户选择 CDP 和 Playwright 两条验收路径均实施；两引擎目前已实际走过 fresh 桌面/移动端、清除令牌、旧结论撤回和过期读回流程，并保留完整 18 capture 失败候选，但控制器正常关闭和独立浏览器 gate 尚未通过。Chrome wait=0 不等于 Node 控制器或整套清理成功。预检和本地纯/mock 测试不能替代真实运行；当前继续定位 CLOSE 阶段。本轮未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
 ## 当前阶段进度
 
@@ -54,5 +54,6 @@
 | `76ad3bd` | [第七轮 CI 39913536643](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39913536643) 两条路径均实际进入 `IDENTITY/READY`；CDP 在 `FRESH/FLOW` 失败，Playwright 在 `EXPIRED` 失败，后者实际 Chrome wait=0 但控制器非零。尚不能确定页面流程具体断点；下一轮增加 12 个固定 flow 入口和首次失败操作枚举，失败时仅导出已通过白名单 writer/令牌扫描的候选 capture，显式不具备验收效力。父门及原生后端独立验收通过 | 两条真实浏览器闭环已通过，或 Chrome 退出 0 等于整个流程成功 |
 | `7ee2c91` | [第八轮 CI 39914889474](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39914889474) CDP 断点为 `FRESH_DESKTOP`、无 driver 操作异常；Playwright 到 `EXPIRED`，候选中已有 fresh/withdrawn API、fresh/cleared/withdrawn DOM 和 3 张 PNG，但无 expired API，尚未到发布。下一轮仅给 CDP 加原生 Playwright headless 默认已有的 `--hide-scrollbars`，保留严格无横向溢出/PNG 宽校验；过期读回细分 6 个闭集 checkpoint。父门及原生后端独立验收通过；实际后端原 API 三阶段的纯模型回放通过，不是真浏览器证明 | 候选截图意味着完整闭环、已确定 CDP 根因或已上线 |
 | `938b0d0` | [第九轮 CI 39916035176](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39916035176) CDP 修后越过桌面/移动端和旧结论撤回；两引擎均在 `EXPIRED_MODEL` 失败，未进入 `EXPIRED_GENERATION`。纯测试已复现：TTL 等待期积压的自动摘要被误当作刷新响应，旧摘要与新明细跨世代时过早触发 phase 校验。修正先处理已完成队列，严格完整 shape 校验后才允许世代不同有界重读，匹配后仍执行原 phase/TTL/样本语义；不声称 completion ordinal 证明点击请求因果。父门/原生 CI 终态 success | 已通过浏览器 gate；单凭细分入口已证明唯一真实根因；或修改验证标准强行变绿 |
+| `a284291` | [第十轮 CI 39917846275](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39917846275) 两引擎实际越过 `EXPIRED_PUBLISH`，失败转到控制器 `CLOSE`。完整 18 capture 仍仅为失败候选，PW 已独立核对摘要、4 PNG 完整性、684 个 Git 原 blob，过期 0 样本/3 unknown；Chrome 实际 wait=0，但缺完整后端 22 输入及 flow/driver/build/processes，不能验收。下一轮只细分正常关闭各入口，不改变退出/无残留/无强制干预判断；父门普通/race 各 2403 Test 已独立验收 | 18 capture 或 Chrome wait0 已证明正常生命周期、完整 gate 或上线 |
 
 下一顺序：CDP 与 Playwright 各自真实 API 正常 TLS 浏览器闭环 → 继续完整产品功能与隔离故障验收 → 获批后才进入备份、灰度、生产读回和回滚演练。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
