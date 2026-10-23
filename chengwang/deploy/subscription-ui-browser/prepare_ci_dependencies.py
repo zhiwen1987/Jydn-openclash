@@ -44,6 +44,38 @@ SECURITY_OPTIONS = ['APT::Get::AllowUnauthenticated=false', 'Acquire::AllowInsec
                     'Acquire::https::azure.archive.ubuntu.com::Verify-Host=true']
 INPUTS = ['chengwang/deploy/subscription-ui-browser/prepare_ci_dependencies.py',
           'chengwang/deploy/subscription-ui-browser/ci-dependencies-contract.json']
+PRIVATE_REASONS = frozenset(('FORMAT', 'STRUCTURE', 'TYPES', 'URIS', 'SIGNED_BY', 'COMPONENTS',
+    'ARCHITECTURES', 'SUITES', 'SUITE_COVERAGE', 'HOST_SOURCE_READ', 'HOST_SOURCE_DIGEST',
+    'HOST_MIRROR_READ', 'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION',
+    'DIRECTORY', 'FILES', 'READBACK'))
+
+
+class PrivateSourceRejected(ValueError):
+    def __init__(self, reason):
+        if type(reason) is not str or reason not in PRIVATE_REASONS:
+            raise ValueError('private source diagnostic code rejected')
+        self.reason = reason
+        super().__init__('private source rejected')
+
+
+def private_need(value, reason):
+    if not value:
+        raise PrivateSourceRejected(reason)
+
+
+def private_operation(reason, operation, *args, **kwargs):
+    try:
+        return operation(*args, **kwargs)
+    except PrivateSourceRejected:
+        raise
+    except Exception:
+        raise PrivateSourceRejected(reason) from None
+
+
+def private_failure_stage(error):
+    # Even a mutated exception object cannot export an arbitrary diagnostic.
+    reason = error.reason
+    return 'PRIVATE_' + reason if type(reason) is str and reason in PRIVATE_REASONS else 'PRIVATE_SOURCES'
 
 
 def need(value):
@@ -93,11 +125,11 @@ def parse_apt_version(raw):
 
 def parse_ubuntu_sources(raw):
     """Accept only the frozen host deb822 policy; never guess continuations."""
-    text = raw.decode('ascii')
+    text = private_operation('FORMAT', raw.decode, 'ascii')
     stanzas, current = [], {}
     allowed = {'Types', 'URIs', 'Suites', 'Components', 'Signed-By', 'Architectures'}
     for line in [*text.split('\n'), '']:
-        need('\r' not in line)
+        private_need('\r' not in line, 'FORMAT')
         if line.lstrip().startswith('#'):
             continue
         if not line.strip():
@@ -105,24 +137,25 @@ def parse_ubuntu_sources(raw):
                 stanzas.append(current)
                 current = {}
             continue
-        need(not line[0].isspace() and ':' in line)
+        private_need(not line[0].isspace() and ':' in line, 'FORMAT')
         key, value = line.split(':', 1)
-        need(key in allowed and key not in current and value.startswith(' ') and value.strip())
+        private_need(key in allowed and key not in current and value.startswith(' ') and value.strip(), 'FORMAT')
         current[key] = value.strip().split()
-    need(stanzas and len(stanzas) <= 16)
+    private_need(stanzas and len(stanzas) <= 16, 'STRUCTURE')
     suites = []
     for stanza in stanzas:
-        need(set(stanza) in ({'Types', 'URIs', 'Suites', 'Components', 'Signed-By'}, allowed)
-             and stanza['Types'] == ['deb'] and stanza['URIs'] == [HOST_MIRROR_URI]
-             and stanza['Signed-By'] == [KEYRING]
-             and len(stanza['Components']) == len(set(stanza['Components'])) == 4
-             and set(stanza['Components']) == {'main', 'restricted', 'universe', 'multiverse'}
-             and ('Architectures' not in stanza or stanza['Architectures'] == ['amd64']))
+        private_need(set(stanza) in ({'Types', 'URIs', 'Suites', 'Components', 'Signed-By'}, allowed), 'STRUCTURE')
+        private_need(stanza['Types'] == ['deb'], 'TYPES')
+        private_need(stanza['URIs'] == [HOST_MIRROR_URI], 'URIS')
+        private_need(stanza['Signed-By'] == [KEYRING], 'SIGNED_BY')
+        private_need(len(stanza['Components']) == len(set(stanza['Components'])) == 4
+                     and set(stanza['Components']) == {'main', 'restricted', 'universe', 'multiverse'}, 'COMPONENTS')
+        private_need('Architectures' not in stanza or stanza['Architectures'] == ['amd64'], 'ARCHITECTURES')
         values = stanza['Suites']
-        need(values and len(values) == len(set(values))
-             and set(values) <= {'noble', 'noble-updates', 'noble-backports', 'noble-security'})
+        private_need(values and len(values) == len(set(values))
+                     and set(values) <= {'noble', 'noble-updates', 'noble-backports', 'noble-security'}, 'SUITES')
         suites += values
-    need(set(suites) == {'noble', 'noble-updates', 'noble-backports', 'noble-security'})
+    private_need(set(suites) == {'noble', 'noble-updates', 'noble-backports', 'noble-security'}, 'SUITE_COVERAGE')
     return len(stanzas)
 
 
@@ -199,16 +232,16 @@ def private_readback(directory):
 
 
 def create_private_sources():
-    source, _ = read_file(HOST_SOURCE, HOST_SOURCE_SIZE, system_owned=True)
-    mirrors, _ = read_file(HOST_MIRROR, HOST_MIRROR_SIZE, system_owned=True)
-    need(len(source) == HOST_SOURCE_SIZE and sha(source) == HOST_SOURCE_SHA
-         and len(mirrors) == HOST_MIRROR_SIZE and sha(mirrors) == HOST_MIRROR_SHA)
+    source, _ = private_operation('HOST_SOURCE_READ', read_file, HOST_SOURCE, HOST_SOURCE_SIZE, system_owned=True)
+    private_need(len(source) == HOST_SOURCE_SIZE and sha(source) == HOST_SOURCE_SHA, 'HOST_SOURCE_DIGEST')
+    mirrors, _ = private_operation('HOST_MIRROR_READ', read_file, HOST_MIRROR, HOST_MIRROR_SIZE, system_owned=True)
+    private_need(len(mirrors) == HOST_MIRROR_SIZE and sha(mirrors) == HOST_MIRROR_SHA, 'HOST_MIRROR_DIGEST')
     parse_ubuntu_sources(source)
-    _, keyring = read_file(KEYRING, 2 << 20, system_owned=True)
-    need(keyring['mode'] & 0o004)
-    directory = make_private_directory()
-    private_files(directory, source)
-    return private_readback(directory)
+    _, keyring = private_operation('KEYRING_READ', read_file, KEYRING, 2 << 20, system_owned=True)
+    private_need(keyring['mode'] & 0o004, 'KEYRING_PERMISSION')
+    directory = private_operation('DIRECTORY', make_private_directory)
+    private_operation('FILES', private_files, directory, source)
+    return private_operation('READBACK', private_readback, directory)
 
 
 def read_file(path, maximum, system_owned=False, executable=False, empty_allowed=False):
@@ -425,6 +458,8 @@ def prepare(reports, commit, *, execute=invoke):
         report['sourceConfigurationModified'] = report['sourcesAfter'] != report['sourcesBefore']
         need(not report['sourceConfigurationModified'])
         report.update(outcome='PASS', failureStage='NONE')
+    except PrivateSourceRejected as error:
+        report['failureStage'] = private_failure_stage(error)
     except Exception:
         pass  # No raw exception, environment, proxy or source contents are exported.
     finally:
@@ -432,8 +467,11 @@ def prepare(reports, commit, *, execute=invoke):
             try:
                 need(private_readback(report['privateSources']['directory']['path']) ==
                      {key: value for key, value in report['privateSources'].items() if key != 'extraSourcesProbe'})
+            except PrivateSourceRejected as error:
+                report['failureStage'] = private_failure_stage(error)
             except Exception:
-                report['failureStage'] = 'PRIVATE_SOURCES_AFTER'
+                if report['failureStage'] not in {'PRIVATE_' + reason for reason in PRIVATE_REASONS}:
+                    report['failureStage'] = 'PRIVATE_SOURCES_AFTER'
         if report['sourcesBefore'] and report['sourcesAfter'] is None:
             try:
                 report['sourcesAfter'] = sources_snapshot()

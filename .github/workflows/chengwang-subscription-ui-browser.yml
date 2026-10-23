@@ -88,7 +88,7 @@ jobs:
             python3 -B - <<'PY' 2>&1 | tee "$lab/reports/dependency-unit.log"
           import ast, hashlib, importlib, pathlib, unittest
           pins = {
-              'test_prepare_ci_dependencies': (30, '2724f2c9c898d83dc64fd432ba84ee876f6c16a7a1be4e20ec9bf787b6ad584e'),
+              'test_prepare_ci_dependencies': (32, '5e6016e2db2bb56fe8706e0801c364725be44650e8216eb2c5005a7caf718d48'),
               'test_check_ci_dependencies': (19, 'd191202ac34518ed5787fad0af19debafb415e142c10d713d35df709cd4ff7c3'),
           }
           class Recorded(unittest.TextTestResult):

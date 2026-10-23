@@ -455,6 +455,87 @@ class PrepareDependencyTests(unittest.TestCase):
                 for name in [*D.LOG_NAMES, 'ci-dependencies.json']:
                     self.assertNotIn(b'PRIVATE-PATH', (reports / name).read_bytes())
 
+    def test_private_rejection_reason_allowlist_and_parser_diagnostics_are_closed(self):
+        expected = {'FORMAT', 'STRUCTURE', 'TYPES', 'URIS', 'SIGNED_BY', 'COMPONENTS', 'ARCHITECTURES',
+                    'SUITES', 'SUITE_COVERAGE', 'HOST_SOURCE_READ', 'HOST_SOURCE_DIGEST', 'HOST_MIRROR_READ',
+                    'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION', 'DIRECTORY', 'FILES', 'READBACK'}
+        self.assertEqual(D.PRIVATE_REASONS, expected)
+        for invalid in ['PRIVATE-CANARY', 'types', '', None, ['TYPES']]:
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError) as caught:
+                D.PrivateSourceRejected(invalid)
+            self.assertNotIn('PRIVATE-CANARY', str(caught.exception))
+        raw = synthetic_source()
+        cases = [('FORMAT', b'\xff'), ('FORMAT', raw + b'Trusted: yes\n'),
+                 ('FORMAT', raw.replace(b'Types: deb\n', b'Types: deb\nTypes: deb\n', 1)),
+                 ('FORMAT', raw.replace(b'Suites: noble ', b' Suites: noble ', 1)),
+                 ('STRUCTURE', raw.replace(b'Types: deb\n', b'', 1)),
+                 ('TYPES', raw.replace(b'Types: deb\n', b'Types: deb deb-src\n', 1)),
+                 ('URIS', raw.replace(D.HOST_MIRROR_URI.encode(), b'https://unapproved.invalid/', 1)),
+                 ('SIGNED_BY', raw.replace(D.KEYRING.encode(), b'/PRIVATE-CANARY/keyring', 1)),
+                 ('COMPONENTS', raw.replace(b'main restricted universe multiverse', b'main universe', 1)),
+                 ('ARCHITECTURES', raw + b'Architectures: arm64\n'),
+                 ('SUITES', raw.replace(b'noble-updates', b'noble noble-updates', 1)),
+                 ('SUITE_COVERAGE', raw.replace(b'Suites: noble-security', b'Suites: noble'))]
+        for reason, content in cases:
+            with self.subTest(reason=reason), self.assertRaises(D.PrivateSourceRejected) as caught:
+                D.parse_ubuntu_sources(content)
+            self.assertEqual(caught.exception.reason, reason)
+            self.assertNotIn('PRIVATE-CANARY', str(caught.exception))
+
+    def test_private_stage_wrappers_preserve_precise_codes_without_leaking_canaries(self):
+        canary = 'PRIVATE-CANARY-source-and-error'
+        source, mirror = synthetic_source(), b'synthetic host mirror\n'
+        for expected in ['HOST_SOURCE_READ', 'HOST_SOURCE_DIGEST', 'HOST_MIRROR_READ', 'HOST_MIRROR_DIGEST',
+                         'KEYRING_READ', 'KEYRING_PERMISSION', 'DIRECTORY', 'FILES', 'READBACK']:
+            def reader(path, maximum, **kwargs):
+                if path == D.HOST_SOURCE:
+                    if expected == 'HOST_SOURCE_READ':
+                        raise OSError(canary)
+                    return (b'wrong source' if expected == 'HOST_SOURCE_DIGEST' else source), {}
+                if path == D.HOST_MIRROR:
+                    if expected == 'HOST_MIRROR_READ':
+                        raise OSError(canary)
+                    return (b'wrong mirror' if expected == 'HOST_MIRROR_DIGEST' else mirror), {}
+                if expected == 'KEYRING_READ':
+                    raise OSError(canary)
+                return b'unit keyring', {'mode': 0o600 if expected == 'KEYRING_PERMISSION' else 0o644}
+
+            def reject():
+                raise OSError(canary)
+
+            with self.subTest(expected=expected), \
+                 patch.object(D, 'HOST_SOURCE_SIZE', len(source)), patch.object(D, 'HOST_SOURCE_SHA', D.sha(source)), \
+                 patch.object(D, 'HOST_MIRROR_SIZE', len(mirror)), patch.object(D, 'HOST_MIRROR_SHA', D.sha(mirror)), \
+                 patch.object(D, 'read_file', side_effect=reader), \
+                 patch.object(D, 'make_private_directory', side_effect=reject if expected == 'DIRECTORY' else lambda: Path(PRIVATE_DIRECTORY)), \
+                 patch.object(D, 'private_files', side_effect=reject if expected == 'FILES' else lambda *_: None), \
+                 patch.object(D, 'private_readback', side_effect=reject if expected == 'READBACK' else lambda *_: private_fixture()):
+                with self.assertRaises(D.PrivateSourceRejected) as caught:
+                    D.create_private_sources()
+                self.assertEqual(caught.exception.reason, expected)
+                self.assertNotIn(canary, str(caught.exception))
+        def precise():
+            raise D.PrivateSourceRejected('TYPES')
+        with self.assertRaises(D.PrivateSourceRejected) as caught:
+            D.private_operation('FILES', precise)
+        self.assertEqual(caught.exception.reason, 'TYPES')
+        for mutated in [False, True]:
+            def builder():
+                error = D.PrivateSourceRejected('TYPES')
+                error.args = (canary,)
+                if mutated:
+                    error.reason = canary
+                raise error
+            with self.subTest(mutated=mutated), self.fixture(private_builder=builder) as (reports, calls, run):
+                result = D.prepare(reports, COMMIT, execute=run)
+                self.assertEqual(result['failureStage'], 'PRIVATE_SOURCES' if mutated else 'PRIVATE_TYPES')
+                self.assertEqual(result['outcome'], 'FAIL')
+                self.assertEqual(len(result), 20)
+                self.assertEqual(calls, [])
+                self.assertTrue(all(not row['executed'] and not row['argv'] for row in result['commands']))
+                for name in [*D.LOG_NAMES, 'ci-dependencies.json']:
+                    self.assertNotIn(canary.encode(), (reports / name).read_bytes())
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
