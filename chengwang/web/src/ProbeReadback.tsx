@@ -3,6 +3,8 @@ import { AlertCircle, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react'
 import { getProbeDetails, getProbeStatus, ProbeReadError } from './probe-api'
 import { isManagementTransportSecure } from './api'
 import type { ProbeConclusion, ProbeDetails, ProbeStatus } from './probe-types'
+import { beginProbeStatusObservation, cleanupProbeStatusObservation, mountProbeStatusObservation, observeProbeStatus } from './probe-status-observation'
+import type { ProbeStatusTrigger } from './probe-status-observation'
 import './probe-readback.css'
 
 const labels: Record<ProbeConclusion, string> = { unknown: '未评估', available: '可用', degraded: '待确认 / 降级', restricted: '业务受限', unavailable: '不可用', rate_limited: '限流' }
@@ -47,14 +49,16 @@ export function ProbeReadback() {
   const detailAbort = useRef<AbortController | null>(null)
 
   useEffect(() => {
+    const observationMount = mountProbeStatusObservation()
     let current = true
     let active: { controller: AbortController; deadline?: ReturnType<typeof setTimeout> } | null = null
-    const readSummary = () => {
+    const readSummary = (trigger: ProbeStatusTrigger) => {
       // One mount owns one in-flight anonymous read. Polls and repeated clicks
       // join it rather than cancelling/restarting it or building a retry queue.
       if (!current || active) return
       const request = { controller: new AbortController(), deadline: undefined as ReturnType<typeof setTimeout> | undefined }
       active = request
+      beginProbeStatusObservation(observationMount, request.controller.signal, trigger)
       setLoadingSummary(true)
       request.deadline = setTimeout(() => {
         if (!current || active !== request) return
@@ -62,8 +66,11 @@ export function ProbeReadback() {
         // this request must neither restore old conclusions nor unlock a retry.
         active = null
         setStatus(null); setDetails(null); setSummaryError(readError(undefined)); setLoadingSummary(false)
+        observeProbeStatus(request.controller.signal, { e: 'ABORT', c: 'DEADLINE', p: 'BEFORE' })
         request.controller.abort()
+        observeProbeStatus(request.controller.signal, { e: 'ABORT', c: 'DEADLINE', p: 'AFTER' })
       }, 10_000)
+      observeProbeStatus(request.controller.signal, { e: 'ARM' })
       getProbeStatus(request.controller.signal).then(value => {
         if (!current || active !== request || request.controller.signal.aborted) return
         setStatus(value); setSummaryError(''); setNow(Date.now())
@@ -72,16 +79,24 @@ export function ProbeReadback() {
         setStatus(null); setDetails(null); setSummaryError(readError(error))
       }).finally(() => {
         clearTimeout(request.deadline)
+        observeProbeStatus(request.controller.signal, { e: 'FINALLY' })
         if (current && active === request) { active = null; setLoadingSummary(false) }
       })
     }
-    refreshSummary.current = readSummary
-    readSummary()
+    refreshSummary.current = () => readSummary('MANUAL')
+    readSummary('INITIAL')
     // Only cached anonymous status is polled; this never executes a probe.
-    const timer = setInterval(readSummary, 30_000)
+    const timer = setInterval(() => readSummary('POLL'), 30_000)
     return () => {
       current = false; refreshSummary.current = () => {}; clearInterval(timer)
-      if (active) { clearTimeout(active.deadline); active.controller.abort(); active = null }
+      cleanupProbeStatusObservation(observationMount, active?.controller.signal)
+      if (active) {
+        clearTimeout(active.deadline)
+        observeProbeStatus(active.controller.signal, { e: 'ABORT', c: 'CLEANUP', p: 'BEFORE' })
+        active.controller.abort()
+        observeProbeStatus(active.controller.signal, { e: 'ABORT', c: 'CLEANUP', p: 'AFTER' })
+        active = null
+      }
     }
   }, [])
 

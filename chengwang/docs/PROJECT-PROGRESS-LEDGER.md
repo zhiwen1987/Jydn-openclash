@@ -4,6 +4,8 @@
 
 最新工作：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故本轮整体 **未验收通过**。详见[本轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待实现/运行，CDP 与固定版本 Playwright 都必须完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
 
+进行中增量：已实现匿名status生命周期/流与CDP独立时钟的闭集诊断、Python再投影及新copied helper独立来源门；另有新订阅页共享DOM collector。首次CI前冻结的独立80项合成门已本机及另一代理分别通过，不修改原190/2644或旧浏览器错误标准。诊断候选尚待实际CI；取消根因仍未确定，未宣称修复。详见[诊断合同及GitHub参考](P2-PROBE-STATUS-DIAGNOSTIC-CONTRACT.md)。
+
 P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed274d304c0a2` 的 CDP 与原生 Playwright 已分别完成真实浏览器闭环及原 ZIP 独立重放，正常 TLS、实际证据读回/自然过期、8 错误计数全 0、Node/Chrome 正常退出均通过；父门及原生后端也已独立复验。镜像信任绑定 CI 已 success，前端 117/117、子模块 ordinary/race 各 732、旧基线和源码绑定已独立核验；未逐一独立重放全部旧产品子 CLI。摘要单飞与超时/迟到结果所有权修复通过该历史轮次，但不据此声称已唯一证明取消根因。详见[双浏览器验收记录](P1-PROBE-BROWSER-ACCEPTANCE.md)。未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
 ## 当前阶段进度

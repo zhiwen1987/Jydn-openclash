@@ -1,5 +1,6 @@
 import { isManagementTransportSecure } from './api'
 import type { ProbeDetails, ProbeStatus } from './probe-types'
+import { observeProbeStatus } from './probe-status-observation'
 
 export class ProbeReadError extends Error {
   constructor(readonly status: number, readonly kind: 'transport' | 'authentication' | 'forbidden' | 'unavailable' | 'format') {
@@ -78,49 +79,79 @@ export function decodeProbeDetails(value: unknown): ProbeDetails {
   return v as unknown as ProbeDetails
 }
 
-function cancel(body: ReadableStream<Uint8Array> | null) { try { void body?.cancel().catch(() => {}) } catch { /* No upstream data retained. */ } }
+function cancel(body: ReadableStream<Uint8Array> | null, signal: AbortSignal) {
+  observeProbeStatus(signal, { e: 'CANCEL', p: 'BEFORE', n: 0, f: false })
+  try { void body?.cancel().catch(() => {}) } catch { /* No upstream data retained. */ }
+  observeProbeStatus(signal, { e: 'CANCEL', p: 'AFTER', n: 0, f: false })
+}
 async function read(path: string, signal: AbortSignal, token?: string): Promise<unknown> {
   if (token !== undefined) {
     if (!isManagementTransportSecure()) throw new ProbeReadError(426, 'transport')
     if (!token || token.length > 4096 || !/^[\x21-\x2b\x2d-\x7e]+$/.test(token)) throw new ProbeReadError(401, 'authentication')
   }
-  const response = await fetch(path, {
-    method: 'GET', signal, headers: { Accept: 'application/json', ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }) },
-    credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer',
-  })
+  let response: Response
+  try {
+    response = await fetch(path, {
+      method: 'GET', signal, headers: { Accept: 'application/json', ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }) },
+      credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer',
+    })
+  } catch (error) {
+    observeProbeStatus(signal, { e: 'READ_END', k: 'FETCH_ERROR', n: 0, f: false })
+    throw error
+  }
+  observeProbeStatus(signal, { e: 'HEADERS' })
   if (!response.ok) {
-    cancel(response.body)
+    observeProbeStatus(signal, { e: 'READ_END', k: 'HEADERS_REJECT', n: 0, f: false })
+    cancel(response.body, signal)
     throw new ProbeReadError(response.status, response.status === 401 ? 'authentication' : response.status === 403 ? 'forbidden' : 'unavailable')
   }
   if (response.redirected || (response.url && new URL(response.url).origin !== window.location.origin)) {
-    cancel(response.body); throw new ProbeReadError(0, 'transport')
+    observeProbeStatus(signal, { e: 'READ_END', k: 'HEADERS_REJECT', n: 0, f: false })
+    cancel(response.body, signal); throw new ProbeReadError(0, 'transport')
   }
   const limit = 1 << 20
   const length = response.headers.get('Content-Length')
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(response.headers.get('Content-Type') ?? '') ||
       (length !== null && (!/^\d+$/.test(length) || Number(length) > limit)) || !response.body) {
-    cancel(response.body); throw new ProbeReadError(0, 'format')
+    observeProbeStatus(signal, { e: 'READ_END', k: 'HEADERS_REJECT', n: 0, f: false })
+    cancel(response.body, signal); throw new ProbeReadError(0, 'format')
   }
   const reader = response.body.getReader()
   let size = 0, body = ''
+  let eof = false
+  let phase: 'READ_ERROR' | 'UTF8_REJECT' | 'SIZE_REJECT' | 'JSON_REJECT' = 'READ_ERROR'
   const decoder = new TextDecoder('utf-8', { fatal: true })
   try {
     while (true) {
+      phase = 'READ_ERROR'
       const chunk = await reader.read()
+      if (chunk.done) {
+        eof = true
+        observeProbeStatus(signal, { e: 'EOF', n: Math.min(size, limit + 1) })
+      }
       if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
       if (chunk.done) break
       size += chunk.value.byteLength
+      phase = 'SIZE_REJECT'
       if (size > limit) throw new ProbeReadError(0, 'format')
+      phase = 'UTF8_REJECT'
       body += decoder.decode(chunk.value, { stream: true })
     }
+    phase = 'UTF8_REJECT'
     body += decoder.decode()
-    return JSON.parse(body) as unknown
+    phase = 'JSON_REJECT'
+    const parsed: unknown = JSON.parse(body)
+    observeProbeStatus(signal, { e: 'READ_END', k: 'EOF_OK', n: Math.min(size, limit + 1), f: eof })
+    return parsed
   } catch (error) {
+    observeProbeStatus(signal, { e: 'READ_END', k: phase, n: Math.min(size, limit + 1), f: eof })
     if (signal.aborted || error instanceof ProbeReadError) throw error
     throw new ProbeReadError(0, 'format')
   } finally {
     // A hostile cancellation promise must not keep rejection/loading pending.
+    observeProbeStatus(signal, { e: 'CANCEL', p: 'BEFORE', n: Math.min(size, limit + 1), f: eof })
     try { void reader.cancel().catch(() => {}) } catch { /* no raw errors */ }
+    observeProbeStatus(signal, { e: 'CANCEL', p: 'AFTER', n: Math.min(size, limit + 1), f: eof })
     reader.releaseLock()
   }
 }

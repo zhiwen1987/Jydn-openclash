@@ -9,6 +9,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
 import { pathToFileURL } from 'node:url'
 import { parseProbePublicJSON } from './probe-browser-contract.mjs'
+import { ProbeStatusDiagnostics } from './probe-status-diagnostics.mjs'
 
 const execute = promisify(execFile)
 const { dirname, isAbsolute, join, normalize } = posix
@@ -314,10 +315,12 @@ export class NetworkJournal {
     this.send = send; this.proveTLS = proveTLS; this.active = new Map(); this.tasks = new Set()
     this.network = []; this.probe = []; this.ordinal = 0; this.totalBytes = 0; this.failure = false
     this.lifePhase = 'RUNNING'; this.failureDiagnostics = 0
+    this.diagnostics = new ProbeStatusDiagnostics()
     this.counters = { runtimeErrors: 0, consoleErrors: 0, consoleWarnings: 0, cspErrors: 0,
       assetErrors: 0, forbiddenRequests: 0, failedRequests: 0, captureErrors: 0 }
   }
   handle(method, p) {
+    this.diagnostics.handle(method, p)
     try {
       if (method === 'Runtime.exceptionThrown') this.counters.runtimeErrors++
       if (method === 'Runtime.consoleAPICalled' && p.type === 'error') this.counters.consoleErrors++
@@ -492,7 +495,7 @@ async function launchImplementation(input) {
       pageSend = (method, params = {}) => session.send(method, params)
       browserSend = (method, params = {}) => browserSession.send(method, params)
       for (const method of ['Network.requestWillBeSent', 'Network.responseReceived', 'Network.loadingFinished', 'Network.loadingFailed',
-        'Runtime.exceptionThrown', 'Runtime.consoleAPICalled', 'Log.entryAdded']) session.on(method, params => journal?.handle(method, params))
+        'Runtime.exceptionThrown', 'Runtime.consoleAPICalled', 'Log.entryAdded', 'Page.frameNavigated']) session.on(method, params => journal?.handle(method, params))
     }
     checkpoint('IDENTITY')
     const version = await browserSend('Browser.getVersion')
@@ -636,10 +639,12 @@ async function launchImplementation(input) {
           noLiveOwnedProcessesBeforeGuard: true, noLiveOwnedProcessesAfterGuard: true, guardSignalIntervention: false }
         return copy(closeEvidence)
         } catch { reject() }
+        finally { journal.diagnostics.finish() }
       },
     }
     return Object.freeze(api)
   } catch (error) {
+    journal?.diagnostics.finish()
     launchDiagnostic(spawnError ?? error)
     // An incomplete launch is never declared a normal close. The independent
     // namespace supervisor remains responsible for emergency cleanup.

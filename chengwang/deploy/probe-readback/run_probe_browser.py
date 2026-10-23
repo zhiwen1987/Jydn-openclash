@@ -36,6 +36,20 @@ def load_native():
 
 
 N = load_native()
+
+
+def load_status_diagnostics():
+    # -I intentionally excludes import-by-cwd. The exact helper is copied into
+    # the owned bundle and appears in the existing source-bound copy manifest.
+    path = pathlib.Path(__file__).resolve().parent / 'probe_status_diagnostics.py'
+    loader = importlib.machinery.SourceFileLoader('probe_status_diagnostic_projection', str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    value = importlib.util.module_from_spec(spec)
+    loader.exec_module(value)
+    return value
+
+
+STATUS_DIAGNOSTICS = load_status_diagnostics()
 STAGE = 'ARGUMENTS'
 ENGINES = ('chrome-cdp', 'playwright')
 ERRORS = frozenset(('ARGUMENTS', 'COPY_INPUT', 'COPY_LIMIT', 'COPY_LINK', 'BROWSER_CONFIG',
@@ -64,7 +78,9 @@ def public_failure_diagnostic(bundle):
         path = bundle / relative
         if not path.exists():
             continue
-        raw = N.stable_read(path, 65536)[0]
+        # Extra diagnostics have their own bounded closed decoder. The legacy
+        # projections below still export only their original exact regexes.
+        raw = N.stable_read(path, STATUS_DIAGNOSTICS.MAX_LOG_BYTES if relative == 'logs/browser.private' else 65536)[0]
         for line in raw.decode('utf-8', errors='replace').splitlines():
             match = re.fullmatch(pattern, line)
             if not match:
@@ -87,6 +103,19 @@ def public_failure_diagnostic(bundle):
                       'PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN'}
             if match[1] in stages and (len(match.groups()) == 1 or match[2] in ERRORS):
                 sys.stderr.write(line + '\n')
+
+
+def public_status_diagnostic(bundle, output, source_commit, engine):
+    """Separate diagnostic artifact, never inside the old browser/backend set."""
+    path = bundle / 'logs/browser.private'
+    if not path.exists():
+        return
+    raw = N.stable_read(path, STATUS_DIAGNOSTICS.MAX_LOG_BYTES)[0]
+    value = STATUS_DIAGNOSTICS.project(raw)
+    value.update(sourceCommit=source_commit, engine=engine,
+                 clockDomains='JS_MOUNT_MS_CDP_MONOTONIC_US_CDP_EPOCH_US_NOT_INTERCHANGEABLE')
+    N.exclusive(output / 'status-diagnostic.json', N.canonical(value) + b'\n')
+    print('PROBE_STATUS_DIAGNOSTIC=CAPTURED acceptance_proven=false complete=' + str(value['complete']).lower())
 
 
 def check_public_archive(root):
@@ -153,6 +182,9 @@ def prepare_browser_bundle(options, source):
     try:
         copy_file(pathlib.Path(__file__), bundle / 'browser-runner', records,
                   'chengwang/deploy/probe-readback/run_probe_browser.py', 0o550)
+        copy_file(source / 'chengwang/deploy/probe-readback/probe_status_diagnostics.py',
+                  bundle / 'probe_status_diagnostics.py', records,
+                  'chengwang/deploy/probe-readback/probe_status_diagnostics.py')
         copy_file(source / 'chengwang/deploy/probe-readback/probe_chrome_launcher.py',
                   bundle / 'chrome-launcher', records, 'chengwang/deploy/probe-readback/probe_chrome_launcher.py', 0o550)
         copy_file(pathlib.Path(options.node), bundle / 'browser-node', records, 'toolchain/node', 0o550)
@@ -163,7 +195,7 @@ def prepare_browser_bundle(options, source):
         alias = bundle / 'source'
         directory = source / 'chengwang/tools/probe-browser'
         for name in ('package.json', 'package-lock.json', 'probe-browser-contract.mjs', 'run-browser.mjs',
-                     'browser-driver.mjs', 'browser-cli.mjs'):
+                     'browser-driver.mjs', 'browser-cli.mjs', 'probe-status-diagnostics.mjs'):
             copy_file(directory / name, alias / 'chengwang/tools/probe-browser' / name,
                       records, 'chengwang/tools/probe-browser/' + name)
         copy_tree(directory / 'node_modules/playwright-core',
@@ -518,6 +550,7 @@ def outer(options):
         STAGE = 'SUPERVISOR'
         if supervisor.wait(timeout=375) != 0:
             public_failure_diagnostic(bundle)
+            public_status_diagnostic(bundle, output, options.source_commit, options.engine)
             raise N.Failure('BROWSER_FAILED')
         after, files_after = N.host_observation(source, options.source_commit)
         need(before == after and files_before == files_after and not root.exists(), 'HOST_CHANGED')
@@ -540,6 +573,7 @@ def outer(options):
         # A complete capture can still fail the independent browser gate.
         # Expose only fixed diagnostic projections before private logs vanish.
         public_failure_diagnostic(bundle)
+        public_status_diagnostic(bundle, output, options.source_commit, options.engine)
         N.cleanup_bundle(bundle); bundle = None
         N.report(options, 'cleanup', 'cleanup', ownedProcessesJoined=4, exitCodes=[0] * 4, forcedKills=0,
             privateFixtureRemoved=True, privateToolsRemoved=True, hostNamespaceUnchanged=True,

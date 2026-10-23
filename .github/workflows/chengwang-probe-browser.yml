@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
+      - "chengwang/tools/subscription-browser/**"
       - "chengwang/deploy/probe-readback/**"
       - "chengwang/web/**"
       - "chengwang/internal/**"
@@ -19,6 +20,7 @@ on:
     paths:
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
+      - "chengwang/tools/subscription-browser/**"
       - "chengwang/deploy/probe-readback/**"
       - "chengwang/web/**"
       - "chengwang/internal/**"
@@ -426,6 +428,11 @@ jobs:
                   syntheticOnly=True, runtimeProven=False))
           pathlib.Path(sys.argv[1]).write_text(json.dumps(reports, separators=(',', ':')) + '\n')
           PY
+          # Separate frozen increment. Never adds synthetic items to the old
+          # 32 JS / 13+35+12+32 Python gates or claims new page browser E2E.
+          python3 -B chengwang/deploy/probe-readback/run_status_diagnostic_contracts.py \
+            --node "$3" --web-build "$2/web-build" \
+            --report "$2/evidence/status-diagnostic-contracts.json"
           TEST
           SH
           python3 -B - "$lab/evidence/browser-unit.tap" <<'PY'
@@ -489,6 +496,18 @@ jobs:
             --backend-dir "$evidence/lab/backend" --browser-dir "$evidence/lab/browser" \
             --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
             --report "$evidence/browser-verification.json"
+
+      - name: Independently verify separate closed diagnostics even when the original browser gate fails
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          # The report explicitly cannot prove browser acceptance or JS/CDP
+          # causal ownership. The original eight zero-error counters stay strict.
+          python3 -B chengwang/deploy/probe-readback/check_status_diagnostic.py \
+            --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
+            --engine '${{ matrix.engine }}' --report "$evidence/status-diagnostic-verification.json"
 
       - name: Verify exact source bytes and worktree remained unchanged
         if: always()
