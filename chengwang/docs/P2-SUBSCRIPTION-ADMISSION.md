@@ -1,5 +1,7 @@
 # P2 订阅准入与资源管理：分阶段实施
 
+阅读边界：下文是 `d0e55c6` 核心底座阶段的历史合同，不代表当前产品接线仍停留在当时。后续本地 API/RBAC 的已验边界见[应用验收记录](P2-SUBSCRIPTION-API-ACCEPTANCE.md)；独立进程/受信抓取的后续候选见[CI 实验合同](../deploy/subscription-readback/README.md)。候选不等于通过或上线。
+
 ## 本轮状态
 
 本轮是订阅底座实现阶段，不是生产发布。当前产品事实清单中的 `subscription_orchestration` 继续保持 `design_only`；新包的存在、单元测试或依赖获取成功均不自动改变它。

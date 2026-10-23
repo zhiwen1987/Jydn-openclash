@@ -1,0 +1,183 @@
+name: Chengwang Subscription Product Readback Lab
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/chengwang-subscription-readback.yml"
+      - "chengwang/**"
+  push:
+    branches: [main, codex/chengwang-security-hardening]
+    paths:
+      - ".github/workflows/chengwang-subscription-readback.yml"
+      - "chengwang/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-subscription-readback-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  subscription-product:
+    name: Real cmd/server, trusted Fetch and four process epochs (not production)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOWORK: "off"
+      GOENV: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=vendor
+      GOPROXY: "off"
+      GOSUMDB: "off"
+      CGO_ENABLED: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONHASHSEED: "0"
+    steps:
+      - name: Checkout exact source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned offline-build toolchain
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+
+      - name: Acquire source and build actual existing cmd/server from vendor
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-subscription-readback"
+          test ! -e "$lab_outer"
+          /usr/bin/install -d -m 0755 "$lab_outer" "$lab_outer/bin"
+          /usr/bin/sudo --non-interactive /usr/bin/install -d -m 0700 -o 10001 -g 10001 \
+            "$lab_outer/evidence" "$lab_outer/evidence/lab"
+          script_root="$GITHUB_WORKSPACE/chengwang/deploy/subscription-readback"
+          /usr/bin/sudo --non-interactive /usr/bin/python3 -I -B "$script_root/ci_subscription_lab.py" source \
+            --source-commit "$GITHUB_SHA" --output "$lab_outer/evidence/lab/source-before.json"
+          test "$(go env GOVERSION)" = go1.23.12
+          (cd chengwang && go build -trimpath -o "$lab_outer/bin/server" ./cmd/server)
+          /usr/bin/sudo --non-interactive /usr/bin/chown root:root "$lab_outer/bin" "$lab_outer/bin/server"
+          /usr/bin/sudo --non-interactive /usr/bin/chmod 0555 "$lab_outer/bin" "$lab_outer/bin/server"
+          # 'go' is resolved in the pinned toolchain PATH, not sudo's replacement PATH.
+          /usr/bin/python3 -I -B "$script_root/ci_subscription_lab.py" build \
+            --server-binary "$lab_outer/bin/server" --source-commit "$GITHUB_SHA" \
+            --output "$lab_outer/build-input.json"
+          /usr/bin/sudo --non-interactive /usr/bin/install -m 0600 -o 10001 -g 10001 \
+            "$lab_outer/build-input.json" "$lab_outer/evidence/lab/build.json"
+          /usr/bin/sudo --non-interactive /usr/bin/chown 10001:10001 "$lab_outer/evidence/lab/source-before.json"
+          /usr/bin/sudo --non-interactive /usr/bin/python3 -I -B "$script_root/ci_subscription_lab.py" host \
+            --output "$lab_outer/evidence/host-before.json"
+
+      - name: Exact 24 wire prerequisites (8 shape and 16 Linux) and 56 synthetic units
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-subscription-readback"
+          outer_net="$(/usr/bin/readlink /proc/self/ns/net)"
+          /usr/bin/timeout --signal=TERM --kill-after=10s 360s \
+            /usr/bin/sudo --non-interactive /usr/bin/unshare --mount --net --pid --fork \
+              --kill-child=SIGKILL --mount-proc /usr/bin/bash \
+              "$GITHUB_WORKSPACE/chengwang/deploy/subscription-readback/ci_namespace.sh" \
+              "$GITHUB_WORKSPACE" "$lab_outer" "$outer_net" units "$GITHUB_SHA"
+
+      - name: Real product HTTPS approval Fetch admission restart policy rotation and write lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-subscription-readback"
+          outer_net="$(/usr/bin/readlink /proc/self/ns/net)"
+          /usr/bin/timeout --signal=TERM --kill-after=15s 420s \
+            /usr/bin/sudo --non-interactive /usr/bin/unshare --mount --net --pid --fork \
+              --kill-child=SIGKILL --mount-proc /usr/bin/bash \
+              "$GITHUB_WORKSPACE/chengwang/deploy/subscription-readback/ci_namespace.sh" \
+              "$GITHUB_WORKSPACE" "$lab_outer" "$outer_net" product "$GITHUB_SHA"
+
+      - name: Independently reacquire original source bytes after execution
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-subscription-readback"
+          /usr/bin/sudo --non-interactive /usr/bin/python3 -I -B \
+            "$GITHUB_WORKSPACE/chengwang/deploy/subscription-readback/ci_subscription_lab.py" source \
+            --source-commit "$GITHUB_SHA" --output "$lab_outer/evidence/lab/source-after.json"
+
+      - name: Independently verify public original bytes not helper PASS flags
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-subscription-readback"
+          /usr/bin/sudo --non-interactive /usr/bin/python3 -I -B \
+            "$GITHUB_WORKSPACE/chengwang/deploy/subscription-readback/check_subscription_lab.py" verify \
+            --evidence-dir "$lab_outer/evidence/lab" --source-commit "$GITHUB_SHA" \
+            --source-root "$GITHUB_WORKSPACE" --report "$lab_outer/evidence/verification.json"
+
+      - name: Compare four observed host boundaries and make public records readable
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-subscription-readback"
+          /usr/bin/sudo --non-interactive /usr/bin/python3 -I -B \
+            "$GITHUB_WORKSPACE/chengwang/deploy/subscription-readback/ci_subscription_lab.py" host \
+            --output "$lab_outer/evidence/host-after.json"
+          # Public export only. Private credentials/state lived solely on the destroyed namespace tmpfs.
+          /usr/bin/sudo --non-interactive /usr/bin/chown -R --no-dereference \
+            "$(/usr/bin/id -u):$(/usr/bin/id -g)" "$lab_outer/evidence"
+          /usr/bin/cmp "$lab_outer/evidence/host-before.json" "$lab_outer/evidence/host-after.json"
+
+      - name: Preserve bounded public evidence including failed attempts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: subscription-product-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-subscription-readback/evidence/
+          if-no-files-found: error
+          retention-days: 14
+
+  independent-artifact-replay:
+    name: Fresh Linux runner replays downloaded original artifact
+    needs: subscription-product
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONHASHSEED: "0"
+    steps:
+      - name: Checkout the same immutable source without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Download the produced original public artifact in a separate job
+        # actions/download-artifact v4.3.0, resolved from its official Git ref.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: subscription-product-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-subscription-replay/original
+
+      - name: Verify complete POSIX file custody and semantic relationships again
+        shell: bash
+        run: |
+          set -euo pipefail
+          replay_root="$RUNNER_TEMP/chengwang-subscription-replay"
+          /usr/bin/python3 -I -B chengwang/deploy/subscription-readback/check_subscription_lab.py verify \
+            --evidence-dir "$replay_root/original/lab" --source-commit "$GITHUB_SHA" \
+            --source-root "$GITHUB_WORKSPACE" --report "$replay_root/verification.json"
+          /usr/bin/cmp "$replay_root/original/verification.json" "$replay_root/verification.json"
+          /usr/bin/git diff --exit-code
+          test -z "$(/usr/bin/git status --porcelain --untracked-files=all)"
+
+      - name: Preserve independent replay report without mutating original evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: subscription-replay-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-subscription-replay/verification.json
+          if-no-files-found: error
+          retention-days: 14
