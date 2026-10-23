@@ -1,0 +1,137 @@
+{
+  "schema": "chengwang.subscription-dependency-acquisition/v1",
+  "runURL": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39931269540",
+  "jobID": 120339850808,
+  "attempt": 1,
+  "artifactID": 12490474787,
+  "artifactName": "subscription-dependencies-39931269540-1",
+  "originalZIPBytes": 82509,
+  "originalZIPSHA256": "063adf9ddbc606c5e6ec39b4694f742a12cf5b4f25433c2823f626201641a703",
+  "installedFilesVerified": 19,
+  "acquisitionOnly": true,
+  "goTestsExecuted": false,
+  "production": false,
+  "manifest": {
+    "authorization": "BLOCKED",
+    "checkoutModuleUnchanged": true,
+    "declaredTestDependency": {
+      "goModSum": "h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=",
+      "path": "gopkg.in/check.v1",
+      "sum": "h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=",
+      "testCodeExecuted": false,
+      "version": "v0.0.0-20161208181325-20d25e280405"
+    },
+    "existingVendorFilesVerified": 94,
+    "existingVendorUnchanged": true,
+    "files": [
+      {
+        "bytes": 162,
+        "path": "go.mod",
+        "sha256": "c09a20bedd893f2f03a6badef4a2893201425c4439cf5e88b0145bf00b8b7be0"
+      },
+      {
+        "bytes": 790,
+        "path": "go.sum",
+        "sha256": "97aefe416e777b3d6614f17e28e75a013cee41afd7ea378129de5540f8f80f55"
+      },
+      {
+        "bytes": 2151,
+        "path": "vendor/go.yaml.in/yaml/v3/LICENSE",
+        "sha256": "d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b"
+      },
+      {
+        "bytes": 560,
+        "path": "vendor/go.yaml.in/yaml/v3/NOTICE",
+        "sha256": "f6c2dd3a67b576eafb89b80200b8b1627230bf3821a0c14cb99a22ac19107d00"
+      },
+      {
+        "bytes": 3685,
+        "path": "vendor/go.yaml.in/yaml/v3/README.md",
+        "sha256": "5a14f76fc3a95fb501886f4a39885204de783032719a728ebb0f48440cc838e4"
+      },
+      {
+        "bytes": 21995,
+        "path": "vendor/go.yaml.in/yaml/v3/apic.go",
+        "sha256": "0ba66e8a481340e9b9e1719efef7a2026736b53b07d369d6b140328f1d8f4b07"
+      },
+      {
+        "bytes": 25423,
+        "path": "vendor/go.yaml.in/yaml/v3/decode.go",
+        "sha256": "5531e688b99fa695342c41f3a41d0376e10b64bca635da1156b61bd53a2485da"
+      },
+      {
+        "bytes": 57411,
+        "path": "vendor/go.yaml.in/yaml/v3/emitterc.go",
+        "sha256": "806023afb6e3b567ab896d660d4f70610cbb9404f6e0cc4b27331ca6229de0b3"
+      },
+      {
+        "bytes": 14789,
+        "path": "vendor/go.yaml.in/yaml/v3/encode.go",
+        "sha256": "be13ba7293fb7a39157b58e304de89d81c46c0332b97bbc4152273515b61ee86"
+      },
+      {
+        "bytes": 39279,
+        "path": "vendor/go.yaml.in/yaml/v3/parserc.go",
+        "sha256": "917227ca67ac2cfec193c6962cc5862244f92a67b7e53ec7ffa3a3729d477077"
+      },
+      {
+        "bytes": 14085,
+        "path": "vendor/go.yaml.in/yaml/v3/readerc.go",
+        "sha256": "ad43815c77785337e2f980aa8e28d1ac89a25d1642187039aa1f451328a58527"
+      },
+      {
+        "bytes": 8514,
+        "path": "vendor/go.yaml.in/yaml/v3/resolve.go",
+        "sha256": "69b6069012fef0a518e379222007f6ea7622cb1c235a35b1355bb5641ab16d26"
+      },
+      {
+        "bytes": 87900,
+        "path": "vendor/go.yaml.in/yaml/v3/scannerc.go",
+        "sha256": "a850fdd79a89f1475c7db3b685af057001ad871390770bf1c90aa808955df084"
+      },
+      {
+        "bytes": 3345,
+        "path": "vendor/go.yaml.in/yaml/v3/sorter.go",
+        "sha256": "111f911a8095798fda2a7c708e20a931d2c228e637ff82de3ff44794d2d0ae92"
+      },
+      {
+        "bytes": 1830,
+        "path": "vendor/go.yaml.in/yaml/v3/writerc.go",
+        "sha256": "60fd0364b5b62b66a9f6a62bc56220b3ebc1de0b6a93901989b529e826e7e2af"
+      },
+      {
+        "bytes": 20290,
+        "path": "vendor/go.yaml.in/yaml/v3/yaml.go",
+        "sha256": "a82503abcfb6f4c1200231d1affdba7f4fcaffed6448d59ea7ffcf189e764628"
+      },
+      {
+        "bytes": 29105,
+        "path": "vendor/go.yaml.in/yaml/v3/yamlh.go",
+        "sha256": "6a8105eedd934f55399d786feb6acfd5c13b4cae4a80e58c0fff7a300921e06f"
+      },
+      {
+        "bytes": 6119,
+        "path": "vendor/go.yaml.in/yaml/v3/yamlprivateh.go",
+        "sha256": "4e2195c00895d14965430b8326595e287ed23a7923ea3a7d43cfa95d0d359958"
+      },
+      {
+        "bytes": 672,
+        "path": "vendor/modules.txt",
+        "sha256": "a35c2cfd1217ceb0b558ef6f73d9ee596854963888afcd2f3fab9c04afdd56d3"
+      }
+    ],
+    "goVersion": "go1.23.12",
+    "module": {
+      "goModSum": "h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=",
+      "path": "go.yaml.in/yaml/v3",
+      "sum": "h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=",
+      "version": "v3.0.4"
+    },
+    "originalGoModSHA256": "a37240cdb5065e0123a6632b653b8f1006576e718eeb31f492d5f6b8652b244c",
+    "originalGoSumSHA256": "190d9eb7b0bf958a72cdfa38e70887ba644442b0389537f21fcf5eff3daf325f",
+    "originalModulesSHA256": "6109d0b55d105493d7948450fd8aae84dbf4f03157fdb539e297bc31e2eab325",
+    "production": false,
+    "schema": "chengwang.subscription-dependency-evidence/v1",
+    "sourceCommit": "8c74a3fdfa9a80067ace671d16312144642a46c4"
+  }
+}
