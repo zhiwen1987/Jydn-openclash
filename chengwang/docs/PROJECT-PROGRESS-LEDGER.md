@@ -6,7 +6,7 @@
 
 前序 `c15eda3`：双来源正常流通过，但6条真实DOM历史候选仍可准备决定；[原机器证据](evidence/p2-subscription-local-admission-c15eda3.json)保留缺口。`8c4852c` 的新原件只证明后续修复，不回填历史。更早 `aedd194` 的创建/回执[历史验收](P2-SUBSCRIPTION-UI-REAL-FLOW.md)仍按该源码与范围解释。
 
-当前实现增量：[隔离请求关联诊断](P2-PROBE-REQUEST-BINDING.md) 已落默认关闭的匿名身份头、同次取消结果观察、独立受限FD、投影与验真。新增88项纯CPU及原输出门实际通过；197门保留原193并追加4项。**首个4ecaedd因新增TS类型错误构建失败；两行修正b68a55e后Probe编译/新增88纯测试实际通过，但env-i子shell缺SHA导致新增门传参失败，真实runtime跳过。已修正逐层显式位置传参，待新源码原CI；所有旧失败保留，不当作浏览器问题或生产完成**。
+当前实现增量：[隔离请求关联诊断](P2-PROBE-REQUEST-BINDING.md) 已落默认关闭的匿名身份头、同次取消结果观察、独立受限FD与原件验真。16ad525两条真实浏览器原件经根+C各16原CLI重放，CI/根/C报告逐字一致；各7请求全绑定、7取消均RESOLVED、八错误计数全0，872源blob独立核实。b68a55e原197项前端/9文件通过且原193名单保留；父门/旧订阅已分层复核。**原订阅UI40013130002三条producer验真通过，最后admission/CDP在61.2MB字体依赖获取未完成时超过22分钟上限而cancelled，fresh跳过，整组不通过；下载阻塞根因未证明。本轮无真实失败探针请求，历史8c偶发故障未归因。4eca新增TS错误、b68新增CI传参错误原失败均保留；不等于全系统或生产完成。** [机器证据](evidence/p2-probe-request-binding-16ad525.json)
 
 订阅页前序结果：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故该轮整体 **未验收通过**。详见[该轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器完整计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待逐项完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
 

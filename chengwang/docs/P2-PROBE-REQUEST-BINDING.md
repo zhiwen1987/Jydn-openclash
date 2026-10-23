@@ -1,6 +1,6 @@
 # P2：隔离探针请求关联与取消结果观察
 
-当前状态：实现与纯CPU增量检查完成；首次真实CI因新增TypeScript类型错误在构建阶段失败，后续类型修正已通过CI构建。第二次Probe在新增辅助门的提交SHA传参处失败，真实浏览器仍未执行，保留原失败并修正显式参数传递。不是网络取消修复、系统上线或生产操作记录。
+当前状态：隔离请求关联诊断已实现并经两条真实浏览器原件验收；197项前端与父门复核通过。完整订阅UI回归尚未闭合，历史偶发取消故障未复现/未归因。前两轮新增错误及旧失败完整保留。不是网络取消修复、系统上线或生产操作记录。
 
 ## 要解决的证据缺口
 
@@ -24,7 +24,7 @@
 
 新增纯CPU：frontend16、Node24、Python投影16/验真24/FD运行器8，共88项实际执行通过，零跳过；原始stdout/TAP/unittest日志另行核名单与摘要，六个篡改/跳过/替代模型被新门实际拒绝。新88不是旧80的替代，也不是浏览器请求数量或业务覆盖率。
 
-前端追加4个Vitest反例/正常路径，197门精确扣除新增4名后仍核旧193的全部名称/摘要；**实际197项Vitest仍待CI**。原observer12项实际保留，原Python92项也实际全部通过（200.972秒、零跳过）；未在本机运行Go、npm安装、构建、Vitest、浏览器、产品服务或Docker。
+前端追加4个Vitest反例/正常路径，197门精确扣除新增4名后仍核旧193的全部名称/摘要；最初待CI，现已实际197项全部通过，原件见下文第三轮验收。原observer12项实际保留，原Python92项也实际全部通过（200.972秒、零跳过）；未在本机运行Go、npm安装、构建、Vitest、浏览器、产品服务或Docker。
 
 首次本机组合反例的预算fixture把“256合法”错当作超限，原失败保留在本机临时证据根；冻结后改为257条反例，48项Python实际通过，预算未放宽。新原输出读取器还实测到Windows lstat/fstat的ctime值不同；只在各自API前后验证完整稳定性，跨API仍核inode/device/mode/links/size/mtime，不丢弃ctime检查，也不改旧POSIX验真门。[CPython官方对应Issue](https://github.com/python/cpython/issues/157671)仅作语义参考，本机实测差异才是本轮证据。
 
@@ -47,6 +47,24 @@
 3. 保持原八计数硬门，`NET_FAIL`即使已唯一对应，也只能记录诊断事实。一次新运行未复现不证明旧故障已解决。
 4. 原193+新增4的真实Vitest、旧辅助与父门、订阅及镜像回归分别核原件，不把步骤状态或前一版成功当新源码通过。
 5. 实际完成、失败、未验项目及原运行ID写回台账。未合并main、未正式发布镜像、未访问/修改生产。
+
+## 第三次原CI：实际验收结果
+
+源码 `16ad525f729c6129a675bdcca45f68fa316b09f3` 的原 [40013582221](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40013582221) 三job成功。根与独立C对两个原ZIP的API bytes/digest、全部88成员、原件重读均核实；分别实际执行新绑定、旧browser、backend22、旧status、identity、新88、旧80、旧56的完整原CLI，共各16份重放报告，与producer逐字相同，无读入适配。另独立核全部872个Git blob及清单闭集，不把新checker只核10必要blob冒充全源核验。
+
+每引擎实际96条新记录、81条旧记录、57条旧JS、7个真实请求全部唯一绑定、7次取消结果均RESOLVED；无未绑定/未终结/缺FINALLY/缺取消结果。原八计数全0，正常TLS1.3、Chrome正常wait0、无强制信号和残留；保留正常deadline/no-store/单飞原门。实际仍为Chrome155.0.8059.39、revision `3ff7ac5a9224be9156d7f8703a06e22890aafd34`，不是升级浏览器挑绿。
+
+**本轮真实NET_FAIL和ABORT均未出现**，所以只证明成功请求身份关联和取消结果可采集，真实失败绑定尚未实测，更不能称8c旧偶发故障已修复。新观察头/微任务可能扰动时序；不以一次未复现作因果证明。
+
+产品源码相同的 `b68a55e` 原 [镜像40013130112](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40013130112) 已终态success。根与A独立核73232B实际Vitest JSON、24971B原日志、完整原197门和前序8c的193原名称：197/197、9文件、0失败/跳过/pending/todo；仅新增合同4名。两tsc→Vitest→eslint→Vite真实链成功，但未逐项独立重放全部旧产品子CLI。b68至16ad仅CI/文档变化，不能把两个不同提交的运行ID混为一条。
+
+16ad原父门40013582124经根+B原7Git checker回放，ordinary/race各2644 Test+12 Fuzz、0skip/fail；原订阅40013582108的Linux producer+fresh成功，Windows完整CLI仍保留 `public-file-open-race` 拒绝，另行标明的ZIP读入适配只完成20文件纯语义重放，不冒充POSIX保管链。
+
+b68原UI40013130002已终态cancelled：create/CDP、create/PW与admission/PW三条producer经根+B完整原CLI通过，分别872个Git blobs，3个原ZIP/87成员逐字核实，原84+新76辅助门逐条通过；admission/CDP原job120618297320在依赖安装阶段被取消，未进入构建或浏览器，fresh job120628426626跳过。原日志确认两次npm已完成，字体包 `fonts-noto-cjk` 61.2MB在Azure Ubuntu镜像出现GET→IGN→GET，直至20:02:18Z记录operation canceled；没有字体安装完成记录。平台annotation明确超过22分钟上限；下载阻塞的底层原因仍未证明，不能称产品页面失败。缺失的浏览器/fresh原件不补造，不宣布整组UI验收成功。
+
+根实际看过两条可用UI的手机/桌面各一张首视口原PNG，独立B看过三条共6张；根另看过Probe的fresh桌面1440×2505、expired手机375×3880两张全页原PNG。只属这些截图/状态的视觉观察，不是完整UX审计。下一项先基于原日志为CI依赖获取建立有界、可验真的输入方案，再在新源码增量验证缺失路径，不重跑或覆盖本次cancelled运行，不绕开字体/TLS/失败门。
+
+全部运行/原件路径/报告摘要和未完成项见[机器台账](evidence/p2-probe-request-binding-16ad525.json)。临时原件不等于永久集中归档；GitHub artifact按原工作流保留期到期，不声称永久可下载。
 
 ## 官方技术依据与限制
 
