@@ -44,7 +44,8 @@ permissions:
 
 concurrency:
   group: chengwang-image-binding-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve running acceptance evidence; newer candidates wait their turn.
+  cancel-in-progress: false
 
 jobs:
   binding:

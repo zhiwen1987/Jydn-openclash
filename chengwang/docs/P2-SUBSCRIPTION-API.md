@@ -1,6 +1,6 @@
 # P2-05 候选产品 API、批准与审计协调
 
-状态：工作树实现与交叉审查中，Go/Linux CI 尚未执行。不将此文、源码存在或 Python 合成检查计作隔离验收或生产上线。前阶段已验证源码与结果见 [P2 底座验收](P2-SUBSCRIPTION-ACCEPTANCE.md)。完整系统目标仍按[进度台账](PROJECT-PROGRESS-LEDGER.md)保留。
+状态：已接线，隔离 CI 迭代中，尚未整体验收。不将此文、源码存在或 Python 合成检查计作隔离验收或生产上线。前阶段已验证源码与结果见 [P2 底座验收](P2-SUBSCRIPTION-ACCEPTANCE.md)。完整系统目标仍按[进度台账](PROJECT-PROGRESS-LEDGER.md)保留。
 
 ## 固定边界
 
@@ -61,6 +61,17 @@ API 前缀为 `/api/v1/subscriptions`：
 ## 本轮验收合同与尚未完成项
 
 本轮预先冻结新增 130 个具名测试：服务/存储扩展 44、API 32、受信目录 28、权限 10、配置与真实共享主服务 16。应在 ordinary/race 各实际执行，完整主模块为 2620=2490+130；旧 2490/2403/2391/2320 与上轮 87 项名单均保留，不按前缀豁免。
+
+前两轮父门均明确失败，记录不覆盖：
+
+| 源码 | 原运行 | 实际结果与修正 |
+| --- | --- | --- |
+| `6bc9d743a7021512027b60d4df6de961df2fef7d` | [39942103352](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39942103352) / job `120375781461` | 默认 vet 拒绝并列常量断言；ordinary 2588 run/pass，32 服务测试未执行，race 未开始。仅拆成两个独立预算断言，未删除约束 |
+| `7b6c2891f3900970c0134dcb604936a7a6965494` | [39943748586](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39943748586) / job `120381216288` | ordinary 2620 run、2618 pass、2 fail，race 未开始。修正 Create fixture 的 collection/source 混淆，并保留无效单源 Create 先拒权的断言；DoT deadline 测试改为记录返回瞬间的单调时间并严格比较真实截止，再有界确认 context 通知，不放宽超时要求 |
+
+两轮旧 2490/2403/2391/2320 与原 87 项指纹保持；Fuzz/seed 不计入具名 Test 数。两轮失败的原 jobs/logs API SHA256 分别为 `4de7c9eec150c50441ee6c716c0e36e717a1746dfedc99456d8dac5fb9d557ef`（3377790 字节）及 `28d33b836996a3cb5d58628c78a1c596ebfb0559f198cd2ad58460ae0fe43e9e`（3408947 字节）。
+
+CI 调度保留运行中的验收，不因修正提交自动取消。GitHub concurrency 只保留一个 pending，新 pending 仍可能替换旧 pending，并非无限 FIFO；每轮以精确源码、run/job/attempt 与原工件为准，不将排队或被替换的候选称为通过。
 
 主服务测试使用实际 `RunWith`、真实 TCP/正常 TLS、真实身份文件、私有库存和 evidence；它不是独立 `cmd/server` 子进程。DoT 测试与禁止 private-answer 的 Fetch 反例也不等于已成功获取真实公共 pin 的 HTTPS 200。独立主进程、完整隔离 namespace 的受信来源 Fetch 200 与拒绝矩阵、真实订阅页面双浏览器、自动调度、完整内核验证、容量/浸泡、系统级备份恢复及获批生产灰度仍须继续完成。
 

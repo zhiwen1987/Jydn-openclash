@@ -32,7 +32,8 @@ permissions:
 
 concurrency:
   group: chengwang-probe-browser-preflight-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve both engines' running evidence instead of canceling on a fix push.
+  cancel-in-progress: false
 
 jobs:
   contract-preflight:

@@ -754,9 +754,18 @@ func TestSubscriptionPolicyP205DoTTimeoutAndCancellation(t *testing.T) {
 	}
 	deadline, stop := context.WithTimeout(context.Background(), 80*time.Millisecond)
 	defer stop()
+	deadlineAt, ok := deadline.Deadline()
+	if !ok {
+		t.Fatal("deadline fixture has no deadline")
+	}
+	type deadlineResult struct {
+		err         error
+		completedAt time.Time
+	}
+	deadlineFinished := make(chan deadlineResult, 1)
 	go func() {
 		_, err := catalog.Fetch(deadline, policyScope, policySourceID, policyReference)
-		finished <- err
+		deadlineFinished <- deadlineResult{err: err, completedAt: time.Now()}
 	}()
 	select {
 	case <-server.pendingTLS:
@@ -764,10 +773,21 @@ func TestSubscriptionPolicyP205DoTTimeoutAndCancellation(t *testing.T) {
 		t.Fatal("fixture did not receive TLS handshake for deadline variant")
 	}
 	select {
-	case err := <-finished:
-		policyFetchCode(t, err, subscription.CodeFetchUnavailable)
-		if !errors.Is(deadline.Err(), context.DeadlineExceeded) {
-			t.Fatal("pending TLS returned before its deadline")
+	case result := <-deadlineFinished:
+		policyFetchCode(t, result.err, subscription.CodeFetchUnavailable)
+		// The socket deadline and context timer can become runnable together.
+		// Check the actual return instant before waiting for Done: a genuinely
+		// early network failure must not be hidden by the later timer delivery.
+		if result.completedAt.Before(deadlineAt) {
+			t.Fatalf("pending TLS returned before monotonic deadline by %s", deadlineAt.Sub(result.completedAt))
+		}
+		select {
+		case <-deadline.Done():
+			if !errors.Is(deadline.Err(), context.DeadlineExceeded) {
+				t.Fatal("pending TLS context did not expire")
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("pending TLS context timer did not join")
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("pending TLS deadline did not join")

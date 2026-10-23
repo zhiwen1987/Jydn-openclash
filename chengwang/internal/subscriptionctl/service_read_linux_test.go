@@ -187,9 +187,17 @@ func TestSubscriptionControlDisabledWritesNeverTouchesDomain(t *testing.T) {
 		t.Fatal("close domain before testing independent write gate")
 	}
 	for _, kind := range []Kind{Create, Import, Decide, Rollback, Approve, Fetch} {
-		_, err := service.Execute(context.Background(), f.admin, Command{Kind: kind, SourceID: "src_" + strings.Repeat("a", 32)})
+		source := "src_" + strings.Repeat("a", 32)
+		if kind == Create {
+			source = ""
+		}
+		_, err := service.Execute(context.Background(), f.admin, Command{Kind: kind, SourceID: source})
 		readCtlCode(t, err, CodeLocked, false)
 	}
+	// A malformed Create targeting an individual source is forbidden before
+	// the write gate; disabling writes must never override resource policy.
+	_, err = service.Execute(context.Background(), f.admin, Command{Kind: Create, SourceID: "src_" + strings.Repeat("a", 32)})
+	readCtlCode(t, err, CodeForbidden, false)
 	readCtlUnchanged(t, f, before)
 }
 
