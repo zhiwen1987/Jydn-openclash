@@ -1,0 +1,142 @@
+name: Chengwang Browser Acquisition Only
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-security-hardening]
+    paths:
+      - '.github/workflows/chengwang-browser-acquisition.yml'
+      - 'chengwang/tools/browser-acquisition/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/chengwang-browser-acquisition.yml'
+      - 'chengwang/tools/browser-acquisition/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-browser-acquisition-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  acquire:
+    name: Acquire official candidate bytes (never execute browser)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Preserve and independently count 18 synthetic contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-browser-acquisition"
+          test ! -e "$evidence"
+          /usr/bin/install -d -m 0700 "$evidence"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B chengwang/tools/browser-acquisition/test_acquisition.py \
+            2>&1 | tee "$evidence/synthetic-original.log"
+          python3 -B - "$evidence" <<'PY'
+          import hashlib, json, pathlib, re, sys
+          root = pathlib.Path(sys.argv[1])
+          raw = (root / 'synthetic-original.log').read_bytes()
+          text = raw.decode('utf-8', errors='strict')
+          names = re.findall(r'^(test_[A-Za-z0-9_]+) \(__main__\.AcquisitionContracts\.test_[A-Za-z0-9_]+\) \.\.\. ok$', text, re.M)
+          fingerprint = hashlib.sha256('\n'.join(sorted(names)).encode()).hexdigest()
+          if not (len(names) == len(set(names)) == 18
+              and fingerprint == '0558c8dc1ef5c52b839bc81f30047b1b242ad67b2dfe67a0c89ffa81c1b59f9a'
+              and len(re.findall(r'^test_.*\.\.\. ', text, re.M)) == 18
+              and re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$', text, re.M) == ['18']
+              and re.findall(r'^OK$', text, re.M) == ['OK']
+              and not re.search(r'^(?:FAILED|ERROR:|FAIL:|OK \()', text, re.M)):
+              raise SystemExit('acquisition-synthetic-originals-rejected')
+          report = dict(testsRun=18, testsPassed=18, skipped=0, namesSHA256=fingerprint,
+              originalSHA256=hashlib.sha256(raw).hexdigest(), sourceCommit=__import__('os').environ['GITHUB_SHA'],
+              syntheticOnly=True, browserExecuted=False, production=False)
+          with (root / 'synthetic-verification.json').open('xb') as out:
+              out.write((json.dumps(report, separators=(',', ':')) + '\n').encode())
+          PY
+
+      - name: Acquire with normal public TLS, bounded bytes and fixed official sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-browser-acquisition"
+          python3 -B chengwang/tools/browser-acquisition/acquire_browser.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --output "$evidence/originals" 2>&1 | tee "$evidence/acquire-original.log"
+
+      - name: Recompute producer evidence without extracting or running browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-browser-acquisition"
+          python3 -B chengwang/tools/browser-acquisition/check_acquisition.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$evidence/originals" --report "$evidence/producer-verification.json" \
+            2>&1 | tee "$evidence/producer-verification-original.log"
+          git diff --exit-code -- .github/workflows/chengwang-browser-acquisition.yml chengwang/tools/browser-acquisition
+
+      - name: Preserve original bytes even on acquisition failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: browser-acquisition-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-browser-acquisition
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  fresh-verify:
+    name: Fresh Linux original artifact recomputation (not runtime acceptance)
+    needs: acquire
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout same source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Download exact producer artifact into new evidence directory
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: browser-acquisition-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/browser-acquisition-originals
+
+      - name: Recompute raw files and compare producer report, never install or execute
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_root="$RUNNER_TEMP/browser-acquisition-fresh"
+          test ! -e "$report_root"
+          /usr/bin/install -d -m 0700 "$report_root"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B chengwang/tools/browser-acquisition/check_acquisition.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/browser-acquisition-originals/originals" \
+            --report "$report_root/fresh-verification.json" \
+            2>&1 | tee "$report_root/fresh-verification-original.log"
+          cmp "$RUNNER_TEMP/browser-acquisition-originals/producer-verification.json" \
+            "$report_root/fresh-verification.json"
+          # Keep this small readback artifact free of the browser binary. Root
+          # review downloads only these reports, never a local browser ZIP.
+          cp "$RUNNER_TEMP/browser-acquisition-originals/synthetic-original.log" "$report_root/"
+          cp "$RUNNER_TEMP/browser-acquisition-originals/synthetic-verification.json" "$report_root/"
+          cp "$RUNNER_TEMP/browser-acquisition-originals/originals/acquisition.json" "$report_root/"
+          cp -R "$RUNNER_TEMP/browser-acquisition-originals/originals/sources" "$report_root/"
+          git diff --exit-code -- .github/workflows/chengwang-browser-acquisition.yml chengwang/tools/browser-acquisition
+
+      - name: Preserve fresh independent readback without browser binary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: browser-acquisition-fresh-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/browser-acquisition-fresh
+          if-no-files-found: error
+          retention-days: 14

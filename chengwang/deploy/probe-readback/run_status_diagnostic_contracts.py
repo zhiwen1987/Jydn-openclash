@@ -1,15 +1,17 @@
 """Independent frozen synthetic gates; never runs a browser or product server."""
 import argparse
-import ast
 import hashlib
 import importlib.util
 import io
 import json
+import os
 import pathlib
-import re
 import subprocess
 import sys
+import threading
 import unittest
+
+import check_status_contract_outputs as originals
 
 PINS = {
     'collector': (12, '525077090b05dae125d8f3cdc21ba8f8c998b27d88ad50c78ea2c1ed65c2f693'),
@@ -31,52 +33,152 @@ def fingerprint(names):
     return len(names), hashlib.sha256('\n'.join(sorted(names)).encode()).hexdigest()
 
 
-def execute(args):
-    value = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60, check=False)
-    need(value.returncode == 0 and 0 < len(value.stdout) <= 1 << 20)
-    return value.stdout
+class BoundedText(io.StringIO):
+    """Retain original text, never more than the public-artifact per-file cap."""
+    def __init__(self):
+        super().__init__(); self.size = 0; self.complete = True
+
+    def write(self, value):
+        raw = value.encode('utf-8', errors='strict')
+        if self.size + len(raw) > originals.MAX_BYTES:
+            self.complete = False
+            raise ValueError('synthetic original output limit')
+        self.size += len(raw)
+        return super().write(value)
 
 
-def tap(raw, pin):
-    text = raw.decode('utf-8', errors='strict')
-    names = re.findall(r'^# Subtest: (.+)$', text, re.M)
-    need(fingerprint(names) == PINS[pin])
-    need(re.findall(r'^ok ([0-9]+) - (.+)$', text, re.M) == [(str(i + 1), n) for i, n in enumerate(names)])
-    need(not re.search(r'^\s*(?:not ok\b|Bail out!)|# (?:SKIP|TODO)\b', text, re.M))
-    count = PINS[pin][0]
-    for key, value in dict(tests=count, suites=0, pass_=count, fail=0, cancelled=0, skipped=0, todo=0).items():
-        need(re.findall(r'^# ' + key.rstrip('_') + r' ([0-9]+)$', text, re.M) == [str(value)])
-    need(re.findall(r'^1\.\.([0-9]+)$', text, re.M) == [str(count)])
-    return dict(testsRun=count, testsPassed=count, names=sorted(names), namesSHA256=PINS[pin][1],
-                originalOutputSHA256=hashlib.sha256(raw).hexdigest(), syntheticOnly=True, browserE2EProven=False)
+class RawStore:
+    def __init__(self, root):
+        root.mkdir(mode=0o700, exist_ok=False)
+        self.root = root; self.files = {}; self.execution = {}
+
+    def write(self, name, raw):
+        need(name in originals.RAW_NAMES and name not in self.files
+             and type(raw) is bytes and len(raw) <= originals.MAX_BYTES)
+        # Old public archive deliberately rejects zero-byte files. Preserve the
+        # true empty digest/size in the manifest, not an invented newline file.
+        if raw:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_BINARY', 0)
+            fd = os.open(self.root / name, flags, 0o600)
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(raw)
+        self.files[name] = raw
+
+    def finish(self):
+        self.write('execution.json', (json.dumps(dict(schema='chengwang.status-contract-execution/v1',
+            groups=self.execution), separators=(',', ':')) + '\n').encode())
+        need(set(self.files) == originals.RAW_NAMES)
+        manifest = dict(schema='chengwang.status-contract-originals/v1', files=[dict(path=name,
+            bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(), stored=bool(raw))
+            for name, raw in sorted(self.files.items())])
+        raw = (json.dumps(manifest, separators=(',', ':')) + '\n').encode()
+        need(0 < len(raw) <= originals.MAX_BYTES)
+        fd = os.open(self.root / 'manifest.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                     | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_BINARY', 0), 0o600)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(raw)
+
+
+def execute(args, store, pin):
+    """Bound memory/file bytes while preserving failed combined stdout too."""
+    captured = bytearray(); complete = True; outcome = 'RETURNED'; code = None
+    process = None; reader = None; reader_failed = []
+    try:
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        def consume():
+            try:
+                while True:
+                    chunk = process.stdout.read(65536)
+                    if not chunk:
+                        return
+                    remaining = originals.MAX_BYTES - len(captured)
+                    captured.extend(chunk[:remaining])
+                    if len(chunk) > remaining:
+                        reader_failed.append('OUTPUT_LIMIT'); process.kill(); return
+            except Exception:
+                reader_failed.append('RUNNER_ERROR')
+
+        reader = threading.Thread(target=consume, daemon=True)
+        reader.start()
+        try:
+            code = process.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            outcome = 'TIMED_OUT'; process.kill(); code = process.wait(timeout=5)
+        reader.join(timeout=5)
+        if reader.is_alive():
+            outcome = 'RUNNER_ERROR'; complete = False
+        if reader_failed:
+            outcome = reader_failed[0]; complete = False
+        if outcome != 'RETURNED':
+            complete = False
+    except Exception:
+        outcome = 'RUNNER_ERROR'; complete = False
+        if process is not None and process.poll() is None:
+            process.kill(); process.wait(timeout=5)
+    finally:
+        if process is not None and (reader is None or not reader.is_alive()):
+            process.stdout.close()
+    store.write(originals.OUTPUTS[pin][0], bytes(captured))
+    store.execution[pin] = dict(mode='SUBPROCESS', exitCode=code, outcome=outcome, captureComplete=complete)
 
 
 class Recorded(unittest.TextTestResult):
-    def __init__(self, *args):
-        super().__init__(*args); self.runs = []; self.passes = []
+    def __init__(self, *args, events):
+        super().__init__(*args); self.events = events; self.runs = []; self.passes = []
+
+    def record(self, event, test):
+        self.events.write(json.dumps(dict(event=event, name=test.id()), separators=(',', ':')) + '\n')
 
     def startTest(self, test):
-        self.runs.append(test.id()); super().startTest(test)
+        self.record('RUN', test); self.runs.append(test.id()); super().startTest(test)
 
     def addSuccess(self, test):
-        self.passes.append(test.id()); super().addSuccess(test)
+        self.record('PASS', test); self.passes.append(test.id()); super().addSuccess(test)
+
+    def addFailure(self, test, err):
+        self.record('FAIL', test); super().addFailure(test, err)
+
+    def addError(self, test, err):
+        self.record('ERROR', test); super().addError(test, err)
+
+    def addSkip(self, test, reason):
+        self.record('SKIP', test); super().addSkip(test, reason)
+
+    def addExpectedFailure(self, test, err):
+        self.record('EXPECTED_FAILURE', test); super().addExpectedFailure(test, err)
+
+    def addUnexpectedSuccess(self, test):
+        self.record('UNEXPECTED_SUCCESS', test); super().addUnexpectedSuccess(test)
+
+    def addSubTest(self, test, subtest, err):
+        if err is not None:
+            self.record('SUBTEST_ERROR', test)
+        super().addSubTest(test, subtest, err)
 
 
-def python_tests(base, name, pin):
+def python_tests(base, name, pin, store):
     source = base / (name + '.py')
-    tree = ast.parse(source.read_bytes())
-    names = sorted(name + '.' + cls.name + '.' + method.name for cls in tree.body if isinstance(cls, ast.ClassDef)
-                   for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_'))
-    need(fingerprint(names) == PINS[pin])
-    spec = importlib.util.spec_from_file_location(name, source)
-    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-    stream = io.StringIO()
-    result = unittest.TextTestRunner(stream=stream, verbosity=2, resultclass=Recorded).run(
-        unittest.defaultTestLoader.loadTestsFromModule(module))
-    need(result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses)
-    need(sorted(result.runs) == names and sorted(result.passes) == names)
-    return dict(testsRun=result.testsRun, testsPassed=len(result.passes), names=names,
-                namesSHA256=PINS[pin][1], syntheticOnly=True, browserE2EProven=False)
+    stream, events = BoundedText(), BoundedText()
+    outcome = 'RETURNED'
+    try:
+        spec = importlib.util.spec_from_file_location(name, source)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        factory = lambda *args: Recorded(*args, events=events)
+        result = unittest.TextTestRunner(stream=stream, descriptions=False, verbosity=2, resultclass=factory).run(
+            unittest.defaultTestLoader.loadTestsFromModule(module))
+        events.write(json.dumps(dict(event='SUMMARY', testsRun=result.testsRun, testsPassed=len(result.passes),
+            failures=len(result.failures), errors=len(result.errors), skipped=len(result.skipped),
+            expectedFailures=len(result.expectedFailures), unexpectedSuccesses=len(result.unexpectedSuccesses)),
+            separators=(',', ':')) + '\n')
+    except Exception:
+        # No raw exception material escapes into the public summary. Existing
+        # original unittest output remains in its own bounded synthetic log.
+        outcome = 'RUNNER_ERROR'
+    store.write(originals.OUTPUTS[pin][0], events.getvalue().encode())
+    store.write(originals.OUTPUTS[pin][1], stream.getvalue().encode())
+    store.execution[pin] = dict(mode='IN_PROCESS_UNITTEST', outcome=outcome,
+                                captureComplete=bool(stream.complete and events.complete and outcome == 'RETURNED'))
 
 
 def main():
@@ -86,26 +188,19 @@ def main():
     args = parser.parse_args()
     base = pathlib.Path(__file__).resolve().parent
     source = base.parents[2]
-    reports = {}
-    reports['collector'] = tap(execute([args.node, '--test', '--test-reporter=tap',
-        str(source / 'chengwang/tools/probe-browser/test-probe-status-diagnostics.mjs')]), 'collector')
-    reports['subscriptionDOM'] = tap(execute([args.node, '--test', '--test-reporter=tap',
-        str(source / 'chengwang/tools/subscription-browser/test-collect-subscription-dom.mjs')]), 'subscriptionDOM')
-    raw = execute([args.node, str(args.web_build / 'tools/check-probe-status-observation.mjs')])
-    front = json.loads(raw)
-    need(set(front) == {'schema', 'syntheticOnly', 'realBrowserProof', 'passed', 'failed', 'names'})
-    need(front['schema'] == 'chengwang.probe-status-observation-synthetic/v1'
-         and front['syntheticOnly'] is True and front['realBrowserProof'] is False)
-    need(type(front['passed']) is int and front['passed'] == 12 and type(front['failed']) is int and front['failed'] == 0)
-    need(fingerprint(front['names']) == PINS['frontend'])
-    reports['frontend'] = dict(testsRun=12, testsPassed=12, names=sorted(front['names']),
-        namesSHA256=PINS['frontend'][1], originalOutputSHA256=hashlib.sha256(raw).hexdigest(),
-        syntheticOnly=True, browserE2EProven=False)
-    reports['pythonProjection'] = python_tests(base, 'test_probe_status_diagnostics', 'pythonProjection')
-    reports['artifactChecker'] = python_tests(base, 'test_check_status_diagnostic', 'artifactChecker')
-    report = dict(schema='chengwang.status-diagnostic-contracts/v1', outcome='PASS', testsRun=80,
-        testsPassed=80, skipped=0, syntheticOnly=True, browserE2EProven=False, production=False, reports=reports)
-    need(sum(r['testsRun'] for r in reports.values()) == 80)
+    need(PINS == originals.PINS and not args.report.exists() and not args.report.is_symlink())
+    store = RawStore(args.report.with_name(args.report.name + '.raw'))
+    execute([args.node, '--test', '--test-reporter=tap',
+        str(source / 'chengwang/tools/probe-browser/test-probe-status-diagnostics.mjs')], store, 'collector')
+    execute([args.node, '--test', '--test-reporter=tap',
+        str(source / 'chengwang/tools/subscription-browser/test-collect-subscription-dom.mjs')], store, 'subscriptionDOM')
+    execute([args.node, str(args.web_build / 'tools/check-probe-status-observation.mjs')], store, 'frontend')
+    python_tests(base, 'test_probe_status_diagnostics', 'pythonProjection', store)
+    python_tests(base, 'test_check_status_diagnostic', 'artifactChecker', store)
+    store.finish()
+    # The PASS document is derived only after all five original outputs have
+    # been retained, including failure transcripts. A failed input never emits it.
+    report = originals.recompute(store.files)
     with args.report.open('xb') as output:
         output.write((json.dumps(report, separators=(',', ':')) + '\n').encode())
     print('STATUS_DIAGNOSTIC_CONTRACTS=PASS tests=80 skips=0 synthetic_only=true browser_e2e_proven=false')

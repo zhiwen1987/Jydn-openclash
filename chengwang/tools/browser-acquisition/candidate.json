@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "chengwang-ci-browser-acquisition-only",
+  "browser": {
+    "version": "157.0.8103.6",
+    "platform": "linux64",
+    "binary": "chrome",
+    "url": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.6/linux64/chrome-linux64.zip",
+    "bytes": 202676171,
+    "generation": "1792024099984701",
+    "md5Base64": "5qChIL/Gh+8hZv73vzEakQ==",
+    "crc32cBase64": "EJCYzQ==",
+    "sha256": null,
+    "cftRevision": "1717349",
+    "sourceTagCommit": "41520584daa68d0040db7746ae562a0ff82187f6",
+    "fixCommit": "62473ad0f747e245e514c93e741bb8e168a2a207",
+    "regressionTestGitBlob": "4c0aacd74a59cd6a5049b263335ad2b1f17e4cc4"
+  },
+  "playwright": {
+    "version": "1.65.0-alpha-2026-10-23",
+    "gitHead": "20a2087ea43412b90c172c88faef80786ee18b8b",
+    "browserBuildRevision": "1251",
+    "tarball": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.65.0-alpha-2026-10-23.tgz",
+    "integrity": "sha512-2vqfxKkSB94itSPN4IeJlDiw3Ulsr+FVbqiS7HL2j/lE5gI5T7V7b4HkTG3om6ou35KTie0jaiGdCk3+FCxeKw==",
+    "license": "Apache-2.0",
+    "node": ">=20"
+  },
+  "metadata": {
+    "cft-version.json": "https://googlechromelabs.github.io/chrome-for-testing/157.0.8103.6.json",
+    "npm-package.json": "https://registry.npmjs.org/playwright-core/1.65.0-alpha-2026-10-23",
+    "pw-browsers.json": "https://raw.githubusercontent.com/microsoft/playwright/20a2087ea43412b90c172c88faef80786ee18b8b/packages/playwright-core/browsers.json",
+    "pw-registry.txt": "https://raw.githubusercontent.com/microsoft/playwright/20a2087ea43412b90c172c88faef80786ee18b8b/packages/playwright-core/src/server/registry/index.ts",
+    "chromium-tag.json": "https://chromium.googlesource.com/chromium/src/+/refs/tags/157.0.8103.6?format=JSON",
+    "fix-included-in.json": "https://chromium-review.googlesource.com/projects/chromium%2Fsrc/commits/62473ad0f747e245e514c93e741bb8e168a2a207/in",
+    "chromium-loader.b64": "https://chromium.googlesource.com/chromium/src/+/refs/tags/157.0.8103.6/third_party/blink/renderer/platform/loader/fetch/response_body_loader.cc?format=TEXT",
+    "chromium-webtest.b64": "https://chromium.googlesource.com/chromium/src/+/refs/tags/157.0.8103.6/third_party/blink/web_tests/http/tests/inspector-protocol/network/fetch-completed-body-loading-finished.js?format=TEXT",
+    "chromium-fix.json": "https://chromium.googlesource.com/chromium/src/+/62473ad0f747e245e514c93e741bb8e168a2a207?format=JSON"
+  },
+  "limits": {
+    "httpTimeoutSeconds": 30,
+    "totalBudgetSeconds": 300,
+    "metadataBytesPerFile": 262144,
+    "metadataBytesTotal": 2097152,
+    "zipEntries": 4096,
+    "zipUncompressedBytes": 1610612736,
+    "zipMaxMemberRatio": 300
+  }
+}

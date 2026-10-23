@@ -1,0 +1,53 @@
+{
+  "schema": "chengwang.browser-identity-acquisition-local/v1",
+  "status": "IMPLEMENTED_LOCAL_SYNTHETIC_ONLY_CI_PENDING_NOT_ACCEPTED",
+  "baselineSourceCommit": "f7771017419c30e100f115832a565d7d3beefe74",
+  "productionChanged": false,
+  "mainMerged": false,
+  "browserDownloadedLocally": false,
+  "browserExecutedLocally": false,
+  "goExecutedLocally": false,
+  "previousBrowserFailureRetained": true,
+  "original80": {
+    "execution": "LOCAL_NODE_PYTHON_NOT_BROWSER",
+    "testsRun": 80,
+    "testsPassed": 80,
+    "skipped": 0,
+    "groups": {"collector": 12, "subscriptionDOM": 36, "frontend": 12, "pythonProjection": 12, "artifactChecker": 8},
+    "independentOriginalRecomputation": true,
+    "path": "C:/Users/Administrator/AppData/Local/Temp/chengwang-status-contracts-local-1786e842099548ee98a2c2d251cb01b3",
+    "contractsSHA256": "d549925b79f84e35e318165e76e0dd78e053c0759b847f2337a47da8935d394c",
+    "verificationSHA256": "46c899cb5f30bc2dabda53c74e07e378d4e92919345a4dc6655b47490405ceeb",
+    "originalTestFilesUnchanged": true
+  },
+  "new56": {
+    "testsRun": 56,
+    "testsPassed": 56,
+    "skipped": 0,
+    "groups": {"nodeIdentity": 20, "pythonIdentity": 12, "originalOutputChecker": 24},
+    "path": "C:/Users/Administrator/AppData/Local/Temp/chengwang-identity-final-local-951_pahp",
+    "originalSHA256": {
+      "browser-identity-unit.tap": "731d0dfe96f4d1fa56be7757b8fbb5ad3918cecd79aa5dae642b8d2c61f9482e",
+      "browser-identity-python-unit.log": "8d498d4c0d858e6290a2a8c9c7947a27181f531f60e3fcb140d96dee3e739e00",
+      "status-contract-originals-unit.log": "ff9b129c419aafae9799340f7bbec05b622e9843f814747266fffd82f0659d8f"
+    },
+    "independentOriginalRecomputation": true,
+    "syntheticOnly": true
+  },
+  "acquisitionSynthetic": {
+    "testsRun": 18,
+    "testsPassed": 18,
+    "skipped": 0,
+    "namesSHA256": "0558c8dc1ef5c52b839bc81f30047b1b242ad67b2dfe67a0c89ffa81c1b59f9a",
+    "originalLogSHA256": "50b073e5824e13fbc966621bbfa90ec087008a1f83c7dad6dc38f65f78b61d7f",
+    "browserExecuted": false
+  },
+  "candidate": {
+    "playwright": "1.65.0-alpha-2026-10-23",
+    "chromium": "157.0.8103.6",
+    "browserSHA256": null,
+    "state": "OFFICIAL_METADATA_RESEARCH_ONLY_CI_ACQUISITION_PENDING",
+    "stableProductionClaim": false
+  },
+  "unfinished": ["identity-real-CI", "original80-CI-custody", "candidate-acquire-and-fresh-Linux", "review-and-second-commit-SHA-pin", "no-store-positive-and-negative-real-browser-matrix", "candidate-full-CDP-and-Playwright", "new-subscription-page-E2E", "production-release"]
+}

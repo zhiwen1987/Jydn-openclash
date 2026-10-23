@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 import { pathToFileURL } from 'node:url'
 import { parseProbePublicJSON } from './probe-browser-contract.mjs'
 import { ProbeStatusDiagnostics } from './probe-status-diagnostics.mjs'
+import { emitBrowserIdentity } from './browser-identity.mjs'
 
 const execute = promisify(execFile)
 const { dirname, isAbsolute, join, normalize } = posix
@@ -501,6 +502,7 @@ async function launchImplementation(input) {
     const version = await browserSend('Browser.getVersion')
     need(typeof version.product === 'string' && /^(?:Chrome|HeadlessChrome)\/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(version.product))
     product = version.product; record = await actualChrome(options, browserSend)
+    emitBrowserIdentity(version, { engine: options.engine, fixtureId: options.fixtureId, chrome: record })
     journal = new NetworkJournal(pageSend, async response => {
       const certificates = await pageSend('Network.getCertificate', { origin: ORIGIN })
       proof = helper.browserTLSProof(response, certificates.tableNames, verified)

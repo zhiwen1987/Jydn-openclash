@@ -8,6 +8,8 @@
 
 P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed274d304c0a2` 的 CDP 与原生 Playwright 已分别完成真实浏览器闭环及原 ZIP 独立重放，正常 TLS、实际证据读回/自然过期、8 错误计数全 0、Node/Chrome 正常退出均通过；父门及原生后端也已独立复验。镜像信任绑定 CI 已 success，前端 117/117、子模块 ordinary/race 各 732、旧基线和源码绑定已独立核验；未逐一独立重放全部旧产品子 CLI。摘要单飞与超时/迟到结果所有权修复通过该历史轮次，但不据此声称已唯一证明取消根因。详见[双浏览器验收记录](P1-PROBE-BROWSER-ACCEPTANCE.md)。未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
+在实现的新前置增量：真实 browser identity sidecar、原80输出保管和独立重算、候选浏览器 acquire-only/fresh Linux workflow已接线。本机有限合成测试通过，真实CI/下载尚未执行；现有取消失败不解除。候选为CI专用alpha，SHA必须实际获取并经后续提交固定后才能执行。[接线与严格边界](P2-BROWSER-IDENTITY-ACQUISITION.md)。生产未动。
+
 ## 当前阶段进度
 
 | 编号 | 交付项 | 实际状态 | 证据与剩余边界 |

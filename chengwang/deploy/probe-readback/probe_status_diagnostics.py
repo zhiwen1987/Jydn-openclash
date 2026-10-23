@@ -6,7 +6,10 @@ caused a CDP event. The original backend/browser verifiers remain unchanged.
 import json
 
 PREFIX = 'CW_PROBE_DIAG:'
-MAX_LOG_BYTES = 327680
+# Existing 512x512 diagnostic rows + 64KiB legacy log budget + a separately
+# decoded <=1024B identity row and bounded framing allowance. No error gate or
+# frontend event/response budget is relaxed by this additional sidecar capacity.
+MAX_LOG_BYTES = 329728
 MAX_ROWS = 512
 MAX_INTEGER = 9007199254740991
 JS_FIELDS = {

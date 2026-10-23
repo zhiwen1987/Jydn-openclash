@@ -50,6 +50,18 @@ def load_status_diagnostics():
 
 
 STATUS_DIAGNOSTICS = load_status_diagnostics()
+
+
+def load_browser_identity():
+    path = pathlib.Path(__file__).resolve().parent / 'probe_browser_identity.py'
+    loader = importlib.machinery.SourceFileLoader('probe_browser_identity_projection', str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    value = importlib.util.module_from_spec(spec)
+    loader.exec_module(value)
+    return value
+
+
+BROWSER_IDENTITY = load_browser_identity()
 STAGE = 'ARGUMENTS'
 ENGINES = ('chrome-cdp', 'playwright')
 ERRORS = frozenset(('ARGUMENTS', 'COPY_INPUT', 'COPY_LIMIT', 'COPY_LINK', 'BROWSER_CONFIG',
@@ -116,6 +128,16 @@ def public_status_diagnostic(bundle, output, source_commit, engine):
                  clockDomains='JS_MOUNT_MS_CDP_MONOTONIC_US_CDP_EPOCH_US_NOT_INTERCHANGEABLE')
     N.exclusive(output / 'status-diagnostic.json', N.canonical(value) + b'\n')
     print('PROBE_STATUS_DIAGNOSTIC=CAPTURED acceptance_proven=false complete=' + str(value['complete']).lower())
+
+
+def public_browser_identity(bundle, output, source_commit, engine, fixture, copies):
+    path = bundle / 'logs/browser.private'
+    if not path.exists():
+        return
+    raw = N.stable_read(path, BROWSER_IDENTITY.MAX_LOG)[0]
+    value = BROWSER_IDENTITY.project(raw, source_commit, engine, fixture, copies)
+    N.exclusive(output / 'browser-identity.json', N.canonical(value) + b'\n')
+    print('BROWSER_IDENTITY=CAPTURED patch_ancestry_proven=false state=' + value['state'])
 
 
 def check_public_archive(root):
@@ -185,6 +207,9 @@ def prepare_browser_bundle(options, source):
         copy_file(source / 'chengwang/deploy/probe-readback/probe_status_diagnostics.py',
                   bundle / 'probe_status_diagnostics.py', records,
                   'chengwang/deploy/probe-readback/probe_status_diagnostics.py')
+        copy_file(source / 'chengwang/deploy/probe-readback/probe_browser_identity.py',
+                  bundle / 'probe_browser_identity.py', records,
+                  'chengwang/deploy/probe-readback/probe_browser_identity.py')
         copy_file(source / 'chengwang/deploy/probe-readback/probe_chrome_launcher.py',
                   bundle / 'chrome-launcher', records, 'chengwang/deploy/probe-readback/probe_chrome_launcher.py', 0o550)
         copy_file(pathlib.Path(options.node), bundle / 'browser-node', records, 'toolchain/node', 0o550)
@@ -195,7 +220,7 @@ def prepare_browser_bundle(options, source):
         alias = bundle / 'source'
         directory = source / 'chengwang/tools/probe-browser'
         for name in ('package.json', 'package-lock.json', 'probe-browser-contract.mjs', 'run-browser.mjs',
-                     'browser-driver.mjs', 'browser-cli.mjs', 'probe-status-diagnostics.mjs'):
+                     'browser-driver.mjs', 'browser-cli.mjs', 'probe-status-diagnostics.mjs', 'browser-identity.mjs'):
             copy_file(directory / name, alias / 'chengwang/tools/probe-browser' / name,
                       records, 'chengwang/tools/probe-browser/' + name)
         copy_tree(directory / 'node_modules/playwright-core',
@@ -551,6 +576,7 @@ def outer(options):
         if supervisor.wait(timeout=375) != 0:
             public_failure_diagnostic(bundle)
             public_status_diagnostic(bundle, output, options.source_commit, options.engine)
+            public_browser_identity(bundle, output, options.source_commit, options.engine, options.fixture_id, copies)
             raise N.Failure('BROWSER_FAILED')
         after, files_after = N.host_observation(source, options.source_commit)
         need(before == after and files_before == files_after and not root.exists(), 'HOST_CHANGED')
@@ -574,6 +600,7 @@ def outer(options):
         # Expose only fixed diagnostic projections before private logs vanish.
         public_failure_diagnostic(bundle)
         public_status_diagnostic(bundle, output, options.source_commit, options.engine)
+        public_browser_identity(bundle, output, options.source_commit, options.engine, options.fixture_id, copies)
         N.cleanup_bundle(bundle); bundle = None
         N.report(options, 'cleanup', 'cleanup', ownedProcessesJoined=4, exitCodes=[0] * 4, forcedKills=0,
             privateFixtureRemoved=True, privateToolsRemoved=True, hostNamespaceUnchanged=True,

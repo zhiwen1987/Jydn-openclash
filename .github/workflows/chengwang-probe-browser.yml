@@ -433,6 +433,22 @@ jobs:
           python3 -B chengwang/deploy/probe-readback/run_status_diagnostic_contracts.py \
             --node "$3" --web-build "$2/web-build" \
             --report "$2/evidence/status-diagnostic-contracts.json"
+          python3 -B chengwang/deploy/probe-readback/check_status_contract_outputs.py \
+            --raw-root "$2/evidence/status-diagnostic-contracts.json.raw" \
+            --contracts-report "$2/evidence/status-diagnostic-contracts.json" \
+            --report "$2/evidence/status-contract-originals-verification.json"
+          "$3" --test --test-reporter=tap \
+            chengwang/tools/probe-browser/test-browser-identity.mjs \
+            | tee "$2/evidence/browser-identity-unit.tap"
+          (
+            cd chengwang/deploy/probe-readback
+            python3 -B -m unittest -v test_probe_browser_identity 2>&1 \
+              | tee "$2/evidence/browser-identity-python-unit.log"
+            python3 -B -m unittest -v test_check_status_contract_outputs 2>&1 \
+              | tee "$2/evidence/status-contract-originals-unit.log"
+          )
+          python3 -B chengwang/deploy/probe-readback/check_browser_identity_units.py \
+            --evidence-root "$2/evidence" --report "$2/evidence/browser-identity-units-verification.json"
           TEST
           SH
           python3 -B - "$lab/evidence/browser-unit.tap" <<'PY'
@@ -508,6 +524,16 @@ jobs:
           python3 -B chengwang/deploy/probe-readback/check_status_diagnostic.py \
             --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
             --engine '${{ matrix.engine }}' --report "$evidence/status-diagnostic-verification.json"
+
+      - name: Independently bind actual browser identity without inferring patch ancestry
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          python3 -B chengwang/deploy/probe-readback/probe_browser_identity.py \
+            --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
+            --engine '${{ matrix.engine }}' --report "$evidence/browser-identity-verification.json"
 
       - name: Verify exact source bytes and worktree remained unchanged
         if: always()
