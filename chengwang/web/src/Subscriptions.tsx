@@ -81,6 +81,8 @@ export function Subscriptions() {
   const [referenceId, setReferenceId] = useState('')
   const [approval, setApproval] = useState<SubscriptionReceipt | null>(null)
   const [handoffApproval, setHandoffApproval] = useState('')
+  const [handoffPolicyRevision, setHandoffPolicyRevision] = useState('')
+  const [fetchMode, setFetchMode] = useState<'session' | 'handoff'>('session')
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [rollbackChecked, setRollbackChecked] = useState(false)
   const [writing, setWriting] = useState(false)
@@ -143,7 +145,7 @@ export function Subscriptions() {
     for (const key of ['source', 'candidates', 'nodes']) abortChannel(key)
     selectedRef.current = null; sourceAccessRef.current = null; setSelected(null); setSourceAccess(null)
     setCandidates(empty()); setCandidate(null); setCandidateOffset(0); setNodes(empty()); setNodeOffset(0)
-    approvalRef.current = null; setApproval(null); setHandoffApproval(''); setReferenceId(''); discardImport(); cancelConfirmation()
+    approvalRef.current = null; setApproval(null); setHandoffApproval(''); setHandoffPolicyRevision(''); setFetchMode('session'); setReferenceId(''); discardImport(); cancelConfirmation()
   }
   function clearSession() {
     for (const request of requests.current.values()) { clearTimeout(request.timer); request.controller.abort() }
@@ -307,7 +309,23 @@ export function Subscriptions() {
     prepare({ kind: 'approve', sourceId: selected.id, expectedRevision: selected.revision, referenceId: reference.referenceId, policyRevision: reference.revision }, '批准受信来源', `引用 ${reference.referenceId} · 策略版本 ${reference.revision} · 来源版本 ${selected.revision}；批准不等于抓取或节点健康。`)
   }
   function changeReference(value: string) {
-    cancelConfirmation(); approvalRef.current = null; setApproval(null); setHandoffApproval(''); setReferenceId(value)
+    cancelConfirmation(); approvalRef.current = null; setApproval(null); setReferenceId(value)
+  }
+  function changeFetchMode(value: 'session' | 'handoff') {
+    cancelConfirmation(); setFetchMode(value)
+  }
+  function prepareFetch() {
+    if (!selected || fetchReason) return
+    const approvalId = fetchMode === 'session' ? approval?.approvalId : handoffApproval
+    const policyRevision = fetchMode === 'session' ? approval?.policyRevision : parsedHandoffRevision
+    if (!approvalId || !policyRevision) return
+    const binding = `来源 ID：${selected.id}；预期来源版本：${selected.revision}；批准 ID：${approvalId}；策略版本：${policyRevision}。`
+    const explanation = fetchMode === 'handoff'
+      ? '实际目录引用未读回；由批准ID决定；准备新批准的下拉引用不绑定本次抓取。'
+      : `本会话已读回批准，目录引用 ${approval?.referenceId}；服务端仍会重新核验。`
+    prepare({ kind: 'fetch', sourceId: selected.id, expectedRevision: selected.revision, approvalId, policyRevision },
+      fetchMode === 'handoff' ? '抓取交接批准（未核验）' : '抓取本会话已读回批准',
+      `${binding}${explanation}失败保留最后有效候选；不会自动接纳或发布。`)
   }
   function rememberReceipt(value: SubscriptionReceipt, fromWrite = false) {
     setReceipt(value); setCommandId(value.commandId)
@@ -374,9 +392,11 @@ export function Subscriptions() {
   const importReason = disabledReason('subscription.import')
   const approvalReason = disabledReason('subscription.source.approve') || (sourceAccess?.policyState !== 'ready' ? '受信目录尚未就绪或无法列举引用，当前不能在页面批准。' : '')
   const knownApproval = approval && selected && approval.sourceId === selected.id && approval.revision === selected.revision && approval.referenceId === referenceId && sourceAccess?.references.some(r => r.referenceId === approval.referenceId && r.revision === approval.policyRevision)
-  const handoffReference = sourceAccess?.references.find(r => r.referenceId === referenceId)
-  const handoffValid = /^cmd_[a-f0-9]{32}$/.test(handoffApproval) && !!handoffReference
-  const fetchReason = disabledReason('subscription.fetch') || (sourceAccess?.policyState !== 'ready' ? '受信目录未就绪。' : '') || (!knownApproval && !handoffValid ? '请先取得当前版本的批准回执，或输入交接批准 ID；有效性由服务端核验。' : '')
+  const parsedHandoffRevision = /^[1-9][0-9]{0,15}$/.test(handoffPolicyRevision) ? Number(handoffPolicyRevision) : 0
+  const handoffValid = /^cmd_[a-f0-9]{32}$/.test(handoffApproval) && Number.isSafeInteger(parsedHandoffRevision) && parsedHandoffRevision > 0
+  const fetchReason = disabledReason('subscription.fetch') || (sourceAccess?.policyState !== 'ready' ? '受信目录未就绪。' : '') ||
+    (fetchMode === 'session' ? !knownApproval ? '本会话尚无匹配当前来源、引用与版本的已读回批准。' : ''
+      : !handoffValid ? '请输入有效的交接批准 ID 与正十进制安全整数策略版本；页面尚未核验该批准。' : '')
   const decideReason = disabledReason('subscription.admission.decide') || (!candidate ? '请先选择当前版本中的候选。' : '')
   const rollbackReason = disabledReason('subscription.rollback') || (!candidate || candidate.state !== 'admitted_local' ? '请先选择已在本地接纳的历史候选。' : '')
 
@@ -412,10 +432,16 @@ export function Subscriptions() {
           <fieldset><legend>受信目录批准与抓取</legend>
             <label htmlFor="subscription-reference">目录引用<select id="subscription-reference" disabled={!sourceAccess || sourceAccess.policyState !== 'ready' || writing} value={referenceId} onChange={e => changeReference(e.target.value)}>{!sourceAccess?.references.length ? <option value="">没有可列举的受信引用</option> : sourceAccess.references.map(ref => <option key={ref.referenceId} value={ref.referenceId}>{ref.referenceId} · 策略版本 {ref.revision}</option>)}</select></label>
             <button className="secondary" disabled={!!approvalReason} onClick={prepareApproval}>准备批准来源</button><p className="subscription-muted">{approvalReason || '只使用服务端列举的引用；不会接收任意 URL。'}</p>
-            {knownApproval ? <p className="subscription-muted">当前已知批准：<code>{approval!.approvalId}</code></p> : null}
-            <label htmlFor="subscription-handoff">交接批准 ID（可选）<input id="subscription-handoff" value={handoffApproval} disabled={!selected || writing} onChange={e => { cancelConfirmation(); setHandoffApproval(e.target.value) }} autoComplete="off" spellCheck={false} aria-describedby="subscription-handoff-help"/></label>
-            <p id="subscription-handoff-help" className="subscription-muted">操作者可输入批准者交接的命令 ID。页面未验证该批准；按当前来源版本与所选策略版本提交，由服务端权威核验。</p>
-            <button className="secondary" disabled={!!fetchReason} onClick={() => { const approvalId = knownApproval ? approval?.approvalId : handoffApproval; const policyRevision = knownApproval ? approval?.policyRevision : handoffReference?.revision; if (selected && approvalId && policyRevision) prepare({ kind: 'fetch', sourceId: selected.id, expectedRevision: selected.revision, approvalId, policyRevision }, '抓取已批准来源', `来源版本 ${selected.revision}；服务端将重新校验批准，失败保留最后有效候选。`) }}>准备抓取候选</button><p className="subscription-muted">{fetchReason || '抓取成功也不自动接纳或发布。'}</p>
+            <div className="subscription-fetch-modes" role="radiogroup" aria-label="抓取批准方式">
+              <label className="subscription-choice"><input type="radio" name="subscription-fetch-mode" checked={fetchMode === 'session'} disabled={!selected || writing} onChange={() => changeFetchMode('session')}/>本会话已读回批准</label>
+              <label className="subscription-choice"><input type="radio" name="subscription-fetch-mode" checked={fetchMode === 'handoff'} disabled={!selected || writing} onChange={() => changeFetchMode('handoff')}/>交接批准ID（未核验）</label>
+            </div>
+            {fetchMode === 'session' ? knownApproval ? <p className="subscription-muted">本会话已读回批准：<code>{approval!.approvalId}</code> · 引用 {approval!.referenceId} · 策略版本 {approval!.policyRevision}</p> : <p className="subscription-muted">需在本会话取得匹配的批准回执，不使用交接输入作为后备。</p> : <>
+              <label htmlFor="subscription-handoff">交接批准 ID<input id="subscription-handoff" value={handoffApproval} disabled={!selected || writing} onChange={e => { cancelConfirmation(); setHandoffApproval(e.target.value) }} autoComplete="off" spellCheck={false} aria-describedby="subscription-handoff-help"/></label>
+              <label htmlFor="subscription-handoff-revision">交接策略版本<input id="subscription-handoff-revision" type="text" inputMode="numeric" maxLength={16} value={handoffPolicyRevision} disabled={!selected || writing} onChange={e => { cancelConfirmation(); setHandoffPolicyRevision(e.target.value) }} autoComplete="off" spellCheck={false} aria-describedby="subscription-handoff-help"/></label>
+              <p id="subscription-handoff-help" className="subscription-muted">页面未验证该批准。实际目录引用未读回；由批准ID决定；准备新批准的下拉引用不绑定本次抓取。按当前来源版本与显式输入的策略版本提交，由服务端权威核验。</p>
+            </>}
+            <button className="secondary" disabled={!!fetchReason} onClick={prepareFetch}>准备抓取候选</button><p className="subscription-muted">{fetchReason || '抓取成功也不自动接纳或发布。'}</p>
           </fieldset>
           <fieldset><legend>候选决定与回退</legend><p className="subscription-muted">{candidate ? `目标 ${candidate.id}` : '请从当前版本候选列表中选择目标。'}</p><div className="subscription-button-row"><button className="secondary" disabled={!!decideReason} onClick={() => { if (selected && candidate) prepare({ kind: 'decide', sourceId: selected.id, expectedRevision: selected.revision, candidateId: candidate.id, expectedDigest: candidate.digest, decision: 'admitted_local' }, '接纳本地候选', `当前来源版本 ${selected.revision}；仅修改本地接纳状态，节点仍未评估。`) }}>准备接纳候选</button><button className="secondary subscription-danger" disabled={!!decideReason} onClick={() => { if (selected && candidate) prepare({ kind: 'decide', sourceId: selected.id, expectedRevision: selected.revision, candidateId: candidate.id, expectedDigest: candidate.digest, decision: 'rejected' }, '拒绝本地候选', `版本 ${selected.revision}；不会删除最后有效配置或发布设备。`) }}>准备拒绝候选</button></div><p className="subscription-muted">{decideReason || '确认前不会发送决定。'}</p><button className="secondary subscription-danger" disabled={!!rollbackReason} onClick={() => { if (selected && candidate) prepare({ kind: 'rollback', sourceId: selected.id, expectedRevision: selected.revision, candidateId: candidate.id }, '回退本地引用', `将版本 ${selected.revision} 的本地有效引用切换至 ${candidate.id}；不执行设备回滚。`) }}>准备回退候选</button><p className="subscription-muted">{rollbackReason || '回退需要额外确认目标与当前版本。'}</p></fieldset>
         </div></section>

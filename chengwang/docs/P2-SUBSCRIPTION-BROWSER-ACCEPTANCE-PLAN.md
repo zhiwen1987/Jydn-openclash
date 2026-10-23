@@ -47,7 +47,7 @@
 | 会话 | `#subscription-token`；“连接订阅会话”“清除会话与令牌” | 密码输入，连接后输入值清空；不得读取并导出 token 值 |
 | 来源 | `#subscription-source-label`、`.subscription-source-list` | 以实际 API source ID 绑定可见来源；不以列表顺序推断身份 |
 | 导入 | `#subscription-format`、`#subscription-file` | 真实浏览器文件输入；私有文件名、原文与 credentials 不进入截图/公开 DOM；准备后输入清空 |
-| 目录 | `#subscription-reference`、`#subscription-handoff` | 只取真实 access refs；交接 ID 仅语法提示，不称客户端已验证批准 |
+| 目录 / 抓取模式 | `#subscription-reference`、`[role="radiogroup"][aria-label="抓取批准方式"]`、`#subscription-handoff`、`#subscription-handoff-revision` | 目录仅准备新批准；本会话/交接两个明确模式。交接 ID 与策略版本独立填写，不能声称已读回实际引用或从下拉推导交接目标 |
 | 候选/节点 | `.subscription-candidate-list`、`.subscription-nodes`；“候选分页”“节点分页” | 按 source/candidate ID、revision 及实际 API 页绑定，不按固定第几个元素假定目标 |
 | 确认 | `.subscription-confirmation[role="alertdialog"]`；“确认并提交本地操作”“取消本次操作” | 必须真实点击确认；回退另需明确勾选，不能程序直接调用 React handler |
 | 回执 | `#subscription-command`、“读取命令回执” | 实际 GET 回执，不通过重发 mutation 模拟查询 |
@@ -74,6 +74,7 @@ App 当前采取隐藏挂载保留订阅内存会话：离开导航并不等于 
 - B07：真实私有订阅文件经浏览器 file input 读取、确认后导入，进入 quarantined；原文/私有名字不展示，安全 NodeView 仍 unknown。相同内容重复、rename/reorder 或错误格式仅按真实 backend 合同判定，不由 UI 自算权威 ID。
 - B08：Approver 在实际来源和 revision 批准真实目录 reference；批准返回后同 source/revision 的必要刷新不能无故清掉仍有效的批准。改变 source/revision/reference 必须撤销不匹配的旧批准，不能界面选新 reference 而实际 fetch 仍使用旧 reference 的批准。
 - B09：独立 Approver → Operator 的批准交接必须实际执行。Operator 可输入安全 command ID 并由服务端核验批准/source/policy/CAS；**不放宽 ReadReceipt owner 规则**，不能假设 Operator 能读取别人的完整批准回执。无效/过期/错误 source 或 revision 的交接仍由真实服务拒绝，库存及 wire 按冻结预期不变。
+- B09 的模式反例：同目录内两个不同 reference 采用相同 policy revision 时，下拉 A 与交接批准 B 不得被表述为“已验证抓取 A”；本会话批准不能覆盖交接输入，非活动交接输入也不能覆盖本会话模式。交接确认须显示 source/expectedRevision/approvalID/policyRevision 及实际引用尚未读回的明确说明，实际 wire/安全 store 结果按批准 B 绑定。切模式或编辑交接字段必须使旧确认失效。这里没有跨 owner 批准上下文读取 API，不能称角色交接已自动读回。
 - B10：抓取实际经过正常 DoT/HTTPS/source fixture；拿到候选不自动接纳。Approver 显式决定 admitted_local/rejected；只有真实成功回执和随后一致来源读回可显示已提交，节点保持未评估、设备发布锁定。
 - B11：回退选择真实已接纳历史候选，以当前 source revision 做 CAS，额外勾选后提交；产生新单调本地 revision。不把本地指针回退称为设备回滚，不用旧 candidate.BaseRevision 代当前 CAS。
 - B12：两来源即使导入相同私有内容也保持来源隔离/不同节点 ID 集合；选择另一来源不混入旧来源页、节点、批准或确认，所有写只影响明确目标。
