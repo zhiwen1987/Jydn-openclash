@@ -35,7 +35,8 @@ REMOTE_SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/remote_fetch_fi
     'chengwang/deploy/subscription-ui-browser/remote-fetch-contract.json',
     'chengwang/deploy/subscription-readback/wire_fixture.py', 'chengwang/deploy/subscription-readback/lab_contract.py']
 HANDOFF_SOURCE_FILES = [*REMOTE_SOURCE_FILES,
-    'chengwang/deploy/subscription-ui-browser/handoff_negative_fixture.py']
+    'chengwang/deploy/subscription-ui-browser/handoff_negative_fixture.py',
+    'chengwang/deploy/subscription-ui-browser/feedback_projection.py']
 SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py',
     'chengwang/deploy/subscription-ui-browser/ui_chrome_launcher.py',
     'chengwang/deploy/subscription-ui-browser/contract.json',
@@ -112,6 +113,10 @@ def remote_fetch():
 
 def handoff_negative():
     return load_module(pathlib.Path(__file__).with_name('handoff_negative_fixture.py'), 'subscription_ui_handoff_negative_fixture')
+
+
+def feedback_projection():
+    return load_module(pathlib.Path(__file__).with_name('feedback_projection.py'), 'subscription_ui_feedback_projection')
 
 
 def navigation_diagnostics():
@@ -377,6 +382,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
                 stdout=log, stderr=log, env=child_environment(root, bundle, scenario), cwd=root, preexec_fn=M.child_limits)
         wait_server(root, server, N); stage = 'DRIVER_START'
         with (root / 'driver.private.log').open('xb') as log:
+            if scenario == 'remote_handoff_negative': os.fchmod(log.fileno(), 0o600)
             entry = ('handoff-negative-cli.mjs' if scenario == 'remote_handoff_negative' else
                      'remote-fetch-cli.mjs' if scenario == 'remote_fetch' else
                      'admission-cli.mjs' if scenario == 'local_admission' else 'ui-cli.mjs')
@@ -436,6 +442,12 @@ def inner(options, repo, root, bundle, fixture, N, M):
             namespaces=N.ns(), defaultIPv4Routes=0, defaultIPv6Routes=0, interfaces=['lo'],
             sourceMount=N.mount_flags('self', repo), bundleMount=N.mount_flags('self', bundle),
             tmpMount=N.mount_flags('self', '/var/tmp'), **remote_isolation)) + b'\n')
+        if scenario == 'remote_handoff_negative':
+            stage = 'FEEDBACK_PROJECTION'
+            safe_feedback = feedback_projection().project(
+                N.stable_read(root / 'driver.private.log', 32 << 20, 0, 0o600)[0],
+                N.stable_read(options.output_dir / 'dom.jsonl', 1 << 20, 0, 0o644)[0], allow_noise=True)
+            print(safe_feedback.decode('ascii'), end='', flush=True)
         succeeded = True
     finally:
         for child in (node, server, wire):
@@ -489,6 +501,7 @@ def main():
         for name in ('repo', 'consumption-root', 'consumption-report', 'node', 'server', 'dist', 'build-report', 'output-dir'):
             argv += ['--' + name, str(getattr(options, name.replace('-', '_')))]
         with (bundle / 'supervisor.private.log').open('xb') as log:
+            if options.scenario == 'remote_handoff_negative': os.fchmod(log.fileno(), 0o600)
             child = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=log, stderr=log, env=dict(N.BASE_ENV), cwd='/')
             timed_out = False
             try: child.wait(timeout=225)
@@ -516,6 +529,11 @@ def main():
         (options.output_dir / 'inner-isolation.private.json').unlink()
         need({path.name for path in options.output_dir.iterdir()} == (HANDOFF_PUBLIC if options.scenario == 'remote_handoff_negative' else
              REMOTE_PUBLIC if options.scenario == 'remote_fetch' else PUBLIC))
+        if options.scenario == 'remote_handoff_negative':
+            safe_feedback = feedback_projection().project(
+                N.stable_read(bundle / 'supervisor.private.log', 65536, 0, 0o600)[0],
+                N.stable_read(options.output_dir / 'dom.jsonl', 1 << 20, 0, 0o644)[0], allow_noise=False)
+            print(safe_feedback.decode('ascii'), end='', flush=True)
         print('SUBSCRIPTION_UI=CAPTURED independent_verification=pending production=false full_subscription_e2e=false')
     finally:
         clean_owned(root, fixture); clean_owned(bundle, fixture)

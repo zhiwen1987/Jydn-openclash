@@ -1,6 +1,12 @@
 # 澄网项目进度台账
 
-## 当前最新事实：cc86661，业务负例隔离验收通过，UX仍有缺口
+## 当前开发增量：订阅反馈修复已实现，真实验收尚未执行
+
+已修改产品反馈：已知拒绝清除旧等待；未知／超时改为待核对且保留未决锁；历史回执不得覆盖在途提示或解锁无关命令。新增 25 项前端测试仅完成 AST 解析和名单核对，尚未运行 Vitest／类型检查。根实际纯 CPU 558 项、零 skip，保留旧 498，新增反馈辅助 60；双引擎真实反馈补层与 fresh 接线已实现，尚无本阶段 CI 结果。原九份前端测试未改，前端 CI 门保留旧 197 及新 25 名单。三子代理交叉复核、单一集成者提交；本机未安装／构建／启动服务或浏览器，生产未改、main 未合并。[本阶段实现与验收边界](P2-SUBSCRIPTION-FEEDBACK-REPAIR.md)。
+
+下一退出条件：新源码原 attempt1 的实际构建／222 项前端测试／双引擎业务与反馈／fresh 及旧回归完成，原件独立复算与截图审看后再更新状态；不能把辅助测试通过写成产品修复已验或已上线。
+
+## 最近已完成的有限验收：cc86661，业务负例通过，历史UX缺口保留
 
 [原CI40039043139](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40039043139)/attempt1八producer＋八fresh全success，无重跑或取消。根44原CLI均通过且与producer逐字同，其中真实fresh28份同；旧84/76的16份仅与producer比较。16原ZIP426成员摘要/CRC/逐byte及B/C同包均核，925Git，16PNG已分工实际审看。新场景49阶段/79浏览器请求/10浏览器POST＋2独立nativePOST/11命令/3批准/23外审/A2B1/隔离候选及unknown节点/3连接12wire，4进程正常退出，8counter0。498纯CPU保旧390与新108零skip。**但明确拒绝后仍显示旧“正在等待”notice，属于看图实测且尚未修复的UX问题，不称无bug或全闭环。** [实际记录](P2-SUBSCRIPTION-HANDOFF-NEGATIVE-PLAN.md)、[机器证据](evidence/p2-subscription-handoff-negative-cc86661.json)。
 

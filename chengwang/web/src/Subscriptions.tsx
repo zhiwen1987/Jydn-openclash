@@ -45,6 +45,11 @@ function errorText(error: unknown): string {
 function pendingReceipt(value: SubscriptionReceipt) {
   return value.stateMayHaveChanged || !value.auditRecorded || value.state === 'prepared' || value.state === 'unknown'
 }
+function pendingNotice(commandId: string | null) {
+  return commandId
+    ? '操作结果待核对；请读取命令回执，不要重复写入。'
+    : '操作结果待核对；未取得命令 ID，请联系管理员对账，不要重复写入。'
+}
 function scopeText(scope: SubscriptionScope) { return `${scope.tenantId} / ${scope.siteId} / ${scope.environment}` }
 
 export function Subscriptions() {
@@ -154,7 +159,7 @@ export function Subscriptions() {
     inFlightIntent.current = null; pendingCommand.current = undefined
     setConnected(false); setCollectionAccess(null); setSources(empty()); clearSource()
     setReceipt(null); setCommandId(''); setUnresolved(false); setWriting(false); writingRef.current = false
-    setTokenDraft(''); setSourceLabel(''); setIssue(null); setReceiptLoading(false)
+    setTokenDraft(''); setSourceLabel(''); setIssue(null); setNotice(''); setReceiptLoading(false)
   }
   function fail(error: unknown) {
     if (error instanceof SubscriptionAPIError && error.status === 401) clearSession()
@@ -348,6 +353,7 @@ export function Subscriptions() {
     confirmationRef.current = null; setConfirmation(null)
     const request = begin('write', 35_000, () => {
       writingRef.current = false; setWriting(false); pendingCommand.current = null; setUnresolved(true)
+      setNotice(pendingNotice(null))
       releaseSubscriptionIntent(pending.intent); setIssue({ message: '等待结果超时，服务端可能已执行；中止等待不代表撤销。请核对命令回执，不要重复写入。' })
     })
     if (!request) { writingRef.current = false; setWriting(false); releaseSubscriptionIntent(pending.intent); return }
@@ -355,14 +361,18 @@ export function Subscriptions() {
       const value = await writeSubscriptionCommand(request.session.token, request.controller.signal, pending.intent)
       if (!valid('write', request)) return
       rememberReceipt(value, true)
-      if (pendingReceipt(value)) setIssue({ message: '服务端结果或审计待确认；仅可读取命令回执，不会自动重新提交。' })
+      if (pendingReceipt(value)) {
+        setNotice('服务端结果或审计待确认；仅可读取命令回执，不会自动重新提交。')
+        setIssue({ message: '服务端结果或审计待确认；仅可读取命令回执，不会自动重新提交。' })
+      }
       else { setNotice(`${receiptStates[value.state]}；仅本地准入，不代表设备发布或节点可用。`); setSourceLabel(''); void loadOverview(value.sourceId) }
     } catch (error) {
       if (!valid('write', request)) return
       if (error instanceof SubscriptionAPIError && error.commandId) setCommandId(error.commandId)
       if (!(error instanceof SubscriptionAPIError) || error.stateMayHaveChanged || error.code === 'subscription_audit_degraded' || error.code === 'subscription_commit_unknown') {
         pendingCommand.current = error instanceof SubscriptionAPIError ? error.commandId ?? null : null; setUnresolved(true)
-      }
+        setNotice(pendingNotice(pendingCommand.current))
+      } else setNotice('')
       setSources(old => ({ ...old, stale: !!old.value })); setCandidates(old => ({ ...old, stale: !!old.value })); fail(error)
     } finally {
       releaseSubscriptionIntent(pending.intent)
@@ -373,15 +383,30 @@ export function Subscriptions() {
   }
   async function loadReceipt() {
     if (!/^cmd_[a-f0-9]{32}$/.test(commandId)) { setIssue({ message: '请输入有效的命令 ID。', field: 'subscription-command' }); return }
-    const request = begin('receipt', 10_000, () => { setReceiptLoading(false); setIssue({ message: '回执读取超时，未决状态保留；不会重新提交命令。' }) })
+    const request = begin('receipt', 10_000, () => {
+      setReceiptLoading(false)
+      if (pendingCommand.current !== undefined) setNotice(pendingNotice(pendingCommand.current))
+      else if (!writingRef.current) setNotice('')
+      setIssue({ message: '回执读取超时，未决状态保留；不会重新提交命令。' })
+    })
     if (!request) return
     setReceiptLoading(true); setIssue(null)
     try {
       const value = await readSubscriptionReceipt(request.session.token, request.controller.signal, commandId)
       if (!valid('receipt', request)) return
       if (value.commandId !== commandId) throw new SubscriptionAPIError(0, 'format')
-      rememberReceipt(value); setNotice(pendingReceipt(value) ? '回执仍未确认；请勿重复写入。' : '已读取历史回执，未重复执行业务动作。')
-    } catch (error) { if (valid('receipt', request)) fail(error) }
+      rememberReceipt(value)
+      setNotice(writingRef.current ? '正在等待服务端结果；尚未确认成功。'
+        : pendingReceipt(value) ? '回执仍未确认；请勿重复写入。'
+        : pendingCommand.current !== undefined ? '已读取历史回执，未重复执行业务动作。其他未决结果仍待核对；写入暂停。'
+          : '已读取历史回执，未重复执行业务动作。')
+    } catch (error) {
+      if (valid('receipt', request)) {
+        if (pendingCommand.current !== undefined) setNotice(pendingNotice(pendingCommand.current))
+        else if (!writingRef.current) setNotice('')
+        fail(error)
+      }
+    }
     finally { if (valid('receipt', request)) setReceiptLoading(false); finish('receipt', request) }
   }
   function changeCommand(value: string) {

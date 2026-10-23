@@ -1,0 +1,393 @@
+{
+  "schema": "chengwang.handoff-feedback-contract/v1",
+  "scenario": "remote_handoff_negative",
+  "scope": "REAL_RENDERED_NOTICE_ENUM_AND_DOM_ROW_BINDING_ONLY_NOT_INDEPENDENT_BROWSER_ATTESTATION",
+  "prefix": "SUBSCRIPTION_UI_FEEDBACK=",
+  "observationSchema": "chengwang.handoff-feedback-observation/v1",
+  "observationKeys": [
+    "schema",
+    "ordinal",
+    "step",
+    "domRowSHA256",
+    "status",
+    "alert",
+    "statusVisible",
+    "alertVisible"
+  ],
+  "snapshotKeys": [
+    "status",
+    "alert",
+    "statusVisible",
+    "alertVisible"
+  ],
+  "maxLineBytes": 1024,
+  "maxRows": 49,
+  "maxProjectionBytes": 65536,
+  "maxTextCharacters": 512,
+  "domRowHash": "SHA256_OF_EXACT_UTF8_DOM_JSON_LINE_INCLUDING_LF",
+  "statusTexts": {
+    "ABSENT": null,
+    "SESSION": "令牌仅在本次内存会话中使用。",
+    "WAITING": "正在等待服务端结果；尚未确认成功。",
+    "COMMITTED": "本地已提交；仅本地准入，不代表设备发布或节点可用。",
+    "APPROVED": "批准已记录；仅本地准入，不代表设备发布或节点可用。",
+    "HISTORY": "已读取历史回执，未重复执行业务动作。",
+    "CLEARED": "本地会话与令牌已清除；中止等待不撤销已到达服务端的动作。"
+  },
+  "alertTexts": {
+    "ABSENT": null,
+    "CONFLICT": "版本或批准已变化，请刷新来源与权限；不会自动重试写入。",
+    "FORBIDDEN": "当前身份没有此资源的操作权限，请联系权限管理员。"
+  },
+  "steps": [
+    "anonymous",
+    "operator_connected",
+    "create_a_prepared",
+    "created_a",
+    "create_b_prepared",
+    "created_b",
+    "approver_a",
+    "approve_a_old_prepared",
+    "approved_a_old",
+    "approve_a_new_prepared",
+    "approved_a_new",
+    "approver_b",
+    "approve_b_prepared",
+    "approved_b",
+    "operator_a_disabled",
+    "unknown_bound",
+    "unknown_prepared",
+    "unknown_failed",
+    "unknown_receipt",
+    "unknown_recovered",
+    "wrong_source_bound",
+    "wrong_source_prepared",
+    "wrong_source_failed",
+    "wrong_source_receipt",
+    "wrong_source_recovered",
+    "wrong_policy_bound",
+    "wrong_policy_prepared",
+    "wrong_policy_failed",
+    "wrong_policy_receipt",
+    "wrong_policy_recovered",
+    "superseded_bound",
+    "superseded_prepared",
+    "superseded_failed",
+    "superseded_receipt",
+    "superseded_recovered",
+    "cross_owner_denied",
+    "cross_owner_recovered",
+    "api_approve_denied",
+    "valid_handoff_bound",
+    "valid_handoff_prepared",
+    "fetched_quarantined",
+    "nodes_quarantined",
+    "api_stale_conflict",
+    "stale_receipt_failed",
+    "final_desktop",
+    "final_mobile",
+    "hidden",
+    "returned",
+    "cleared"
+  ],
+  "expected": {
+    "anonymous": {
+      "status": "ABSENT",
+      "alert": "ABSENT",
+      "statusVisible": false,
+      "alertVisible": false
+    },
+    "operator_connected": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "create_a_prepared": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "created_a": {
+      "status": "COMMITTED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "create_b_prepared": {
+      "status": "COMMITTED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "created_b": {
+      "status": "COMMITTED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approver_a": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approve_a_old_prepared": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approved_a_old": {
+      "status": "APPROVED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approve_a_new_prepared": {
+      "status": "APPROVED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approved_a_new": {
+      "status": "APPROVED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approver_b": {
+      "status": "APPROVED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approve_b_prepared": {
+      "status": "APPROVED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "approved_b": {
+      "status": "APPROVED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "operator_a_disabled": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "unknown_bound": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "unknown_prepared": {
+      "status": "SESSION",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "unknown_failed": {
+      "status": "ABSENT",
+      "alert": "CONFLICT",
+      "statusVisible": false,
+      "alertVisible": true
+    },
+    "unknown_receipt": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "unknown_recovered": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_source_bound": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_source_prepared": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_source_failed": {
+      "status": "ABSENT",
+      "alert": "CONFLICT",
+      "statusVisible": false,
+      "alertVisible": true
+    },
+    "wrong_source_receipt": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_source_recovered": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_policy_bound": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_policy_prepared": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_policy_failed": {
+      "status": "ABSENT",
+      "alert": "CONFLICT",
+      "statusVisible": false,
+      "alertVisible": true
+    },
+    "wrong_policy_receipt": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "wrong_policy_recovered": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "superseded_bound": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "superseded_prepared": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "superseded_failed": {
+      "status": "ABSENT",
+      "alert": "CONFLICT",
+      "statusVisible": false,
+      "alertVisible": true
+    },
+    "superseded_receipt": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "superseded_recovered": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "cross_owner_denied": {
+      "status": "ABSENT",
+      "alert": "FORBIDDEN",
+      "statusVisible": false,
+      "alertVisible": true
+    },
+    "cross_owner_recovered": {
+      "status": "ABSENT",
+      "alert": "ABSENT",
+      "statusVisible": false,
+      "alertVisible": false
+    },
+    "api_approve_denied": {
+      "status": "ABSENT",
+      "alert": "ABSENT",
+      "statusVisible": false,
+      "alertVisible": false
+    },
+    "valid_handoff_bound": {
+      "status": "ABSENT",
+      "alert": "ABSENT",
+      "statusVisible": false,
+      "alertVisible": false
+    },
+    "valid_handoff_prepared": {
+      "status": "ABSENT",
+      "alert": "ABSENT",
+      "statusVisible": false,
+      "alertVisible": false
+    },
+    "fetched_quarantined": {
+      "status": "COMMITTED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "nodes_quarantined": {
+      "status": "COMMITTED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "api_stale_conflict": {
+      "status": "COMMITTED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "stale_receipt_failed": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "final_desktop": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "final_mobile": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "hidden": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": false,
+      "alertVisible": false
+    },
+    "returned": {
+      "status": "HISTORY",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    },
+    "cleared": {
+      "status": "CLEARED",
+      "alert": "ABSENT",
+      "statusVisible": true,
+      "alertVisible": false
+    }
+  },
+  "unknownText": "REJECT_NOT_RAW_EXPORT",
+  "production": false,
+  "authorization": "BLOCKED",
+  "fullSubscriptionE2EProven": false
+}

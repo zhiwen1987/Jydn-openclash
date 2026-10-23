@@ -10,6 +10,7 @@ import {versionProjection} from './ui-contract.mjs'
 import {stableFile,ownedDirectory,publish,publishReady,until,Transport,chromeIdentity,noLiveChrome} from './ui-driver.mjs'
 import {readWireFence} from './remote-fetch-driver.mjs'
 import {HandoffAPISampler} from './handoff-api-sampler.mjs'
+import {FeedbackObserver,feedbackExpression} from './handoff-feedback-observer.mjs'
 const execute=promisify(execFile)
 const checkpoint=value=>process.stderr.write('SUBSCRIPTION_UI_STAGE='+value+'\n')
 const BUTTONS=Object.freeze(['订阅与提供者','运行总览','连接订阅会话','清除会话与令牌','刷新来源','准备创建来源','准备批准来源','准备抓取候选','确认并提交本地操作','读取命令回执'])
@@ -66,13 +67,13 @@ export async function runHandoffNegativeUI(o){
     const fill=async(id,value,replace=false)=>{need(INPUTS.includes(id)&&typeof value==='string'&&value.length>0&&value.length<=4096);if(page)await page.locator('#'+id).fill(value,{timeout:10000});else{need(await evaluate(`(()=>{const e=${targetExpression('input',id)};if(!e||e.disabled||(${replace?'false':"e.value!==''"}))return false;e.scrollIntoView({block:'center'});e.focus();return document.activeElement===e})()`));if(replace){await key('a',65,2);await key('Backspace',8)}await pageSend('Input.insertText',{text:value})}}
     const waitDOM=async predicate=>{let d;await until(async()=>{need(!journal.failure);d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d);return journal.idle()&&predicate(d)});return d}
     const waitWire=async count=>{let fence;await until(async()=>{try{fence=await readWireFence(o);return fence.eventCount===count}catch(error){if(error?.constructor?.name==='WireBusy')return false;throw error}});return fence}
-    let actorRole='anonymous';const domRows=[],screenshots=[]
+    let actorRole='anonymous';const domRows=[],screenshots=[],feedbackObserver=new FeedbackObserver()
     const record=async step=>{
       await until(()=>journal.idle());need(!journal.failure);const e=stepExpectation(step),wire=await waitWire(e.wireEvents),sample=await sampler.fence()
       need(await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.title==="澄网 · 网络代理与路由平台"&&!document.querySelector("vite-error-overlay,nextjs-portal,[data-vite-error-overlay]")')===true)
-      const d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d);validateStep(step,d,journal.mutationCount(),actorRole,journal.facts,wire,sample)
+      const observed=await evaluate(feedbackExpression(collector.SUBSCRIPTION_DOM_EXPRESSION));need(exact(observed,['dom','feedback']));const d=observed.dom;collector.validateSubscriptionDOM(d);validateStep(step,d,journal.mutationCount(),actorRole,journal.facts,wire,sample)
       const text=await evaluate(`(()=>{const p=document.querySelector('.subscriptions');return[p?.innerText??'',[...document.querySelectorAll('input:not([type="password"]):not([type="file"]),textarea')].map(e=>e.value).join('\\n')].join('\\n')})()`);need(typeof text==='string'&&Buffer.byteLength(text)<=131072);publicFence(Buffer.from(text),canaries)
-      const row={schema:C.domSchema,ordinal:domRows.length+1,step,captureCount:journal.rows.length,mutationCount:journal.mutationCount(),actorRole,wireFence:wire,samplerFence:sample,dom:d};publicFence(Buffer.from(JSON.stringify(row)),canaries);domRows.push(row);return d
+      const row={schema:C.domSchema,ordinal:domRows.length+1,step,captureCount:journal.rows.length,mutationCount:journal.mutationCount(),actorRole,wireFence:wire,samplerFence:sample,dom:d};publicFence(Buffer.from(JSON.stringify(row)),canaries);feedbackObserver.record(row,observed.feedback);domRows.push(row);return d
     }
     const sourceReady=(d,key)=>d.sources.some(s=>s.id===journal.facts.sources[key]&&s.selected)&&d.paging.candidates?.revision===d.sources.find(s=>s.id===journal.facts.sources[key]).revision
     const connect=async role=>{need(ROLES.includes(role));await click('清除会话与令牌');actorRole='anonymous';await waitDOM(d=>!d.sources.length&&d.receipt===null&&d.session.tokenEmpty);const n=journal.rows.filter(r=>r.kind==='SOURCES').length;await fill('subscription-token',input.tokens[role]);await click('连接订阅会话');actorRole=role;await waitDOM(d=>journal.rows.filter(r=>r.kind==='SOURCES').length===n+1&&d.session.tokenEmpty)}
@@ -117,7 +118,7 @@ export async function runHandoffNegativeUI(o){
     checkpoint('API_SAMPLER');{const row=await sampler.sample('api_stale_fetch',journal.facts);journal.facts.commands.api_stale_fetch={commandId:row.commandIdHeader,sourceId:journal.facts.sources.a,kind:'fetch',state:'failed',revision:1,auditRecorded:true,replayed:false,code:'subscription_command_conflict'}}await record('api_stale_conflict')
     await readReceipt('stale_receipt','api_stale_fetch');await record('stale_receipt_failed');await settle();await record('final_desktop');await viewport(375);await settle();await record('final_mobile');await shot('final_mobile')
     await click('运行总览');await waitDOM(d=>!d.pageVisible);await record('hidden');await click('订阅与提供者');await waitDOM(d=>d.pageVisible);await record('returned');await click('清除会话与令牌');actorRole='anonymous';await waitDOM(d=>!d.sources.length&&d.receipt===null);await record('cleared')
-    need(domRows.map(v=>v.step).join(',')===STEPS.join(','));journal.complete();const sample=await sampler.fence();need(sample.recordCount===2);await sampler.close()
+    need(domRows.map(v=>v.step).join(',')===STEPS.join(','));journal.complete();feedbackObserver.complete();const sample=await sampler.fence();need(sample.recordCount===2);await sampler.close()
 checkpoint('CLOSE');if(context)await context.close();else await browserSend('Browser.close')
     let chromeExit;await until(async()=>{try{chromeExit=JSON.parse((await stableFile(o.root+'/chrome-exit.private.json',4096,true)).toString());return true}catch(e){if(e?.code==='ENOENT')return false;throw e}},20000)
     need(exact(chromeExit,['schema','engine','fixtureId','pid','startTicks','exitCode','joined','forced'])&&chromeExit.schema==='chengwang.subscription-ui-chrome-exit/v1'&&chromeExit.engine===o.engine&&chromeExit.fixtureId===o.fixtureId&&chromeExit.pid===chrome.pid&&chromeExit.startTicks===chrome.startTicks&&chromeExit.exitCode===0&&chromeExit.joined===true&&chromeExit.forced===false)

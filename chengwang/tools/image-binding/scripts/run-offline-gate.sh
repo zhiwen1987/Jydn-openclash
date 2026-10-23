@@ -207,10 +207,11 @@ report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 # Subscription increment: 40 transport + 32 component + one App integration.
 # Three decision-eligibility cases extend, never replace, that baseline.
 # Four opt-in request-binding checks extend the accepted 193-case baseline.
+# Twenty-five feedback cases extend, never replace, that accepted 197-case set.
 # These are mocked checks, not real agent/subscription/browser evidence.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 197 or report.get("numPassedTests") != report.get("numTotalTests"):
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 197 + 25 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
-required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx"}
+required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx", "SubscriptionsFeedback.test.tsx"}
 results = report.get("testResults", [])
 if len(results) != len(required) or {pathlib.Path(result["name"]).name for result in results} != required:
     raise SystemExit("frontend required test file set changed")
@@ -264,6 +265,10 @@ for result in results:
     names = [case["fullName"] for case in result["assertionResults"]]
     if len(set(names)) != len(names):
         raise SystemExit("frontend duplicate test name")
+    if filename == "SubscriptionsFeedback.test.tsx":
+        if len(names) != 25 or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != "9320b1e792e6e1b9c5a6d4c7b45a070f4b187b76e5e51fd5381d2373dd898860":
+            raise SystemExit("feedback frontend scenarios missing, renamed or substituted")
+        continue
     if filename in subscription_increment:
         count, digest = subscription_increment[filename]
         if filename == "Subscriptions.test.tsx":
@@ -303,7 +308,7 @@ for result in results:
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=9 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=10 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 subscription_feedback=25 retained_total=197 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"

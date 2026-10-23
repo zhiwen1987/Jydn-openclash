@@ -244,6 +244,21 @@ jobs:
           python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_negative_synthetic.py \
             --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/handoff-synthetic.json"
 
+      - name: Preserve independent feedback helper events without changing original business schemas
+        if: matrix.scenario == 'remote_handoff_negative'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          node --test --test-reporter=tap chengwang/tools/subscription-ui-browser/test-handoff-feedback.mjs \
+            2>&1 | tee "$reports/feedback-node.tap"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_feedback_projection) \
+            2>&1 | tee "$reports/feedback-projection.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_handoff_feedback) \
+            2>&1 | tee "$reports/feedback-checker.log"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_feedback_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/feedback-synthetic.json"
+
       - name: Preserve navigation diagnostic helper events separately from runtime evidence
         shell: bash
         run: |
@@ -317,6 +332,20 @@ jobs:
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
             --evidence "$lab/reports/originals" --report "$lab/reports/independent.json" \
             2>&1 | tee "$lab/reports/independent-original.log"
+          git diff --exit-code
+
+      - name: Independently verify real feedback observations after original business acceptance
+        if: matrix.scenario == 'remote_handoff_negative'
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/subscription-ui"
+          sudo --non-interactive /usr/bin/python3 -I -B chengwang/deploy/subscription-ui-browser/check_handoff_feedback.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --evidence "$lab/reports" --report "$lab/feedback-independent.json" \
+            2>&1 | tee "$lab/reports/feedback-independent-original.log"
+          test ! -e "$lab/reports/feedback-independent.json"
+          sudo --non-interactive install -m 0600 "$lab/feedback-independent.json" "$lab/reports/feedback-independent.json"
           git diff --exit-code
 
       - name: Preserve only structured public originals and PNGs, including failures
@@ -398,6 +427,18 @@ jobs:
               2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/handoff-synthetic-original.log"
             cmp "$RUNNER_TEMP/subscription-ui-input/handoff-synthetic.json" \
               "$RUNNER_TEMP/subscription-ui-fresh/handoff-synthetic.json"
+            python3 -B chengwang/deploy/subscription-ui-browser/check_feedback_synthetic.py \
+              --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
+              --report "$RUNNER_TEMP/subscription-ui-fresh/feedback-synthetic.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/feedback-synthetic-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/feedback-synthetic.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/feedback-synthetic.json"
+            python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_feedback.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+              --evidence "$RUNNER_TEMP/subscription-ui-input" --report "$RUNNER_TEMP/subscription-ui-fresh/feedback-independent.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/feedback-independent-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/feedback-independent.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/feedback-independent.json"
           fi
           git diff --exit-code
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
