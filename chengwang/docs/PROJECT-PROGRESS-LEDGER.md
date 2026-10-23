@@ -2,9 +2,9 @@
 
 更新日期：2026-10-23。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-最新工作：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故本轮整体 **未验收通过**。详见[本轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待实现/运行，CDP 与固定版本 Playwright 都必须完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
+订阅页前序结果：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故该轮整体 **未验收通过**。详见[该轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待实现/运行，CDP 与固定版本 Playwright 都必须完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
 
-进行中增量：已实现匿名status生命周期/流与CDP独立时钟的闭集诊断、Python再投影及新copied helper独立来源门；另有新订阅页共享DOM collector。首次CI前冻结的独立80项合成门已本机及另一代理分别通过，不修改原190/2644或旧浏览器错误标准。诊断候选尚待实际CI；取消根因仍未确定，未宣称修复。详见[诊断合同及GitHub参考](P2-PROBE-STATUS-DIAGNOSTIC-CONTRACT.md)。
+最新增量 `ad3e4db`：闭集诊断与新订阅DOM collector已实现，五条隔离CI均终态。父门各2644、前端190/子模块各732、订阅两Linux原门及原生backend22均按原工件复验；旧浏览器本轮CDP成功、PW因一次取消严格失败，整体仍未验收。两诊断均收81条、无观察的应用ABORT/cleanup且流到EOF，已缩小排查范围，但未证明唯一根因。查实了相似GitHub问题与Chromium已合并补丁；当前Chrome未pin且revision未归档，不能冒充已含修复。独立80合成门CI通过/名字指纹核对，Node原stdout尚缺。详见[本轮实际验收](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md)及[机器记录](evidence/p2-status-diagnostic-ad3e4db.json)。下一步固化真实browser身份/可溯源修复版本与保管，再跑严格矩阵；新订阅页真实双浏览器仍待实施。生产未动。
 
 P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed274d304c0a2` 的 CDP 与原生 Playwright 已分别完成真实浏览器闭环及原 ZIP 独立重放，正常 TLS、实际证据读回/自然过期、8 错误计数全 0、Node/Chrome 正常退出均通过；父门及原生后端也已独立复验。镜像信任绑定 CI 已 success，前端 117/117、子模块 ordinary/race 各 732、旧基线和源码绑定已独立核验；未逐一独立重放全部旧产品子 CLI。摘要单飞与超时/迟到结果所有权修复通过该历史轮次，但不据此声称已唯一证明取消根因。详见[双浏览器验收记录](P1-PROBE-BROWSER-ACCEPTANCE.md)。未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
@@ -38,6 +38,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
 | P2-06a | 订阅资源界面与安全权限元数据 | `8f610a4` 已实现并完成部分隔离验收：Go各2644、前端190、子模块各732及旧名单通过，镜像CI/旧订阅后端成功；但旧CDP一次取消导致整体未验收。[实际记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md) | CDP原因未定，不能被PW成功抵销；新订阅浏览器/跨角色批准上下文自动读回/任意URL与私有CA目录编辑器仍未实现；未上线 |
 | P2-06b | 真实订阅页面双浏览器闭环 | 待实现/验收；Chrome/CDP 与固定版本 Playwright 都必须完成 | 已有双浏览器只证明探针页，不能替代本页角色交接/写入/回执/重启验收 |
+| P2-06 诊断增量 | 有界取消观察与订阅DOM collector | `ad3e4db`独立80合成门CI成功；两个诊断门及其原工件独立/根会话重放通过；前述局部回归保持 | 旧浏览器PW失败未抵销；原因未唯一证明，browser revision/pin和辅助原stdout仍缺；订阅DOM仅合成，非新页E2E。[记录](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md) |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
 
 完整 `subscription_orchestration` 能力继续保持 `design_only`，不会因为新 helper 包或单元测试而自动改成生产能力。
@@ -87,4 +88,4 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | `f0c23d6` | 订阅本地准入 API/RBAC/批准/耐久回执与恢复隔离验收：新 130、全主模块每轮 2620 与旧名单保持；原生/CDP/PW 原工件双重重放，同源码镜像 CI success 与原三 CLI/前端门独立重放；两轮父门失败、一次 native stop 失败和未执行 pending 均保留。详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 订阅资源页、完整公共来源抓取/内核、自动调度、所有旧产品 CLI 独立重放、完整编排或生产已完成 |
 | `2a68973` / `2b0a472` | 独立订阅产品实验首轮严格失败并保留；修正fixture有界发送计数、独立门不放宽，第二轮producer+freshLinux完整原门通过，原报告三方一致；同源码父门2620/旧名单完整复验。详见[P2-05b记录](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md) | fixture公网地址等于真实互联网、节点业务健康、订阅UI、调度、系统恢复或生产已完成 |
 
-下一顺序：为旧CDP取消增加有界无秘密的生命周期/请求关联观测，先唯一归因再修复 → 新订阅资源页 Chrome/CDP＋固定版本 Playwright 双浏览器 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。不放宽失败计数、TLS或时间预算，不以多次运行挑绿灯。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
+下一顺序：基于已取得的闭集观察，固化browser identity/revision、取得可溯源修复版本并通过独立正负矩阵，按证据选择修复 → 新订阅资源页 Chrome/CDP＋固定版本 Playwright 双浏览器 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。不放宽失败计数、TLS、no-store或字节/时间预算，不以多次运行挑绿灯。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
