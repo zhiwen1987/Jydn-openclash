@@ -1,0 +1,287 @@
+{
+  "artifactMembers": 215,
+  "artifacts": [
+    {
+      "bytes": 342132,
+      "id": 12535041400,
+      "members": 27,
+      "name": "subscription-ui-create_receipt-chrome-cdp-40030609894-1",
+      "sha256": "b66208e0529c0ab0ab2fc4dd14233f650e4ab937058046b2ea2a6aaaa95c11e4"
+    },
+    {
+      "bytes": 347769,
+      "id": 12534901374,
+      "members": 32,
+      "name": "subscription-ui-remote_fetch-chrome-cdp-40030609894-1",
+      "sha256": "2ce63a8f5537820257660d7326e5e5f2ee18c4faf9246d929a5f6bcdba7f9ff5"
+    },
+    {
+      "bytes": 708216,
+      "id": 12534841838,
+      "members": 36,
+      "name": "subscription-ui-create_receipt-playwright-40030609894-1",
+      "sha256": "bbff046fff7f24508526bf4825f9ca11ee7df4f8d2544262e62f6db608f93505"
+    },
+    {
+      "bytes": 731132,
+      "id": 12534532108,
+      "members": 48,
+      "name": "subscription-ui-remote_fetch-playwright-40030609894-1",
+      "sha256": "9fc3fe6d6516405743094b2d9f6297e98b20bf93924cce1395bfbdd91168e230"
+    },
+    {
+      "bytes": 741631,
+      "id": 12533979718,
+      "members": 36,
+      "name": "subscription-ui-local_admission-chrome-cdp-40030609894-1",
+      "sha256": "8c8c6e3cb5f81738f2f8d36f5d6681a21b1f4d3364fad3da46069846ae692768"
+    },
+    {
+      "bytes": 740611,
+      "id": 12533699438,
+      "members": 36,
+      "name": "subscription-ui-local_admission-playwright-40030609894-1",
+      "sha256": "77f486fb928a42e3821c62552da618d0b46e2a1a397b5a5644693173161cc0ae"
+    }
+  ],
+  "custody": {
+    "allZIPMemberCRCsVerified": true,
+    "apiDigestsVerified": true,
+    "fullRootManifestSHA256": "124004a86076cbb3cfdf81c175d05ed10cb65757a5100da3b044647ac15474b6",
+    "noRuntimeBinariesDownloaded": true,
+    "rootOriginals": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-96e-root-originals-hd4v8a5m",
+    "sourceSnapshot": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw96e-ltcfzwyp\\src"
+  },
+  "externalInternetProven": false,
+  "failures": [
+    {
+      "capturedPOSTs": 0,
+      "captures": 6,
+      "capturesSHA256": "04240da1b3add6bb4adad2743c5eaadfaaba828bf42153092bf8b31f904cc4ee",
+      "checkpoints": [
+        "ENVIRONMENT",
+        "LAUNCH",
+        "NAVIGATE"
+      ],
+      "controllerExit": 1,
+      "engine": "chrome-cdp",
+      "failureSHA256": "7680a603300c60502d023a24e6fe9b6f79b1a0381129f16b60a587430cf2ccc1",
+      "forcedSignals": 1,
+      "fullCounterSnapshotPresent": false,
+      "noLiveOwnedProcesses": true,
+      "preciseRootCauseProven": false,
+      "scenario": "create_receipt",
+      "stage": "UI_RUN"
+    },
+    {
+      "capturedPOSTs": 0,
+      "captures": 6,
+      "capturesSHA256": "2215896a0e93eb71cf753c408ee34291b4c8d678b64bcf3fa8827aeee4f48a0e",
+      "checkpoints": [
+        "ENVIRONMENT",
+        "LAUNCH",
+        "NAVIGATE"
+      ],
+      "controllerExit": 1,
+      "engine": "chrome-cdp",
+      "failureSHA256": "d3b31eea5f4534dab31017e57a2992a02d1c2b337855149274ed97b308725aaa",
+      "forcedSignals": 2,
+      "fullCounterSnapshotPresent": false,
+      "noLiveOwnedProcesses": true,
+      "preciseRootCauseProven": false,
+      "scenario": "remote_fetch",
+      "stage": "UI_RUN"
+    }
+  ],
+  "fullSubscriptionE2EProven": false,
+  "mainMerged": false,
+  "officialImagePublished": false,
+  "otherEvidence": {
+    "continuousFuzzProven": false,
+    "eachFuzzSeeds": 8,
+    "eachFuzzTopLevel": 4,
+    "oldSubscriptionAuditSHA256": "63ed21ade9c2ea37940c0f695d162e03870c6455b77c8f3ac91649dfab1a85f8",
+    "oldSubscriptionOriginalLinuxProducerFreshEqual": true,
+    "oldSubscriptionRun": 40030609922,
+    "oldSubscriptionWindowsFullPOSIXGatePassed": false,
+    "oldUIIndependentBAudit": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw96b-1d307fee\\actual-old-ui-summary.json",
+    "oldUIIndependentBAuditSHA256": "c23e29af4c4b04200532977173d0a9c8cd53225727e3443f2ff888d2e9ed1d78",
+    "ordinaryTests": 2644,
+    "parentAudit": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-parent-oldsub-96e51e4-63b543c907c0471cbaaff466ec921425\\parent-actual-audit.json",
+    "parentAuditSHA256": "8c9227f17b7fc713788518304e2b0c4ff632eb21b7dd732e2e9c0982cdaae528",
+    "parentRun": 40030609903,
+    "raceTests": 2644
+  },
+  "productionChanged": false,
+  "pureCPU": {
+    "dependencies": 86,
+    "newRemote": 86,
+    "nodeSyntaxFiles": 4,
+    "oldAdmission": 76,
+    "oldCreate": 84,
+    "pythonASTFiles": 7,
+    "report": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-remote-root-cpu-sp0rri2c\\root-cpu.json",
+    "reportSHA256": "f25986e5cbbe81f61b60794ea991833a5f904c8cd0f0032edec1231e432ac8b6",
+    "skipped": 0,
+    "total": 332,
+    "workflowBashSyntaxBlocks": 11
+  },
+  "remaining": [
+    "CDP navigation-stage root cause and bounded failure diagnostics",
+    "all six producer success and six fresh exact replays",
+    "B09 invalid stale wrong-source unauthorized rejection matrix",
+    "remaining B01-B23 and full previous product regressions",
+    "same-database restart and system backup recovery",
+    "external Internet and node health",
+    "authorized gray migration production readback rollback and long observation"
+  ],
+  "remotePlaywright": {
+    "actualPNGsViewedByRoot": true,
+    "approvals": 1,
+    "candidates": 1,
+    "commands": 4,
+    "desktopViewport": [
+      1440,
+      900
+    ],
+    "eightErrorCountersZero": true,
+    "externalAuditEvents": 8,
+    "freshCompared": false,
+    "localAuditCount": 3,
+    "mobileViewport": [
+      375,
+      900
+    ],
+    "mutations": 4,
+    "normalTLSOfflineVerifiedAtCapture": true,
+    "reportSHA256": "288364afe3ade8d8da94a37ba9b7e6f83e54a0bb0207737d476413cfaadef5ac",
+    "requests": 47,
+    "rootAndIndependentCReportsEqualProducer": true,
+    "sourceGitBlobs": 900,
+    "sourceRevision": 3,
+    "sources": 1,
+    "steps": 33,
+    "visualScope": "FIRST_VIEWPORT_ONLY_NOT_FULL_MOBILE_FLOW",
+    "wireConnections": 3,
+    "wireEvents": 12
+  },
+  "rootOffline": {
+    "CIReexecuted": false,
+    "environmentRejectionsPreserved": true,
+    "globalEnvironmentChanged": false,
+    "originalVerifiersChanged": false,
+    "reason": "OPENSSL_NOT_ON_ORIGINAL_PROCESS_PATH_WINERROR_2",
+    "replaySHA256": "29ed10070d27cc625b9150170a0be985c21d623b8b5bb5107ea138215424e633",
+    "results": [
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 1,
+        "failedEvidenceCorrectlyRejected": true,
+        "freshPresent": false,
+        "logSHA256": "a8a1ea1b9a69847fef003370960f6082bb3bc4afb43bc52b20aecf43aa893c71",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "logSHA256": "3a3ea3e858214e2367205b78a1345b8c4bb2736744114f01b71a3fbb7ea95cf3",
+        "producerEqual": true,
+        "reportSHA256": "47059c0837a8c198da80e1bc2fe80bd53415d845c0a32c77597fe9c53d2e5ad0",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "logSHA256": "14a6e33eb2009981f3ecc17c866fba8dfb4033578102a750863136edbb8d03e4",
+        "producerEqual": true,
+        "reportSHA256": "ae29c9b8633175075f4cf77cead616f4f0ae436fd5aad1793c5571ed9fb4e779",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "logSHA256": "14a6e33eb2009981f3ecc17c866fba8dfb4033578102a750863136edbb8d03e4",
+        "producerEqual": true,
+        "reportSHA256": "3c5f1d940ab9c573cccf090f0d43168cbdc830294dea7ba9a1a4514f142f96ae",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 1,
+        "failedEvidenceCorrectlyRejected": true,
+        "freshPresent": false,
+        "logSHA256": "ea12319060bed8df4c05ee9340d89ac4bbea2a5f118ca83a81f69252a3f46ef5",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "logSHA256": "e531a5f12b56a835c2f9faf5ae0076ae00acb40ba000112388634e00c2115332",
+        "producerEqual": true,
+        "reportSHA256": "288364afe3ade8d8da94a37ba9b7e6f83e54a0bb0207737d476413cfaadef5ac",
+        "scenario": "remote_fetch"
+      }
+    ],
+    "subsequentProcessPATHOnly": "already installed C:/Program Files/Git/usr/bin"
+  },
+  "run": {
+    "attempt": 1,
+    "conclusion": "failure",
+    "freshMatrixExpanded": false,
+    "freshReplaysExecuted": 0,
+    "id": 40030609894,
+    "jobs": [
+      {
+        "conclusion": "failure",
+        "id": 120677660182,
+        "name": "Real product create_receipt (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120677660469,
+        "name": "Real product local_admission (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "id": 120677660483,
+        "name": "Real product remote_fetch (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120677660510,
+        "name": "Real product local_admission (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120677660526,
+        "name": "Real product create_receipt (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120677660567,
+        "name": "Real product remote_fetch (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "id": 120678292305,
+        "name": "Fresh original ${{ matrix.scenario }} replay (${{ matrix.engine }})",
+        "status": "completed"
+      }
+    ],
+    "rerunRequested": false
+  },
+  "schema": "chengwang.remote-fetch-ui-stage-acceptance/v1",
+  "sourceCommit": "96e51e475bfbe2cf67666ede4deaeac94eabcacb",
+  "status": "PARTIAL_IMPLEMENTED_NOT_DUAL_ENGINE_ACCEPTED_NOT_PRODUCTION",
+  "wholeSystemComplete": false
+}

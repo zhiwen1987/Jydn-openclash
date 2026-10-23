@@ -1,6 +1,6 @@
 # P2：受信来源批准、角色交接与真实抓取
 
-状态：新场景实现与纯 CPU 回归已完成，真实 Linux CI/浏览器尚未验收。本文不是验收成功或生产部署记录。
+状态：新场景实现、纯 CPU 回归和单引擎正向流已验证；首轮整体失败，未通过双引擎验收，未部署生产。
 
 ## 从当前事实开始
 
@@ -34,7 +34,35 @@
 
 根代理实际运行并保留原始输出：既有 84 项、既有 76 项、新远程辅助 86 项（Node 32、fixture 16、checker 26、辅助门 12）及原依赖 86 项，共 332 项零跳过。三个辅助日志门均按事前名单摘要重验通过；7 个 Python 文件 AST、4 个新 JS 语法和 11 个工作流 shell 块 `bash -n` 通过。没有安装依赖、启动浏览器、服务器、wire 或构建产品。
 
-根原件位于 `C:/Users/Administrator/AppData/Local/Temp/cw-remote-root-cpu-sp0rri2c/`，汇总为 `root-cpu.json`。这些是提交前工作树的纯测试记录，绑定的 `parentCommit` 只是父提交，不能被解释为新提交的真实 CI 源码证明。后续需实际六 producer（3 场景 × 2 引擎）与六 fresh；新远程成功 producer 预期 48 个公开成员、fresh 6 个，旧场景仍分别 36/4 个。当前无新场景成功结论。
+根原件位于 `C:/Users/Administrator/AppData/Local/Temp/cw-remote-root-cpu-sp0rri2c/`，汇总为 `root-cpu.json`。这些是提交前工作树的纯测试记录，绑定的 `parentCommit` 只是父提交，不能被解释为新提交的真实 CI 源码证明。后续需实际六 producer（3 场景 × 2 引擎）与六 fresh；新远程成功 producer 预期 48 个公开成员、fresh 6 个，旧场景仍分别 36/4 个。提交前尚无新场景成功结论；首轮实际结果如下。
+
+## 首轮真实 CI：部分成功，整体未通过
+
+源码 `96e51e475bfbe2cf67666ede4deaeac94eabcacb`，原 [UI run 40030609894](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40030609894)，attempt 1，终态 **failure**，没有 rerun/cancel。按前端测试技能区分真实呈现与合成测试；Browser plugin/browser skill 不可用，沿用获准的隔离 CI CDP 与项目固定 Playwright，不启动本机浏览器。
+
+| 场景 | CDP | Playwright |
+| --- | --- | --- |
+| 既有创建/回执 | 失败 | 成功 |
+| 既有双来源本地准入 | 成功 | 成功 |
+| 新批准/交接/真实抓取 | 失败 | 成功 |
+
+整个 `fresh` 由于 `needs: browser` 失败而跳过，只有一个未展开占位 job `120678292305`，不是六个实际 fresh。不能把四个成功 producer 说成双引擎全组成功。
+
+根已获取并按 API SHA-256、ZIP CRC 和逐成员摘要核六个公开原 ZIP，共 215 个成员（27/32 为两失败诊断工件，36/36/36/48 为四成功工件）。根与 B 的三个旧成功完整产品 CLI、根与 C 的新 Playwright 完整产品 CLI 均与原 producer 报告逐字一致；每份成功报告绑定 900 个 Git blob。六份依赖及旧84/76辅助报告、新远程两份86辅助报告也由根原 CLI 重验与 producer 逐字一致。两失败工件原完整 CLI 均拒绝，无成功报告。没有 fresh 报告可比。
+
+新 Playwright 实际在 `https://127.0.0.1:17891/` 操作 33 步、47 请求、四次写入；批准 B、下拉 A、交接批准 B、正常 DoT A/AAAA 和 HTTPS B、隔离候选、明确接纳、读回/清会话均已实际核。终态 1 source/revision3、1 candidate、4 command、1 approval、local audit3/external8，3 连接/12 wire 事件、四进程正常 wait0，八错误计数全0。API/source/resolver 三类正常 TLS 均在录制时点独立核验。根已看桌面1440×900、手机375×900原 PNG：首屏非空、无框架覆盖、未见水平溢出；手机只是首屏，未验证完整滚动操作。仍不是公网订阅、节点健康或全系统验收。
+
+根首轮离线四产品 CLI 因当前进程 PATH 缺 `openssl` 原样拒绝，日志保留。直接诊断原函数定位到 `verify_tls` 的 WinError2，而不是 CI 产品失败。后续仅对子进程 PATH 加入已经安装的 Git `usr/bin`，同一 exact-LF 短副本、同一原 checker/原件重放成功；没有安装、更改全局 PATH、证书校验、原时间或源码。原拒绝与后续报告分文件保存。
+
+两 CDP 失败只有 `UI_RUN` 与 `ENVIRONMENT/LAUNCH/NAVIGATE` 检查点，controller exit1、各6条 DOCUMENT/ASSET/SNAPSHOT 200捕获、0次捕获写入；无最终 DOM/driver/PNG。旁路的 host/source 前后读回一致、没有 inner timeout。remote 退出诊断还显示 wire exit0、forcedSignals2；create 为 forcedSignals1，均无遗留 owned process。**现有证据不能唯一确定具体失败语句，更不能断言点击、DNS、TLS 或 wire 根因。**
+
+原件与汇总：`C:/Users/Administrator/AppData/Local/Temp/cw-96e-root-originals-hd4v8a5m/`；独立 B：`.../cw96b-1d307fee/`，独立 C：`.../rf96c-5ed771a8/`。[机器证据](evidence/p2-subscription-remote-fetch-96e51e4.json) 保存 SHA、job、环境拒绝及剩余范围。A 另行核父门40030609903普通/race各2644 Test；旧订阅40030609922两Linux成功、80项/889Git，Windows原POSIX门仍拒绝，不能抵消 UI 失败。
+
+## 下一步：补诊断，不凭推测修业务
+
+先用固定阶段与受限错误代码区分导航返回、页面就绪、导航控件命中、真实输入、匿名 DOM 和 TLS 证明；记录八计数及 bounded metadata，不输出原错误消息、令牌、headers、DOM文本或原URL。旧成功闭集/验收条件不能放宽，不自动重试写操作，不重跑旧 run 挑绿。
+
+已查阅 GitHub 官方实现，固定 Playwright `20a2087ea43412b90c172c88faef80786ee18b8b` 的 [dom.ts](https://github.com/microsoft/playwright/blob/20a2087ea43412b90c172c88faef80786ee18b8b/packages/playwright-core/src/server/dom.ts#L434-L442) 在指针动作前检查可见、启用、稳定和非 inert；这只是与当前原生 CDP 一次命中检查的差异，**不是本轮失败根因证据**。不明确的实现继续先核仓库、固定版本上游源码与测试，再决定是否修改。
 
 ## 本阶段不冒称完成的内容
 
