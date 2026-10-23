@@ -241,6 +241,10 @@ jobs:
           test "$(go env GOVERSION)" = go1.23.12
           test -f /opt/google/chrome/chrome
           test ! -L /opt/google/chrome/chrome
+          # Hosted tool-cache ancestors are not our custody boundary. Copy
+          # only the actual ELF into this run's private, non-writable input
+          # hierarchy; never chmod the shared cache or bypass checked_path.
+          /usr/bin/install -m 0755 "$(readlink -f "$(command -v node)")" "$lab/bin/node"
           sudo --non-interactive apt-get update -qq
           sudo --non-interactive apt-get install --no-install-recommends -y libnss3-tools
           /usr/bin/cp -a chengwang/web/. "$lab/web-build/"
@@ -396,12 +400,30 @@ jobs:
         run: |
           set -euo pipefail
           lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          python3 -B - "$lab/evidence/input-paths.json" "$lab" "$(readlink -f "$(command -v node)")" <<'PY'
+          import json, os, pathlib, stat, sys
+          root = pathlib.Path(sys.argv[2]); records = []
+          paths = [('source-node-not-runtime-input', pathlib.Path(sys.argv[3])),
+              ('node', root / 'bin/node'), ('chrome', pathlib.Path('/opt/google/chrome/chrome')),
+              ('agent', root / 'bin/probe-agent'), ('server', root / 'bin/server'),
+              ('driver', root / 'bin/probe-readback-driver'), ('web', root / 'web-build/dist'),
+              ('fonts', root / 'fonts'), ('output', root / 'evidence/lab')]
+          for role, path in paths:
+              ancestors = []
+              for item in (*reversed(path.parents), path):
+                  info = item.lstat()
+                  ancestors.append(dict(path=str(item), uid=info.st_uid, gid=info.st_gid,
+                      mode=oct(stat.S_IMODE(info.st_mode)), symlink=stat.S_ISLNK(info.st_mode)))
+              records.append(dict(role=role, ancestors=ancestors))
+          with pathlib.Path(sys.argv[1]).open('x') as output:
+              json.dump(records, output, separators=(',', ':')); output.write('\n')
+          PY
           /usr/bin/timeout --signal=TERM --kill-after=20s 420s \
             /usr/bin/python3 -B chengwang/deploy/probe-readback/run_probe_browser.py \
               --agent "$lab/bin/probe-agent" --server "$lab/bin/server" \
               --driver "$lab/bin/probe-readback-driver" --source-commit "$GITHUB_SHA" \
               --output-dir "$lab/evidence/lab" --web-dir "$lab/web-build/dist" \
-              --fonts-dir "$lab/fonts" --node "$(readlink -f "$(command -v node)")" \
+              --fonts-dir "$lab/fonts" --node "$lab/bin/node" \
               --chrome /opt/google/chrome/chrome --engine '${{ matrix.engine }}'
 
       - name: Independently verify original backend and bound browser evidence
