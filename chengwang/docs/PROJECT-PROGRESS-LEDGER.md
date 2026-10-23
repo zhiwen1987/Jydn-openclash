@@ -14,7 +14,9 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 
 最新已验增量 `409aa9c`：[pin强制消费/安全展开](P2-BROWSER-PIN-CONSUMPTION.md)已在原 run39988647783 的 producer/fresh 两Linux实际通过，根/代理复核小包原件及精确Git5。实际301文件/309成员、全部CRC与落地hash、305061192B Chrome ELF结构一致；20合成项只计producer一次。没有执行浏览器，不证明runtime或取消修复；父门39988647521与订阅39988647516均终态成功，尚未在本阶段逐项独立重放其全套原门。历史参考pin未改。
 
-本轮进行中：[五case正常TLS/CDP/PW候选矩阵](P2-BROWSER-STREAM-MATRIX.md)首轮 `de875c0` 原run39992474501终态失败：96合成事件0skip，两引擎执行步骤成功，但独立CLI在HEADERS≤FINISH时间假设拒绝，fresh跳过，不能算通过。已查固定157源码确认HEADERS取dispatch Now而FINISH携带较早completion_time，修正仅该成功分支，失败时间/seq/字节/身份等门不变；新增8回归，修正版实际CI待验。合成检查和单独子验证不等于实际矩阵成功或产品新订阅页E2E；旧原门不改，生产未动。
+最新已验增量 `7291655`：[五case正常TLS/CDP/PW固定候选矩阵](P2-BROWSER-STREAM-MATRIX-ACCEPTANCE.md)原run39993513218五job均success。真实Chrome157/revision/ELF已读回，104原事件0skip；每引擎5case/6请求/18网络事件/24server事件、正常TLS与三进程真实wait0，无强制干预。5原小包/41原文件核对，829Git；producer/fresh/根/代理完整报告四方逐字一致。首轮 `de875c0` 原失败保留，仅按精确Chromium源码修正成功FINISH时间语义，未改原时间或忽略失败。[机器证据](evidence/p2-browser-stream-matrix-7291655.json)保留旧失败与新实测。
+
+另行原件验收：父门39993513211终态success，根/代理精确Git checker复验ordinary/race各2644 Test恰一次、零skip/fail，各12 Fuzz另计；订阅39993513263两Linux完整原门success，原20/46/4/26/102、819Git和80实际单位名单经代理语义复验，根/代理核两原包摘要及报告相同。Windows完整POSIX custody仍原样拒绝，不冒称本机全门通过。**实际产品候选接线、新订阅页面E2E、旧产品浏览器/镜像的新候选回归、灰度和生产均未完成**；不把协议矩阵替代这些要求。
 
 | 编号 | 交付项 | 实际状态 | 证据与剩余边界 |
 | --- | --- | --- | --- |
@@ -22,7 +24,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | P1-02 | 真实 agent 经正常 DoT/HTTPS 写入结果 | 已实现并隔离验收 | 两轮 6 个原始结果，ledger 7/13 联合结算；[本阶段证据](P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md) |
 | P1-03 | 真实主 API、重启读回、自然过期 | 已实现并隔离验收 | fresh/重启均读回 6 样本；到期后 0 样本、3 目标 unknown；源数据不变 |
 | P1-04 | 独立检查器与失败关闭反例 | 已实现并隔离验收 | 44 辅助检查、24 wire 前置检查；原始 22 输入独立重放，失败历史保留 |
-| P1-05 | 原有后端回归 | 已复验 | P1历史 `cadb9f4` 各2403，当前 `22f0757` ordinary/race各2644原门已独立复验，旧名单保留；各12 Fuzz函数/seed另计，不折算产品完成率 |
+| P1-05 | 原有后端回归 | 已复验 | P1历史 `cadb9f4` 各2403，当前 `7291655` ordinary/race各2644原门已独立复验，旧名单保留；各12 Fuzz函数/seed另计，不折算产品完成率 |
 | P1-06 | 控制台探针页面 | 已实现并隔离验收 | `cadb9f4` 的真实 API/正常 TLS 浏览器读回、清除及过期交互通过；本地及隔离 CI 的 117 模拟前端测试通过，其中新 7 项单飞反例；CI 原名单/增量检查门独立复核通过，模拟测试不代替真实浏览器 |
 | P1-07 | 正常 TLS 浏览器展示真实 runID 与过期状态 | 两路径均已独立隔离验收 | `cadb9f4` 的 [39925504923](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39925504923) CDP/PW 原 ZIP、精确 Git checker、后端 22 输入均独立重放通过；每引擎 18 捕获、8 错误计数全 0、实际正常退出，完整摘要见[验收记录](P1-PROBE-BROWSER-ACCEPTANCE.md)。不代表公网、生产、其他浏览器或整套企业产品已验收 |
 | P1-08 | 机器能力事实清单与新探针状态同步 | 已实现并隔离验收 | 默认 blocked，配置后仅 implemented_local；匿名清单不调用 probe reader；完整业务评估保持 design_only；4 API＋8 registry 测试实际执行；`2fe1231` 阶段父门/原生/镜像 CI success 是历史证据，不替代本轮镜像回归 |
@@ -43,6 +45,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | P2-05 | 产品 API / RBAC / 独立写门 | `f0c23d6` 有界隔离验收通过：ordinary/race 各 2620 Test，新 130 齐全；原生/CDP/Playwright 原工件重放通过；同源码镜像 CI success，前端 117、子模块各 732、原 Registry/source/source-TLS 三门独立重放通过；详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 仅本地准入后端，非完整编排/生产；后续独立主进程/公共地址 fixture Fetch 见 P2-05b；订阅资源页与其余旧产品完整 CLI 独立重放仍未完成 |
 | P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
 | P2-06a | 订阅资源界面与安全权限元数据 | `8f610a4` 已实现并完成部分隔离验收：Go各2644、前端190、子模块各732及旧名单通过，镜像CI/旧订阅后端成功；但旧CDP一次取消导致整体未验收。[实际记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md) | CDP原因未定，不能被PW成功抵销；新订阅浏览器/跨角色批准上下文自动读回/任意URL与私有CA目录编辑器仍未实现；未上线 |
+| P2-06b-0 | 固定浏览器原件消费与正常TLS协议前置矩阵 | `409aa9c` pin/解压与 `7291655` CDP/PW五场景及fresh原件均隔离验收，完整四方重放一致 | 独立协议fixture，不是产品新页面、历史取消根因或生产验收 |
 | P2-06b | 真实订阅页面双浏览器闭环 | 待实现/验收；Chrome/CDP 与固定版本 Playwright 都必须完成 | 已有双浏览器只证明探针页，不能替代本页角色交接/写入/回执/重启验收 |
 | P2-06 诊断增量 | 有界取消观察与订阅DOM collector | `ad3e4db`历史独立80合成门与诊断原件重放通过；该轮PW严格失败不覆盖 | 原因未唯一证明，不能回填该轮缺失的revision/Node stdout；订阅DOM仅合成。[记录](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md) |
 | P2-06 身份与保管前置 | 真实revision/ELF/进程绑定、原80输出、候选获取 | `22f0757`双浏览器真实身份及原12 CLI报告根重放；原80/新56分别通过；候选两Linux获取与来源审核通过 | 参考pin尚未被执行门消费；alpha候选尚未运行、严格正负矩阵/新订阅E2E未做；本轮成功不证明历史偶发取消消除。[记录](P2-BROWSER-IDENTITY-ACQUISITION.md) |
@@ -72,6 +75,9 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 
 | 提交或阶段 | 结果 | 不应误读为 |
 | --- | --- | --- |
+| `7291655` | 精确Chromium源码支持的时间语义修正；双引擎真实157/五场景/正常TLS/退出、104新辅助事件及四方原件重放通过；父门各2644与订阅原门分别复验 | 实际产品已切候选、订阅页E2E、补丁二进制祖先、历史偶发问题或生产已解决 |
+| `de875c0` | 原run39992474501首轮96合成通过、两实际执行成功，但独立CLI时间假设拒绝，整体failure/fresh skipped；原件与失败保留 | 新源码通过可以回填旧源码成功 |
+| `409aa9c` | 两Linux真实强制pin/安全解压/CRC/落地hash/ELF结构验证通过 | 已执行浏览器或已修复产品问题 |
 | `22f0757` | 真实身份、原80 stdout/事件保管、独立新56门；两原浏览器原ZIP/12 CLI根重放逐字同CI；候选官方原ZIP两Linux取得重算，并另起参考pin。父门/native/订阅/镜像关键原门均复核，七旧产品CLI等缺口明确留存 | 参考pin已经消费、候选157已经运行、历史偶发取消已消除、新订阅页E2E、完整产品或生产已完成 |
 | `2cf4a34` | 安全只读接线、前端合成 API 与既有镜像回归验收 | 真实探针浏览器闭环或上线 |
 | `a8a5216` | 首轮真实采集/API 执行成功，独立 checker 因 namespace 历史编号假设拒绝 | 整轮 CI 成功；原失败保留 |
