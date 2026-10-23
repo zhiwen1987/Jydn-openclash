@@ -1,0 +1,26 @@
+{
+  "schema": "chengwang.ci-ui-dependencies-contract/v1",
+  "scope": "TRUSTED_CI_DEPENDENCY_READBACK_NOT_REPRODUCIBLE_PACKAGE_PROVENANCE",
+  "reportSchema": "chengwang.ci-ui-dependencies/v1",
+  "reportFile": "ci-dependencies.json",
+  "platform": {"system": "Linux", "runner": "Linux", "ubuntu": "24.04", "architecture": "amd64"},
+  "packages": ["libnss3-tools", "fonts-noto-cjk"],
+  "acquireOptions": ["Acquire::Retries=1", "Acquire::http::Timeout=15", "Acquire::https::Timeout=15"],
+  "updateStrictOption": "APT::Update::Error-Mode=any",
+  "updateTimeoutSeconds": 120,
+  "installTimeoutSeconds": 240,
+  "killAfterSeconds": 15,
+  "readbackCommandTimeoutSeconds": 5,
+  "updateInvocations": 1,
+  "installInvocations": 1,
+  "sourceConfigurationModified": false,
+  "fontFamily": "Noto Sans CJK SC",
+  "fonts": [
+    {"style": "Regular", "path": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"},
+    {"style": "Bold", "path": "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"}
+  ],
+  "certutilPath": "/usr/bin/certutil",
+  "maxLogBytes": 4194304,
+  "maxFontBytes": 67108864,
+  "production": false
+}

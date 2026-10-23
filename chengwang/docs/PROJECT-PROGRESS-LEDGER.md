@@ -2,7 +2,9 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-**最新实际进展 `8c4852c`**：双来源本地准入及历史候选决定按钮修复隔离验收通过；四producer/四fresh成功，根/独立子代理四完整原CLI逐字同，实际859 Git blobs。历史候选6条按钮禁用、当前待审8条启用，4张新首屏PNG已查看。前端193/193零跳过原JSON/日志与原Git gate已根/子代理复验，旧190基线保留；镜像CI成功。[原件与边界](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md)。**旧探针CDP回归因failedRequests=1严格失败，本轮整体未通过，完整 B01–B23、全旧产品子CLI独立重放、灰度和生产未完成**。不会以新UI成功抵消旧门失败。
+**当前执行阶段：CI依赖获取修复与UI回归补验**。[实现与退出条件](P2-CI-DEPENDENCY-ACQUISITION.md)已据原日志及APT/GitHub官方源码定界；有界准备程序、包/字体读回和独立检查器已实现，新增26项纯测试及模拟跨层对接实际通过。新源码真实CI尚未运行，不计入真实安装或UI已验收。最近实际已验收为下文 `16ad525` 请求关联诊断与 `b68a55e` 的197项前端；整组UI回归和系统上线仍未完成。
+
+**前序已验增量 `8c4852c`**：双来源本地准入及历史候选决定按钮修复隔离验收通过；四producer/四fresh成功，根/独立子代理四完整原CLI逐字同，实际859 Git blobs。历史候选6条按钮禁用、当前待审8条启用，4张新首屏PNG已查看。前端193/193零跳过原JSON/日志与原Git gate已根/子代理复验，旧190基线保留；镜像CI成功。[原件与边界](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md)。该源码旧探针CDP回归因failedRequests=1严格失败，历史整体失败保留；完整 B01–B23、全旧产品子CLI独立重放、灰度和生产未完成。不会以新UI成功抵消旧门失败。
 
 前序 `c15eda3`：双来源正常流通过，但6条真实DOM历史候选仍可准备决定；[原机器证据](evidence/p2-subscription-local-admission-c15eda3.json)保留缺口。`8c4852c` 的新原件只证明后续修复，不回填历史。更早 `aedd194` 的创建/回执[历史验收](P2-SUBSCRIPTION-UI-REAL-FLOW.md)仍按该源码与范围解释。
 

@@ -82,12 +82,61 @@ jobs:
           lab="$RUNNER_TEMP/subscription-ui"
           test ! -e "$lab"
           install -d -m 0700 "$lab" "$lab/bin" "$lab/cache" "$lab/reports" "$lab/web-build"
+          install -d -m 0700 "$lab/reports/dependencies"
+          (
+            cd chengwang/deploy/subscription-ui-browser
+            python3 -B - <<'PY' 2>&1 | tee "$lab/reports/dependency-unit.log"
+          import ast, hashlib, importlib, pathlib, unittest
+          pins = {
+              'test_prepare_ci_dependencies': (16, 'bd98e4cb062944ad135e4f4daefd5670b2d26b591f099036f7f93aa7cd0241dc'),
+              'test_check_ci_dependencies': (10, '9175717e8abd173a693e50b6faad7170d687b8296ceed6202be9373f10598866'),
+          }
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args); self.runs = []; self.passes = []
+              def startTest(self, test):
+                  self.runs.append(test.id()); super().startTest(test)
+              def addSuccess(self, test):
+                  self.passes.append(test.id()); super().addSuccess(test)
+          for name, (count, expected) in pins.items():
+              tree = ast.parse(pathlib.Path(name + '.py').read_bytes())
+              names = sorted(name + '.' + cls.name + '.' + method.name for cls in tree.body if isinstance(cls, ast.ClassDef)
+                  for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_'))
+              if len(names) != count or len(set(names)) != count or hashlib.sha256('\n'.join(names).encode()).hexdigest() != expected:
+                  raise SystemExit('ci-dependency-unit-names-rejected')
+              result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(
+                  unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(name)))
+              if (not result.wasSuccessful() or result.skipped or result.expectedFailures or result.unexpectedSuccesses
+                  or sorted(result.runs) != names or sorted(result.passes) != names):
+                  raise SystemExit('ci-dependency-unit-events-rejected')
+          print('CI_DEPENDENCY_SYNTHETIC=PASS tests=26 skips=0 runtime_started=false')
+          PY
+          )
           cp -a chengwang/web/. "$lab/web-build/"
-          npm ci --prefix "$lab/web-build" --ignore-scripts --no-audit --no-fund
-          npm ci --prefix chengwang/tools/subscription-ui-browser --ignore-scripts --no-audit --no-fund
+          timeout --signal=TERM --kill-after=15s 180s \
+            npm ci --prefix "$lab/web-build" --ignore-scripts --no-audit --no-fund
+          timeout --signal=TERM --kill-after=15s 180s \
+            npm ci --prefix chengwang/tools/subscription-ui-browser --ignore-scripts --no-audit --no-fund
           sudo --non-interactive install -m 0555 "$(command -v node)" "$lab/bin/node"
-          sudo --non-interactive apt-get update -qq
-          sudo --non-interactive apt-get install -y --no-install-recommends libnss3-tools fonts-noto-cjk
+
+      - name: Acquire bounded CI system dependencies and read back actual installed files
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/subscription-ui"
+          /usr/bin/python3 -I -B chengwang/deploy/subscription-ui-browser/prepare_ci_dependencies.py \
+            --reports "$lab/reports/dependencies" --source-commit "$GITHUB_SHA"
+
+      - name: Independently verify CI dependency observations without claiming package provenance
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/subscription-ui"
+          /usr/bin/python3 -B chengwang/deploy/subscription-ui-browser/check_ci_dependencies.py \
+            --evidence "$lab/reports/dependencies" --source-commit "$GITHUB_SHA" \
+            --repo "$GITHUB_WORKSPACE" --report "$lab/reports/dependency-verification.json"
 
       - name: Build real cmd/server and exact product Web offline
         shell: bash
