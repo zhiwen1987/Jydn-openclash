@@ -29,3 +29,9 @@
 后端工件为 22 个封闭命名文件：6 个驱动报告、6 个原始 API 响应、3 个 wire 文件、2 个源元数据文件、isolation/processes/runtime/cleanup/outcome。独立检查报告位于其外。必须保留失败尝试和原始工件，不能只保存最终 PASS 或手工修补证据。
 
 退出码、正常 TERM 和实际 join 必须同时核实；超时、强制 kill、读取失败或未知状态均失败关闭。进程和文件系统检查是实验可信计算基的一部分，不是对恶意 root 或不可中断内核 I/O 的保证。
+
+## 首轮失败与修正边界
+
+`a8a5216` 的[首轮原生 CI](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39897368270)中，编译、44 项辅助检查、24 项原生 wire 前置检查以及实际 agent/重启/过期执行步骤成功，但独立 checker 拒绝了正常生命周期：已退出的 `api-first` 和随后启动的 `api-second` 复用了同一个 Linux mount namespace inode。历史 inode 数字不保证永远唯一；不能据此认定两个存活进程共用命名空间。
+
+修正只涉及检查器及反例：每个 role 仍须独立于宿主/实验 init；实际并发的 wire/agent 必须分离；PID 唯一、启动顺序、正常 TERM/join 和阶段时序仍需核对。`/proc` 的 startTime 是 tick 而非纳秒，不错误要求两个不同 PID 的顺序启动一定跨过 tick。公开报告明确：退出顺序依赖受信执行器的有序 join 记录，不是独立退出时间见证。新增已退出 namespace 复用及同 tick 启动正例，并保留并发隔离失效、PID 复用、时序倒退和异常退出反例。修后对首轮原字节重放通过，不会把原 CI 的 failure 改称 success；新提交仍必须完整重跑。

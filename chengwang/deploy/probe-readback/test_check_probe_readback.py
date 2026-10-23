@@ -287,6 +287,7 @@ def synthetic_fixture(certificates):
                       limits=dict(cpuSeconds=[120, 120], fileBytes=[32 << 20] * 2, openFiles=[256] * 2, processes=[256] * 2, coreBytes=[0, 0]))
         process_records.append(record)
         exits.append(dict(role=role, pid=record['pid'], startTime=record['startTime'], signal='SIGTERM', exitCode=0, joined=True, forced=False))
+    exits = sorted(exits, key=lambda item: ('agent', 'wire', 'api-first', 'api-second').index(item['role']))
     fixture[PREFIX + 'processes.json'] = compact(runner('processes', processes=process_records, exits=exits)) + b'\n'
     phases = [dict(name=name, startedUnixNano=str(base + start * 10**9), finishedUnixNano=str(base + end * 10**9)) for name, start, end in (('fresh', 131, 134), ('restarted', 139, 142), ('expired', 250, 252))]
     fixture[PREFIX + 'runtime.json'] = compact(runner('runtime', startedUnixNano=str(base), finishedUnixNano=str(base + 252 * 10**9),
@@ -455,7 +456,32 @@ class CheckerTests(unittest.TestCase):
         self.mutate('prepare', lambda r: r['certificates'].update(apiCARaw=r['certificates']['targetCARaw'])); self.reject()
 
     def test_process_caps_argv_pid_or_namespace_cannot_be_faked(self):
-        self.mutate('processes', lambda r: r['processes'][1]['capabilities'].update(CapEff='0000000000000001')); self.reject()
+        original = self.json('processes')
+        reused = copy.deepcopy(original)
+        reused['processes'][3]['namespaces']['mnt'] = reused['processes'][2]['namespaces']['mnt']
+        self.save('processes', reused)
+        self.assertEqual(gate.verify(self.evidence, HEAD)['outcome'], 'PASS')
+        equal_tick = copy.deepcopy(reused)
+        equal_tick['processes'][3]['startTime'] = equal_tick['processes'][2]['startTime']
+        equal_tick['exits'][3]['startTime'] = equal_tick['processes'][3]['startTime']
+        self.save('processes', equal_tick)
+        self.assertEqual(gate.verify(self.evidence, HEAD)['outcome'], 'PASS')
+        mutations = (
+            lambda r: r['processes'][1]['capabilities'].update(CapEff='0000000000000001'),
+            lambda r: r['processes'][1]['namespaces'].update(mnt=r['processes'][0]['namespaces']['mnt']),
+            lambda r: r['processes'][2]['namespaces'].update(mnt='mnt:[201]'),
+            lambda r: r['processes'][3]['namespaces'].update(mnt='mnt:[2]'),
+            lambda r: r['processes'][3].update(pid=r['processes'][2]['pid']),
+            lambda r: r['processes'][3].update(startTime='1'),
+            lambda r: r['processes'][2].update(argvSHA256='0' * 64),
+            lambda r: r['processes'][3].update(exeSHA256='0' * 64),
+            lambda r: r['processes'].reverse(),
+            lambda r: r['exits'].reverse(),
+            lambda r: r['exits'][2].update(joined=False),
+        )
+        for mutation in mutations:
+            value = copy.deepcopy(reused); mutation(value); self.save('processes', value); self.reject()
+        self.save('processes', original)
 
     def test_external_route_or_host_ca_change_is_rejected(self):
         self.mutate('isolation', lambda r: r['lab']['routes4'].append(dict(type='unicast', dst='default', dev='eth0', table='main', scope='global', gateway='1.1.1.1'))); self.reject()

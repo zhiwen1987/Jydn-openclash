@@ -680,7 +680,10 @@ def isolation(value, commit, fixture_id, cert_hashes):
 def processes(value, commit, fixture_id, isolated, tools, wire_pid):
     common(value, 'processes', commit, fixture_id, {'processes', 'exits'})
     require(type(value['processes']) is list and len(value['processes']) == 4 and type(value['exits']) is list and len(value['exits']) == 4)
-    seen, pids, mounts = {}, set(), set()
+    role_order = ('wire', 'agent', 'api-first', 'api-second')
+    require([item.get('role') for item in value['processes']] == list(role_order))
+    require([item.get('role') for item in value['exits']] == ['agent', 'wire', 'api-first', 'api-second'])
+    seen, pids, previous_start = {}, set(), 0
     for item in value['processes']:
         object_keys(item, {'role', 'pid', 'startTime', 'exeSHA256', 'argvSHA256', 'uid', 'gid', 'groups', 'capabilities', 'noNewPrivs', 'namespaces', 'limits'})
         role = item['role']
@@ -688,14 +691,17 @@ def processes(value, commit, fixture_id, isolated, tools, wire_pid):
         pid = integer(item['pid'], 2)
         require(pid not in pids); pids.add(pid)
         require(type(item['startTime']) is str and re.fullmatch(r'[1-9][0-9]{0,19}', item['startTime']) and HEX.fullmatch(item['exeSHA256']) and HEX.fullmatch(item['argvSHA256']))
+        # /proc starttime is measured in ticks, so distinct ordered launches
+        # can legitimately have the same value within a scheduler tick.
+        require(int(item['startTime']) >= previous_start)
+        previous_start = int(item['startTime'])
         require(item['uid'] == item['gid'] == [10001] * 4 and item['groups'] == [] and type(item['noNewPrivs']) is int and item['noNewPrivs'] == 1)
         caps = object_keys(item['capabilities'], {'CapInh', 'CapPrm', 'CapEff', 'CapBnd', 'CapAmb'})
         require(all(value == '0000000000000000' for value in caps.values()))
         namespaces(item['namespaces'])
         require(all(item['namespaces'][key] == isolated['lab']['namespaces'][key] for key in ('net', 'pid', 'user')))
-        require(item['namespaces']['mnt'] not in mounts and item['namespaces']['mnt'] not in
+        require(item['namespaces']['mnt'] not in
                 (isolated['lab']['namespaces']['mnt'], isolated['hostBefore']['mountNamespace']))
-        mounts.add(item['namespaces']['mnt'])
         if role != 'wire':
             require(item['exeSHA256'] == tools['agent' if role == 'agent' else 'server'])
         else:
@@ -720,6 +726,11 @@ def processes(value, commit, fixture_id, isolated, tools, wire_pid):
             integer(pair[1], low, maximum)
         seen[role] = item
     require(seen['api-first']['exeSHA256'] == seen['api-second']['exeSHA256'] and seen['api-first']['argvSHA256'] == seen['api-second']['argvSHA256'])
+    # These two roles overlap. API roles instead start only after their
+    # predecessors have joined; destroyed namespace inode numbers may be reused.
+    # Ordered runner join records are lifecycle evidence, not independent exit
+    # timestamps (the public schema deliberately contains no such timestamp).
+    require(seen['wire']['namespaces']['mnt'] != seen['agent']['namespaces']['mnt'])
     exits = set()
     for item in value['exits']:
         object_keys(item, {'role', 'pid', 'startTime', 'signal', 'exitCode', 'joined', 'forced'})
@@ -900,6 +911,7 @@ def verify(evidence_dir, source_commit):
                 actualInternetReachabilityProven=False, agentIdentitySignatureProven=False,
                 buildProvenanceScope='TRUSTED_CI_BUILD_INPUTS_NOT_INDEPENDENT_REBUILD',
                 deniedAPIBodiesIndependentlyWitnessed=False, pythonBinaryProvenanceProven=False,
+                processLifecycleScope='TRUSTED_RUNNER_ORDERED_JOINS_NOT_INDEPENDENT_EXIT_TIME_ATTESTATION',
                 wireAssociation='UNIQUE_TARGET_AND_ATTEMPT_TIME_WINDOW', driverReports=6, spoolResults=6,
                 firstLedgerSequence=7, finalLedgerSequence=13, settledUnion=6, dotQueries=12, httpsResponses=6,
                 wireConnections=18, wireEvents=72, apiPhases=list(PHASES), sameInputBytesAfterReadback=True,
