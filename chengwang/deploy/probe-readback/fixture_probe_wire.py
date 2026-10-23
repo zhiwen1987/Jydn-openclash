@@ -306,8 +306,16 @@ class WireServer:
         self.accepted = self.closed = self.ordinal = 0
         self.failure = False
         self.termination = ''
+        self.signal_termination = ''
         self.log_fd = files.create('events.jsonl')
         self.contexts = {name: files.context(name) for name in ('dot', 'https')}
+
+    def record_signal(self, signum, _frame=None):
+        # A Python signal handler can interrupt the main thread while Event.wait
+        # holds its non-reentrant condition lock. Record only a closed flag;
+        # the normal run loop performs Event.set after wait has released it.
+        if not self.signal_termination and signum in (signal.SIGTERM, signal.SIGINT):
+            self.signal_termination = 'term' if signum == signal.SIGTERM else 'int'
 
     def emit(self, connection, service, event, reason, tls=False, **extra):
         if reason not in REASONS:
@@ -495,6 +503,11 @@ class WireServer:
             thread.start()
             deadline = time.monotonic() + self.deadline_seconds
             while not self.stop.wait(0.02):
+                if self.signal_termination:
+                    if not self.termination:
+                        self.termination = self.signal_termination
+                    self.stop.set()
+                    break
                 if time.monotonic() >= deadline:
                     self.termination = 'deadline'
                     self.stop.set()
@@ -561,13 +574,8 @@ def main(argv=None):
         files = PrivateFiles(options.fixture_root)
         server = WireServer(files, options.deadline_seconds)
 
-        def stop(signum, _):
-            if not server.termination:
-                server.termination = 'term' if signum == signal.SIGTERM else 'int'
-            server.stop.set()
-
-        signal.signal(signal.SIGTERM, stop)
-        signal.signal(signal.SIGINT, stop)
+        signal.signal(signal.SIGTERM, server.record_signal)
+        signal.signal(signal.SIGINT, server.record_signal)
         return server.run()
     except Rejected as error:
         code = error.args[0] if error.args and error.args[0] in ERROR_CODES else 'runtime-failed'

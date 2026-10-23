@@ -23,6 +23,7 @@ import stat
 import struct
 import subprocess
 import sys
+import threading
 import time
 import unittest
 import uuid
@@ -404,6 +405,23 @@ class ShapeTests(unittest.TestCase):
             wire.check_process()
 
     def test_bootstrap_and_diagnostics_are_bounded(self):
+        class GuardEvent(threading.Event):
+            def set(self):
+                raise AssertionError('signal-handler-must-not-set-event')
+
+        # Deterministic synthetic condition-lock interleaving, not a claim to
+        # reproduce the unobserved stack of any previous native failure.
+        for signum, expected in ((signal.SIGTERM, 'term'), (signal.SIGINT, 'int')):
+            server = wire.WireServer.__new__(wire.WireServer)
+            server.stop = GuardEvent()
+            server.termination = server.signal_termination = ''
+            with server.stop._cond:
+                server.record_signal(signum, None)
+                self.assertEqual(server.signal_termination, expected)
+                self.assertEqual(server.termination, '')
+                self.assertFalse(server.stop.is_set())
+                server.record_signal(signal.SIGINT if signum == signal.SIGTERM else signal.SIGTERM)
+                self.assertEqual(server.signal_termination, expected)
         code = bootstrap()
         self.assertLessEqual(len(code.encode()), 96 << 10)
         result = subprocess.run([sys.executable, '-I', '-B', '-c', code, 'serve', '--fixture-root',
