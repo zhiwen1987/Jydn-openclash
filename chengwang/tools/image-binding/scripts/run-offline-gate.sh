@@ -290,6 +290,10 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 # ordinary/race test set and the accepted lifecycle driver remain unchanged.
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry,productlifecycle,productsource -o "$RUN_ROOT/bin/product-source.test" .
+# A distinct executable keeps source TLS fault/recovery actions out of the
+# ordinary/race suite and out of the accepted wave-1 driver's entry point.
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -tags productregistry,productlifecycle,productsource,productsourcetls -o "$RUN_ROOT/bin/product-source-tls.test" .
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry,productcrash -o "$RUN_ROOT/bin/product-crash.test" .
 # Preseeded-state startup matrix is a separate opt-in driver, not an addition

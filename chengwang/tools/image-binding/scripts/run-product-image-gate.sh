@@ -780,5 +780,9 @@ phase=isolated-product-source-wave1
 /usr/bin/timeout --signal=TERM --kill-after=15s 900s \
   /usr/bin/bash "$script_root/run-product-source-gate.sh" "$run_root" "$go_binary" "$module_cache" \
   "$image_id" "$private/product-image.private.tar"
+phase=isolated-product-source-tls
+/usr/bin/timeout --signal=TERM --kill-after=15s 900s \
+  /usr/bin/bash "$script_root/run-product-source-tls-gate.sh" "$run_root" "$go_binary" "$module_cache" \
+  "$image_id" "$private/product-image.private.tar"
 acceptance_completed=true
 echo 'D10_PRODUCT_IMAGE_GATE=PASS actual_default_entrypoint=true actual_pid1_binary_hash=true graceful_stops=5 restart_readback=true fail_closed_startups=4 product_image_executed=true image_published=false authorization=BLOCKED production=false'

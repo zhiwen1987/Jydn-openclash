@@ -388,7 +388,7 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
     # The original CLI stays D10-only. Separate lifecycle checkers opt in to
     # their closed namespaces while reusing every runtime security check.
     # No caller-supplied arbitrary prefix, path rewrite or broad /tmp allowance.
-    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle", "product-crash", "product-state", "product-source"}, "fixture kind rejected")
+    require(fixture_kind in {"product-image", "product-registry", "product-lifecycle", "product-crash", "product-state", "product-source", "product-source-tls"}, "fixture kind rejected")
     require(type(planned_sigkill) is bool and (not planned_sigkill or fixture_kind == "product-crash" and status == "exited"), "planned abnormal exit scope rejected")
     require(type(startup_rejected) is bool and (not startup_rejected or fixture_kind == "product-state" and status == "exited" and not planned_sigkill), "startup rejection scope rejected")
     if fixture_kind == "product-registry":
@@ -400,6 +400,11 @@ def inspect_projection(image: dict, container: dict, *, image_id: str, source: s
             r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/refresh/"
             r"(?:http-recovery|bad-signature|prefix-recovery)/(?:message-signature|dsse)", private)),
             "private source fixture path rejected")
+    elif fixture_kind == "product-source-tls":
+        require(isinstance(private, str) and bool(re.fullmatch(
+            r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/refresh/"
+            r"(?:tls-ca|tls-san|tls-spki)/(?:message-signature|dsse)", private)),
+            "private source TLS fixture path rejected")
     elif fixture_kind == "product-crash":
         require(isinstance(private, str) and bool(re.fullmatch(r"/tmp/chengwang-product-lifecycle-[0-9a-f]{32}/(?:prepared|reserved|consumed)/(?:message-signature|dsse)", private)), "private crash fixture path rejected")
     elif fixture_kind == "product-state":
