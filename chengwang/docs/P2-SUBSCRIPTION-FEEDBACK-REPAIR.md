@@ -1,6 +1,18 @@
 # P2：订阅操作反馈修复与补充验收
 
-更新：2026-10-24。状态：代码已实现、纯 CPU 检查通过；尚未取得本阶段真实 CI、Vitest 或浏览器验收结果。仅开发分支，不授权生产变更。
+更新：2026-10-24。状态：首轮真实浏览器通过，但前端回归失败，本阶段整体未验收通过；下一修正尚待新源码 CI。仅开发分支，不授权生产变更。
+
+## 首轮真实 CI 失败记录，不回填成功
+
+源码 `fbddae37ffe1e6f9cf86b8b1afe975f7abe081b6` 的[原 UI 40042077078](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042077078) attempt1：八 producer＋八 fresh 均 success，原件离线重放与视觉复核正在进行，不能提前写成全部验收完成。
+
+同源码[镜像门 40042077114](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042077114)／job120715244206 为 failure。原前端 JSON 实际执行 222 项，217 passed／5 failed／0 pending／0 todo，10 文件中 2 失败。一个旧测试因本补丁把同句“服务端结果或审计待确认”同时置于 status 与 alert 而多匹配，四个新测试因宽泛 `/存在未决命令/` 同时命中禁用原因和未决说明而多匹配。不是类型检查通过就等于测试通过，也不把失败归咎环境或重跑取绿。
+
+A 独立原件目录 `C:/Users/Administrator/AppData/Local/Temp/cw-fbddae3-original-a-c861295e321941b0bc4d2e84a8e33742/`；原工件12538674932为406451字节，SHA256 `50c0216ca24909222d0716840c3003bd4fe4e6f8acf73616c29c3b4443191e89`，49成员已按 CRC/字节摘要核对。原 `frontend-vitest.json` 149445字节，SHA256 `e86218f4e1718027272c2ad0bd5de5baade01e27ea808b105c3536a6a4797a59`。
+
+最小修正保留旧 197 名单与源码、新 25 名单及所有锁断言：pending receipt 的 status 改用已有待核对提示，alert 保留旧具体审计提示；新四处断言定位完整未决说明而非模糊子串。没有删除测试、降低通过数、跳过用例或改写旧失败原件。修正后的实际 222 项结果仍待新提交的原 attempt1。
+
+修正后根再次实际运行 558 项纯 CPU 全通过、零 skip；原件 `C:/Users/Administrator/AppData/Local/Temp/cw-feedback-root-cpu-k7af13ok/`，`root-cpu.json` SHA256 `a886d8c27866328f4a8c8fc7d2167cd29b1588d0deb309c4b1d47c9fc34c76db`。25 个前端测试名称摘要仍相同，此检查仍不是 Vitest 重跑。本机未运行安装、编译、服务或浏览器。
 
 ## 已证实的问题与修复范围
 

@@ -23,6 +23,7 @@ const waiting = '正在等待服务端结果；尚未确认成功。'
 const pendingWithId = '操作结果待核对；请读取命令回执，不要重复写入。'
 const pendingWithoutId = '操作结果待核对；未取得命令 ID，请联系管理员对账，不要重复写入。'
 const pendingAudit = '服务端结果或审计待确认；仅可读取命令回执，不会自动重新提交。'
+const unresolvedWarning = '存在未决命令。请读取回执；未取得命令 ID 时请联系管理员对账，不要新建等价写入。'
 const historical = '已读取历史回执，未重复执行业务动作。'
 const otherId = 'cmd_' + 'a'.repeat(32)
 function button(name: string) { return screen.getByRole('button', { name }) }
@@ -106,7 +107,7 @@ describe('SubscriptionsFeedback', () => {
     unknownWrite(subscriptionCommandId); await ready(); submit()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingWithId))
     expect(screen.getByLabelText('命令 ID')).toHaveValue(subscriptionCommandId)
-    expect(button('准备创建来源')).toBeDisabled(); expect(screen.getByText(/存在未决命令/)).toBeInTheDocument()
+    expect(button('准备创建来源')).toBeDisabled(); expect(screen.getByText(unresolvedWarning)).toBeInTheDocument()
     await refreshStillLocked()
     expect(write).toHaveBeenCalledTimes(1); expect(readReceipt).not.toHaveBeenCalled()
   })
@@ -137,15 +138,16 @@ describe('SubscriptionsFeedback', () => {
   })
   it('replaces waiting for a pending write receipt without releasing its unresolved lock', async () => {
     write.mockResolvedValueOnce(subscriptionReceipt({ state: 'unknown', stateMayHaveChanged: true, auditRecorded: false, code: 'subscription_commit_unknown' }))
-    await ready(); submit(); await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingAudit))
+    await ready(); submit(); await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingWithId))
     expect(screen.getByRole('alert')).toHaveTextContent(pendingAudit)
     expect(button('准备创建来源')).toBeDisabled(); expect(write).toHaveBeenCalledTimes(1)
     expect(readReceipt).not.toHaveBeenCalled()
   })
   it('requires reconciliation when a terminal-looking write receipt lacks audit confirmation', async () => {
     write.mockResolvedValueOnce(subscriptionReceipt({ auditRecorded: false }))
-    await ready(); submit(); await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingAudit))
-    expect(button('准备创建来源')).toBeDisabled(); expect(screen.getByText(/存在未决命令/)).toBeInTheDocument()
+    await ready(); submit(); await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingWithId))
+    expect(screen.getByRole('alert')).toHaveTextContent(pendingAudit)
+    expect(button('准备创建来源')).toBeDisabled(); expect(screen.getByText(unresolvedWarning)).toBeInTheDocument()
     expect(write).toHaveBeenCalledTimes(1)
   })
   it('replaces waiting on write timeout and ignores a late successful response', async () => {
@@ -173,7 +175,7 @@ describe('SubscriptionsFeedback', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingWithId))
     readReceipt.mockResolvedValueOnce(failedReceipt(otherId)); getReceipt(otherId)
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('其他未决结果仍待核对；写入暂停。'))
-    expect(screen.getByText(/存在未决命令/)).toBeInTheDocument(); expect(button('准备创建来源')).toBeDisabled()
+    expect(screen.getByText(unresolvedWarning)).toBeInTheDocument(); expect(button('准备创建来源')).toBeDisabled()
     await refreshStillLocked()
     readReceipt.mockResolvedValueOnce(failedReceipt()); getReceipt()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(historical))
@@ -184,7 +186,7 @@ describe('SubscriptionsFeedback', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(pendingWithoutId))
     readReceipt.mockResolvedValueOnce(failedReceipt()); getReceipt()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('其他未决结果仍待核对；写入暂停。'))
-    expect(screen.getByText(/存在未决命令/)).toBeInTheDocument(); expect(button('准备创建来源')).toBeDisabled()
+    expect(screen.getByText(unresolvedWarning)).toBeInTheDocument(); expect(button('准备创建来源')).toBeDisabled()
     await refreshStillLocked()
     expect(write).toHaveBeenCalledTimes(1)
   })

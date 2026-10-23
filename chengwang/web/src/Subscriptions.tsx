@@ -362,7 +362,7 @@ export function Subscriptions() {
       if (!valid('write', request)) return
       rememberReceipt(value, true)
       if (pendingReceipt(value)) {
-        setNotice('服务端结果或审计待确认；仅可读取命令回执，不会自动重新提交。')
+        setNotice(pendingNotice(value.commandId))
         setIssue({ message: '服务端结果或审计待确认；仅可读取命令回执，不会自动重新提交。' })
       }
       else { setNotice(`${receiptStates[value.state]}；仅本地准入，不代表设备发布或节点可用。`); setSourceLabel(''); void loadOverview(value.sourceId) }
