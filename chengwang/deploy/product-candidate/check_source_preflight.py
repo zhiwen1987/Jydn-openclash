@@ -433,6 +433,13 @@ def read_file(path, limit):
     return raw
 
 
+def check_input_names(directory):
+    # This gate owns the fixture prerequisite namespace, not the independent
+    # product-source runtime gate. Unknown files in our own namespace fail.
+    names = {entry.name for entry in directory.iterdir() if entry.name.startswith("product-source-fixture-")}
+    require(set(INPUT_NAMES) <= names <= set(INPUT_NAMES) | {OUTPUT_NAME}, "input-name-set")
+
+
 def verify(args):
     root, directory = pathlib.Path(args.source_root), pathlib.Path(args.evidence_dir)
     require(root.is_absolute() and root.resolve() == root and directory.is_absolute()
@@ -445,8 +452,7 @@ def verify(args):
     require(head == args.source_commit, "source-head")
     sources = {path: subprocess.check_output(command + ["cat-file", "blob", args.source_commit + ":" + path], timeout=5)
                for path in SOURCE_PATHS}
-    names = {entry.name for entry in directory.iterdir() if entry.name.startswith("product-source-")}
-    require(set(INPUT_NAMES) <= names <= set(INPUT_NAMES) | {OUTPUT_NAME}, "input-name-set")
+    check_input_names(directory)
     inputs = {name: read_file(directory / name, 8 << 20) for name in INPUT_NAMES}
     return verify_artifacts(inputs, sources, args.source_commit)
 

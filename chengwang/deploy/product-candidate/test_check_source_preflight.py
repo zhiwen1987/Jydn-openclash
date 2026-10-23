@@ -316,6 +316,20 @@ class BoundaryTests(unittest.TestCase):
             mapping["extra-SENTINEL"] = b"x"
             with self.assertRaises(check.Rejected): check.verify_artifacts(inputs, sources, "a" * 40)
             del mapping["extra-SENTINEL"]
+        with tempfile.TemporaryDirectory() as task_dir:
+            directory = pathlib.Path(task_dir)
+            for name in check.INPUT_NAMES:
+                (directory / name).write_bytes(b"{}")
+            # Sibling product runtime artifacts cannot collide with this
+            # prerequisite gate, but no unknown fixture artifact is allowed.
+            (directory / "product-source-http-recovery-dsse-run.json").write_bytes(b"{}")
+            check.check_input_names(directory)
+            unknown = directory / "product-source-fixture-unknown.json"
+            unknown.write_bytes(b"{}")
+            with self.assertRaises(check.Rejected): check.check_input_names(directory)
+            unknown.unlink()
+            (directory / check.INPUT_NAMES[0]).unlink()
+            with self.assertRaises(check.Rejected): check.check_input_names(directory)
 
     def test_added_renamed_or_wrong_package_source_test_rejected(self):
         for raw in (native_source() + b" def test_extra(self): pass\n", native_source().replace(b"class LinuxTests", b"class ForeignTests"), native_source().replace(b"test_normal_tls_json_and_generation", b"test_unknown")):

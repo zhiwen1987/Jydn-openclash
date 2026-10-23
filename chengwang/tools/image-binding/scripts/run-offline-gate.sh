@@ -286,6 +286,10 @@ echo 'IMAGE_TRUST_CANDIDATE_COMMAND=PASS trimpath=true help_only=true listener_s
 # original tagged test contract includes the opt-in D12 test.
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry,productlifecycle -o "$RUN_ROOT/bin/product-lifecycle.test" .
+# The source-failure/catch-up driver is a separate opt-in executable; the
+# ordinary/race test set and the accepted lifecycle driver remain unchanged.
+/usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
+  -tags productregistry,productlifecycle,productsource -o "$RUN_ROOT/bin/product-source.test" .
 /usr/bin/timeout --signal=TERM --kill-after=10s 240s "$GO_BINARY" test -c \
   -tags productregistry,productcrash -o "$RUN_ROOT/bin/product-crash.test" .
 # Preseeded-state startup matrix is a separate opt-in driver, not an addition
