@@ -57,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         engine: [chrome-cdp, playwright]
-        scenario: [create_receipt, local_admission]
+        scenario: [create_receipt, local_admission, remote_fetch]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -209,6 +209,23 @@ jobs:
           python3 -B chengwang/deploy/subscription-ui-browser/check_admission_synthetic.py \
             --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/admission-synthetic.json"
 
+      - name: Preserve independent remote-fetch helper events without replacing previous suites
+        if: matrix.scenario == 'remote_fetch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          node --test --test-reporter=tap chengwang/tools/subscription-ui-browser/test-remote-fetch-contract.mjs \
+            2>&1 | tee "$reports/remote-node.tap"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_remote_fetch_fixture) \
+            2>&1 | tee "$reports/remote-fixture.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_remote_fetch_ui) \
+            2>&1 | tee "$reports/remote-checker.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_remote_synthetic) \
+            2>&1 | tee "$reports/remote-synthetic-checker.log"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_remote_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/remote-synthetic.json"
+
       - name: Enforce reviewed browser pin and independently read actual expansion
         shell: bash
         run: |
@@ -243,6 +260,8 @@ jobs:
           checker=chengwang/deploy/subscription-ui-browser/check_subscription_ui.py
           if test '${{ matrix.scenario }}' = local_admission; then
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py
+          elif test '${{ matrix.scenario }}' = remote_fetch; then
+            checker=chengwang/deploy/subscription-ui-browser/check_remote_fetch_ui.py
           fi
           sudo --non-interactive /usr/bin/python3 -I -B "$checker" \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
@@ -274,7 +293,7 @@ jobs:
       fail-fast: false
       matrix:
         engine: [chrome-cdp, playwright]
-        scenario: [create_receipt, local_admission]
+        scenario: [create_receipt, local_admission, remote_fetch]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -298,12 +317,22 @@ jobs:
           checker=chengwang/deploy/subscription-ui-browser/check_subscription_ui.py
           if test '${{ matrix.scenario }}' = local_admission; then
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py
+          elif test '${{ matrix.scenario }}' = remote_fetch; then
+            checker=chengwang/deploy/subscription-ui-browser/check_remote_fetch_ui.py
           fi
           python3 -B "$checker" \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
             --evidence "$RUNNER_TEMP/subscription-ui-input/originals" --report "$RUNNER_TEMP/subscription-ui-fresh/independent.json" \
             2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/independent-original.log"
           cmp "$RUNNER_TEMP/subscription-ui-input/independent.json" "$RUNNER_TEMP/subscription-ui-fresh/independent.json"
+          if test '${{ matrix.scenario }}' = remote_fetch; then
+            python3 -B chengwang/deploy/subscription-ui-browser/check_remote_synthetic.py \
+              --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
+              --report "$RUNNER_TEMP/subscription-ui-fresh/remote-synthetic.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/remote-synthetic-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/remote-synthetic.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/remote-synthetic.json"
+          fi
           git diff --exit-code
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

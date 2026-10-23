@@ -2,6 +2,10 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
+**本轮进行中：受信来源批准 → 角色交接 → DoT/HTTPS 抓取。** 现有产品 API/页面已有正向动作，正在增加独立 `remote_fetch` 双引擎验收；不是另造模拟业务。事前冻结四次写入与33个步骤，覆盖同版本引用 A/B 不混淆、批准刷新保留、引用/模式/交接编辑撤销旧确认、真实 wire 与本地接纳。三个子代理分别实现 Python fixture/生命周期、真实 DOM driver、独立合同/检查器，根负责 CI/新辅助门/集成。尚未运行真实新场景，不填 PASS；旧两个场景原门不改。[本阶段合同与未完范围](P2-SUBSCRIPTION-REMOTE-FETCH-UI.md)。
+
+提交前根实跑纯 CPU：旧84＋旧76＋新remote86＋依赖86＝332项，零跳过；三辅助原日志门及7 Python AST/4新JS语法/11工作流shell语法通过。原件在 `C:/Users/Administrator/AppData/Local/Temp/cw-remote-root-cpu-sp0rri2c/`。无本地依赖安装、构建、浏览器或服务运行；真实 Linux 双引擎、原件独立重放与 PNG 检查仍待执行，不能把332项测试当上线或完整B08/B09/B10通过。
+
 **本轮有限隔离CI通过：7fdd401固定pin私有Signed-By。** 原UI40027039958/attempt1四producer＋四fresh success；根/B/C四个原依赖完整CLI报告、根/B四个原产品完整CLI报告分别与producer/fresh逐字一致，160原成员三方逐byte核对。实际原86项35＋26＋10＋15保留旧64且零skip；旧84/新76产品辅助项单列，每份新产品报告886个Git源blob、八错误计数全0。B与根已实际看8张原桌面1440/手机375首屏PNG。根初次CRLF及后续临时长路径拒绝均保留，最终在新短exact-LF副本完成同原门，不改原checker。仅两个既定场景/两个引擎范围，不等于完整B01–B23、长期稳定或上线。[实际成果与边界](P2-CI-PRIVATE-APT-SOURCES.md)、[机器证据](evidence/p2-ci-pinned-keyring-7fdd401.json)。
 
 **本轮父门/旧后端另行分层通过。** A独立核7fdd401父门40027039955/job120665721182的ordinary/race各2644实际Test配对及原gate/旧基线转录重放，Fuzz各4顶层＋8 seeds另计；旧订阅40027039924两Linux原门、80实际单测/20文件/875 Git和逐字同报告通过。Windows原POSIX custody仍拒绝public-file-open-race，未绕过。这些结果不替代新UI完整原件验收，也不证明公网业务、完整系统或生产。

@@ -1,0 +1,161 @@
+// Isolated real-browser remote approval/handoff slice. Importing launches nothing.
+import {spawn,execFile} from 'node:child_process'
+import {constants} from 'node:fs'
+import {lstat,mkdir,open,readFile} from 'node:fs/promises'
+import {homedir} from 'node:os'
+import {setTimeout as delay} from 'node:timers/promises'
+import {promisify} from 'node:util'
+import {pathToFileURL} from 'node:url'
+import {ORIGIN,FAVICON,SCENARIO,SCOPE,LABEL,ROLES,STEPS,ACTIONS,need,exact,integer,sha,assetPaths,decodeBody,validatePrivateInput,secretVariants,publicFence,classifyRemoteRequest,wireFence,stepExpectation,validateRemoteStep} from './remote-fetch-contract.mjs'
+import {versionProjection} from './ui-contract.mjs'
+import {stableFile,ownedDirectory,publish,publishReady,until,Transport,chromeIdentity,noLiveChrome} from './ui-driver.mjs'
+const execute=promisify(execFile)
+const checkpoint=value=>process.stderr.write('SUBSCRIPTION_UI_STAGE='+value+'\n')
+const us=v=>{need(typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER/1000000);return Math.floor(v*1000000)}
+const same=(a,b)=>['dev','ino','size','mode','uid','gid','nlink','mtimeNs','ctimeNs'].every(k=>a[k]===b[k])
+class WireBusy extends Error{}
+export async function readWireFence(o){
+  need(/^[a-f0-9]{32}$/.test(o.fixtureId));const path='/tmp/chengwang-subscription-private-'+o.fixtureId+'/wire-events.jsonl'
+  const fd=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK)
+  try{
+    const a=await fd.stat({bigint:true});need(a.isFile()&&a.nlink===1n&&a.uid===10001n&&a.gid===10001n&&(a.mode&0o7777n)===0o600n&&a.size>=0n&&a.size<=262144n)
+    const raw=await fd.readFile(),b=await fd.stat({bigint:true}),c=await lstat(path,{bigint:true})
+    if(!same(a,b)||!same(a,c)||BigInt(raw.length)!==a.size)throw new WireBusy()
+    if(raw.length&&raw.at(-1)!==10)throw new WireBusy()
+    return wireFence(raw)
+  }finally{await fd.close()}
+}
+export class RemoteFetchJournal{
+  constructor(assets,input,bodyReader){this.assets=assets;this.input=input;this.bodyReader=bodyReader;this.facts={sourceId:null,approval:null,candidate:null,commands:{}};this.canaries=secretVariants([...Object.values(input.tokens),...input.canaries]);this.requests=new Map();this.ignored=new Set();this.rows=[];this.tasks=new Set();this.failure=false;this.totalBytes=0;this.finished=0;this.counters={runtimeErrors:0,consoleErrors:0,consoleWarnings:0,cspErrors:0,assetErrors:0,forbiddenRequests:0,failedRequests:0,captureErrors:0}}
+  reject(){this.failure=true;this.counters.captureErrors++}
+  handle(method,p){try{
+    if(method==='Runtime.exceptionThrown')this.counters.runtimeErrors++
+    if(method==='Runtime.consoleAPICalled'&&p.type==='error')this.counters.consoleErrors++
+    if(method==='Runtime.consoleAPICalled'&&['warning','warn'].includes(p.type))this.counters.consoleWarnings++
+    if(method==='Log.entryAdded'&&p.entry?.source==='security'&&p.entry.level==='error')this.counters.cspErrors++
+    if(['Network.webSocketCreated','Network.webTransportCreated','Network.directTCPSocketCreated'].includes(method))this.counters.forbiddenRequests++
+    if(method==='Network.requestWillBeSent'){
+      if(p.request?.url===FAVICON){need(this.ignored.size<4);this.ignored.add(p.requestId);return}
+      let projection;try{projection=classifyRemoteRequest(p.request,this.assets,this.input,this.mutationCount(),this.facts)}catch{this.counters.forbiddenRequests++;throw Error()}
+      need(!p.redirectResponse&&this.requests.size<256&&!this.requests.has(p.requestId)&&/^[A-Za-z0-9_.-]{1,80}$/.test(p.requestId))
+      this.requests.set(p.requestId,{...projection,actionIndex:p.request.method==='POST'?this.mutationCount():null,requestId:p.requestId,requestOrdinal:this.requests.size+1,startedWallTimeUs:us(p.wallTime),startTimeUs:us(p.timestamp),response:null,terminal:false})
+    }
+    if(this.ignored.has(p.requestId))return
+    if(method==='Network.responseReceived'){
+      const r=p.response,v=this.requests.get(p.requestId);need(v&&!v.response&&!v.terminal&&r&&r.url===ORIGIN+v.path&&!r.fromDiskCache&&!r.fromServiceWorker)
+      if(v.kind==='ASSET'){const types=v.path.endsWith('.js')?['text/javascript','application/javascript']:v.path.endsWith('.css')?['text/css']:v.path.endsWith('.svg')?['image/svg+xml']:v.path.endsWith('.png')?['image/png']:v.path.endsWith('.woff2')?['font/woff2']:v.path.endsWith('.woff')?['font/woff']:['font/ttf'];if(r.status!==200||!types.includes(r.mimeType))this.counters.assetErrors++}
+      need(r.status===200&&(v.kind!=='DOCUMENT'||r.mimeType==='text/html'));const h=Object.fromEntries(Object.entries(r.headers??{}).map(([k,x])=>[k.toLowerCase(),x]));need(h['set-cookie']===undefined)
+      if(!['DOCUMENT','ASSET'].includes(v.kind))need(r.mimeType==='application/json');v.response=r;v.headerTimeUs=us(p.timestamp);need(v.headerTimeUs>=v.startTimeUs)
+    }
+    if(method==='Network.loadingFailed'){need(this.requests.has(p.requestId));this.requests.get(p.requestId).terminal=true;this.counters.failedRequests++;this.failure=true}
+    if(method==='Network.loadingFinished'){
+      const v=this.requests.get(p.requestId);need(v&&v.response&&!v.terminal&&integer(p.encodedDataLength,0,16<<20));v.terminal=true;v.endTimeUs=us(p.timestamp);need(v.endTimeUs>=v.startTimeUs)
+      const ordinal=++this.finished,task=this.capture(v,ordinal,p.encodedDataLength).catch(()=>this.reject()).finally(()=>this.tasks.delete(task));this.tasks.add(task)
+    }
+  }catch{this.reject()}}
+  async capture(v,ordinal,encodedDataLength){
+    const raw=decodeBody(await this.bodyReader(v.requestId),['DOCUMENT','ASSET'].includes(v.kind)?8<<20:65536);publicFence(raw,this.canaries);this.totalBytes+=raw.length;need(this.totalBytes<=16<<20)
+    const row={schema:'chengwang.remote-fetch-ui-capture/v1',ordinal,requestOrdinal:v.requestOrdinal,requestId:v.requestId,method:v.method,path:v.path,kind:v.kind,status:v.response.status,authorizationPresent:v.authorizationPresent,actorRole:v.actorRole,requestPublic:v.requestPublic,responseBase64:raw.toString('base64'),responseSHA256:sha(raw),responseBytes:raw.length,startedWallTimeUs:v.startedWallTimeUs,startTimeUs:v.startTimeUs,headerTimeUs:v.headerTimeUs,endTimeUs:v.endTimeUs,terminal:{event:'FINISH',encodedDataLength}}
+    publicFence(Buffer.from(JSON.stringify(row)),this.canaries);this.rows.push(row);if(v.method==='POST')this.learn(v,raw)
+  }
+  learn(v,raw){
+    const x=JSON.parse(raw.toString('utf8'));need(exact(x,['boundary','authorization','deviceActionsExecuted','stateMayHaveChanged','result'])&&x.boundary==='LOCAL_SUBSCRIPTION_ADMISSION_ONLY'&&x.authorization==='BLOCKED'&&x.deviceActionsExecuted===false&&x.stateMayHaveChanged===false)
+    const r=x.result,a=ACTIONS[v.actionIndex];need(r&&a&&r.kind===a.kind&&r.state===(a.kind==='approve'?'approved':'committed')&&r.revision===a.toRevision&&r.auditRecorded===true&&r.stateMayHaveChanged===false&&r.replayed===false&&/^cmd_[a-f0-9]{32}$/.test(r.commandId)&&/^src_[a-f0-9]{32}$/.test(r.sourceId))
+    if(a.kind==='create'){need(!this.facts.sourceId);this.facts.sourceId=r.sourceId}else need(r.sourceId===this.facts.sourceId)
+    if(a.kind==='approve'){need(r.approvalId===r.commandId&&r.referenceId==='good-b'&&r.policyRevision===1&&/^hmac-sha256:[a-f0-9]{64}$/.test(r.policyDigest));this.facts.approval=r}
+    if(a.kind==='fetch'){need(/^cand_[a-f0-9]{32}$/.test(r.candidateId)&&/^hmac-sha256:[a-f0-9]{64}$/.test(r.candidateDigest));this.facts.candidate={id:r.candidateId,digest:r.candidateDigest}}
+    if(a.kind==='decide')need(r.candidateId===this.facts.candidate.id&&r.candidateDigest===this.facts.candidate.digest)
+    need(!this.facts.commands[a.key]);this.facts.commands[a.key]=r
+  }
+  mutationCount(){return [...this.requests.values()].filter(v=>v.method!=='GET').length}
+  idle(){return this.tasks.size===0&&[...this.requests.values()].every(v=>v.terminal)}
+  complete(){need(!this.failure&&this.idle()&&this.rows.length===this.requests.size&&this.finished===this.rows.length&&Object.values(this.counters).every(v=>v===0)&&this.mutationCount()===4&&this.facts.sourceId&&this.facts.approval&&this.facts.candidate&&Object.keys(this.facts.commands).length===4);need(new Set(this.rows.filter(v=>v.method==='POST').map(v=>v.requestPublic.idempotencyKey)).size===4);for(const k of ['DOCUMENT','SNAPSHOT','RECEIPT','CREATE','APPROVE','FETCH','DECIDE'])need(this.rows.filter(v=>v.kind===k).length===1);need(this.rows.some(v=>v.kind==='ASSET'));for(const row of this.rows){const p=/^\/api\/v1\/subscriptions\/sources\/(src_[a-f0-9]{32})(?:\/candidates\/(cand_[a-f0-9]{32})\/nodes)?/.exec(row.path);if(p)need(p[1]===this.facts.sourceId&&(!p[2]||p[2]===this.facts.candidate.id))}}
+}
+const BUTTONS=Object.freeze(['订阅与提供者','运行总览','连接订阅会话','清除会话与令牌','准备创建来源','准备批准来源','刷新当前版本','准备抓取候选','准备接纳候选','确认并提交本地操作','取消本次操作','读取命令回执'])
+const INPUTS=Object.freeze(['subscription-token','subscription-source-label','subscription-handoff','subscription-handoff-revision'])
+function targetExpression(kind,value){
+  if(kind==='button'){need(BUTTONS.includes(value));return `(()=>{const a=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()===${JSON.stringify(value)}||e.getAttribute('aria-label')===${JSON.stringify(value)});if(a.length!==1)throw Error('UI target rejected');return a[0]})()`}
+  if(kind==='input'){need(INPUTS.includes(value));return `document.getElementById(${JSON.stringify(value)})`}
+  if(kind==='reference')return 'document.getElementById("subscription-reference")'
+  if(kind==='radio'){need(['session','handoff'].includes(value));return `document.querySelectorAll('[role="radiogroup"][aria-label="抓取批准方式"] input[type=radio]')[${value==='session'?0:1}]`}
+  need(['source','candidate'].includes(kind)&&new RegExp('^'+(kind==='source'?'src':'cand')+'_[a-f0-9]{32}$').test(value));const selector=kind==='source'?'.subscription-source-list > li > button':'.subscription-candidate-list > li > button'
+  return `(()=>{const a=[...document.querySelectorAll(${JSON.stringify(selector)})].filter(e=>e.querySelector('code')?.textContent.trim()===${JSON.stringify(value)});if(a.length!==1)throw Error('UI target rejected');return a[0]})()`
+}
+export async function runRemoteFetchUI(o){
+  checkpoint('ENVIRONMENT');need(process.platform==='linux'&&process.getuid?.()===10001&&process.getgid?.()===10001&&!Object.hasOwn(process.env,'HOME')&&process.env.TMPDIR==='/var/tmp'&&homedir()===o.home&&typeof WebSocket==='function')
+  await ownedDirectory(o.root);await ownedDirectory('/var/tmp');await ownedDirectory(o.home,true);await ownedDirectory(o.profile,true)
+  const config=JSON.parse((await stableFile(o.bundle+'/launch.json',4096)).toString());need(exact(config,['schema','engine','fixtureId','root','chrome','chromeSHA256'])&&config.schema==='chengwang.subscription-ui-launch/v1'&&config.engine===o.engine&&config.fixtureId===o.fixtureId&&config.root===o.root&&config.chrome===o.chrome&&/^[a-f0-9]{64}$/.test(config.chromeSHA256))
+  const input=validatePrivateInput(JSON.parse((await stableFile(o.root+'/browser-input.private.json',65536,true)).toString())),canaries=secretVariants([...Object.values(input.tokens),...input.canaries])
+  await stableFile(o.launcher,131072);const source=o.bundle+'/source/chengwang/',helper=await import(pathToFileURL(source+'web/scripts/trust-browser-tls.mjs').href),collector=await import(pathToFileURL(source+'tools/subscription-browser/collect-subscription-dom.mjs').href)
+  const assets=assetPaths(JSON.parse((await stableFile(source+'web/dist/.vite/manifest.json',131072)).toString())),ca=await stableFile(o.root+'/api-ca.pem',65536,true),leaf=await stableFile(o.root+'/api-leaf.pem',65536,true),verified=helper.inspectPublicTLS(ca.toString('utf8'),leaf.toString('utf8'))
+  const data=o.home+'/.local/share',database=data+'/pki/nssdb';await mkdir(database,{mode:0o700,recursive:true});try{await lstat(o.home+'/.pki/nssdb');need(false)}catch(e){need(e?.code==='ENOENT')}
+  for(const n of ['config','cache'])await ownedDirectory(o.profile+'/'+n,true)
+  const environment={PATH:'/usr/bin:/bin',LANG:'C.UTF-8',LC_ALL:'C.UTF-8',TMPDIR:'/var/tmp',XDG_DATA_HOME:data,XDG_CONFIG_HOME:o.profile+'/config',XDG_CACHE_HOME:o.profile+'/cache'}
+  await stableFile('/usr/bin/certutil',16<<20);const certutil=args=>execute('/usr/bin/certutil',args,{env:environment,timeout:10000,maxBuffer:65536,encoding:'utf8'})
+  await certutil(['-N','-d','sql:'+database,'--empty-password']);await certutil(['-A','-d','sql:'+database,'-n','chengwang-subscription-ui-root','-t','C,,','-i',o.root+'/api-ca.pem'])
+  need(helper.inspectPublicTLS((await certutil(['-L','-d','sql:'+database,'-n','chengwang-subscription-ui-root','-a'])).stdout,leaf.toString('utf8')).caSHA256===verified.caSHA256)
+  let context,page,transport,browserSend,pageSend,launcherChild,childResult,journal,closed=false,captured=false
+  try{
+    checkpoint('LAUNCH');const args=['--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--disable-default-apps','--disable-extensions','--no-first-run','--no-default-browser-check','--disable-features=MediaRouter,OptimizationHints','--password-store=basic']
+    if(o.engine==='chrome-cdp'){
+      launcherChild=spawn(o.launcher,[...args,'--headless=new','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+o.profile,'about:blank'],{stdio:['ignore','ignore','ignore'],env:environment});childResult=new Promise(resolve=>{launcherChild.once('error',()=>resolve({code:null,signal:null}));launcherChild.once('exit',(code,signal)=>resolve({code,signal}))})
+      let port;await until(async()=>{need(launcherChild.exitCode===null&&launcherChild.signalCode===null);try{const raw=await readFile(o.profile+'/DevToolsActivePort','utf8');need(raw.length<=1024);const a=raw.trim().split('\n');need(a.length===2&&/^[1-9][0-9]{0,4}$/.test(a[0])&&Number(a[0])<=65535&&/^\/devtools\/browser\/[a-f0-9-]{1,80}$/.test(a[1]));port=a;return true}catch(e){if(e?.code==='ENOENT')return false;throw e}},20000)
+      const socket=new WebSocket('ws://127.0.0.1:'+port[0]+port[1]);await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('remote UI rejected')),10000);socket.addEventListener('open',()=>{clearTimeout(t);resolve()},{once:true});socket.addEventListener('error',()=>{clearTimeout(t);reject(Error('remote UI rejected'))},{once:true})})
+      transport=new Transport(socket);browserSend=(m,p)=>transport.send(m,p);const target=await browserSend('Target.createTarget',{url:'about:blank'}),sessionId=(await browserSend('Target.attachToTarget',{targetId:target.targetId,flatten:true})).sessionId;pageSend=(m,p)=>transport.send(m,p,sessionId)
+      transport.listeners.push(m=>{if(m.sessionId===sessionId)journal?.handle(m.method,m.params??{})});const known=new Set((await browserSend('Target.getTargets')).targetInfos.map(v=>v.targetId));transport.listeners.push(m=>{if(m.method==='Target.targetCreated'&&['page','service_worker','shared_worker'].includes(m.params?.targetInfo?.type)&&!known.has(m.params.targetInfo.targetId)&&journal){journal.failure=true;journal.counters.forbiddenRequests++}});await browserSend('Target.setDiscoverTargets',{discover:true})
+    }else{
+      const packageFile=source+'tools/subscription-ui-browser/node_modules/playwright-core/';need(JSON.parse((await stableFile(packageFile+'package.json',65536)).toString()).version==='1.65.0-alpha-2026-10-23');const module=await import(pathToFileURL(packageFile+'index.mjs').href)
+      context=await module.chromium.launchPersistentContext(o.profile,{executablePath:o.launcher,headless:true,chromiumSandbox:false,ignoreHTTPSErrors:false,bypassCSP:false,args,env:environment,timeout:20000});page=context.pages()[0];need(page&&context.pages().length===1)
+      const session=await context.newCDPSession(page),browserSession=await context.browser().newBrowserCDPSession();pageSend=(m,p)=>session.send(m,p);browserSend=(m,p)=>browserSession.send(m,p)
+      for(const event of ['Network.requestWillBeSent','Network.responseReceived','Network.loadingFinished','Network.loadingFailed','Runtime.exceptionThrown','Runtime.consoleAPICalled','Log.entryAdded','Network.webSocketCreated','Network.webTransportCreated','Network.directTCPSocketCreated'])session.on(event,p=>journal?.handle(event,p))
+      context.on('page',p=>{if(p!==page&&journal){journal.failure=true;journal.counters.forbiddenRequests++}});context.on('serviceworker',()=>{if(journal){journal.failure=true;journal.counters.forbiddenRequests++}})
+    }
+    journal=new RemoteFetchJournal(assets,input,id=>pageSend('Network.getResponseBody',{requestId:id}));const browser=versionProjection(await browserSend('Browser.getVersion')),chrome=await chromeIdentity(o,browserSend);need(chrome.exeSHA256===config.chromeSHA256)
+    await Promise.all(['Runtime.enable','Page.enable','Log.enable'].map(m=>pageSend(m)));await pageSend('Network.enable',{maxTotalBufferSize:32<<20,maxResourceBufferSize:8<<20})
+    const evaluate=async expression=>{if(page)return page.evaluate(expression);const r=await pageSend('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});need(r&&!r.exceptionDetails&&Object.hasOwn(r.result??{},'value'));return r.result.value}
+    const viewport=async width=>{if(page)await page.setViewportSize({width,height:900});else await pageSend('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false})}
+    const key=async(name,code,modifiers=0)=>{const domCode=name==='a'?'KeyA':name;await pageSend('Input.dispatchKeyEvent',{type:'rawKeyDown',key:name,code:domCode,windowsVirtualKeyCode:code,nativeVirtualKeyCode:code,modifiers});await pageSend('Input.dispatchKeyEvent',{type:'keyUp',key:name,code:domCode,windowsVirtualKeyCode:code,nativeVirtualKeyCode:code,modifiers})}
+    const click=async(value,kind='button')=>{
+      const expression=targetExpression(kind,value)
+      if(page){let t;if(kind==='button')t=page.getByRole('button',{name:value,exact:true});else if(kind==='radio')t=page.getByRole('radio',{name:value==='session'?'本会话已读回批准':'交接批准ID（未核验）',exact:true});else if(kind==='reference')t=page.locator('#subscription-reference');else t=page.locator(kind==='source'?'.subscription-source-list > li > button':'.subscription-candidate-list > li > button').filter({has:page.locator('code',{hasText:new RegExp('^'+value+'$')})});need(await t.count()===1);await t.click({timeout:10000})}
+      else{const point=await evaluate(`(()=>{const e=${expression};if(!e||e.disabled)throw Error('UI target rejected');e.scrollIntoView({block:'center',inline:'nearest'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!(r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))))throw Error('UI target rejected');return{x,y}})()`);await pageSend('Input.dispatchMouseEvent',{type:'mouseMoved',...point});await pageSend('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});await pageSend('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point})}
+    }
+    const fill=async(id,value,replace=false)=>{need(INPUTS.includes(id)&&typeof value==='string'&&value.length>0&&value.length<=4096);if(page)await page.locator('#'+id).fill(value,{timeout:10000});else{need(await evaluate(`(()=>{const e=${targetExpression('input',id)};if(!e||e.disabled||(${replace?'false':"e.value!==''"}))return false;e.scrollIntoView({block:'center'});e.focus();return document.activeElement===e})()`));if(replace){await key('a',65,2);await key('Backspace',8)}await pageSend('Input.insertText',{text:value})}}
+    const waitDOM=async predicate=>{let d;await until(async()=>{need(!journal.failure);d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d);return journal.idle()&&predicate(d)});return d}
+    const waitWire=async count=>{let f;await until(async()=>{try{f=await readWireFence(o);return f.eventCount===count}catch(e){if(e instanceof WireBusy)return false;throw e}});return f}
+    let actorRole='anonymous';const domRows=[],screenshots=[]
+    const record=async step=>{await until(()=>journal.idle());need(!journal.failure);const fence=await waitWire(stepExpectation(step).wireCount);need(await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.title==="澄网 · 网络代理与路由平台"&&!document.querySelector("vite-error-overlay,nextjs-portal,[data-vite-error-overlay]")')===true);const d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d);validateRemoteStep(step,d,journal.mutationCount(),actorRole,journal.facts,fence);const text=await evaluate(`(()=>{const p=document.querySelector('.subscriptions');return[p?.innerText??'',[...document.querySelectorAll('input:not([type="password"]):not([type="file"]),textarea')].map(e=>e.value).join('\\n')].join('\\n')})()`);need(typeof text==='string'&&Buffer.byteLength(text)<=131072);publicFence(Buffer.from(text),canaries);const row={schema:'chengwang.remote-fetch-ui-dom-capture/v1',ordinal:domRows.length+1,step,captureCount:journal.rows.length,mutationCount:journal.mutationCount(),actorRole,wireFence:fence,dom:d};publicFence(Buffer.from(JSON.stringify(row)),canaries);domRows.push(row);return d}
+    const revision=()=>Object.values(journal.facts.commands).at(-1)?.revision??0
+    const ready=d=>d.sources.length===1&&d.sources[0].id===journal.facts.sourceId&&d.sources[0].selected&&d.sources[0].revision===revision()&&d.paging.candidates?.revision===revision()
+    const connect=async role=>{need(ROLES.includes(role));await click('清除会话与令牌');actorRole='anonymous';await waitDOM(d=>!d.sources.length&&d.receipt===null&&d.session.tokenEmpty);const n=journal.rows.filter(r=>r.kind==='SOURCES').length;await fill('subscription-token',input.tokens[role]);await click('连接订阅会话');actorRole=role;await waitDOM(d=>journal.rows.filter(r=>r.kind==='SOURCES').length===n+1&&d.session.tokenEmpty)}
+    const selectSource=async()=>{await click(journal.facts.sourceId,'source');await waitDOM(ready)}
+    const selectCandidate=async()=>{const n=journal.rows.filter(r=>r.kind==='NODES').length;await click(journal.facts.candidate.id,'candidate');await waitDOM(d=>d.candidates.some(c=>c.id===journal.facts.candidate.id&&c.selected)&&d.nodes.length===2&&journal.rows.filter(r=>r.kind==='NODES').length===n+1)}
+    const reference=async value=>{need(['good-a','good-b'].includes(value));if(page)await page.locator('#subscription-reference').selectOption(value,{timeout:10000});else{await click('reference','reference');await key(value==='good-a'?'Home':'End',value==='good-a'?36:35);await key('Enter',13)}await waitDOM(d=>d.directory.references.some(r=>r.referenceId===value&&r.selected))}
+    const mode=async value=>{await click(value,'radio');await waitDOM(d=>d.mode===value)}
+    const prepare=async(name,kind)=>{await click(name);await waitDOM(d=>d.confirmation?.kind===kind)}
+    const submit=async action=>{const a=ACTIONS.find(v=>v.key===action);need(a);await click('确认并提交本地操作');await waitDOM(d=>journal.facts.commands[action]?.revision===a.toRevision&&ready(d)&&d.receipt?.commandId===journal.facts.commands[action].commandId&&d.receipt.state===(a.kind==='approve'?'approved':'committed')&&d.confirmation===null&&d.nodes.length===0)}
+    const settle=()=>evaluate('(async()=>{await document.fonts.ready;window.scrollTo(0,0);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true})()')
+    const shot=async step=>{const d=domRows.at(-1).dom;need(domRows.at(-1).step===step&&d.session.tokenEmpty&&d.session.fileEmpty);const raw=page?await page.screenshot({type:'png',fullPage:false,animations:'disabled',timeout:10000}):Buffer.from((await pageSend('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false})).data,'base64');need(raw.length>=1000&&raw.length<=4<<20&&raw.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));const name=step==='final_mobile'?'created-mobile':'created-desktop',m=await publish(o.root+'/'+name+'.private.png',raw,4<<20);screenshots.push({path:name+'.png',step,...m,viewport:{width:d.viewport.width,height:d.viewport.height},scrollX:d.viewport.scrollX,scrollY:d.viewport.scrollY,capturedWallTimeUs:Date.now()*1000})}
+    await publishReady(o.root+'/driver-ready.private.json',{schema:'chengwang.subscription-ui-driver-ready/v1',scenario:SCENARIO,fixtureId:o.fixtureId,engine:o.engine,pid:process.pid,chromePid:chrome.pid})
+    await until(async()=>{try{const raw=await stableFile(o.root+'/run.go',4096),s=await lstat(o.root+'/run.go');need((s.mode&0o7777)===0o444);const v=JSON.parse(raw.toString());need(exact(v,['schema','scenario','fixtureId','engine'])&&v.schema==='chengwang.subscription-ui-run/v1'&&v.scenario===SCENARIO&&v.fixtureId===o.fixtureId&&v.engine===o.engine);return true}catch(e){if(e?.code==='ENOENT')return false;throw e}},20000)
+    checkpoint('NAVIGATE');await viewport(1440);if(page)await page.goto(ORIGIN+'/',{waitUntil:'load',timeout:15000});else{const r=await pageSend('Page.navigate',{url:ORIGIN+'/'});need(!r.errorText);await until(async()=>await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.readyState==="complete"')===true)}
+    await until(()=>journal.idle()&&journal.rows.some(r=>r.kind==='SNAPSHOT'));await click('订阅与提供者');await waitDOM(d=>d.pageVisible);await record('anonymous')
+    const certificateChain=(await pageSend('Network.getCertificate',{origin:ORIGIN})).tableNames,documentRequest=[...journal.requests.values()].find(v=>v.kind==='DOCUMENT'),tls=helper.browserTLSProof(documentRequest.response,certificateChain,verified)
+    checkpoint('CREATE');await connect('operator');await record('operator_connected');await fill('subscription-source-label',LABEL);await prepare('准备创建来源','create');await record('create_prepared');await submit('create_source');await record('created')
+    checkpoint('APPROVE');await connect('approver');await selectSource();await record('approver_source');await reference('good-b');await prepare('准备批准来源','approve');await record('approve_b_prepared');await click('取消本次操作');await waitDOM(d=>d.confirmation===null);await record('approve_b_cancelled');await prepare('准备批准来源','approve');await record('approve_b_prepared_again');await submit('approve_b');await record('approved_b')
+    {const n=journal.rows.filter(r=>r.kind==='SOURCE_ACCESS').length;await click('刷新当前版本');await waitDOM(d=>ready(d)&&journal.rows.filter(r=>r.kind==='SOURCE_ACCESS').length===n+1&&d.sessionApproval?.approvalId===journal.facts.approval.commandId);await record('approval_refreshed')}
+    await reference('good-a');await waitDOM(d=>d.sessionApproval===null);await record('reference_a_cleared')
+    checkpoint('HANDOFF');await connect('operator');await selectSource();await record('operator_source');await mode('handoff');await record('handoff_empty');await fill('subscription-handoff',journal.facts.approval.commandId);await fill('subscription-handoff-revision','1');await waitDOM(d=>d.handoff?.revisionValid&&d.handoff?.approvalValid);await record('handoff_bound')
+    await prepare('准备抓取候选','fetch_handoff');await record('fetch_prepared');await click('取消本次操作');await waitDOM(d=>d.confirmation===null);await record('fetch_cancelled');await prepare('准备抓取候选','fetch_handoff');await record('fetch_prepared_before_edit');await fill('subscription-handoff-revision','2',true);await waitDOM(d=>d.handoff?.policyRevision===2&&d.confirmation===null);await record('handoff_edited');await fill('subscription-handoff-revision','1',true);await waitDOM(d=>d.handoff?.policyRevision===1);await prepare('准备抓取候选','fetch_handoff');await record('fetch_prepared_before_mode');await mode('session');await waitDOM(d=>d.confirmation===null&&!d.controls.find(v=>v.key==='prepare_fetch').enabled);await record('session_mode_cleared');await mode('handoff');await record('handoff_returned');await prepare('准备抓取候选','fetch_handoff');await record('fetch_prepared_final')
+    checkpoint('FETCH');await submit('fetch_b');await waitWire(12);await record('fetched_quarantined')
+    checkpoint('DECIDE');await connect('approver');await selectSource();await selectCandidate();await record('approver_candidate');await prepare('准备接纳候选','admit');await record('admit_prepared');await submit('admit_fetched');await record('admitted');await selectCandidate();await record('nodes_admitted')
+    await settle();await record('final_desktop');await shot('final_desktop');await viewport(375);await settle();await record('final_mobile');await shot('final_mobile')
+    checkpoint('RECEIPT');await click('读取命令回执');await waitDOM(d=>d.receipt?.commandId===journal.facts.commands.admit_fetched.commandId&&journal.rows.filter(v=>v.kind==='RECEIPT').length===1);await record('receipt');await click('运行总览');await waitDOM(d=>!d.pageVisible);await record('hidden');await click('订阅与提供者');await waitDOM(d=>d.pageVisible);await record('returned');await click('清除会话与令牌');actorRole='anonymous';await waitDOM(d=>!d.sources.length&&d.receipt===null);await record('cleared')
+    need(domRows.map(v=>v.step).join(',')===STEPS.join(','));journal.complete();checkpoint('CLOSE');if(context)await context.close();else await browserSend('Browser.close')
+    let chromeExit;await until(async()=>{try{chromeExit=JSON.parse((await stableFile(o.root+'/chrome-exit.private.json',4096,true)).toString());return true}catch(e){if(e?.code==='ENOENT')return false;throw e}},20000)
+    need(exact(chromeExit,['schema','engine','fixtureId','pid','startTicks','exitCode','joined','forced'])&&chromeExit.schema==='chengwang.subscription-ui-chrome-exit/v1'&&chromeExit.engine===o.engine&&chromeExit.fixtureId===o.fixtureId&&chromeExit.pid===chrome.pid&&chromeExit.startTicks===chrome.startTicks&&chromeExit.exitCode===0&&chromeExit.joined===true&&chromeExit.forced===false)
+    let launcherExit=null;if(childResult){launcherExit=await Promise.race([childResult,delay(2000).then(()=>null)]);need(launcherExit?.code===0&&launcherExit.signal===null)}await until(()=>noLiveChrome(o,chrome),5000);closed=true;transport?.socket.close()
+    const capturesRaw=Buffer.from([...journal.rows].sort((a,b)=>a.ordinal-b.ordinal).map(v=>JSON.stringify(v)).join('\n')+'\n'),domRaw=Buffer.from(domRows.map(v=>JSON.stringify(v)).join('\n')+'\n');publicFence(capturesRaw,canaries);publicFence(domRaw,canaries);const captures=await publish(o.root+'/captures.private.jsonl',capturesRaw,24<<20);await publish(o.root+'/dom.private.jsonl',domRaw,1<<20);captured=true
+    const report={schema:'chengwang.remote-fetch-ui-driver/v1',scenario:SCENARIO,sourceCommit:o.sourceCommit,engine:o.engine,fixtureId:o.fixtureId,origin:ORIGIN,scope:SCOPE,runtime:true,mockedResponses:false,injectedFetch:false,tlsBypass:false,browser,chrome,normalTrust:{method:'PRIVATE_NSS_SQL_XDG_LOCAL_CA',trustFlags:'C,,',caSHA256:verified.caSHA256,leafSHA256:verified.leafSHA256,homeEnvironmentAbsent:true,legacyDatabaseAbsent:true},tls,certificateChain,counters:journal.counters,close:{normalCloseCommandCompleted:true,chromeExit,launcherExit,noLiveOwnedProcesses:true,processScope:'CHROME_SESSION_AND_LAUNCHER_ONLY'},steps:[...STEPS],captures:{path:'captures.jsonl',...captures,records:journal.rows.length},screenshots,production:false,fullSubscriptionE2EProven:false};publicFence(Buffer.from(JSON.stringify(report)),canaries);await publish(o.root+'/driver.private.json',report,65536);checkpoint('COMPLETE');return report
+  }finally{if(!closed){try{if(context)await context.close();else if(browserSend)await browserSend('Browser.close')}catch{}transport?.socket.close()}if(!captured&&journal?.rows.length){try{const raw=Buffer.from([...journal.rows].sort((a,b)=>a.ordinal-b.ordinal).map(v=>JSON.stringify(v)).join('\n')+'\n');publicFence(raw,canaries);await publish(o.root+'/captures.private.jsonl',raw,24<<20)}catch{}}}
+}
