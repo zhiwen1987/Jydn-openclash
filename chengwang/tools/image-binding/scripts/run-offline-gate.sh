@@ -206,8 +206,9 @@ report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 # single-flight cases are a separate increment, never a replacement baseline.
 # Subscription increment: 40 transport + 32 component + one App integration.
 # Three decision-eligibility cases extend, never replace, that baseline.
+# Four opt-in request-binding checks extend the accepted 193-case baseline.
 # These are mocked checks, not real agent/subscription/browser evidence.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 193 or report.get("numPassedTests") != report.get("numTotalTests"):
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 197 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
 required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx"}
 results = report.get("testResults", [])
@@ -230,6 +231,12 @@ probe_increment = {
     "probe-api.test.ts": (21, "81955cb0b7996f5659a4d70a5d6cd56531f79a33f24e6066b06ab2117c64764a"),
     "ProbeReadback.test.tsx": (12, "727a3ac9da8d4910b0f6ddad8bb6b78fbd44e77f07007d768b1b10e327465c05"),
 }
+request_binding_increment = frozenset((
+    "P1 probe read-only transport adds a binding header only for an opted-in bound anonymous loopback status request",
+    "P1 probe read-only transport keeps diagnostic headers absent on ordinary and protected requests",
+    "P1 probe read-only transport observes cancel fulfillment and rejection without awaiting or changing the read result",
+    "P1 probe read-only transport preserves synchronous and absent cancellation outcomes without exposing errors",
+))
 summary_singleflight_increment = frozenset((
     "P1 ProbeReadback lifecycle does not abort a manual summary when the automatic poll overlaps it",
     "P1 ProbeReadback lifecycle shares an active automatic summary instead of cancelling it on a click",
@@ -279,6 +286,11 @@ for result in results:
     if filename in probe_increment:
         count, digest = probe_increment[filename]
         retained = names
+        if filename == "probe-api.test.ts":
+            increment = frozenset(name for name in names if name in request_binding_increment)
+            if len(names) != count + 4 or increment != request_binding_increment:
+                raise SystemExit("request-binding frontend scenarios missing, renamed or substituted")
+            retained = [name for name in names if name not in request_binding_increment]
         if filename == "ProbeReadback.test.tsx":
             increment = frozenset(name for name in names if name in summary_singleflight_increment)
             if len(names) != count + 7 or increment != summary_singleflight_increment or hashlib.sha256("\n".join(sorted(increment)).encode()).hexdigest() != summary_singleflight_sha256:
@@ -291,7 +303,7 @@ for result in results:
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=9 tests=" + str(report["numPassedTests"]) + " retained=117 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=9 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"

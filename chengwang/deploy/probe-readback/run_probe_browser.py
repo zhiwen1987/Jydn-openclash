@@ -62,6 +62,7 @@ def load_browser_identity():
 
 
 BROWSER_IDENTITY = load_browser_identity()
+BINDING_FD_ENV = 'CHENGWANG_PROBE_BINDING_FD'
 STAGE = 'ARGUMENTS'
 ENGINES = ('chrome-cdp', 'playwright')
 ERRORS = frozenset(('ARGUMENTS', 'COPY_INPUT', 'COPY_LIMIT', 'COPY_LINK', 'BROWSER_CONFIG',
@@ -140,6 +141,46 @@ def public_browser_identity(bundle, output, source_commit, engine, fixture, copi
     print('BROWSER_IDENTITY=CAPTURED patch_ancestry_proven=false state=' + value['state'])
 
 
+def public_request_binding(bundle, output, source_commit, engine, fixture):
+    """Separate bounded descriptor stream; never add data to the old stderr."""
+    path = bundle / 'logs/request-binding.private'
+    if not path.exists():
+        return
+    helper = load_request_binding()
+    raw = N.stable_read(path, helper.MAX_BYTES, 0, 0o600)[0]
+    value = helper.project(raw)
+    old = N.stable_read(output / 'status-diagnostic.json', STATUS_DIAGNOSTICS.MAX_LOG_BYTES)[0]
+    value.update(sourceCommit=source_commit, engine=engine, fixtureId=fixture,
+                 oldDiagnosticSHA256=N.sha(old),
+                 clockDomains='JS_MOUNT_MS_CDP_MONOTONIC_US_CDP_EPOCH_US_NOT_INTERCHANGEABLE')
+    N.exclusive(output / 'request-binding.json', N.canonical(value) + b'\n')
+    print('PROBE_REQUEST_BINDING=CAPTURED browser_acceptance_proven=false root_cause_proven=false')
+
+
+def load_request_binding():
+    path = pathlib.Path(__file__).resolve().parent / 'probe_request_binding.py'
+    loader = importlib.machinery.SourceFileLoader('probe_request_binding_projection', str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    helper = importlib.util.module_from_spec(spec)
+    loader.exec_module(helper)
+    return helper
+
+
+def binding_descriptor(bundle):
+    """Validate only the root-opened exact owned log descriptor, not a path input."""
+    value = os.environ.get(BINDING_FD_ENV, '')
+    need(type(value) is str and re.fullmatch(r'[1-9][0-9]{0,3}', value), 'BROWSER_ROLE')
+    descriptor = int(value)
+    need(3 <= descriptor < 1024, 'BROWSER_ROLE')
+    info = os.fstat(descriptor)
+    need(stat.S_ISREG(info.st_mode) and info.st_uid == info.st_gid == 0
+         and stat.S_IMODE(info.st_mode) == 0o600 and info.st_nlink == 1 and info.st_size == 0,
+         'BROWSER_ROLE')
+    need(os.readlink('/proc/self/fd/' + value) == str(bundle / 'logs/request-binding.private'), 'BROWSER_ROLE')
+    os.set_inheritable(descriptor, True)
+    return descriptor
+
+
 def check_public_archive(root):
     """Only the exported Vite build manifest may cross as a hidden entry."""
     need(root.is_dir() and not root.is_symlink(), 'BROWSER_EXPORT')
@@ -207,6 +248,9 @@ def prepare_browser_bundle(options, source):
         copy_file(source / 'chengwang/deploy/probe-readback/probe_status_diagnostics.py',
                   bundle / 'probe_status_diagnostics.py', records,
                   'chengwang/deploy/probe-readback/probe_status_diagnostics.py')
+        for name in ('probe_request_binding.py', 'request-binding-contract.json'):
+            copy_file(source / 'chengwang/deploy/probe-readback' / name, bundle / name,
+                      records, 'chengwang/deploy/probe-readback/' + name)
         copy_file(source / 'chengwang/deploy/probe-readback/probe_browser_identity.py',
                   bundle / 'probe_browser_identity.py', records,
                   'chengwang/deploy/probe-readback/probe_browser_identity.py')
@@ -220,7 +264,8 @@ def prepare_browser_bundle(options, source):
         alias = bundle / 'source'
         directory = source / 'chengwang/tools/probe-browser'
         for name in ('package.json', 'package-lock.json', 'probe-browser-contract.mjs', 'run-browser.mjs',
-                     'browser-driver.mjs', 'browser-cli.mjs', 'probe-status-diagnostics.mjs', 'browser-identity.mjs'):
+                     'browser-driver.mjs', 'browser-cli.mjs', 'probe-status-diagnostics.mjs', 'browser-identity.mjs',
+                     'probe-request-binding.mjs'):
             copy_file(directory / name, alias / 'chengwang/tools/probe-browser' / name,
                       records, 'chengwang/tools/probe-browser/' + name)
         copy_tree(directory / 'node_modules/playwright-core',
@@ -304,6 +349,7 @@ def configure_browser_role(options):
     os.chdir(root / 'browser')
     environment = dict(N.BASE_ENV)
     environment['TMPDIR'] = temporary
+    environment[BINDING_FD_ENV] = str(binding_descriptor(bundle))
     for key, value in ((resource.RLIMIT_CORE, 0), (resource.RLIMIT_CPU, 180),
                        (resource.RLIMIT_FSIZE, 32 << 20), (resource.RLIMIT_NOFILE, 1024), (resource.RLIMIT_NPROC, 1024)):
         resource.setrlimit(key, (value, value))
@@ -370,13 +416,19 @@ class BrowserLab(N.Lab):
         for path in (self.root / 'browser', self.root / 'browser/out', self.root / 'browser/tmp'):
             path.mkdir(mode=0o700); os.chown(path, 10001, 10001)
         descriptor = os.open(self.private_logs / 'browser.private', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        binding = None
         try:
+            binding = os.open(self.private_logs / 'request-binding.private',
+                              os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             self.browser = subprocess.Popen(['unshare', '--mount', sys.executable, '-I', '-B',
                 str(self.bundle / 'browser-runner'), '--role', 'browser', '--fixture-root', str(self.root),
                 '--bundle', str(self.bundle), '--source-commit', self.options.source_commit],
-                stdin=subprocess.DEVNULL, stdout=descriptor, stderr=descriptor, env=N.BASE_ENV)
+                stdin=subprocess.DEVNULL, stdout=descriptor, stderr=descriptor,
+                env={**N.BASE_ENV, BINDING_FD_ENV: str(binding)}, pass_fds=(binding,))
         finally:
             os.close(descriptor)
+            if binding is not None:
+                os.close(binding)
         self.wait_browser(lambda: self.private_signal_ready('prewarmed.private.json'))
         handoff = N.decode(N.stable_read(self.root / 'browser/chrome-process.private.json', 4096, 10001, 0o600)[0])
         controller = N.task_profile(self.browser.pid, N.sha(N.stable_read(self.bundle / 'browser-node', 256 << 20)[0]), executable_limit=256 << 20)
@@ -576,6 +628,7 @@ def outer(options):
         if supervisor.wait(timeout=375) != 0:
             public_failure_diagnostic(bundle)
             public_status_diagnostic(bundle, output, options.source_commit, options.engine)
+            public_request_binding(bundle, output, options.source_commit, options.engine, options.fixture_id)
             public_browser_identity(bundle, output, options.source_commit, options.engine, options.fixture_id, copies)
             raise N.Failure('BROWSER_FAILED')
         after, files_after = N.host_observation(source, options.source_commit)
@@ -600,6 +653,7 @@ def outer(options):
         # Expose only fixed diagnostic projections before private logs vanish.
         public_failure_diagnostic(bundle)
         public_status_diagnostic(bundle, output, options.source_commit, options.engine)
+        public_request_binding(bundle, output, options.source_commit, options.engine, options.fixture_id)
         public_browser_identity(bundle, output, options.source_commit, options.engine, options.fixture_id, copies)
         N.cleanup_bundle(bundle); bundle = None
         N.report(options, 'cleanup', 'cleanup', ownedProcessesJoined=4, exitCodes=[0] * 4, forcedKills=0,

@@ -1,6 +1,15 @@
 import { isManagementTransportSecure } from './api'
 import type { ProbeDetails, ProbeStatus } from './probe-types'
-import { observeProbeStatus } from './probe-status-observation'
+import { getProbeStatusObservationContext, observeProbeStatus } from './probe-status-observation'
+import { createProbeRequestBinding } from './probe-request-binding'
+
+const requestBinding = createProbeRequestBinding({
+  enabled: () => import.meta.env?.VITE_PROBE_REQUEST_BINDING === '1',
+  origin: () => window.location.origin,
+  context: getProbeStatusObservationContext,
+  random: bytes => crypto.getRandomValues(bytes),
+  write: line => console.info(line),
+})
 
 export class ProbeReadError extends Error {
   constructor(readonly status: number, readonly kind: 'transport' | 'authentication' | 'forbidden' | 'unavailable' | 'format') {
@@ -81,7 +90,9 @@ export function decodeProbeDetails(value: unknown): ProbeDetails {
 
 function cancel(body: ReadableStream<Uint8Array> | null, signal: AbortSignal) {
   observeProbeStatus(signal, { e: 'CANCEL', p: 'BEFORE', n: 0, f: false })
-  try { void body?.cancel().catch(() => {}) } catch { /* No upstream data retained. */ }
+  if (!requestBinding.cancel(signal, body ? () => body.cancel() : null)) {
+    try { void body?.cancel().catch(() => {}) } catch { /* No upstream data retained. */ }
+  }
   observeProbeStatus(signal, { e: 'CANCEL', p: 'AFTER', n: 0, f: false })
 }
 async function read(path: string, signal: AbortSignal, token?: string): Promise<unknown> {
@@ -92,7 +103,7 @@ async function read(path: string, signal: AbortSignal, token?: string): Promise<
   let response: Response
   try {
     response = await fetch(path, {
-      method: 'GET', signal, headers: { Accept: 'application/json', ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }) },
+      method: 'GET', signal, headers: { Accept: 'application/json', ...requestBinding.headers(signal, path, token === undefined), ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }) },
       credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer',
     })
   } catch (error) {
@@ -150,7 +161,9 @@ async function read(path: string, signal: AbortSignal, token?: string): Promise<
   } finally {
     // A hostile cancellation promise must not keep rejection/loading pending.
     observeProbeStatus(signal, { e: 'CANCEL', p: 'BEFORE', n: Math.min(size, limit + 1), f: eof })
-    try { void reader.cancel().catch(() => {}) } catch { /* no raw errors */ }
+    if (!requestBinding.cancel(signal, () => reader.cancel())) {
+      try { void reader.cancel().catch(() => {}) } catch { /* no raw errors */ }
+    }
     observeProbeStatus(signal, { e: 'CANCEL', p: 'AFTER', n: Math.min(size, limit + 1), f: eof })
     reader.releaseLock()
   }

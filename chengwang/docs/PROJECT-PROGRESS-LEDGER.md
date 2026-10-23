@@ -6,6 +6,8 @@
 
 前序 `c15eda3`：双来源正常流通过，但6条真实DOM历史候选仍可准备决定；[原机器证据](evidence/p2-subscription-local-admission-c15eda3.json)保留缺口。`8c4852c` 的新原件只证明后续修复，不回填历史。更早 `aedd194` 的创建/回执[历史验收](P2-SUBSCRIPTION-UI-REAL-FLOW.md)仍按该源码与范围解释。
 
+当前实现增量：[隔离请求关联诊断](P2-PROBE-REQUEST-BINDING.md) 已落默认关闭的匿名身份头、同次取消结果观察、独立受限FD、投影与验真。新增88项纯CPU及原输出门实际通过；197门保留原193并追加4项。**新真实CI/Vitest/双浏览器还未运行验收；旧CDP失败、完整系统及生产缺口不因此关闭**。
+
 订阅页前序结果：P2-06a 源码 `8f610a4` 已接订阅资源页、安全权限元数据及明确的批准交接双模式。父门ordinary/race各2644、前端190、子模块各732及旧名单已按原始证据复验；镜像CI及订阅producer/fresh Linux原门成功。但旧探针CDP回归因一次取消请求严格失败，PW成功，原因仍未唯一归因，故该轮整体 **未验收通过**。详见[该轮验收记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md)及[机器证据](evidence/p2-subscription-ui-8f610a4.json)；[首轮失败](evidence/p2-subscription-ui-attempt-9c622a2.json)保留，不靠重试覆盖。P2-06b 的[订阅双浏览器完整计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待逐项完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
 
 前序增量 `ad3e4db`：闭集诊断与新订阅DOM collector已实现，五条隔离CI均终态。父门各2644、前端190/子模块各732、订阅两Linux原门及原生backend22均按原工件复验；旧浏览器该轮CDP成功、PW因一次取消严格失败，整体未验收。两诊断均收81条、无观察的应用ABORT/cleanup且流到EOF，缩小排查范围但未证明唯一根因。该轮Chrome未pin、revision/Node原stdout未归档，不能事后补造。详见[该轮实际验收](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md)及[机器记录](evidence/p2-status-diagnostic-ad3e4db.json)。历史失败保留，新的保管成果见下文，不能回填旧工件。生产未动。

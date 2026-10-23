@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 import { pathToFileURL } from 'node:url'
 import { parseProbePublicJSON } from './probe-browser-contract.mjs'
 import { ProbeStatusDiagnostics } from './probe-status-diagnostics.mjs'
+import { ProbeRequestBindingDiagnostics, createBindingDiagnosticSink, probeBindingHeader } from './probe-request-binding.mjs'
 import { emitBrowserIdentity } from './browser-identity.mjs'
 
 const execute = promisify(execFile)
@@ -146,6 +147,8 @@ export function safeRequest(request, type = 'Other') {
   const authorizationPresent = names.includes('authorization')
   need(!names.some(name => ['cookie', 'proxy-authorization', 'proxy-connection'].includes(name)))
   need(authorizationPresent === (url.pathname === '/api/v1/probes/details'))
+  const binding = probeBindingHeader(request.headers ?? {})
+  need(binding === null || (url.pathname === '/api/v1/probes/status' && !authorizationPresent))
   const resourceType = ({ Document: 'document', Script: 'script', Stylesheet: 'stylesheet', Font: 'font',
     Image: 'image', Fetch: 'fetch', XHR: 'xhr', Other: 'other', Manifest: 'other' })[type]
   need(resourceType)
@@ -435,7 +438,8 @@ async function launchImplementation(input) {
   } catch { reject() }
 
   let transport, context, page, launcherChild, childResult, pageSend, browserSend, record, closeEvidence = null
-  let proof = null, chain = [], product = '', journal, screenshotCount = 0, closed = false
+  let proof = null, chain = [], product = '', journal, screenshotCount = 0, closed = false, bindingDiagnostics
+  const bindingSink = createBindingDiagnosticSink()
   let launchStderr = Buffer.alloc(0), launchStderrOverflow = false, launchDiagnosticPrinted = false, spawnError
   const launchDiagnostic = error => {
     if (launchDiagnosticPrinted) return
@@ -483,6 +487,8 @@ async function launchImplementation(input) {
       const session = (await browserSend('Target.attachToTarget', { targetId: target.targetId, flatten: true })).sessionId
       pageSend = (method, params = {}) => transport.send(method, params, session)
       transport.listeners.push(message => { if (message.sessionId === session) journal?.handle(message.method, message.params ?? {}) })
+      bindingDiagnostics = new ProbeRequestBindingDiagnostics(session, bindingSink)
+      transport.listeners.push(message => { if (message.sessionId === session) bindingDiagnostics.handle(message.method, message.params ?? {}, message.sessionId) })
     } else {
       const module = await import(pathToFileURL(join(options.sourceRoot, 'chengwang/tools/probe-browser/node_modules/playwright-core/index.mjs')).href)
       need(typeof module.chromium?.launchPersistentContext === 'function')
@@ -497,6 +503,10 @@ async function launchImplementation(input) {
       browserSend = (method, params = {}) => browserSession.send(method, params)
       for (const method of ['Network.requestWillBeSent', 'Network.responseReceived', 'Network.loadingFinished', 'Network.loadingFailed',
         'Runtime.exceptionThrown', 'Runtime.consoleAPICalled', 'Log.entryAdded', 'Page.frameNavigated']) session.on(method, params => journal?.handle(method, params))
+      bindingDiagnostics = new ProbeRequestBindingDiagnostics(session, bindingSink)
+      for (const method of ['Network.requestWillBeSent', 'Network.responseReceived', 'Network.loadingFinished', 'Network.loadingFailed',
+        'Runtime.executionContextCreated', 'Runtime.executionContextDestroyed', 'Runtime.executionContextsCleared',
+        'Runtime.consoleAPICalled', 'Page.frameNavigated']) session.on(method, params => bindingDiagnostics.handle(method, params, session))
     }
     checkpoint('IDENTITY')
     const version = await browserSend('Browser.getVersion')
@@ -641,11 +651,15 @@ async function launchImplementation(input) {
           noLiveOwnedProcessesBeforeGuard: true, noLiveOwnedProcessesAfterGuard: true, guardSignalIntervention: false }
         return copy(closeEvidence)
         } catch { reject() }
-        finally { journal.diagnostics.finish() }
+        finally {
+          try { bindingDiagnostics?.finish() }
+          finally { journal.diagnostics.finish() }
+        }
       },
     }
     return Object.freeze(api)
   } catch (error) {
+    bindingDiagnostics?.finish()
     journal?.diagnostics.finish()
     launchDiagnostic(spawnError ?? error)
     // An incomplete launch is never declared a normal close. The independent

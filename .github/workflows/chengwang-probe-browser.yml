@@ -366,7 +366,7 @@ jobs:
             "$node_binary" node_modules/typescript/bin/tsc -b
           setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups --bounding-set=-all \
             --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
-            "$node_binary" node_modules/vite/bin/vite.js build
+            VITE_PROBE_REQUEST_BINDING=1 "$node_binary" node_modules/vite/bin/vite.js build
           SH
 
       - name: Check orchestration and driver contracts separately from real acceptance
@@ -437,6 +437,19 @@ jobs:
             --raw-root "$2/evidence/status-diagnostic-contracts.json.raw" \
             --contracts-report "$2/evidence/status-diagnostic-contracts.json" \
             --report "$2/evidence/status-contract-originals-verification.json"
+          # A separate frozen 88-case increment; retain all old 80/56/32/92 gates.
+          "$3" --test --test-reporter=tap chengwang/tools/probe-browser/test-probe-request-binding.mjs \
+            2>&1 | tee "$2/evidence/request-binding-node.tap"
+          "$3" "$2/web-build/tools/check-probe-request-binding.mjs" \
+            | tee "$2/evidence/request-binding-frontend.json"
+          (
+            cd chengwang/deploy/probe-readback
+            python3 -B -m unittest -v test_probe_request_binding test_check_request_binding test_run_request_binding \
+              2>&1 | tee "$2/evidence/request-binding-python.log"
+          )
+          python3 -B chengwang/deploy/probe-readback/check_request_binding_contract_outputs.py \
+            --evidence "$2/evidence" --source-commit "$GITHUB_SHA" \
+            --report "$2/evidence/request-binding-contract-originals.json"
           "$3" --test --test-reporter=tap \
             chengwang/tools/probe-browser/test-browser-identity.mjs \
             | tee "$2/evidence/browser-identity-unit.tap"
@@ -524,6 +537,17 @@ jobs:
           python3 -B chengwang/deploy/probe-readback/check_status_diagnostic.py \
             --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
             --engine '${{ matrix.engine }}' --report "$evidence/status-diagnostic-verification.json"
+
+      - name: Independently verify opt-in request identity observations without accepting browser failures
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          python3 -B chengwang/deploy/probe-readback/check_request_binding.py \
+            --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
+            --engine '${{ matrix.engine }}' --repo "$GITHUB_WORKSPACE" \
+            --report "$evidence/request-binding-verification.json"
 
       - name: Independently bind actual browser identity without inferring patch ancestry
         if: always()

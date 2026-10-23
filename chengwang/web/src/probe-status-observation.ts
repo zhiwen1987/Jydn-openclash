@@ -94,3 +94,16 @@ export function cleanupProbeStatusObservation(m: number, signal?: AbortSignal) {
     emit(m, context?.r ?? 0, signal?.aborted ?? false, { e: 'CLEANUP' })
   } catch { /* No request data retained outside the signal WeakMap. */ }
 }
+
+// Read-only optional bridge. It never binds a signal, advances a counter/clock,
+// emits an old event, or exposes the signal itself.
+export function getProbeStatusObservationContext(signal: AbortSignal): { m: number; r: number; t: number; a: boolean } | null {
+  try {
+    const context = requests.get(signal)
+    const mount = context ? mounts.get(context.m) : undefined
+    if (!context || !mount) return null
+    const now = performance.now()
+    if (!Number.isFinite(now)) return null
+    return { ...context, t: Math.max(mount.last, Math.min(2147483647, Math.max(0, Math.floor(now - mount.start)))), a: signal.aborted }
+  } catch { return null }
+}
