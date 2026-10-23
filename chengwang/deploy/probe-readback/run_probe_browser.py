@@ -54,6 +54,7 @@ def public_failure_diagnostic(bundle):
         ('logs/browser.private', r'^PROBE_BROWSER_CONTROLLER=FAIL stage=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_STAGE=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_ERROR=([A-Z_]+)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_FATAL=((?:base|chrome|content|components|sandbox|third_party)/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.cc):([1-9][0-9]{0,5})$'),
     ):
         path = bundle / relative
         if not path.exists():
@@ -62,6 +63,10 @@ def public_failure_diagnostic(bundle):
         for line in raw.decode('utf-8', errors='replace').splitlines():
             match = re.fullmatch(pattern, line)
             if not match:
+                continue
+            if line.startswith('PROBE_BROWSER_LAUNCH_FATAL='):
+                if len(match[1]) <= 200:
+                    sys.stderr.write(line + '\n')
                 continue
             stages = {'ARGUMENTS', 'PREWARM', 'FLOW', 'WAIT_EXPIRED', 'EXPIRED', 'CLOSE', 'DONE', 'FRESH', 'UNEXPECTED',
                       'ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES',

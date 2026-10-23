@@ -49,5 +49,6 @@
 | `a7ad322` | [第二轮 CI 39908991138](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39908991138) 的实际路径记录确认 Node 副本通过，但共享 Chrome 的 `/opt`、`/opt/google`、目录及 ELF 均为 `0777`，仍在启动前拒绝。下一轮复制完整 Chrome 分发目录到 root-owned 专用区，按原字节记录摘要、移除副本的组/其他写权限和 setuid 位，不改共享源 | 已启动浏览器或完成真实浏览器验收 |
 | `3afb2d8` | [第三轮 CI 39910032190](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39910032190) 已越过输入权限及完整 Chrome 复制阶段，但两条路径均在 `PREWARM` 拒绝；原诊断不足以归因 NSS/启动器/驱动，下一轮只增加闭集 checkpoint 观测，不放宽安全门。父门及原生 CI 均 success | 预热成功、业务页面已访问或浏览器验收完成 |
 | `a121c8e` | [第四轮 CI 39910597365](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39910597365) 两条路径均越过 NSS 导入/回读并进入 `LAUNCH`，未到 `IDENTITY`。尚不能确定具体启动根因；下一轮保留闭集错误类别和启动交接/退出观测，并使用私有 cwd 与隔离 Python 启动。父门及原生 CI 均已独立验收 | Chrome 正常启动、身份已验证，或浏览器验收通过 |
+| `03557f5` | [第五轮 CI 39911508872](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39911508872) 两条路径的故障 sidecar 均确认 launcher 真实交接、Chrome 实际 wait `-6`（SIGABRT），未到 `IDENTITY`；仍不能确定 abort 原因。下一轮仅提取受限 Chromium FATAL 源文件/行号，不输出原始消息。父门已独立验收，原生 CI success | 修改 cwd/Python 启动就已解决根因，或浏览器验收通过 |
 
 下一顺序：CDP 与 Playwright 各自真实 API 正常 TLS 浏览器闭环 → 继续完整产品功能与隔离故障验收 → 获批后才进入备份、灰度、生产读回和回滚演练。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。

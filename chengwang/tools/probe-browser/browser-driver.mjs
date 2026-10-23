@@ -51,6 +51,23 @@ export function classifyLaunchError(value) {
   return 'UNKNOWN'
 }
 
+export function launchFatalLocations(value) {
+  try {
+    const message = Buffer.isBuffer(value) ? (value.length <= 65536 ? value.toString('utf8') : null)
+      : typeof value === 'string' ? value
+        : value && typeof value === 'object' ? Object.getOwnPropertyDescriptor(value, 'message')?.value : null
+    if (typeof message !== 'string' || message.length > 65536 || Buffer.byteLength(message) > 65536) return []
+    const locations = new Set()
+    // Chromium's two source-location forms only, not arbitrary paths or text.
+    const pattern = /FATAL:((?:base|chrome|content|components|sandbox|third_party)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.cc)(?::([1-9][0-9]{0,5})\]|\(([1-9][0-9]{0,5})\)\])/g
+    for (const match of message.matchAll(pattern)) {
+      locations.add(`${match[1]}:${match[2] ?? match[3]}`)
+      if (locations.size === 4) break
+    }
+    return [...locations]
+  } catch { return [] }
+}
+
 export function validateLaunchOptions(value) {
   need(exact(value, ['engine', 'root', 'chrome', 'sourceRoot', 'launcher']))
   need(['chrome-cdp', 'playwright'].includes(value.engine))
@@ -365,6 +382,8 @@ async function launchImplementation(input) {
     const stderrKind = launchStderrOverflow ? 'UNKNOWN' : classifyLaunchError(launchStderr)
     const kind = stderrKind === 'UNKNOWN' ? classifyLaunchError(error) : stderrKind
     process.stderr.write(`PROBE_BROWSER_LAUNCH_ERROR=${kind}\n`)
+    const locations = new Set([...(launchStderrOverflow ? [] : launchFatalLocations(launchStderr)), ...launchFatalLocations(error)])
+    for (const location of [...locations].slice(0, 4)) process.stderr.write(`PROBE_BROWSER_LAUNCH_FATAL=${location}\n`)
   }
   const secrets = new Set()
   try {

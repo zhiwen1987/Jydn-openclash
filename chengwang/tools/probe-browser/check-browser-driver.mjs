@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { validateLaunchOptions, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
-  collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError } from './browser-driver.mjs'
+  collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError, launchFatalLocations } from './browser-driver.mjs'
 
 const sha = raw => createHash('sha256').update(raw).digest('hex')
 const uuid = 'a'.repeat(32), root = '/tmp/chengwang-probe-readback-' + uuid
@@ -139,6 +139,18 @@ test('driver asynchronous capture failures are fatal and console messages stay p
   let accessorCalled = false
   const accessor = Object.defineProperty({}, 'message', { get() { accessorCalled = true; return 'Permission denied' } })
   assert.equal(classifyLaunchError(accessor), 'UNKNOWN'); assert.equal(accessorCalled, false)
+  const fatal = 'private-sentinel [1:2:FATAL:content/browser/zygote_host/zygote_host_impl_linux.cc:207] private-sentinel\n'
+  assert.deepEqual(launchFatalLocations(new Error(fatal)), ['content/browser/zygote_host/zygote_host_impl_linux.cc:207'])
+  assert.deepEqual(launchFatalLocations(Buffer.from(fatal + fatal + '[FATAL:base/threading/platform_thread_posix.cc(162)] secret')),
+    ['content/browser/zygote_host/zygote_host_impl_linux.cc:207', 'base/threading/platform_thread_posix.cc:162'])
+  for (const invalid of ['[FATAL:/base/file.cc:1]', '[FATAL:../base/file.cc:1]', '[FATAL:base/../secret.cc:1]',
+    '[FATAL:custom/file.cc:1]', '[FATAL:base/file.cc:0]', '[FATAL:base/file.cc:1000000]', '[FATAL:base/file.cc:01]',
+    '[FATAL:base/file.cc:1]'.padEnd(65537, 'x'), fatal.repeat(3000)]) assert.deepEqual(launchFatalLocations(invalid), [])
+  assert.deepEqual(launchFatalLocations(accessor), []); assert.equal(accessorCalled, false)
+  assert.deepEqual(launchFatalLocations(Object.create({ message: fatal })), [])
+  assert.deepEqual(launchFatalLocations(new Proxy({}, { getOwnPropertyDescriptor() { throw Error('private-sentinel') } })), [])
+  const four = launchFatalLocations(Array.from({ length: 6 }, (_, i) => `[FATAL:base/file_${i}.cc:1] secret`).join('\n'))
+  assert.deepEqual(four, Array.from({ length: 4 }, (_, i) => `base/file_${i}.cc:1`)); assert.ok(!JSON.stringify(four).includes('secret'))
   const journal = new NetworkJournal(async () => { throw new Error('private-sentinel') }, async () => {})
   journal.handle('Runtime.consoleAPICalled', { type: 'error', args: [{ value: 'private-sentinel' }] })
   journal.handle('Runtime.exceptionThrown', { exceptionDetails: { text: 'private-sentinel' } })
