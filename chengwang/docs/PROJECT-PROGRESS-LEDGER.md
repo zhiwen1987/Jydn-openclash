@@ -4,7 +4,9 @@
 
 **最新有限验收通过：dbc3f23三场景双引擎。** 原UI40033595196/attempt1六producer＋六fresh全success；根六产品/六依赖/六nav58/两remote86原CLI与producer/fresh同字节，旧84/76十二报告只与producer比；32原CLI均通过，每成功产品910Git。12原ZIP304成员APIsha/CRC/验后逐byte核并与B/C原ZIP相同，根看新CDP两PNG、B看旧8PNG。新失败前快照/闭集投影/独立诊断已实现，390纯CPU保留旧332零skip；但本轮无真实失败，available:true失败链路及96e偶发根因仍未实证，不能称已修或全系统上线。root240秒离线包装器超时原记录保留，仅补缺失报告且原checker/CI/浏览器预算均未改。[本轮实际成果](P2-CDP-NAVIGATION-DIAGNOSTICS.md)、[机器证据](evidence/p2-navigation-diagnostics-dbc3f23.json)。
 
-**下一阶段待实施：B09真实负例。** 已核代码，不能假设source版本增长或时间流逝自动废除批准；不能把失败命令/外审产生误写成全库不变。独立[负例实施卡](P2-SUBSCRIPTION-HANDOFF-NEGATIVE-PLAN.md)区分可自然触发的UI与API-only反例，尚未执行。父40033595211和旧订阅40033595140另由A分层通过，不能替代未完成的全旧探针/镜像回归、B01–B23、故障/恢复、正式灰度及生产读回。
+**当前开发中：B09真实负例，尚未完成真实CI验收。** 三子代理分别实现隔离fixture/驱动/独立检查器，主集成维护辅助原日志门、CI与台账。唯一事前合同在 `tools/subscription-ui-browser/handoff-negative-contract.json`：49阶段、10个真实界面POST与2个单列API-only POST、6个界面回执GET；预期11命令/3批准/23外审/A2B1/1隔离候选/12wire均为待验证断言，不是实际成果。不得把来源版本增长或时间流逝当作自动废除批准；失败命令仍产生prepared/result外审。新增场景不扩旧成功合同，旧导航失败诊断暂不支持该新场景。[负例实施卡](P2-SUBSCRIPTION-HANDOFF-NEGATIVE-PLAN.md)会在真实原件验收后补实测。父40033595211和旧订阅40033595140的历史分层通过，不能替代本阶段全旧探针/镜像回归、B01–B23、故障/恢复、正式灰度及生产读回。本阶段没有生产变更。
+
+本阶段提交前实际集成检查已进至498项纯CPU全通过、零skip：旧390＋新108，五原日志门/四重复事件反例/7AST/6JS语法/14shell通过；新八producer/八fresh只完成接线，真实运行与原件复验尚待执行。未因新测试通过提升生产能力等级，也未声称完整B09或整个系统已交付。
 
 **本轮部分实现已验，整体未通过：96e51e4批准 → 交接 → 真实抓取。** 原UI40030609894/attempt1终态failure：新remote/PW成功，remote/CDP及旧create/CDP失败，另三个旧producer成功；整个fresh仅占位job跳过、未展开六重放。根/C新PW完整原CLI与CI报告逐字同，33steps/47requests/4mutations/900Git、正常三类TLS/3conn12wire/4进程wait0/8counter0；根/B三个旧成功完整原CLI同producer。两CDP仅UI_RUN/NAVIGATE/6启动捕获/0捕获写入，尚无唯一根因，不猜测修复。六原ZIP215成员APIsha/CRC已核，原失败保留不rerun；没有生产、main合并或正式发布。[本阶段实际结果](P2-SUBSCRIPTION-REMOTE-FETCH-UI.md)、[机器证据](evidence/p2-subscription-remote-fetch-96e51e4.json)。
 

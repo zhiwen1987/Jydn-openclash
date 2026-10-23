@@ -1,6 +1,27 @@
 # P2：批准交接负例的下一阶段实施卡
 
-状态：只读代码分析得出的待实施合同，尚未构造或执行此场景；以下数量、HTTP及状态是事前预期，不是已验结果。不得拿现有正向流代证。本卡不授权生产变更。
+状态：已进入开发，尚未执行真实浏览器/产品验收；以下数量、HTTP及状态是事前预期，不是已验结果。不得拿现有正向流代证。本卡不授权生产变更。
+
+## 集成进度与实现边界
+
+三子代理分别负责隔离fixture、双引擎驱动与独立检查器，主集成负责辅助转录检查门、CI接线、交叉审查和台账。唯一集成合同为 `tools/subscription-ui-browser/handoff-negative-contract.json`，暂定49阶段/22公开原件；不另建deploy副本，原有14/21文件成功合同不变。新场景导航失败明细目前不受旧诊断合同支持，不借用旧场景身份冒充已采集。
+
+原生API sampler只发两个API-only POST，与浏览器CDP捕获分开。仍在原Node控制器进程内使用原生HTTPS，不增加服务、依赖或绕过TLS；证书实测在响应回调、socket尚未关闭时复制，END再核complete/aborted。安全头仅导出command ID与denial audit，不能导出令牌/任意请求头。
+
+已核Node v22.23.3固定源码提交 `80dc632040e6bada37aac1220dde9c79581c9c22` 的[HTTPS实现](https://github.com/nodejs/node/blob/80dc632040e6bada37aac1220dde9c79581c9c22/lib/https.js)、[TLS实现](https://github.com/nodejs/node/blob/80dc632040e6bada37aac1220dde9c79581c9c22/lib/internal/tls/wrap.js)及[官方TLS文档](https://github.com/nodejs/node/blob/80dc632040e6bada37aac1220dde9c79581c9c22/doc/api/tls.md)，不凭猜测调用旧 `_tls_wrap` 内部入口。根另行读取该固定提交HTTPS/TLS文档，22115/101672字节，SHA256分别 `0a86b0bfeea5ad082eaef7b99f681c876854c58f7f7244f5867ab9196ea6972b` / `47d582676d584b53643c79475f6c61770ca5ff21db89372b8d3d73146debbf87`。这些只证明资料核对，不证明新sampler已真实运行。浏览器插件不可用，验收继续沿现有已批准隔离CI/CDP与Playwright两路径，不在本机安装、构建或启动运行环境。
+
+提交前旧回归已于本工作树纯CPU实跑：390项（84创建/回执、76本地准入、86远程辅助、86依赖、58导航）零skip，四原日志检查门通过，14个CI shell块全部通过bash语法检查。原件目录 `C:/Users/Administrator/AppData/Local/Temp/cw-handoff-root-cpu-pr2oycvx/`。该检查只证明旧辅助合同暂未被新增分支破坏，不证明新49阶段、真实浏览器、API或全系统验收；整合后的新旧测试仍须重跑。
+
+后续集成纯CPU已实跑498项，旧390保留，新增108=fixture16＋独立checker32＋辅助日志checker12＋Node合同32/API mocks16；零skip。五原日志门、四份真实转录复制后重复事件反例拒绝、7 Python AST、6 JS语法、14 shell块均通过。原件 `C:/Users/Administrator/AppData/Local/Temp/cw-handoff-root-cpu-znx1hue2/`，`root-cpu.json` 4447字节/SHA256 `c6e4c006493e2cb2403d30cd71d1d9ad14e952c6697930aa1b548bc042e9d561`。B48名单按原辅助门约定sorted LF/no尾换行SHA `62550e3a811d1f717c585de07911f855a01b0de470d013ed45781cd72897c3ce`；有尾换行是不同摘要，不能混作漂移。全部仍是纯CPU，不是新49阶段运行结果。
+
+交叉审查已修三处实现风险，均不冒称真实故障已发生：CDP HEADERS/FINISH各自不早于START而不强加相互时间顺序；新来源自动GET可能早于异步响应体学得ID，先闭集校验、最终由两CREATE回执逐路由绑定而不阻挡真实UI；失败收尾时sampler同步/关闭异常不得短路浏览器关闭和部分证据保留，正常成功路径仍严格要求关闭成功。同句柄串行 `writeFile` 的追加位置依据另核[固定Node官方实现](https://github.com/nodejs/node/blob/80dc632040e6bada37aac1220dde9c79581c9c22/lib/internal/fs/promises.js#L451-L483)，不是靠函数名字推断。
+
+| 交付部分 | 当前事实状态 | 尚需证据 |
+| --- | --- | --- |
+| 单一合同、隔离fixture、双引擎驱动、独立API sampler及检查器 | 已实现、本机纯CPU通过 | 同Git真实Linux产品/双引擎运行 |
+| CI八producer及八fresh接线 | 已实现、shell语法通过 | 原attempt1逐job终态、原件、独立原CLI重放及看图 |
+| 实际49阶段、正常TLS、11命令/23外审 | 事前断言，未验 | 原API/DOM/审计/wire/进程原件相互绑定 |
+| 完整B01–B23、企业系统、灰度生产与回滚 | 未完成 | 不以本切片替代完整目标 |
 
 ## 保持独立场景与证据来源
 

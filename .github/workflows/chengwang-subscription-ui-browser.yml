@@ -57,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         engine: [chrome-cdp, playwright]
-        scenario: [create_receipt, local_admission, remote_fetch]
+        scenario: [create_receipt, local_admission, remote_fetch, remote_handoff_negative]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -226,6 +226,24 @@ jobs:
           python3 -B chengwang/deploy/subscription-ui-browser/check_remote_synthetic.py \
             --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/remote-synthetic.json"
 
+      - name: Preserve independent handoff-negative helper events without replacing previous suites
+        if: matrix.scenario == 'remote_handoff_negative'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          node --test --test-reporter=tap chengwang/tools/subscription-ui-browser/test-handoff-negative-contract.mjs \
+            chengwang/tools/subscription-ui-browser/test-handoff-api-sampler.mjs \
+            2>&1 | tee "$reports/handoff-node.tap"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_handoff_negative_fixture) \
+            2>&1 | tee "$reports/handoff-fixture.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_handoff_negative_ui) \
+            2>&1 | tee "$reports/handoff-checker.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_handoff_negative_synthetic) \
+            2>&1 | tee "$reports/handoff-synthetic-checker.log"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_negative_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/handoff-synthetic.json"
+
       - name: Preserve navigation diagnostic helper events separately from runtime evidence
         shell: bash
         run: |
@@ -267,7 +285,9 @@ jobs:
             --output-dir "$lab/reports/originals" 2>&1 | tee "$lab/reports/supervisor-original.log"
 
       - name: Independently decode bounded navigation failure observations without product acceptance
-        if: always()
+        # The new handoff scenario has no navigation-diagnostics schema yet.
+        # Preserve its generic failure originals; do not impersonate an old scenario.
+        if: always() && matrix.scenario != 'remote_handoff_negative'
         shell: bash
         run: |
           set -euo pipefail
@@ -290,6 +310,8 @@ jobs:
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py
           elif test '${{ matrix.scenario }}' = remote_fetch; then
             checker=chengwang/deploy/subscription-ui-browser/check_remote_fetch_ui.py
+          elif test '${{ matrix.scenario }}' = remote_handoff_negative; then
+            checker=chengwang/deploy/subscription-ui-browser/check_handoff_negative_ui.py
           fi
           sudo --non-interactive /usr/bin/python3 -I -B "$checker" \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
@@ -321,7 +343,7 @@ jobs:
       fail-fast: false
       matrix:
         engine: [chrome-cdp, playwright]
-        scenario: [create_receipt, local_admission, remote_fetch]
+        scenario: [create_receipt, local_admission, remote_fetch, remote_handoff_negative]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -347,6 +369,8 @@ jobs:
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py
           elif test '${{ matrix.scenario }}' = remote_fetch; then
             checker=chengwang/deploy/subscription-ui-browser/check_remote_fetch_ui.py
+          elif test '${{ matrix.scenario }}' = remote_handoff_negative; then
+            checker=chengwang/deploy/subscription-ui-browser/check_handoff_negative_ui.py
           fi
           python3 -B "$checker" \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
@@ -366,6 +390,14 @@ jobs:
               2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/remote-synthetic-original.log"
             cmp "$RUNNER_TEMP/subscription-ui-input/remote-synthetic.json" \
               "$RUNNER_TEMP/subscription-ui-fresh/remote-synthetic.json"
+          fi
+          if test '${{ matrix.scenario }}' = remote_handoff_negative; then
+            python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_negative_synthetic.py \
+              --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
+              --report "$RUNNER_TEMP/subscription-ui-fresh/handoff-synthetic.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/handoff-synthetic-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/handoff-synthetic.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/handoff-synthetic.json"
           fi
           git diff --exit-code
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

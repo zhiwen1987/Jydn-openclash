@@ -30,9 +30,12 @@ PUBLIC = {'driver.json', 'captures.jsonl', 'dom.jsonl', 'created-desktop.png', '
           'private-readback.json', 'audit-events.jsonl', 'audit-checkpoint.json', 'build.json'}
 REMOTE_PUBLIC = PUBLIC | {'wire-ready.json', 'wire-events.jsonl', 'wire-stopped.json',
                          'resolver-ca.pem', 'resolver-leaf.pem', 'source-ca.pem', 'source-leaf.pem'}
+HANDOFF_PUBLIC = REMOTE_PUBLIC | {'api-sampler.jsonl'}
 REMOTE_SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/remote_fetch_fixture.py',
     'chengwang/deploy/subscription-ui-browser/remote-fetch-contract.json',
     'chengwang/deploy/subscription-readback/wire_fixture.py', 'chengwang/deploy/subscription-readback/lab_contract.py']
+HANDOFF_SOURCE_FILES = [*REMOTE_SOURCE_FILES,
+    'chengwang/deploy/subscription-ui-browser/handoff_negative_fixture.py']
 SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py',
     'chengwang/deploy/subscription-ui-browser/ui_chrome_launcher.py',
     'chengwang/deploy/subscription-ui-browser/contract.json',
@@ -66,11 +69,12 @@ def public_fence(raw, forbidden, *, captures=False, N=None, scenario='create_rec
          and not any(secret in raw for secret in forbidden))
     if captures:
         need(N is not None)
-        need(scenario in ('create_receipt', 'local_admission', 'remote_fetch'))
+        need(scenario in ('create_receipt', 'local_admission', 'remote_fetch', 'remote_handoff_negative'))
         lines = raw.splitlines(); need(0 < len(lines) <= (256 if scenario != 'create_receipt' else 64)); total = 0
         kinds = ('DOCUMENT', 'ASSET', 'SNAPSHOT', 'COLLECTION_ACCESS', 'SOURCES', 'CREATE', 'SOURCE_ACCESS', 'CANDIDATES', 'RECEIPT')
         if scenario == 'local_admission': kinds += ('NODES', 'IMPORT', 'DECIDE', 'ROLLBACK')
         if scenario == 'remote_fetch': kinds += ('NODES', 'APPROVE', 'FETCH', 'DECIDE')
+        if scenario == 'remote_handoff_negative': kinds += ('NODES', 'APPROVE', 'FETCH')
         for line in lines:
             value = N.decode(line)
             need(type(value) is dict and type(value.get('responseBase64')) is str and value.get('kind') in kinds)
@@ -106,13 +110,17 @@ def remote_fetch():
     return load_module(pathlib.Path(__file__).with_name('remote_fetch_fixture.py'), 'subscription_ui_remote_fetch_fixture')
 
 
+def handoff_negative():
+    return load_module(pathlib.Path(__file__).with_name('handoff_negative_fixture.py'), 'subscription_ui_handoff_negative_fixture')
+
+
 def navigation_diagnostics():
     return load_module(pathlib.Path(__file__).with_name('navigation_diagnostics.py'), 'subscription_ui_navigation_diagnostics')
 
 
 def selected_scenario(options):
     value = getattr(options, 'scenario', 'create_receipt')
-    need(value in ('create_receipt', 'local_admission', 'remote_fetch'))
+    need(value in ('create_receipt', 'local_admission', 'remote_fetch', 'remote_handoff_negative'))
     return value
 
 
@@ -141,7 +149,7 @@ def validate_build(build, commit, server, files):
 
 
 def child_environment(root, bundle, scenario='create_receipt'):
-    need(scenario in ('create_receipt', 'local_admission', 'remote_fetch'))
+    need(scenario in ('create_receipt', 'local_admission', 'remote_fetch', 'remote_handoff_negative'))
     value = {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'TMPDIR': '/var/tmp',
         'CHENGWANG_ADDR': '127.0.0.1:17891', 'CHENGWANG_DATA_DIR': str(root / 'data'),
         'CHENGWANG_IDENTITIES_FILE': str(root / 'identities.json'),
@@ -151,7 +159,7 @@ def child_environment(root, bundle, scenario='create_receipt'):
         'CHENGWANG_SUBSCRIPTIONS_ENABLED': 'true', 'CHENGWANG_SUBSCRIPTION_WRITES_ENABLED': 'true',
         'CHENGWANG_ALLOW_PUBLISH': 'false', 'CHENGWANG_OPERATION_WRITES_ENABLED': 'false',
         'CHENGWANG_WEB_DIR': str(bundle / 'source/chengwang/web/dist')}
-    if scenario == 'remote_fetch': value['CHENGWANG_SUBSCRIPTION_POLICY_FILE'] = str(root / 'policy.remote.private.json')
+    if scenario in ('remote_fetch', 'remote_handoff_negative'): value['CHENGWANG_SUBSCRIPTION_POLICY_FILE'] = str(root / 'policy.remote.private.json')
     return value
 
 
@@ -233,7 +241,8 @@ def prepare(options, repo, root, bundle, fixture, N, M):
         copy(path, bundle / 'source/chengwang/web/dist' / relative, 'dist/' + relative)
     validate_build(build, options.source_commit, server, files)
     copy(options.build_report, bundle / 'build.json', 'build/report.json')
-    extra = REMOTE_SOURCE_FILES if selected_scenario(options) == 'remote_fetch' else []
+    extra = (HANDOFF_SOURCE_FILES if selected_scenario(options) == 'remote_handoff_negative' else
+             REMOTE_SOURCE_FILES if selected_scenario(options) == 'remote_fetch' else [])
     for relative in [*SOURCE_FILES, *extra]: copy(repo / relative, bundle / 'source' / relative, relative)
     # The A driver imports the existing DOM collector; preserve its exact path.
     for directory in ('chengwang/tools/subscription-ui-browser', 'chengwang/tools/subscription-browser'):
@@ -271,6 +280,7 @@ def export_observations(options, root, N, partial=False):
     names = [('driver.private.json', 'driver.json', 65536), ('captures.private.jsonl', 'captures.jsonl', 24 << 20),
         ('dom.private.jsonl', 'dom.jsonl', 1 << 20 if scenario != 'create_receipt' else 262144), ('created-desktop.private.png', 'created-desktop.png', 16 << 20),
         ('created-mobile.private.png', 'created-mobile.png', 16 << 20)]
+    if scenario == 'remote_handoff_negative': names.append(('api-sampler.private.jsonl', 'api-sampler.jsonl', 256 << 10))
     exported = []
     secrets_raw = []
     input_path = root / 'browser-input.private.json'
@@ -279,6 +289,7 @@ def export_observations(options, root, N, partial=False):
             value = N.decode(N.stable_read(input_path, 8192, 10001, 0o600)[0])
             if scenario == 'local_admission': secrets_raw.extend(admission().forbidden(value))
             elif scenario == 'remote_fetch': secrets_raw.extend(remote_fetch().forbidden(value))
+            elif scenario == 'remote_handoff_negative': secrets_raw.extend(handoff_negative().forbidden(value))
             else: secrets_raw.extend(secret_variants(value['operatorToken']))
         except Exception:
             if partial: return []  # Unknown canaries cannot authorize publication.
@@ -292,6 +303,7 @@ def export_observations(options, root, N, partial=False):
         try:
             raw = N.stable_read(source, budget, 10001, 0o600)[0]
             public_fence(raw, secrets_raw, captures=(public == 'captures.jsonl'), N=N, scenario=scenario)
+            if public == 'api-sampler.jsonl': handoff_negative().sampler_fence(raw, secrets_raw, N, partial=partial)
             if public.endswith('.png'): need(raw.startswith(b'\x89PNG\r\n\x1a\n'))
             else:
                 values = [N.decode(row) for row in raw.splitlines()] if public.endswith('.jsonl') else [N.decode(raw)]
@@ -320,7 +332,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
     need(len(N.command(['ip', '-o', 'link', 'show']).splitlines()) == 1
          and not N.command(['ip', '-4', 'route', 'show', 'default']) and not N.command(['ip', '-6', 'route', 'show', 'default']))
     remote_isolation = {}
-    if scenario == 'remote_fetch':
+    if scenario in ('remote_fetch', 'remote_handoff_negative'):
         N.command(['ip', 'address', 'add', '8.8.4.4/32', 'dev', 'lo'])
         N.command(['/usr/sbin/sysctl', '-q', '-w', 'net.ipv4.ip_unprivileged_port_start=0'])
         address_raw = N.command(['ip', '-o', '-4', 'addr', 'show', 'dev', 'lo'])
@@ -335,7 +347,8 @@ def inner(options, repo, root, bundle, fixture, N, M):
         N.command(['mount', '--bind', str(bundle / source), target]); N.command(['mount', '-o', 'remount,bind,ro,nosuid,nodev', target])
     certs = M.certificates(root, N)
     N.exclusive(options.output_dir / 'certificates.json', N.canonical(certs) + b'\n')
-    if scenario == 'remote_fetch': forbidden = remote_fetch().initialize(root, fixture, N)
+    if scenario == 'remote_handoff_negative': forbidden = handoff_negative().initialize(root, fixture, N)
+    elif scenario == 'remote_fetch': forbidden = remote_fetch().initialize(root, fixture, N)
     elif scenario == 'local_admission': forbidden = admission().initialize(root, N)
     else:
         token = secrets.token_hex(32); forbidden = secret_variants(token)
@@ -348,7 +361,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
     server = node = wire = None; wire_ready = None
     records = []; stage = 'SERVER_START'; succeeded = False; forced = 0
     try:
-        if scenario == 'remote_fetch':
+        if scenario in ('remote_fetch', 'remote_handoff_negative'):
             stage = 'WIRE_START'
             with (root / 'wire.private.log').open('xb') as log:
                 wire = subprocess.Popen([*prefix, sys.executable, '-I', '-B',
@@ -364,7 +377,8 @@ def inner(options, repo, root, bundle, fixture, N, M):
                 stdout=log, stderr=log, env=child_environment(root, bundle, scenario), cwd=root, preexec_fn=M.child_limits)
         wait_server(root, server, N); stage = 'DRIVER_START'
         with (root / 'driver.private.log').open('xb') as log:
-            entry = ('remote-fetch-cli.mjs' if scenario == 'remote_fetch' else
+            entry = ('handoff-negative-cli.mjs' if scenario == 'remote_handoff_negative' else
+                     'remote-fetch-cli.mjs' if scenario == 'remote_fetch' else
                      'admission-cli.mjs' if scenario == 'local_admission' else 'ui-cli.mjs')
             node = subprocess.Popen([*prefix, str(bundle / 'node'),
                 str(bundle / ('source/chengwang/tools/subscription-ui-browser/' + entry)), '--root', str(root),
@@ -380,7 +394,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
         need(type(barrier['chromePid']) is int and handoff['pid'] == barrier['chromePid'] and handoff['uid'] == 10001)
         tasks = [('server', server.pid, bundle / 'server', 128 << 20),
             ('controller', node.pid, bundle / 'node', 256 << 20), ('chrome', handoff['pid'], bundle / 'chrome/chrome', 512 << 20)]
-        if scenario == 'remote_fetch': tasks.append(('wire', wire.pid, pathlib.Path(sys.executable).resolve(strict=True), 128 << 20))
+        if scenario in ('remote_fetch', 'remote_handoff_negative'): tasks.append(('wire', wire.pid, pathlib.Path(sys.executable).resolve(strict=True), 128 << 20))
         for role, pid, executable, limit in tasks:
             record = N.task_profile(pid, sha(N.stable_read(executable, limit)[0]), executable_limit=limit)
             record.update(role=role, argv=pathlib.Path('/proc', str(pid), 'cmdline').read_bytes()[:-1].decode().split('\0'))
@@ -390,7 +404,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
         N.publish_atomic(root / 'run.go', N.canonical(run_gate), 0o444)
         need(node.wait(timeout=125) == 0)
         stage = 'SERVER_STOP'; server.send_signal(signal.SIGTERM); need(server.wait(timeout=15) == 0)
-        if scenario == 'remote_fetch':
+        if scenario in ('remote_fetch', 'remote_handoff_negative'):
             stage = 'WIRE_STOP'; wire.send_signal(signal.SIGTERM); need(wire.wait(timeout=15) == 0)
             wire_root = remote_fetch().wire_root(fixture)
             wire_raw = N.stable_read(wire_root / 'wire-events.jsonl', 256 << 10, 10001, 0o600)[0]
@@ -401,14 +415,15 @@ def inner(options, repo, root, bundle, fixture, N, M):
                 N.exclusive(options.output_dir / public, public_fence(raw, forbidden))
         stage = 'PROCESS_REAP'
         need(M.no_owned_processes() and all(not pathlib.Path('/proc', str(row['pid'])).exists() for row in records))
-        process_extra = dict(wireExitCode=0) if scenario == 'remote_fetch' else {}
+        process_extra = dict(wireExitCode=0) if scenario in ('remote_fetch', 'remote_handoff_negative') else {}
         N.exclusive(options.output_dir / 'processes.json', N.canonical(dict(schema=SCHEMA,
             sourceCommit=options.source_commit, fixtureId=fixture, engine=options.engine, records=records,
             serverExitCode=0, controllerExitCode=0, noLiveOwnedProcesses=True, forcedSignals=0,
             processScope='TRUSTED_CI_PROC_AND_PARENT_WAIT_NOT_INDEPENDENT_SIGNAL_ATTESTATION', production=False, **process_extra)) + b'\n')
         stage = 'READBACK'
         private = N.decode(N.stable_read(root / 'data/subscriptions/store.json', 16 << 20, 10001, 0o600)[0])
-        readback = (remote_fetch().project(private, options.source_commit, fixture) if scenario == 'remote_fetch' else
+        readback = (handoff_negative().project(private, options.source_commit, fixture) if scenario == 'remote_handoff_negative' else
+                    remote_fetch().project(private, options.source_commit, fixture) if scenario == 'remote_fetch' else
                     admission().project(private, options.source_commit, fixture) if scenario == 'local_admission'
                     else private_projection(private, options.source_commit, fixture))
         N.exclusive(options.output_dir / 'private-readback.json', public_fence(N.canonical(readback) + b'\n', forbidden))
@@ -433,9 +448,10 @@ def inner(options, repo, root, bundle, fixture, N, M):
             checkpoints = []
             if (root / 'driver.private.log').exists():
                 raw = N.stable_read(root / 'driver.private.log', 32 << 20)[0]
-                checkpoints = (remote_fetch().checkpoints(raw) if scenario == 'remote_fetch' else
+                checkpoints = (handoff_negative().checkpoints(raw) if scenario == 'remote_handoff_negative' else
+                               remote_fetch().checkpoints(raw) if scenario == 'remote_fetch' else
                                admission().checkpoints(raw) if scenario == 'local_admission' else driver_checkpoints(raw))
-            failure_extra = dict(wireExitCode=None if wire is None else wire.poll()) if scenario == 'remote_fetch' else {}
+            failure_extra = dict(wireExitCode=None if wire is None else wire.poll()) if scenario in ('remote_fetch', 'remote_handoff_negative') else {}
             N.exclusive(options.output_dir / 'failure.json', N.canonical(dict(schema=SCHEMA,
                 sourceCommit=options.source_commit, fixtureId=fixture, engine=options.engine, stage=stage,
                 driverCheckpoints=checkpoints,
@@ -452,7 +468,7 @@ def main():
         parser.add_argument('--' + name, required=True, type=pathlib.Path)
     parser.add_argument('--source-commit', required=True)
     parser.add_argument('--engine', required=True, choices=('chrome-cdp', 'playwright'))
-    parser.add_argument('--scenario', choices=('create_receipt', 'local_admission', 'remote_fetch'), default='create_receipt')
+    parser.add_argument('--scenario', choices=('create_receipt', 'local_admission', 'remote_fetch', 'remote_handoff_negative'), default='create_receipt')
     parser.add_argument('--fixture', default=None); parser.add_argument('--inner', action='store_true')
     options = parser.parse_args(); need(sys.platform == 'linux' and os.geteuid() == 0)
     repo = options.repo.resolve(strict=True); M = library(repo); N = M.load_native(repo)
@@ -498,11 +514,12 @@ def main():
             lab=isolation, production=False, authorization='BLOCKED', deviceActionsExecuted=False,
             pythonBinaryProvenanceProven=False)) + b'\n')
         (options.output_dir / 'inner-isolation.private.json').unlink()
-        need({path.name for path in options.output_dir.iterdir()} == (REMOTE_PUBLIC if options.scenario == 'remote_fetch' else PUBLIC))
+        need({path.name for path in options.output_dir.iterdir()} == (HANDOFF_PUBLIC if options.scenario == 'remote_handoff_negative' else
+             REMOTE_PUBLIC if options.scenario == 'remote_fetch' else PUBLIC))
         print('SUBSCRIPTION_UI=CAPTURED independent_verification=pending production=false full_subscription_e2e=false')
     finally:
         clean_owned(root, fixture); clean_owned(bundle, fixture)
-        if options.scenario == 'remote_fetch': remote_fetch().cleanup(fixture)
+        if options.scenario in ('remote_fetch', 'remote_handoff_negative'): remote_fetch().cleanup(fixture)
 
 
 if __name__ == '__main__':
