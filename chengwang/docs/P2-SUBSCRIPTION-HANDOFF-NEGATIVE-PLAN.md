@@ -1,6 +1,20 @@
 # P2：批准交接负例的下一阶段实施卡
 
-状态：已进入开发，尚未执行真实浏览器/产品验收；以下数量、HTTP及状态是事前预期，不是已验结果。不得拿现有正向流代证。本卡不授权生产变更。
+状态：`cc86661adb969ecd4c958ca16769e8b90bd1afbc` 的隔离业务负例与原件分层验收通过，存在已实测、未修复的notice UX缺口。不是完整B09、B01–B23、全系统或生产验收。本卡不授权生产变更。
+
+## 原CI进展与已发现缺口
+
+[原运行40039043139](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40039043139) attempt1已终态success，八producer＋八fresh全部成功，没有重跑或取消。主集成已独立核16个公开ZIP/API摘要/CRC/426个成员，原件在 `C:/Users/Administrator/AppData/Local/Temp/cw-cc8-root-originals-nygdlf81/`；精确Git短LF副本 `C:/Users/Administrator/AppData/Local/Temp/cwcc8-y3hp5_y9/r`。根44次原完整CLI离线复算均exit0，与producer全部逐字一致；有真实fresh的28份也逐字一致，旧84/76共16份只对producer，不虚构fresh。全部ZIP与B/C独立获取的原ZIP逐字相同，成员验后未变；本轮没有离线包装器超时或任何CI重跑。[机器证据](evidence/p2-subscription-handoff-negative-cc86661.json)记录每次原CLI与原件摘要。
+
+原新场景两个引擎各报告49阶段/79浏览器请求/10浏览器POST＋2原生API POST/6界面回执GET；11命令/3批准/local audit3/external23/A2B1/1quarantined候选/2unknown/3连接12wire，925个Git源blob。根/C原完整CLI报告与producer/fresh四方逐字一致。每引擎四个UI交接409、跨owner GET403、五个本人failed receipt GET200，以及单列native批准403/staleCAS409，按case/actor/source/receipt绑定；命令prepared/result各11＋denied1，不按相邻假设配对。正常API/DoT/HTTPS证书按捕获时间离线验证、八错误计数0、四进程正常退出/无强制信号；控制器前缀不是perHTTP包级因果或独立执行公证。
+
+根已实际看新两引擎4PNG，B看旧create/admission8PNG，C看旧remote4PNG；合计16张，桌面1440×900与手机375×900，手机仅首屏不等于完整移动流程。没有空白或框架overlay，仍发现下述notice缺口。正常业务证据不代替视觉审看；PNG校验自身也不证明体验无问题。
+
+本轮新增的是隔离验收、原生HTTPS安全采样与证据闭环，没有修改产品后端或React实现，更没有新增生产分流能力。根44次原版离线CLI分解为8产品＋8依赖＋8导航辅助＋2远程辅助＋2负例辅助＋16旧84/76辅助；不能说成44次完整业务运行。实际业务只在原Linux CI运行，离线重放不启动服务器、浏览器或数据面。
+
+父门[40039043164](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40039043164)及旧订阅[40039043154](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40039043154)另由A分层复验：父ordinary/race各2644 Test、每种4 Fuzz顶层＋8 seeds（不是持续fuzz）、static176/shell13/增量26；旧订阅80项/20输入/914 Git，两Linux2496字节原报告一致。Windows完整POSIX reader仍按原门拒绝public-file-open-race；未改门、未冒称根本机完整POSIX CLI通过。这些不等于全部旧探针/镜像新回归或整套产品已验。
+
+**实际看图发现、尚未修复的UX缺口：** 两引擎 `unknown_failed` 桌面截图已显示明确拒绝、来源与候选标旧，但仍保留“正在等待服务端结果；尚未确认成功。”进度提示。`Subscriptions.tsx` 的submit先写入notice，catch/timeout未更新；DOM collector尚未投影notice，所以原业务门没有覆盖此状态文案。本轮授权/回执/审计断言成功不能升级为UX完全闭环或无bug。下一增量需按已知拒绝与未知/超时分别结束等待或显示待核对，保留回执和未决锁，并增加测试；本提交不偷偷改旧成功合同或回填看图结果。
 
 ## 集成进度与实现边界
 
@@ -18,9 +32,10 @@
 
 | 交付部分 | 当前事实状态 | 尚需证据 |
 | --- | --- | --- |
-| 单一合同、隔离fixture、双引擎驱动、独立API sampler及检查器 | 已实现、本机纯CPU通过 | 同Git真实Linux产品/双引擎运行 |
-| CI八producer及八fresh接线 | 已实现、shell语法通过 | 原attempt1逐job终态、原件、独立原CLI重放及看图 |
-| 实际49阶段、正常TLS、11命令/23外审 | 事前断言，未验 | 原API/DOM/审计/wire/进程原件相互绑定 |
+| 单一合同、隔离fixture、双引擎驱动、独立API sampler及检查器 | 已实现、498纯CPU＋本轮真实隔离业务验收通过 | 其余完整订阅与系统矩阵 |
+| CI八producer及八fresh接线 | 原attempt1全success；根44原CLI复算、独立代理与16PNG审看完成 | 不是正式发布/生产证据 |
+| 实际49阶段、正常TLS、11命令/23外审 | 原API/DOM/审计/wire/进程绑定通过 | 私库投影为可信runner观察，不是独立原库证明 |
+| 写入失败后的notice反馈 | 看图确认旧等待文案残留，尚未修复 | 下一增量修复并补已知失败/未知/超时与真实UI反馈验收 |
 | 完整B01–B23、企业系统、灰度生产与回滚 | 未完成 | 不以本切片替代完整目标 |
 
 ## 保持独立场景与证据来源
@@ -42,7 +57,7 @@
 
 进入Execute的五类失败POST应返回安全 `X-Chengwang-Command-ID`，而非成功result。每次用本人读该失败回执：GET200、state failed、对应public code、auditRecorded=true、stateMayHaveChanged=false、两外审hash有、无localAuditHash；revision为提交expectedRevision（上述为1），不能当成当前库存revision。GET不能增加业务命令、审计或wire。每次失败后按页面真实stale/刷新合同恢复，不能直接覆盖状态。
 
-按表中顺序预期终态：A2/B1、3批准、1quarantined候选/2unknown、11命令、local audit3、external audit23（22 command事件＋1 denied）、3连接/12wire。必须逐case冻结实际API/DOM、失败回执、审计和wire前缀，不能只对总数。此终态尚未运行验证。
+按表中顺序事前预期终态：A2/B1、3批准、1quarantined候选/2unknown、11命令、local audit3、external audit23（22 command事件＋1 denied）、3连接/12wire。必须逐case冻结实际API/DOM、失败回执、审计和wire前缀，不能只对总数。本段保留事前合同；本轮实际验证及边界另见上方，不用事前预期冒充结果。
 
 ## 不虚构过期或竞态
 

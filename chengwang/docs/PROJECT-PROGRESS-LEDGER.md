@@ -1,5 +1,21 @@
 # 澄网项目进度台账
 
+## 当前最新事实：cc86661，业务负例隔离验收通过，UX仍有缺口
+
+[原CI40039043139](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40039043139)/attempt1八producer＋八fresh全success，无重跑或取消。根44原CLI均通过且与producer逐字同，其中真实fresh28份同；旧84/76的16份仅与producer比较。16原ZIP426成员摘要/CRC/逐byte及B/C同包均核，925Git，16PNG已分工实际审看。新场景49阶段/79浏览器请求/10浏览器POST＋2独立nativePOST/11命令/3批准/23外审/A2B1/隔离候选及unknown节点/3连接12wire，4进程正常退出，8counter0。498纯CPU保旧390与新108零skip。**但明确拒绝后仍显示旧“正在等待”notice，属于看图实测且尚未修复的UX问题，不称无bug或全闭环。** [实际记录](P2-SUBSCRIPTION-HANDOFF-NEGATIVE-PLAN.md)、[机器证据](evidence/p2-subscription-handoff-negative-cc86661.json)。
+
+| 当前交付 | 实际状态 | 下一退出条件 |
+| --- | --- | --- |
+| B09授权、批准交接拒绝、失败回执与stale CAS | 已实现并完成本轮双引擎业务隔离验收 | 策略退役/材料轮换/真实并发及完整B09仍需补齐 |
+| 原创建/回执、本地准入、远程正向抓取 | 同源码双引擎回归及原件复算通过 | 不替代全部旧探针/镜像回归 |
+| 失败/未知操作反馈与页面闭环 | 部分完成；已确认notice残留 | 优先修复已知拒绝/未知/超时的反馈，增加回归与真实UI证据 |
+| 完整B01–B23及整套企业功能 | 未完成 | 继续按完整缺口逐项实施，不折算整体百分比 |
+| 备份恢复、灰度、生产读回、长期运营 | 本阶段未执行 | 单独授权、备份、回滚与实际运行验收；生产未改 |
+
+## 历史阶段快照
+
+下列“当前/待实施”等措辞按当时状态保留，由上方最新事实更新，不回填历史失败为成功。父40039043164及旧订阅40039043154本轮分层通过详见最新实际记录，不能替代完整旧回归。
+
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
 **最新有限验收通过：dbc3f23三场景双引擎。** 原UI40033595196/attempt1六producer＋六fresh全success；根六产品/六依赖/六nav58/两remote86原CLI与producer/fresh同字节，旧84/76十二报告只与producer比；32原CLI均通过，每成功产品910Git。12原ZIP304成员APIsha/CRC/验后逐byte核并与B/C原ZIP相同，根看新CDP两PNG、B看旧8PNG。新失败前快照/闭集投影/独立诊断已实现，390纯CPU保留旧332零skip；但本轮无真实失败，available:true失败链路及96e偶发根因仍未实证，不能称已修或全系统上线。root240秒离线包装器超时原记录保留，仅补缺失报告且原checker/CI/浏览器预算均未改。[本轮实际成果](P2-CDP-NAVIGATION-DIAGNOSTICS.md)、[机器证据](evidence/p2-navigation-diagnostics-dbc3f23.json)。
