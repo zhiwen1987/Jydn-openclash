@@ -1,0 +1,67 @@
+{
+  "schema": "chengwang.browser-runtime-candidate-reference/v1",
+  "state": "PINNED_REFERENCE_NOT_EXECUTED",
+  "scope": "ISOLATED_CI_ONLY_NOT_PRODUCTION",
+  "production": false,
+  "authorization": "BLOCKED",
+  "consumedByExecutionHarness": false,
+  "browserRuntimeProven": false,
+  "projectFixProven": false,
+  "acquisition": {
+    "sourceCommit": "22f07577932c329ba363a0f789b2d3a2dc85e4a7",
+    "runId": 39982138256,
+    "attempt": 1,
+    "producerJobId": 120511867024,
+    "freshVerifierJobId": 120512130538,
+    "originalArtifact": {
+      "id": 12514345747,
+      "bytes": 202837767,
+      "sha256": "c3c501fe4e6973f39b949e2307265207d544334b092fdccd433779d86ff3e180"
+    },
+    "freshReportsArtifact": {
+      "id": 12513529233,
+      "bytes": 37298,
+      "sha256": "cd60d7a68e190e120efc11afe76a3a9208617eb0089bf900e08c926f451e72e3"
+    },
+    "freshReportSHA256": "0a55858cbc569593b130a4fec327de1b2e80704e0510e591ec453504e56e5ee7",
+    "manifestSHA256": "1e06dff6d104f5b6826928577faf627c41005d0db362655f464de64603df5623"
+  },
+  "browser": {
+    "version": "157.0.8103.6",
+    "platform": "linux64",
+    "distribution": "FULL_CHROME_FOR_TESTING_NOT_HEADLESS_SHELL",
+    "url": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.6/linux64/chrome-linux64.zip",
+    "bytes": 202676171,
+    "sha256": "7802b25411aa5b8aa387cc733a45df6eed1aea8cc046fd4e2dec64d5918b1853",
+    "md5Base64": "5qChIL/Gh+8hZv73vzEakQ==",
+    "generation": "1792024099984701",
+    "inventoryEntries": 309,
+    "declaredUncompressedBytes": 425547397,
+    "inventoryMembersSHA256": "40a84f87dd5799295c8a50582ee893af1e284f7e5d2a85e79683f299b688c015",
+    "sourceTagCommit": "41520584daa68d0040db7746ae562a0ff82187f6",
+    "sourceFixCommit": "62473ad0f747e245e514c93e741bb8e168a2a207",
+    "observedRuntimeProduct": null,
+    "observedRuntimeRevision": null,
+    "observedRuntimeProtocolVersion": null
+  },
+  "playwrightCandidate": {
+    "version": "1.65.0-alpha-2026-10-23",
+    "gitHead": "20a2087ea43412b90c172c88faef80786ee18b8b",
+    "browserBuildRevision": "1251",
+    "tarball": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.65.0-alpha-2026-10-23.tgz",
+    "integrity": "sha512-2vqfxKkSB94itSPN4IeJlDiw3Ulsr+FVbqiS7HL2j/lE5gI5T7V7b4HkTG3om6ou35KTie0jaiGdCk3+FCxeKw==",
+    "installed": false,
+    "stableProductionClaim": false
+  },
+  "trustScope": "OFFICIAL_HTTPS_AND_TWO_LINUX_RAW_RECOMPUTATIONS_NOT_PUBLISHER_SIGNATURE",
+  "binaryRecomputedLocally": false,
+  "membersDecompressed": false,
+  "remaining": [
+    "execution-harness-must-consume-and-enforce-pin-before-launch",
+    "matched-alpha-package-acquisition-and-isolated-compatibility",
+    "real-runtime-version-and-revision-readback",
+    "no-store-split-stream-positive-and-negative-matrix",
+    "complete-CDP-and-Playwright-original-gates",
+    "new-subscription-page-real-browser-E2E"
+  ]
+}

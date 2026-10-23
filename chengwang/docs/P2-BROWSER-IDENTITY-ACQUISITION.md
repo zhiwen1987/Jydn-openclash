@@ -1,6 +1,6 @@
 # P2-06b 前置：真实身份与候选原包保管
 
-状态：实现及本机有限合成测试已完成，真实 CI 与候选获取待运行；不是修复完成，不是新订阅页浏览器验收，也不是上线。上一轮 `ad3e4db` 的取消请求失败继续保留，不能被本阶段身份观察或下载成功抵销。
+状态（2026-10-24，Asia/Shanghai）：源码 `22f07577932c329ba363a0f789b2d3a2dc85e4a7` 的身份/原件保管已完成有界隔离验收，候选原包已获取并由 fresh Linux 重算；不是取消故障修复完成，不是新订阅页浏览器验收，也不是上线。上一轮 `ad3e4db` 的取消请求失败继续保留，不能被本阶段身份观察或下载成功抵销。
 
 ## 为什么分两步
 
@@ -31,11 +31,17 @@
 
 ## 必须继续的验收顺序
 
+真实证据：[浏览器 run39982138190](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39982138190) 的两 engine 均实际成功，根会话从原 ZIP 独立执行每引擎6个检查器，12份报告与 CI 逐字一致；每引擎802个 Git 原 blob、33131706字节绑定保持，原32 Node/92 Python与新增80原件/56合成名单分别复核。八个错误计数全0、正常 Chrome 退出。实际观察仍为 `Chrome/155.0.8059.39`、revision `@3ff7ac5a9224be9156d7f8703a06e22890aafd34`、protocol `1.3`、ELF SHA `9bfb381296dffe75f3419d07b6cc64525105ed117d1453a4ef3b291cb97d2b58`；本轮成功不证明历史偶发根因已消除。
+
+[获取 run39982138256](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39982138256) 的 producer/fresh Linux 均重算官方原 ZIP：202676171字节，SHA `7802b25411aa5b8aa387cc733a45df6eed1aea8cc046fd4e2dec64d5918b1853`，309成员、声明解压425547397字节。根会话与子代理只下载并复核37298字节 fresh 小报告包、原9 metadata、5个精确 Git 源及原日志；未把大 ZIP 下载到本机，也未冒称本机独立重算它。审核后另起的[候选引用 pin](../tools/browser-runtime-candidate/pin.json)固定该摘要，但**尚无执行 harness 消费它**，不称为现有浏览器已升级或执行 pin 已生效。
+
+父门各2644、原生backend22及订阅两Linux原门已终态success；父门原Go事件/CLI、native完整CLI由代理和根分别重放；订阅原 ZIP 的20件语义重放一致，但本机Windows完整POSIX CLI仍严格拒绝，不放宽或改称通过。[镜像同源码首次人工dispatch](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39982411871)成功，原五JSON及794个Git blob已独立核对；前端190/9、Go各732、Registry各3及旧名单由代理和根重放原三CLI通过。其余七个旧产品CLI仅CI PASS/来源绑定，未逐个独立重放；native wire观察JSON也未独立逐case语义重算，明确留作缺口。不是重跑失败CI。直接 job log 读取有失败，父门/浏览器等回退保管的是明确标识的 GH 前缀输出，不冒充 HTTP 原body；GitHub旧Action运行时警告存在，不称整个CI零warning。机器证据见[本阶段记录](evidence/p2-browser-identity-acquisition-22f0757.json)。
+
 | 阶段 | 当前证据边界 | 后续通过条件 |
 | --- | --- | --- |
-| 原浏览器身份/80原件 CI | 已接线，待执行 | 两引擎各自实际侧录及原门结果；保留失败 |
-| 候选 acquire/fresh Linux | 已实现，待执行 | 官方9 metadata、原 ZIP、来源/大小/MD5/GCS generation、独立 SHA/inventory 重算；报告只称取得未执行 |
-| SHA 审核与执行 pin | 尚未执行 | 根端审阅 CI 原证据，再另起提交固定真实摘要；不覆盖现有稳定回归工具链 |
+| 原浏览器身份/80原件 CI | 两 engine 均实际通过，根原 ZIP/12 CLI逐字重放 | 保留历史失败，不证明取消根因或新订阅页 |
+| 候选 acquire/fresh Linux | 原包取得、两Linux重算与来源审核通过 | 仅取得未执行，不是发布者签名或运行revision证明 |
+| SHA 审核与执行 pin | 审阅后独立记录参考 pin，未消费 | 后续执行门须真正强制核对该SHA，不能拿文件存在冒充接线生效 |
 | no-store split-stream 矩阵 | 尚未实现/执行 | 正例及超限、HTTP截断、显式 abort 负例，正常 TLS/原1MiB预算，不忽略取消 |
 | 候选完整 CDP/Playwright | 尚未执行 | 原 backend/build/process/浏览器八个零错误门全部通过并独立重算；身份不是替代 |
 | 新订阅页真实 E2E | 尚未实现/执行 | [原双浏览器验收计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)全部操作、网络/审计及视觉/交互真实证据 |
