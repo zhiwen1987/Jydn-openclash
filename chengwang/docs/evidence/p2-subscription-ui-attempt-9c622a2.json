@@ -40,7 +40,7 @@
     "raceTests": 2644,
     "testSkips": 0,
     "testFailures": 0,
-    "fuzzFunctionsPerCycleSeparatelyCounted": 12,
+    "fuzzFunctionAndSeedCasesPerCycleSeparatelyCounted": 12,
     "packages": 42,
     "domainPackageNoTestsSeparatelyReported": true,
     "fullNamesSHA256": "cae9dc917b3b289bb949626a20ab43906a0686fe78fb8cf3d5b2657d1893d530",
