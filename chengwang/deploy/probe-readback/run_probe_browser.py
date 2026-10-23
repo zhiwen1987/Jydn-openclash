@@ -169,6 +169,31 @@ def prepare_browser_bundle(options, source):
         raise
 
 
+def browser_temporary_mount():
+    """Short AF_UNIX paths in the browser's already-private mount namespace.
+
+    Overlay only: never chmod, empty or write the host's /var/tmp contents.
+    The mount dies with the role namespace and cannot contain executables.
+    """
+    target = '/var/tmp'
+    temporary = pathlib.Path(target)
+    original = temporary.lstat()
+    need(stat.S_ISDIR(original.st_mode) and not temporary.is_symlink(), 'BROWSER_ROLE')
+    N.command(['mount', '-t', 'tmpfs', '-o',
+               'size=64m,mode=0700,uid=10001,gid=10001,nosuid,nodev,noexec',
+               'chengwang-probe-browser-tmp', target])
+    mounted = temporary.lstat()
+    need(stat.S_ISDIR(mounted.st_mode) and stat.S_IMODE(mounted.st_mode) == 0o700
+         and mounted.st_uid == mounted.st_gid == 10001, 'BROWSER_ROLE')
+    flags = N.mount_flags('self', temporary)
+    need(all(flag in flags for flag in ('rw', 'nosuid', 'nodev', 'noexec')), 'BROWSER_ROLE')
+    records = [line.split(' - ', 1)[1].split()[0]
+               for line in pathlib.Path('/proc/self/mountinfo').read_text().splitlines()
+               if ' - ' in line and line.split(' - ', 1)[0].split()[4] == target]
+    need(records and records[-1] == 'tmpfs', 'BROWSER_ROLE')
+    return target
+
+
 def configure_browser_role(options):
     root, bundle = pathlib.Path(options.fixture_root), pathlib.Path(options.bundle)
     need(os.geteuid() == 0 and N.ROOT_RE.fullmatch(str(root)) and N.TOOLS_RE.fullmatch(str(bundle)), 'BROWSER_ROLE')
@@ -178,6 +203,7 @@ def configure_browser_role(options):
          and here['pid'] == init['pid'] and here['net'] == init['net'] and here['mnt'] != init['mnt'], 'BROWSER_ROLE')
     config = configuration(bundle)
     N.command(['mount', '--make-rprivate', '/'])
+    temporary = browser_temporary_mount()
     N.mount_bind(root, True)
     N.mount_bind(root / 'browser', False)
     for name, destination in (('browser-passwd', '/etc/passwd'), ('browser-group', '/etc/group')):
@@ -187,7 +213,7 @@ def configure_browser_role(options):
     # interpreter/browser working directory. All code paths remain absolute.
     os.chdir(root / 'browser')
     environment = dict(N.BASE_ENV)
-    environment['TMPDIR'] = str(root / 'browser/tmp')
+    environment['TMPDIR'] = temporary
     for key, value in ((resource.RLIMIT_CORE, 0), (resource.RLIMIT_CPU, 180),
                        (resource.RLIMIT_FSIZE, 32 << 20), (resource.RLIMIT_NOFILE, 1024), (resource.RLIMIT_NPROC, 1024)):
         resource.setrlimit(key, (value, value))

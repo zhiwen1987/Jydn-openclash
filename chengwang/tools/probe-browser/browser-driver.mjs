@@ -338,11 +338,12 @@ async function launchImplementation(input) {
   const checkpoint = stage => process.stderr.write(`PROBE_BROWSER_DRIVER_STAGE=${stage}\n`)
   checkpoint('ENVIRONMENT')
   need(process.platform === 'linux' && process.getuid?.() === 10001 && process.getgid?.() === 10001
-    && !Object.hasOwn(process.env, 'HOME') && typeof WebSocket === 'function')
+    && !Object.hasOwn(process.env, 'HOME') && process.env.TMPDIR === '/var/tmp' && typeof WebSocket === 'function')
   checkpoint('HOME')
   const home = join(options.browserRoot, 'home')
   need(homedir() === home)
   checkpoint('DIRECTORIES')
+  await privateDirectory('/var/tmp')
   await privateDirectory(options.root); await privateDirectory(options.browserRoot)
   await privateDirectory(home, true); await privateDirectory(options.profile, true)
   const data = join(home, '.local/share'), database = join(data, 'pki/nssdb')
@@ -360,7 +361,7 @@ async function launchImplementation(input) {
   const verified = helper.inspectPublicTLS(ca.toString('utf8'), leaf.toString('utf8'))
   const environment = { PATH: '/usr/bin:/bin', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8',
     XDG_DATA_HOME: data, XDG_CONFIG_HOME: join(options.profile, 'config'),
-    XDG_CACHE_HOME: join(options.profile, 'cache'), TMPDIR: join(options.profile, 'tmp') }
+    XDG_CACHE_HOME: join(options.profile, 'cache'), TMPDIR: '/var/tmp' }
   checkpoint('NSS_INIT')
   await stableFile('/usr/bin/certutil', 16 << 20, { rootOwned: true })
   const certutil = args => execute('/usr/bin/certutil', args, { env: environment, timeout: 10000, maxBuffer: 65536, encoding: 'utf8' })

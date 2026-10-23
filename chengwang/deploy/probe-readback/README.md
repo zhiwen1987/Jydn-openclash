@@ -38,6 +38,7 @@
 - 在线阶段仅获取锁定依赖和按大小/SHA256 固定的字体；实际编译、辅助检查、agent、API 和浏览器在没有外网出口的命名空间运行。不执行仓库安装 hooks，不访问生产。
 - 真正构建现有 React/Vite 页面并通过真实产品 API 提供静态资源。API 使用 P-256 测试证书；DoT/目标证书保持原算法。不关闭证书验证或 CSP。Chrome 的 `--no-sandbox` 仅用于这套外层隔离 CI，不是生产部署建议。
 - 浏览器专属挂载覆盖私有 `/etc/passwd` 和 `/etc/group`，配合 `XDG_DATA_HOME` 建立私有 NSS 信任库；不设置 `HOME`、不修改宿主 CA。Playwright 使用原生 `launchPersistentContext`，不是把 CDP 连接换个标签。
+- 该专属 mount namespace 内用 tmpfs 覆盖 `/var/tmp`，固定 `TMPDIR=/var/tmp`，避免临时 Unix socket 路径过长；0700/10001:10001、64MiB、nosuid/nodev/noexec，降权前读回实际类型和标志，驱动再次核对所有权。既不修改宿主 `/var/tmp` 内容/权限，也不在宿主清空目录；挂载随 namespace 销毁。此启动修正须由真实运行验证，单元测试不是根因证明。
 - 先预热浏览器，再等待 API-second 的真实 fresh 窗口；页面显示实际最新 3 个 runID 和 15 个层级，API 原始字节含 6 个样本。验证清除令牌和明细、匿名摘要、旧结论到期撤回、实际过期后 0 样本/3 个 unknown、桌面和移动端。
 - Chrome 的真实等待结果由 `probe_chrome_launcher.py` 保存。关闭命令返回不等于进程退出；正常通过要求 Chrome 和 Node 实际退出 0，且未用强制清理获得绿色结果。
 - 公开浏览器输出另在 `browser/`，包括 18 个固定 capture 文件、flow/driver/build/processes 四个记录，以及构建静态资源。令牌、私钥、完整页面 HTML 快照、profile、trace、HAR、storageState 和原始控制台内容不导出。静态构建的公开 `index.html` 不属于页面快照。

@@ -50,5 +50,6 @@
 | `3afb2d8` | [第三轮 CI 39910032190](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39910032190) 已越过输入权限及完整 Chrome 复制阶段，但两条路径均在 `PREWARM` 拒绝；原诊断不足以归因 NSS/启动器/驱动，下一轮只增加闭集 checkpoint 观测，不放宽安全门。父门及原生 CI 均 success | 预热成功、业务页面已访问或浏览器验收完成 |
 | `a121c8e` | [第四轮 CI 39910597365](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39910597365) 两条路径均越过 NSS 导入/回读并进入 `LAUNCH`，未到 `IDENTITY`。尚不能确定具体启动根因；下一轮保留闭集错误类别和启动交接/退出观测，并使用私有 cwd 与隔离 Python 启动。父门及原生 CI 均已独立验收 | Chrome 正常启动、身份已验证，或浏览器验收通过 |
 | `03557f5` | [第五轮 CI 39911508872](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39911508872) 两条路径的故障 sidecar 均确认 launcher 真实交接、Chrome 实际 wait `-6`（SIGABRT），未到 `IDENTITY`；仍不能确定 abort 原因。下一轮仅提取受限 Chromium FATAL 源文件/行号，不输出原始消息。父门已独立验收，原生 CI success | 修改 cwd/Python 启动就已解决根因，或浏览器验收通过 |
+| `8b69465` | [第六轮 CI 39912217069](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39912217069) 两路径均给出 `chrome/browser/process_singleton_posix.cc:313`，实际 wait `-6`，未到 `IDENTITY`。现有长 TMPDIR 可能超 Unix socket 上限，但尚无实际版本对应的完整归因；下一轮仅在浏览器私有 mount namespace 使用短路径 `/var/tmp` tmpfs（0700、10001:10001、nosuid/nodev/noexec），三层环境同步，绝不改宿主目录或放宽 TLS。父门普通/race 各 2403 Test，原生 22 输入已独立重放通过 | 已证明具体 fatal 消息、浏览器启动成功或真实验收通过 |
 
 下一顺序：CDP 与 Playwright 各自真实 API 正常 TLS 浏览器闭环 → 继续完整产品功能与隔离故障验收 → 获批后才进入备份、灰度、生产读回和回滚演练。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。

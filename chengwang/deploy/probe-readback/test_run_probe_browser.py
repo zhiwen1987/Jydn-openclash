@@ -85,6 +85,26 @@ class TestBrowserOrchestration(unittest.TestCase):
         self.assertIn("os.chdir(root / 'browser')", source)
         self.assertNotIn('N.__file__ =', source)
         self.assertNotIn('HOME=', source)
+        self.assertLess(source.index("here['mnt'] != init['mnt']"), source.index('temporary = browser_temporary_mount()'))
+        self.assertIn("environment['TMPDIR'] = temporary", source)
+        mounted = types.SimpleNamespace(st_mode=0o40700, st_uid=10001, st_gid=10001)
+        with mock.patch.object(pathlib.Path, 'lstat', return_value=mounted), \
+             mock.patch.object(pathlib.Path, 'is_symlink', return_value=False), \
+             mock.patch.object(pathlib.Path, 'read_text', return_value='1 0 0:1 / /var/tmp rw,nosuid,nodev,noexec - tmpfs tmpfs rw\n'), \
+             mock.patch.object(browser.N, 'command') as command, \
+             mock.patch.object(browser.N, 'mount_flags', return_value=['rw', 'nosuid', 'nodev', 'noexec']):
+            self.assertEqual(browser.browser_temporary_mount(), '/var/tmp')
+            command.assert_called_once_with(['mount', '-t', 'tmpfs', '-o',
+                'size=64m,mode=0700,uid=10001,gid=10001,nosuid,nodev,noexec',
+                'chengwang-probe-browser-tmp', '/var/tmp'])
+            with mock.patch.object(browser.N, 'mount_flags', return_value=['rw', 'nosuid', 'nodev']):
+                with self.assertRaises(browser.N.Failure):
+                    browser.browser_temporary_mount()
+            with mock.patch.object(pathlib.Path, 'read_text', return_value='1 0 0:1 / /var/tmp rw,nosuid,nodev,noexec - ext4 /dev/test rw\n'):
+                with self.assertRaises(browser.N.Failure):
+                    browser.browser_temporary_mount()
+        # The longest temporary singleton suffix now fits Linux sun_path[108].
+        self.assertLess(len('/var/tmp/.org.chromium.Chromium.XXXXXX/SingletonSocket'), 108)
 
     def test_copy_rejects_writable_input_before_any_export(self):
         info = types.SimpleNamespace(st_mode=0o100666)
@@ -130,7 +150,7 @@ class TestBrowserOrchestration(unittest.TestCase):
                  mock.patch.object(launcher.os, 'getegid', return_value=10001, create=True), \
                  mock.patch.object(launcher.os, 'getpgid', return_value=23, create=True), \
                  mock.patch.object(launcher.os, 'getsid', return_value=23, create=True), \
-                 mock.patch.dict(launcher.os.environ, {}, clear=True), \
+                 mock.patch.dict(launcher.os.environ, {'TMPDIR': '/var/tmp'}, clear=True), \
                  mock.patch.object(launcher, 'native_module', return_value=backend), \
                  mock.patch.object(launcher, 'validate_config', return_value=('a' * 32, pathlib.PurePosixPath(fixture))), \
                  mock.patch.object(launcher, 'start_ticks', return_value=45), \
@@ -144,6 +164,7 @@ class TestBrowserOrchestration(unittest.TestCase):
             self.assertIs(observed['forced'], False)
             child.wait.assert_called_once_with(timeout=330)
             self.assertNotIn('HOME', launch.call_args.kwargs['env'])
+            self.assertEqual(launch.call_args.kwargs['env']['TMPDIR'], '/var/tmp')
             self.assertIn('XDG_DATA_HOME', launch.call_args.kwargs['env'])
 
     def test_atomic_handoff_uses_complete_pending_and_kernel_noreplace(self):

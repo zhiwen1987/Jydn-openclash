@@ -74,7 +74,7 @@ def main(arguments=None):
     child = None
     try:
         demand(sys.platform.startswith('linux') and os.geteuid() == os.getegid() == 10001
-               and 'HOME' not in os.environ)
+               and 'HOME' not in os.environ and os.environ.get('TMPDIR') == '/var/tmp')
         backend = native_module()
         bundle = pathlib.Path(__file__).resolve().parent
         raw, info = backend.stable_read(bundle / 'browser-config.json', 16384, mode=0o440)
@@ -92,7 +92,7 @@ def main(arguments=None):
         environment.update({'XDG_DATA_HOME': str(root / 'browser/home/.local/share'),
                             'XDG_CONFIG_HOME': str(profile / 'config'),
                             'XDG_CACHE_HOME': str(profile / 'cache'),
-                            'TMPDIR': str(root / 'browser/tmp')})
+                            'TMPDIR': '/var/tmp'})
         fontconfig = bundle / 'fonts/fonts.conf'
         if fontconfig.is_file():
             environment['FONTCONFIG_FILE'] = str(fontconfig)

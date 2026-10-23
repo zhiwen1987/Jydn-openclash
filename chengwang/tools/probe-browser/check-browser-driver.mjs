@@ -178,6 +178,10 @@ test('driver DOM extractor reads presentation without HTML state clock or fetch 
   assert.ok(source.includes('launchPersistentContext'))
   assert.ok(!source.includes('connectOverCDP('))
   assert.ok(!/\bHOME\s*:/.test(source)); assert.ok(!source.includes('process.env.HOME ='))
+  assert.ok(source.includes("process.env.TMPDIR === '/var/tmp'"))
+  assert.ok(source.includes("await privateDirectory('/var/tmp')"))
+  assert.ok(source.includes("TMPDIR: '/var/tmp'")); assert.ok(!source.includes("TMPDIR: join("))
+  assert.ok(source.includes('info.uid === 10001 && info.gid === 10001 && (info.mode & 0o7777) === 0o700'))
   assert.ok(source.includes("'chrome-exit.private.json'")); assert.ok(source.includes('exit.exitCode === 0'))
   assert.deepEqual([...source.matchAll(/checkpoint\('([A-Z_]+)'\)/g)].map(match => match[1]),
     ['ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES', 'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY'])
