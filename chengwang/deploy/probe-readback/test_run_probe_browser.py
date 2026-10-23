@@ -80,6 +80,7 @@ class TestBrowserOrchestration(unittest.TestCase):
         self.assertIn("backendSupervisorMode='WRAPPER_IMPORTS_NATIVE_HELPERS'", source)
         self.assertIn("chrome=str(bundle / 'chrome/chrome')", source)
         self.assertIn("'toolchain/chrome', executable_inputs=True", source)
+        self.assertIn("os.chdir(root / 'browser')", source)
         self.assertNotIn('N.__file__ =', source)
         self.assertNotIn('HOME=', source)
 
@@ -107,6 +108,7 @@ class TestBrowserOrchestration(unittest.TestCase):
         self.assertIn('start_new_session=True', text)
         self.assertIn('close_fds=False', text)
         self.assertIn("'HOME' not in os.environ", text)
+        self.assertTrue(text.startswith('#!/usr/bin/python3 -I\n'))
 
     def test_fake_launcher_publishes_real_wait_value_not_close_command(self):
         for code in (0, 7):
@@ -163,6 +165,17 @@ class TestBrowserOrchestration(unittest.TestCase):
              mock.patch.object(browser.N.pathlib.Path, 'unlink') as remove:
             with self.assertRaises(browser.N.Failure): browser.N.publish_atomic(pathlib.Path('/private/signal'), b'{}')
         remove.assert_called_once()
+
+    def test_rejected_failure_diagnostic_cannot_skip_emergency_cleanup(self):
+        lab = object.__new__(browser.BrowserLab)
+        lab.browser = mock.Mock()
+        lab.browser.poll.return_value = None
+        with mock.patch.object(lab, 'publish_launch_failure', side_effect=browser.N.Failure('BROWSER_IDENTITY')), \
+             mock.patch.object(browser.N.Lab, 'emergency') as original_cleanup:
+            lab.emergency()
+        lab.browser.terminate.assert_called_once()
+        lab.browser.wait.assert_called_once_with(timeout=15)
+        original_cleanup.assert_called_once()
 
 
 if __name__ == '__main__':

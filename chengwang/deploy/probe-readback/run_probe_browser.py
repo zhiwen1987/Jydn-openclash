@@ -53,6 +53,7 @@ def public_failure_diagnostic(bundle):
         ('supervisor.private', r'^PROBE_BROWSER_LAB=FAIL stage=([A-Z_]+) code=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_CONTROLLER=FAIL stage=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_STAGE=([A-Z_]+)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_ERROR=([A-Z_]+)$'),
     ):
         path = bundle / relative
         if not path.exists():
@@ -64,7 +65,8 @@ def public_failure_diagnostic(bundle):
                 continue
             stages = {'ARGUMENTS', 'PREWARM', 'FLOW', 'WAIT_EXPIRED', 'EXPIRED', 'CLOSE', 'DONE', 'FRESH', 'UNEXPECTED',
                       'ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES',
-                      'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY'}
+                      'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY',
+                      'PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN'}
             if match[1] in stages and (len(match.groups()) == 1 or match[2] in ERRORS):
                 sys.stderr.write(line + '\n')
 
@@ -176,6 +178,9 @@ def configure_browser_role(options):
     for name, destination in (('browser-passwd', '/etc/passwd'), ('browser-group', '/etc/group')):
         N.command(['mount', '--bind', str(bundle / name), destination])
         N.command(['mount', '-o', 'remount,bind,ro,nosuid,nodev', destination])
+    # Never inherit an inaccessible /home/runner checkout as the low-UID
+    # interpreter/browser working directory. All code paths remain absolute.
+    os.chdir(root / 'browser')
     environment = dict(N.BASE_ENV)
     environment['TMPDIR'] = str(root / 'browser/tmp')
     for key, value in ((resource.RLIMIT_CORE, 0), (resource.RLIMIT_CPU, 180),
@@ -320,7 +325,36 @@ class BrowserLab(N.Lab):
                               for row in self.records if row['role'] == 'api-second'],
             files=files, production=False)) + b'\n')
 
+    def publish_launch_failure(self):
+        if self.browser is not None and self.browser.poll() != 0:
+            diagnostic = dict(schema='chengwang.probe-browser-launch-failure/v1',
+                sourceCommit=self.options.source_commit, stage=STAGE,
+                controllerRunning=self.browser.poll() is None, launcherHandoffObserved=False,
+                chromeWaitObserved=False, chromeExitCode=None, runtimeAcceptanceProven=False, production=False)
+            handoff = self.root / 'browser/chrome-process.private.json'
+            if handoff.exists():
+                value = N.decode(N.stable_read(handoff, 4096, 10001, 0o600)[0])
+                need(type(value) is dict and set(value) == {'pid', 'startTicks', 'uid', 'profile'}
+                     and type(value['pid']) is int and type(value['startTicks']) is int
+                     and value['uid'] == 10001 and value['profile'] == str(self.root / 'browser/chrome-profile'), 'BROWSER_IDENTITY')
+                diagnostic['launcherHandoffObserved'] = True
+            stopped = self.root / 'browser/chrome-exit.private.json'
+            if stopped.exists():
+                value = N.decode(N.stable_read(stopped, 4096, 10001, 0o600)[0])
+                need(type(value) is dict and set(value) == {'schema', 'engine', 'fixtureId', 'pid', 'startTicks', 'exitCode', 'joined', 'forced'}
+                     and value['schema'] == 'chengwang.probe-chrome-exit/v1' and type(value['exitCode']) is int
+                     and -128 <= value['exitCode'] <= 255 and value['joined'] is True, 'BROWSER_IDENTITY')
+                diagnostic['chromeWaitObserved'] = True
+                diagnostic['chromeExitCode'] = value['exitCode']
+            N.exclusive(pathlib.Path(self.options.output_dir).parent / 'browser-launch-failure.json', N.canonical(diagnostic) + b'\n')
+
     def emergency(self):
+        try:
+            self.publish_launch_failure()
+        except (N.Failure, OSError, ValueError, TypeError, KeyError):
+            # Diagnostic rejection is not success and must never stop the
+            # mandatory shutdown/PID-namespace cleanup path.
+            pass
         if self.browser is not None and self.browser.poll() is None:
             self.browser.terminate()
             try:

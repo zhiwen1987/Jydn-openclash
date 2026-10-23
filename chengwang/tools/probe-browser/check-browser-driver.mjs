@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { validateLaunchOptions, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
-  collectProbeDOM, launchProbeDriver, remoteEvaluationValue } from './browser-driver.mjs'
+  collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError } from './browser-driver.mjs'
 
 const sha = raw => createHash('sha256').update(raw).digest('hex')
 const uuid = 'a'.repeat(32), root = '/tmp/chengwang-probe-readback-' + uuid
@@ -119,6 +119,26 @@ test('driver all-site evidence strips response body and all header values', asyn
 })
 
 test('driver asynchronous capture failures are fatal and console messages stay private', async () => {
+  const kinds = ['PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN']
+  for (const [error, expected] of [
+    [Object.assign(new Error('private-sentinel /secret/path'), { code: 'EACCES' }), 'PERMISSION'],
+    [{ message: 'Permission denied private-sentinel' }, 'PERMISSION'],
+    [{ code: 'ERR_MODULE_NOT_FOUND' }, 'MODULE_NOT_FOUND'],
+    ['Cannot find package private-sentinel', 'MODULE_NOT_FOUND'],
+    ['Fatal Python error: error evaluating path private-sentinel', 'PYTHON_STARTUP'],
+    [Buffer.from('error while loading shared libraries: private-sentinel'), 'SHARED_LIBRARY'],
+    ['PROBE_CHROME_LAUNCHER=FAIL raw_input_suppressed=true\n', 'LAUNCHER_REJECTED'],
+    ['private-sentinel', 'UNKNOWN'], [{ message: 'private-sentinel', code: { toString() { throw Error('private-sentinel') } } }, 'UNKNOWN'],
+    ['Permission denied' + 'x'.repeat(65536), 'UNKNOWN'], [Buffer.alloc(65537), 'UNKNOWN'],
+    ['\u4e00'.repeat(22000), 'UNKNOWN'], [Object.create({ message: 'Permission denied' }), 'UNKNOWN'],
+    [new Proxy({}, { getOwnPropertyDescriptor() { throw Error('private-sentinel') } }), 'UNKNOWN'],
+  ]) {
+    const actual = classifyLaunchError(error)
+    assert.equal(actual, expected); assert.ok(kinds.includes(actual)); assert.ok(!actual.includes('private-sentinel'))
+  }
+  let accessorCalled = false
+  const accessor = Object.defineProperty({}, 'message', { get() { accessorCalled = true; return 'Permission denied' } })
+  assert.equal(classifyLaunchError(accessor), 'UNKNOWN'); assert.equal(accessorCalled, false)
   const journal = new NetworkJournal(async () => { throw new Error('private-sentinel') }, async () => {})
   journal.handle('Runtime.consoleAPICalled', { type: 'error', args: [{ value: 'private-sentinel' }] })
   journal.handle('Runtime.exceptionThrown', { exceptionDetails: { text: 'private-sentinel' } })

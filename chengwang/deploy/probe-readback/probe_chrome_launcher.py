@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -I
 """CI-only Chrome child/wait witness, used by both native automation paths.
 
 Playwright's public close API does not expose Chrome's wait status. This small

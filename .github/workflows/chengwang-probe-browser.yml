@@ -396,7 +396,7 @@ jobs:
           base = pathlib.Path('chengwang/deploy/probe-readback').resolve()
           sys.path.insert(0, str(base))
           pins = {
-              'test_run_probe_browser': (12, '78c3e65edcd336f1c952eb46e96f7fee8a96adef42f94e7dbd351c3e005449cd'),
+              'test_run_probe_browser': (13, '59e536581328251c3923a8010632ce491f3f42a7d78a8b73d16c7625fa79c3ff'),
               'test_check_probe_browser': (35, 'd785ff17e4fa0982f96e6864467e3e47d88b80e962d49d1d54c6506613a3ab1f'),
               'test_run_probe_readback': (12, 'b12e53d8fe95fb131f7a8a047a0393944764dd8343db8e9ce531ef7998d11dc1'),
               'test_check_probe_readback': (32, '1b766f1b579cc390eb0ab7b2e31cf81a4121c1fb95662931ef95be3a6d04ee73'),

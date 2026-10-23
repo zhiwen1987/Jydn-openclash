@@ -26,6 +26,31 @@ const pathOK = value => typeof value === 'string' && value.length < 4096 && isAb
   && normalize(value) === value && !/[\x00-\x1f\x7f\\]/.test(value)
 const sameStat = (a, b) => ['dev', 'ino', 'size', 'mode', 'uid', 'gid', 'nlink', 'mtimeNs', 'ctimeNs'].every(k => a[k] === b[k])
 
+// Diagnostic hints only: a matching marker is not proof of a root cause.
+// Never coerce error objects or invoke message/code accessors.
+export function classifyLaunchError(value) {
+  try {
+    let message = '', code = ''
+    if (Buffer.isBuffer(value)) {
+      if (value.length > 65536) return 'UNKNOWN'
+      message = value.toString('utf8')
+    } else if (typeof value === 'string') message = value
+    else if (value && typeof value === 'object') {
+      message = Object.getOwnPropertyDescriptor(value, 'message')?.value ?? ''
+      code = Object.getOwnPropertyDescriptor(value, 'code')?.value ?? ''
+    }
+    if (typeof message !== 'string' || message.length > 65536 || Buffer.byteLength(message) > 65536
+      || typeof code !== 'string' || code.length > 64) return 'UNKNOWN'
+    if (['EACCES', 'EPERM'].includes(code) || /\b(?:EACCES|EPERM)\b|permission denied/i.test(message)) return 'PERMISSION'
+    if (['MODULE_NOT_FOUND', 'ERR_MODULE_NOT_FOUND'].includes(code)
+      || /\b(?:MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND)\b|cannot find (?:module|package)/i.test(message)) return 'MODULE_NOT_FOUND'
+    if (/Fatal Python error:|error evaluating path|failed to get the Python codec of the filesystem encoding/i.test(message)) return 'PYTHON_STARTUP'
+    if (/error while loading shared libraries:|cannot open shared object file/i.test(message)) return 'SHARED_LIBRARY'
+    if (/(?:^|\n)PROBE_CHROME_LAUNCHER=FAIL raw_input_suppressed=true(?:\r?\n|$)/.test(message)) return 'LAUNCHER_REJECTED'
+  } catch { /* Unknown objects, including throwing proxies, stay private. */ }
+  return 'UNKNOWN'
+}
+
 export function validateLaunchOptions(value) {
   need(exact(value, ['engine', 'root', 'chrome', 'sourceRoot', 'launcher']))
   need(['chrome-cdp', 'playwright'].includes(value.engine))
@@ -333,6 +358,14 @@ async function launchImplementation(input) {
 
   let transport, context, page, launcherChild, childResult, pageSend, browserSend, record, closeEvidence = null
   let proof = null, chain = [], product = '', journal, screenshotCount = 0, closed = false
+  let launchStderr = Buffer.alloc(0), launchStderrOverflow = false, launchDiagnosticPrinted = false, spawnError
+  const launchDiagnostic = error => {
+    if (launchDiagnosticPrinted) return
+    launchDiagnosticPrinted = true
+    const stderrKind = launchStderrOverflow ? 'UNKNOWN' : classifyLaunchError(launchStderr)
+    const kind = stderrKind === 'UNKNOWN' ? classifyLaunchError(error) : stderrKind
+    process.stderr.write(`PROBE_BROWSER_LAUNCH_ERROR=${kind}\n`)
+  }
   const secrets = new Set()
   try {
     checkpoint('LAUNCH')
@@ -342,8 +375,18 @@ async function launchImplementation(input) {
     if (options.engine === 'chrome-cdp') {
       launcherChild = spawn(options.launcher, [...args, '--headless=new', '--remote-debugging-address=127.0.0.1',
         '--remote-debugging-port=0', `--user-data-dir=${options.profile}`, 'about:blank'],
-      { stdio: ['ignore', 'ignore', 'ignore'], env: environment })
-      childResult = new Promise(resolve => { launcherChild.once('error', () => resolve({ code: null, signal: null })); launcherChild.once('exit', (code, signal) => resolve({ code, signal })) })
+      { stdio: ['ignore', 'ignore', 'pipe'], env: environment })
+      launcherChild.stderr.on('data', chunk => {
+        if (launchStderrOverflow) return
+        if (!Buffer.isBuffer(chunk) || chunk.length > 65536 - launchStderr.length) {
+          launchStderr = Buffer.alloc(0); launchStderrOverflow = true; return
+        }
+        launchStderr = Buffer.concat([launchStderr, chunk])
+      })
+      childResult = new Promise(resolve => {
+        launcherChild.once('error', error => { spawnError = error; launchDiagnostic(error); resolve({ code: null, signal: null }) })
+        launcherChild.once('exit', (code, signal) => { if (code !== 0) launchDiagnostic(); resolve({ code, signal }) })
+      })
       let active
       await until(async () => {
         need(launcherChild.exitCode === null && launcherChild.signalCode === null)
@@ -363,9 +406,11 @@ async function launchImplementation(input) {
     } else {
       const module = await import(pathToFileURL(join(options.sourceRoot, 'chengwang/tools/probe-browser/node_modules/playwright-core/index.mjs')).href)
       need(typeof module.chromium?.launchPersistentContext === 'function')
-      context = await module.chromium.launchPersistentContext(options.profile, { executablePath: options.launcher,
-        headless: true, chromiumSandbox: false, ignoreHTTPSErrors: false, bypassCSP: false,
-        args, env: environment, timeout: 20000, viewport: { width: 1440, height: 1000 } })
+      try {
+        context = await module.chromium.launchPersistentContext(options.profile, { executablePath: options.launcher,
+          headless: true, chromiumSandbox: false, ignoreHTTPSErrors: false, bypassCSP: false,
+          args, env: environment, timeout: 20000, viewport: { width: 1440, height: 1000 } })
+      } catch (error) { launchDiagnostic(error); throw error }
       page = context.pages()[0]; need(page && context.pages().length === 1)
       const session = await context.newCDPSession(page), browserSession = await context.browser().newBrowserCDPSession()
       pageSend = (method, params = {}) => session.send(method, params)
@@ -500,7 +545,8 @@ async function launchImplementation(input) {
       },
     }
     return Object.freeze(api)
-  } catch {
+  } catch (error) {
+    launchDiagnostic(spawnError ?? error)
     // An incomplete launch is never declared a normal close. The independent
     // namespace supervisor remains responsible for emergency cleanup.
     try { await context?.close() } catch { /* No normal-stop claim. */ }
