@@ -10,6 +10,7 @@ from unittest import mock
 import check_ci_dependencies as C
 
 COMMIT = 'a' * 40
+PRIVATE_DIRECTORY = '/tmp/chengwang-ci-apt-abcdefgh'
 
 
 def fixture():
@@ -24,16 +25,31 @@ def fixture():
     for font in fonts:
         readback += font['family'] + '\t' + font['style'] + '\t' + font['path'] + '\n'
         readback += 'fonts-noto-cjk: ' + font['path'] + '\n'
-    logs = dict(zip(C.LOG_NAMES, (b'', b'Fetched synthetic dependency fixture\n', readback.encode())))
-    source = [dict(path='/etc/apt/sources.list.d/ubuntu.sources', bytes=100, sha256='d' * 64)]
-    value = dict(schema='chengwang.ci-ui-dependencies/v1', scope=C.SCOPE, sourceCommit=COMMIT,
+    logs = dict(zip(C.LOG_NAMES, (b'', b'Fetched synthetic dependency fixture\n', readback.encode(),
+                                 b'apt 2.8.3 (amd64)\nSupported modules:\n')))
+    policy = C.FROZEN_CONTRACT['privateSourcePolicy']
+    source = sorted([dict(path=policy['hostSourcePath'], bytes=policy['hostSourceBytes'], sha256=policy['hostSourceSHA256']),
+                     dict(path='/etc/apt/apt-mirrors.txt', bytes=policy['hostMirrorBytes'], sha256=policy['hostMirrorSHA256'])], key=lambda r:r['path'])
+    source_size = policy['hostSourceBytes'] + 2 * (len('mirror+file:' + PRIVATE_DIRECTORY + '/mirrors.txt') - len(policy['hostMirrorURI']))
+    value = dict(schema='chengwang.ci-ui-dependencies/v2', scope=C.SCOPE, sourceCommit=COMMIT,
         outcome='PASS', failureStage='NONE', platform=dict(githubActions=True, runnerOS='Linux', system='Linux',
-        ubuntu='24.04', architecture='amd64'), commands=[dict(stage=s, argv=C.argv(s), executed=True,
+        ubuntu='24.04', architecture='amd64'), commands=[dict(stage=s, argv=C.argv(s, PRIVATE_DIRECTORY), executed=True,
         exitCode=0, timedOut=False, elapsedMilliseconds=20) for s in ('UPDATE', 'INSTALL')],
         logs=[dict(path=name, bytes=len(logs[name]), sha256=C.sha(logs[name]), truncated=False) for name in C.LOG_NAMES],
         sourcesBefore=source, sourcesAfter=copy.deepcopy(source), sourceConfigurationModified=False,
         packages=packages, certutil=dict(path='/usr/bin/certutil', bytes=100, sha256='e' * 64, uid=0, gid=0, mode=0o755),
         fonts=fonts, readbackComplete=True, production=False, authorization='BLOCKED',
+        aptVersion=dict(version='2.8.3', architecture='amd64'), privateSources=dict(
+            directory=dict(path=PRIVATE_DIRECTORY, uid=1001, gid=1001, mode=0o755),
+            source=dict(path=PRIVATE_DIRECTORY+'/ubuntu.sources', bytes=source_size, sha256='f'*64,
+                        uid=1001, gid=1001, mode=0o644, normalizedHostSHA256=policy['hostSourceSHA256'], replacedURIs=2),
+            mirrors=dict(path=PRIVATE_DIRECTORY+'/mirrors.txt', bytes=len(C.mirrors_bytes()), sha256=C.sha(C.mirrors_bytes()),
+                         uid=1001, gid=1001, mode=0o644),
+            parts=dict(path=PRIVATE_DIRECTORY+'/sourceparts', uid=1001, gid=1001, mode=0o755, empty=True),
+            keyring=dict(path=policy['signedBy'], bytes=100, sha256='1'*64, uid=0, gid=0, mode=0o644),
+            extraSourcesProbe=dict(argv=C.probe_argv(PRIVATE_DIRECTORY), exitCode=0, timedOut=False,
+                                   elapsedMilliseconds=3, emptyOutput=True),
+            effectiveConfigurationChanged=True),
         sourceInputs=[dict(path=name, bytes=len(blobs[name]), sha256=C.sha(blobs[name])) for name in sorted(blobs)])
     return value, logs, blobs
 
@@ -46,8 +62,10 @@ class DependencyReadbackVerifierContracts(unittest.TestCase):
         self.assertEqual(result['outcome'], 'PASS')
         self.assertEqual(result['fontStyles'], ['Regular', 'Bold'])
         for key in ('executionAttestationProven', 'independentLocalFontBytesVerified',
-                    'reproduciblePackageProvenanceProven', 'browserAcceptanceProven', 'production'):
+                    'reproduciblePackageProvenanceProven', 'browserAcceptanceProven', 'production',
+                    'privateSourceReadbackIndependentlyProven', 'hostSourceConfigurationModified'):
             self.assertIs(result[key], False)
+        self.assertIs(result['effectiveSourceConfigurationChanged'], True)
 
     def test_02_report_identity_schema_and_extra_fields_rejected(self):
         for key, val in [('sourceCommit', 'b' * 40), ('schema', 'other'), ('production', True),
@@ -151,6 +169,85 @@ class DependencyReadbackVerifierContracts(unittest.TestCase):
             self.assertEqual(saved, report.read_bytes())
             for bad in (evidence / 'bad.json', repo / 'bad.json'):
                 with self.assertRaises(C.Rejected): C.write_report(bad, evidence, repo, result)
+
+    def test_11_v2_contract_is_exact_and_old_schema_cannot_pass(self):
+        actual = C.decoded(Path(__file__).with_name('ci-dependencies-contract.json').read_bytes())
+        self.assertTrue(C.same(actual, C.FROZEN_CONTRACT))
+        value, logs, blobs = fixture(); value['schema'] = 'chengwang.ci-ui-dependencies/v1'
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value.pop('privateSources')
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_12_toolchain_first_line_version_architecture_and_budget(self):
+        for raw in (b'apt x (amd64)\n', b'apt 2.8.3 (arm64)\n', b'apt 2.8.3 (amd64)\r\n',
+                    b'apt 2.8.3 (amd64)', b'apt 2.8.4 (amd64)\n', b'apt 2.8.3 (amd64)\n\xff', b'x'*16385):
+            value, logs, blobs = fixture(); logs[C.LOG_NAMES[3]] = raw
+            value['logs'][3].update(bytes=len(raw), sha256=C.sha(raw))
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value['aptVersion']['architecture'] = 'arm64'
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_13_missing_or_reordered_fourth_original_log_is_rejected(self):
+        value, logs, blobs = fixture(); logs.pop(C.LOG_NAMES[3])
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value['logs'][2], value['logs'][3] = value['logs'][3], value['logs'][2]
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_14_private_directory_owner_permissions_and_parts_are_closed(self):
+        for field, key, val in [('directory','path','/tmp/chengwang-ci-apt-../escape'), ('directory','uid',True),
+                                ('directory','mode',0o777), ('source','gid',1002), ('parts','empty',False),
+                                ('parts','mode',0o777), ('mirrors','path',PRIVATE_DIRECTORY+'/other.txt')]:
+            value, logs, blobs = fixture(); value['privateSources'][field][key] = val
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_15_normalized_host_hash_replacement_count_and_size_are_bound(self):
+        for key, val in [('normalizedHostSHA256','0'*64), ('replacedURIs',True), ('replacedURIs',0),
+                         ('replacedURIs',17), ('bytes',2995), ('sha256','invalid')]:
+            value, logs, blobs = fixture(); value['privateSources']['source'][key] = val
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_16_private_mirror_priority_bytes_hash_and_unknown_payload_rejected(self):
+        expected = b'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\nhttp://azure.archive.ubuntu.com/ubuntu/\tpriority:3\n'
+        self.assertEqual(C.mirrors_bytes(), expected)
+        for key, val in [('sha256','0'*64), ('bytes',1), ('mode',0o666), ('contents','secret source')]:
+            value, logs, blobs = fixture(); value['privateSources']['mirrors'][key] = val
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_17_closed_security_options_private_paths_and_host_change_flags(self):
+        for item in C.FROZEN_CONTRACT['securityOptions']:
+            value, logs, blobs = fixture(); args = value['commands'][0]['argv']
+            args[args.index(item)] = item.rsplit('=',1)[0] + '=' + ('true' if item.endswith('false') else 'false')
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value['commands'][0]['argv'].append('APT_CONFIG=/tmp/other')
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value['privateSources']['effectiveConfigurationChanged'] = False
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value['sourceConfigurationModified'] = True
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_18_required_host_records_and_root_keyring_cannot_be_substituted(self):
+        for i in (0,1):
+            value, logs, blobs = fixture(); value['sourcesBefore'][i]['sha256'] = '0'*64
+            value['sourcesAfter'] = copy.deepcopy(value['sourcesBefore'])
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        for field, val in [('path','/tmp/other.gpg'), ('uid',1001), ('gid',True), ('mode',0o666), ('bytes',2097153)]:
+            value, logs, blobs = fixture(); value['privateSources']['keyring'][field] = val
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+
+    def test_19_extra_sources_probe_must_be_bound_empty_and_successful(self):
+        value, logs, blobs = fixture(); value['privateSources'].pop('extraSourcesProbe')
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        for key, val in [('exitCode',1), ('exitCode',False), ('timedOut',True), ('emptyOutput',False),
+                         ('elapsedMilliseconds',True), ('elapsedMilliseconds',5001), ('rawOutput','secret')]:
+            value, logs, blobs = fixture(); value['privateSources']['extraSourcesProbe'][key] = val
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        for target in ('phase', 'probe'):
+            value, logs, blobs = fixture()
+            args = value['commands'][0]['argv'] if target == 'phase' else value['privateSources']['extraSourcesProbe']['argv']
+            args.remove('APT_CONFIG')
+            with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
+        value, logs, blobs = fixture(); value['privateSources']['extraSourcesProbe']['argv'][-1] = 'Binary::apt-get'
+        with self.assertRaises(C.Rejected): self.check((value, logs, blobs))
 
 
 if __name__ == '__main__': unittest.main()

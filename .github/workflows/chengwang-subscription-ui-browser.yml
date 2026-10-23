@@ -72,7 +72,7 @@ jobs:
           check-latest: false
           cache: false
 
-      - name: Prepare locked CI-only dependencies and normal system fonts
+      - name: Prepare locked CI-only tools and dependency contract tests
         shell: bash
         run: |
           set -euo pipefail
@@ -88,8 +88,8 @@ jobs:
             python3 -B - <<'PY' 2>&1 | tee "$lab/reports/dependency-unit.log"
           import ast, hashlib, importlib, pathlib, unittest
           pins = {
-              'test_prepare_ci_dependencies': (16, 'bd98e4cb062944ad135e4f4daefd5670b2d26b591f099036f7f93aa7cd0241dc'),
-              'test_check_ci_dependencies': (10, '9175717e8abd173a693e50b6faad7170d687b8296ceed6202be9373f10598866'),
+              'test_prepare_ci_dependencies': (30, '2724f2c9c898d83dc64fd432ba84ee876f6c16a7a1be4e20ec9bf787b6ad584e'),
+              'test_check_ci_dependencies': (19, 'd191202ac34518ed5787fad0af19debafb415e142c10d713d35df709cd4ff7c3'),
           }
           class Recorded(unittest.TextTestResult):
               def __init__(self, *args):
@@ -109,7 +109,8 @@ jobs:
               if (not result.wasSuccessful() or result.skipped or result.expectedFailures or result.unexpectedSuccesses
                   or sorted(result.runs) != names or sorted(result.passes) != names):
                   raise SystemExit('ci-dependency-unit-events-rejected')
-          print('CI_DEPENDENCY_SYNTHETIC=PASS tests=26 skips=0 runtime_started=false')
+          print('CI_DEPENDENCY_SYNTHETIC=PASS tests=' + str(sum(count for count, _ in pins.values()))
+                + ' skips=0 runtime_started=false')
           PY
           )
           cp -a chengwang/web/. "$lab/web-build/"
@@ -119,7 +120,7 @@ jobs:
             npm ci --prefix chengwang/tools/subscription-ui-browser --ignore-scripts --no-audit --no-fund
           sudo --non-interactive install -m 0555 "$(command -v node)" "$lab/bin/node"
 
-      - name: Acquire bounded CI system dependencies and read back actual installed files
+      - name: Acquire bounded dependencies through private official mirror ordering and read back actual files
         timeout-minutes: 8
         shell: bash
         run: |
@@ -285,6 +286,13 @@ jobs:
         run: |
           set -euo pipefail
           install -d -m 0700 "$RUNNER_TEMP/subscription-ui-fresh"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_ci_dependencies.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/subscription-ui-input/dependencies" \
+            --report "$RUNNER_TEMP/subscription-ui-fresh/dependency-verification.json" \
+            2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/dependency-original.log"
+          cmp "$RUNNER_TEMP/subscription-ui-input/dependency-verification.json" \
+            "$RUNNER_TEMP/subscription-ui-fresh/dependency-verification.json"
           checker=chengwang/deploy/subscription-ui-browser/check_subscription_ui.py
           if test '${{ matrix.scenario }}' = local_admission; then
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py

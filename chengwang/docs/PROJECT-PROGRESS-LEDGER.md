@@ -2,7 +2,9 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-**当前执行阶段：CI依赖获取修复与UI回归补验，尚未通过**。[c7b64c4实际验收](P2-CI-DEPENDENCY-ACQUISITION.md)：原run40018960129终态failure；两PW实际安装/包字体读回及既定产品原CLI通过，根/B产品报告逐字同、各879 Git blobs，根/B/C依赖报告逐字同；两CDP均INSTALL240s退出124，浏览器未启动，fresh跳过。四份新26原输出均逐名核验零skip，80原ZIP成员三方同；这些证明限时退出/拒绝生效，**不证明下载可用性修复或整组UI回归通过**。具体网络根因未证，下一方案先核上游GitHub源码/测试，未改生产。父门40018960021及旧订阅40018960055成功，根核状态/A分层原件复验，不冒称根完整旧POSIX CLI通过。[机器台账](evidence/p2-ci-dependency-acquisition-c7b64c4.json)
+**当前执行阶段：CI私有官方镜像源与原UI矩阵补验，真实验收尚未完成**。[本轮v2实现与退出条件](P2-CI-PRIVATE-APT-SOURCES.md)：根按固定GitHub上游核定私有源优先级/安全覆盖/额外源只读检查，A实现准备程序、C实现独立检查器、B核上游和接线，根单一集成；新增真实APT版本读回及fresh依赖完整重放。根实际执行工作流同一段49项纯CPU测试（30＋19、原26名称保留）/模拟跨层/10块bash语法通过。未执行新源码真实CI，不预报真实安装、四producer/fresh或整套系统成功，不动生产。
+
+**前序c7失败保留**：[c7b64c4实际验收](P2-CI-DEPENDENCY-ACQUISITION.md)：原run40018960129终态failure；两PW实际安装/包字体读回及既定产品原CLI通过，根/B产品报告逐字同、各879 Git blobs，根/B/C依赖报告逐字同；两CDP均INSTALL240s退出124，浏览器未启动，fresh跳过。四份新26原输出均逐名核验零skip，80原ZIP成员三方同；这些证明限时退出/拒绝生效，**不证明下载可用性修复或整组UI回归通过**。具体网络根因未证，后续方案已先核GitHub源码/测试，未改生产。父门40018960021及旧订阅40018960055成功，根核状态/A分层原件复验，不冒称根完整旧POSIX CLI通过。[机器台账](evidence/p2-ci-dependency-acquisition-c7b64c4.json)
 
 **前序已验增量 `8c4852c`**：双来源本地准入及历史候选决定按钮修复隔离验收通过；四producer/四fresh成功，根/独立子代理四完整原CLI逐字同，实际859 Git blobs。历史候选6条按钮禁用、当前待审8条启用，4张新首屏PNG已查看。前端193/193零跳过原JSON/日志与原Git gate已根/子代理复验，旧190基线保留；镜像CI成功。[原件与边界](P2-SUBSCRIPTION-LOCAL-ADMISSION-UI.md)。该源码旧探针CDP回归因failedRequests=1严格失败，历史整体失败保留；完整 B01–B23、全旧产品子CLI独立重放、灰度和生产未完成。不会以新UI成功抵消旧门失败。
 

@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import tempfile
 from types import SimpleNamespace
@@ -14,18 +15,74 @@ import prepare_ci_dependencies as D
 
 COMMIT = 'a' * 40
 PLATFORM = dict(githubActions=True, runnerOS='Linux', system='Linux', ubuntu='24.04', architecture='amd64')
-SOURCES = [dict(path='/etc/apt/sources.list.d/ubuntu.sources', bytes=10, sha256='b' * 64)]
+SOURCES = [dict(path=D.HOST_MIRROR, bytes=D.HOST_MIRROR_SIZE, sha256=D.HOST_MIRROR_SHA),
+           dict(path=D.HOST_SOURCE, bytes=D.HOST_SOURCE_SIZE, sha256=D.HOST_SOURCE_SHA)]
+PRIVATE_DIRECTORY = '/tmp/chengwang-ci-apt-abcdefgh'
+
+
+def private_fixture():
+    def directory(path):
+        return dict(path=path, uid=1001, gid=1001, mode=0o755)
+    def file(path, size, root=False):
+        return dict(path=path, bytes=size, sha256='f' * 64, uid=0 if root else 1001,
+                    gid=0 if root else 1001, mode=0o644)
+    source = file(PRIVATE_DIRECTORY + '/ubuntu.sources', D.HOST_SOURCE_SIZE + 2 *
+                  (len('mirror+file:' + PRIVATE_DIRECTORY + '/mirrors.txt') - len(D.HOST_MIRROR_URI)))
+    source.update(normalizedHostSHA256=D.HOST_SOURCE_SHA, replacedURIs=2)
+    return dict(directory=directory(PRIVATE_DIRECTORY), source=source,
+                mirrors={**file(PRIVATE_DIRECTORY + '/mirrors.txt', len(D.mirror_bytes())), 'sha256': D.sha(D.mirror_bytes())},
+                parts={**directory(PRIVATE_DIRECTORY + '/sourceparts'), 'empty': True},
+                keyring=file(D.KEYRING, 100, True), effectiveConfigurationChanged=True)
+
+
+def synthetic_source():
+    return ('# Explicitly synthetic deb822 fixture, not the real 2995-byte host file.\n'
+            'Types: deb\nURIs: ' + D.HOST_MIRROR_URI + '\n'
+            'Suites: noble noble-updates noble-backports\n'
+            'Components: main restricted universe multiverse\nSigned-By: ' + D.KEYRING + '\n\n'
+            'Types: deb\nURIs: ' + D.HOST_MIRROR_URI + '\nSuites: noble-security\n'
+            'Components: main restricted universe multiverse\nSigned-By: ' + D.KEYRING + '\n').encode()
 
 
 class PrepareDependencyTests(unittest.TestCase):
     @contextlib.contextmanager
-    def fixture(self, *, platform=None, sources=None, execute=None, metadata=None):
+    def copied_private_fixture(self, source_override=None):
+        # The production profile is never configurable. Only this explicitly
+        # synthetic CPU fixture substitutes its own source SHA/size and path.
+        with tempfile.TemporaryDirectory(prefix='chengwang-private-copy-unit-') as directory:
+            path = Path(directory).resolve()
+            source = source_override if source_override is not None else synthetic_source()
+            original_reader = D.read_file
+
+            def reader(name, maximum, **kwargs):
+                if str(name) == D.KEYRING:
+                    return b'unit keyring', dict(path=D.KEYRING, bytes=12, sha256='c' * 64, uid=0, gid=0, mode=0o644)
+                return original_reader(name, maximum)
+
+            mode = lambda bits: 0o755 if stat.S_ISDIR(bits) else 0o644
+            with patch.object(D, 'HOST_SOURCE_SIZE', len(source)), patch.object(D, 'HOST_SOURCE_SHA', D.sha(source)), \
+                 patch.object(D, 'DIRECTORY_PATTERN', re.escape(str(path))), \
+                 patch.object(D, 'read_file', side_effect=reader), patch.object(D.stat, 'S_IMODE', side_effect=mode):
+                D.private_files(path, source)
+                yield path, source
+
+    @contextlib.contextmanager
+    def fixture(self, *, platform=None, sources=None, execute=None, metadata=None, version_result=None,
+                private_builder=None, private_checks=None, policy_result=None):
         with tempfile.TemporaryDirectory(prefix='chengwang-dependency-unit-') as directory:
             reports = Path(directory).resolve()
             reports.chmod(0o700)
             calls = []
+            version_calls = []
+            policy_calls = []
 
             def successful(argv, timeout):
+                if argv == ['/usr/bin/apt-get', '--version']:
+                    version_calls.append((argv, timeout))
+                    return version_result or (0, b'apt 2.7.14 (amd64)\nSupported modules:\n', False, 2, False)
+                if '/usr/bin/apt-config' in argv:
+                    policy_calls.append((argv, timeout))
+                    return policy_result or (0, b'', False, 1, False)
                 calls.append((argv, timeout))
                 if '/usr/bin/apt-get' in argv:
                     raw = b'synthetic package acquisition output\n'
@@ -39,12 +96,15 @@ class PrepareDependencyTests(unittest.TestCase):
                     raw = b'fonts-noto-cjk\tinstall ok installed\t1:20230817+repack1-3\nlibnss3-tools:amd64\tinstall ok installed\t2:3.98-1ubuntu0.3\n'
                 result = (0, raw, False, 3, False)
                 return execute(argv, timeout, result, len(calls)) if execute else result
+            successful.version_calls = version_calls
+            successful.policy_calls = policy_calls
 
             def system_metadata(path, maximum, **kwargs):
                 self.assertTrue(kwargs.get('system_owned'))
                 if metadata:
                     metadata(path)
-                return b'synthetic binary', dict(path=path, bytes=16, sha256='c' * 64, uid=0, gid=0,
+                payload = ('synthetic binary for ' + path).encode()
+                return payload, dict(path=path, bytes=len(payload), sha256=D.sha(payload), uid=0, gid=0,
                                                  mode=0o755 if path == '/usr/bin/certutil' else 0o644)
 
             # Windows cannot enforce chmod0700; this is explicitly a mocked
@@ -55,6 +115,8 @@ class PrepareDependencyTests(unittest.TestCase):
                  patch.object(D, 'source_inputs', return_value=[dict(path=p, bytes=10, sha256='d' * 64) for p in D.INPUTS]), \
                  patch.object(D, 'sources_snapshot', side_effect=sources or [SOURCES, SOURCES]), \
                  patch.object(D, 'read_file', side_effect=system_metadata), \
+                 patch.object(D, 'create_private_sources', side_effect=private_builder or private_fixture), \
+                 patch.object(D, 'private_readback', side_effect=private_checks or (lambda _path: private_fixture())), \
                  patch.object(D.stat, 'S_IMODE', side_effect=mode), \
                  patch.object(D.subprocess, 'Popen', side_effect=AssertionError('a real subprocess is forbidden')):
                 yield reports, calls, successful
@@ -64,21 +126,25 @@ class PrepareDependencyTests(unittest.TestCase):
             spec = importlib.util.spec_from_file_location('ci_dependency_pure_import', D.__file__)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            self.assertEqual(module.phase_argv('UPDATE'), D.phase_argv('UPDATE'))
+            self.assertEqual(module.phase_argv('UPDATE', PRIVATE_DIRECTORY), D.phase_argv('UPDATE', PRIVATE_DIRECTORY))
 
     def test_fixed_apt_commands_use_root_timeout_and_only_closed_packages(self):
         for stage, duration in [('UPDATE', '120s'), ('INSTALL', '240s')]:
-            argv = D.phase_argv(stage)
-            self.assertEqual(argv[:10], ['/usr/bin/sudo', '--non-interactive', '/usr/bin/timeout', '--signal=TERM',
-                '--kill-after=15s', duration, '/usr/bin/env', 'DEBIAN_FRONTEND=noninteractive', 'LC_ALL=C', '/usr/bin/apt-get'])
-            self.assertEqual(argv[10:16], ['-o', 'Acquire::Retries=1', '-o', 'Acquire::http::Timeout=15', '-o', 'Acquire::https::Timeout=15'])
+            argv = D.phase_argv(stage, PRIVATE_DIRECTORY)
+            self.assertEqual(argv[:12], ['/usr/bin/sudo', '--non-interactive', '/usr/bin/timeout', '--signal=TERM',
+                '--kill-after=15s', duration, '/usr/bin/env', '-u', 'APT_CONFIG', 'DEBIAN_FRONTEND=noninteractive', 'LC_ALL=C', '/usr/bin/apt-get'])
+            self.assertEqual(argv[12:18], ['-o', 'Acquire::Retries=1', '-o', 'Acquire::http::Timeout=15', '-o', 'Acquire::https::Timeout=15'])
             self.assertNotIn('--allow-unauthenticated', argv)
             self.assertNotIn('upgrade', argv)
-            self.assertFalse(any('Dir::' in value or 'trusted=' in value or 'Verify-Peer=false' in value for value in argv))
-        self.assertEqual(D.phase_argv('UPDATE')[16:], ['-o', 'APT::Update::Error-Mode=any', 'update'])
-        self.assertEqual(D.phase_argv('INSTALL')[16:], ['install', '-y', '--no-install-recommends', *D.PACKAGES])
+            self.assertFalse(any('trusted=' in value or 'Verify-Peer=false' in value for value in argv))
+            self.assertEqual(argv[18:22], ['-o', 'Dir::Etc::sourcelist=' + PRIVATE_DIRECTORY + '/ubuntu.sources',
+                                         '-o', 'Dir::Etc::sourceparts=' + PRIVATE_DIRECTORY + '/sourceparts'])
+            contract = json.loads(Path(D.__file__).with_name('ci-dependencies-contract.json').read_bytes())
+            self.assertEqual(argv[22:48], [item for value in contract['securityOptions'] for item in ['-o', value]])
+        self.assertEqual(D.phase_argv('UPDATE', PRIVATE_DIRECTORY)[48:], ['-o', 'APT::Update::Error-Mode=any', 'update'])
+        self.assertEqual(D.phase_argv('INSTALL', PRIVATE_DIRECTORY)[48:], ['install', '-y', '--no-install-recommends', *D.PACKAGES])
         with self.assertRaises(ValueError):
-            D.phase_argv('UPGRADE')
+            D.phase_argv('UPGRADE', PRIVATE_DIRECTORY)
         # Pure fake: EOF arrives before process termination. The deadline still
         # owns the child and its timed wait/kill path must actually be joined.
         process, selector = MagicMock(), MagicMock()
@@ -212,6 +278,8 @@ class PrepareDependencyTests(unittest.TestCase):
             self.assertEqual([row['name'] for row in result['packages']], D.PACKAGES)
             self.assertEqual([row['style'] for row in result['fonts']], ['Regular', 'Bold'])
             self.assertEqual(len(calls), 7)
+            self.assertEqual(run.version_calls, [(['/usr/bin/apt-get', '--version'], 5)])
+            self.assertEqual(run.policy_calls, [(D.policy_argv(PRIVATE_DIRECTORY), 5)])
             self.assertEqual([timeout for _, timeout in calls], [140, 260, 5, 5, 5, 5, 5])
             self.assertEqual(result, json.loads((reports / 'ci-dependencies.json').read_bytes()))
             for row in result['logs']:
@@ -232,6 +300,160 @@ class PrepareDependencyTests(unittest.TestCase):
             os.link(path, Path(directory) / 'hardlink')
             with self.assertRaises(ValueError):
                 D.read_file(path, 100)
+
+    def test_apt_version_parser_only_accepts_bounded_ascii_amd64_header(self):
+        self.assertEqual(D.parse_apt_version(b'apt 2.7.14 (amd64)\nSupported modules:\n'),
+                         dict(version='2.7.14', architecture='amd64'))
+        for raw in [b'', b'apt 2.7.14 (arm64)\n', b'apt 2.7.14 (amd64)\r\n',
+                    b'apt unknown (amd64)\n', b'prefix apt 2.7.14 (amd64)\n',
+                    b'apt 2.7.14 (amd64)\n\xff', b'apt 2.7.14 (amd64)\n' + b'x' * D.MAX_TOOLCHAIN]:
+            with self.subTest(raw=raw[:40]), self.assertRaises(ValueError):
+                D.parse_apt_version(raw)
+
+    def test_apt_version_failure_preserves_unexecuted_empty_phase_argv(self):
+        with self.fixture(version_result=(124, b'version timeout\n', True, 5000, False)) as (reports, calls, run):
+            result = D.prepare(reports, COMMIT, execute=run)
+            self.assertEqual(result['failureStage'], 'APT_VERSION')
+            self.assertIsNone(result['aptVersion'])
+            self.assertIsNone(result['privateSources'])
+            self.assertEqual(calls, [])
+            self.assertTrue(all(row['argv'] == [] and row['executed'] is False for row in result['commands']))
+
+    def test_private_source_preflight_failure_preserves_version_but_no_phase_argv(self):
+        def reject():
+            raise ValueError('synthetic host fingerprint mismatch')
+        with self.fixture(private_builder=reject) as (reports, calls, run):
+            result = D.prepare(reports, COMMIT, execute=run)
+            self.assertEqual(result['failureStage'], 'PRIVATE_SOURCES')
+            self.assertEqual(result['aptVersion']['version'], '2.7.14')
+            self.assertIsNone(result['privateSources'])
+            self.assertEqual(calls, [])
+            self.assertTrue(all(row['argv'] == [] and row['executed'] is False for row in result['commands']))
+            self.assertEqual(run.policy_calls, [])
+
+    def test_deb822_parser_rejects_unknown_duplicate_and_continuation_fields(self):
+        raw = synthetic_source()
+        self.assertEqual(D.parse_ubuntu_sources(raw), 2)
+        for changed in [raw + b'Trusted: yes\n', raw + b'Check-Valid-Until: no\n',
+                        raw.replace(b'Types: deb\n', b'Types: deb\nTypes: deb\n', 1),
+                        raw.replace(b'Suites: noble ', b' Suites: noble ', 1),
+                        raw.replace(b'Signed-By: ', b'Unknown: ', 1)]:
+            with self.subTest(changed=changed[:40]), self.assertRaises(ValueError):
+                D.parse_ubuntu_sources(changed)
+
+    def test_deb822_parser_rejects_wrong_suite_component_architecture_and_signer(self):
+        raw = synthetic_source()
+        for changed in [raw.replace(b'noble-security', b'jammy-security'),
+                        raw.replace(b'noble-updates', b'noble noble-updates', 1),
+                        raw.replace(b'main restricted universe multiverse', b'main universe', 1),
+                        raw + b'Architectures: arm64\n',
+                        raw.replace(D.KEYRING.encode(), b'/private/untrusted.gpg', 1),
+                        raw.replace(D.HOST_MIRROR_URI.encode(), b'https://unapproved.invalid/ubuntu/', 1)]:
+            with self.subTest(changed=changed[:40]), self.assertRaises(ValueError):
+                D.parse_ubuntu_sources(changed)
+
+    def test_host_fingerprint_mismatch_is_rejected_before_private_directory_creation(self):
+        with patch.object(D, 'read_file', return_value=(b'wrong-host', {})), \
+             patch.object(D, 'make_private_directory', side_effect=AssertionError('must not create a directory')) as create:
+            with self.assertRaises(ValueError):
+                D.create_private_sources()
+            create.assert_not_called()
+
+    def test_private_source_copy_roundtrips_only_the_uri_under_synthetic_profile(self):
+        with self.copied_private_fixture() as (path, host):
+            source = (path / 'ubuntu.sources').read_bytes()
+            replacement = ('mirror+file:' + str(path / 'mirrors.txt')).encode()
+            self.assertEqual(source.replace(replacement, D.HOST_MIRROR_URI.encode()), host)
+            self.assertEqual((path / 'mirrors.txt').read_bytes(), D.mirror_bytes())
+            projection = D.private_readback(path)
+            self.assertEqual(projection['source']['normalizedHostSHA256'], D.sha(host))
+            self.assertEqual(projection['source']['replacedURIs'], 2)
+            self.assertEqual(projection['source']['bytes'], len(source))
+            self.assertTrue(projection['parts']['empty'])
+            self.assertTrue(projection['effectiveConfigurationChanged'])
+
+    def test_component_order_is_preserved_but_duplicates_are_rejected(self):
+        source = synthetic_source().replace(b'main restricted universe multiverse', b'main universe restricted multiverse')
+        self.assertEqual(D.parse_ubuntu_sources(source), 2)
+        with self.copied_private_fixture(source) as (path, host):
+            replacement = ('mirror+file:' + str(path / 'mirrors.txt')).encode()
+            actual = (path / 'ubuntu.sources').read_bytes()
+            self.assertIn(b'Components: main universe restricted multiverse\n', actual)
+            self.assertEqual(actual.replace(replacement, D.HOST_MIRROR_URI.encode()), source)
+            self.assertEqual(D.private_readback(path)['source']['normalizedHostSHA256'], D.sha(host))
+        duplicate = source.replace(b'main universe restricted multiverse', b'main universe main multiverse', 1)
+        with self.assertRaises(ValueError):
+            D.parse_ubuntu_sources(duplicate)
+
+    def test_private_configuration_tamper_and_nonempty_parts_fail_closed(self):
+        for target in ['ubuntu.sources', 'mirrors.txt', 'sourceparts']:
+            with self.subTest(target=target), self.copied_private_fixture() as (path, host):
+                if target == 'sourceparts':
+                    (path / target / 'unexpected.list').write_bytes(b'unapproved')
+                else:
+                    with (path / target).open('ab') as output:
+                        output.write(b'# changed bytes\n')
+                with self.assertRaises(ValueError):
+                    D.private_readback(path)
+
+    def test_private_directory_path_and_mirror_priorities_are_closed(self):
+        self.assertEqual(D.mirror_bytes(), b'https://archive.ubuntu.com/ubuntu/\tpriority:1\n'
+                         b'https://security.ubuntu.com/ubuntu/\tpriority:2\n'
+                         b'http://azure.archive.ubuntu.com/ubuntu/\tpriority:3\n')
+        for path in ['/tmp/chengwang-ci-apt-abcdefg', '/tmp/chengwang-ci-apt-ABCDEFGHI',
+                     '/tmp/chengwang-ci-apt-abcdefgh/../escape', '/home/runner/lab/private',
+                     '/tmp/chengwang-ci-apt-abcdefgh;command']:
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                D.phase_argv('UPDATE', path)
+
+    def test_post_apt_private_source_mutation_rejects_readback(self):
+        changed = private_fixture()
+        changed['mirrors']['sha256'] = 'e' * 64
+        with self.fixture(private_checks=[private_fixture(), changed, changed]) as (reports, calls, run):
+            result = D.prepare(reports, COMMIT, execute=run)
+            self.assertEqual(result['failureStage'], 'PRIVATE_SOURCES_AFTER')
+            self.assertEqual(result['outcome'], 'FAIL')
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(result['packages'], [])
+
+    def test_extra_sources_probe_uses_both_effective_trees_without_raw_export(self):
+        argv = D.policy_argv(PRIVATE_DIRECTORY)
+        self.assertEqual(argv[:8], ['/usr/bin/sudo', '--non-interactive', '/usr/bin/env', '-u', 'APT_CONFIG',
+                                    'DEBIAN_FRONTEND=noninteractive', 'LC_ALL=C', '/usr/bin/apt-config'])
+        self.assertEqual(argv[8:-5], D.apt_options(PRIVATE_DIRECTORY))
+        self.assertEqual(argv[-5:], ['-o', 'APT::Config::Dump::EmptyValue=false', 'dump',
+                                    'APT::Sources::With', 'Binary::apt-get::APT::Sources::With'])
+        with self.fixture() as (reports, calls, run):
+            result = D.prepare(reports, COMMIT, execute=run)
+            self.assertEqual(result['privateSources']['extraSourcesProbe'],
+                             dict(argv=argv, exitCode=0, timedOut=False, elapsedMilliseconds=1, emptyOutput=True))
+            self.assertEqual(len(result), 20)
+            self.assertEqual(len(result['logs']), 4)
+
+    def test_extra_sources_nonempty_failure_is_not_logged_or_used_for_install(self):
+        private = b'APT::Sources::With::private "/secret/PRIVATE-PATH";\n'
+        with self.fixture(policy_result=(0, private, False, 2, False)) as (reports, calls, run):
+            result = D.prepare(reports, COMMIT, execute=run)
+            self.assertEqual(result['failureStage'], 'APT_POLICY')
+            self.assertFalse(result['privateSources']['extraSourcesProbe']['emptyOutput'])
+            self.assertEqual(calls, [])
+            self.assertEqual(len(run.policy_calls), 1)
+            for name in [*D.LOG_NAMES, 'ci-dependencies.json']:
+                self.assertNotIn(b'PRIVATE-PATH', (reports / name).read_bytes())
+            self.assertTrue(all(row['executed'] is False and row['argv'] == [] for row in result['commands']))
+
+    def test_extra_sources_error_timeout_and_overflow_never_attempt_update(self):
+        for observed in [(100, b'PRIVATE-PATH', False, 1, False), (124, b'PRIVATE-PATH', True, 5000, False),
+                         (0, b'', False, 1, True), (0, b'x' * 4097, False, 1, False),
+                         (0, b'', False, 5001, False)]:
+            with self.subTest(observed=observed[:1]), self.fixture(policy_result=observed) as (reports, calls, run):
+                result = D.prepare(reports, COMMIT, execute=run)
+                self.assertEqual(result['failureStage'], 'APT_POLICY')
+                self.assertEqual(result['outcome'], 'FAIL')
+                self.assertEqual(calls, [])
+                self.assertTrue(all(row['executed'] is False for row in result['commands']))
+                for name in [*D.LOG_NAMES, 'ci-dependencies.json']:
+                    self.assertNotIn(b'PRIVATE-PATH', (reports / name).read_bytes())
 
 
 if __name__ == '__main__':
