@@ -985,8 +985,10 @@ def validate_go_json(paths: list[pathlib.Path], *, probe_extension: bool = False
         # The actual CLI always requires the exact new increment before those
         # same 2320-name/package fingerprints are evaluated.
         if probe_extension:
-            from subscription_application_extension import split_extension as split_application, validate_transcript
+            from subscription_access_extension import split_extension as split_access, validate_transcript
             validate_transcript(source)
+            passed_tests = split_access(passed_tests, terminal_package_passes)
+            from subscription_application_extension import split_extension as split_application
             passed_tests = split_application(passed_tests, terminal_package_passes)
             from subscription_test_extension import split_extension as split_subscription
             passed_tests = split_subscription(passed_tests, terminal_package_passes)

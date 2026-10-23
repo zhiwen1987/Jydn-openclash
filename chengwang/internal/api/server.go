@@ -131,6 +131,8 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("/api/v1/image-trust/verifications", s.imageTrustVerification)
 	mux.HandleFunc("/api/v1/image-trust/history", s.imageTrustHistory)
 	mux.HandleFunc("/api/v1/subscriptions/sources", s.subscriptionSources)
+	mux.HandleFunc("/api/v1/subscriptions/access", s.subscriptionAccess)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/access", s.subscriptionAccess)
 	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/candidates", s.subscriptionCandidates)
 	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/candidates/{candidateId}/nodes", s.subscriptionNodes)
 	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/decisions", s.subscriptionDecision)

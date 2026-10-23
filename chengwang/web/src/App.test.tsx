@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
+// @vitest-environment-options {"url":"https://console.example"}
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { subscriptionAccess, subscriptionResponse, subscriptionSourcePage } from './subscription-test-fixtures'
 
 afterEach(() => {
   cleanup()
@@ -10,6 +12,34 @@ afterEach(() => {
 })
 
 describe('App', () => {
+  it('opens real subscription resources and retains session across navigation', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).pathname
+      if (path === '/api/v1/snapshot') return new Promise<Response>(() => {})
+      if (path === '/api/v1/subscriptions/access') return Promise.resolve(subscriptionResponse(subscriptionAccess()))
+      if (path === '/api/v1/subscriptions/sources') return Promise.resolve(subscriptionResponse(subscriptionSourcePage()))
+      return Promise.reject(new Error('unexpected synthetic route'))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: '订阅与提供者' }))
+    expect(screen.getByRole('heading', { name: '订阅资源' })).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    fireEvent.change(screen.getByLabelText('订阅管理令牌'), { target: { value: 'synthetic-subscription-token' } })
+    fireEvent.click(screen.getByRole('button', { name: '连接订阅会话' }))
+    expect(await screen.findByText('Synthetic source')).toBeInTheDocument()
+    expect(screen.getByLabelText('订阅管理令牌')).toHaveValue('')
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+    fireEvent.click(screen.getByRole('button', { name: '运行总览' }))
+    expect(screen.queryByRole('heading', { name: '订阅资源' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '订阅与提供者' }))
+    expect(screen.getByRole('heading', { name: '订阅资源' })).toBeInTheDocument()
+    expect(screen.getByText('Synthetic source')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(screen.getByRole('button', { name: '清除会话与令牌' })).toBeEnabled()
+  })
+
   it('renders safe shadow-mode fallback when API is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))))
     render(<App />)

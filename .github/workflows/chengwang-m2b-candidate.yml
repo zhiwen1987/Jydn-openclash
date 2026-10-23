@@ -831,6 +831,7 @@ jobs:
           echo "SHELL_SYNTAX_GATE=PASS scripts=${#shell_scripts[@]}"
 
           cd chengwang
+          /usr/bin/python3 -B deploy/m2b-candidate/tests/subscription_access_extension.py
           /usr/bin/python3 -B deploy/m2b-candidate/tests/subscription_application_extension.py
           /usr/bin/python3 -B deploy/m2b-candidate/tests/subscription_test_extension.py
           /usr/bin/python3 -B deploy/m2b-candidate/tests/probe_test_extension.py

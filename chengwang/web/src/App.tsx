@@ -13,6 +13,7 @@ import { SystemReadiness } from './SystemReadiness'
 import { OperationCenter } from './OperationCenter'
 import { ObservationStatus } from './ObservationStatus'
 import ImageTrustConsole from './ImageTrustConsole'
+import { Subscriptions } from './Subscriptions'
 
 const nav = [
   { group: '流量控制', items: [['运行总览', Home], ['配置方案', SlidersHorizontal], ['代理节点', Database], ['代理接口', Cable], ['策略路由', Route], ['DNS', Globe2], ['连接与流量', Activity]] },
@@ -71,7 +72,10 @@ function App() {
         <div className="mode-note"><ShieldCheck size={18}/><div><strong>安全运行</strong><span>{notice}</span></div></div>
       </aside>
       <main className="main-content">
-        {page === '运行总览' ? <Overview snapshot={snapshot} /> : page === '代理节点' ? <ObservationStatus /> : page === '代理接口' ? <ProxyInterfaces snapshot={snapshot} /> : page === '策略路由' ? <Policies snapshot={snapshot} /> : page === '内核与协议' ? <Kernels /> : page === '设备读回' ? <MihomoReadback snapshot={snapshot} /> : page === '操作中心' ? <OperationCenter /> : page === '可信策略' ? <ImageTrustConsole /> : page === '系统闭环' ? <SystemReadiness /> : <EmptyPage page={page} />}
+        {page === '运行总览' ? <Overview snapshot={snapshot} /> : page === '代理节点' ? <ObservationStatus /> : page === '代理接口' ? <ProxyInterfaces snapshot={snapshot} /> : page === '策略路由' ? <Policies snapshot={snapshot} /> : page === '内核与协议' ? <Kernels /> : page === '设备读回' ? <MihomoReadback snapshot={snapshot} /> : page === '操作中心' ? <OperationCenter /> : page === '可信策略' ? <ImageTrustConsole /> : page === '系统闭环' ? <SystemReadiness /> : page === '订阅与提供者' ? null : <EmptyPage page={page} />}
+        {/* Keep uncertain command receipts in this memory session across navigation.
+            The signed-out component does not make requests or retain a token. */}
+        <div hidden={page !== '订阅与提供者'}><Subscriptions /></div>
       </main>
     </div>
   )

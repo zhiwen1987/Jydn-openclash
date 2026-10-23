@@ -2,6 +2,8 @@
 
 更新日期：2026-10-23。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
+最新工作：P2-06a 订阅资源界面、安全 access 元数据与严格增量门候选已接入，正在做隔离回归；预定 Go 全2644、前端全190不是通过声明。P2-06b 的[订阅双浏览器计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)仍待实现/运行，CDP 与固定版本 Playwright 都必须完成，不能借下文探针页面的历史成功。生产、本轮完整系统发布和灰度均未执行。
+
 当前结果：`cadb9f4b5ecf63f3bf1556ffe61ed274d304c0a2` 的 CDP 与原生 Playwright 已分别完成真实浏览器闭环及原 ZIP 独立重放，正常 TLS、实际证据读回/自然过期、8 错误计数全 0、Node/Chrome 正常退出均通过；父门及原生后端也已独立复验。镜像信任绑定 CI 已 success，前端 117/117、子模块 ordinary/race 各 732、旧基线和源码绑定已独立核验；未逐一独立重放全部旧产品子 CLI。摘要单飞与超时/迟到结果所有权修复通过本轮，但不据此声称已唯一证明历史取消根因。详见[双浏览器验收记录](P1-PROBE-BROWSER-ACCEPTANCE.md)。未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
 ## 当前阶段进度
@@ -32,7 +34,8 @@
 | P2-04 | 批准来源 HTTPS 有界读取 | 已实现，18 项＋1 条跨组件 ordinary/race 隔离验收通过 | DNS/dial 为明确 fixture；无真实公网、产品来源批准或调度闭环 |
 | P2-05 | 产品 API / RBAC / 独立写门 | `f0c23d6` 有界隔离验收通过：ordinary/race 各 2620 Test，新 130 齐全；原生/CDP/Playwright 原工件重放通过；同源码镜像 CI success，前端 117、子模块各 732、原 Registry/source/source-TLS 三门独立重放通过；详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 仅本地准入后端，非完整编排/生产；后续独立主进程/公共地址 fixture Fetch 见 P2-05b；订阅资源页与其余旧产品完整 CLI 独立重放仍未完成 |
 | P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
-| P2-06 | 真实订阅资源界面与浏览器闭环 | 未实现；后续须同时保留 Chrome/CDP 与固定版本 Playwright | 当前订阅页仍是占位，不是实际库存；已有双浏览器仅证明探针页 |
+| P2-06a | 订阅资源界面与安全权限元数据 | 候选实现中；[实施合同](P2-SUBSCRIPTION-UI.md)冻结 Go 新24、前端新73及原名单；实际CI待验 | 不是已上线或浏览器已通过；任意URL/私有CA目录编辑器仍未实现 |
+| P2-06b | 真实订阅页面双浏览器闭环 | 待实现/验收；Chrome/CDP 与固定版本 Playwright 都必须完成 | 已有双浏览器只证明探针页，不能替代本页角色交接/写入/回执/重启验收 |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
 
 完整 `subscription_orchestration` 能力继续保持 `design_only`，不会因为新 helper 包或单元测试而自动改成生产能力。
