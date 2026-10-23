@@ -28,3 +28,20 @@
 现有地址策略拒绝 loopback/private/documentation IP，HTTPS 目标默认用系统根池，`--dot-ca` 只供 DoT。候选实验需独立设计无外部接口/default route 的 netns、单个合法 GUA /32 及固定 DoT 返回；临时 CA 若使用，只能在该实验私有 mount namespace 做只读信任绑定并核对实际 profile，不改宿主根、不跳过主机名、不放宽产品 IP 规则。上述拓扑、真实 DoT wire helper、进程/出口/请求预算和退出门均尚未实现。
 
 前端必须真实 API/正常 TLS 浏览器验收，覆盖空态、过期、受限、部分覆盖、权限和移动布局；合成反例和真实目标证据分开。生产挂载、真实出站目标、canary 及任何设备写入仍须另行授权，先备份并有回滚。订阅完整配置与实验设备发布闭环是后续产品切片，不因本协议或 TLS 子门通过变为已完成。
+
+## 双路径浏览器验收决定（2026-10-23，未完成）
+
+用户已选择 Chrome/CDP 和 Playwright 两条路径都做；这是两种自动化路径，不是已经完成跨浏览器引擎兼容。当前环境 `Browser plugin not available`，采用普通 Playwright 路径，并保留独立 CDP 的网络/TLS 证据；不得把 CDP 写成已运行 Playwright。
+
+当前新增的共享投影契约只能产出 `CONTRACT_VALIDATED_ONLY`，`runtimeProven=false`、`browserE2EProven=false` 固定不变。独立 CI 工具包锁定 `playwright-core@1.64.1`，与原 `web/package-lock.json` 分离；预检仅证明已安装接口、合成合同和源码不变，不启动浏览器，不属于下面的真实验收。
+
+后续实施按以下退出条件执行，不能用预检或旧浏览器 trust 门代替：
+
+1. **两个独立、有界实验。** 每条路径各自产生真实 agent 的 6 份结果，使用同一候选源码和既有正常 DoT/HTTPS 约定；不把两次完整浏览器串进同一个短新鲜度窗口，也不延长 TTL 掩盖超时。保留原 backend 的 22 输入及 `NATIVE_BACKEND_ONLY` 声明；浏览器原始响应、投影、截图、进程及退出证据放在独立兄弟目录并由新运行态检查器关联。
+2. **真实主服务托管真实构建。** 必须用 `cmd/server`、明确只读的 `CHENGWANG_WEB_DIR` 和已核对哈希的构建目录，不能用 Vite、WebFactory 或 mock/fetch 拦截替代。构建与浏览器预热在 agent 前完成；没有修改当前 backend runner 的 14 项 server 环境闭集来假装它已支持静态目录。
+3. **普通 TLS 和隔离身份。** 每条路径独立 profile/NSS，验证 CA、叶证书、IP SAN 和实际浏览器 TLS 链；不跳过证书、不改宿主信任，不复用旧 helper 的 `/trust.html`、身份或负端点字段。新实现不得重设 `HOME` 等系统变量；私有 NSS 的发现与 legacy 库隔离仍须在真正运行前验证，当前未完成。
+4. **真实交互。** 从主站进入“代理节点”，填写 `#probe-token`，读取受保护明细、展开三个目标，核对真实 catalog、三个最新可见 runID、十五层状态及 HTTP 200/403/429。六条原始 runID 应由浏览器实际收到的公开 API 字节独立关联，不能声称页面显示了全部六条。桌面与 375px 视口检查溢出、控制可达、页面标题、错误覆盖层和 console。
+5. **清除与自然撤下。** 点击“清除明细与令牌”，确认输入为空、详情卸载、URL/storage/cookie 不含身份，下一次匿名摘要没有 Authorization；再真实读取并保持同一 API-second/页面。禁止修改 DOM、时钟或用 API 重启故障制造撤样本。页面截止为缓存年龄与最早原层 TTL 的较小值：只有实际截止等于原证据 TTL 才可称 `EVIDENCE_TTL`，否则仅称 `CACHE_OR_EVIDENCE_DEADLINE`。随后等全部原 TTL 过期，实际刷新读回 6 expired、0 samples、3 unknown。
+6. **最小公开证据与清理。** 不导出整页 HTML、请求头、输入值、trace/HAR/profile 或 bearer。只允许公开 API 原字节、白名单 DOM/网络投影、截图和哈希引用，且须独立核对原始文件，不靠调用者传入 `true` 自证。每条浏览器进程组均须关联 PID/start ticks、正常关闭/join、精确清理；任一路失败都不得记录双路径通过。
+
+相关上游依据：[Playwright Library](https://playwright.dev/docs/library)、[浏览器版本与安装边界](https://playwright.dev/docs/browsers)、[Playwright 的 CDP 连接边界](https://playwright.dev/docs/api/class-browsertype#browser-type-connect-over-cdp)。本段是已选定的实施合同，不是运行结果或生产授权。

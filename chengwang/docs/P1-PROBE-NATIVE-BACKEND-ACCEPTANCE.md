@@ -30,6 +30,16 @@ artifact12478236023，`probe-readback-native-39898532081-1`，原 ZIP 201,230 by
 
 主代理证据目录：本机 Temp `probe-native-700-root-ph9zXd`、`probe-parent-700-root-On9x1g`。独立目录：`chengwang-probe-700-independent-3949410af53244b2b4ba1739a8bbb217`、`chengwang-parent-700ea9e-b-uyafzxb1`。CI retention 14 天及 Temp 都不是永久集中/WORM 证据库，永久归档与运营闭环仍待实现。
 
+## 能力事实同步后的复验（2fe1231）
+
+`2fe1231de851417e7825b9c8b02083acf1ad08f3` 新增显式 `RuntimeFacts`，保留旧 `Build` 参数及可选观测参数“恰好一个 true 才启用”的语义。`probe_evidence_readback` 默认 blocked，已配置时仅 implemented_local/readOnly；匿名能力清单只检查是否接线，不调用 status/details、不触发磁盘或探测。完整 `active_business_probes` 仍为 design_only，但不再错误声称源码没有 HTTP/TLS/DNS 执行器。配置不等于健康、新鲜或生产可用。
+
+- [父门 39901227879](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39901227879)，job120243028805/attempt1，success。ordinary/race 各实际 2403 Test run/pass，0 Test skip、0 fail；各 12 Fuzz 单独验。新增 4 API＋8 capability 测试名单 SHA256 为 `2daf951da91974d83b2030dfdbd03cbfde528ce9172b429fb0f33e3f3764cc43`；完整 2403 为 `4988f181a389575003152bfd2194485f030506f63859133229019f8d5db4441b`。先精确剥新增 12，强制旧 2391 SHA `5faa2eeda5f6c6db5cbc52dead9bdf3e84d00bf67acd5d25f599a0fce33a4fdc`，再旧 71 和原 2320 门；不以宽泛前缀排除、不重校准旧基线。26 项辅助反例通过不代替真实 Go 执行。
+- [原生复验 39901227878](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39901227878)，job120243028830/attempt1，success。仍是 44 辅助、24 wire 和原 22 输入，6 结果/ledger7→13、12 DoT＋6 HTTPS、18连接/72事件、4 role正常 TERM/join0，真实最晚 TTL 后 6 expired/0 samples/3 unknown。agent 129.137679636 秒、实验 249.801247563 秒；状态快照摘要 `sha256:adbcaa970801bb4558f65044231ea3abc00ea6e661ad2da5f302e4f2ed86371e`。
+- 原 artifact12479101507，ZIP 202,302 bytes / SHA256 `2ecbe425a6f6d64542130515312f1c1ec182e72a46092a98ee90efb98d190531`；35 个常规文件，原 22 输入与独立报告分离。主代理及独立子代理实际 CLI 重放报告均为 3,585 bytes / `96fad1cc38d285b130084558cf70e4e1d9f4b82b657f31cdbe33d179f391e612`，与 CI 原报告逐 byte 一致。663 外层/667 runtime 记录合并后 667 唯一 Git 原 blob、31,062,685 bytes 均匹配确切源码，无 CRLF 归一化。
+- 原生 API 原日志 52,408 bytes / `1a9e244881bad218b9aadb3abb0456879d0681968812893e55a1a7daca902a9c`；父门原日志 5,609,377 bytes / `9fe01e611c2a17f230fd07d78b466ed59c0a86c7a05cce36f89685dda5b6b574`。独立目录为本机 Temp `chengwang-probe-2fe-c-independent-umb6qvko` 与 `chengwang-parent-2fe1231-b-88rvyrwb`；主代理另行解析父门原日志、逐 Git blob 校验并实际重放原生 CLI。
+- [候选镜像门 39901227882](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39901227882)，job120243028885/attempt1，终态 success；既有隔离 Registry/产品镜像与来源/恢复回归由原门执行，不能与本阶段新增探针浏览器验收混淆。此复验仍不是正常 TLS 探针浏览器闭环，更不是生产上线；Windows 仅运行 gofmt、Python/Node 辅助检查，无本机 Go build/test/mod、Docker/WSL 或 namespace 实验。
+
 ## 失败记录与未完成项
 
 首轮 `a8a5216`/[39897368270](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39897368270) 仍为 failure：真实后端执行成功，但 checker 错误要求已销毁 namespace 的历史 inode 永不复用。仅修 checker/反例及文档，保留并发生命期隔离、PID、argv/exe、权限、阶段顺序和正常退出；startTime 以 tick 非递减判断。原始 ZIP 199,667 bytes / `2ae4d73d4b629973b2317389efb5bcc8c98b8edcf9c1a4ca31fa1cb9adc01234` 未改，修后离线重放通过不改写原 CI 结果。

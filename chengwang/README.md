@@ -7,6 +7,7 @@
 当前源码阶段是 **可离线运行、可选连接 Mihomo 只读控制器，并带受保护本地操作记录的 Shadow 控制面基础版**：
 
 - P1 默认关闭的安全探针 reader、缓存、RBAC 明细和工作台已有基础验收；`700ea9e` 进一步完成真实 agent→正常 DoT/HTTPS→主 API、重启与自然过期的隔离后端验收，ordinary/race各2391且旧2320保留。**真实 API 的正常 TLS 浏览器闭环仍未完成，未上线**。见[本阶段原始证据与范围](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)及[基础实现边界](docs/P1-PROBE-READBACK-IMPLEMENTATION.md)。
+- `2fe1231` 已同步机器能力事实，ordinary/race 各 2403，旧 2391/2320 指纹保留，原生后端及既有候选镜像回归 CI 成功；“已配置只读导入”不等于健康或完整业务评估。双路径 CDP/Playwright 的共享合同与固定开发依赖集中于 `tools/probe-browser`，33 项本机合成辅助测试通过，独立 CI 预检待运行；**尚未启动新的真实探针浏览器验收**。实施及退出条件见[双路径合同](docs/P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md#双路径浏览器验收决定2026-10-23未完成)。
 - 默认只监听 `127.0.0.1:7811`。
 - 默认运行在 `shadow` 模式，不接管生产流量。
 - 未设置管理员令牌时，发布接口保持关闭。

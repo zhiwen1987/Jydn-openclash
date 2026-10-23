@@ -1,6 +1,7 @@
 /data/
 .env
 web/node_modules/
+tools/probe-browser/node_modules/
 web/dist/
 /release/
 *.log

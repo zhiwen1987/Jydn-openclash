@@ -1,0 +1,178 @@
+name: Chengwang Probe Browser Contract Preflight
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/chengwang-probe-browser.yml"
+      - "chengwang/tools/probe-browser/**"
+  push:
+    branches: [main, codex/chengwang-security-hardening]
+    paths:
+      - ".github/workflows/chengwang-probe-browser.yml"
+      - "chengwang/tools/probe-browser/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-probe-browser-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-preflight:
+    name: Offline synthetic contracts and installed Playwright interface (not browser E2E)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up the explicitly supported Node release
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 22.23.3
+          check-latest: false
+
+      - name: Acquire only the independent locked CI tool without lifecycle scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-preflight"
+          test ! -e "$evidence"
+          /usr/bin/install -d -m 0700 "$evidence"
+          test "$(node --version)" = v22.23.3
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          /usr/bin/python3 -B - "$evidence/source-before.json" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          records = []
+          paths = ['chengwang/tools/probe-browser',
+              '.github/workflows/chengwang-probe-browser.yml', 'chengwang/.gitignore']
+          for name in subprocess.check_output(['git', 'ls-files', '-z', '--', *paths]).split(b'\0'):
+              if name:
+                  path = pathlib.Path(name.decode())
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit('source-type-rejected')
+                  raw = path.read_bytes()
+                  records.append({'path': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()})
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(records, separators=(',', ':')) + '\n')
+          PY
+          # No product package lock is changed. playwright-core has no browser
+          # download/install hook; no repository lifecycle scripts execute here.
+          npm ci --prefix chengwang/tools/probe-browser --ignore-scripts --no-audit --no-fund
+
+      - name: Run toolchain and pure contracts with no external network and read-only source
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-preflight"
+          node_binary="$(command -v node)"
+          /usr/bin/timeout --signal=TERM --kill-after=5s 120s /usr/bin/sudo --non-interactive \
+            /usr/bin/unshare --mount --net --fork \
+            /usr/bin/bash -s -- "$GITHUB_WORKSPACE" "$node_binary" "$(id -u)" "$(id -g)" <<'SH' \
+            2>&1 | /usr/bin/tee "$evidence/contracts.tap"
+          set -euo pipefail
+          source_root="$1"
+          node_binary="$2"
+          task_uid="$3"
+          task_gid="$4"
+          /usr/bin/mount --make-rprivate /
+          /usr/bin/mount --bind "$source_root" "$source_root"
+          /usr/bin/mount -o remount,bind,ro,nosuid,nodev "$source_root"
+          /usr/sbin/ip link set lo up
+          test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
+          test -z "$(/usr/sbin/ip -4 route show default)"
+          test -z "$(/usr/sbin/ip -6 route show default)"
+          /usr/bin/setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups \
+            --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
+            /usr/bin/env -i PATH=/usr/bin:/bin LANG=C \
+            "$node_binary" "$source_root/chengwang/tools/probe-browser/check-toolchain.mjs"
+          exec /usr/bin/setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups \
+            --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
+            /usr/bin/env -i PATH=/usr/bin:/bin LANG=C \
+            "$node_binary" --test --test-reporter=tap \
+              "$source_root/chengwang/tools/probe-browser/test-toolchain.mjs" \
+              "$source_root/chengwang/tools/probe-browser/check-probe-browser-contract.mjs"
+          SH
+
+      - name: Check immutable source and record the limited acceptance boundary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-preflight"
+          /usr/bin/python3 -B - "$evidence" "$GITHUB_SHA" <<'PY'
+          import hashlib, json, pathlib, re, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          records = json.loads((root / 'source-before.json').read_bytes())
+          for item in records:
+              path = pathlib.Path(item['path'])
+              if path.is_symlink() or not path.is_file():
+                  raise SystemExit('source-type-changed')
+              raw = path.read_bytes()
+              if len(raw) != item['bytes'] or hashlib.sha256(raw).hexdigest() != item['sha256']:
+                  raise SystemExit('source-bytes-changed')
+          subprocess.run(['git', 'diff', '--check'], check=True)
+          subprocess.run(['git', 'diff', '--exit-code'], check=True)
+          if subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all']):
+              raise SystemExit('unexpected-worktree-change')
+          (root / 'source-after.json').write_bytes((root / 'source-before.json').read_bytes())
+          print('PROBE_BROWSER_PREFLIGHT_SOURCE=UNCHANGED')
+          raw = (root / 'contracts.tap').read_bytes()
+          if not raw or len(raw) > 2 << 20:
+              raise SystemExit('contract-output-size-rejected')
+          text = raw.decode('utf-8', errors='strict')
+          tool_lines = [line for line in text.splitlines() if line.startswith('{')]
+          if len(tool_lines) != 1:
+              raise SystemExit('toolchain-report-missing')
+          def unique_fields(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      raise SystemExit('duplicate-toolchain-field')
+                  result[key] = value
+              return result
+          tool = json.loads(tool_lines[0], object_pairs_hook=unique_fields)
+          expected_tool = {'schema': 'chengwang.probe-browser-toolchain/v1', 'outcome': 'PASS',
+              'acceptanceScope': 'TOOLCHAIN_ONLY', 'runtime': False, 'browserStarted': False,
+              'nodeVersion': 'v22.23.3', 'playwrightVersion': '1.64.1', 'chromiumLaunchAvailable': True}
+          if (tool != expected_tool or set(tool) != set(expected_tool) or
+              any(type(tool[key]) is not type(value) for key, value in expected_tool.items())):
+              raise SystemExit('actual-installed-toolchain-rejected')
+          names = re.findall(r'^# Subtest: (.+)$', text, re.M)
+          passed = re.findall(r'^ok ([0-9]+) - (.+)$', text, re.M)
+          fingerprint = hashlib.sha256(('\n'.join(sorted(names)) + '\n').encode()).hexdigest()
+          if (len(names) != 33 or len(set(names)) != 33 or
+              fingerprint != '28777c911ace31bdb8b81b04d6490cde0744e4f01c1e5f8eb5dbd931565dacf6' or
+              passed != [(str(index + 1), name) for index, name in enumerate(names)] or
+              re.search(r'^\s*(?:not ok\b|Bail out!)|# (?:SKIP|TODO)\b', text, re.M)):
+              raise SystemExit('contract-test-events-rejected')
+          for key, value in {'tests': 33, 'suites': 0, 'pass': 33, 'fail': 0,
+                             'cancelled': 0, 'skipped': 0, 'todo': 0}.items():
+              if re.findall(r'^# ' + key + r' ([0-9]+)$', text, re.M) != [str(value)]:
+                  raise SystemExit('contract-terminal-summary-rejected')
+          if re.findall(r'^1\.\.([0-9]+)$', text, re.M) != ['33']:
+              raise SystemExit('contract-plan-rejected')
+          if not re.fullmatch(r'[a-f0-9]{40}', sys.argv[2]):
+              raise SystemExit('source-commit-rejected')
+          report = {'schema': 'chengwang.probe-browser-preflight/v1', 'sourceCommit': sys.argv[2],
+              'outcome': 'PASS', 'acceptanceScope': 'SYNTHETIC_CONTRACT_AND_TOOLCHAIN_ONLY',
+              'testsRun': 33, 'testsPassed': 33, 'skipped': 0, 'names': sorted(names),
+              'namesSHA256': fingerprint, 'originalTAPSHA256': hashlib.sha256(raw).hexdigest(),
+              'toolchain': tool, 'production': False, 'deviceActionsExecuted': False,
+              'browserE2EProven': False, 'browserStarted': False, 'sourceUnchanged': True}
+          (root / 'preflight.json').write_text(json.dumps(report, separators=(',', ':')) + '\n')
+          print('PROBE_BROWSER_PREFLIGHT=PASS tests=33 skips=0 browser_started=false production=false')
+          PY
+
+      - name: Preserve preflight evidence including failed attempts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: probe-browser-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-probe-browser-preflight/
+          if-no-files-found: error
+          retention-days: 14
