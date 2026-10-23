@@ -1,6 +1,8 @@
+/// <reference types="node" />
 // @vitest-environment jsdom
 // All HTTP bodies here are synthetic mocks, not actual product/TLS evidence.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { runInNewContext } from 'node:vm'
 import { createSubscriptionIntent, readSubscriptionAccess, readSubscriptionCandidates, readSubscriptionNodes,
   readSubscriptionReceipt, readSubscriptionSources, releaseSubscriptionIntent, SubscriptionAPIError, writeSubscriptionCommand } from './subscription-api'
 import type { SubscriptionCode, SubscriptionIntent, SubscriptionIntentInput } from './subscription-types'
@@ -139,6 +141,16 @@ describe('subscription API', () => {
     await expect(sourceRead()).rejects.toMatchObject({ kind: 'format' }); expect(canceled).toBe(true)
   })
   it('rejects invalid utf8 and truncated streams', async () => {
+    const serialized = JSON.stringify(subscriptionEnvelope(subscriptionSourcePage()))
+    const foreign: Uint8Array = runInNewContext('new Uint8Array(values)', { values: Array.from(bytes(serialized)) })
+    expect(foreign instanceof Uint8Array).toBe(false)
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start(c) { c.enqueue(foreign); c.close() } }), { headers: { 'Content-Type': 'application/json' } })))
+    await expect(sourceRead()).resolves.toEqual(subscriptionSourcePage())
+    const wrongTag = new Uint16Array([1]); Object.defineProperty(wrongTag, Symbol.toStringTag, { value: 'Uint8Array' })
+    for (const chunk of [new DataView(new ArrayBuffer(1)), new Uint8ClampedArray([1]), [1, 2], { byteLength: 1, [Symbol.toStringTag]: 'Uint8Array' }, wrongTag]) {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start(c) { c.enqueue(chunk as Uint8Array); c.close() } }), { headers: { 'Content-Type': 'application/json' } })))
+      await expect(sourceRead()).rejects.toMatchObject({ kind: 'format' })
+    }
     for (const raw of [new Uint8Array([0xff]), bytes('{"result":'), bytes('"\ud800"')]) { rawFetch(raw); await expect(sourceRead()).rejects.toMatchObject({ kind: 'format' }) }
     vi.stubGlobal('fetch', vi.fn(async () => new Response(new ReadableStream({ start(c) { c.error(new Error('private upstream diagnostic')) } }), { headers: { 'Content-Type': 'application/json' } })))
     const e = await sourceRead().catch(e => e); expect(e).toMatchObject({ kind: 'format' }); expect(String(e)).not.toContain('private')
@@ -171,6 +183,13 @@ describe('subscription API', () => {
     const f = install(postedReceipt('import')); await writeSubscriptionCommand(token, signal(), full)
     expect(new TextEncoder().encode(String(f.mock.calls[0][1]?.body)).byteLength).toBeLessThanOrEqual(3 << 19)
     releaseSubscriptionIntent(full)
+    const foreign: Uint8Array = runInNewContext('new Uint8Array([120, 121])')
+    expect(foreign instanceof Uint8Array).toBe(false)
+    const crossRealm = createSubscriptionIntent({ ...input('import'), kind: 'import', sourceId: subscriptionSourceId, expectedRevision: 3, format: 'auto', content: foreign })
+    foreign.fill(0); const copied = install(postedReceipt('import')); await writeSubscriptionCommand(token, signal(), crossRealm)
+    expect(JSON.parse(String(copied.mock.calls[0][1]?.body)).contentBase64).toBe(btoa('xy')); releaseSubscriptionIntent(crossRealm)
+    const wrongTag = new Uint16Array([120]); Object.defineProperty(wrongTag, Symbol.toStringTag, { value: 'Uint8Array' })
+    for (const content of [new DataView(new ArrayBuffer(1)), new Uint8ClampedArray([120]), [120], { byteLength: 1, [Symbol.toStringTag]: 'Uint8Array' }, wrongTag]) expect(() => createSubscriptionIntent({ ...input('import'), content } as SubscriptionIntentInput)).toThrow(SubscriptionAPIError)
   })
   it('validates exact approve and fetch intents', () => {
     for (const value of [{ ...input('approve'), referenceId: 'private/url' }, { ...input('approve'), policyRevision: 0 }, { ...input('fetch'), approvalId: 'approval_bad' }, { ...input('fetch'), expectedRevision: 0 }, { ...input('approve'), proxy: true }]) expect(() => createSubscriptionIntent(value as SubscriptionIntentInput)).toThrow(SubscriptionAPIError)

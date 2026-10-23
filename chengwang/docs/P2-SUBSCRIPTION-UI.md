@@ -60,3 +60,11 @@ CI 前独立 AST/Python 核对发现，API 40 名初报的 `a82e2436…` 是带�
 3. 新订阅页面的 CDP 与 Playwright 分别接真实 `cmd/server`、正常 TLS、隔离数据与实际 API；完成角色交接、一次写入、未知回执、修订变化、重启/写门和清除交互。方案见[双浏览器验收计划](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)。
 4. 独立检查安全公开捕获、审计/修订/命令 ID 绑定、当前页面 PNG、实际构建资源、进程正常退出与无秘密泄露。截图目检、控制台/请求异常、移动端操作及遮挡单独登记；尚未执行时写“未验”。
 5. 完成这些只代表订阅准入页面的隔离验收。自动调度、完整内核配置、运行发布、备份恢复、公网业务、灰度、生产读回与长期观察仍另行验收，`subscription_orchestration` 继续 `design_only`。
+
+## 首轮实际运行与修正候选
+
+源码 `9c622a2` 首轮[镜像/前端 CI 39962226225](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39962226225)失败：190 实跑、172 通过、18 失败，旧117和组件32均通过；client17及新增App1失败。正常 Response chunk 和导入字节被跨运行域的 `instanceof Uint8Array` 拒绝；不能因本机单运行域合成断言通过便宣称最终 Vitest 通过。后续 lint/build、子模块732及镜像 CLI 均未执行。
+
+修正候选缓存原生 `%TypedArray%.prototype[Symbol.toStringTag]` getter，结合 `ArrayBuffer.isView` 验真实 Uint8Array 品牌；不使用可伪造 tag 或 duck typing。保留全部40名，原名内增加真实外域字节正例及 DataView/clamped/tag伪造反例；不放宽字节/JSON/时间预算。测试仅引用现有 Node 开发类型，不改依赖或产品 tsconfig。修正后须有自己的新 CI，未跑前不得标通过。
+
+同源码父门 ordinary/race 各2644、旧名单与原五脚本重放通过，旧订阅后端46捕获/两Linux原门及原ZIP语义重放通过；但旧探针 CDP 浏览器回归严格失败、PW成功，CDP取消诊断尚未唯一归因。本轮总体仍未验收，既有成功不能抵销失败；[首轮原始证据摘要](evidence/p2-subscription-ui-attempt-9c622a2.json)永久保留在仓库，原日志/工件受平台保留期限制。

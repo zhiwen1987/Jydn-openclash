@@ -24,6 +24,12 @@ export class SubscriptionAPIError extends Error {
 }
 function need(v: unknown): asserts v { if (!v) throw new SubscriptionAPIError(0, 'format') }
 type Obj = Record<string, unknown>
+const typedArrayTag = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype), Symbol.toStringTag)?.get
+function byteArray(value: unknown): value is Uint8Array {
+  // The intrinsic getter reads the actual typed-array brand across realms;
+  // user-defined Symbol.toStringTag and shape-compatible objects cannot pass.
+  try { return ArrayBuffer.isView(value) && typedArrayTag?.call(value) === 'Uint8Array' } catch { return false }
+}
 function obj(v: unknown): Obj { need(v !== null && typeof v === 'object' && !Array.isArray(v)); return v as Obj }
 function exact(v: Obj, required: string[], optional: string[] = []) {
   need(required.every(k => Object.hasOwn(v, k)) && Object.keys(v).every(k => required.includes(k) || optional.includes(k)))
@@ -107,7 +113,7 @@ async function readBody(response: Response, signal: AbortSignal): Promise<unknow
     if (signal.aborted) throw new SubscriptionAPIError(0, 'canceled')
     for (;;) {
       const chunk = await Promise.race([reader.read(), aborted]); if (chunk.done) break
-      need(chunk.value instanceof Uint8Array); bytes += chunk.value.byteLength; need(bytes <= MAX_WIRE)
+      need(byteArray(chunk.value)); bytes += chunk.value.byteLength; need(bytes <= MAX_WIRE)
       text += decoder.decode(chunk.value, { stream: true })
     }
     text += decoder.decode()
@@ -300,8 +306,8 @@ export function createSubscriptionIntent(input: SubscriptionIntentInput): Subscr
   if (kind === 'decide') need(match(v.expectedDigest, hmac) && ['admitted_local', 'rejected'].includes(String(v.decision)))
   let content: Uint8Array | undefined
   if (kind === 'import') {
-    need(['auto', ...formats].includes(String(v.format)) && v.content instanceof Uint8Array && v.content.byteLength > 0 && v.content.byteLength <= MAX_INPUT)
-    content = v.content.slice()
+    need(['auto', ...formats].includes(String(v.format)) && byteArray(v.content) && v.content.byteLength > 0 && v.content.byteLength <= MAX_INPUT)
+    content = new Uint8Array(v.content)
   }
   const random = new Uint8Array(16)
   try { globalThis.crypto.getRandomValues(random) } catch { throw new SubscriptionAPIError(0, 'unavailable') }
