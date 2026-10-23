@@ -1,6 +1,6 @@
 # P2：CDP 导航失败的受限观测
 
-状态：实现及纯 CPU 验证完成；尚未运行本增量的真实 CI。没有修复或证明上一轮 CDP 故障根因，没有上线。
+状态：实现及纯 CPU 验证完成；既定三场景双引擎的首轮真实 CI 与原件重放通过。没有证明上一轮偶发 CDP 故障根因已修复，没有实际触发新失败分支，没有上线。
 
 ## 为什么先补证据
 
@@ -31,6 +31,22 @@
 本次 CI 继续保留三个场景×两个引擎以及六个fresh。每个producer辅助原日志新增4成员（navigation node/reader/checker日志＋synthetic报告）；成功旧场景预期40成员、新remote52成员，fresh分别6/8。失败时才额外输出受限诊断独立报告及日志；成功原件14/21本体不变。producer任一失败仍阻止整个fresh，不改依赖关系。
 
 下一步核新源码首轮真实原件：若出现失败，严格核诊断可用性与失败分支；若没有失败，也只能证明该次流程成功，不能据此声称历史偶发故障已修复或真实失败诊断已执行。保留所有原失败，不重跑同源码挑绿。B01–B23其余矩阵、完整旧回归、备份恢复、灰度、生产读回和长期观察仍待完成。
+
+## 首轮真实原件验收：dbc3f23
+
+精确源码 `dbc3f23952a22dc79fcf332ecda26b3de3a25d58`，原 [UI40033595196](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40033595196)，attempt1。六producer（create/local_admission/remote × CDP/PW）及六fresh均success；没有cancel/rerun。成功原件本体仍分别14/21成员，辅助报告后的producer为40/52、fresh为6/8，实际12 ZIP共304成员。
+
+根已按API大小/digest、ZIP CRC、逐成员摘要和原CLI重放后的字节核304成员，再与独立B/C获取的12原ZIP逐字比较全部相同。根32份原离线CLI报告均等于producer：6产品、6依赖、6新navigation58、2 remote86另有对应fresh，实际20份fresh报告逐字相同；旧84/76的12份辅助报告只与producer比较，不伪造不存在的fresh报告。B独立核旧四产品/C独立核新两产品均与原producer/fresh同字节，每个成功产品报告核910个精确Git blob。原checker、原件和原失败均未修改。
+
+根本机顺序离线重放在local_admission/CDP超出本地包装器240秒，orchestrator exit1/TimeoutExpired，原报告未生成。已确认对应本机python/git不再运行，保留原脚本、线程原异常及 `local-wrapper-timeout-preserved.json`；没有把它当产品通过、产品失败或CI重试。后来仅对缺失的6份离线报告采用600秒本地包装器（复用已完成的26份），同源码/原checker/原件补验通过，旧拒绝记录和新报告分文件。这个预算不是CI验收门或产品超时，未修改CI22/10分钟及浏览器等待预算。
+
+remote两个引擎都实际完成33步、47请求、4命令/1批准、local3/external8、来源revision3、1候选/2节点unknown、3连接12wire；正常API/DoT/HTTPS证书和四进程正常退出、八错误计数全0。根查看新remote/CDP 1440×900与375×900 PNG，B另看旧四场景8张PNG：首屏非空、无错误覆盖、未见水平溢出。手机仅首屏，未证明完整滚动流程。
+
+**本轮没有真实失败**：没有failure.json或navigation-diagnostic.json；新writer/reader/available:true独立诊断路径只有实现与合成证据，还没有真实故障端到端证据。历史96e两次CDP失败仍保留，唯一根因、长期稳定及失败分支运行不能填PASS。CI成功只支持既定三场景/本次运行，不代表完整B01–B23或全系统。
+
+A另核父40033595211普通/race各2644 Test、各4 Fuzz顶层/8 seed；旧订阅40033595140两Linux通过、80实际测试/899Git，原报告同字节；Windows原POSIX门仍拒绝，未适配。未在本阶段独立完成全部旧探针/镜像回归，不能拿父门替代它们。
+
+根原件与完整报告：`C:/Users/Administrator/AppData/Local/Temp/cw-dbc-root-originals-vnrkomaj/`；[机器证据](evidence/p2-navigation-diagnostics-dbc3f23.json)。下一阶段按[独立B09负例卡](P2-SUBSCRIPTION-HANDOFF-NEGATIVE-PLAN.md)补真实授权、批准、策略与CAS反例；该卡目前只做代码语义核对，没有实施或运行。
 
 ## 上游参考不是本轮根因证明
 

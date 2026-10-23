@@ -2,7 +2,9 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-**进行中：补CDP失败观测，不猜测修复。** 三代理已实现失败前私有快照、supervisor闭集投影与独立原件检查；成功14/21原件及旧业务门不改，viewport/点击/RPC/等待不扩容。根390项纯CPU（旧332＋新58）零跳过、4原日志门与13shell语法通过；根/C对96e历史缺诊断原件同报UNAVAILABLE、900Git，不补计数或根因。该增量真实CI尚待首轮执行，不称故障已修或生产已验。[合同、证据和剩余范围](P2-CDP-NAVIGATION-DIAGNOSTICS.md)。
+**最新有限验收通过：dbc3f23三场景双引擎。** 原UI40033595196/attempt1六producer＋六fresh全success；根六产品/六依赖/六nav58/两remote86原CLI与producer/fresh同字节，旧84/76十二报告只与producer比；32原CLI均通过，每成功产品910Git。12原ZIP304成员APIsha/CRC/验后逐byte核并与B/C原ZIP相同，根看新CDP两PNG、B看旧8PNG。新失败前快照/闭集投影/独立诊断已实现，390纯CPU保留旧332零skip；但本轮无真实失败，available:true失败链路及96e偶发根因仍未实证，不能称已修或全系统上线。root240秒离线包装器超时原记录保留，仅补缺失报告且原checker/CI/浏览器预算均未改。[本轮实际成果](P2-CDP-NAVIGATION-DIAGNOSTICS.md)、[机器证据](evidence/p2-navigation-diagnostics-dbc3f23.json)。
+
+**下一阶段待实施：B09真实负例。** 已核代码，不能假设source版本增长或时间流逝自动废除批准；不能把失败命令/外审产生误写成全库不变。独立[负例实施卡](P2-SUBSCRIPTION-HANDOFF-NEGATIVE-PLAN.md)区分可自然触发的UI与API-only反例，尚未执行。父40033595211和旧订阅40033595140另由A分层通过，不能替代未完成的全旧探针/镜像回归、B01–B23、故障/恢复、正式灰度及生产读回。
 
 **本轮部分实现已验，整体未通过：96e51e4批准 → 交接 → 真实抓取。** 原UI40030609894/attempt1终态failure：新remote/PW成功，remote/CDP及旧create/CDP失败，另三个旧producer成功；整个fresh仅占位job跳过、未展开六重放。根/C新PW完整原CLI与CI报告逐字同，33steps/47requests/4mutations/900Git、正常三类TLS/3conn12wire/4进程wait0/8counter0；根/B三个旧成功完整原CLI同producer。两CDP仅UI_RUN/NAVIGATE/6启动捕获/0捕获写入，尚无唯一根因，不猜测修复。六原ZIP215成员APIsha/CRC已核，原失败保留不rerun；没有生产、main合并或正式发布。[本阶段实际结果](P2-SUBSCRIPTION-REMOTE-FETCH-UI.md)、[机器证据](evidence/p2-subscription-remote-fetch-96e51e4.json)。
 

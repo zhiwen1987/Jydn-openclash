@@ -1,0 +1,767 @@
+{
+  "artifacts": [
+    {
+      "bytes": 713349,
+      "id": 12536725192,
+      "members": 40,
+      "name": "subscription-ui-create_receipt-chrome-cdp-40033595196-1",
+      "sha256": "29fa6d76c12deb22618e0b1f06400e6063a74654f97af525370662c3cea08cd5"
+    },
+    {
+      "bytes": 735791,
+      "id": 12536560709,
+      "members": 52,
+      "name": "subscription-ui-remote_fetch-chrome-cdp-40033595196-1",
+      "sha256": "6d9740e82f8e87cdf1a554fd984586febd2e3710f59b75676c8674188c59a3a0"
+    },
+    {
+      "bytes": 4226,
+      "id": 12536540456,
+      "members": 6,
+      "name": "subscription-ui-fresh-create_receipt-playwright-40033595196-1",
+      "sha256": "16dd4bb3c0f0fd400da0978d147ec35daa848c37130c5ed79ae4eaab2724332c"
+    },
+    {
+      "bytes": 745203,
+      "id": 12536440922,
+      "members": 40,
+      "name": "subscription-ui-local_admission-playwright-40033595196-1",
+      "sha256": "3efce1f9ed9146f77fbaf7723f2a2d3862457a0583752ae91d21507140256132"
+    },
+    {
+      "bytes": 736420,
+      "id": 12536410659,
+      "members": 52,
+      "name": "subscription-ui-remote_fetch-playwright-40033595196-1",
+      "sha256": "46129620e2e9264a33b42a8b256d711b15ec600c92a3c8c4f08ae94eb64ec5d5"
+    },
+    {
+      "bytes": 5747,
+      "id": 12536336187,
+      "members": 8,
+      "name": "subscription-ui-fresh-remote_fetch-chrome-cdp-40033595196-1",
+      "sha256": "f67ae6791f79a9e53ebde7bd0b8c02ef82b242f7df15ceb04a15464b222631a0"
+    },
+    {
+      "bytes": 4383,
+      "id": 12536007546,
+      "members": 6,
+      "name": "subscription-ui-fresh-local_admission-playwright-40033595196-1",
+      "sha256": "235ca9c2069b26e3da429514b20ea80ca07153d591bea3c978a6015cac9f5198"
+    },
+    {
+      "bytes": 4225,
+      "id": 12535971978,
+      "members": 6,
+      "name": "subscription-ui-fresh-create_receipt-chrome-cdp-40033595196-1",
+      "sha256": "c824c76733d3d5971f7386be86918b32b420b22bd2956d3953b1bde4ff0ae791"
+    },
+    {
+      "bytes": 5756,
+      "id": 12535838532,
+      "members": 8,
+      "name": "subscription-ui-fresh-remote_fetch-playwright-40033595196-1",
+      "sha256": "7dd7c3d82b2af710bf5def91ca134be8c3bae3b15d8716b1b9ec1e5f8d3717ab"
+    },
+    {
+      "bytes": 745535,
+      "id": 12535609153,
+      "members": 40,
+      "name": "subscription-ui-local_admission-chrome-cdp-40033595196-1",
+      "sha256": "3c8a1d580195bb671568d12973fede87bb46c8549dc647e74df753f78f94e8ea"
+    },
+    {
+      "bytes": 4379,
+      "id": 12535484754,
+      "members": 6,
+      "name": "subscription-ui-fresh-local_admission-chrome-cdp-40033595196-1",
+      "sha256": "3ad4658803751ec8d667aac4aa2db66cd5ebd259aa12f2683f8096d3a7bc6d7f"
+    },
+    {
+      "bytes": 714011,
+      "id": 12535468333,
+      "members": 40,
+      "name": "subscription-ui-create_receipt-playwright-40033595196-1",
+      "sha256": "5257cc67cb6e8f8e5ba4e554be47af9749cf601b02ae7bf0f26017ca36633654"
+    }
+  ],
+  "diagnosticLimits": {
+    "actualFailureBranchExecuted": false,
+    "availableTruePrivateWriterExercisedByRealFailure": false,
+    "historicalCDPRootCauseProven": false,
+    "historicalFailureRunPreserved": 40030609894,
+    "legacy96eUnavailableReportSHA256": "e51549018c25307b528397baf41685cf3ee2bbb90ae0bcb95251b4d101c714d6",
+    "noAdditionalBrowserRPCOrWaitCalls": true,
+    "successfulPublicSetsRemain14And21": true
+  },
+  "independentBAudit": {
+    "path": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cwdbc-b-5723314d\\actual-old-ui-summary.json",
+    "sha256": "0bf4147be0febcd6c2356d048a87254b0b68c77ee54fc2d8d12449d3cd2ee7aa"
+  },
+  "mainMerged": false,
+  "officialImagePublished": false,
+  "offlineReplays": {
+    "CIReexecuted": false,
+    "actualFreshCompared": 20,
+    "allPresentFreshReportsEqual": true,
+    "allRootReportsEqualProducer": true,
+    "completedReportsReused": 26,
+    "initialLocalWrapperTimeoutPreserved": true,
+    "initialWrapperBudgetSeconds": 240,
+    "localRuntimeStarted": false,
+    "missingReportsExecutedSubsequently": 6,
+    "old84And76ReportsComparedToProducerOnly": 12,
+    "originalVerifiersChanged": false,
+    "rootResults": [
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "dependencies",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-dependencies-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-dependencies-root.json",
+        "reportSHA256": "ad9ea9c2fae31ad109742aa77743f67fc535d3be2bdae9cfa08e392b1d9a646d",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-synthetic-root.json",
+        "reportSHA256": "87f3aac55c7da3b233e21d93d708bb9cd56dbfb009de6925262a20090364c120",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "admission-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-admission-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-admission-synthetic-root.json",
+        "reportSHA256": "fe8170d07d0e7602bb475aa747ec153e40a362e8fc5834b22270274db112490c",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "navigation-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-navigation-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-navigation-synthetic-root.json",
+        "reportSHA256": "9845db8e1c31ecb24df2dfe1f4a7c70fb8b50ab79c9ee891439be986eb0e6439",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "product",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-product-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-chrome-cdp-product-root.json",
+        "reportSHA256": "8691e1ba123cfa31b0f0fbdb911b5dbed8b054739066888068c14d9fdfd59299",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "dependencies",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-dependencies-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-dependencies-root.json",
+        "reportSHA256": "81d56f68b29ea4679ae67860bfb64b1c3696981d646a7a5eab76c4388d5246a4",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-synthetic-root.json",
+        "reportSHA256": "cdb99d764b0f0011d9c3e8d4a2a55c02695dcf31f0d65333f6fb941f3336e0b3",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "admission-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-admission-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-admission-synthetic-root.json",
+        "reportSHA256": "97f28f5c8b97fd9a5566cfb0970194dc96434637d9c4a0887a04122f5dfdd0d1",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "navigation-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-navigation-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-navigation-synthetic-root.json",
+        "reportSHA256": "03e198ad5777ac90caa4d1dd57d29daf4f71527add216923c16d965b2959837e",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "remote-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-remote-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-remote-synthetic-root.json",
+        "reportSHA256": "96a9ec5faf2985d6971cc8c661bdd4415c920d7c2ed3fea571194d68d7d6aa08",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "product",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-product-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-chrome-cdp-product-root.json",
+        "reportSHA256": "29936210ce096e3ac683cf4fce3dc272a48fc9a6463881bdd7b2f62b8daef4aa",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "dependencies",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-dependencies-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-dependencies-root.json",
+        "reportSHA256": "91246e1699f603f45f72d25f2d22e1a672ff3185907118788115dcd393cc2aeb",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-synthetic-root.json",
+        "reportSHA256": "264c2b878ce1e00a8f8f0d942691cf33059f22ee246895b767621b6fd404658c",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "admission-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-admission-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-admission-synthetic-root.json",
+        "reportSHA256": "d9ccf0714a4dfe769fef2939384dcae231a927b6c8773f9d5c7673e68e40bba0",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "navigation-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-navigation-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-navigation-synthetic-root.json",
+        "reportSHA256": "d247b2b0cac16072e1f3ea75ca7c5d3b182e86509b45f322724efeb12e43ca0d",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "product",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-product-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-playwright-product-root.json",
+        "reportSHA256": "de9132152c232bb590ccf2252d45ae98e3cda4ec6e2084cf6a082d88fc6ca123",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "dependencies",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-dependencies-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-dependencies-root.json",
+        "reportSHA256": "a287af52dd1ad4fd67b3483b51939f358dfb0436f972eb15642279b12c8745d2",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-synthetic-root.json",
+        "reportSHA256": "6cc155ca8613722ec91dc1b384b4e28a198c2282c146a20ee60c7d3e28874e97",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "admission-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-admission-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-admission-synthetic-root.json",
+        "reportSHA256": "1896d4bd83268c338f1fd1c483b64e831ab7505e5e7f834243bc1cf625568f93",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "navigation-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-navigation-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-navigation-synthetic-root.json",
+        "reportSHA256": "a6745037c6433b7fe0a172b4939f47b9b8aaa61108090dd2b90a3c32c84b8e6d",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "remote-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-remote-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-remote-synthetic-root.json",
+        "reportSHA256": "c648b4a7fb7151abcbc4eb20ecacf94152ac34b89e30f3f7a7ab725ea93af95d",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "product",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-product-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\remote_fetch-playwright-product-root.json",
+        "reportSHA256": "d9a0dc6ac9c0ef09ec3c8a86a415cb9c1f02afcf6b695e8d975d023c2c3d9f14",
+        "scenario": "remote_fetch"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "dependencies",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-dependencies-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-dependencies-root.json",
+        "reportSHA256": "f838e38641b9e1c3ef2d8a8bdb2de0dc1a36bba58bc61c914090d0ab8d84dfc3",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-synthetic-root.json",
+        "reportSHA256": "d37f2ca8846726b2abb14bb27e12472e286553bad63ad43eaae71edb1f568c70",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "admission-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-admission-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-admission-synthetic-root.json",
+        "reportSHA256": "677b4e492b4ab8e62dcf08716f56ccf815ec1ac8883a7182b89efd325920230e",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "navigation-synthetic",
+        "previousCompletedReportReused": true,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-navigation-synthetic-root.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-navigation-synthetic-root.json",
+        "reportSHA256": "8ea56f58f6def6770e2f01c15a0f29804d7ce78781c839de29dcdce876a8a759",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "chrome-cdp",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "product",
+        "previousCompletedReportReused": false,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-product-after-local-wrapper-timeout.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\local_admission-chrome-cdp-product-after-local-wrapper-timeout.json",
+        "reportSHA256": "eb6ba1fa92b638baab9cbcda7bee91e0ed57136702b2c16da358efaa3f79c91e",
+        "scenario": "local_admission"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "dependencies",
+        "previousCompletedReportReused": false,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-dependencies-after-local-wrapper-timeout.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-dependencies-after-local-wrapper-timeout.json",
+        "reportSHA256": "545711f0f2cb2da457db771f48c2d1455dffc4cbf3c6d1c2077c5fbde9cc72f4",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "synthetic",
+        "previousCompletedReportReused": false,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-synthetic-after-local-wrapper-timeout.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-synthetic-after-local-wrapper-timeout.json",
+        "reportSHA256": "7562251390fec6adff38915d13c7f1c0987a7feccff5b49af9ddc136de9ace62",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshPresent": false,
+        "kind": "admission-synthetic",
+        "previousCompletedReportReused": false,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-admission-synthetic-after-local-wrapper-timeout.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-admission-synthetic-after-local-wrapper-timeout.json",
+        "reportSHA256": "f049b26cb0f9b42da7c12284b46680fa6949afe4a40a2016515f05ba9080f6d6",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "navigation-synthetic",
+        "previousCompletedReportReused": false,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-navigation-synthetic-after-local-wrapper-timeout.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-navigation-synthetic-after-local-wrapper-timeout.json",
+        "reportSHA256": "8479088e3d6df8a99f93dd7fe7e3825f910e8599b89e70c7dd63cc3a43fdc0a8",
+        "scenario": "create_receipt"
+      },
+      {
+        "engine": "playwright",
+        "exitCode": 0,
+        "freshEqual": true,
+        "freshPresent": true,
+        "kind": "product",
+        "previousCompletedReportReused": false,
+        "producerEqual": true,
+        "producerPresent": true,
+        "replayLog": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-product-after-local-wrapper-timeout.log",
+        "replayReport": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj\\create_receipt-playwright-product-after-local-wrapper-timeout.json",
+        "reportSHA256": "4e96bc814cddb8c17f8ba680f80b386a58dc6b75c9604a68f1fa508d94519f79",
+        "scenario": "create_receipt"
+      }
+    ],
+    "sourceWorktreeExactLF": true,
+    "subsequentWrapperBudgetSeconds": 600,
+    "timeoutRecordSHA256": "2f5c6e8d4d2aee17c063e428f5e15cb7163413a3c77bfa6b4689587ba2b932e7",
+    "total": 32
+  },
+  "parentAndOldSubscription": {
+    "continuousFuzzProven": false,
+    "eachFuzzSeeds": 8,
+    "eachFuzzTopLevel": 4,
+    "oldSubscriptionAuditSHA256": "e6c6f11ee189cec158e00be2056d4b918393ccbb4dedb6eb971c1d1c0ca8bdce",
+    "oldSubscriptionRun": 40033595140,
+    "oldSubscriptionSourceGitBlobs": 899,
+    "oldSubscriptionTests": 80,
+    "ordinaryTests": 2644,
+    "originalLinuxProducerFreshEqual": true,
+    "parentAuditSHA256": "96fb5131a0deb4f761bcabecd43d2e852a39913294719c3ba36762dd94b3a163",
+    "parentRun": 40033595211,
+    "raceTests": 2644,
+    "reviewer": "independent agent A",
+    "windowsFullPOSIXGatePassed": false
+  },
+  "productionChanged": false,
+  "products": [
+    {
+      "artifact": "subscription-ui-create_receipt-chrome-cdp-40033595196-1",
+      "engine": "chrome-cdp",
+      "fullSubscriptionE2EProven": false,
+      "production": false,
+      "reportSHA256": "8691e1ba123cfa31b0f0fbdb911b5dbed8b054739066888068c14d9fdfd59299",
+      "requests": 14,
+      "sourceGitBlobs": 910,
+      "steps": 11
+    },
+    {
+      "artifact": "subscription-ui-remote_fetch-chrome-cdp-40033595196-1",
+      "engine": "chrome-cdp",
+      "fullSubscriptionE2EProven": false,
+      "production": false,
+      "reportSHA256": "29936210ce096e3ac683cf4fce3dc272a48fc9a6463881bdd7b2f62b8daef4aa",
+      "requests": 47,
+      "sourceGitBlobs": 910,
+      "steps": 33
+    },
+    {
+      "artifact": "subscription-ui-local_admission-playwright-40033595196-1",
+      "engine": "playwright",
+      "fullSubscriptionE2EProven": false,
+      "production": false,
+      "reportSHA256": "de9132152c232bb590ccf2252d45ae98e3cda4ec6e2084cf6a082d88fc6ca123",
+      "requests": 100,
+      "sourceGitBlobs": 910,
+      "steps": 37
+    },
+    {
+      "artifact": "subscription-ui-remote_fetch-playwright-40033595196-1",
+      "engine": "playwright",
+      "fullSubscriptionE2EProven": false,
+      "production": false,
+      "reportSHA256": "d9a0dc6ac9c0ef09ec3c8a86a415cb9c1f02afcf6b695e8d975d023c2c3d9f14",
+      "requests": 47,
+      "sourceGitBlobs": 910,
+      "steps": 33
+    },
+    {
+      "artifact": "subscription-ui-local_admission-chrome-cdp-40033595196-1",
+      "engine": "chrome-cdp",
+      "fullSubscriptionE2EProven": false,
+      "production": false,
+      "reportSHA256": "eb6ba1fa92b638baab9cbcda7bee91e0ed57136702b2c16da358efaa3f79c91e",
+      "requests": 100,
+      "sourceGitBlobs": 910,
+      "steps": 37
+    },
+    {
+      "artifact": "subscription-ui-create_receipt-playwright-40033595196-1",
+      "engine": "playwright",
+      "fullSubscriptionE2EProven": false,
+      "production": false,
+      "reportSHA256": "4e96bc814cddb8c17f8ba680f80b386a58dc6b75c9604a68f1fa508d94519f79",
+      "requests": 14,
+      "sourceGitBlobs": 910,
+      "steps": 11
+    }
+  ],
+  "pureCPU": {
+    "checker": 18,
+    "newNavigation": 58,
+    "node": 24,
+    "previous332Preserved": true,
+    "reader": 16,
+    "report": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-nav-root-cpu-fk4tnm63\\root-cpu.json",
+    "reportSHA256": "d320317cd3f49ba5511d92ef2b49fdf19b5db8d791d3f7a68842b151aff4257b",
+    "skipped": 0,
+    "total": 390,
+    "workflowBashBlocks": 13
+  },
+  "remaining": [
+    "real failure diagnostic writer/projection end-to-end execution",
+    "historical intermittent CDP cause and stability observation",
+    "B09 real negative authorization approval policy and CAS matrix",
+    "remaining B01-B23 and full previous product/probe/image regressions",
+    "same-database restart fault injection and system backup recovery",
+    "external Internet node health approved gray deployment production readback rollback observation"
+  ],
+  "rootCustody": {
+    "allOriginalBytesComparedAfterReplay": true,
+    "allZIPCRCsVerified": true,
+    "apiDigestsVerified": true,
+    "archives": 12,
+    "independentPeerArchivesByteEqual": 12,
+    "independentPeerMembers": 304,
+    "fullManifestSHA256": "e787ddc69caac673caf83d94bde949106c7f68b48360d539119073c6da564d45",
+    "members": 304,
+    "originalRoot": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cw-dbc-root-originals-vnrkomaj",
+    "runtimeBinariesDownloaded": false,
+    "sourceSnapshot": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\cwdbc-i52lz3e6\\r"
+  },
+  "run": {
+    "attempt": 1,
+    "conclusion": "success",
+    "id": 40033595196,
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 120687560183,
+        "name": "Real product create_receipt (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120687560238,
+        "name": "Real product remote_fetch (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120687560239,
+        "name": "Real product local_admission (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120687560270,
+        "name": "Real product create_receipt (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120687560306,
+        "name": "Real product remote_fetch (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120687560666,
+        "name": "Real product local_admission (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120688166694,
+        "name": "Fresh original local_admission replay (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120688166737,
+        "name": "Fresh original remote_fetch replay (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120688166759,
+        "name": "Fresh original remote_fetch replay (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120688166780,
+        "name": "Fresh original create_receipt replay (playwright)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120688166791,
+        "name": "Fresh original create_receipt replay (chrome-cdp)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 120688166807,
+        "name": "Fresh original local_admission replay (playwright)",
+        "status": "completed"
+      }
+    ]
+  },
+  "schema": "chengwang.navigation-diagnostics-stage-acceptance/v1",
+  "sourceCommit": "dbc3f23952a22dc79fcf332ecda26b3de3a25d58",
+  "status": "ISOLATED_THREE_SCENARIO_DUAL_ENGINE_FLOW_ACCEPTED_NOT_FULL_SYSTEM_NOT_PRODUCTION",
+  "visualReview": {
+    "desktopViewport": [
+      1440,
+      900
+    ],
+    "firstViewportOnly": true,
+    "fullMobileFlowProven": false,
+    "independentBViewedOldEightPNGs": true,
+    "mobileViewport": [
+      375,
+      900
+    ],
+    "rootViewedRemoteCDPDesktopAndMobile": true
+  },
+  "wholeSystemComplete": false
+}

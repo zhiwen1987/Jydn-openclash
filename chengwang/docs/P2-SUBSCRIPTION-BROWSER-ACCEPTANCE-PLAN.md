@@ -75,6 +75,8 @@ App 当前采取隐藏挂载保留订阅内存会话：离开导航并不等于 
 - B08：Approver 在实际来源和 revision 批准真实目录 reference；批准返回后同 source/revision 的必要刷新不能无故清掉仍有效的批准。改变 source/revision/reference 必须撤销不匹配的旧批准，不能界面选新 reference 而实际 fetch 仍使用旧 reference 的批准。
 - B09：独立 Approver → Operator 的批准交接必须实际执行。Operator 可输入安全 command ID 并由服务端核验批准/source/policy/CAS；**不放宽 ReadReceipt owner 规则**，不能假设 Operator 能读取别人的完整批准回执。无效/过期/错误 source 或 revision 的交接仍由真实服务拒绝，库存及 wire 按冻结预期不变。
 - B09 的模式反例：同目录内两个不同 reference 采用相同 policy revision 时，下拉 A 与交接批准 B 不得被表述为“已验证抓取 A”；本会话批准不能覆盖交接输入，非活动交接输入也不能覆盖本会话模式。交接确认须显示 source/expectedRevision/approvalID/policyRevision 及实际引用尚未读回的明确说明，实际 wire/安全 store 结果按批准 B 绑定。切模式或编辑交接字段必须使旧确认失效。这里没有跨 owner 批准上下文读取 API，不能称角色交接已自动读回。
+
+  B09实施前语义校准（2026-10-24，仍未据此填PASS）：当前 `subscriptionctl.Service.fetchApproval` 核当前批准ID/policyRevision、目录材料/digest与请求CAS，不比较批准时的source revision，也没有批准时间TTL；`subscription.Store.CurrentApproval` 取同scope/source最后一条批准。因此“来源版本增长就自动失效”只是错误假设，不能用来冻结负例；跨版本复用仍须另做实际正向对照，不能把代码推导写成已运行证据。上述“过期”必须细分：被新批准取代、策略退役/revision/material变化，以及目前尚无实现/验收的时间TTL，不能互相代证。拒绝后的不变范围应分别核sources/candidates/nodes/admitted pointer/local audit与wire；进入Execute的失败写可能产生失败command及prepared/result外部审计，权限preflight拒绝还可能产生单条denied审计，不能笼统要求整个Store/审计字节不变。HTTP错误及可用command ID须以真实API合同分别冻结，不能猜公共错误码。
 - B10：抓取实际经过正常 DoT/HTTPS/source fixture；拿到候选不自动接纳。Approver 显式决定 admitted_local/rejected；只有真实成功回执和随后一致来源读回可显示已提交，节点保持未评估、设备发布锁定。
 - B11：回退选择真实已接纳历史候选，以当前 source revision 做 CAS，额外勾选后提交；产生新单调本地 revision。不把本地指针回退称为设备回滚，不用旧 candidate.BaseRevision 代当前 CAS。
 - B12：两来源即使导入相同私有内容也保持来源隔离/不同节点 ID 集合；选择另一来源不混入旧来源页、节点、批准或确认，所有写只影响明确目标。
