@@ -1,6 +1,6 @@
 # P2-05 候选产品 API、批准与审计协调
 
-状态：已接线，隔离 CI 迭代中，尚未整体验收。不将此文、源码存在或 Python 合成检查计作隔离验收或生产上线。前阶段已验证源码与结果见 [P2 底座验收](P2-SUBSCRIPTION-ACCEPTANCE.md)。完整系统目标仍按[进度台账](PROJECT-PROGRESS-LEDGER.md)保留。
+状态：本地准入应用已接线并完成有界隔离验收，运行源码 `f0c23d6`，详见[应用验收记录](P2-SUBSCRIPTION-API-ACCEPTANCE.md)。这不是完整订阅编排或生产验收；不将本文、源码存在或 Python 合成检查计作上线。前阶段记录见 [P2 底座验收](P2-SUBSCRIPTION-ACCEPTANCE.md)，完整系统目标及其余缺口按[进度台账](PROJECT-PROGRESS-LEDGER.md)保留。
 
 ## 固定边界
 

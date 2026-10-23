@@ -30,7 +30,7 @@
 | P2-02 | 提供者 YAML / URI / base64 解析 | 已实现，26 项 ordinary/race 隔离验收通过；固定依赖来源/摘要已核验 | 全部格式/协议选项、真实内核可用；AST 后置预算不等于进程沙箱 |
 | P2-03 | 私有隔离库、本地接纳、回退和审计 | 已实现，34 项 ordinary/race 隔离验收通过 | 故障注入不等于断电；外部审计和整套备份恢复尚未完成 |
 | P2-04 | 批准来源 HTTPS 有界读取 | 已实现，18 项＋1 条跨组件 ordinary/race 隔离验收通过 | DNS/dial 为明确 fixture；无真实公网、产品来源批准或调度闭环 |
-| P2-05 | 产品 API / RBAC / 独立写门 | 候选代码与交叉审查中；[本轮合同](P2-SUBSCRIPTION-API.md)，新增 130 项待 CI | 权限、耐久回执/恢复、受信批准与真实主服务接线待实际执行；独立主进程/完整公共 pin Fetch 门未完成 |
+| P2-05 | 产品 API / RBAC / 独立写门 | `f0c23d6` 有界隔离验收通过：ordinary/race 各 2620 Test，新 130 齐全；原生/CDP/Playwright 原工件重放通过；同源码镜像 CI success，前端 117、子模块各 732、原 Registry/source/source-TLS 三门独立重放通过；详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 仅本地准入后端，非完整编排/生产；独立主进程/完整公共 pin Fetch、订阅资源页与其余旧产品完整 CLI 独立重放仍未完成 |
 | P2-06 | 真实订阅资源界面与浏览器闭环 | 未实现 | 当前订阅页仍是占位，不是实际库存 |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
 
@@ -78,5 +78,6 @@
 | `06543d4` | [第十三轮 CI 39922631837](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39922631837) CDP 原 ZIP 已含 898 字节 Vite manifest，完整原 Git checker/backend22 重放与 CI 报告逐字一致；browser canonical SHA256 `9069665f86fd863569fa49f58a5bb5ec2bfb2ba4b7f88a0a857fb844911fc566`。PW 仍严格失败，唯一非零为 `failedRequests=1`，固定诊断 `PROBE_STATUS:CANCELED:ABORTED:RUNNING`；日志不能唯一绑定自动/手动重叠或 10 秒 deadline。父门 ordinary/race 各 2403 Test、原生后端 22 输入已独立复验。下一轮修正摘要请求单飞和 owner 隔离，增加 7 个确定性前端反例与安全耗时类别，不改失败计数、10 秒 deadline 或完整 B gate | CDP 一条通过等于双路径已验收；推测取消根因等于事实；辅助单元测试等于真实浏览器成功 |
 | `cadb9f4` | [第十四轮双浏览器 CI 39925504923](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39925504923) 两路径各自实际采集、正常 TLS/页面/自然过期和正常进程生命周期均通过；下载原 ZIP 后原 Git 后端22/browser checker 完整重放，与 CI 报告逐字一致。CDP/PW 的 8 计数全 0，父门及原生后端独立复验通过；镜像信任绑定 CI success，实际 117 前端、732 ordinary/race、旧基线与源码绑定已核验；旧产品子 CLI 未逐项独立重放。7 新模拟反例通过且原名单未替换 | 本轮修复已唯一归因历史取消；公网业务、高可用、生产或整个企业系统已经完成 |
 | `d0e55c6` | 订阅准入核心 87 项隔离 ordinary/race 通过，完整主模块每轮 2490 Test 且旧基线保持；原生后端、CDP/PW 原工件/原 Git checker 重放通过；镜像 CI success，前端 117、子模块 732/旧 Registry 3 名单独立通过，未逐项独立重放全部旧产品 CLI。详见[P2 验收](P2-SUBSCRIPTION-ACCEPTANCE.md) | 产品订阅 API、真实资源页、自动刷新、完整内核和生产发布已完成；本地接纳等于运行健康 |
+| `f0c23d6` | 订阅本地准入 API/RBAC/批准/耐久回执与恢复隔离验收：新 130、全主模块每轮 2620 与旧名单保持；原生/CDP/PW 原工件双重重放，同源码镜像 CI success 与原三 CLI/前端门独立重放；两轮父门失败、一次 native stop 失败和未执行 pending 均保留。详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 订阅资源页、完整公共来源抓取/内核、自动调度、所有旧产品 CLI 独立重放、完整编排或生产已完成 |
 
-下一顺序：订阅产品 API/独立 RBAC/审计协调 → 真实资源页及双浏览器 → 完整内核配置及隔离内核校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。现有 `executor_not_configured`/授权阻断不因浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
+下一顺序：补独立 cmd/server 与受信公共 pin Fetch 产品链路 → 真实订阅资源页及双浏览器 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。

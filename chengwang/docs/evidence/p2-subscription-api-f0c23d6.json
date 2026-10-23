@@ -1,0 +1,387 @@
+{
+  "schema": "chengwang.p2-subscription-application-acceptance/v1",
+  "sourceCommit": "f0c23d64f4bc6e8d750f8b588aff18cd83c3eda8",
+  "outcome": "PASS_BOUNDED_ISOLATED_ACCEPTANCE",
+  "authorization": "BLOCKED",
+  "production": false,
+  "deviceActionsExecuted": false,
+  "acceptanceScope": "ISOLATED_LOCAL_SUBSCRIPTION_APPLICATION_AND_EXISTING_PRODUCT_REGRESSIONS_NOT_PRODUCTION",
+  "parent": {
+    "head": "f0c23d64f4bc6e8d750f8b588aff18cd83c3eda8",
+    "run": 39945208483,
+    "job": 120386078614,
+    "attempt": 1,
+    "conclusion": "success",
+    "transportLeadingBOMLines": [
+      1,
+      9877,
+      18597
+    ],
+    "helperSources": [
+      {
+        "path": "chengwang/deploy/m2b-candidate/tests/run_static_gate.py",
+        "bytes": 57858,
+        "sha256": "5259d45222dfda34c31a9bf27cd56d0caae24a55374fe2567fc2f609a2f53f71"
+      },
+      {
+        "path": "chengwang/deploy/m2b-candidate/tests/subscription_application_extension.py",
+        "bytes": 20573,
+        "sha256": "6b968b7c87ea042aba54eb7b7e91e6c408c0309838a4e2e44ae1f43f2938f89f"
+      },
+      {
+        "path": "chengwang/deploy/m2b-candidate/tests/subscription_test_extension.py",
+        "bytes": 11750,
+        "sha256": "2e6a08f4a61f06f011bd19b76871ec1cae174e565a5514697a0a41d584febb0c"
+      },
+      {
+        "path": "chengwang/deploy/m2b-candidate/tests/probe_test_extension.py",
+        "bytes": 13979,
+        "sha256": "30cae340860b4875b97d999402765f5a4d49eb7515db4470b7ed30c244113468"
+      }
+    ],
+    "cycles": [
+      {
+        "name": "ordinary",
+        "testRun": 2620,
+        "testPass": 2620,
+        "uniquePairs": 2620,
+        "runPassCountersEqual": true,
+        "eachPairExactlyOnce": true,
+        "testSkip": [],
+        "failures": [],
+        "new130Run": 130,
+        "new130Pass": 130,
+        "new130Exact": true,
+        "new130SHA256": "8a6406058684acd33b508a276970dcf5f951f4b3e9e332b8d82d813bd48c3736",
+        "old87Count": 87,
+        "old87SHA256": "9d5d10f17c264e20f3173320db1dc29e045cc9449d78d46424b255d9bc3ea09a",
+        "fullPairsSHA256": "06e0e29fbb80a30ce7819be7dda5859cccd8daed8a60060e71174138e51a1b14",
+        "baselines": {
+          "old2490": {
+            "count": 2490,
+            "sha256": "1c3d08f5f99f1d34861a6439d8cde3d95422232dc8fa70206e2d0f09ea229dd4",
+            "matched": true
+          },
+          "old2403": {
+            "count": 2403,
+            "sha256": "4988f181a389575003152bfd2194485f030506f63859133229019f8d5db4441b",
+            "matched": true
+          },
+          "old2391": {
+            "count": 2391,
+            "sha256": "5faa2eeda5f6c6db5cbc52dead9bdf3e84d00bf67acd5d25f599a0fce33a4fdc",
+            "matched": true
+          },
+          "old2320": {
+            "count": 2320,
+            "sha256": "fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8",
+            "matched": true
+          }
+        },
+        "fuzzRun": 12,
+        "fuzzPass": 12,
+        "packagePasses": 41,
+        "packageSkips": [
+          "chengwang/internal/domain"
+        ]
+      },
+      {
+        "name": "race",
+        "testRun": 2620,
+        "testPass": 2620,
+        "uniquePairs": 2620,
+        "runPassCountersEqual": true,
+        "eachPairExactlyOnce": true,
+        "testSkip": [],
+        "failures": [],
+        "new130Run": 130,
+        "new130Pass": 130,
+        "new130Exact": true,
+        "new130SHA256": "8a6406058684acd33b508a276970dcf5f951f4b3e9e332b8d82d813bd48c3736",
+        "old87Count": 87,
+        "old87SHA256": "9d5d10f17c264e20f3173320db1dc29e045cc9449d78d46424b255d9bc3ea09a",
+        "fullPairsSHA256": "06e0e29fbb80a30ce7819be7dda5859cccd8daed8a60060e71174138e51a1b14",
+        "baselines": {
+          "old2490": {
+            "count": 2490,
+            "sha256": "1c3d08f5f99f1d34861a6439d8cde3d95422232dc8fa70206e2d0f09ea229dd4",
+            "matched": true
+          },
+          "old2403": {
+            "count": 2403,
+            "sha256": "4988f181a389575003152bfd2194485f030506f63859133229019f8d5db4441b",
+            "matched": true
+          },
+          "old2391": {
+            "count": 2391,
+            "sha256": "5faa2eeda5f6c6db5cbc52dead9bdf3e84d00bf67acd5d25f599a0fce33a4fdc",
+            "matched": true
+          },
+          "old2320": {
+            "count": 2320,
+            "sha256": "fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8",
+            "matched": true
+          }
+        },
+        "fuzzRun": 12,
+        "fuzzPass": 12,
+        "packagePasses": 41,
+        "packageSkips": [
+          "chengwang/internal/domain"
+        ]
+      }
+    ],
+    "originalGitGateReplay": {
+      "exitCode": 0,
+      "stdoutSHA256": "18247b273185d3de30f3f99c82c07dff951308da829143f08624f6d1b804b37e",
+      "stderrBytes": 0
+    },
+    "rawSource": "GitHub jobs/logs API original bytes, not artifact ZIP",
+    "rawBytes": 6023190,
+    "rawSHA256": "d366b18ab692659e14a4099fd1c6583e7e0ddb70b428cbe96d9572fd0cfc7e87",
+    "independentReportSHA256": "53ddab9a27490b28d7846f84bee8e7dfcc4e9f309d49f163dd28aa93eae1d2d8",
+    "rootIndependentlyReplayed": true,
+    "rootTransportExtraction": "All original event objects in final two package cycles exactly equal derived ordinary/race GoJSON; 10715 events each; only optional BOM before transport timestamp ignored."
+  },
+  "native": {
+    "runId": 39945208538,
+    "jobId": 120386078611,
+    "sourceCommit": "f0c23d64f4bc6e8d750f8b588aff18cd83c3eda8",
+    "attempt": 1,
+    "ciConclusion": "success",
+    "independentAgentBackend22Replay": "PASS",
+    "rootReplay": "PASS",
+    "outcome": "PASS",
+    "artifactId": 12497484508,
+    "zipBytes": 216443,
+    "zipSHA256": "2246d2b8495d7fb37d7b2e163b93bae9b13a39ceecf24a6274f098d76c035135",
+    "rootReportSHA256": "a70f8b1daa7c18803bfbf454844c6b55cde0da6e3742da605b2500c519a6b3ad",
+    "rootReportByteEqualCI": true,
+    "actualWireTests": 24,
+    "actualWireSkips": 0,
+    "unitTests": 44,
+    "sourceGitBlobCount": 731,
+    "sourceInventorySHA256": "19a737e8dd7c9ddf75b81ffc910f083c0880ae4db19d070524d92b0e89ae2af4",
+    "scope": "NATIVE_BACKEND_ONLY_NOT_SUBSCRIPTION_UI_OR_PRODUCTION"
+  },
+  "browser": {
+    "runId": 39945208482,
+    "sourceCommit": "f0c23d64f4bc6e8d750f8b588aff18cd83c3eda8",
+    "attempt": 1,
+    "ciConclusion": "success",
+    "requiredEngines": [
+      "chrome-cdp",
+      "playwright"
+    ],
+    "independentOriginalArtifactReplay": "PASS",
+    "subscriptionUIProven": false,
+    "outcome": "PASS",
+    "rootReplay": "PASS",
+    "page": "https://127.0.0.1:17861/",
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 1000
+      },
+      {
+        "width": 375,
+        "height": 812
+      }
+    ],
+    "capturesEach": 18,
+    "errorCountersEach": 8,
+    "nonzeroErrorCountersEach": 0,
+    "normalChromeExitCode": 0,
+    "normalNodeExitCode": 0,
+    "tlsBypass": false,
+    "sourceGitBlobCountEach": 737,
+    "sourceInventorySHA256": "e4784499eaac9b8a0cac948d15969d0caf3d288e784294c98890948adab4747c",
+    "sourceChecksScope": "Git raw byte equality, before/after and copied inputs",
+    "playwrightVersion": "1.64.1",
+    "actualChromeVersion": "155.0.8059.39",
+    "independentFinalReportSHA256": "350cb2de1e7bcc6898bdf47efcae764470d8be176c49404aeb9f913a43b33215",
+    "rootVisualSample": [
+      "playwright fresh desktop",
+      "chrome-cdp expired mobile"
+    ],
+    "visualScope": "PNG framing/decompression all eight; root visual sample only two, not complete pixel QA",
+    "engines": [
+      {
+        "engine": "chrome-cdp",
+        "jobId": 120386173628,
+        "artifactId": 12497862209,
+        "zipBytes": 1684494,
+        "zipSHA256": "b0f26b903e5eb1f0b058de0b00c226695c05bac9681045a11ede8b5d6cdc8cfb",
+        "rootReportSHA256": "4a3f57a80e04bb25926b7d5e1f9794d12c6099a7a772a6f0d3d27d18d1157f88",
+        "rootReportByteEqualCI": true
+      },
+      {
+        "engine": "playwright",
+        "jobId": 120386173833,
+        "artifactId": 12498525934,
+        "zipBytes": 1684991,
+        "zipSHA256": "44be3d06a8dfdf970804f06304fd68dccf138f6dc8f70922da02832afd8a5425",
+        "rootReportSHA256": "158e6ffb3ace5f0921a3f969d35d69165eee639ec21bf3d279600af06d6bf780",
+        "rootReportByteEqualCI": true
+      }
+    ]
+  },
+  "image": {
+    "runId": 39945378087,
+    "jobId": 120387454107,
+    "sourceCommit": "f0c23d64f4bc6e8d750f8b588aff18cd83c3eda8",
+    "attempt": 1,
+    "event": "workflow_dispatch",
+    "outcome": "PASS_BOUNDED_INDEPENDENT_REVIEW",
+    "formalPublication": false,
+    "ciConclusion": "success",
+    "artifactId": 12497919268,
+    "zipBytes": 6369152,
+    "zipSHA256": "261db495d69f31e381ae9a8475e9e556583483aaa28796c57ccf2d0378917de6",
+    "apiDigestMatched": true,
+    "extractedFiles": 1470,
+    "rawLogBytes": 2039275,
+    "rawLogSHA256": "e3bd97d155b0eeee671989665b073f3dd796d664cd17b344b9579a3fe2ff5f37",
+    "independentChecksSHA256": "c9016677a39f36ca21c34f5e6a9052b3085020c9c852c7c840eccafb42be5731",
+    "frontend": {
+      "actualPassed": 117,
+      "fileResults": 7,
+      "reportedSuiteCount": 17,
+      "originalGitInlineGateReplayed": true,
+      "originalGateSHA256": "da22a6ffce648f20f76940cdd7a8b4d6f39788e6de307c4765c30e3ffed5a361",
+      "retained77": true,
+      "retainedProbe33": true,
+      "retainedSummarySingleFlight7": true,
+      "scope": "MOCKED_UNIT_TESTS_NOT_REAL_BROWSER"
+    },
+    "ordinary": {
+      "testRun": 732,
+      "testPass": 732,
+      "allFail": 0,
+      "allSkip": 0,
+      "namesSHA256": "47a2e1455240e8a565ac214e463ff59e059e4beaad19c993548d4b6dcc93b24c"
+    },
+    "race": {
+      "testRun": 732,
+      "testPass": 732,
+      "allFail": 0,
+      "allSkip": 0,
+      "namesSHA256": "47a2e1455240e8a565ac214e463ff59e059e4beaad19c993548d4b6dcc93b24c"
+    },
+    "registryCLI": {
+      "eachCycleRun": 3,
+      "eachCyclePass": 3,
+      "namesSHA256": "fe216fe5de5dd2c3fb6012dfd1045172a169f914edc832fa32f9f3e7f125c24d"
+    },
+    "source": {
+      "criticalEntries": 97,
+      "checkoutEntries": 731,
+      "uniqueRawGitBlobs": 731,
+      "allRawMatch": true,
+      "beforeAfterRawIdentical": true,
+      "latestWireFixIncluded": true
+    },
+    "independentlyReplayedOriginalProductCLIs": [
+      {
+        "name": "registry",
+        "inputDigestRelations": 49,
+        "rootExit": 0,
+        "byteEqualCI": true,
+        "rootReportSHA256": "2c306e125a94c20697d35fc64b05f7692053fae197a4e4efa579f0ddaa32145b"
+      },
+      {
+        "name": "source",
+        "inputDigestRelations": 75,
+        "rootExit": 0,
+        "byteEqualCI": true,
+        "rootReportSHA256": "dffc6e4d0f06cf16475ba2a8849d2cd8b862c4af430a921723911f4f4c435ff3"
+      },
+      {
+        "name": "source_tls",
+        "inputDigestRelations": 117,
+        "rootExit": 0,
+        "byteEqualCI": true,
+        "rootReportSHA256": "ef0ebe8ad25f7e5cccbf909b6a0e4f6292b9b63e7c39bab5f6e381f08dd7753d"
+      }
+    ],
+    "fullOriginalCLIReplayNotPerformed": [
+      "product image packaging/private archive and raw Docker inspection",
+      "lifecycle",
+      "crash",
+      "state"
+    ],
+    "legacyScope": "All image CI steps passed; six public outcome input digests recomputed by independent agent. Only the listed original CLIs and frontend gate replayed, not all legacy product full verifiers."
+  },
+  "failedRuns": [
+    {
+      "sourceCommit": "6bc9d743a7021512027b60d4df6de961df2fef7d",
+      "runId": 39942103352,
+      "jobId": 120375781461,
+      "attempt": 1,
+      "outcome": "FAIL",
+      "ordinary": {
+        "testRun": 2588,
+        "testPass": 2588,
+        "new130Pass": 98,
+        "service32Executed": false
+      },
+      "raceExecuted": false,
+      "reason": "Default vet rejected combined constant budget assertions; split without removing constraints.",
+      "rawBytes": 3377790,
+      "rawSHA256": "4de7c9eec150c50441ee6c716c0e36e717a1746dfedc99456d8dac5fb9d557ef"
+    },
+    {
+      "sourceCommit": "7b6c2891f3900970c0134dcb604936a7a6965494",
+      "runId": 39943748586,
+      "jobId": 120381216288,
+      "attempt": 1,
+      "outcome": "FAIL",
+      "ordinary": {
+        "testRun": 2620,
+        "testPass": 2618,
+        "testFail": 2,
+        "new130Pass": 128
+      },
+      "raceExecuted": false,
+      "reason": "Create fixture used a source resource instead of collection; deadline fixture sampled context notification before timer delivery.",
+      "rawBytes": 3408947,
+      "rawSHA256": "28d33b836996a3cb5d58628c78a1c596ebfb0559f198cd2ad58460ae0fe43e9e"
+    },
+    {
+      "sourceCommit": "8b0dae8596ad350ce73a63a7b10b919cf5cae6e6",
+      "runId": 39944335937,
+      "jobId": 120383165344,
+      "attempt": 1,
+      "outcome": "FAIL",
+      "backendLabExecuted": false,
+      "reason": "Three exact HTTPS responses completed, then normal helper stop and cleanup each exceeded five seconds; emergency helper kill required. No helper stack available; lock-reentrancy risk fixed but unique historical causation unproven.",
+      "rawBytes": 72587,
+      "rawSHA256": "557050801c2caadb751a87190955b1ddb5e098c78cb1e4b50fc83f7030b64f19"
+    }
+  ],
+  "supersededPendingRuns": [
+    {
+      "sourceCommit": "8b0dae8596ad350ce73a63a7b10b919cf5cae6e6",
+      "runId": 39944335909,
+      "outcome": "CANCELLED_NOT_EXECUTED",
+      "jobs": 0,
+      "reason": "GitHub single-pending concurrency replaced this pending candidate with latest f0c dispatch; running 7b6 was preserved."
+    }
+  ],
+  "remaining": [
+    "Independent cmd/server subscription-enabled process lifecycle",
+    "Complete real fixed DoT plus public-pin HTTPS 200 through trusted catalog approval and product API",
+    "Actual subscription resource UI and its two-engine browser acceptance",
+    "Automatic refresh and scheduling",
+    "Full kernel configuration and device publishing",
+    "Real provider and business capabilities, capacity and long soak",
+    "System backup and recovery, permanent evidence archive, approved production canary",
+    "All malformed HTTP failures audited; distributed denial limiting; independent enterprise witness",
+    "Independent full replay of remaining legacy product image/lifecycle/crash/state CLIs and unavailable private archive/raw Docker inspection"
+  ],
+  "wholeSubscriptionOrchestration": "design_only",
+  "productionChanges": [],
+  "mainMerged": false,
+  "formalRegistryPublication": false,
+  "permanentArchiveProven": false
+}
