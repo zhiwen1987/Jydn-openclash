@@ -1,5 +1,7 @@
 # P2-05 候选产品 API、批准与审计协调
 
+后续阅读：本文保留 `f0c23d6` 应用阶段的合同与当时未完成项。独立 `cmd/server`、受信公网地址 fixture Fetch 及四进程读回的后续有界结果见 [P2-05b 验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)；它仍不是公网业务、真实订阅界面、完整编排或生产上线。
+
 状态：本地准入应用已接线并完成有界隔离验收，运行源码 `f0c23d6`，详见[应用验收记录](P2-SUBSCRIPTION-API-ACCEPTANCE.md)。这不是完整订阅编排或生产验收；不将本文、源码存在或 Python 合成检查计作上线。前阶段记录见 [P2 底座验收](P2-SUBSCRIPTION-ACCEPTANCE.md)，完整系统目标及其余缺口按[进度台账](PROJECT-PROGRESS-LEDGER.md)保留。
 
 ## 固定边界

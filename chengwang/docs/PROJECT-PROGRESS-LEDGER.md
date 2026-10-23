@@ -30,8 +30,8 @@
 | P2-02 | 提供者 YAML / URI / base64 解析 | 已实现，26 项 ordinary/race 隔离验收通过；固定依赖来源/摘要已核验 | 全部格式/协议选项、真实内核可用；AST 后置预算不等于进程沙箱 |
 | P2-03 | 私有隔离库、本地接纳、回退和审计 | 已实现，34 项 ordinary/race 隔离验收通过 | 故障注入不等于断电；外部审计和整套备份恢复尚未完成 |
 | P2-04 | 批准来源 HTTPS 有界读取 | 已实现，18 项＋1 条跨组件 ordinary/race 隔离验收通过 | DNS/dial 为明确 fixture；无真实公网、产品来源批准或调度闭环 |
-| P2-05 | 产品 API / RBAC / 独立写门 | `f0c23d6` 有界隔离验收通过：ordinary/race 各 2620 Test，新 130 齐全；原生/CDP/Playwright 原工件重放通过；同源码镜像 CI success，前端 117、子模块各 732、原 Registry/source/source-TLS 三门独立重放通过；详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 仅本地准入后端，非完整编排/生产；独立主进程/完整公共 pin Fetch、订阅资源页与其余旧产品完整 CLI 独立重放仍未完成 |
-| P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | 首轮 `2a68973` CI 严格失败：80 辅助项实际通过，46 调用/4 epoch 已采集，但独立 gate 拒绝 oversize 的 partial/bytes=0；fresh replay 未执行。原[失败记录](evidence/p2-subscription-product-attempt-2a68973.json)保留，[合同](../deploy/subscription-readback/README.md)不缩减 | 不能将采集或辅助通过称为整轮验收；仅私有无出口 namespace 的公网地址 fixture，不是真实互联网/生产 |
+| P2-05 | 产品 API / RBAC / 独立写门 | `f0c23d6` 有界隔离验收通过：ordinary/race 各 2620 Test，新 130 齐全；原生/CDP/Playwright 原工件重放通过；同源码镜像 CI success，前端 117、子模块各 732、原 Registry/source/source-TLS 三门独立重放通过；详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 仅本地准入后端，非完整编排/生产；后续独立主进程/公共地址 fixture Fetch 见 P2-05b；订阅资源页与其余旧产品完整 CLI 独立重放仍未完成 |
+| P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
 | P2-06 | 真实订阅资源界面与浏览器闭环 | 未实现；后续须同时保留 Chrome/CDP 与固定版本 Playwright | 当前订阅页仍是占位，不是实际库存；已有双浏览器仅证明探针页 |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
 
@@ -80,5 +80,6 @@
 | `cadb9f4` | [第十四轮双浏览器 CI 39925504923](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39925504923) 两路径各自实际采集、正常 TLS/页面/自然过期和正常进程生命周期均通过；下载原 ZIP 后原 Git 后端22/browser checker 完整重放，与 CI 报告逐字一致。CDP/PW 的 8 计数全 0，父门及原生后端独立复验通过；镜像信任绑定 CI success，实际 117 前端、732 ordinary/race、旧基线与源码绑定已核验；旧产品子 CLI 未逐项独立重放。7 新模拟反例通过且原名单未替换 | 本轮修复已唯一归因历史取消；公网业务、高可用、生产或整个企业系统已经完成 |
 | `d0e55c6` | 订阅准入核心 87 项隔离 ordinary/race 通过，完整主模块每轮 2490 Test 且旧基线保持；原生后端、CDP/PW 原工件/原 Git checker 重放通过；镜像 CI success，前端 117、子模块 732/旧 Registry 3 名单独立通过，未逐项独立重放全部旧产品 CLI。详见[P2 验收](P2-SUBSCRIPTION-ACCEPTANCE.md) | 产品订阅 API、真实资源页、自动刷新、完整内核和生产发布已完成；本地接纳等于运行健康 |
 | `f0c23d6` | 订阅本地准入 API/RBAC/批准/耐久回执与恢复隔离验收：新 130、全主模块每轮 2620 与旧名单保持；原生/CDP/PW 原工件双重重放，同源码镜像 CI success 与原三 CLI/前端门独立重放；两轮父门失败、一次 native stop 失败和未执行 pending 均保留。详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 订阅资源页、完整公共来源抓取/内核、自动调度、所有旧产品 CLI 独立重放、完整编排或生产已完成 |
+| `2a68973` / `2b0a472` | 独立订阅产品实验首轮严格失败并保留；修正fixture有界发送计数、独立门不放宽，第二轮producer+freshLinux完整原门通过，原报告三方一致；同源码父门2620/旧名单完整复验。详见[P2-05b记录](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md) | fixture公网地址等于真实互联网、节点业务健康、订阅UI、调度、系统恢复或生产已完成 |
 
-下一顺序：补独立 cmd/server 与受信公共 pin Fetch 产品链路 → 真实订阅资源页及双浏览器 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。
+下一顺序：真实订阅资源页及 Chrome/CDP＋固定版本 Playwright 双浏览器 → 自动刷新/完整内核配置及隔离校验 → 单目标隔离发布/读回/回滚 → 获批后才进入生产备份、灰度和观察。现有 `executor_not_configured`/授权阻断不因局部 API 或浏览器通过而解除。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。

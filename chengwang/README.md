@@ -1,13 +1,14 @@
 # 澄网 · 网络自治中心
 
-[项目进度台账](docs/PROJECT-PROGRESS-LEDGER.md)：查看已实现、已验收、未完成与未上线事项；本阶段证据见[真实探针只读后端隔离验收](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)。
+[项目进度台账](docs/PROJECT-PROGRESS-LEDGER.md)：查看已实现、已验收、未完成与未上线事项；最新阶段为[独立订阅产品链路隔离验收](docs/P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)。历史探针后端及双浏览器证据分别见[原生后端记录](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)、[双浏览器记录](docs/P1-PROBE-BROWSER-ACCEPTANCE.md)。
 
 澄网是一套独立于 OpenClash/LuCI 的多内核网络代理、策略路由与自治控制系统。它参考成熟代理软件的能力，但拥有自己的领域模型、可插拔内核适配层、版本管理、可解释精确路由、节点能力评估和中文管理界面。
 
 当前源码阶段是 **可离线运行、可选连接 Mihomo 只读控制器，并带受保护本地操作记录的 Shadow 控制面基础版**：
 
-- P1 默认关闭的安全探针 reader、缓存、RBAC 明细和工作台已有基础验收；`700ea9e` 进一步完成真实 agent→正常 DoT/HTTPS→主 API、重启与自然过期的隔离后端验收，ordinary/race各2391且旧2320保留。**真实 API 的正常 TLS 浏览器闭环仍未完成，未上线**。见[本阶段原始证据与范围](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)及[基础实现边界](docs/P1-PROBE-READBACK-IMPLEMENTATION.md)。
-- `2fe1231` 已同步机器能力事实，ordinary/race 各 2403，旧 2391/2320 指纹保留，原生后端及既有候选镜像回归 CI 成功；“已配置只读导入”不等于健康或完整业务评估。`f366f8a` 的双路径 CDP/Playwright 共享合同与固定开发依赖集中于 `tools/probe-browser`，独立预检 CI 实际 33 项辅助测试通过、安装接口可用、源码不变；**预检没有启动浏览器，真实探针浏览器闭环仍未完成**。实施、原始证据与退出条件见[双路径合同](docs/P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md#双路径浏览器验收决定2026-10-23未完成)。
+- P1 默认关闭的安全探针 reader、缓存、RBAC 明细和工作台已有基础验收；历史 `700ea9e` 完成真实 agent→正常 DoT/HTTPS→主 API、重启与自然过期的隔离后端验收，当时尚未完成浏览器。后续 `cadb9f4` 已完成正常 TLS 的 CDP/Playwright 真实探针页面双路径隔离验收，**仍未上线**。见[后端历史范围](docs/P1-PROBE-NATIVE-BACKEND-ACCEPTANCE.md)、[双浏览器结果](docs/P1-PROBE-BROWSER-ACCEPTANCE.md)及[基础边界](docs/P1-PROBE-READBACK-IMPLEMENTATION.md)。
+- 历史 `2fe1231` 的能力事实与 `f366f8a` 的 33 项浏览器预检均不代表当时启动过浏览器。双路径共享合同和固定开发依赖位于 `tools/probe-browser`，后续实际执行证据以上述双浏览器记录为准；“已配置”不等于节点健康或完整业务评估。历史实施合同见[接入协议](docs/P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md)。
+- P2 本地订阅 API/RBAC/批准/回执恢复由 `f0c23d6` 有界验收；`2b0a472` 进一步完成独立 `cmd/server`、受信来源 DoT/HTTPS 公网地址 fixture、46 API/四进程读回及另一个 Linux job 原工件重放，ordinary/race 各2620/旧名单保持。**fixture 没有公网出口、节点仍 unknown，真实订阅资源页、调度、完整内核/系统恢复/设备发布和生产均未完成**；订阅页后续同时验 Chrome/CDP 与固定版本 Playwright。详见[本轮结果与未完成项](docs/P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，整项编排能力仍 `design_only`。
 - 默认只监听 `127.0.0.1:7811`。
 - 默认运行在 `shadow` 模式，不接管生产流量。
 - 未设置管理员令牌时，发布接口保持关闭。

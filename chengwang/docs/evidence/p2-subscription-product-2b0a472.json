@@ -1,0 +1,29 @@
+{
+  "schema": "chengwang.subscription-product-acceptance/v1",
+  "runtimeSourceCommit": "2b0a472dda5fc75290a808d6dc7df18d9df1f128",
+  "status": "IMPLEMENTED_AND_TESTED_ISOLATED_CI_ONLY",
+  "authorization": "BLOCKED",
+  "production": false,
+  "deviceActionsExecuted": false,
+  "boundary": "LOCAL_SUBSCRIPTION_ADMISSION_ONLY",
+  "productRun": {"id": 39955687597, "attempt": 1, "producerJob": 120420840840, "freshReplayJob": 120421240997, "conclusion": "success"},
+  "parentRun": {"id": 39955687580, "attempt": 1, "job": 120420840956, "conclusion": "success", "rawLogBytes": 6023437, "rawLogSHA256": "9ca6e95d2bc5b157804aca46e88644000cd791f05dad33a6ba2ca4267b9bd865"},
+  "artifacts": {
+    "producer": {"id": 12502635850, "zipBytes": 110396, "zipSHA256": "394014ad86098004e5d66e96c920d6c46581e4ffa288fa26815be7c724c5630c", "files": 25, "expandedBytes": 415866},
+    "freshReplay": {"id": 12503055004, "zipBytes": 1612, "zipSHA256": "1850b108b739b7d2abd36d609045d82eef541c991202441a72e2fa5a880d6e6d", "files": 1},
+    "report": {"bytes": 2496, "sha256": "29d9695e27f26e1e615e8b423d20e40b9cda6d820d1134caf13f3740898bbc5b", "producerFreshRootSemanticByteEqual": true},
+    "producerRawLog": {"bytes": 42400, "sha256": "93ef01730f0c9bdae926d650832dce47071c5201e1709d513fa8af3176316f68"},
+    "freshRawLog": {"bytes": 17657, "sha256": "054b1066bd1a476dbf6276ed92a5405e0902a61f111d4dc33e14d4d36d1b69ca"}
+  },
+  "actualUnitTests": [
+    {"module": "test_wire_fixture", "runs": 24, "passes": 24, "skips": 0, "shape": 8, "linuxNative": 16, "namesSHA256": "c22d31e8501e9975760ef1d59dfbd4c7de1074107bb3ac42bcd27fbcd458f565"},
+    {"module": "test_run_subscription_lab", "runs": 24, "passes": 24, "skips": 0, "syntheticOnly": true, "namesSHA256": "23574c38480dc9936345cc9de9950365b1b1be88298b5e8c76ef6cc13c8aa5bc"},
+    {"module": "test_check_subscription_lab", "runs": 32, "passes": 32, "skips": 0, "syntheticOnly": true, "namesSHA256": "7f42b31818aafb4c0b77e7a47a16c0ae407547619aacdc070ca911e4608c477e"}
+  ],
+  "actualParentTests": {"ordinary": 2620, "race": 2620, "eachRunPassOnce": true, "testFailures": 0, "testSkips": 0, "fuzzSeedsPerCycleSeparate": 12, "packagePassesPerCycle": 41, "preservedNoTestPackageSkip": "chengwang/internal/domain", "fullPairsSHA256": "06e0e29fbb80a30ce7819be7dda5859cccd8daed8a60060e71174138e51a1b14", "new130SHA256": "8a6406058684acd33b508a276970dcf5f951f4b3e9e332b8d82d813bd48c3736", "old2490_2403_2391_2320_and87Matched": true, "originalFourGitGateReplayExitCode": 0},
+  "observationsNotTestCounts": {"apiCaptures": 46, "serverEpochs": 4, "normalStoppedProcessesIncludingWire": 5, "wireConnections": 26, "wireEvents": 102, "dnsEvents": 18, "httpEvents": 6, "auditEvents": 53, "commands": 24, "approvals": 9, "localAudit": 6, "originalGitBlobs": 744, "originalGitBlobBytes": 32459169, "publicLabFiles": 20, "oversizeSuccessfulSendReturnBytesNotRemoteReceivedBytes": 82040},
+  "verificationBoundaries": {"completePOSIXChecker": "PRODUCER_AND_FRESH_LINUX_JOBS", "rootAndAgentLocalReplay": "ORIGINAL_ZIP_SEMANTIC_REPLAY_WITH_EXPLICIT_MEMORY_READ_ADAPTER_NOT_WINDOWS_POSIX_CUSTODY", "strictLinuxCustodyRelaxed": false, "privateDatabaseRawIndependentlyVerified": false, "externalInternetProven": false, "buildReproducibilityProven": false, "observedHostBoundaryFields": 4, "allHostStateUnchangedProven": false, "artifactRetentionDays": 14},
+  "preservedFailedAttempt": "p2-subscription-product-attempt-2a68973.json",
+  "notCompleted": ["subscription resource UI with both CDP and Playwright", "automatic scheduling", "full kernel and node business validation", "system-wide backup and recovery", "capacity and long soak", "isolated device publish readback rollback", "production canary and independent business acceptance"],
+  "wholeSubscriptionOrchestrationCapability": "design_only"
+}
