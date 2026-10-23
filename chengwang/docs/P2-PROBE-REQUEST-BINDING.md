@@ -1,6 +1,6 @@
 # P2：隔离探针请求关联与取消结果观察
 
-当前状态：实现与纯CPU增量检查完成，真实CI尚未运行/验收。不是网络取消修复、系统上线或生产操作记录。
+当前状态：实现与纯CPU增量检查完成；首次真实CI因新增TypeScript类型错误在构建阶段失败，保留失败原件。两行类型修正待新源码首次CI验收。不是网络取消修复、系统上线或生产操作记录。
 
 ## 要解决的证据缺口
 
@@ -29,6 +29,14 @@
 首次本机组合反例的预算fixture把“256合法”错当作超限，原失败保留在本机临时证据根；冻结后改为257条反例，48项Python实际通过，预算未放宽。新原输出读取器还实测到Windows lstat/fstat的ctime值不同；只在各自API前后验证完整稳定性，跨API仍核inode/device/mode/links/size/mtime，不丢弃ctime检查，也不改旧POSIX验真门。[CPython官方对应Issue](https://github.com/python/cpython/issues/157671)仅作语义参考，本机实测差异才是本轮证据。
 
 主代理本机原输出：`C:/Users/Administrator/AppData/Local/Temp/chengwang-request-binding-root-020d73d7dec94322999a124a9719a69a`；它不是永久集中归档。
+
+## 首次真实CI与最小类型修正
+
+源码 `4ecaeddf7543ec86591a29b6cf0f5f871af29e2b` 的原 [Probe CI 40012629719](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40012629719)、[UI CI 40012629568](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40012629568) 与 [镜像 CI 40012629715](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40012629715) 均因新增代码的TypeScript类型错误构建失败，197项Vitest及真实浏览器未执行。四UI producer原日志均确认 `probe-api.test.ts:122` 的reader缓冲区类型过宽，`probe-api.ts:10` 的随机数回调参数/返回类型过宽。UI artifact数为0、fresh跳过；缺失原件不补造。
+
+根据锁定TypeScript6.0.3的[官方DOM定义](https://github.com/microsoft/TypeScript/blob/v6.0.3/src/lib/dom.generated.d.ts)及[TypedArray定义](https://github.com/microsoft/TypeScript/blob/v6.0.3/src/lib/es5.d.ts)，只将随机数回调和新增测试reader的缓冲区显式限定为 `ArrayBuffer`，不使用any、不升级依赖或放宽strict。两文件修正前后的纯CPU转译JS逐字一致，16项纯检查再次通过；转译不是完整类型检查，修正仍待新的原CI验证。原失败run不重跑、不取消、不覆盖。
+
+首次CI主代理日志：`C:/Users/Administrator/AppData/Local/Temp/chengwang-request-binding-4ecaedd-root-6d1779c2f2d840789488056c59ef218d`。前序文档提交 `9104264` 的原父门40008278980现已终态success，但不能代替本次源码回归。
 
 ## 真实运行退出条件
 

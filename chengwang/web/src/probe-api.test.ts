@@ -119,7 +119,7 @@ describe('P1 probe read-only transport', () => {
       let resolve!: () => void, reject!: (error: Error) => void
       const pending = new Promise<void>((yes, no) => { resolve = yes; reject = no })
       const reader = { read: vi.fn().mockResolvedValueOnce({ done: false, value: new TextEncoder().encode(JSON.stringify(probeStatus())) }).mockResolvedValueOnce({ done: true }), cancel: vi.fn(() => pending), releaseLock: vi.fn() }
-      const response = probeResponse(probeStatus()); vi.spyOn(response.body!, 'getReader').mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array>)
+      const response = probeResponse(probeStatus()); vi.spyOn(response.body!, 'getReader').mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>)
       vi.stubGlobal('fetch', vi.fn(async () => response))
       const before = rows().filter(row => row.e === 'CANCEL_RESULT').length
       await expect(getProbeStatus(bound())).resolves.toMatchObject({ state: 'ready' })

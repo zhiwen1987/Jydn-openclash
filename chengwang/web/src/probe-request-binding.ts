@@ -5,7 +5,7 @@ type Options = {
   enabled: () => boolean
   origin: () => string
   context: (signal: AbortSignal) => Context | null
-  random: (bytes: Uint8Array) => Uint8Array
+  random: (bytes: Uint8Array<ArrayBuffer>) => Uint8Array<ArrayBuffer>
   write: (line: string) => void
 }
 const prefix = 'CW_PROBE_BIND:'
