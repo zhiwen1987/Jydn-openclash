@@ -31,7 +31,7 @@
 | P2-03 | 私有隔离库、本地接纳、回退和审计 | 已实现，34 项 ordinary/race 隔离验收通过 | 故障注入不等于断电；外部审计和整套备份恢复尚未完成 |
 | P2-04 | 批准来源 HTTPS 有界读取 | 已实现，18 项＋1 条跨组件 ordinary/race 隔离验收通过 | DNS/dial 为明确 fixture；无真实公网、产品来源批准或调度闭环 |
 | P2-05 | 产品 API / RBAC / 独立写门 | `f0c23d6` 有界隔离验收通过：ordinary/race 各 2620 Test，新 130 齐全；原生/CDP/Playwright 原工件重放通过；同源码镜像 CI success，前端 117、子模块各 732、原 Registry/source/source-TLS 三门独立重放通过；详见[应用验收](P2-SUBSCRIPTION-API-ACCEPTANCE.md) | 仅本地准入后端，非完整编排/生产；独立主进程/完整公共 pin Fetch、订阅资源页与其余旧产品完整 CLI 独立重放仍未完成 |
-| P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | 候选已实现，56 纯合成辅助检查通过；尚未 CI 验收。[预先冻结合同](../deploy/subscription-readback/README.md)为四个实际进程、46 调用和全新 Linux job 的原工件完整重放 | 另 24 wire 项当前仅 Windows 8 shape pass/16 Linux skip；仅私有无出口 namespace 的公网地址 fixture，不是真实互联网；辅助测试不能计为已验或上线 |
+| P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | 首轮 `2a68973` CI 严格失败：80 辅助项实际通过，46 调用/4 epoch 已采集，但独立 gate 拒绝 oversize 的 partial/bytes=0；fresh replay 未执行。原[失败记录](evidence/p2-subscription-product-attempt-2a68973.json)保留，[合同](../deploy/subscription-readback/README.md)不缩减 | 不能将采集或辅助通过称为整轮验收；仅私有无出口 namespace 的公网地址 fixture，不是真实互联网/生产 |
 | P2-06 | 真实订阅资源界面与浏览器闭环 | 未实现；后续须同时保留 Chrome/CDP 与固定版本 Playwright | 当前订阅页仍是占位，不是实际库存；已有双浏览器仅证明探针页 |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
 

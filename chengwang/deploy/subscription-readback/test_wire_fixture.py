@@ -264,10 +264,43 @@ class ShapeTests(unittest.TestCase):
             with self.assertRaises(wire.Rejected): wire.http_reference(raw, contract.SOURCE_HOSTS['good-a'], TOKENS)
 
     def test_http_fixed_response_modes_and_oversize(self):
+        server = object.__new__(wire.WireServer)
+        server.stop, server.abnormal = threading.Event(), False
+
+        class FakeSSL:
+            def __init__(self, fail_body=False, timeout=False):
+                self.parts, self.calls = [], 0
+                self.fail_body, self.timeout = fail_body, timeout
+
+            def send(self, raw):
+                if not 0 < len(raw) <= 16384:
+                    raise AssertionError('single-send-budget-invalid')
+                self.calls += 1
+                if self.calls > 1 and self.fail_body:
+                    if self.timeout: raise socket.timeout('synthetic')
+                    raise ssl.SSLError('synthetic')
+                self.parts.append(raw)
+                return len(raw)
+
         for ref in contract.REFERENCE_IDS:
             status, response = wire.http_response(ref, GOOD_BODY)
             self.assertTrue(status == (302 if ref == 'redirect' else 200) and response == expected_http(ref), 'wire-template-mismatch')
+            complete = FakeSSL()
+            self.assertEqual(server.send_http(complete, response), len(response))
+            self.assertTrue(b''.join(complete.parts) == expected_http(ref), 'sent-wire-template-mismatch')
+            self.assertTrue(complete.parts[0].endswith(b'\r\n\r\n'), 'headers-not-sent-separately')
         self.assertEqual(len(wire.http_response('oversize', GOOD_BODY)[1].split(b'\r\n\r\n', 1)[1]), contract.MAX_INPUT + 1)
+        response = expected_http('oversize')
+        header_size = response.index(b'\r\n\r\n') + 4
+        failed = FakeSSL(fail_body=True)
+        self.assertEqual(server.send_http(failed, response), header_size)
+        self.assertEqual(failed.calls, 2, 'tls-error-was-retried')
+        self.assertTrue(b''.join(failed.parts) == response[:header_size], 'unconfirmed-bytes-counted')
+        self.assertFalse(server.abnormal, 'expected-oversize-client-close-was-timeout')
+        timed_out = FakeSSL(fail_body=True, timeout=True)
+        self.assertEqual(server.send_http(timed_out, response), header_size)
+        self.assertEqual(timed_out.calls, 2)
+        self.assertTrue(server.abnormal, 'send-timeout-not-abnormal')
 
     def test_input_json_and_base64_are_closed(self):
         tokens, body = wire.parse_input(input_bytes())

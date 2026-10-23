@@ -1,4 +1,4 @@
-# P2-05b：独立订阅产品链路验收（候选，尚未通过）
+# P2-05b：独立订阅产品链路验收（候选，首轮失败保留）
 
 这是 CI 专用实验，不是部署脚本。不得在 Windows、生产路由器或局域网宿主直接运行 namespace、fixture 或产品采集命令。当前文件存在不代表实验已经运行；以精确源码、原始 run/job/attempt、工件和独立重放结果为准。
 
@@ -36,3 +36,9 @@
 单一集成者独立执行冻结的 runner 24＋checker 32，共 56 项纯合成辅助测试，最终均 run/pass 一次、0 skip。固定完整名字的 sorted-LF SHA256 分别为 `23574c38480dc9936345cc9de9950365b1b1be88298b5e8c76ef6cc13c8aa5bc` 与 `7f42b31818aafb4c0b77e7a47a16c0ae407547619aacdc070ca911e4608c477e`。wire 名单 24 项的固定指纹为 `c22d31e8501e9975760ef1d59dfbd4c7de1074107bb3ac42bcd27fbcd458f565`；Windows 仅 8 shape pass、16 Linux skip，不算 24 原生通过。
 
 两次 Windows 辅助失败不覆盖：runner 原为 23 pass/1 error；之后 checker 原为 31 pass/1 error，均在正例文件的 FD/path 严格元数据比较处拒绝。改的是纯辅助正例的显式合成 POSIX 元数据，不删除测试、不 skip，也不放宽运行时完整 custody 比较；历史失败未留存完整三通道值，不能据此宣称唯一根因。真实 Linux 原件文件保管仍由 CI 完整执行。
+
+## 首轮真实 CI：严格失败，不覆盖
+
+源码 `2a689730cd7add43d7a15028cfd3c47d29754d06`，[run 39954809983](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39954809983)，producer job `120417876671`。24 wire＋24 runner＋32 checker 实际 run/pass、0 skip；实际产品完成 46 capture/4 epoch，但后续独立 checker 失败。fresh Linux replay job `120418257967` 跳过，不算通过。原 ZIP、日志、计数与边界见[机器记录](../../docs/evidence/p2-subscription-product-attempt-2a68973.json)。
+
+原工件按原 Git checker 逐函数诊断首先拒绝 `wire-http-empty`：oversize 的 HTTP event 为 `partial/bytes=0`，API 为 503。该诊断使用未改动的原 20 文件语义，不冒充 Windows 完整 POSIX CLI 重放或 Linux 原异常栈。一次大块 `SSLSocket.send` 抛出时，已处理的部分不能从返回值精确恢复；0 仅指累计成功返回计数，不表示远端收到零字节。候选修正将 HTTP header 和有界 body 分开发送，只累加真实返回值，保留独立正字节门、响应原字节和所有原超时，不补造旧工件。

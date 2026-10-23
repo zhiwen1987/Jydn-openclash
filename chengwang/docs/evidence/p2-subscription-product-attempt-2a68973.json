@@ -1,0 +1,32 @@
+{
+  "schema": "chengwang.subscription-product-attempt-record/v1",
+  "sourceCommit": "2a689730cd7add43d7a15028cfd3c47d29754d06",
+  "runId": 39954809983,
+  "attempt": 1,
+  "producerJobId": 120417876671,
+  "producerConclusion": "failure",
+  "failedStep": "Independently verify public original bytes not helper PASS flags",
+  "freshReplayJobId": 120418257967,
+  "freshReplayConclusion": "skipped",
+  "accepted": false,
+  "authorization": "BLOCKED",
+  "production": false,
+  "deviceActionsExecuted": false,
+  "observedUnitTests": {
+    "wire": {"runs": 24, "passes": 24, "skips": 0, "shape": 8, "linuxNative": 16, "namesSHA256": "c22d31e8501e9975760ef1d59dfbd4c7de1074107bb3ac42bcd27fbcd458f565"},
+    "runner": {"runs": 24, "passes": 24, "skips": 0, "syntheticOnly": true, "namesSHA256": "23574c38480dc9936345cc9de9950365b1b1be88298b5e8c76ef6cc13c8aa5bc"},
+    "checker": {"runs": 32, "passes": 32, "skips": 0, "syntheticOnly": true, "namesSHA256": "7f42b31818aafb4c0b77e7a47a16c0ae407547619aacdc070ca911e4608c477e"}
+  },
+  "capturedNotAccepted": {"apiCalls": 46, "serverEpochs": 4, "wireConnections": 26, "wireEvents": 102, "sourceManifestFiles": 743},
+  "originalArtifact": {"id": 12502067205, "zipBytes": 108602, "sha256": "a040795868944866f4f361497db4942cc35a968cc00a67960e80af607ea578d5"},
+  "originalJobLog": {"bytes": 42175, "sha256": "c32d878198eba1b23dd4bc257513df300bdc7a4b1e18990c287271f14da4d390"},
+  "diagnostic": {
+    "method": "ORIGINAL_GIT_SEMANTIC_FUNCTIONS_WITH_ORIGINAL_20_FILE_BYTES_NOT_FULL_POSIX_CLI_REPLAY",
+    "firstSemanticRejection": "wire-http-empty",
+    "wireEvent": {"ordinal": 89, "connection": 23, "reference": "oversize", "event": "http", "status": 200, "reason": "partial", "bytes": 0},
+    "apiStatus": 503,
+    "notProven": ["Linux CLI exact exception stack", "remote received zero bytes", "complete transfer", "production or Internet availability"],
+    "windowsOriginalCLI": "REJECTED_PUBLIC_FILE_OPEN_RACE_NOT_THE_LINUX_DIAGNOSTIC",
+    "proposedCorrection": "Separate HTTP headers from bounded body writes; count only successful send returns. Keep the independent positive-byte gate and original deadlines."
+  }
+}

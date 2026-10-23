@@ -384,12 +384,25 @@ class WireServer:
         count = 0
         while count < len(raw) and not self.stop.is_set():
             try:
-                written = connection.send(raw[count:])
+                written = connection.send(raw[count:count + 16384])
                 if written <= 0: break
                 count += written
+            except (socket.timeout, TimeoutError):
+                self.abnormal = True
+                break
             except (OSError, ssl.SSLError):
                 break
         return count
+
+    def send_http(self, connection, response):
+        # Finish the headers in separate successful writes before attempting
+        # the body. A failed SSL_write can have unobservable partial effects;
+        # only successfully returned byte counts are evidence here.
+        header_size = response.index(b'\r\n\r\n') + 4
+        written = self.send(connection, response[:header_size])
+        if written == header_size:
+            written += self.send(connection, response[header_size:])
+        return written
 
     def worker(self, raw, number, service):
         connection, secured, emitted, payload_emitted, reason = raw, False, False, False, 'closed'
@@ -427,7 +440,7 @@ class WireServer:
                     payload_emitted = True
                     raise
                 received = str(time.time_ns()); status, response = http_response(ref, self.files.body)
-                written = self.send(connection, response)
+                written = self.send_http(connection, response)
                 self.emit(number, service, 'http', 'ok' if written == len(response) else 'partial', True,
                           reference=ref, status=status, bytes=written, receivedUnixNano=received)
                 payload_emitted = True
