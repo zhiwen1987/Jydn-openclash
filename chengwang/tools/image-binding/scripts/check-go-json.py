@@ -132,6 +132,15 @@ D12_REQUIRED_PAIRS = frozenset((package, name) for package, names in D12_REQUIRE
 D12_EXTENSION_COUNT = 28
 D12_ORDINARY_COUNT = 728
 D12_NAME_PREFIXES = ("TestProductTrustStateD12", "TestProductD12", "TestCandidateD12")
+# This is an exact, separately reviewed extension. The original 728/700
+# validators and every historical package fingerprint below remain unchanged.
+P1_PROBE_REQUIRED_PAIRS = frozenset((COMMAND, name) for name in (
+    "TestCandidateP1ProbeOmittedConfigurationPreservesLegacyJSON",
+    "TestCandidateP1ProbeExplicitConfigurationHasClosedBounds",
+    "TestCandidateP1ProbeNestedConfigurationRejectsUnknownFields",
+    "TestCandidateP1ProbeDisabledRuntimeIgnoresInheritedEnvironment",
+))
+P1_PROBE_ORDINARY_COUNT = 732
 REQUIRED_ORDINARY = {
     ROOT: {
         "TestBindSignedRegistryImage", "TestBindSignedRegistryImage/message-signature", "TestBindSignedRegistryImage/dsse",
@@ -495,6 +504,25 @@ def check_ordinary_test_set(tests):
         checker(baseline)
 
 
+def split_probe_extension(tests):
+    if len(P1_PROBE_REQUIRED_PAIRS) != 4 or any(package != COMMAND or "/" in name
+                                              for package, name in P1_PROBE_REQUIRED_PAIRS):
+        raise ValueError("reviewed P1 probe extension protocol changed")
+    # Prefix detection rejects impostors; only exact pairs are ever excluded.
+    observed = frozenset((package, name) for package, name in tests
+                         if name.startswith("TestCandidateP1Probe"))
+    if observed != P1_PROBE_REQUIRED_PAIRS:
+        raise ValueError("missing, renamed, extra or wrong-package P1 probe test")
+    return frozenset(tests) - P1_PROBE_REQUIRED_PAIRS
+
+
+def check_probe_ordinary_test_set(tests):
+    retained = split_probe_extension(tests)
+    if len(tests) != P1_PROBE_ORDINARY_COUNT or len(retained) != D12_ORDINARY_COUNT:
+        raise ValueError("complete 732 set must retain exactly 728 old and 4 reviewed P1 probe pairs")
+    check_ordinary_test_set(retained)
+
+
 def check_product_lifecycle_markers(events):
     for mode in ("consumed-recovery", "refresh-revocation"):
         marker = "PRODUCT_D7_REAL_API=PASS mode=" + mode
@@ -600,11 +628,11 @@ def main():
     if results[0] != results[1]:
         raise ValueError("ordinary/race test or package sets differ")
     if args.mode == "ordinary":
-        check_ordinary_test_set(results[0][0])
+        check_probe_ordinary_test_set(results[0][0])
         for path in args.transcripts:
             with path.open(encoding="utf-8") as stream:
                 check_product_lifecycle_markers([json.loads(line, object_pairs_hook=unique_object) for line in stream])
-    elif any(name.startswith(D12_NAME_PREFIXES) for _, name in results[0][0]):
+    elif any(name.startswith(D12_NAME_PREFIXES + ("TestCandidateP1Probe",)) for _, name in results[0][0]):
         raise ValueError("ordinary D12 extension cannot be claimed as real Registry lifecycle evidence")
     print(f"IMAGE_BINDING_GO_JSON_GATE=PASS mode={args.mode} transcripts=2 "
           f"tests={len(results[0][0])} packages={len(results[0][1])} skips=0 race=pass "

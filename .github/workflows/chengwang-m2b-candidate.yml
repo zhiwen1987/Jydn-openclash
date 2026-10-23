@@ -830,6 +830,7 @@ jobs:
           echo "SHELL_SYNTAX_GATE=PASS scripts=${#shell_scripts[@]}"
 
           cd chengwang
+          /usr/bin/python3 -B deploy/m2b-candidate/tests/probe_test_extension.py
           /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -count=1 ./... | /usr/bin/tee "$RUNNER_TEMP/chengwang-go-test.json"
           /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -race -count=1 ./... | /usr/bin/tee "$RUNNER_TEMP/chengwang-go-race.json"
           /opt/hostedtoolcache/go/1.23.12/x64/bin/go vet ./...

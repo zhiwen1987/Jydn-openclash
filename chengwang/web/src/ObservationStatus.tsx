@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Activity, AlertCircle, CircleDashed, Database, Globe2, RefreshCw, Server } from 'lucide-react'
 import { getObservationStatus } from './api'
 import type { ObservationLayer, ObservationStatus as ObservationStatusType } from './types'
+import { ProbeReadback } from './ProbeReadback'
 
 function label(state: ObservationLayer['state']): string {
   if (state === 'available') return '可用'
@@ -57,8 +58,9 @@ export function ObservationStatus() {
         <LayerCard title="历史存储" layer={status.storage} icon={<Database size={20}/>}/>
         <LayerCard title="观测时钟" layer={status.clock} icon={<Activity size={20}/>}/>
       </section>
-      <section className="panel observation-limitations"><h2>当前验收边界</h2><ul><li>只证明 Mihomo Controller 周期读取结果和证据新鲜度。</li><li>没有主动 HTTP、TLS、DNS 或业务探测，不给 ChatGPT、Gemini 等业务下可用结论。</li><li>完整历史属于管理明细，必须通过 TLS 或本机回环并完成身份授权。</li></ul></section>
+      <section className="panel observation-limitations"><h2>控制器观测边界</h2><ul><li>上方仅证明 Mihomo Controller 周期读取结果和证据新鲜度。</li><li>控制器可达不代表 ChatGPT、Gemini 等业务可用；独立探针证据在下方单独读回，不反填这些被动层级。</li><li>完整历史属于管理明细，必须通过 TLS 或本机回环并完成身份授权。</li></ul></section>
     </> : null}
+    <ProbeReadback/>
   </div>
 }
 

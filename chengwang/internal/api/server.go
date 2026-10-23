@@ -40,6 +40,7 @@ type Options struct {
 	ManagementScope         authz.ResourceScope
 	EvidenceMaxAge          time.Duration
 	Observation             ObservationReader
+	Probes                  ProbeReader
 	ImageTrust              imagetrust.Backend
 	ImageTrustWritesEnabled bool
 }
@@ -98,6 +99,8 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("GET /api/v1/attestation/shadow", s.shadowAttestation)
 	mux.HandleFunc("GET /api/v1/observations/status", s.observationStatus)
 	mux.HandleFunc("GET /api/v1/observations/mihomo/history", s.observationHistory)
+	mux.HandleFunc("/api/v1/probes/status", s.probeStatus)
+	mux.HandleFunc("/api/v1/probes/details", s.probeDetails)
 	mux.HandleFunc("GET /api/v1/evidence/integrity", s.evidenceIntegrity)
 	mux.HandleFunc("GET /api/v1/snapshot", s.snapshot)
 	mux.HandleFunc("GET /api/v1/versions", s.versions)

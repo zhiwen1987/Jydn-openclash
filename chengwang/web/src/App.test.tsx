@@ -63,7 +63,9 @@ describe('App', () => {
     expect(screen.getByText('延迟和控制器可达不等于业务可用')).toBeInTheDocument()
     expect(screen.getAllByText('未评估').length).toBeGreaterThanOrEqual(4)
     expect(screen.queryByText('ChatGPT 可用')).not.toBeInTheDocument()
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    // The independent probe panel reads its own anonymous cache; it does not
+    // turn the passive controller's four unknown layers into business health.
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
   })
 
   it('manages proxy server interfaces without enabling production publish', () => {

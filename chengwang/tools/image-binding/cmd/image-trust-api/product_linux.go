@@ -29,15 +29,16 @@ import (
 // reads nor modifies process-global environment overrides, deployment files,
 // host trust roots or the original product server's optional write switches.
 type productConfiguration struct {
-	Addr               string `json:"addr"`
-	DataDir            string `json:"dataDir"`
-	IdentitiesFile     string `json:"identitiesFile"`
-	TLSCertFile        string `json:"tlsCertFile"`
-	TLSKeyFile         string `json:"tlsKeyFile"`
-	TenantID           string `json:"tenantId"`
-	SiteID             string `json:"siteId"`
-	Environment        string `json:"environment"`
-	ManagementObjectID string `json:"managementObjectId"`
+	Addr               string                         `json:"addr"`
+	DataDir            string                         `json:"dataDir"`
+	IdentitiesFile     string                         `json:"identitiesFile"`
+	TLSCertFile        string                         `json:"tlsCertFile"`
+	TLSKeyFile         string                         `json:"tlsKeyFile"`
+	TenantID           string                         `json:"tenantId"`
+	SiteID             string                         `json:"siteId"`
+	Environment        string                         `json:"environment"`
+	ManagementObjectID string                         `json:"managementObjectId"`
+	ProbeRead          *productProbeReadConfiguration `json:"probeRead,omitempty"`
 }
 
 func runProduct(ctx context.Context, trustFile, productFile string, listen func(string, string) (net.Listener, error)) error {
@@ -57,6 +58,10 @@ func runProductWithRequestObserver(ctx context.Context, trustFile, productFile s
 	}
 	var p productConfiguration
 	if strictDecode(raw, &p) != nil || p.Environment != "candidate" || p.TenantID == "" || p.SiteID == "" || p.ManagementObjectID == "" || p.Addr == "" {
+		return errConfiguration
+	}
+	probeConfig, err := productProbeReadConfig(p.ProbeRead)
+	if err != nil {
 		return errConfiguration
 	}
 	if !filepath.IsAbs(p.DataDir) || filepath.Clean(p.DataDir) != p.DataDir || p.DataDir == "/" || strings.ContainsAny(p.DataDir, "\\\x00") {
@@ -129,6 +134,9 @@ func runProductWithRequestObserver(ctx context.Context, trustFile, productFile s
 		Addr: p.Addr, DataDir: p.DataDir, IdentitiesFile: p.IdentitiesFile,
 		TLSCertFile: p.TLSCertFile, TLSKeyFile: p.TLSKeyFile,
 		TenantID: p.TenantID, SiteID: p.SiteID, ManagementObjectID: p.ManagementObjectID, Mode: p.Environment,
+		ProbeReadEnabled: probeConfig.ProbeReadEnabled, ProbeCatalogFile: probeConfig.ProbeCatalogFile,
+		ProbeSpoolDir: probeConfig.ProbeSpoolDir, ProbePollInterval: probeConfig.ProbePollInterval,
+		ProbeCacheMaxAge: probeConfig.ProbeCacheMaxAge,
 		// Zero-valued publish/operation/admin/Mihomo options are intentional:
 		// incoming HTTP or inherited environment cannot reopen those domains.
 	}

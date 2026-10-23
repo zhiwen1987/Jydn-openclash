@@ -26,6 +26,8 @@ import (
 	"chengwang/internal/imagetrust"
 	"chengwang/internal/observation"
 	"chengwang/internal/operation"
+	"chengwang/internal/probe"
+	"chengwang/internal/probeview"
 	"chengwang/internal/store"
 	"chengwang/internal/webui"
 )
@@ -39,6 +41,9 @@ type Config struct {
 	MihomoURL, MihomoToken                    string
 	MihomoAllowedHosts                        []string
 	ObservationInterval, ObservationTTL       time.Duration
+	ProbeReadEnabled                          bool
+	ProbeCatalogFile, ProbeSpoolDir           string
+	ProbePollInterval, ProbeCacheMaxAge       time.Duration
 }
 
 type TrustDependencies struct {
@@ -86,6 +91,9 @@ func ConfigFromEnvironment() (Config, error) {
 			return Config{}, err
 		}
 	}
+	if err := probeConfigFromEnvironment(&c); err != nil {
+		return Config{}, err
+	}
 	return c, nil
 }
 
@@ -110,6 +118,9 @@ func RunWith(options Options) (result error) {
 	} else {
 		c = *options.Config
 		c.MihomoAllowedHosts = append([]string(nil), c.MihomoAllowedHosts...)
+	}
+	if err := validateProbeConfig(c); err != nil {
+		return err
 	}
 	if c.Addr == "" {
 		c.Addr = "127.0.0.1:7811"
@@ -145,6 +156,21 @@ func RunWith(options Options) (result error) {
 	}
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
+	var probes *probeview.Provider
+	if c.ProbeReadEnabled {
+		uid, gid := os.Geteuid(), os.Getegid()
+		if uid < 0 || gid < 0 {
+			return errors.New("initialize probe reader failed")
+		}
+		catalog, err := probe.ReadCatalogSecure(ctx, c.ProbeCatalogFile, probe.SecureFileOwner{UID: uint32(uid), GID: uint32(gid)})
+		if err != nil {
+			return errors.New("initialize probe reader failed")
+		}
+		probes, err = probeview.New(probeview.Config{Catalog: catalog, SpoolDir: c.ProbeSpoolDir, PollInterval: c.ProbePollInterval, CacheMaxAge: c.ProbeCacheMaxAge})
+		if err != nil {
+			return errors.New("initialize probe reader failed")
+		}
+	}
 	// Never close databases beneath still-running handlers or workers. A
 	// timeout leaves resources retained and reports failure; the failed process
 	// must be terminated, not reused as a successfully stopped runtime.
@@ -220,7 +246,11 @@ func RunWith(options Options) (result error) {
 		observer = collector
 	}
 	management := authz.ResourceScope{TenantID: c.TenantID, SiteID: c.SiteID, ObjectType: "control-plane", ObjectID: c.ManagementObjectID, Environment: c.Mode}
-	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled})
+	var probeReader api.ProbeReader
+	if probes != nil {
+		probeReader = probes // Do not put a typed nil pointer in the API interface.
+	}
+	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled})
 	if options.WebFactory != nil {
 		handler, err = options.WebFactory(handler)
 	} else if c.WebDir != "" {
@@ -244,14 +274,27 @@ func RunWith(options Options) (result error) {
 		listener = tls.NewListener(listener, tlsConfig)
 	}
 	var workers sync.WaitGroup
-	workerErrors := make(chan error, 3)
+	workerCount := 1 // Evidence reverification is always present.
+	if collector != nil {
+		workerCount++
+	}
+	if trust.Run != nil {
+		workerCount++
+	}
+	if probes != nil {
+		workerCount++
+	}
+	workerErrors := make(chan error, workerCount)
 	startWorker := func(run func(context.Context) error) {
 		workers.Add(1)
 		go func() {
 			defer workers.Done()
 			_ = run(ctx)
 			if ctx.Err() == nil {
-				workerErrors <- errors.New("runtime worker exited unexpectedly")
+				select {
+				case workerErrors <- errors.New("runtime worker exited unexpectedly"):
+				case <-ctx.Done():
+				}
 			}
 		}()
 	}
@@ -263,6 +306,9 @@ func RunWith(options Options) (result error) {
 	}
 	if trust.Run != nil {
 		startWorker(trust.Run)
+	}
+	if probes != nil {
+		startWorker(probes.Run)
 	}
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(listener) }()

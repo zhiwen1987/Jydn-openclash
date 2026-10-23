@@ -926,7 +926,7 @@ def _validate_p0d9_go_baseline(passed_tests: dict[str, set[str]]) -> None:
             raise RuntimeError(f"complete P0-d9 Go package fingerprint mismatch: {package}")
 
 
-def validate_go_json(paths: list[pathlib.Path]) -> int:
+def validate_go_json(paths: list[pathlib.Path], *, probe_extension: bool = False) -> int:
     total_run_events = 0
     total_packages = set()
     for source in paths:
@@ -981,6 +981,12 @@ def validate_go_json(paths: list[pathlib.Path]) -> int:
         if package_skips != ALLOWED_GO_PACKAGE_SKIPS:
             missing = sorted(ALLOWED_GO_PACKAGE_SKIPS - package_skips)
             raise RuntimeError(f"Go no-test package baseline is missing from {source}: {missing}")
+        # Historical unit fixtures still exercise the unchanged accepted gates.
+        # The actual CLI always requires the exact new increment before those
+        # same 2320-name/package fingerprints are evaluated.
+        if probe_extension:
+            from probe_test_extension import split_extension
+            passed_tests = split_extension(passed_tests, terminal_package_passes)
         for package, minimum in REQUIRED_GO_TEST_RUNS.items():
             actual = run_events[package]
             if actual < minimum:
@@ -1077,7 +1083,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.go_json:
-            return validate_go_json(args.go_json)
+            return validate_go_json(args.go_json, probe_extension=True)
         return run(args.candidate_root, verbosity=1 if args.quiet else 2)
     except (OSError, RuntimeError, ValueError) as error:
         print(f"STATIC_GATE=FAIL reason={error}", file=sys.stderr)

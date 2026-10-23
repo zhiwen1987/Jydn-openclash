@@ -67,6 +67,7 @@ cd "$MODULE_ROOT"
 ) > "$RUN_ROOT/evidence/checkout-before.sha256"
 /usr/bin/python3 -B scripts/check-go-json.py --self-test
 /usr/bin/python3 -B scripts/test-check-go-json.py
+/usr/bin/python3 -B scripts/test-check-go-json-probe.py
 /usr/bin/python3 -B "$source_root/chengwang/deploy/product-candidate/test_check_product_image.py" \
   2>&1 | /usr/bin/tee "$RUN_ROOT/evidence/product-image-checker-tests.log"
 /usr/bin/grep -qx 'PRODUCT_IMAGE_CHECKER_TESTS=PASS tests=18 skips=0 simulated_elf=true actual_image_not_proven=true' \
@@ -201,11 +202,11 @@ import json
 import pathlib
 import sys
 report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-# Expected 77 includes eight new stream-cancellation cases independently run
-# on Windows; this gate still requires their actual Linux transcript.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 77 or report.get("numPassedTests") != report.get("numTotalTests"):
+# Retain all 77 prior cases and require the 33 exact P1 unit scenarios.
+# These are mocked component/transport checks, not real probe-agent evidence.
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 110 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
-required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts"}
+required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx"}
 results = report.get("testResults", [])
 if {pathlib.Path(result["name"]).name for result in results} != required:
     raise SystemExit("frontend required test file set changed")
@@ -222,16 +223,25 @@ baseline = {
 new_prefixes = ("image trust read-only transport cancels the real unread response stream when rejecting ",
                 "image trust read-only transport does not wait for or expose a ",
                 "image trust read-only transport cancels only a forbidden history response ")
+probe_increment = {
+    "probe-api.test.ts": (21, "81955cb0b7996f5659a4d70a5d6cd56531f79a33f24e6066b06ab2117c64764a"),
+    "ProbeReadback.test.tsx": (12, "727a3ac9da8d4910b0f6ddad8bb6b78fbd44e77f07007d768b1b10e327465c05"),
+}
 for result in results:
     filename = pathlib.Path(result["name"]).name
     names = [case["fullName"] for case in result["assertionResults"]]
     if len(set(names)) != len(names):
         raise SystemExit("frontend duplicate test name")
+    if filename in probe_increment:
+        count, digest = probe_increment[filename]
+        if len(names) != count or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != digest:
+            raise SystemExit("reviewed 33 P1 frontend scenarios changed")
+        continue
     old = sorted(name for name in names if filename != "image-trust-api.test.ts" or not name.startswith(new_prefixes))
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=5 tests=" + str(report["numPassedTests"]) + " skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=7 tests=" + str(report["numPassedTests"]) + " retained=77 probe_increment=33 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"
