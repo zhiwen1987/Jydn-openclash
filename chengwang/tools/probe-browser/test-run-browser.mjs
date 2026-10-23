@@ -6,6 +6,8 @@ import { exerciseProbeBrowser } from './run-browser.mjs'
 
 const diagnosticStages = ['NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
   'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN', 'EXPIRED']
+const diagnosticPairStages = ['EXPIRED_SUMMARY', 'EXPIRED_FILL', 'EXPIRED_DETAILS',
+  'EXPIRED_MODEL', 'EXPIRED_GENERATION', 'EXPIRED_PUBLISH']
 const names = [], unit = (name, body) => {
   names.push(name)
   test(name, async () => {
@@ -19,7 +21,8 @@ const names = [], unit = (name, body) => {
     try { await body(diagnostics) } finally {
       process.stderr.write = original
       for (const line of diagnostics) {
-        assert.ok(diagnosticStages.some(stage => line === `PROBE_BROWSER_FLOW_STAGE=${stage}\n`))
+        assert.ok(diagnosticStages.some(stage => line === `PROBE_BROWSER_FLOW_STAGE=${stage}\n`)
+          || diagnosticPairStages.some(stage => line === `PROBE_BROWSER_PAIR_STAGE=${stage}\n`))
         assert.ok(!line.includes(token) && !line.includes('PRIVATE KEY') && !line.includes('Bearer '))
       }
       // Some negative tests invoke several independent flows in one test.
@@ -153,7 +156,9 @@ unit('probe flow synthetic CDP performs all real-shaped actions but never claims
   assert.equal(result.outcome, 'API_CAPTURE_UNBOUND'); assert.equal(result.runtimeProven, false); assert.equal(result.browserE2EProven, false)
   assert.equal(result.captures.length, 4); assert.equal(value.saved.size, 18); assert.equal(result.deadlineKind, 'EVIDENCE_TTL')
   assert.deepEqual(value.callbacks, ['fresh', 'fresh', 'expired']); assert.ok(value.driver.clicks.includes('清除明细与令牌'))
-  assert.deepEqual(diagnostics, diagnosticStages.map(stage => `PROBE_BROWSER_FLOW_STAGE=${stage}\n`))
+  assert.deepEqual(diagnostics, [...diagnosticStages.map(stage => `PROBE_BROWSER_FLOW_STAGE=${stage}\n`),
+    ...diagnosticPairStages.map(stage => `PROBE_BROWSER_PAIR_STAGE=${stage}\n`)])
+  assert.ok(diagnostics.filter(line => line.startsWith('PROBE_BROWSER_PAIR_STAGE=')).length <= 48)
   assert.ok(Buffer.byteLength(diagnostics.join('')) < 1024)
 })
 unit('probe flow synthetic Playwright is separately labelled and uses the same safe projections', async () => {

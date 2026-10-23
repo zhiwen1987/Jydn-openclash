@@ -13,6 +13,8 @@ const labels = { unknown: '未评估', available: '可用', restricted: '业务�
 // Entry checkpoints only: neither completion evidence nor browser acceptance.
 const flowStages = new Set(['NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
   'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN', 'EXPIRED'])
+const pairStages = new Set(['EXPIRED_SUMMARY', 'EXPIRED_FILL', 'EXPIRED_DETAILS',
+  'EXPIRED_MODEL', 'EXPIRED_GENERATION', 'EXPIRED_PUBLISH'])
 const failure = () => { throw new Error('probe browser flow rejected') }
 const need = value => { if (!value) failure() }
 const hex = /^[a-f0-9]{64}$/
@@ -160,6 +162,10 @@ export async function exerciseProbeBrowser(input) {
         process.stderr.write(`PROBE_BROWSER_FLOW_STAGE=${stage}\n`)
       }
     }
+    const pairCheckpoint = stage => {
+      need(pairStages.has(stage))
+      process.stderr.write(`PROBE_BROWSER_PAIR_STAGE=${stage}\n`)
+    }
     let cursor = 0, highWall = Date.now()
     const now = () => { const wall = Date.now(); need(wall >= highWall && wall < deadline); highWall = wall; return wall }
     const bounded = async (operation, maximum = 5000) => {
@@ -207,17 +213,24 @@ export async function exerciseProbeBrowser(input) {
     const readPair = async (stage, phase, initialStatus = null) => {
       let first = initialStatus
       for (let attempt = 0; attempt < 8; attempt++) {
-        now(); first ??= await summary(stage)
+        now()
+        if (phase === 'expired') pairCheckpoint('EXPIRED_SUMMARY')
+        first ??= await summary(stage)
         const fence = cursor
         if (stage === 'fresh') checkpoint('FRESH_TOKEN')
+        if (phase === 'expired') pairCheckpoint('EXPIRED_FILL')
         await bounded(() => driver.fill('#probe-token', token))
         if (stage === 'fresh') checkpoint('FRESH_API')
+        if (phase === 'expired') pairCheckpoint('EXPIRED_DETAILS')
         await bounded(() => driver.clickText('读取受保护明细', '.probe-readback'))
         const second = await response(DETAILS, fence, stage)
+        if (phase === 'expired') pairCheckpoint('EXPIRED_MODEL')
         const model = fromBodies(first.body, second.body, phase)
+        if (phase === 'expired') pairCheckpoint('EXPIRED_GENERATION')
         if (!model.generationMatches) { first = null; continue }
         if (phase === 'fresh') need(BigInt(now()) * 1000000n < ns(model.deadline))
         await bounded(() => expectedForBodies({ phase, statusBytes: Buffer.from(first.body), detailsBytes: Buffer.from(second.body) }))
+        if (phase === 'expired') pairCheckpoint('EXPIRED_PUBLISH')
         const statusFile = await publish(prefix + stage + '-status.json', first.body)
         const detailsFile = await publish(prefix + stage + '-details.json', second.body)
         sources.set(stage, { sourcePhase: phase, status: statusFile, details: detailsFile, statusOrdinal: first.ordinal,

@@ -54,6 +54,7 @@ def public_failure_diagnostic(bundle):
         ('logs/browser.private', r'^PROBE_BROWSER_CONTROLLER=FAIL stage=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_STAGE=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_FLOW_STAGE=([A-Z_]+)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_PAIR_STAGE=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_OPERATION=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_ERROR=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_FATAL=((?:base|chrome|content|components|sandbox|third_party)/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.cc):([1-9][0-9]{0,5})$'),
@@ -76,6 +77,7 @@ def public_failure_diagnostic(bundle):
                       'NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
                       'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN',
                       'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK',
+                      'EXPIRED_SUMMARY', 'EXPIRED_FILL', 'EXPIRED_DETAILS', 'EXPIRED_MODEL', 'EXPIRED_GENERATION', 'EXPIRED_PUBLISH',
                       'PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN'}
             if match[1] in stages and (len(match.groups()) == 1 or match[2] in ERRORS):
                 sys.stderr.write(line + '\n')

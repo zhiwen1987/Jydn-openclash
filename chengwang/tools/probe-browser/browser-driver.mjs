@@ -398,7 +398,7 @@ async function launchImplementation(input) {
       '--disable-component-update', '--disable-sync', '--disable-default-apps', '--disable-extensions', '--no-first-run',
       '--no-default-browser-check', '--disable-features=MediaRouter,OptimizationHints', '--password-store=basic']
     if (options.engine === 'chrome-cdp') {
-      launcherChild = spawn(options.launcher, [...args, '--headless=new', '--remote-debugging-address=127.0.0.1',
+      launcherChild = spawn(options.launcher, [...args, '--headless=new', '--hide-scrollbars', '--remote-debugging-address=127.0.0.1',
         '--remote-debugging-port=0', `--user-data-dir=${options.profile}`, 'about:blank'],
       { stdio: ['ignore', 'ignore', 'pipe'], env: environment })
       launcherChild.stderr.on('data', chunk => {

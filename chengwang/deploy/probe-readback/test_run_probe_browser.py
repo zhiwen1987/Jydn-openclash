@@ -60,6 +60,7 @@ class TestBrowserOrchestration(unittest.TestCase):
         private = (b'raw SECRET exception\nPROBE_BROWSER_DRIVER_STAGE=HOME\n'
                    b'PROBE_BROWSER_DRIVER_STAGE=SECRET\n'
                    b'PROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_FLOW_STAGE=SECRET\n'
+                   b'PROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_PAIR_STAGE=SECRET\n'
                    b'PROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_DRIVER_OPERATION=SECRET\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/../SECRET.cc:123\n'
@@ -68,7 +69,7 @@ class TestBrowserOrchestration(unittest.TestCase):
              mock.patch.object(browser.N, 'stable_read', return_value=(private, None)), \
              contextlib.redirect_stderr(diagnostic):
             browser.public_failure_diagnostic(pathlib.Path('/private'))
-        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
+        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory) / 'fixture'
             (root / 'browser/out').mkdir(parents=True)
