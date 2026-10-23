@@ -2,7 +2,7 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-**当前执行阶段：keyring读取条件诊断，UI矩阵仍未通过**。[最新5657e33实际结果](P2-CI-PRIVATE-APT-SOURCES.md)：原UI40023943559四producer均PRIVATE_KEYRING_READ，fresh跳过；已通过源字段检查后停于系统keyring读取（按精确绑定源码分支解释），还不能判断缺失/链接/权限/尺寸等具体条件。原51项逐名通过、原49/26名称保留；根/B/C核24原件，根四完整依赖CLI在精确Git冻结副本均正确拒绝。APT2.8.3已实际读回，27宿主配置前后同；私有配置/额外源probe/update/install/产品/浏览器仍未执行。下一步只诊断现有keyring检查，不放宽信任。前序a76/c7原失败保留，完整系统/生产均未完成。[机器台账](evidence/p2-ci-private-apt-diagnostic-5657e33.json)
+**当前执行阶段：keyring读取细分诊断，UI矩阵仍未通过**。[实现与原失败](P2-CI-PRIVATE-APT-SOURCES.md)：已增加固定keyring读取条件诊断，根实际64纯测试（35＋19＋10，原51/26名保留）/模拟跨层/10块语法通过，尚待新原CI给出真实细分原因；通用reader和信任接受条件未放宽。最近原UI40023943559四producer仍为PRIVATE_KEYRING_READ、fresh跳过，根/B/C24原件及根四原CLI拒绝已保全，不能预报新结果。APT2.8.3已实际读回，27宿主配置前后同；私有配置/额外源probe/update/install/产品/浏览器仍未执行。前序a76/c7原失败保留，完整系统/生产均未完成。[机器台账](evidence/p2-ci-private-apt-diagnostic-5657e33.json)
 
 **前序c7失败保留**：[c7b64c4实际验收](P2-CI-DEPENDENCY-ACQUISITION.md)：原run40018960129终态failure；两PW实际安装/包字体读回及既定产品原CLI通过，根/B产品报告逐字同、各879 Git blobs，根/B/C依赖报告逐字同；两CDP均INSTALL240s退出124，浏览器未启动，fresh跳过。四份新26原输出均逐名核验零skip，80原ZIP成员三方同；这些证明限时退出/拒绝生效，**不证明下载可用性修复或整组UI回归通过**。具体网络根因未证，后续方案已先核GitHub源码/测试，未改生产。父门40018960021及旧订阅40018960055成功，根核状态/A分层原件复验，不冒称根完整旧POSIX CLI通过。[机器台账](evidence/p2-ci-dependency-acquisition-c7b64c4.json)
 

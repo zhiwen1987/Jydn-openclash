@@ -1,6 +1,6 @@
 # P2：CI私有官方镜像源与实际版本读回
 
-状态：私有源底座和闭集诊断已实现，根51项纯测试通过；a76ec5e原CI40022986475与诊断源码5657e33原CI40023943559均 **failure**。后者四原报告定位PRIVATE_KEYRING_READ，仍未执行update/install或浏览器，fresh跳过。尚须区分具体keyring条件，不放宽校验。本页不是下载已修复、产品新增业务已上线或生产变更记录。
+状态：私有源底座与闭集诊断已实现；更细keyring读取诊断及独立模块已实现，根64项纯测试通过，尚待新原CI定位。a76ec5e原CI40022986475与5657e33原CI40023943559的 **failure** 保留，后者止于PRIVATE_KEYRING_READ，未执行update/install或浏览器，fresh跳过。本页不是下载已修复、产品新增业务已上线或生产变更记录。
 
 ## 范围与原故障
 
@@ -57,6 +57,16 @@
 根/B/C核四包24成员的API大小/摘要/CRC和原字节；根在新建5657精确Git冻结副本实际运行四个完整依赖CLI，均exit1、没有PASS报告。四份原51测试逐项通过、0skip，旧49/26名称保留；四日志/两源blob及27宿主配置前后同均核对。privateSources仍null，额外源probe、update/install、旧84/76、产品、PNG与fresh均未运行。[机器证据](evidence/p2-ci-private-apt-diagnostic-5657e33.json)。根原件在上述Temp的 `40023943559` 子目录。
 
 该原因码尚不能区分缺文件、链接、nlink、owner/mode、尺寸、open/read或稳定性拒绝，不能据此实施“跳过权限”“允许软链”等修复。下一安全增量是这些既有检查条件的闭集诊断，不导出keyring字节，也不弱化信任要求。5657父门40023943799和旧订阅40023943610仅核API终态success，其详细原件尚未在本轮独立重放；本轮整组仍失败。
+
+### keyring读取细分候选：不改变通用reader接受条件
+
+仅固定KEYRING路径且system_owned严格为true时，使用新诊断分支；通用read_file默认路径保持原语句与接受条件。诊断区分STAT、SYMLINK、TYPE、LINK_COUNT、SIZE、OWNER、MODE、OPEN、FD_STAT、READ、FINAL_STAT、STABILITY、LENGTH等固定类别（含原READ），禁止异常字符串/原keyring字节/任意路径进入报告。原regular、无软链、nlink1、尺寸、root/root、无022、nofollow/nonblock及完整稳定读取均保留，keyring稳定性另增加uid/gid前后比较；没有修权限、跟随软链或换信任。报告仍20字段、合同v2、四原日志；成功检查器与产品代码不变。
+
+根实际执行工作流同一段35＋19＋10共64项纯CPU测试，原51及最初26名称保留。独立第三模块自建FakeStream/四个stat状态，禁止真实文件访问和子进程，覆盖元数据拒绝、前/中/后身份与owner变化、短长读取、FD清理、非法参数、创建/读回传播及canary不泄漏。另模拟准备程序→独立检查器串联及10块bash语法实际通过，均不是Linux权限或APT实测。
+
+64测试原日志13132B、SHA `987c32b16da949202a3bedbef826e66e55098a291ecffd20db3e17b2a23609c5`，位于上述根Temp的 `keyring-reader/workflow-frozen-unit-original.log`。A首次本机测试因Windows路径字面和旧诊断表断言失败，原log保留于 `C:/Users/Administrator/AppData/Local/Temp/chengwang-keyring-diagnostic-a-yfgyus2c/helper-keyring-unittest.log`；修正后真实35项通过，不把这次模拟失败称为runner真实故障原因。C独立10项和根64项均实际通过，尚未据此判定具体真实keyring条件。
+
+上游补查：[Ubuntu官方固定安装清单](https://git.launchpad.net/ubuntu/+source/ubuntu-keyring/plain/debian/ubuntu-keyring.install?id=edc0a0be9a90f364bc39a87d3837ad4c15395950)将ubuntu-archive-keyring.gpg安装到usr/share/keyrings；源树普通文件布局不证明当前runner的owner/mode/nlink。根通过只读HTTP实际取得该文本，B核固定postinst/rules，未找到足以解释当前失败的特殊链接/权限证据；没有因此修改reader或系统信任。
 
 ## 已查阅的上游依据
 

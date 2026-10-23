@@ -46,6 +46,22 @@ def synthetic_source():
 
 class PrepareDependencyTests(unittest.TestCase):
     @contextlib.contextmanager
+    def keyring_reader_fixture(self, *, stats=None, descriptor_stats=None, read=None, opening=None):
+        # Entirely synthetic: even the fixed Linux keyring path is never opened.
+        valid = SimpleNamespace(st_dev=1, st_ino=2, st_mode=stat.S_IFREG | 0o644,
+            st_nlink=1, st_size=3, st_mtime_ns=10, st_uid=0, st_gid=0, st_ctime_ns=20)
+        stream = MagicMock()
+        stream.__enter__.return_value = stream
+        stream.fileno.return_value = 79
+        stream.read.side_effect = read if isinstance(read, Exception) else None
+        stream.read.return_value = b'abc' if read is None or isinstance(read, Exception) else read
+        with patch.object(Path, 'lstat', side_effect=stats or [valid, valid]), \
+             patch.object(D.os, 'open', side_effect=opening, return_value=79) as opened, \
+             patch.object(D.os, 'fdopen', return_value=stream), \
+             patch.object(D.os, 'fstat', side_effect=descriptor_stats or [valid, valid]):
+            yield valid, stream, opened
+
+    @contextlib.contextmanager
     def copied_private_fixture(self, source_override=None):
         # The production profile is never configurable. Only this explicitly
         # synthetic CPU fixture substitutes its own source SHA/size and path.
@@ -458,7 +474,10 @@ class PrepareDependencyTests(unittest.TestCase):
     def test_private_rejection_reason_allowlist_and_parser_diagnostics_are_closed(self):
         expected = {'FORMAT', 'STRUCTURE', 'TYPES', 'URIS', 'SIGNED_BY', 'COMPONENTS', 'ARCHITECTURES',
                     'SUITES', 'SUITE_COVERAGE', 'HOST_SOURCE_READ', 'HOST_SOURCE_DIGEST', 'HOST_MIRROR_READ',
-                    'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION', 'DIRECTORY', 'FILES', 'READBACK'}
+                    'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION', 'DIRECTORY', 'FILES', 'READBACK',
+                    'KEYRING_STAT', 'KEYRING_SYMLINK', 'KEYRING_TYPE', 'KEYRING_LINK_COUNT', 'KEYRING_SIZE',
+                    'KEYRING_OWNER', 'KEYRING_MODE', 'KEYRING_OPEN', 'KEYRING_FD_STAT', 'KEYRING_FINAL_STAT',
+                    'KEYRING_STABILITY', 'KEYRING_LENGTH'}
         self.assertEqual(D.PRIVATE_REASONS, expected)
         for invalid in ['PRIVATE-CANARY', 'types', '', None, ['TYPES']]:
             with self.subTest(invalid=invalid), self.assertRaises(ValueError) as caught:
@@ -535,6 +554,76 @@ class PrepareDependencyTests(unittest.TestCase):
                 self.assertTrue(all(not row['executed'] and not row['argv'] for row in result['commands']))
                 for name in [*D.LOG_NAMES, 'ci-dependencies.json']:
                     self.assertNotIn(canary.encode(), (reports / name).read_bytes())
+
+    def test_keyring_diagnostic_preconditions_are_closed_and_never_open_rejected_files(self):
+        valid = dict(st_dev=1, st_ino=2, st_mode=stat.S_IFREG | 0o644, st_nlink=1,
+                     st_size=3, st_mtime_ns=10, st_uid=0, st_gid=0)
+        cases = [('KEYRING_SYMLINK', dict(st_mode=stat.S_IFLNK | 0o644)),
+                 ('KEYRING_TYPE', dict(st_mode=stat.S_IFDIR | 0o755)),
+                 ('KEYRING_LINK_COUNT', dict(st_nlink=2)), ('KEYRING_SIZE', dict(st_size=0)),
+                 ('KEYRING_SIZE', dict(st_size=(2 << 20) + 1)),
+                 ('KEYRING_OWNER', dict(st_uid=1001)), ('KEYRING_OWNER', dict(st_gid=1001)),
+                 ('KEYRING_MODE', dict(st_mode=stat.S_IFREG | 0o664))]
+        for reason, change in cases:
+            with self.subTest(reason=reason, change=change), \
+                 self.keyring_reader_fixture(stats=[SimpleNamespace(**{**valid, **change})]) as (_, _, opened):
+                with self.assertRaises(D.PrivateSourceRejected) as caught:
+                    D.read_file(D.KEYRING, 2 << 20, system_owned=True, diagnostic='KEYRING')
+                self.assertEqual(caught.exception.reason, reason)
+                opened.assert_not_called()
+        for path, owned, diagnostic in [(D.HOST_SOURCE, True, 'KEYRING'),
+                                        (D.KEYRING, False, 'KEYRING'), (D.KEYRING, True, 'PRIVATE-CANARY')]:
+            with patch.object(Path, 'lstat', side_effect=AssertionError('no IO')):
+                with self.assertRaises(ValueError):
+                    D.read_file(path, 2 << 20, system_owned=owned, diagnostic=diagnostic)
+
+    def test_keyring_io_failures_preserve_precise_stage_without_exporting_canary(self):
+        canary = 'PRIVATE-CANARY-keyring-stat-and-open-error'
+        valid = SimpleNamespace(st_dev=1, st_ino=2, st_mode=stat.S_IFREG | 0o644,
+            st_nlink=1, st_size=3, st_mtime_ns=10, st_uid=0, st_gid=0)
+        for reason, options in [('KEYRING_STAT', dict(stats=[OSError(canary)])),
+                 ('KEYRING_OPEN', dict(opening=OSError(canary))),
+                 ('KEYRING_FD_STAT', dict(descriptor_stats=[OSError(canary)])),
+                 ('KEYRING_FD_STAT', dict(descriptor_stats=[valid, OSError(canary)])),
+                 ('KEYRING_READ', dict(read=OSError(canary))),
+                 ('KEYRING_FINAL_STAT', dict(stats=[valid, OSError(canary)]))]:
+            with self.subTest(reason=reason), self.keyring_reader_fixture(**options):
+                with self.assertRaises(D.PrivateSourceRejected) as caught:
+                    D.private_operation('KEYRING_READ', D.read_file, D.KEYRING, 2 << 20,
+                                        system_owned=True, diagnostic='KEYRING')
+                self.assertEqual(caught.exception.reason, reason)
+                self.assertNotIn(canary, str(caught.exception))
+                diagnostic_error = caught.exception
+            def builder():
+                raise diagnostic_error
+            with self.fixture(private_builder=builder) as (reports, calls, run):
+                result = D.prepare(reports, COMMIT, execute=run)
+                self.assertEqual(result['outcome'], 'FAIL')
+                self.assertEqual(result['failureStage'], 'PRIVATE_' + reason)
+                self.assertEqual(calls, [])
+                for name in [*D.LOG_NAMES, 'ci-dependencies.json']:
+                    self.assertNotIn(canary.encode(), (reports / name).read_bytes())
+
+    def test_keyring_stability_length_and_success_metadata_keep_original_boundary(self):
+        valid = dict(st_dev=1, st_ino=2, st_mode=stat.S_IFREG | 0o644, st_nlink=1,
+                     st_size=3, st_mtime_ns=10, st_uid=0, st_gid=0, st_ctime_ns=20)
+        for change in [dict(st_ino=3), dict(st_uid=1), dict(st_gid=1), dict(st_mtime_ns=11)]:
+            with self.subTest(change=change), self.keyring_reader_fixture(
+                    descriptor_stats=[SimpleNamespace(**{**valid, **change}), SimpleNamespace(**valid)]):
+                with self.assertRaises(D.PrivateSourceRejected) as caught:
+                    D.read_file(D.KEYRING, 2 << 20, system_owned=True, diagnostic='KEYRING')
+                self.assertEqual(caught.exception.reason, 'KEYRING_STABILITY')
+        with self.keyring_reader_fixture(read=b'ab'):
+            with self.assertRaises(D.PrivateSourceRejected) as caught:
+                D.read_file(D.KEYRING, 2 << 20, system_owned=True, diagnostic='KEYRING')
+            self.assertEqual(caught.exception.reason, 'KEYRING_LENGTH')
+        with self.keyring_reader_fixture(descriptor_stats=[SimpleNamespace(**{**valid, 'st_ctime_ns': 99})] * 2) as (_, stream, opened):
+            raw, metadata = D.read_file(D.KEYRING, 2 << 20, system_owned=True, diagnostic='KEYRING')
+            self.assertEqual(raw, b'abc')
+            self.assertEqual(metadata, dict(path=str(Path(D.KEYRING)), bytes=3, sha256=D.sha(b'abc'), uid=0, gid=0, mode=0o644))
+            stream.read.assert_called_once_with((2 << 20) + 1)
+            opened.assert_called_once_with(Path(D.KEYRING), D.os.O_RDONLY | getattr(D.os, 'O_NOFOLLOW', 0)
+                                            | getattr(D.os, 'O_NONBLOCK', 0))
 
 
 if __name__ == '__main__':

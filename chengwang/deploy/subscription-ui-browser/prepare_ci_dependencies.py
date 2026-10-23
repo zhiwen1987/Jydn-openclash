@@ -47,7 +47,9 @@ INPUTS = ['chengwang/deploy/subscription-ui-browser/prepare_ci_dependencies.py',
 PRIVATE_REASONS = frozenset(('FORMAT', 'STRUCTURE', 'TYPES', 'URIS', 'SIGNED_BY', 'COMPONENTS',
     'ARCHITECTURES', 'SUITES', 'SUITE_COVERAGE', 'HOST_SOURCE_READ', 'HOST_SOURCE_DIGEST',
     'HOST_MIRROR_READ', 'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION',
-    'DIRECTORY', 'FILES', 'READBACK'))
+    'DIRECTORY', 'FILES', 'READBACK', 'KEYRING_STAT', 'KEYRING_SYMLINK', 'KEYRING_TYPE',
+    'KEYRING_LINK_COUNT', 'KEYRING_SIZE', 'KEYRING_OWNER', 'KEYRING_MODE', 'KEYRING_OPEN',
+    'KEYRING_FD_STAT', 'KEYRING_FINAL_STAT', 'KEYRING_STABILITY', 'KEYRING_LENGTH'))
 
 
 class PrivateSourceRejected(ValueError):
@@ -225,8 +227,8 @@ def private_readback(directory):
     source.update(normalizedHostSHA256=sha(normalized), replacedURIs=count)
     parts = directory_metadata(directory / 'sourceparts', owner, empty=True)
     parts['empty'] = True
-    _, keyring = read_file(KEYRING, 2 << 20, system_owned=True)
-    need(keyring['mode'] & 0o004)
+    _, keyring = read_file(KEYRING, 2 << 20, system_owned=True, diagnostic='KEYRING')
+    private_need(keyring['mode'] & 0o004, 'KEYRING_PERMISSION')
     return dict(directory=parent, source=source, mirrors=mirrors, parts=parts,
                 keyring=keyring, effectiveConfigurationChanged=True)
 
@@ -237,14 +239,54 @@ def create_private_sources():
     mirrors, _ = private_operation('HOST_MIRROR_READ', read_file, HOST_MIRROR, HOST_MIRROR_SIZE, system_owned=True)
     private_need(len(mirrors) == HOST_MIRROR_SIZE and sha(mirrors) == HOST_MIRROR_SHA, 'HOST_MIRROR_DIGEST')
     parse_ubuntu_sources(source)
-    _, keyring = private_operation('KEYRING_READ', read_file, KEYRING, 2 << 20, system_owned=True)
+    _, keyring = private_operation('KEYRING_READ', read_file, KEYRING, 2 << 20,
+                                  system_owned=True, diagnostic='KEYRING')
     private_need(keyring['mode'] & 0o004, 'KEYRING_PERMISSION')
     directory = private_operation('DIRECTORY', make_private_directory)
     private_operation('FILES', private_files, directory, source)
     return private_operation('READBACK', private_readback, directory)
 
 
-def read_file(path, maximum, system_owned=False, executable=False, empty_allowed=False):
+def read_keyring_file(path, maximum, executable, empty_allowed):
+    """Same fail-closed reader, with only closed, non-secret keyring diagnoses."""
+    before = private_operation('KEYRING_STAT', path.lstat)
+    private_need(not stat.S_ISLNK(before.st_mode), 'KEYRING_SYMLINK')
+    private_need(stat.S_ISREG(before.st_mode), 'KEYRING_TYPE')
+    private_need(before.st_nlink == 1, 'KEYRING_LINK_COUNT')
+    private_need((0 if empty_allowed else 1) <= before.st_size <= maximum, 'KEYRING_SIZE')
+    private_need(before.st_uid == before.st_gid == 0, 'KEYRING_OWNER')
+    private_need(not stat.S_IMODE(before.st_mode) & 0o022, 'KEYRING_MODE')
+    if executable:
+        private_need(stat.S_IMODE(before.st_mode) & 0o001
+                     and stat.S_IMODE(before.st_mode) & 0o004, 'KEYRING_MODE')
+    descriptor = private_operation('KEYRING_OPEN', os.open, path,
+        os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+    try:
+        stream = private_operation('KEYRING_OPEN', os.fdopen, descriptor, 'rb')
+    except PrivateSourceRejected:
+        # fdopen did not take ownership. Cleanup errors must not mask diagnosis.
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        raise
+    with stream:
+        opened = private_operation('KEYRING_FD_STAT', os.fstat, stream.fileno())
+        raw = private_operation('KEYRING_READ', stream.read, maximum + 1)
+        after = private_operation('KEYRING_FD_STAT', os.fstat, stream.fileno())
+    final = private_operation('KEYRING_FINAL_STAT', path.lstat)
+    fields = ('st_dev', 'st_ino', 'st_mode', 'st_nlink', 'st_size', 'st_mtime_ns', 'st_uid', 'st_gid')
+    private_need(all(getattr(before, field) == getattr(opened, field)
+                     == getattr(after, field) == getattr(final, field) for field in fields), 'KEYRING_STABILITY')
+    private_need(len(raw) == before.st_size, 'KEYRING_LENGTH')
+    return raw, dict(path=str(path), bytes=len(raw), sha256=sha(raw), uid=before.st_uid,
+                    gid=before.st_gid, mode=stat.S_IMODE(before.st_mode))
+
+
+def read_file(path, maximum, system_owned=False, executable=False, empty_allowed=False, *, diagnostic=None):
+    if diagnostic is not None:
+        need(diagnostic == 'KEYRING' and Path(path) == Path(KEYRING) and system_owned is True)
+        return read_keyring_file(Path(path), maximum, executable, empty_allowed)
     path = Path(path)
     before = path.lstat()
     need(stat.S_ISREG(before.st_mode) and not path.is_symlink() and before.st_nlink == 1
