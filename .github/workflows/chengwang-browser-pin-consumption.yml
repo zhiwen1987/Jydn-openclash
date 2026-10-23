@@ -1,0 +1,177 @@
+name: Chengwang Browser Pin Consumption
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-security-hardening]
+    paths:
+      - '.github/workflows/chengwang-browser-pin-consumption.yml'
+      - 'chengwang/tools/browser-runtime-candidate/**'
+      - 'chengwang/tools/browser-acquisition/check_acquisition.py'
+      - 'chengwang/tools/browser-acquisition/candidate.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/chengwang-browser-pin-consumption.yml'
+      - 'chengwang/tools/browser-runtime-candidate/**'
+      - 'chengwang/tools/browser-acquisition/check_acquisition.py'
+      - 'chengwang/tools/browser-acquisition/candidate.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-browser-pin-consumption-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  consume:
+    name: Enforce reviewed pin and expand official bytes (not browser execution)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Preserve actual synthetic output and independently count frozen 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/pin-consumption-reports"
+          test ! -e "$reports"
+          install -d -m 0700 "$reports"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B chengwang/tools/browser-runtime-candidate/test_consumption.py \
+            2>&1 | tee "$reports/synthetic-original.log"
+          python3 -B - "$reports" <<'PY'
+          import hashlib, json, os, pathlib, re, sys
+          root = pathlib.Path(sys.argv[1]); raw = (root / 'synthetic-original.log').read_bytes()
+          text = raw.decode('utf-8', errors='strict')
+          rows = re.findall(r'^(test_[A-Za-z0-9_]+) \(__main__\.ConsumptionContracts\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$', text, re.M)
+          digest = hashlib.sha256('\n'.join(sorted(outer for outer, _ in rows)).encode()).hexdigest()
+          if not (len(rows) == len(set(rows)) == 20 and all(outer == inner for outer, inner in rows)
+              and digest == '28d61521916e7bd80da9303a9bb4ec25549fd12d6e984849af1fa1c4e361f103'
+              and len(re.findall(r'^test_.*\.\.\. ', text, re.M)) == 20
+              and re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$', text, re.M) == ['20']
+              and re.findall(r'^OK$', text, re.M) == ['OK']
+              and not re.search(r'^(?:FAILED|ERROR:|FAIL:|OK \()', text, re.M)):
+              raise SystemExit('pin-consumption-synthetic-originals-rejected')
+          report = dict(sourceCommit=os.environ['GITHUB_SHA'], testsRun=20, testsPassed=20,
+              skipped=0, namesSHA256=digest, originalSHA256=hashlib.sha256(raw).hexdigest(),
+              syntheticOnly=True, browserExecuted=False, production=False)
+          with (root / 'synthetic-verification.json').open('xb') as out:
+              out.write((json.dumps(report, separators=(',', ':')) + '\n').encode())
+          PY
+
+      - name: Actually consume SHA before safe expansion, never run a browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/tools/browser-runtime-candidate/consume_pin.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/pin-consumption-originals" \
+            --report "$RUNNER_TEMP/pin-consumption-reports/consumption-verification.json" \
+            2>&1 | tee "$RUNNER_TEMP/pin-consumption-reports/consumption-original.log"
+
+      - name: Independently reread actual extracted files and decompress original CRCs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/tools/browser-runtime-candidate/check_consumption.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/pin-consumption-originals" \
+            --report "$RUNNER_TEMP/pin-consumption-reports/producer-independent.json" \
+            2>&1 | tee "$RUNNER_TEMP/pin-consumption-reports/producer-independent-original.log"
+          cmp "$RUNNER_TEMP/pin-consumption-reports/consumption-verification.json" \
+            "$RUNNER_TEMP/pin-consumption-reports/producer-independent.json"
+          cp "$RUNNER_TEMP/pin-consumption-originals/consumption.json" \
+            "$RUNNER_TEMP/pin-consumption-reports/consumption-manifest.json"
+          git diff --exit-code -- chengwang/tools/browser-runtime-candidate chengwang/tools/browser-acquisition
+
+      - name: Preserve only original archive for fresh job (no executable files)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pinned-browser-original-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pin-consumption-originals/browser.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Preserve small producer reports separately from browser archive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pin-consumption-producer-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pin-consumption-reports
+          if-no-files-found: error
+          retention-days: 14
+
+  fresh:
+    name: Fresh Linux re-enforces same ZIP pin and actual expansion
+    needs: consume
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout same source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Download exact original archive (CI only, never local)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pinned-browser-original-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pin-input-archive
+
+      - name: Download small original reports separately
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pin-consumption-producer-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pin-input-reports
+
+      - name: Recompute pin, all CRCs and actual file hashes from original ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/pin-fresh-reports"
+          test ! -e "$reports"
+          install -d -m 0700 "$reports"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B chengwang/tools/browser-runtime-candidate/consume_pin.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --archive "$RUNNER_TEMP/pin-input-archive/browser.zip" \
+            --output "$RUNNER_TEMP/pin-fresh-originals" \
+            --report "$reports/consumption-verification.json" \
+            2>&1 | tee "$reports/consumption-original.log"
+          python3 -B chengwang/tools/browser-runtime-candidate/check_consumption.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/pin-fresh-originals" --report "$reports/fresh-independent.json" \
+            2>&1 | tee "$reports/fresh-independent-original.log"
+          cmp "$reports/consumption-verification.json" "$reports/fresh-independent.json"
+          python3 -B - "$RUNNER_TEMP/pin-input-reports/producer-independent.json" "$reports/fresh-independent.json" <<'PY'
+          import json, pathlib, sys
+          original, fresh = [json.loads(pathlib.Path(p).read_bytes()) for p in sys.argv[1:]]
+          if original['mode'] != 'PUBLIC_HTTPS_PINNED_ARCHIVE' or fresh['mode'] != 'EXISTING_PINNED_ARCHIVE':
+              raise SystemExit('archive-mode-rejected')
+          # The fresh worker does not invent a second HTTP receipt. Only the
+          # mode differs; exact pin/source/ZIP/actual expansion/ELF must agree.
+          if {k:v for k,v in original.items() if k != 'mode'} != {k:v for k,v in fresh.items() if k != 'mode'}:
+              raise SystemExit('fresh-pin-and-expansion-mismatch')
+          print('FRESH_PIN_AND_EXPANSION=CONSISTENT browser_executed=false production=false')
+          PY
+          cp "$RUNNER_TEMP/pin-input-reports/synthetic-original.log" "$reports/"
+          cp "$RUNNER_TEMP/pin-input-reports/synthetic-verification.json" "$reports/"
+          cp "$RUNNER_TEMP/pin-fresh-originals/consumption.json" "$reports/consumption-manifest.json"
+          git diff --exit-code -- chengwang/tools/browser-runtime-candidate chengwang/tools/browser-acquisition
+
+      - name: Preserve fresh small reports without browser ZIP or ELF
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pin-consumption-fresh-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pin-fresh-reports
+          if-no-files-found: error
+          retention-days: 14
