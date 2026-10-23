@@ -53,6 +53,8 @@ def public_failure_diagnostic(bundle):
         ('supervisor.private', r'^PROBE_BROWSER_LAB=FAIL stage=([A-Z_]+) code=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_CONTROLLER=FAIL stage=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_STAGE=([A-Z_]+)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_FLOW_STAGE=([A-Z_]+)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_OPERATION=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_ERROR=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_FATAL=((?:base|chrome|content|components|sandbox|third_party)/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.cc):([1-9][0-9]{0,5})$'),
     ):
@@ -71,6 +73,9 @@ def public_failure_diagnostic(bundle):
             stages = {'ARGUMENTS', 'PREWARM', 'FLOW', 'WAIT_EXPIRED', 'EXPIRED', 'CLOSE', 'DONE', 'FRESH', 'UNEXPECTED',
                       'ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES',
                       'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY',
+                      'NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
+                      'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN',
+                      'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK',
                       'PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN'}
             if match[1] in stages and (len(match.groups()) == 1 or match[2] in ERRORS):
                 sys.stderr.write(line + '\n')
@@ -382,17 +387,50 @@ class BrowserLab(N.Lab):
     def emergency(self):
         try:
             self.publish_launch_failure()
-        except (N.Failure, OSError, ValueError, TypeError, KeyError):
+            # Preserve only outputs already admitted by the public capture
+            # writer. Failure candidates never satisfy either runtime gate.
+            if self.browser is not None and self.browser.poll() not in (None, 0):
+                preserve_failed_captures(self.root, pathlib.Path(self.options.output_dir).parent)
+        except Exception:
             # Diagnostic rejection is not success and must never stop the
             # mandatory shutdown/PID-namespace cleanup path.
             pass
-        if self.browser is not None and self.browser.poll() is None:
-            self.browser.terminate()
+        finally:
             try:
-                self.browser.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                self.browser.kill(); self.browser.wait(timeout=3)
-        super().emergency()
+                if self.browser is not None and self.browser.poll() is None:
+                    self.browser.terminate()
+                    try:
+                        self.browser.wait(timeout=15)
+                    except subprocess.TimeoutExpired:
+                        self.browser.kill(); self.browser.wait(timeout=3)
+            finally:
+                super().emergency()
+
+
+def preserve_failed_captures(root, output):
+    source = root / 'browser/out'
+    if not source.is_dir() or source.is_symlink():
+        return
+    tokens = [N.stable_read(root / (name + '-token.private'), 4096, 10001, 0o600)[0]
+              for name in ('viewer', 'foreign')]
+    candidates = sorted(source.iterdir())
+    need(len(candidates) <= 20, 'BROWSER_EXPORT')
+    records, contents, total = [], [], 0
+    for path in candidates:
+        need(re.fullmatch(r'(?:probe-browser-(?:cdp|playwright)-(?:fresh|cleared|withdrawn|expired)-(?:status|details|dom|network|desktop|mobile)\.(?:png|json|jsonl)|browser-(?:captures|driver)\.json)', path.name), 'BROWSER_EXPORT')
+        raw, _ = N.stable_read(path, 8 << 20, 10001, 0o600)
+        total += len(raw)
+        need(total <= 64 << 20 and not any(token in raw for token in tokens)
+             and b'PRIVATE KEY' not in raw and b'Bearer ' not in raw, 'BROWSER_EXPORT')
+        contents.append((path.name, raw))
+        records.append(dict(path=path.name, bytes=len(raw), sha256=N.sha(raw)))
+    destination = output / 'failed-browser'
+    destination.mkdir(mode=0o755)
+    for name, raw in contents:
+        N.exclusive(destination / name, raw)
+    N.exclusive(destination / 'failure-candidates.json', N.canonical(dict(
+        schema='chengwang.probe-browser-failure-candidates/v1',
+        runtimeAcceptanceProven=False, production=False, files=records)) + b'\n')
 
 
 def arguments(argv=None):

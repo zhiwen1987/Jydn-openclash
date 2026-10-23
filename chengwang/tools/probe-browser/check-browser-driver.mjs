@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { validateLaunchOptions, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
-  collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError, launchFatalLocations } from './browser-driver.mjs'
+  collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError, launchFatalLocations,
+  driverOperationFailure } from './browser-driver.mjs'
 
 const sha = raw => createHash('sha256').update(raw).digest('hex')
 const uuid = 'a'.repeat(32), root = '/tmp/chengwang-probe-readback-' + uuid
@@ -119,6 +120,12 @@ test('driver all-site evidence strips response body and all header values', asyn
 })
 
 test('driver asynchronous capture failures are fatal and console messages stay private', async () => {
+  for (const operation of ['NAVIGATE', 'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK']) {
+    assert.equal(driverOperationFailure(operation), `PROBE_BROWSER_DRIVER_OPERATION=${operation}\n`)
+  }
+  for (const operation of ['private-sentinel', 'CLICK\nprivate-sentinel', null, {}, ['NETWORK']]) {
+    rejected(() => driverOperationFailure(operation))
+  }
   const kinds = ['PERMISSION', 'MODULE_NOT_FOUND', 'PYTHON_STARTUP', 'SHARED_LIBRARY', 'LAUNCHER_REJECTED', 'UNKNOWN']
   for (const [error, expected] of [
     [Object.assign(new Error('private-sentinel /secret/path'), { code: 'EACCES' }), 'PERMISSION'],
@@ -187,6 +194,10 @@ test('driver DOM extractor reads presentation without HTML state clock or fetch 
     ['ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES', 'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY'])
   assert.ok(source.includes('Closed checkpoints mean entry into a factory step, never its completion.'))
   assert.ok(source.indexOf('const options = validateLaunchOptions(input)') < source.indexOf("checkpoint('ENVIRONMENT')"))
+  assert.deepEqual([...source.matchAll(/guarded\('([A-Z_]+)'/g)].map(match => match[1]),
+    ['NAVIGATE', 'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK'])
+  assert.ok(source.includes('if (!operationFailurePrinted)'))
+  assert.ok(source.includes('operationFailurePrinted = true\n          process.stderr.write(driverOperationFailure(operation))'))
 })
 
 test('driver invalid factory invocation is sanitized before any launch or filesystem work', async () => {

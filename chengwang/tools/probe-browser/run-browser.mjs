@@ -10,6 +10,9 @@ const ids = ['limited', 'pass', 'restricted'], layers = ['dns', 'connect', 'tls'
 const states = { limited: 'rate_limited', pass: 'available', restricted: 'restricted' }
 const codes = { limited: 429, pass: 200, restricted: 403 }
 const labels = { unknown: '未评估', available: '可用', restricted: '业务受限', rate_limited: '限流' }
+// Entry checkpoints only: neither completion evidence nor browser acceptance.
+const flowStages = new Set(['NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
+  'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN', 'EXPIRED'])
 const failure = () => { throw new Error('probe browser flow rejected') }
 const need = value => { if (!value) failure() }
 const hex = /^[a-f0-9]{64}$/
@@ -149,6 +152,14 @@ export async function exerciseProbeBrowser(input) {
     integer(deadline, Date.now() + 1, Date.now() + 360000)
     const engine = driver.engine, prefix = `probe-browser-${engine === 'chrome-cdp' ? 'cdp' : 'playwright'}-`
     const captures = [], events = [], sources = new Map(), written = new Set()
+    const enteredStages = new Set()
+    const checkpoint = stage => {
+      need(flowStages.has(stage))
+      if (!enteredStages.has(stage)) {
+        enteredStages.add(stage)
+        process.stderr.write(`PROBE_BROWSER_FLOW_STAGE=${stage}\n`)
+      }
+    }
     let cursor = 0, highWall = Date.now()
     const now = () => { const wall = Date.now(); need(wall >= highWall && wall < deadline); highWall = wall; return wall }
     const bounded = async (operation, maximum = 5000) => {
@@ -198,7 +209,9 @@ export async function exerciseProbeBrowser(input) {
       for (let attempt = 0; attempt < 8; attempt++) {
         now(); first ??= await summary(stage)
         const fence = cursor
+        if (stage === 'fresh') checkpoint('FRESH_TOKEN')
         await bounded(() => driver.fill('#probe-token', token))
+        if (stage === 'fresh') checkpoint('FRESH_API')
         await bounded(() => driver.clickText('读取受保护明细', '.probe-readback'))
         const second = await response(DETAILS, fence, stage)
         const model = fromBodies(first.body, second.body, phase)
@@ -246,36 +259,46 @@ export async function exerciseProbeBrowser(input) {
       captures.push({ ...value, artifact })
     }
 
+    checkpoint('NAVIGATE')
     await bounded(() => driver.setViewport({ width: 1440, height: 1000 }))
     await bounded(() => driver.navigate(ORIGIN + '/'))
+    checkpoint('NAVIGATION')
     await bounded(() => driver.clickText('代理节点'))
     const initial = await response(STATUS, 0, 'fresh')
     const fresh = await readPair('fresh', 'fresh', initial)
+    checkpoint('FRESH_EXPAND')
     await expand()
+    checkpoint('FRESH_DESKTOP')
     const desktop = await snap(fresh, 'fresh'), desktopPNG = await png('fresh', 'desktop', fresh, 'fresh', 1440)
+    checkpoint('FRESH_MOBILE')
     await bounded(() => driver.setViewport({ width: 375, height: 812 }))
     const mobile = await snap(fresh, 'fresh'), mobilePNG = await png('fresh', 'mobile', fresh, 'fresh', 375)
     await capture('fresh', [desktop, mobile], [desktopPNG, mobilePNG])
 
+    checkpoint('CLEAR')
     await bounded(() => driver.setViewport({ width: 1440, height: 1000 }))
     await drain('fresh')
     await bounded(() => driver.clickText('清除明细与令牌', '.probe-readback'))
     const cleared = await snap(fresh, 'cleared')
+    checkpoint('ANONYMOUS')
     const anonymous = await summary('cleared'); need(anonymous.authorizationPresent === false)
     status(parseProbePublicJSON(anonymous.body), 'fresh')
     await capture('cleared', [cleared], [], 'fresh')
 
     // A late real refresh makes the held details' deadline the original layer
     // TTL when possible, rather than silently claiming a 30s cache timeout is it.
+    checkpoint('HELD_FRESH')
     while (now() < msCeil(fresh.minExpiry) - 25000) await sleep(80)
     const held = await readPair('withdrawn', 'fresh')
     need(held.catalogDigest === fresh.catalogDigest && same(held.targets, fresh.targets))
     await expand(); await snap(held, 'fresh')
     if (phaseSignals.freshReady) await bounded(() => phaseSignals.freshReady())
+    checkpoint('WITHDRAWN')
     while (BigInt(now()) * 1000000n < ns(held.deadline)) await sleep(80)
     const withdrawn = await snap(held, 'withdrawn'), withdrawnPNG = await png('withdrawn', 'desktop', held, 'withdrawn', 1440)
     await capture('withdrawn', [withdrawn], [withdrawnPNG])
 
+    checkpoint('EXPIRED')
     await bounded(() => phaseSignals.waitExpired(), deadline - now())
     while (BigInt(now()) * 1000000n < held.maxExpiry) await sleep(80)
     const expired = await readPair('expired', 'expired')

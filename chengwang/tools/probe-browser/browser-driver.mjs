@@ -68,6 +68,11 @@ export function launchFatalLocations(value) {
   } catch { return [] }
 }
 
+export function driverOperationFailure(operation) {
+  need(['NAVIGATE', 'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK'].includes(operation))
+  return `PROBE_BROWSER_DRIVER_OPERATION=${operation}\n`
+}
+
 export function validateLaunchOptions(value) {
   need(exact(value, ['engine', 'root', 'chrome', 'sourceRoot', 'launcher']))
   need(['chrome-cdp', 'playwright'].includes(value.engine))
@@ -482,7 +487,17 @@ async function launchImplementation(input) {
       const clean = await evaluate(`(()=>{const values=[location.href,document.body.innerText,...Object.entries(localStorage).flat(),...Object.entries(sessionStorage).flat(),document.cookie];return !${JSON.stringify([...secrets])}.some(secret=>values.some(value=>value.includes(secret)))})()`)
       need(clean)
     }
-    const guarded = implementation => async (...values) => { try { need(!closed); return await implementation(...values) } catch { reject() } }
+    let operationFailurePrinted = false
+    const guarded = (operation, implementation) => async (...values) => {
+      try { need(!closed); return await implementation(...values) }
+      catch {
+        if (!operationFailurePrinted) {
+          operationFailurePrinted = true
+          process.stderr.write(driverOperationFailure(operation))
+        }
+        reject()
+      }
+    }
     const evidence = () => {
       need(record && journal)
       return { schema: 'chengwang.probe-browser-driver/v1', engine: options.engine, fixtureId: options.fixtureId,
@@ -496,23 +511,23 @@ async function launchImplementation(input) {
     }
     const api = {
       engine: options.engine,
-      navigate: guarded(async url => {
+      navigate: guarded('NAVIGATE', async url => {
         need(url === ORIGIN + '/')
         if (page) await page.goto(url, { waitUntil: 'load', timeout: 10000 })
         else { const navigation = await pageSend('Page.navigate', { url }); need(!navigation.errorText); await until(() => evaluate(`location.href===${JSON.stringify(url)}&&document.readyState==='complete'`)) }
         await until(async () => { await journal.flush(); return proof !== null })
       }),
-      click: guarded(async selector => {
+      click: guarded('CLICK', async selector => {
         checkedString(selector)
         if (page) await page.locator(selector).click({ timeout: 10000 })
         else await clickExpression(`(()=>{const a=[...document.querySelectorAll(${JSON.stringify(selector)})].filter(e=>e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden');return a.length===1?a[0]:null})()`)
       }),
-      clickText: guarded(async (name, scope) => {
+      clickText: guarded('CLICK_TEXT', async (name, scope) => {
         checkedString(name); if (scope !== undefined) checkedString(scope)
         if (page) await (scope ? page.locator(scope) : page).getByRole('button', { name, exact: true }).filter({ visible: true }).click({ timeout: 10000 })
         else await clickExpression(`(()=>{const scope=${scope ? `document.querySelector(${JSON.stringify(scope)})` : 'document'};const a=[...(scope?.querySelectorAll('button')??[])].filter(e=>e.textContent.trim()===${JSON.stringify(name)}&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden');return a.length===1?a[0]:null})()`)
       }),
-      fill: guarded(async (selector, value) => {
+      fill: guarded('FILL', async (selector, value) => {
         need(selector === '#probe-token' && typeof value === 'string' && value.length <= 4096 && /^[\x21-\x2b\x2d-\x7e]*$/.test(value))
         if (value) secrets.add(value)
         if (page) await page.locator(selector).fill(value, { timeout: 10000 })
@@ -522,20 +537,20 @@ async function launchImplementation(input) {
           else { await pageSend('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 }); await pageSend('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 }) }
         }
       }),
-      setViewport: guarded(async size => {
+      setViewport: guarded('VIEWPORT', async size => {
         need(exact(size, ['width', 'height']) && Number.isInteger(size.width) && size.width >= 320 && size.width <= 1600 && Number.isInteger(size.height) && size.height >= 320 && size.height <= 1200)
         if (page) await page.setViewportSize(size)
         else await pageSend('Emulation.setDeviceMetricsOverride', { ...size, deviceScaleFactor: 1, mobile: false })
       }),
-      snapshot: guarded(async () => { await checkLeaks(); return evaluate(`(${collectProbeDOM.toString()})()`) }),
-      screenshot: guarded(async () => {
+      snapshot: guarded('SNAPSHOT', async () => { await checkLeaks(); return evaluate(`(${collectProbeDOM.toString()})()`) }),
+      screenshot: guarded('SCREENSHOT', async () => {
         await checkLeaks(); need(++screenshotCount <= 16)
         let raw
         if (page) raw = await page.screenshot({ type: 'png', fullPage: true, timeout: 10000 })
         else { const metrics = await pageSend('Page.getLayoutMetrics'); const width = Math.ceil(metrics.cssContentSize.width), height = Math.ceil(metrics.cssContentSize.height); need(width > 0 && width <= 1600 && height > 0 && height <= 12000); const captured = await pageSend('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height, scale: 1 } }); raw = Buffer.from(captured.data, 'base64') }
         need(raw.length > 8 && raw.length <= 16 << 20 && raw.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))); return Uint8Array.from(raw)
       }),
-      networkSince: guarded(async (cursor = 0) => { await journal.flush(); return journal.since(cursor) }),
+      networkSince: guarded('NETWORK', async (cursor = 0) => { await journal.flush(); return journal.since(cursor) }),
       getEvidence: async () => { try { await journal.flush(); return evidence() } catch { reject() } },
       close: async () => {
         try {

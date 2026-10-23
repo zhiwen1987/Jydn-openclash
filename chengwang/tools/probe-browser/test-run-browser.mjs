@@ -4,7 +4,29 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { exerciseProbeBrowser } from './run-browser.mjs'
 
-const names = [], unit = (name, body) => { names.push(name); test(name, body) }
+const diagnosticStages = ['NAVIGATE', 'NAVIGATION', 'FRESH_TOKEN', 'FRESH_API', 'FRESH_EXPAND',
+  'FRESH_DESKTOP', 'FRESH_MOBILE', 'CLEAR', 'ANONYMOUS', 'HELD_FRESH', 'WITHDRAWN', 'EXPIRED']
+const names = [], unit = (name, body) => {
+  names.push(name)
+  test(name, async () => {
+    const diagnostics = [], original = process.stderr.write
+    process.stderr.write = function (chunk, encoding, callback) {
+      diagnostics.push(String(chunk))
+      if (typeof encoding === 'function') encoding()
+      else if (typeof callback === 'function') callback()
+      return true
+    }
+    try { await body(diagnostics) } finally {
+      process.stderr.write = original
+      for (const line of diagnostics) {
+        assert.ok(diagnosticStages.some(stage => line === `PROBE_BROWSER_FLOW_STAGE=${stage}\n`))
+        assert.ok(!line.includes(token) && !line.includes('PRIVATE KEY') && !line.includes('Bearer '))
+      }
+      // Some negative tests invoke several independent flows in one test.
+      assert.ok(Buffer.byteLength(diagnostics.join('')) < 65536)
+    }
+  })
+}
 const token = 'PRIVATE-FIXTURE-TOKEN-' + 'a'.repeat(40)
 const bytes = value => Buffer.from(JSON.stringify(value)), sha = value => createHash('sha256').update(value).digest('hex')
 const ids = ['limited', 'pass', 'restricted'], states = { limited: 'rate_limited', pass: 'available', restricted: 'restricted' }
@@ -120,7 +142,7 @@ function setup(options = {}) {
   return { driver, saved, callbacks, input }
 }
 
-unit('probe flow synthetic CDP performs all real-shaped actions but never claims runtime proof', async () => {
+unit('probe flow synthetic CDP performs all real-shaped actions but never claims runtime proof', async diagnostics => {
   const value = setup(); let freshNotified = false
   value.input.phaseSignals.freshReady = async () => {
     assert.equal(value.driver.loaded.samples.length, 6); assert.equal(value.driver.open.size, 3)
@@ -131,6 +153,8 @@ unit('probe flow synthetic CDP performs all real-shaped actions but never claims
   assert.equal(result.outcome, 'API_CAPTURE_UNBOUND'); assert.equal(result.runtimeProven, false); assert.equal(result.browserE2EProven, false)
   assert.equal(result.captures.length, 4); assert.equal(value.saved.size, 18); assert.equal(result.deadlineKind, 'EVIDENCE_TTL')
   assert.deepEqual(value.callbacks, ['fresh', 'fresh', 'expired']); assert.ok(value.driver.clicks.includes('清除明细与令牌'))
+  assert.deepEqual(diagnostics, diagnosticStages.map(stage => `PROBE_BROWSER_FLOW_STAGE=${stage}\n`))
+  assert.ok(Buffer.byteLength(diagnostics.join('')) < 1024)
 })
 unit('probe flow synthetic Playwright is separately labelled and uses the same safe projections', async () => {
   const value = setup({ engine: 'playwright' }), result = await exerciseProbeBrowser(value.input)

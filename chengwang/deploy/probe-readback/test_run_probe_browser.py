@@ -5,6 +5,7 @@ import io
 import json
 import pathlib
 import types
+import tempfile
 import unittest
 from unittest import mock
 
@@ -58,6 +59,8 @@ class TestBrowserOrchestration(unittest.TestCase):
         diagnostic = io.StringIO()
         private = (b'raw SECRET exception\nPROBE_BROWSER_DRIVER_STAGE=HOME\n'
                    b'PROBE_BROWSER_DRIVER_STAGE=SECRET\n'
+                   b'PROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_FLOW_STAGE=SECRET\n'
+                   b'PROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_DRIVER_OPERATION=SECRET\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/../SECRET.cc:123\n'
                    b'PROBE_BROWSER_LAB=FAIL stage=PREWARM code=SECRET raw_input_suppressed=true\n')
@@ -65,7 +68,24 @@ class TestBrowserOrchestration(unittest.TestCase):
              mock.patch.object(browser.N, 'stable_read', return_value=(private, None)), \
              contextlib.redirect_stderr(diagnostic):
             browser.public_failure_diagnostic(pathlib.Path('/private'))
-        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
+        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / 'fixture'
+            (root / 'browser/out').mkdir(parents=True)
+            candidate = root / 'browser/out/probe-browser-cdp-fresh-status.json'
+            candidate.touch()
+            def read_candidate(path, *_args, **_kwargs):
+                return (b'{"safe":true}' if path == candidate else b'PRIVATE_TOKEN_123'), None
+            with mock.patch.object(browser.N, 'stable_read', side_effect=read_candidate), \
+                 mock.patch.object(browser.N.os, 'fchmod', create=True):
+                browser.preserve_failed_captures(root, pathlib.Path(directory))
+                result = json.loads((pathlib.Path(directory) / 'failed-browser/failure-candidates.json').read_bytes())
+                self.assertIs(result['runtimeAcceptanceProven'], False)
+                self.assertIs(result['production'], False)
+                self.assertEqual(len(result['files']), 1)
+                with mock.patch.object(browser.N, 'stable_read', return_value=(b'PRIVATE_TOKEN_123', None)):
+                    with self.assertRaises(browser.N.Failure):
+                        browser.preserve_failed_captures(root, pathlib.Path(directory))
 
     def test_original_default_hooks_are_noops_and_entrypoint_remains_runner(self):
         lab = object.__new__(browser.N.Lab); lab.bundle = pathlib.Path('/private/bundle')
@@ -190,15 +210,21 @@ class TestBrowserOrchestration(unittest.TestCase):
         remove.assert_called_once()
 
     def test_rejected_failure_diagnostic_cannot_skip_emergency_cleanup(self):
-        lab = object.__new__(browser.BrowserLab)
-        lab.browser = mock.Mock()
-        lab.browser.poll.return_value = None
-        with mock.patch.object(lab, 'publish_launch_failure', side_effect=browser.N.Failure('BROWSER_IDENTITY')), \
-             mock.patch.object(browser.N.Lab, 'emergency') as original_cleanup:
-            lab.emergency()
-        lab.browser.terminate.assert_called_once()
-        lab.browser.wait.assert_called_once_with(timeout=15)
-        original_cleanup.assert_called_once()
+        for error in (browser.N.Failure('BROWSER_IDENTITY'), RecursionError('PRIVATE')):
+            lab = object.__new__(browser.BrowserLab)
+            lab.browser = mock.Mock()
+            lab.browser.poll.return_value = None
+            with mock.patch.object(lab, 'publish_launch_failure', side_effect=error), \
+                 mock.patch.object(browser.N.Lab, 'emergency') as original_cleanup:
+                lab.emergency()
+                original_cleanup.assert_called_once()
+            lab.browser.terminate.assert_called_once()
+            lab.browser.wait.assert_called_once_with(timeout=15)
+            lab.browser.wait.side_effect = OSError('PRIVATE')
+            with mock.patch.object(lab, 'publish_launch_failure', side_effect=error), \
+                 mock.patch.object(browser.N.Lab, 'emergency') as original_cleanup:
+                with self.assertRaises(OSError): lab.emergency()
+                original_cleanup.assert_called_once()
 
 
 if __name__ == '__main__':
