@@ -1,0 +1,275 @@
+name: Chengwang Native Probe Readback Lab
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/chengwang-probe-readback.yml"
+      - "chengwang/cmd/probe-agent/**"
+      - "chengwang/cmd/server/**"
+      - "chengwang/internal/probe/**"
+      - "chengwang/internal/probeview/**"
+      - "chengwang/internal/probereadbacklab/**"
+      - "chengwang/internal/serverruntime/**"
+      - "chengwang/internal/api/**"
+      - "chengwang/internal/authn/**"
+      - "chengwang/internal/authz/**"
+      - "chengwang/deploy/probe-readback/**"
+      - "chengwang/go.mod"
+      - "chengwang/go.sum"
+      - "chengwang/vendor/**"
+  push:
+    branches: [main, codex/chengwang-security-hardening]
+    paths:
+      - ".github/workflows/chengwang-probe-readback.yml"
+      - "chengwang/cmd/probe-agent/**"
+      - "chengwang/cmd/server/**"
+      - "chengwang/internal/probe/**"
+      - "chengwang/internal/probeview/**"
+      - "chengwang/internal/probereadbacklab/**"
+      - "chengwang/internal/serverruntime/**"
+      - "chengwang/internal/api/**"
+      - "chengwang/internal/authn/**"
+      - "chengwang/internal/authz/**"
+      - "chengwang/deploy/probe-readback/**"
+      - "chengwang/go.mod"
+      - "chengwang/go.sum"
+      - "chengwang/vendor/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-probe-readback-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-backend:
+    name: Native agent to read-only product API (not browser or production)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOWORK: "off"
+      GOENV: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=vendor
+      GOPROXY: "off"
+      GOSUMDB: "off"
+      CGO_ENABLED: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONHASHSEED: "0"
+    steps:
+      - name: Checkout exact source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned parent-module toolchain
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+
+      - name: Record source and compile existing real entrypoints without dependency downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-probe-readback"
+          test ! -e "$lab_outer"
+          /usr/bin/install -d -m 0700 "$lab_outer" "$lab_outer/evidence" "$lab_outer/evidence/native-wire" "$lab_outer/evidence/backend"
+          /usr/bin/install -d -m 0755 "$lab_outer/bin"
+          test "$(go env GOVERSION)" = go1.23.12
+          test "$(/usr/bin/git rev-parse HEAD)" = "$GITHUB_SHA"
+          /usr/bin/python3 -B - "$lab_outer/evidence/source-before.json" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          records = []
+          for raw in subprocess.check_output(['git', 'ls-files', '-z', '--', 'chengwang', '.github/workflows/chengwang-probe-readback.yml']).split(b'\0'):
+              if raw:
+                  name = raw.decode('utf-8')
+                  path = pathlib.Path(name)
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit('source-type-rejected')
+                  data = path.read_bytes()
+                  records.append({'path': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(records, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+          go version > "$lab_outer/evidence/go-version.txt"
+          /usr/bin/python3 --version > "$lab_outer/evidence/python-version.txt"
+          /usr/bin/openssl version > "$lab_outer/evidence/openssl-version.txt"
+          /usr/bin/python3 -B - "$lab_outer/evidence/toolchain.json" <<'PY'
+          import hashlib, json, pathlib, shutil, sys
+          records = []
+          for name in ('go', 'python3', 'openssl', 'ip', 'unshare', 'setpriv', 'mount', 'umount', 'sysctl', 'sudo', 'git', 'timeout'):
+              found = shutil.which(name)
+              if not found:
+                  raise SystemExit('required-lab-tool-unavailable')
+              path = pathlib.Path(found).resolve(strict=True)
+              raw = path.read_bytes()
+              records.append({'name': name, 'resolvedPath': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()})
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(records, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+          (
+            cd chengwang
+            go build -trimpath -o "$lab_outer/bin/probe-agent" ./cmd/probe-agent
+            go build -trimpath -o "$lab_outer/bin/server" ./cmd/server
+            # Compile this one explicit tag; this does not run the ordinary/race baseline.
+            go test -c -trimpath -tags probereadbacklab -o "$lab_outer/bin/probe-readback-driver" ./internal/probereadbacklab
+          )
+          /usr/bin/python3 -B - "$lab_outer" "$GITHUB_SHA" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          records = []
+          for name in ('probe-agent', 'server', 'probe-readback-driver'):
+              data = (root / 'bin' / name).read_bytes()
+              if data[:4] != b'\x7fELF':
+                  raise SystemExit('expected-real-linux-binary')
+              records.append({'name': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
+          report = {'schema': 'chengwang.probe-readback-build/v1', 'sourceCommit': sys.argv[2], 'goVersion': 'go1.23.12', 'moduleMode': 'vendor', 'dependencyDownloads': False, 'authorization': 'BLOCKED', 'production': False, 'binaries': records}
+          (root / 'evidence' / 'build.json').write_text(json.dumps(report, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+
+      - name: Test independent checker and orchestration contracts (unit evidence only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -B - "$RUNNER_TEMP/chengwang-probe-readback/evidence/unit-tests.json" <<'PY'
+          import ast, hashlib, importlib, json, pathlib, sys, unittest
+          source = pathlib.Path('chengwang/deploy/probe-readback').resolve(strict=True)
+          sys.path.insert(0, str(source))
+          reports = []
+          pinned = {
+              'test_run_probe_readback': (12, 'b12e53d8fe95fb131f7a8a047a0393944764dd8343db8e9ce531ef7998d11dc1'),
+              'test_check_probe_readback': (32, '1b766f1b579cc390eb0ab7b2e31cf81a4121c1fb95662931ef95be3a6d04ee73'),
+          }
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args)
+                  self.actual_runs, self.actual_passes = [], []
+              def startTest(self, test):
+                  self.actual_runs.append(test.id())
+                  super().startTest(test)
+              def addSuccess(self, test):
+                  self.actual_passes.append(test.id())
+                  super().addSuccess(test)
+          for name in ('test_run_probe_readback', 'test_check_probe_readback'):
+              path = source / (name + '.py')
+              tree = ast.parse(path.read_bytes())
+              expected = sorted(name + '.' + cls.name + '.' + method.name
+                  for cls in tree.body if isinstance(cls, ast.ClassDef)
+                  for method in cls.body if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+                  and method.name.startswith('test_'))
+              if not expected or len(set(expected)) != len(expected):
+                  raise SystemExit('missing-or-duplicate-unit-contract')
+              fingerprint = hashlib.sha256(('\n'.join(expected) + '\n').encode()).hexdigest()
+              if (len(expected), fingerprint) != pinned[name]:
+                  raise SystemExit('unit-test-name-baseline-changed')
+              suite = unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(name))
+              result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(suite)
+              if (not result.wasSuccessful() or result.skipped or result.expectedFailures or result.unexpectedSuccesses
+                  or sorted(result.actual_runs) != expected or sorted(result.actual_passes) != expected):
+                  raise SystemExit('unit-contract-events-rejected')
+              reports.append({'module': name, 'testsRun': result.testsRun, 'skipped': 0,
+                  'names': expected, 'namesSHA256': fingerprint,
+                  'syntheticOnly': True, 'nativeAcceptanceProven': False})
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(reports, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+
+      - name: Prove wire fixture native TLS and shutdown prerequisites in a separate namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-readback/evidence/native-wire"
+          /usr/bin/python3 -B - "$evidence/host-before.json" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          value = {'netNamespace': os.readlink('/proc/self/ns/net'), 'mountNamespace': os.readlink('/proc/self/ns/mnt'),
+              'portStart': int(pathlib.Path('/proc/sys/net/ipv4/ip_unprivileged_port_start').read_text()),
+              'systemCASHA256': hashlib.sha256(pathlib.Path('/etc/ssl/certs/ca-certificates.crt').read_bytes()).hexdigest()}
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(value, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+          # This namespace has no external interface or default route. No host sysctl or CA is changed.
+          /usr/bin/timeout --signal=TERM --kill-after=10s 240s /usr/bin/sudo --non-interactive \
+            /usr/bin/unshare --mount --net --pid --fork --kill-child=SIGKILL --mount-proc \
+            /usr/bin/bash -s -- "$GITHUB_WORKSPACE" "$evidence" <<'SH' 2>&1 | /usr/bin/tee "$evidence/native-wire-tests.log"
+          set -euo pipefail
+          source_root="$1"
+          evidence_root="$2"
+          /usr/bin/mount --make-rprivate /
+          /usr/bin/mount --bind "$source_root" "$source_root"
+          /usr/bin/mount -o remount,bind,ro,nosuid,nodev "$source_root"
+          /usr/bin/mount -t tmpfs -o mode=1777,nosuid,nodev,size=256m tmpfs /tmp
+          /usr/sbin/ip link set lo up
+          /usr/sbin/ip address add 8.8.4.4/32 dev lo
+          /usr/sbin/sysctl -q -w net.ipv4.ip_unprivileged_port_start=0
+          test "$(/usr/sbin/ip -o link show | /usr/bin/wc -l)" -eq 1
+          test -z "$(/usr/sbin/ip -4 route show default)"
+          test -z "$(/usr/sbin/ip -6 route show default)"
+          exec /usr/bin/python3 -B "$source_root/chengwang/deploy/probe-readback/test_fixture_probe_wire.py" --evidence-dir "$evidence_root"
+          SH
+          # The root orchestrator emits only public observations, not its fixture keys.
+          /usr/bin/sudo --non-interactive /usr/bin/chown -- "$(/usr/bin/id -u):$(/usr/bin/id -g)" "$evidence/probe-wire-fixture-observations.json"
+          /usr/bin/python3 -B - "$evidence/host-before.json" "$evidence/host-after.json" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          value = {'netNamespace': os.readlink('/proc/self/ns/net'), 'mountNamespace': os.readlink('/proc/self/ns/mnt'),
+              'portStart': int(pathlib.Path('/proc/sys/net/ipv4/ip_unprivileged_port_start').read_text()),
+              'systemCASHA256': hashlib.sha256(pathlib.Path('/etc/ssl/certs/ca-certificates.crt').read_bytes()).hexdigest()}
+          if value != json.loads(pathlib.Path(sys.argv[1]).read_bytes()):
+              raise SystemExit('native-wire-host-input-changed')
+          pathlib.Path(sys.argv[2]).write_text(json.dumps(value, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+
+      - name: Run actual probe-agent, immutable state readback, restart and natural TTL expiry
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-probe-readback"
+          /usr/bin/timeout --signal=TERM --kill-after=15s 420s \
+            /usr/bin/python3 -B chengwang/deploy/probe-readback/run_probe_readback.py \
+              --agent "$lab_outer/bin/probe-agent" \
+              --server "$lab_outer/bin/server" \
+              --driver "$lab_outer/bin/probe-readback-driver" \
+              --source-commit "$GITHUB_SHA" \
+              --output-dir "$lab_outer/evidence/backend"
+
+      - name: Independently verify original backend evidence (not an availability claim)
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab_outer="$RUNNER_TEMP/chengwang-probe-readback"
+          /usr/bin/python3 -B chengwang/deploy/probe-readback/check_probe_readback.py verify \
+            --evidence-dir "$lab_outer/evidence/backend" \
+            --source-commit "$GITHUB_SHA" \
+            --report "$lab_outer/evidence/verification.json"
+
+      - name: Verify exact source bytes and worktree remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -B - "$RUNNER_TEMP/chengwang-probe-readback/evidence/source-before.json" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          original = pathlib.Path(sys.argv[1])
+          records = json.loads(original.read_bytes())
+          for item in records:
+              path = pathlib.Path(item['path'])
+              if path.is_symlink() or not path.is_file():
+                  raise SystemExit('source-type-changed')
+              raw = path.read_bytes()
+              if len(raw) != item['bytes'] or hashlib.sha256(raw).hexdigest() != item['sha256']:
+                  raise SystemExit('source-bytes-changed')
+          subprocess.run(['git', 'diff', '--check'], check=True)
+          subprocess.run(['git', 'diff', '--exit-code'], check=True)
+          if subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all']):
+              raise SystemExit('unexpected-source-worktree-changes')
+          (original.parent / 'source-after.json').write_bytes(original.read_bytes())
+          print('PROBE_SOURCE_IMMUTABILITY=PASS')
+          PY
+
+      - name: Preserve original lab evidence including failed attempts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: probe-readback-native-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-probe-readback/evidence/
+          if-no-files-found: error
+          retention-days: 14
