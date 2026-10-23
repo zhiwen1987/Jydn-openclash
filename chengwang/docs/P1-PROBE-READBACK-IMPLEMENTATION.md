@@ -1,5 +1,7 @@
 # P1 探针证据读回：实现与验收边界
 
+最新状态：2cf4a34 的父与完整镜像回归均已实际读回成功，详见[精确提交验收记录](P1-PROBE-READBACK-ACCEPTANCE.md)。下文 f443、待CI与失败叙述保留为过程记录，不代表最新终态；真实agent网络及浏览器全链路仍未完成。
+
 2026-10-23。本批是默认关闭的只读产品切片，不是上线公告。生产、爱快、OpenClash、Kuma、DNS、设备执行器和 main 分支均不在本次变更范围。源协议见 [接入协议](P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md)。
 
 ## 已实现
