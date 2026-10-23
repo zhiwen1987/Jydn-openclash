@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import base64
 import calendar
+import ctypes
 import datetime
 import hashlib
 import json
@@ -182,6 +183,26 @@ def exclusive(path, raw, mode=0o644):
         os.close(fd)
 
 
+def publish_atomic(path, raw, mode=0o600):
+    """Linux-only complete-file, no-replace publication for lab handoffs.
+
+    Unlike link/unlink, renameat2 never exposes a transient nlink=2 to the
+    strict readers. Existing native evidence writers keep their old protocol.
+    """
+    require(sys.platform.startswith('linux') and type(raw) is bytes, 'OUTPUT_WRITE')
+    path = pathlib.Path(path)
+    pending = path.with_name(path.name + '.pending')
+    exclusive(pending, raw, mode)
+    try:
+        rename = ctypes.CDLL(None, use_errno=True).renameat2
+        rename.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint)
+        rename.restype = ctypes.c_int
+        require(rename(-100, os.fsencode(pending), -100, os.fsencode(path), 1) == 0, 'OUTPUT_WRITE')
+    finally:
+        if pending.exists():
+            pending.unlink()
+
+
 def command(argv, timeout=15):
     p = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE, env=BASE_ENV, timeout=timeout)
@@ -254,7 +275,7 @@ def mount_flags(pid, target):
     return sorted(matches[-1])
 
 
-def task_profile(pid, expected_sha):
+def task_profile(pid, expected_sha, *, executable_limit=128 << 20):
     first = pathlib.Path('/proc', str(pid), 'stat').read_text()
     start = first[first.rfind(')') + 2:].split()[19]
     fields = dict(line.split(':', 1) for line in pathlib.Path('/proc', str(pid), 'status').read_text().splitlines() if ':' in line)
@@ -266,7 +287,9 @@ def task_profile(pid, expected_sha):
     # /proc/PID/exe is intentionally followed: it is an owned process witness,
     # unlike a caller-selected filesystem input. Hash the held executable FD.
     with open('/proc/' + str(pid) + '/exe', 'rb') as handle:
-        actual = sha(handle.read(128 << 20))
+        require(type(executable_limit) is int and 0 < executable_limit <= 512 << 20
+                and os.fstat(handle.fileno()).st_size <= executable_limit, 'PROCESS_EXECUTABLE')
+        actual = sha(handle.read(executable_limit))
     require(actual == expected_sha, 'PROCESS_EXECUTABLE')
     rawargv = pathlib.Path('/proc', str(pid), 'cmdline').read_bytes()
     require(0 < len(rawargv) < 128 << 10, 'PROCESS_ARGUMENTS')
@@ -346,7 +369,7 @@ def expiry_bounds(root):
     return min(expires), max(expires)
 
 
-def configure_role(options):
+def configure_role(options, *, supervisor_entrypoint='runner', web_dir=None):
     root, bundle = pathlib.Path(options.fixture_root), pathlib.Path(options.bundle)
     require(os.geteuid() == 0 and ROOT_RE.fullmatch(str(root)) and TOOLS_RE.fullmatch(str(bundle)), 'ROLE_ARGUMENTS')
     # Internal roles may only be children of this lab's PID-namespace init,
@@ -354,12 +377,18 @@ def configure_role(options):
     # must never turn mount --make-rprivate into a host-side operation.
     parent_argv = pathlib.Path('/proc/1/cmdline').read_bytes().split(b'\0')
     current_ns, parent_ns = ns(), ns(1)
-    require(os.getppid() == 1 and str(bundle / 'runner').encode() in parent_argv
+    require(supervisor_entrypoint in ('runner', 'browser-runner'), 'ROLE_ARGUMENTS')
+    require(os.getppid() == 1 and str(bundle / supervisor_entrypoint).encode() in parent_argv
             and b'--inner' in parent_argv and current_ns['pid'] == parent_ns['pid']
             and current_ns['net'] == parent_ns['net'] and current_ns['mnt'] != parent_ns['mnt'],
             'ROLE_ARGUMENTS')
     command(['mount', '--make-rprivate', '/'])
     role = options.role
+    # The original CLI exposes neither this keyword nor a static-directory
+    # escape. Only the separately witnessed browser wrapper can supply it.
+    require(web_dir is None or (supervisor_entrypoint == 'browser-runner'
+            and role in ('api-first', 'api-second') and pathlib.Path(web_dir) == bundle / 'web'),
+            'ROLE_ARGUMENTS')
     if role in ('agent', 'api-first', 'api-second', 'wire'):
         mount_bind(root, True)
         for name in ({'agent': ('spool', 'ledger'), 'wire': ('wire',),
@@ -395,6 +424,9 @@ def configure_role(options):
         require(type(server_env) is dict and set(server_env) == allowed
                 and all(type(s) is str for s in server_env.values()), 'SERVER_ENVIRONMENT')
         environment.update(server_env)
+        if web_dir is not None:
+            mount_bind(pathlib.Path(web_dir), True)
+            environment['CHENGWANG_WEB_DIR'] = str(web_dir)
         executable = [str(bundle / 'server')]
     elif role == 'wire':
         executable = [sys.executable, '-I', '-B', str(bundle / 'wire'), 'serve',
@@ -428,6 +460,18 @@ class Lab:
         self.phase_times = []
         self.private_logs = self.bundle / 'logs'
 
+    def role_entrypoint(self):
+        return self.bundle / 'runner'
+
+    def after_prepared(self):
+        """Optional isolated UI wrapper hook; the native backend is unchanged."""
+
+    def after_restarted(self, minimum, maximum):
+        """Called only after the original fresh/restarted timing is recorded."""
+
+    def after_expired(self):
+        """The original API-second stays alive until this optional hook joins."""
+
     def check_budget(self):
         require(time.monotonic() - self.start_mono < 360, 'LAB_DEADLINE')
         if 'agent' in self.jobs and self.agent_start is not None:
@@ -437,7 +481,7 @@ class Lab:
         self.check_budget()
         log_path = self.private_logs / (role + '-' + action + '-' + phase + '.private')
         descriptor = os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
-        argv = ['unshare', '--mount', sys.executable, '-I', '-B', str(self.bundle / 'runner'),
+        argv = ['unshare', '--mount', sys.executable, '-I', '-B', str(self.role_entrypoint()),
                 '--role', role, '--fixture-root', str(self.root), '--bundle', str(self.bundle),
                 '--source-commit', self.options.source_commit, '--action', action, '--phase', phase]
         try:
@@ -556,6 +600,7 @@ class Lab:
             pathlib.Path('/proc/sys/net/ipv4/ip_unprivileged_port_start').write_text('0\n')
             network = network_projection()
             self.driver('prepare')
+            self.after_prepared()
             PHASE = 'WIRE_START'
             self.start('wire')
             self.wait(lambda: (self.root / 'wire/ready.json').is_file())
@@ -593,6 +638,7 @@ class Lab:
                                          'finishedUnixNano': str(finished)})
                 if role == 'api-first':
                     self.stop(role)
+            self.after_restarted(minimum, maximum)
             PHASE = 'NATURAL_EXPIRY'
             while time.time_ns() < maximum + 100000000:
                 self.check_budget()
@@ -601,6 +647,7 @@ class Lab:
             self.driver('verify', 'expired')
             self.phase_times.append({'name': 'expired', 'startedUnixNano': str(started),
                                      'finishedUnixNano': str(time.time_ns())})
+            self.after_expired()
             self.stop('api-second')
             after = state_metadata(self.root)
             require(before == after, 'SOURCE_MUTATED')

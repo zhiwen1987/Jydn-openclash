@@ -1,4 +1,4 @@
-name: Chengwang Probe Browser Contract Preflight
+name: Chengwang Probe Browser Acceptance
 
 on:
   workflow_dispatch:
@@ -7,11 +7,25 @@ on:
     paths:
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
+      - "chengwang/deploy/probe-readback/**"
+      - "chengwang/web/**"
+      - "chengwang/internal/**"
+      - "chengwang/cmd/**"
+      - "chengwang/go.mod"
+      - "chengwang/go.sum"
+      - "chengwang/vendor/**"
   push:
     branches: [main, codex/chengwang-security-hardening]
     paths:
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
+      - "chengwang/deploy/probe-readback/**"
+      - "chengwang/web/**"
+      - "chengwang/internal/**"
+      - "chengwang/cmd/**"
+      - "chengwang/go.mod"
+      - "chengwang/go.sum"
+      - "chengwang/vendor/**"
 
 permissions:
   contents: read
@@ -174,5 +188,263 @@ jobs:
         with:
           name: probe-browser-preflight-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/chengwang-probe-browser-preflight/
+          if-no-files-found: error
+          retention-days: 14
+
+  real-browser:
+    name: Real native backend and ${{ matrix.engine }} (isolated candidate only)
+    needs: contract-preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chrome-cdp, playwright]
+    env:
+      GOWORK: "off"
+      GOENV: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=vendor
+      GOPROXY: "off"
+      GOSUMDB: "off"
+      CGO_ENABLED: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONHASHSEED: "0"
+    steps:
+      - name: Checkout exact source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up explicitly supported Node release
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 22.23.3
+          check-latest: false
+
+      - name: Set up pinned parent-module toolchain
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+
+      - name: Acquire locked test dependencies and pinned CJK fonts without repository hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          test ! -e "$lab"
+          /usr/bin/install -d -m 0755 "$lab" "$lab/bin" "$lab/fonts" "$lab/web-build" "$lab/cache"
+          /usr/bin/install -d -m 0700 "$lab/evidence" "$lab/evidence/lab"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(node --version)" = v22.23.3
+          test "$(go env GOVERSION)" = go1.23.12
+          test -f /opt/google/chrome/chrome
+          test ! -L /opt/google/chrome/chrome
+          sudo --non-interactive apt-get update -qq
+          sudo --non-interactive apt-get install --no-install-recommends -y libnss3-tools
+          /usr/bin/cp -a chengwang/web/. "$lab/web-build/"
+          npm ci --prefix "$lab/web-build" --ignore-scripts --no-audit --no-fund
+          npm ci --prefix chengwang/tools/probe-browser --ignore-scripts --no-audit --no-fund
+          /usr/bin/python3 -B - "$lab/fonts" <<'PY'
+          import hashlib, pathlib, sys, urllib.request
+          root = pathlib.Path(sys.argv[1])
+          base = 'https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/'
+          pins = [
+              ('Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf', 16437364, '2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b'),
+              ('Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf', 17002248, 'b5f0d1a190a7f9b43c310a8850630af12553df32c4c050543f9059732d9b4c0a'),
+              ('Sans/LICENSE', 4301, '6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2'),
+          ]
+          for path, size, digest in pins:
+              with urllib.request.urlopen(base + path, timeout=60) as response:
+                  raw = response.read(size + 1)
+              if len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
+                  raise SystemExit('font-pin-rejected')
+              with (root / path.rsplit('/', 1)[1]).open('xb') as output:
+                  output.write(raw)
+          PY
+          /usr/bin/python3 -B - "$lab/evidence/source-before.json" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          records = []
+          for name in subprocess.check_output(['git', 'ls-files', '-z', '--', 'chengwang', '.github/workflows']).split(b'\0'):
+              if name:
+                  path = pathlib.Path(name.decode())
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit('source-type-rejected')
+                  raw = path.read_bytes()
+                  records.append(dict(path=path.as_posix(), bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest()))
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(records, separators=(',', ':')) + '\n')
+          PY
+
+      - name: Build real product binaries and frontend offline with read-only source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          sudo --non-interactive unshare --mount --net --fork /usr/bin/bash -s -- \
+            "$GITHUB_WORKSPACE" "$lab" "$(command -v node)" "$(command -v go)" "$(id -u)" "$(id -g)" <<'SH'
+          set -euo pipefail
+          source_root="$1"; lab="$2"; node_binary="$3"; go_binary="$4"; task_uid="$5"; task_gid="$6"
+          mount --make-rprivate /
+          mount --bind "$source_root" "$source_root"
+          mount -o remount,bind,ro,nosuid,nodev "$source_root"
+          ip link set lo up
+          test "$(ip -o link show | wc -l)" -eq 1
+          test -z "$(ip -4 route show default)"
+          test -z "$(ip -6 route show default)"
+          cd "$source_root/chengwang"
+          for target in probe-agent server probe-readback-driver; do
+            if test "$target" = probe-readback-driver; then
+              build_args=(test -c -trimpath -tags probereadbacklab -o "$lab/bin/$target" ./internal/probereadbacklab)
+            else
+              build_args=(build -trimpath -o "$lab/bin/$target" "./cmd/$target")
+            fi
+            setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups --bounding-set=-all \
+              --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
+              GOWORK=off GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=0 \
+              GOCACHE="$lab/cache" "$go_binary" "${build_args[@]}"
+          done
+          cd "$lab/web-build"
+          setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups --bounding-set=-all \
+            --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
+            "$node_binary" node_modules/typescript/bin/tsc -b
+          setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups --bounding-set=-all \
+            --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
+            "$node_binary" node_modules/vite/bin/vite.js build
+          SH
+
+      - name: Check orchestration and driver contracts separately from real acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          sudo --non-interactive unshare --mount --net --fork /usr/bin/bash -s -- \
+            "$GITHUB_WORKSPACE" "$lab" "$(command -v node)" "$(id -u)" "$(id -g)" <<'SH'
+          set -euo pipefail
+          source_root="$1"; lab="$2"; node_binary="$3"; task_uid="$4"; task_gid="$5"
+          mount --make-rprivate /
+          mount --bind "$source_root" "$source_root"
+          mount -o remount,bind,ro,nosuid,nodev "$source_root"
+          ip link set lo up
+          test "$(ip -o link show | wc -l)" -eq 1
+          test -z "$(ip -4 route show default)"
+          test -z "$(ip -6 route show default)"
+          exec setpriv --reuid="$task_uid" --regid="$task_gid" --clear-groups --bounding-set=-all \
+            --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
+            PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/bash -s -- "$source_root" "$lab" "$node_binary" <<'TEST'
+          set -euo pipefail
+          cd "$1"
+          "$3" chengwang/tools/probe-browser/check-toolchain.mjs > "$2/evidence/toolchain.json"
+          "$3" --test --test-reporter=tap \
+            chengwang/tools/probe-browser/test-run-browser.mjs \
+            chengwang/tools/probe-browser/check-browser-driver.mjs | tee "$2/evidence/browser-unit.tap"
+          python3 -B - "$2/evidence/orchestration-unit.json" <<'PY'
+          import ast, hashlib, importlib, json, pathlib, sys, unittest
+          base = pathlib.Path('chengwang/deploy/probe-readback').resolve()
+          sys.path.insert(0, str(base))
+          pins = {
+              'test_run_probe_browser': (12, '78c3e65edcd336f1c952eb46e96f7fee8a96adef42f94e7dbd351c3e005449cd'),
+              'test_check_probe_browser': (35, 'd785ff17e4fa0982f96e6864467e3e47d88b80e962d49d1d54c6506613a3ab1f'),
+              'test_run_probe_readback': (12, 'b12e53d8fe95fb131f7a8a047a0393944764dd8343db8e9ce531ef7998d11dc1'),
+              'test_check_probe_readback': (32, '1b766f1b579cc390eb0ab7b2e31cf81a4121c1fb95662931ef95be3a6d04ee73'),
+          }
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args); self.runs = []; self.passes = []
+              def startTest(self, test):
+                  self.runs.append(test.id()); super().startTest(test)
+              def addSuccess(self, test):
+                  self.passes.append(test.id()); super().addSuccess(test)
+          reports = []
+          for name in pins:
+              tree = ast.parse((base / (name + '.py')).read_bytes())
+              names = sorted(name + '.' + cls.name + '.' + method.name for cls in tree.body if isinstance(cls, ast.ClassDef)
+                  for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_'))
+              fingerprint = hashlib.sha256(('\n'.join(names) + '\n').encode()).hexdigest()
+              if not names or len(set(names)) != len(names) or (name in pins and (len(names), fingerprint) != pins[name]):
+                  raise SystemExit('unit-name-baseline-rejected')
+              result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(
+                  unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(name)))
+              if (not result.wasSuccessful() or result.skipped or result.expectedFailures or result.unexpectedSuccesses
+                  or sorted(result.runs) != names or sorted(result.passes) != names):
+                  raise SystemExit('unit-actual-events-rejected')
+              reports.append(dict(module=name, testsRun=result.testsRun, names=names, namesSHA256=fingerprint,
+                  syntheticOnly=True, runtimeProven=False))
+          pathlib.Path(sys.argv[1]).write_text(json.dumps(reports, separators=(',', ':')) + '\n')
+          PY
+          TEST
+          SH
+          python3 -B - "$lab/evidence/browser-unit.tap" <<'PY'
+          import hashlib, pathlib, re, sys
+          text = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8')
+          names = re.findall(r'^# Subtest: (.+)$', text, re.M)
+          if (len(names) != 32 or len(set(names)) != 32
+              or hashlib.sha256(('\n'.join(sorted(names)) + '\n').encode()).hexdigest() != '52fe91e66bf109382f90d16fbbd8901af35b311d299cda3c8e3f648aa735fa3c'
+              or re.findall(r'^ok ([0-9]+) - (.+)$', text, re.M) != [(str(i+1), n) for i,n in enumerate(names)]
+              or re.search(r'^\s*(?:not ok\b|Bail out!)|# (?:SKIP|TODO)\b', text, re.M)):
+              raise SystemExit('browser-unit-events-rejected')
+          for key, value in dict(tests=32, suites=0, pass_=32, fail=0, cancelled=0, skipped=0, todo=0).items():
+              key = key.removesuffix('_')
+              if re.findall(r'^# ' + key + r' ([0-9]+)$', text, re.M) != [str(value)]:
+                  raise SystemExit('browser-unit-summary-rejected')
+          if re.findall(r'^1\.\.([0-9]+)$', text, re.M) != ['32']:
+              raise SystemExit('browser-unit-plan-rejected')
+          PY
+
+      - name: Exercise real browser against real agent spool and product API
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          /usr/bin/timeout --signal=TERM --kill-after=20s 420s \
+            /usr/bin/python3 -B chengwang/deploy/probe-readback/run_probe_browser.py \
+              --agent "$lab/bin/probe-agent" --server "$lab/bin/server" \
+              --driver "$lab/bin/probe-readback-driver" --source-commit "$GITHUB_SHA" \
+              --output-dir "$lab/evidence/lab" --web-dir "$lab/web-build/dist" \
+              --fonts-dir "$lab/fonts" --node "$(readlink -f "$(command -v node)")" \
+              --chrome /opt/google/chrome/chrome --engine '${{ matrix.engine }}'
+
+      - name: Independently verify original backend and bound browser evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          python3 -B chengwang/deploy/probe-readback/check_probe_readback.py verify \
+            --evidence-dir "$evidence/lab/backend" --source-commit "$GITHUB_SHA" \
+            --report "$evidence/backend-verification.json"
+          python3 -B chengwang/deploy/probe-readback/check_probe_browser.py verify \
+            --backend-dir "$evidence/lab/backend" --browser-dir "$evidence/lab/browser" \
+            --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --report "$evidence/browser-verification.json"
+
+      - name: Verify exact source bytes and worktree remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          python3 -B - "$evidence" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          records = json.loads((root / 'source-before.json').read_bytes())
+          for item in records:
+              path = pathlib.Path(item['path'])
+              raw = path.read_bytes()
+              if path.is_symlink() or len(raw) != item['bytes'] or hashlib.sha256(raw).hexdigest() != item['sha256']:
+                  raise SystemExit('source-bytes-changed')
+          subprocess.run(['git', 'diff', '--check'], check=True)
+          subprocess.run(['git', 'diff', '--exit-code'], check=True)
+          if subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all']):
+              raise SystemExit('unexpected-worktree-change')
+          (root / 'source-after.json').write_bytes((root / 'source-before.json').read_bytes())
+          print('PROBE_BROWSER_SOURCE=UNCHANGED')
+          PY
+
+      - name: Preserve public evidence only including failed attempts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: probe-browser-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-probe-browser-runtime/evidence/
           if-no-files-found: error
           retention-days: 14

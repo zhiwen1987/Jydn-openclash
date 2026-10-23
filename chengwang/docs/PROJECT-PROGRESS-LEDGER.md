@@ -2,7 +2,7 @@
 
 更新日期：2026-10-23。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-当前结果：真实 agent 到只读产品 API 的隔离后端链路通过 CI 并独立重放；新增机器能力事实已完成父门及原生后端复验，候选镜像回归 CI 终态 success。用户选择 CDP 和 Playwright 两条验收路径均实施；`f366f8a` 共享合同与独立工具包预检 CI 实际 33 项辅助测试通过，Node/Playwright 安装接口与源码不变已独立核验。预检未启动浏览器；真实浏览器链路及生产闭环未完成。本轮未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
+当前结果：真实 agent 到只读产品 API 的隔离后端链路通过 CI 并独立重放；新增机器能力事实已完成父门及原生后端复验，候选镜像回归 CI 终态 success。用户选择 CDP 和 Playwright 两条验收路径均实施；`f366f8a` 共享合同与独立工具包预检 CI 实际 33 项辅助测试通过，Node/Playwright 安装接口与源码不变已独立核验。本轮新增双驱动、真实后端扩展 runner、实际 Chrome wait 启动器、独立原字节检查器及双路径 CI 接线；仍是待真实运行验收的候选实现。预检和本地纯/mock 测试未启动浏览器；真实浏览器链路及生产闭环未完成。本轮未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
 ## 当前阶段进度
 
@@ -14,7 +14,7 @@
 | P1-04 | 独立检查器与失败关闭反例 | 已实现并隔离验收 | 44 辅助检查、24 wire 前置检查；原始 22 输入独立重放，失败历史保留 |
 | P1-05 | 原有后端回归 | 已复验 | `2fe1231`、`f366f8a` ordinary/race 均各 2403 Test run/pass；新增 12 项实际执行，旧 2391/2320 名单哈希均保留；各 12 Fuzz 另计 |
 | P1-06 | 控制台探针页面 | 已实现，真实数据闭环待验 | 既有 110 前端测试及合成 API 布局/交互验收；不能替代真实 API 浏览器读回 |
-| P1-07 | 正常 TLS 浏览器展示真实 runID 与过期状态 | 未完成；双路径合同/工具预检已验 | CDP/Playwright 分开验；[39902969323](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39902969323) 实际 33 项辅助通过不等于真实 DOM、TLS、截图或清理通过；[选定实施合同及证据](P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md#双路径浏览器验收决定2026-10-23未完成) |
+| P1-07 | 正常 TLS 浏览器展示真实 runID 与过期状态 | 候选实现已接线，真实验收未完成 | 两条独立 matrix，各重采真实 6 结果；增加原子控制文件、私有 NSS、实际 Chrome wait 和单独 runtime gate。Node 65 项纯/fake 检查通过不等于真实 DOM、TLS、截图或清理通过；原预检 [39902969323](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39902969323)；[实现边界](../deploy/probe-readback/README.md#双浏览器扩展实现候选不是运行验收记录) |
 | P1-08 | 机器能力事实清单与新探针状态同步 | 已实现并隔离验收 | 默认 blocked，配置后仅 implemented_local；匿名清单不调用 probe reader；完整业务评估保持 design_only；4 API＋8 registry 测试实际执行；父门/原生/镜像 CI success |
 | P1-09 | 生产挂载、授权、公网业务与观察窗口 | 未执行 | 需要另行授权、备份及可验证回滚；本实验没有公共互联网出口 |
 

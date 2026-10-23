@@ -5,7 +5,9 @@ package probereadbacklab
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
@@ -77,16 +79,28 @@ func TestProbeReadbackLabFixture(t *testing.T) {
 	fmt.Printf("PROBE_READBACK_LAB=PASS action=%s phase=%s authorization=BLOCKED production=false\n", action, phase)
 }
 
-func certificate(now time.Time, name string, dns []string, ips []net.IP) ([]byte, []byte, []byte) {
+func certificateKey(name string) (any, any) {
+	// Chromium does not advertise Ed25519 certificate signatures by default.
+	// The API fixture must use a normally supported certificate, not a browser
+	// verification bypass. Probe target/DoT fixtures keep their original keys.
+	if name == "api" {
+		key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		demand(e == nil, "CERTIFICATE_KEY")
+		return &key.PublicKey, key
+	}
 	pub, key, e := ed25519.GenerateKey(rand.Reader)
 	demand(e == nil, "CERTIFICATE_KEY")
+	return pub, key
+}
+
+func certificate(now time.Time, name string, dns []string, ips []net.IP) ([]byte, []byte, []byte) {
+	pub, key := certificateKey(name)
 	serial, e := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 120))
 	demand(e == nil, "CERTIFICATE_SERIAL")
 	ca := &x509.Certificate{SerialNumber: serial, Subject: pkix.Name{CommonName: "probe-lab-" + name + "-ca"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(time.Hour), BasicConstraintsValid: true, IsCA: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign}
 	caDER, e := x509.CreateCertificate(rand.Reader, ca, ca, pub, key)
 	demand(e == nil, "CERTIFICATE_CA")
-	leafPub, leafKey, e := ed25519.GenerateKey(rand.Reader)
-	demand(e == nil, "CERTIFICATE_KEY")
+	leafPub, leafKey := certificateKey(name)
 	leaf := &x509.Certificate{SerialNumber: new(big.Int).Add(serial, big.NewInt(1)), Subject: pkix.Name{CommonName: "probe-lab-" + name}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(time.Hour), BasicConstraintsValid: true, DNSNames: dns, IPAddresses: ips, KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}}
 	leafDER, e := x509.CreateCertificate(rand.Reader, leaf, ca, leafPub, key)
 	demand(e == nil, "CERTIFICATE_LEAF")

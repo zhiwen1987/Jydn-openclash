@@ -1,0 +1,154 @@
+// Pure/fake contracts only. No browser, network, NSS, namespace or Go process.
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import test from 'node:test'
+import { validateLaunchOptions, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
+  collectProbeDOM, launchProbeDriver, remoteEvaluationValue } from './browser-driver.mjs'
+
+const sha = raw => createHash('sha256').update(raw).digest('hex')
+const uuid = 'a'.repeat(32), root = '/tmp/chengwang-probe-readback-' + uuid
+const options = () => ({ engine: 'chrome-cdp', root, chrome: '/opt/google/chrome/google-chrome',
+  sourceRoot: '/tmp/chengwang-probe-harness-' + uuid + '/source',
+  launcher: '/tmp/chengwang-probe-harness-' + uuid + '/chrome-launcher' })
+const rejected = action => assert.throws(action, { message: 'probe browser driver rejected' })
+const request = (path, headers = {}) => ({ url: 'https://127.0.0.1:17861' + path, method: 'GET', headers })
+function emit(journal, id, path, body = '{}', status = 200) {
+  journal.handle('Network.requestWillBeSent', { requestId: id, type: 'Fetch', request: request(path,
+    path === '/api/v1/probes/details' ? { Authorization: 'Bearer private-sentinel' } : {}) })
+  journal.handle('Network.responseReceived', { requestId: id,
+    response: { url: 'https://127.0.0.1:17861' + path, status, mimeType: 'application/json' } })
+  journal.handle('Network.loadingFinished', { requestId: id })
+  return body
+}
+
+test('driver accepts only canonical engine and exact same UUID paths', () => {
+  for (const engine of ['chrome-cdp', 'playwright']) {
+    const value = options(); value.engine = engine
+    const actual = validateLaunchOptions(value)
+    assert.equal(actual.fixtureId, uuid); assert.equal(actual.profile, root + '/browser/chrome-profile')
+    assert.equal(actual.browserRoot, root + '/browser'); assert.notEqual(actual, value)
+  }
+})
+
+test('driver rejects aliases extra keys and malformed engine', () => {
+  for (const engine of ['cdp', 'Chrome', '', null, 'private-sentinel']) rejected(() => validateLaunchOptions({ ...options(), engine }))
+  rejected(() => validateLaunchOptions({ ...options(), allowInsecure: true }))
+})
+
+test('driver rejects broad noncanonical and mismatched fixture roots', () => {
+  for (const value of ['/', '/tmp', root + '/', root + '/../other', root.replace(uuid, 'b'.repeat(32)), 'relative']) {
+    rejected(() => validateLaunchOptions({ ...options(), root: value }))
+  }
+})
+
+test('driver launcher and readonly source must be exact UUID siblings', () => {
+  rejected(() => validateLaunchOptions({ ...options(), sourceRoot: root + '/writable-source' }))
+  rejected(() => validateLaunchOptions({ ...options(), launcher: '/usr/bin/google-chrome' }))
+  rejected(() => validateLaunchOptions({ ...options(), chrome: root + '/writable-chrome' }))
+  rejected(() => validateLaunchOptions({ ...options(), chrome: '/opt/private\nsentinel' }))
+})
+
+test('driver parses proc command names containing spaces and parentheses', () => {
+  const fields = ['S', '20', '42', '42', ...Array(15).fill('0'), '98765', '0']
+  assert.deepEqual(parseChromeStat('42 (chrome (test)) ' + fields.join(' ')),
+    { pid: 42, group: 42, session: 42, startTicks: 98765, state: 'S' })
+})
+
+test('driver rejects missing zero and unsafe process identities', () => {
+  for (const raw of ['', '42 (chrome) S 1', '0 (chrome) ' + ['S', '1', '1', '1', ...Array(16).fill('0')].join(' ')]) rejected(() => parseChromeStat(raw))
+})
+
+test('driver accepts only the required GET resources and auth placement', () => {
+  assert.equal(safeRequest(request('/api/v1/probes/status'), 'Fetch').authorizationPresent, false)
+  const actual = safeRequest(request('/api/v1/probes/details', { Authorization: 'Bearer private-sentinel' }), 'XHR')
+  assert.deepEqual(actual, { url: 'https://127.0.0.1:17861/api/v1/probes/details', method: 'GET', authorizationPresent: true, resourceType: 'xhr' })
+  rejected(() => safeRequest(request('/api/v1/probes/details'), 'XHR'))
+  rejected(() => safeRequest(request('/api/v1/probes/status', { authorization: 'private-sentinel' }), 'Fetch'))
+})
+
+test('driver rejects foreign URL method query fragment credentials and path', () => {
+  for (const url of ['private-sentinel', 'https://private-sentinel.example/', 'http://127.0.0.1:17861/',
+    'https://127.0.0.1:17861/?token=private-sentinel', 'https://127.0.0.1:17861/#private-sentinel',
+    'https://private-sentinel@127.0.0.1:17861/', 'https://127.0.0.1:17861/api/v1/publish']) rejected(() => safeRequest({ ...request('/'), url }, 'Document'))
+  rejected(() => safeRequest({ ...request('/'), method: 'POST' }, 'Document'))
+})
+
+test('driver never retains sensitive headers and rejects cookies and proxies', () => {
+  const actual = safeRequest(request('/api/v1/probes/details', { Authorization: 'Bearer private-sentinel' }), 'Fetch')
+  assert.ok(!JSON.stringify(actual).includes('private-sentinel')); assert.ok(!Object.hasOwn(actual, 'headers'))
+  for (const name of ['Cookie', 'Proxy-Authorization', 'Proxy-Connection']) rejected(() => safeRequest(request('/', { [name]: 'private-sentinel' }), 'Document'))
+})
+
+test('driver preserves bounded UTF8 and canonical base64 response bytes', () => {
+  const raw = Buffer.from('真实证据\n')
+  assert.deepEqual(responseBytes({ body: raw.toString('utf8'), base64Encoded: false }, 100), raw)
+  assert.deepEqual(responseBytes({ body: raw.toString('base64'), base64Encoded: true }, 100), raw)
+})
+
+test('driver rejects oversize malformed base64 and invalid response contract', () => {
+  rejected(() => responseBytes({ body: 'x'.repeat(101), base64Encoded: false }, 100))
+  rejected(() => responseBytes({ body: 'eA==private-sentinel', base64Encoded: true }, 100))
+  rejected(() => responseBytes({ body: 'x', base64Encoded: 'false' }, 100))
+  rejected(() => responseBytes({ body: 'x', base64Encoded: false }, 0))
+})
+
+test('driver network cursor observes completed bodies only and owns every copy', async () => {
+  let release
+  const journal = new NetworkJournal(() => new Promise(resolve => { release = resolve }), async () => {})
+  emit(journal, '1', '/api/v1/probes/status')
+  assert.deepEqual(journal.since(0), { cursor: 0, responses: [] })
+  release({ body: '{}', base64Encoded: false }); await journal.flush()
+  const first = journal.since(0); assert.equal(first.cursor, 1)
+  assert.deepEqual(Object.keys(first.responses[0]).sort(), ['ordinal', 'url', 'method', 'status', 'authorizationPresent', 'resourceType', 'bodyBytes', 'bodySHA256', 'body', 'receivedUnixNano'].sort())
+  assert.equal(first.responses[0].bodySHA256, sha(Buffer.from('{}')))
+  assert.match(first.responses[0].receivedUnixNano, /^[0-9]+000000$/)
+  first.responses[0].body[0] = 0; first.responses[0].url = 'private-sentinel'
+  assert.equal(Buffer.from(journal.since(0).responses[0].body).toString(), '{}')
+  assert.deepEqual(journal.since(1), { cursor: 1, responses: [] })
+  rejected(() => journal.since(2))
+})
+
+test('driver all-site evidence strips response body and all header values', async () => {
+  const journal = new NetworkJournal(async () => ({ body: '{}', base64Encoded: false }), async () => {})
+  emit(journal, '1', '/api/v1/probes/details'); await journal.flush()
+  const evidence = journal.evidence(); assert.equal(evidence.network.length, 1)
+  assert.ok(!Object.hasOwn(evidence.network[0], 'body')); assert.ok(!Object.hasOwn(evidence.network[0], 'headers'))
+  assert.ok(!JSON.stringify(evidence).includes('private-sentinel'))
+  evidence.network[0].status = 999; assert.equal(journal.evidence().network[0].status, 200)
+})
+
+test('driver asynchronous capture failures are fatal and console messages stay private', async () => {
+  const journal = new NetworkJournal(async () => { throw new Error('private-sentinel') }, async () => {})
+  journal.handle('Runtime.consoleAPICalled', { type: 'error', args: [{ value: 'private-sentinel' }] })
+  journal.handle('Runtime.exceptionThrown', { exceptionDetails: { text: 'private-sentinel' } })
+  assert.equal(journal.counters.consoleErrors, 1); assert.equal(journal.counters.runtimeErrors, 1)
+  emit(journal, '1', '/api/v1/probes/status')
+  await assert.rejects(journal.flush(), { message: 'probe browser driver rejected' })
+  rejected(() => journal.evidence()); assert.ok(!JSON.stringify(journal.counters).includes('private-sentinel'))
+})
+
+test('driver DOM extractor reads presentation without HTML state clock or fetch mutation', async () => {
+  const waiting = remoteEvaluationValue({ result: { type: 'object', subtype: 'null', value: null } })
+  assert.equal(waiting, null)
+  const ready = remoteEvaluationValue({ result: { type: 'object', value: { x: 24, y: 48 } } })
+  assert.deepEqual([waiting, ready].filter(Boolean), [{ x: 24, y: 48 }])
+  for (const remote of [{ type: 'object', subtype: 'error', value: null },
+    { type: 'string', subtype: 'null', value: null }, { type: 'object', subtype: 'null', value: 'private-sentinel' }]) {
+    rejected(() => remoteEvaluationValue({ result: remote }))
+  }
+  rejected(() => remoteEvaluationValue({ result: { value: 'private-sentinel' }, exceptionDetails: { text: 'private-sentinel' } }))
+  const expression = collectProbeDOM.toString()
+  for (const forbidden of ['innerHTML', 'outerHTML', 'fetch(', 'Date.now', '__react', 'localStorage.setItem']) assert.ok(!expression.includes(forbidden))
+  assert.ok(!/\.value\s*=(?!=)|document\.cookie\s*=(?!=)/.test(expression))
+  assert.ok(expression.includes('disclosure?.open && visible(sampleCode)'))
+  const source = await readFile(new URL('./browser-driver.mjs', import.meta.url), 'utf8')
+  assert.ok(source.includes('launchPersistentContext'))
+  assert.ok(!source.includes('connectOverCDP('))
+  assert.ok(!/\bHOME\s*:/.test(source)); assert.ok(!source.includes('process.env.HOME ='))
+  assert.ok(source.includes("'chrome-exit.private.json'")); assert.ok(source.includes('exit.exitCode === 0'))
+})
+
+test('driver invalid factory invocation is sanitized before any launch or filesystem work', async () => {
+  await assert.rejects(launchProbeDriver({ engine: 'private-sentinel' }), { message: 'probe browser driver rejected' })
+})
