@@ -1,6 +1,6 @@
 # P2-06b：真实双来源本地准入 UI 增量
 
-状态：`c15eda3` 的正常业务路径已经实际隔离验收，但发现历史候选决定按钮资格缺口，不能称完整交互通过，更不是上线。原 [CI 40002939736](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40002939736) 的四 producer/四 fresh 全部 success；根与独立子代理完整原 CLI 重放及四方报告逐字一致，见[机器证据](evidence/p2-subscription-local-admission-c15eda3.json)。完整范围继续由 [B01–B23 合同](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)约束。
+状态：`8c4852c` 的历史候选决定按钮修复与本地正常流程已实际隔离验收，**旧探针回归失败，本轮整体未通过**，不是上线。新 [UI CI 40005313485](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40005313485) 四 producer/四 fresh 成功；根与独立子代理完整原 CLI 重放及四方报告逐字一致，见[本次机器证据](evidence/p2-subscription-decision-eligibility-8c4852c.json)。前一版 [c15eda3 原证据](evidence/p2-subscription-local-admission-c15eda3.json)保留正常路径及交互缺口，不能回填。完整范围继续由 [B01–B23 合同](P2-SUBSCRIPTION-BROWSER-ACCEPTANCE-PLAN.md)约束。
 
 ## 固定场景
 
@@ -33,7 +33,7 @@
 
 来源策略批准/交接/DoT 抓取、真实后端未授权拒绝与跨 scope 矩阵、跨 20 条分页、并发版本变化、未决/降级写入、同库重启和系统级备份恢复、完整旧产品及镜像回归、灰度/生产/长期观察仍须后续实现和验收。正常流不补造失败流结论；当前全部实现与运行保持 `production=false`、`authorization=BLOCKED`。
 
-## 实际验收与交互缺口
+## `c15eda3` 前序实际验收与交互缺口
 
 每引擎实际 100 请求、37 DOM、10 写入、20 外审事件；两来源/四候选、A r8/B r2、回退节点 ID 与最初接纳相同。旧创建/回执场景仍为 14 请求/11 DOM/唯一创建。正常 TLS、三进程 wait=0、八错误计数全 0，858 Git blobs 精确核验；旧84/新76辅助测试原始输出分别复验，不换算为真实业务覆盖率。四张新准入 PNG 已实际查看，仅首屏 1440×900/375×900，不声称下折叠控件全部视觉验收。
 
@@ -41,4 +41,26 @@
 
 实际缺口：两引擎的 `nodes_restored/final_desktop/final_mobile` 共6条原 DOM，历史 A1 已 `admitted_local`、BaseRevision=2、来源 r8，接纳/拒绝按钮仍为 true。服务端仍拒绝不合法决定，不能替代前端精准提示。新资格 checker 已对这6条原值实际拒绝，原工件未改。
 
-修复候选：前端直接派生角色、quarantined、当前版本资格并给中文原因，不增加 effect/请求；原接纳/拒绝正例改用合法待审候选，新增3个禁用反例。CI门保留原190项全部名称与摘要，单独增加3项为193，不以新总数替换旧基线。回退规则、37步/10写入和旧创建合同不变。当前仅已实现、纯CPU检查通过，**新源码浏览器与真实 Vitest 仍待运行**，不得回填 `c15eda3` 的交互缺口。
+修复实现：前端直接派生角色、quarantined、当前版本资格并给中文原因，不增加 effect/请求；原接纳/拒绝正例改用合法待审候选，新增3个禁用反例。CI门保留原190项全部名称与摘要，单独增加3项为193，不以新总数替换旧基线。回退规则、37步/10写入和旧创建合同不变。
+
+## `8c4852c` 新原件验收
+
+根与独立子代理从8个原小ZIP逐一核API digest及124项解压字节。四个完整原checker CLI全部真实退出0；每份核859 Git blobs，producer/fresh/根/子代理四方报告逐字一致。旧84/新76原辅助输出也分别完整重放，8份根/子代理报告逐字一致。
+
+主代理原件目录为 `C:/Users/Administrator/AppData/Local/Temp/chengwang-admission-8c4852c-root-5c1a5fd475324afe823e22d8f3513ec1`，独立子代理位置与报告SHA详见机器证据。GitHub原工件保留14天；本机Temp不是永久集中归档，该运营缺口仍未关闭。
+
+新准入仍为每引擎100请求/37DOM/10写入/20外审事件/A r8/B r2；正常TLS、三进程wait0、八错误计数0。实际原DOM中，两引擎最终历史A1的6条接纳/拒绝按钮均false；独立检查器另核8条当前quarantined、base=current的Approver记录，两按钮均true。四张新准入首屏PNG已实际查看；按钮的下折叠实际状态由DOM验证，不冒称四张首屏图能看到这些按钮。
+
+同源码父门 [40005313520](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40005313520) 原日志经根/子代理原7 Git checker重放通过：各2644 Test与12 Fuzz另计，零测试跳过/失败。旧订阅 [40005313448](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40005313448) 两Linux原CLI成功；Windows仍仅是原字节读取适配后的语义复核，不改变完整POSIX CLI拒绝结论。
+
+镜像门 [40005313397](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40005313397) 原job `120591615814` 已success；根/子代理独立核原6,409,567B公开报告ZIP的API摘要。实际前端JSON为71,770B，193/193通过、9文件、零失败/跳过/pending/todo；原日志摘要一致，根/子代理各用8c原Git gate完整重放通过。原190全部名字/摘要保留，Subscriptions为原32+新增3=35；实际新35摘要 `98752b4912285685197f89f7918138050769b3d06fa8a3b69d315c1d472a9ef3`。typecheck/lint/build在原CI完成；本机只验原件，不执行Vitest/构建/运行服务。镜像Registry与完整候选作业success，不等于逐个独立重放了全部旧产品子CLI，更不等于正式发布镜像。
+
+### 整体回归未通过
+
+原旧探针 [40005313533](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40005313533) CDP作业 `120591765720` 在独立浏览器checker步骤失败，PW作业 `120591766143` 成功。根/子代理核验原小ZIP，CDP实际Chrome155.0.8059.39、`failedRequests=1`、其余七类0，硬门原样拒绝；81条诊断中有一次 `PROBE_STATUS:CANCELED:ABORTED:RUNNING/HTTP_2XX:AGE_LT1S`，`abortRecords=0`、`causalRequestBindingProven=false`。
+
+这不能证明用户代码主动取消、不能证明由本修复引起，也不能用JS的EOF观察消掉原网络失败计数。原失败和诊断保留，不重跑挑绿、不放宽旧门。下一步是单次请求关联的有界诊断与官方源码核实，根因仍未证明。完整旧产品回归、B01–B23、灰度和生产均未完成。
+
+已查[官方CDP Network定义](https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Network.pdl)、[Streams源码](https://github.com/whatwg/streams/blob/main/index.bs)与[Fetch源码](https://github.com/whatwg/fetch/blob/main/fetch.bs)。CDP网络终态与JS流读取是不同观测；Streams规范的闭流cancel直接完成，不能据EOF后的cancel调用推断此次网络取消。当前规范也不证明Chrome155的实现根因。
+
+仓库实际诊断分别用AbortSignal→`{m,r}`及CDP requestId→`s`，尚无共同请求键；`CANCEL AFTER`只是调用返回，不是Promise已完成。下一诊断**仅为待设计/未实施建议**：隔离构建的匿名status请求使用唯一非秘密请求头，冻结白名单/容量后绑定JS请求与CDP session/requestId，再收集取消Promise结果及两层终态；缺失、重复、乱序仍须拒绝因果推断。不能加query参数（现API拒绝），不能先删finally、放宽错误门或用升级后的绿色反推旧根因。
