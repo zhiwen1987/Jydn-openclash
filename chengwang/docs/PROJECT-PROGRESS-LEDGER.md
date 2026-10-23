@@ -46,7 +46,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 | P2-05b | 独立 cmd/server 与受信公共地址 pin 抓取产品链路 | `2b0a472` 有界隔离验收通过：80 辅助项实际通过，46 API/4独立进程/26连接/102事件，两Linux原门报告与本机原字节语义重放一致；同源码 ordinary/race 各2620/旧名单保持。详见[阶段验收](P2-SUBSCRIPTION-PRODUCT-ACCEPTANCE.md)，首轮[失败](evidence/p2-subscription-product-attempt-2a68973.json)不覆盖 | 本机Windows不是完整POSIX CLI；私库只是安全投影；公网地址fixture不是真实互联网，节点仍unknown；未验UI/调度/内核/备份/发布/生产 |
 | P2-06a | 订阅资源界面与安全权限元数据 | `8f610a4` 已实现并完成部分隔离验收：Go各2644、前端190、子模块各732及旧名单通过，镜像CI/旧订阅后端成功；但旧CDP一次取消导致整体未验收。[实际记录](P2-SUBSCRIPTION-UI-ACCEPTANCE.md) | CDP原因未定，不能被PW成功抵销；新订阅浏览器/跨角色批准上下文自动读回/任意URL与私有CA目录编辑器仍未实现；未上线 |
 | P2-06b-0 | 固定浏览器原件消费与正常TLS协议前置矩阵 | `409aa9c` pin/解压与 `7291655` CDP/PW五场景及fresh原件均隔离验收，完整四方重放一致 | 独立协议fixture，不是产品新页面、历史取消根因或生产验收 |
-| P2-06b | 真实订阅页面双浏览器闭环 | 待实现/验收；Chrome/CDP 与固定版本 Playwright 都必须完成 | 已有双浏览器只证明探针页，不能替代本页角色交接/写入/回执/重启验收 |
+| P2-06b | 真实订阅页面双浏览器闭环 | 创建/回执流程驱动、运行器、独立原件门已接线；84 项合成反例和静态语法通过，首次真实 CI 待执行。[当前进度](P2-SUBSCRIPTION-UI-REAL-FLOW.md) | 尚无本增量的真实页面/PNG/运行验收；完整 B01–B23、角色交接、导入/批准/抓取/回退/分页/重启仍待完成 |
 | P2-06 诊断增量 | 有界取消观察与订阅DOM collector | `ad3e4db`历史独立80合成门与诊断原件重放通过；该轮PW严格失败不覆盖 | 原因未唯一证明，不能回填该轮缺失的revision/Node stdout；订阅DOM仅合成。[记录](P2-STATUS-DIAGNOSTIC-ACCEPTANCE.md) |
 | P2-06 身份与保管前置 | 真实revision/ELF/进程绑定、原80输出、候选获取 | `22f0757`双浏览器真实身份及原12 CLI报告根重放；原80/新56分别通过；候选两Linux获取与来源审核通过 | 参考pin尚未被执行门消费；alpha候选尚未运行、严格正负矩阵/新订阅E2E未做；本轮成功不证明历史偶发取消消除。[记录](P2-BROWSER-IDENTITY-ACQUISITION.md) |
 | P2-07 | 自动调度、完整内核验证与运行发布 | 未实现 | 导入成功不等于节点可用或生产生效 |
