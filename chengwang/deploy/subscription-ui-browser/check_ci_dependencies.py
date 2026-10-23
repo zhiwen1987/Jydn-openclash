@@ -23,8 +23,8 @@ LOG_NAMES = ('ci-dependency-update.log', 'ci-dependency-install.log', 'ci-depend
 FONTS = [dict(style='Regular', path='/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'),
          dict(style='Bold', path='/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc')]
 PACKAGES = ['libnss3-tools', 'fonts-noto-cjk']
-FROZEN_CONTRACT = dict(schema='chengwang.ci-ui-dependencies-contract/v2', scope=SCOPE,
-    reportSchema='chengwang.ci-ui-dependencies/v2', reportFile='ci-dependencies.json',
+FROZEN_CONTRACT = dict(schema='chengwang.ci-ui-dependencies-contract/v3', scope=SCOPE,
+    reportSchema='chengwang.ci-ui-dependencies/v3', reportFile='ci-dependencies.json',
     platform=dict(system='Linux', runner='Linux', ubuntu='24.04', architecture='amd64'),
     packages=PACKAGES, acquireOptions=['Acquire::Retries=1', 'Acquire::http::Timeout=15', 'Acquire::https::Timeout=15'],
     updateStrictOption='APT::Update::Error-Mode=any', updateTimeoutSeconds=120, installTimeoutSeconds=240,
@@ -40,7 +40,12 @@ FROZEN_CONTRACT = dict(schema='chengwang.ci-ui-dependencies-contract/v2', scope=
                           'http://azure.archive.ubuntu.com/ubuntu/'],
         suites=['noble', 'noble-updates', 'noble-backports', 'noble-security'],
         components=['main', 'restricted', 'universe', 'multiverse'],
-        signedBy='/usr/share/keyrings/ubuntu-archive-keyring.gpg', effectiveConfigurationChanged=True,
+        signedBy='/usr/share/keyrings/ubuntu-archive-keyring.gpg',
+        privateSignedBy='ubuntu-archive-keyring.gpg', keyringBytes=3607,
+        keyringSHA512='4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40',
+        keyringManifestURL='https://git.launchpad.net/ubuntu/+source/ubuntu-keyring/plain/SHA512SUMS.txt.asc?id=edc0a0be9a90f364bc39a87d3837ad4c15395950',
+        hostKeyringTreatedAsUntrusted=True, hostKeyringModified=False, pinSignatureIndependentlyVerified=False,
+        effectiveConfigurationChanged=True,
         modifyHostConfiguration=False, exportRawSourceContents=False, reusePublishedPackageCache=False),
     securityOptions=['APT::Get::AllowUnauthenticated=false', 'Acquire::AllowInsecureRepositories=false',
         'Acquire::AllowDowngradeToInsecureRepositories=false', 'Acquire::Check-Date=true',
@@ -188,21 +193,30 @@ def private_sources(value):
         need(row['path'] == expected)
         integer(row['uid'], 0, (1 << 31) - 1); integer(row['gid'], 0, (1 << 31) - 1); integer(row['mode'], mode, mode)
         need(row['uid'] == directory['uid'] and row['gid'] == directory['gid'])
-    source = value['source']; exact(source, ('path', 'bytes', 'sha256', 'uid', 'gid', 'mode', 'normalizedHostSHA256', 'replacedURIs'))
+    source = value['source']; exact(source, ('path', 'bytes', 'sha256', 'uid', 'gid', 'mode', 'normalizedHostSHA256', 'replacedURIs', 'replacedSigners'))
     owned(source, path + '/ubuntu.sources', 0o644)
     policy = FROZEN_CONTRACT['privateSourcePolicy']
     digest(source['sha256']); need(source['normalizedHostSHA256'] == policy['hostSourceSHA256'])
     integer(source['replacedURIs'], 1, 16)
+    integer(source['replacedSigners'], 1, 16)
+    need(source['replacedSigners'] == source['replacedURIs'])
     expected_size = policy['hostSourceBytes'] + source['replacedURIs'] * (
         len('mirror+file:' + path + '/mirrors.txt') - len(policy['hostMirrorURI']))
+    expected_size += source['replacedSigners'] * (
+        len(path + '/' + policy['privateSignedBy']) - len(policy['signedBy']))
     integer(source['bytes'], expected_size, expected_size)
     mirrors = value['mirrors']; exact(mirrors, ('path', 'bytes', 'sha256', 'uid', 'gid', 'mode'))
     owned(mirrors, path + '/mirrors.txt', 0o644); raw = mirrors_bytes()
     integer(mirrors['bytes'], len(raw), len(raw)); need(mirrors['sha256'] == sha(raw))
     parts = value['parts']; exact(parts, ('path', 'uid', 'gid', 'mode', 'empty'))
     owned(parts, path + '/sourceparts', 0o755); need(parts['empty'] is True)
-    keyring = value['keyring']; exact(keyring, ('path', 'bytes', 'sha256', 'uid', 'gid', 'mode'))
-    projected_file(keyring, policy['signedBy'], 2 << 20)
+    keyring = value['keyring']; exact(keyring, ('path', 'bytes', 'sha256', 'sha512', 'uid', 'gid', 'mode'))
+    owned(keyring, path + '/' + policy['privateSignedBy'], 0o644)
+    integer(keyring['bytes'], policy['keyringBytes'], policy['keyringBytes'])
+    digest(keyring['sha256'])
+    # This is a trusted-CI projection of the approved pin, not local key bytes
+    # or an independently authenticated signature of the manifest.
+    need(type(keyring['sha512']) is str and keyring['sha512'] == policy['keyringSHA512'])
     probe = value['extraSourcesProbe']; exact(probe, ('argv', 'exitCode', 'timedOut', 'elapsedMilliseconds', 'emptyOutput'))
     need(same(probe['argv'], probe_argv(path)) and probe['timedOut'] is False and probe['emptyOutput'] is True)
     integer(probe['exitCode'], 0, 0); integer(probe['elapsedMilliseconds'], 0, 5000)
@@ -249,7 +263,7 @@ def verify(value, logs, source_blobs, commit):
     exact(value, ('schema', 'scope', 'sourceCommit', 'outcome', 'failureStage', 'platform', 'commands', 'logs',
                   'sourcesBefore', 'sourcesAfter', 'sourceConfigurationModified', 'packages', 'certutil', 'fonts',
                   'readbackComplete', 'production', 'authorization', 'sourceInputs', 'aptVersion', 'privateSources'))
-    need(value['schema'] == 'chengwang.ci-ui-dependencies/v2' and value['scope'] == SCOPE
+    need(value['schema'] == 'chengwang.ci-ui-dependencies/v3' and value['scope'] == SCOPE
          and value['sourceCommit'] == commit and value['outcome'] == 'PASS' and value['failureStage'] == 'NONE'
          and value['sourceConfigurationModified'] is False and value['readbackComplete'] is True
          and value['production'] is False and value['authorization'] == 'BLOCKED')
@@ -294,7 +308,7 @@ def verify(value, logs, source_blobs, commit):
         projected_file(row, expected['path'], 64 << 20)
     need(fonts[0]['sha256'] != fonts[1]['sha256'])
     readback(logs[LOG_NAMES[2]], packages, fonts)
-    return dict(schema='chengwang.ci-ui-dependencies-verification/v2', sourceCommit=commit, outcome='PASS',
+    return dict(schema='chengwang.ci-ui-dependencies-verification/v3', sourceCommit=commit, outcome='PASS',
         scope=SCOPE, sourceInputBindings=[bindings[name] for name in sorted(bindings)],
         logSHA256={name: sha(logs[name]) for name in LOG_NAMES}, packageNames=PACKAGES,
         fontStyles=['Regular', 'Bold'], sourceConfigurationModified=False,

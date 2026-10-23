@@ -1,0 +1,144 @@
+{
+  "schema": "chengwang.ci-keyring-mode-attempt/v1",
+  "sourceCommit": "fe8968e526d0404de7b89e7fe53b3f9ac2672827",
+  "originalRun": 40025542946,
+  "attempt": 1,
+  "conclusion": "failure",
+  "overallAccepted": false,
+  "producerJobs": [
+    {"id": 120660680942, "case": "create_receipt-chrome-cdp", "conclusion": "failure"},
+    {"id": 120660680492, "case": "create_receipt-playwright", "conclusion": "failure"},
+    {"id": 120660680884, "case": "local_admission-chrome-cdp", "conclusion": "failure"},
+    {"id": 120660680836, "case": "local_admission-playwright", "conclusion": "failure"}
+  ],
+  "freshJob": 120660872571,
+  "freshConclusion": "skipped",
+  "actualFreshReports": 0,
+  "failureStage": "PRIVATE_KEYRING_MODE",
+  "commonOriginalReportBytes": 8957,
+  "commonOriginalReportSHA256": "c60e9bb98001f0e32632e09b3e29ef45bbc1fe76fbc5dfddf4d2ce0bda9e26f8",
+  "observedAPTVersion": {"version": "2.8.3", "architecture": "amd64"},
+  "privateSources": null,
+  "updateExecuted": false,
+  "installExecuted": false,
+  "extraSourcesProbeExecuted": false,
+  "browserExecuted": false,
+  "actualProductPNGCount": 0,
+  "hostConfigurationEntriesUnchanged": 27,
+  "syntheticUniqueTestsPerProducer": 64,
+  "syntheticModuleCounts": [35, 19, 10],
+  "actualOriginalSyntheticLogsVerifiedByB": 4,
+  "syntheticSkipped": 0,
+  "old51And26NamesPreserved": true,
+  "product84And76Executed": false,
+  "originalArtifacts": [
+    {
+      "id": 12533070379, "case": "create_receipt-chrome-cdp", "bytes": 5752, "entries": 6,
+      "sha256": "0054e39975092ea790d0922a8c9d0f837643dce36fbaaf53a299752849e919a8",
+      "unitLogBytes": 13052,
+      "unitLogSHA256": "0bdb140f168a016f3dd64a43a11ce54e67c15e8fc0ebbfe5e59cd23454bb757d"
+    },
+    {
+      "id": 12532422695, "case": "create_receipt-playwright", "bytes": 5752, "entries": 6,
+      "sha256": "d210a26607fb454c2796768ec065e37afd49c27c95ea8507f8f3e91c08671127",
+      "unitLogBytes": 13052,
+      "unitLogSHA256": "f1d7c5fedd1a3d617e8c4bba0a2aeffa34bf66b82adf12d59e49a0e8a7a4ab90"
+    },
+    {
+      "id": 12531718728, "case": "local_admission-chrome-cdp", "bytes": 5753, "entries": 6,
+      "sha256": "083c0934eafae0e8f267d09e698adb9436da09b139491d511643b9440d667f02",
+      "unitLogBytes": 13052,
+      "unitLogSHA256": "ce7c8b6be9bf50a206a23fb99f62c2457028caf20a4a575ceb0038b0feb35766"
+    },
+    {
+      "id": 12532766007, "case": "local_admission-playwright", "bytes": 5753, "entries": 6,
+      "sha256": "57f3b66a13b648540fe69886db5443d54761041c90e84d7094de00ad1bff8ed1",
+      "unitLogBytes": 13052,
+      "unitLogSHA256": "485b576713f4e239e84179ff89e97690db506262f252c23c3f12c13244c28e22"
+    }
+  ],
+  "uiEvidenceVerification": {
+    "reviewer": "subscription_ui_runner",
+    "apiSizesAndDigestsMatched": true,
+    "zipCRCAndAll24OriginalMemberBytesVerified": true,
+    "four64TestLogsBoundToExactGitNames": true,
+    "originals": "C:/Users/Administrator/AppData/Local/Temp/chengwang-fe8968e-ui-b-original-review-20261024"
+  },
+  "rootUIReverification": {
+    "confirmationSource": "root direct confirmation after original verification",
+    "original24MembersAPIDigestsAndCRCVerified": true,
+    "four64TestLogsVerifiedByName": true,
+    "originalFullDependencyCLIRejections": 4,
+    "originalFullDependencyCLIExitCodes": [1, 1, 1, 1],
+    "passReportsProduced": 0,
+    "originals": "C:/Users/Administrator/AppData/Local/Temp/chengwang-private-apt-root-4afd984111a84af597aa58d949c78767/40025542946"
+  },
+  "independentUIReverification": {
+    "reviewer": "subscription_ui_checker",
+    "original24MembersCRCBytesAndHashesVerified": true,
+    "four64TestLogsAndOld51And26NamesVerified": true,
+    "sourceInputsBoundToTwoOriginalGitBlobs": true,
+    "fourLogsAndHost27BeforeAfterVerified": true,
+    "originalFullDependencyCLIRejections": 4,
+    "originalFullDependencyCLIExitCodes": [1, 1, 1, 1],
+    "passReportsProduced": 0,
+    "dependencyAcceptanceProven": false,
+    "originals": "C:/Users/Administrator/AppData/Local/Temp/chengwang-keyring-c-fe8968e-6e4355c8011d4bac8a91c13422db1d7f"
+  },
+  "parent": {
+    "run": 40025542997, "job": 120660680881, "attempt": 1, "conclusion": "success",
+    "reviewer": "subscription_ui_driver",
+    "rawAPILogBytes": 6069469,
+    "rawAPILogSHA256": "c1e44b3a2ccccb26fb5200c29e93b8f2115b9361faf72ecbcdd42402c606c25a",
+    "testRunsPerInvocation": 2644, "testPassesPerInvocation": 2644,
+    "invocations": ["ordinary", "race"], "eventsPerInvocation": 10811,
+    "testNamesSHA256": "c6c9617757bfa72321738f76d60650be6b047a4ca133e3bd3ade891f05b074fb",
+    "testFailEvents": 0, "testSkipEvents": 0,
+    "allowedNoTestPackageSkipPerInvocation": "chengwang/internal/domain",
+    "fuzzTopLevelPerInvocation": 4, "fuzzSeedsPerInvocation": 8,
+    "sustainedRandomizedFuzzingProven": false,
+    "originalGateAndFourExtensionSourcesMatchExactCommit": true,
+    "derivedTranscriptGateReplayExitCode": 0,
+    "schemaCount": 11, "semanticRunEvents": 5288, "packages": 42,
+    "derivedFilesAreOriginalTeeFiles": false,
+    "derivedOrdinarySHA256": "23c082681913f320934bc75477dac562ea9dbd163b35a40a5f7ff73f090743ce",
+    "derivedRaceSHA256": "2a1a00b0a872aa937fd87de76f3db050ef583057816857981680a86d0f6fc803"
+  },
+  "oldSubscription": {
+    "run": 40025542937, "attempt": 1, "conclusion": "success",
+    "producerJob": 120660680506, "freshJob": 120661038374,
+    "reviewer": "subscription_ui_driver",
+    "producerArtifact": {
+      "id": 12532536808, "bytes": 123642, "entries": 25,
+      "sha256": "1736f702566d5d9318857e0958f4156bdbb086a335f94da77acec504da8601a7"
+    },
+    "freshArtifact": {
+      "id": 12531628905, "bytes": 1613, "entries": 1,
+      "sha256": "e71fbccddb0aa116f6a938519201dfef65668bdfd71bb5b7bb04d1237af16ede"
+    },
+    "producerRawLogSHA256": "dad991194d8c69e264d66858c00c5e1bb0ceea5703726915c554cdd6d1ea06d8",
+    "freshRawLogSHA256": "2ef905cb6f6ea36034849e6d96863b9e3d63ebd820fbcb3deeb060c598703fed",
+    "reportsByteIdentical": true, "reportBytes": 2496,
+    "reportSHA256": "1603ee79d932d2478b05bbcd28a4c6ec528d178dc823be31f032759c79ecc0a1",
+    "actualDistinctUnitTestsPassed": 80, "actualUnitModuleCounts": [24, 24, 32], "unitSkipped": 0,
+    "publicFileCount": 20, "all20ZIPHashesAndExtractedBytesMatched": true,
+    "sourceAndHostBeforeAfterByteIdentical": true,
+    "sourceGitBlobsIndependentlyBound": 873,
+    "captureCount": 46, "serverEpochs": 4, "wireConnections": 26, "wireEvents": 102,
+    "originalLinuxProducerAndFreshChecksPassed": true,
+    "windowsOriginalFullCustodyAccepted": false,
+    "windowsOriginalRejection": "public-file-open-race",
+    "privateDatabaseRawIndependentlyVerified": false,
+    "externalInternetProven": false
+  },
+  "parentAndOldSubscriptionOriginals": "C:/Users/Administrator/AppData/Local/Temp/chengwang-parent-oldsub-fe8968e-agent-70f42dd1fdd04012a0e425a686552134",
+  "modeNumericValueExportedOrProven": false,
+  "permissionMutationOriginProven": false,
+  "keyringContentsExported": false,
+  "policyWeakened": false,
+  "systemPermissionsChanged": false,
+  "dependencyDownloadResolved": false,
+  "fullSubscriptionPlanAccepted": false,
+  "production": false,
+  "authorization": "BLOCKED"
+}

@@ -89,8 +89,9 @@ jobs:
           import ast, hashlib, importlib, pathlib, unittest
           pins = {
               'test_prepare_ci_dependencies': (35, '5103e8b25561d101fe841da3c978b4152d934f2dcafcf92c0a2aaaee536270d7'),
-              'test_check_ci_dependencies': (19, 'd191202ac34518ed5787fad0af19debafb415e142c10d713d35df709cd4ff7c3'),
+              'test_check_ci_dependencies': (26, '2f0ee3b7bdf4c0bf854b087cb08e94303af30d2561c219a84279a91b5ebd1506'),
               'test_keyring_diagnostic_contract': (10, 'ce7fffd8bc08f0213e1ad437bfa6e83f8132d7ebc2e4a1b6af96304fca035b4b'),
+              'test_pinned_ci_keyring': (15, '8151684ea603ccf804cc313ae07743d09d9c3391f037dcf2903c78bd18b86765'),
           }
           class Recorded(unittest.TextTestResult):
               def __init__(self, *args):

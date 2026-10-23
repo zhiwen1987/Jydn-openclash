@@ -2,7 +2,9 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-**当前执行阶段：keyring读取细分诊断，UI矩阵仍未通过**。[实现与原失败](P2-CI-PRIVATE-APT-SOURCES.md)：已增加固定keyring读取条件诊断，根实际64纯测试（35＋19＋10，原51/26名保留）/模拟跨层/10块语法通过，尚待新原CI给出真实细分原因；通用reader和信任接受条件未放宽。最近原UI40023943559四producer仍为PRIVATE_KEYRING_READ、fresh跳过，根/B/C24原件及根四原CLI拒绝已保全，不能预报新结果。APT2.8.3已实际读回，27宿主配置前后同；私有配置/额外源probe/update/install/产品/浏览器仍未执行。前序a76/c7原失败保留，完整系统/生产均未完成。[机器台账](evidence/p2-ci-private-apt-diagnostic-5657e33.json)
+**本轮实现进度：v3 私有固定字节密钥副本已实现，真实 CI 待验。** 三个子代理分别承担 helper/旧测试、独立 checker/合同、独立 pin 反例；根单一集成。候选必须匹配固定官方提交的 3607B/SHA512，才写入私有0644副本，并将 Signed-By 改指该副本；宿主不 chmod、不下载新密钥、原严格 reader AST 不变。根实际通过冻结86项纯CPU测试、模拟跨层接口及10块bash语法，原64名称保留；这些不能填作APT、双浏览器、fresh或上线通过。[实现、官方依据与执行偏差记录](P2-CI-PRIVATE-APT-SOURCES.md)。最新真实结果仍为下方fe8968e失败，不覆盖。
+
+**当前执行阶段：keyring MODE拒绝已定位，UI矩阵仍未通过**。[最新原件](P2-CI-PRIVATE-APT-SOURCES.md)：源码fe8968e的原UI40025542946/attempt1四producer均PRIVATE_KEYRING_MODE，fresh skipped，整体failure。四份原64项纯测试（35＋19＋10，原51/26名称保留）均通过；根/B/C分别核24个原成员/摘要/CRC及精确名单，根/C各四个原完整依赖CLI均exit1、无成功报告。APT2.8.3、27宿主配置前后同，原无022条件拒绝但实际mode值/来源未知；不修权限、不放宽信任。私有配置/额外源probe/update/install/产品/浏览器未执行。A分别核同源码父门40025542997的ordinary/race各2644实际Test及旧基线转录重放、旧订阅40025542937的80项/20文件/873 Git与两Linux同报告；Windows原POSIX拒绝保留。这些分层通过不能抵销UI失败，前序失败/完整系统与生产未完成均保留。[机器台账](evidence/p2-ci-keyring-mode-fe8968e.json)
 
 **前序c7失败保留**：[c7b64c4实际验收](P2-CI-DEPENDENCY-ACQUISITION.md)：原run40018960129终态failure；两PW实际安装/包字体读回及既定产品原CLI通过，根/B产品报告逐字同、各879 Git blobs，根/B/C依赖报告逐字同；两CDP均INSTALL240s退出124，浏览器未启动，fresh跳过。四份新26原输出均逐名核验零skip，80原ZIP成员三方同；这些证明限时退出/拒绝生效，**不证明下载可用性修复或整组UI回归通过**。具体网络根因未证，后续方案已先核GitHub源码/测试，未改生产。父门40018960021及旧订阅40018960055成功，根核状态/A分层原件复验，不冒称根完整旧POSIX CLI通过。[机器台账](evidence/p2-ci-dependency-acquisition-c7b64c4.json)
 
@@ -85,6 +87,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 
 | 提交或阶段 | 结果 | 不应误读为 |
 | --- | --- | --- |
+| `fe8968e` | 原64项纯测试四份全通过，但真实UI四producer为PRIVATE_KEYRING_MODE、fresh跳过；根/B/C分别核24原件及原测试名单，根/C各四原依赖CLI均严格拒绝。A分别核父门各2644/旧名单、旧订阅80/20文件/873 Git及两Linux报告一致 | 实际mode数值或权限来源已知、keyring已修复、下载/UI/fresh验收通过；父门与旧后端成功可抵销整组failure；Windows完整POSIX CLI通过或生产上线 |
 | `5657e33` | 18个闭集诊断原因已实现，原51测试通过；真实四producer进一步定位PRIVATE_KEYRING_READ，24原件/四原CLI拒绝根复验，fresh跳过 | keyring具体坏权限/软链等原因已证、私有源整体成功、安装/UI/fresh验收通过或上线 |
 | `a76ec5e` | 私有官方镜像/版本读回/安全覆盖及49唯一纯测试已实现；原UI四producer止于PRIVATE_SOURCES，实际APT2.8.3、host指纹仍同，update/install未执行；24原件及四原依赖拒绝根复验 | 私有镜像已经生效、安装期限本轮已验证、下载已修复、产品或fresh验收通过 |
 | `c7b64c4` | CI依赖有界准备/读回实现及26唯一测试；两PW真实安装与既定产品流程/879源/84+76原辅助门，根/代理原件复验；两CDP安装240s退出124，fresh跳过，原run整体failure | 下载阻塞已解决、两CDP浏览器通过、fresh已复验、所有业务/全系统完成或生产已上线 |

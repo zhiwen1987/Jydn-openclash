@@ -1,6 +1,7 @@
 """Synthetic CPU fixtures only: no apt, npm, sudo, browser or subprocess executes."""
 import contextlib
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -27,12 +28,14 @@ def private_fixture():
         return dict(path=path, bytes=size, sha256='f' * 64, uid=0 if root else 1001,
                     gid=0 if root else 1001, mode=0o644)
     source = file(PRIVATE_DIRECTORY + '/ubuntu.sources', D.HOST_SOURCE_SIZE + 2 *
-                  (len('mirror+file:' + PRIVATE_DIRECTORY + '/mirrors.txt') - len(D.HOST_MIRROR_URI)))
-    source.update(normalizedHostSHA256=D.HOST_SOURCE_SHA, replacedURIs=2)
+                  (len('mirror+file:' + PRIVATE_DIRECTORY + '/mirrors.txt') - len(D.HOST_MIRROR_URI)
+                   + len(PRIVATE_DIRECTORY + '/ubuntu-archive-keyring.gpg') - len(D.KEYRING)))
+    source.update(normalizedHostSHA256=D.HOST_SOURCE_SHA, replacedURIs=2, replacedSigners=2)
     return dict(directory=directory(PRIVATE_DIRECTORY), source=source,
                 mirrors={**file(PRIVATE_DIRECTORY + '/mirrors.txt', len(D.mirror_bytes())), 'sha256': D.sha(D.mirror_bytes())},
                 parts={**directory(PRIVATE_DIRECTORY + '/sourceparts'), 'empty': True},
-                keyring=file(D.KEYRING, 100, True), effectiveConfigurationChanged=True)
+                keyring={**file(PRIVATE_DIRECTORY + '/ubuntu-archive-keyring.gpg', D.PINNED_KEYRING_BYTES),
+                         'sha512': D.PINNED_KEYRING_SHA512}, effectiveConfigurationChanged=True)
 
 
 def synthetic_source():
@@ -68,18 +71,15 @@ class PrepareDependencyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='chengwang-private-copy-unit-') as directory:
             path = Path(directory).resolve()
             source = source_override if source_override is not None else synthetic_source()
-            original_reader = D.read_file
-
-            def reader(name, maximum, **kwargs):
-                if str(name) == D.KEYRING:
-                    return b'unit keyring', dict(path=D.KEYRING, bytes=12, sha256='c' * 64, uid=0, gid=0, mode=0o644)
-                return original_reader(name, maximum)
+            keyring = b'explicitly synthetic pinned keyring bytes'
 
             mode = lambda bits: 0o755 if stat.S_ISDIR(bits) else 0o644
             with patch.object(D, 'HOST_SOURCE_SIZE', len(source)), patch.object(D, 'HOST_SOURCE_SHA', D.sha(source)), \
                  patch.object(D, 'DIRECTORY_PATTERN', re.escape(str(path))), \
-                 patch.object(D, 'read_file', side_effect=reader), patch.object(D.stat, 'S_IMODE', side_effect=mode):
-                D.private_files(path, source)
+                 patch.object(D, 'PINNED_KEYRING_BYTES', len(keyring)), \
+                 patch.object(D, 'PINNED_KEYRING_SHA512', hashlib.sha512(keyring).hexdigest()), \
+                 patch.object(D.stat, 'S_IMODE', side_effect=mode):
+                D.private_files(path, source, keyring)
                 yield path, source
 
     @contextlib.contextmanager
@@ -379,12 +379,19 @@ class PrepareDependencyTests(unittest.TestCase):
         with self.copied_private_fixture() as (path, host):
             source = (path / 'ubuntu.sources').read_bytes()
             replacement = ('mirror+file:' + str(path / 'mirrors.txt')).encode()
-            self.assertEqual(source.replace(replacement, D.HOST_MIRROR_URI.encode()), host)
+            self.assertEqual(source.replace(replacement, D.HOST_MIRROR_URI.encode()).replace(
+                str(path / 'ubuntu-archive-keyring.gpg').encode(), D.KEYRING.encode()), host)
             self.assertEqual((path / 'mirrors.txt').read_bytes(), D.mirror_bytes())
             projection = D.private_readback(path)
             self.assertEqual(projection['source']['normalizedHostSHA256'], D.sha(host))
             self.assertEqual(projection['source']['replacedURIs'], 2)
+            self.assertEqual(projection['source']['replacedSigners'], 2)
             self.assertEqual(projection['source']['bytes'], len(source))
+            keyring = (path / 'ubuntu-archive-keyring.gpg').read_bytes()
+            self.assertEqual(len(keyring), D.PINNED_KEYRING_BYTES)
+            self.assertEqual(projection['keyring']['sha512'], hashlib.sha512(keyring).hexdigest())
+            self.assertEqual(projection['keyring']['path'], str(path / 'ubuntu-archive-keyring.gpg'))
+            self.assertEqual(projection['keyring']['mode'], 0o644)
             self.assertTrue(projection['parts']['empty'])
             self.assertTrue(projection['effectiveConfigurationChanged'])
 
@@ -395,14 +402,21 @@ class PrepareDependencyTests(unittest.TestCase):
             replacement = ('mirror+file:' + str(path / 'mirrors.txt')).encode()
             actual = (path / 'ubuntu.sources').read_bytes()
             self.assertIn(b'Components: main universe restricted multiverse\n', actual)
-            self.assertEqual(actual.replace(replacement, D.HOST_MIRROR_URI.encode()), source)
+            self.assertEqual(actual.replace(replacement, D.HOST_MIRROR_URI.encode()).replace(
+                str(path / 'ubuntu-archive-keyring.gpg').encode(), D.KEYRING.encode()), source)
             self.assertEqual(D.private_readback(path)['source']['normalizedHostSHA256'], D.sha(host))
         duplicate = source.replace(b'main universe restricted multiverse', b'main universe main multiverse', 1)
         with self.assertRaises(ValueError):
             D.parse_ubuntu_sources(duplicate)
+        for comment in [D.HOST_MIRROR_URI, D.KEYRING, D.HOST_MIRROR_URI + ' ' + D.KEYRING]:
+            # Even equal extra mirror/signer occurrences in comments cannot
+            # masquerade as another actual source stanza under a synthetic pin.
+            with self.subTest(comment=comment), self.assertRaises(ValueError):
+                with self.copied_private_fixture(source + ('# ' + comment + '\n').encode()):
+                    self.fail('comment occurrence must not authorize file creation')
 
     def test_private_configuration_tamper_and_nonempty_parts_fail_closed(self):
-        for target in ['ubuntu.sources', 'mirrors.txt', 'sourceparts']:
+        for target in ['ubuntu.sources', 'mirrors.txt', 'sourceparts', 'ubuntu-archive-keyring.gpg']:
             with self.subTest(target=target), self.copied_private_fixture() as (path, host):
                 if target == 'sourceparts':
                     (path / target / 'unexpected.list').write_bytes(b'unapproved')
@@ -477,7 +491,7 @@ class PrepareDependencyTests(unittest.TestCase):
                     'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION', 'DIRECTORY', 'FILES', 'READBACK',
                     'KEYRING_STAT', 'KEYRING_SYMLINK', 'KEYRING_TYPE', 'KEYRING_LINK_COUNT', 'KEYRING_SIZE',
                     'KEYRING_OWNER', 'KEYRING_MODE', 'KEYRING_OPEN', 'KEYRING_FD_STAT', 'KEYRING_FINAL_STAT',
-                    'KEYRING_STABILITY', 'KEYRING_LENGTH'}
+                    'KEYRING_STABILITY', 'KEYRING_LENGTH', 'KEYRING_DIGEST'}
         self.assertEqual(D.PRIVATE_REASONS, expected)
         for invalid in ['PRIVATE-CANARY', 'types', '', None, ['TYPES']]:
             with self.subTest(invalid=invalid), self.assertRaises(ValueError) as caught:
@@ -505,7 +519,7 @@ class PrepareDependencyTests(unittest.TestCase):
         canary = 'PRIVATE-CANARY-source-and-error'
         source, mirror = synthetic_source(), b'synthetic host mirror\n'
         for expected in ['HOST_SOURCE_READ', 'HOST_SOURCE_DIGEST', 'HOST_MIRROR_READ', 'HOST_MIRROR_DIGEST',
-                         'KEYRING_READ', 'KEYRING_PERMISSION', 'DIRECTORY', 'FILES', 'READBACK']:
+                         'KEYRING_READ', 'KEYRING_DIGEST', 'DIRECTORY', 'FILES', 'READBACK']:
             def reader(path, maximum, **kwargs):
                 if path == D.HOST_SOURCE:
                     if expected == 'HOST_SOURCE_READ':
@@ -517,7 +531,7 @@ class PrepareDependencyTests(unittest.TestCase):
                     return (b'wrong mirror' if expected == 'HOST_MIRROR_DIGEST' else mirror), {}
                 if expected == 'KEYRING_READ':
                     raise OSError(canary)
-                return b'unit keyring', {'mode': 0o600 if expected == 'KEYRING_PERMISSION' else 0o644}
+                return b'wrong keyring' if expected == 'KEYRING_DIGEST' else b'unit keyring', {}
 
             def reject():
                 raise OSError(canary)
@@ -525,6 +539,8 @@ class PrepareDependencyTests(unittest.TestCase):
             with self.subTest(expected=expected), \
                  patch.object(D, 'HOST_SOURCE_SIZE', len(source)), patch.object(D, 'HOST_SOURCE_SHA', D.sha(source)), \
                  patch.object(D, 'HOST_MIRROR_SIZE', len(mirror)), patch.object(D, 'HOST_MIRROR_SHA', D.sha(mirror)), \
+                 patch.object(D, 'PINNED_KEYRING_BYTES', len(b'unit keyring')), \
+                 patch.object(D, 'PINNED_KEYRING_SHA512', hashlib.sha512(b'unit keyring').hexdigest()), \
                  patch.object(D, 'read_file', side_effect=reader), \
                  patch.object(D, 'make_private_directory', side_effect=reject if expected == 'DIRECTORY' else lambda: Path(PRIVATE_DIRECTORY)), \
                  patch.object(D, 'private_files', side_effect=reject if expected == 'FILES' else lambda *_: None), \

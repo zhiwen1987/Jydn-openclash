@@ -152,12 +152,14 @@ class IndependentKeyringDiagnosticContracts(unittest.TestCase):
 
     def test_08_creation_chain_propagates_precise_keyring_reason_without_io(self):
         source, mirrors = b'independent host source fixture', b'independent host mirror fixture'
-        for reason in ('KEYRING_LINK_COUNT', 'KEYRING_OPEN'):
+        for reason in ('KEYRING_READ', 'KEYRING_DIGEST'):
             def read_stub(path, *args, **kwargs):
                 if str(path) == P.HOST_SOURCE: return source, {}
                 if str(path) == P.HOST_MIRROR: return mirrors, {}
-                self.assertEqual(str(path), P.KEYRING); self.assertEqual(kwargs, dict(system_owned=True, diagnostic='KEYRING'))
-                raise P.PrivateSourceRejected(reason)
+                self.assertEqual(str(path), P.KEYRING); self.assertEqual(args, (P.PINNED_KEYRING_BYTES,))
+                self.assertEqual(kwargs, {})
+                if reason == 'KEYRING_READ': raise OSError(CANARY)
+                return DATA[:-1], {}
             with mock.patch.multiple(P, HOST_SOURCE_SIZE=len(source), HOST_SOURCE_SHA=hashlib.sha256(source).hexdigest(),
                                      HOST_MIRROR_SIZE=len(mirrors), HOST_MIRROR_SHA=hashlib.sha256(mirrors).hexdigest()), \
                  mock.patch.object(P, 'read_file', side_effect=read_stub), \
@@ -168,25 +170,32 @@ class IndependentKeyringDiagnosticContracts(unittest.TestCase):
         def unreadable(path, *args, **kwargs):
             if str(path) == P.HOST_SOURCE: return source, {}
             if str(path) == P.HOST_MIRROR: return mirrors, {}
-            self.assertEqual(kwargs, dict(system_owned=True, diagnostic='KEYRING'))
-            return DATA, dict(mode=0o600)
+            self.assertEqual(kwargs, {})
+            return DATA, dict(mode=0o777)
         with mock.patch.multiple(P, HOST_SOURCE_SIZE=len(source), HOST_SOURCE_SHA=hashlib.sha256(source).hexdigest(),
                                  HOST_MIRROR_SIZE=len(mirrors), HOST_MIRROR_SHA=hashlib.sha256(mirrors).hexdigest()), \
              mock.patch.object(P, 'read_file', side_effect=unreadable), \
-             mock.patch.object(P, 'parse_ubuntu_sources', return_value=1):
+             mock.patch.object(P, 'parse_ubuntu_sources', return_value=1), \
+             mock.patch.object(P, 'PINNED_KEYRING_BYTES', len(DATA)), \
+             mock.patch.object(P, 'PINNED_KEYRING_SHA512', hashlib.sha512(DATA).hexdigest()), \
+             mock.patch.object(P, 'make_private_directory', return_value=PurePosixPath('/tmp/chengwang-ci-apt-abcdefgh')), \
+             mock.patch.object(P, 'private_files', side_effect=P.PrivateSourceRejected('FILES')):
             with self.assertRaises(P.PrivateSourceRejected) as caught: P.create_private_sources()
-            self.assertEqual(caught.exception.reason, 'KEYRING_PERMISSION')
+            # Writable host bytes alone confer no trust. The exact mocked pin
+            # authorizes copying, which then reaches the isolated file stage.
+            self.assertEqual(caught.exception.reason, 'FILES')
 
     def test_09_private_readback_preserves_diagnostic_keyword_and_cause(self):
         # Only pure path strings are simulated here; no Linux directory exists.
         directory = PurePosixPath('/tmp/chengwang-ci-apt-abcdefgh'); replacement = ('mirror+file:'+str(directory/'mirrors.txt')).encode()
-        normalized = P.HOST_MIRROR_URI.encode(); mirrors = P.mirror_bytes()
+        private_signer = str(directory/'ubuntu-archive-keyring.gpg')
+        normalized = (P.HOST_MIRROR_URI + '\n' + P.KEYRING).encode(); mirrors = P.mirror_bytes()
         def read_stub(path, *args, **kwargs):
             path = str(path)
-            if path == P.KEYRING:
-                self.assertEqual(kwargs, dict(system_owned=True, diagnostic='KEYRING'))
-                raise P.PrivateSourceRejected('KEYRING_OWNER')
-            data = replacement if path.endswith('/ubuntu.sources') else mirrors
+            if path == private_signer:
+                self.assertEqual(args, (P.PINNED_KEYRING_BYTES,)); self.assertEqual(kwargs, {})
+                return DATA[:-1], dict(path=path, uid=1001, gid=1001, mode=0o644)
+            data = replacement + b'\n' + private_signer.encode() if path.endswith('/ubuntu.sources') else mirrors
             return data, dict(path=path, bytes=len(data), sha256=hashlib.sha256(data).hexdigest(), uid=1001, gid=1001, mode=0o644)
         with mock.patch.multiple(P, HOST_SOURCE_SIZE=len(normalized), HOST_SOURCE_SHA=hashlib.sha256(normalized).hexdigest()), \
              mock.patch.object(P, 'Path', PurePosixPath), \
@@ -194,7 +203,7 @@ class IndependentKeyringDiagnosticContracts(unittest.TestCase):
              mock.patch.object(P, 'directory_metadata', side_effect=lambda path,*a,**k:dict(path=str(path),uid=1001,gid=1001,mode=0o755)), \
              mock.patch.object(P, 'parse_ubuntu_sources', return_value=1):
             with self.assertRaises(P.PrivateSourceRejected) as caught: P.private_readback(directory)
-            self.assertEqual(caught.exception.reason, 'KEYRING_OWNER')
+            self.assertEqual(caught.exception.reason, 'KEYRING_DIGEST')
 
     def test_10_unknown_exception_text_and_mutated_reason_never_export_canary(self):
         def broken(): raise RuntimeError(CANARY)

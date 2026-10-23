@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import time
 
-SCHEMA = 'chengwang.ci-ui-dependencies/v2'
+SCHEMA = 'chengwang.ci-ui-dependencies/v3'
 SCOPE = 'TRUSTED_CI_DEPENDENCY_READBACK_NOT_REPRODUCIBLE_PACKAGE_PROVENANCE'
 PACKAGES = ['libnss3-tools', 'fonts-noto-cjk']
 FONTS = [('Regular', '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'),
@@ -30,6 +30,8 @@ HOST_MIRROR_URI = 'mirror+file:' + HOST_MIRROR
 HOST_MIRROR_SIZE = 144
 HOST_MIRROR_SHA = 'e0d6b0af979e4662d16357a27ae456cc6f21e26da031540f4df8706ebed1d583'
 KEYRING = '/usr/share/keyrings/ubuntu-archive-keyring.gpg'
+PINNED_KEYRING_BYTES = 3607
+PINNED_KEYRING_SHA512 = '4e344ffbb31f205af8c6db3c260222e4af886af4d5c28462106c579d7ae46f91153340eafad843186d7788370634d8097c117748921455e5bbb219bf08a28a40'
 DIRECTORY_PATTERN = r'/tmp/chengwang-ci-apt-[a-z0-9_]{8}'
 MIRRORS = ['https://archive.ubuntu.com/ubuntu/', 'https://security.ubuntu.com/ubuntu/',
            'http://azure.archive.ubuntu.com/ubuntu/']
@@ -49,7 +51,7 @@ PRIVATE_REASONS = frozenset(('FORMAT', 'STRUCTURE', 'TYPES', 'URIS', 'SIGNED_BY'
     'HOST_MIRROR_READ', 'HOST_MIRROR_DIGEST', 'KEYRING_READ', 'KEYRING_PERMISSION',
     'DIRECTORY', 'FILES', 'READBACK', 'KEYRING_STAT', 'KEYRING_SYMLINK', 'KEYRING_TYPE',
     'KEYRING_LINK_COUNT', 'KEYRING_SIZE', 'KEYRING_OWNER', 'KEYRING_MODE', 'KEYRING_OPEN',
-    'KEYRING_FD_STAT', 'KEYRING_FINAL_STAT', 'KEYRING_STABILITY', 'KEYRING_LENGTH'))
+    'KEYRING_FD_STAT', 'KEYRING_FINAL_STAT', 'KEYRING_STABILITY', 'KEYRING_LENGTH', 'KEYRING_DIGEST'))
 
 
 class PrivateSourceRejected(ValueError):
@@ -189,16 +191,33 @@ def make_private_directory():
     return directory
 
 
-def private_files(directory, host_source):
+def pinned_candidate_keyring():
+    # This input is not trusted by its host permissions. Only the separately
+    # approved exact length and SHA512 can authorize the private copy.
+    raw, _ = read_file(KEYRING, PINNED_KEYRING_BYTES)
+    validate_pinned_keyring(raw)
+    return raw
+
+
+def validate_pinned_keyring(raw):
+    private_need(type(raw) is bytes and len(raw) == PINNED_KEYRING_BYTES
+                 and hashlib.sha512(raw).hexdigest() == PINNED_KEYRING_SHA512, 'KEYRING_DIGEST')
+
+
+def private_files(directory, host_source, keyring_bytes):
     """Only a newly allocated directory is passed here by the real producer."""
     directory = Path(directory)
-    parse_ubuntu_sources(host_source)
+    stanza_count = parse_ubuntu_sources(host_source)
+    validate_pinned_keyring(keyring_bytes)
     old = HOST_MIRROR_URI.encode('ascii')
     replacement = ('mirror+file:' + str(directory / 'mirrors.txt')).encode('ascii')
     count = host_source.count(old)
-    need(1 <= count <= 16)
-    content = host_source.replace(old, replacement)
-    for name, raw in [('ubuntu.sources', content), ('mirrors.txt', mirror_bytes())]:
+    signer_count = host_source.count(KEYRING.encode('ascii'))
+    need(1 <= count == signer_count == stanza_count <= 16)
+    content = host_source.replace(old, replacement).replace(KEYRING.encode('ascii'),
+                str(directory / 'ubuntu-archive-keyring.gpg').encode('ascii'))
+    for name, raw in [('ubuntu.sources', content), ('mirrors.txt', mirror_bytes()),
+                      ('ubuntu-archive-keyring.gpg', keyring_bytes)]:
         descriptor = os.open(directory / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
         with os.fdopen(descriptor, 'wb') as output:
             output.write(raw)
@@ -219,16 +238,20 @@ def private_readback(directory):
     for row in (source, mirrors):
         need((row['uid'], row['gid']) == owner and row['mode'] == 0o644)
     replacement = ('mirror+file:' + str(directory / 'mirrors.txt')).encode('ascii')
+    private_signer = str(directory / 'ubuntu-archive-keyring.gpg').encode('ascii')
     count = raw.count(replacement)
-    normalized = raw.replace(replacement, HOST_MIRROR_URI.encode('ascii'))
-    need(1 <= count <= 16 and len(normalized) == HOST_SOURCE_SIZE and sha(normalized) == HOST_SOURCE_SHA
+    signer_count = raw.count(private_signer)
+    normalized = raw.replace(replacement, HOST_MIRROR_URI.encode('ascii')).replace(private_signer, KEYRING.encode('ascii'))
+    need(1 <= count == signer_count <= 16 and len(normalized) == HOST_SOURCE_SIZE and sha(normalized) == HOST_SOURCE_SHA
          and mirrors_raw == mirror_bytes())
-    parse_ubuntu_sources(normalized)
-    source.update(normalizedHostSHA256=sha(normalized), replacedURIs=count)
+    need(count == parse_ubuntu_sources(normalized))
+    source.update(normalizedHostSHA256=sha(normalized), replacedURIs=count, replacedSigners=signer_count)
     parts = directory_metadata(directory / 'sourceparts', owner, empty=True)
     parts['empty'] = True
-    _, keyring = read_file(KEYRING, 2 << 20, system_owned=True, diagnostic='KEYRING')
-    private_need(keyring['mode'] & 0o004, 'KEYRING_PERMISSION')
+    keyring_raw, keyring = read_file(directory / 'ubuntu-archive-keyring.gpg', PINNED_KEYRING_BYTES)
+    validate_pinned_keyring(keyring_raw)
+    private_need((keyring['uid'], keyring['gid']) == owner and keyring['mode'] == 0o644, 'KEYRING_PERMISSION')
+    keyring['sha512'] = hashlib.sha512(keyring_raw).hexdigest()
     return dict(directory=parent, source=source, mirrors=mirrors, parts=parts,
                 keyring=keyring, effectiveConfigurationChanged=True)
 
@@ -239,11 +262,9 @@ def create_private_sources():
     mirrors, _ = private_operation('HOST_MIRROR_READ', read_file, HOST_MIRROR, HOST_MIRROR_SIZE, system_owned=True)
     private_need(len(mirrors) == HOST_MIRROR_SIZE and sha(mirrors) == HOST_MIRROR_SHA, 'HOST_MIRROR_DIGEST')
     parse_ubuntu_sources(source)
-    _, keyring = private_operation('KEYRING_READ', read_file, KEYRING, 2 << 20,
-                                  system_owned=True, diagnostic='KEYRING')
-    private_need(keyring['mode'] & 0o004, 'KEYRING_PERMISSION')
+    keyring_bytes = private_operation('KEYRING_READ', pinned_candidate_keyring)
     directory = private_operation('DIRECTORY', make_private_directory)
-    private_operation('FILES', private_files, directory, source)
+    private_operation('FILES', private_files, directory, source, keyring_bytes)
     return private_operation('READBACK', private_readback, directory)
 
 
