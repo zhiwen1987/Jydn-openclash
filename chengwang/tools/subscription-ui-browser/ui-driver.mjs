@@ -9,6 +9,7 @@ import { promisify } from 'node:util'
 import { pathToFileURL } from 'node:url'
 import { ORIGIN, STEPS, SCOPE, LABEL, FAVICON, sha, need, exact, integer, ascii, parseProcess, versionProjection,
   assetPaths, classifyRequest, canaryVariants, safePublic, decodeBody, validateStep } from './ui-contract.mjs'
+import { NavigationDiagnostics, NAVIGATION_TARGET_EXPRESSION } from './navigation-diagnostics.mjs'
 const execute = promisify(execFile)
 const checkpoint = value => process.stderr.write('SUBSCRIPTION_UI_STAGE=' + value + '\n')
 const sameStat = (a, b) => ['dev', 'ino', 'size', 'mode', 'uid', 'gid', 'nlink', 'mtimeNs', 'ctimeNs'].every(k => a[k] === b[k])
@@ -240,6 +241,7 @@ export async function runSubscriptionUI(o) {
   const imported = (await certutil(['-L', '-d', 'sql:' + database, '-n', 'chengwang-subscription-ui-root', '-a'])).stdout
   need(helper.inspectPublicTLS(imported, leaf.toString('utf8')).caSHA256 === verified.caSHA256)
   let context, page, transport, browserSend, pageSend, launcherChild, childResult, journal, closed = false, captured = false
+  const diagnostics = new NavigationDiagnostics({ sourceCommit: o.sourceCommit, fixtureId: o.fixtureId, engine: o.engine, scenario: 'create_receipt' })
   try {
     checkpoint('LAUNCH')
     const args = ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--disable-default-apps', '--disable-extensions', '--no-first-run', '--no-default-browser-check', '--disable-features=MediaRouter,OptimizationHints', '--password-store=basic']
@@ -275,8 +277,25 @@ export async function runSubscriptionUI(o) {
     const viewport = async width => { if (page) await page.setViewportSize({ width, height: 900 }); else await pageSend('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false }) }
     const click = async name => {
       need(BUTTONS.includes(name)); const expression = targetExpression('button', name)
-      if (page) { const target = page.getByRole('button', { name, exact: true }); need(await target.count() === 1); await target.click({ timeout: 10000 }) }
-      else { const point = await evaluate(`(()=>{const e=${expression};if(!e||e.disabled)throw Error('UI target rejected');e.scrollIntoView({block:'center',inline:'nearest'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!(r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))))throw Error('UI target rejected');return{x,y}})()`); await pageSend('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point }); await pageSend('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point }); await pageSend('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point }) }
+      const initialNavigation = name === '订阅与提供者' && diagnostics.nextPhase === 'NAV_TARGET_FOUND'
+      if (initialNavigation) diagnostics.enter('NAV_TARGET_FOUND', 'NAV_TARGET_QUERY_REJECTED')
+      if (page) {
+        const target = page.getByRole('button', { name, exact: true }), count = await target.count()
+        if (initialNavigation) need(diagnostics.observePlaywrightTarget(count)); need(count === 1)
+        if (initialNavigation) diagnostics.enter('INPUT_DISPATCHED', 'PW_CLICK_REJECTED')
+        await target.click({ timeout: 10000 })
+        if (initialNavigation) { diagnostics.playwrightClickReturned(); diagnostics.complete('INPUT_DISPATCHED') }
+      } else {
+        const observed = await evaluate(initialNavigation ? NAVIGATION_TARGET_EXPRESSION : `(()=>{const e=${expression};if(!e||e.disabled)throw Error('UI target rejected');e.scrollIntoView({block:'center',inline:'nearest'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!(r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))))throw Error('UI target rejected');return{x,y}})()`)
+        const point = initialNavigation ? diagnostics.observeCDPTarget(observed) : observed; need(point)
+        if (initialNavigation) diagnostics.enter('INPUT_DISPATCHED', 'INPUT_MOVE_REJECTED')
+        await pageSend('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+        if (initialNavigation) { diagnostics.acknowledgeMouse('move'); diagnostics.setCause('INPUT_PRESS_REJECTED') }
+        await pageSend('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point })
+        if (initialNavigation) { diagnostics.acknowledgeMouse('press'); diagnostics.setCause('INPUT_RELEASE_REJECTED') }
+        await pageSend('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point })
+        if (initialNavigation) { diagnostics.acknowledgeMouse('release'); diagnostics.complete('INPUT_DISPATCHED') }
+      }
     }
     const fill = async (id, value) => {
       need(['subscription-token', 'subscription-source-label'].includes(id) && typeof value === 'string' && value.length <= 4096)
@@ -287,10 +306,15 @@ export async function runSubscriptionUI(o) {
     const domRows = [], screenshots = []
     const record = async step => {
       await until(() => journal.idle()); need(!journal.failure)
+      if (step === 'anonymous') diagnostics.setCause('ANON_IDENTITY_REJECTED')
       need(await evaluate('location.href===' + JSON.stringify(ORIGIN + '/') + '&&document.title==="澄网 · 网络代理与路由平台"&&!document.querySelector("vite-error-overlay,nextjs-portal,[data-vite-error-overlay]")') === true)
-      const dom = await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION); collector.validateSubscriptionDOM(dom); validateStep(step, dom, journal.mutationCount())
+      if (step === 'anonymous') diagnostics.setCause('ANON_SHAPE_REJECTED')
+      const dom = await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION); collector.validateSubscriptionDOM(dom)
+      if (step === 'anonymous') diagnostics.setCause('ANON_STEP_REJECTED')
+      validateStep(step, dom, journal.mutationCount())
       // Visible text and all non-password input values are inspected privately.
       // No raw text or observed input is retained in the public artifact.
+      if (step === 'anonymous') diagnostics.setCause('ANON_CONTENT_FENCE_REJECTED')
       const text = await evaluate(`(()=>{const p=document.querySelector('.subscriptions');return[p?.innerText??'',[...document.querySelectorAll('input:not([type="password"]):not([type="file"]),textarea')].map(e=>e.value).join('\\n')].join('\\n')})()`)
       need(typeof text === 'string' && Buffer.byteLength(text) <= 131072); safePublic(Buffer.from(text), canaries)
       const row = { schema: 'chengwang.subscription-ui-dom-capture/v1', ordinal: domRows.length + 1, step, captureCount: journal.rows.length, mutationCount: journal.mutationCount(), dom }
@@ -307,11 +331,17 @@ export async function runSubscriptionUI(o) {
     await publishReady(o.root + '/driver-ready.private.json', { schema: 'chengwang.subscription-ui-driver-ready/v1', fixtureId: o.fixtureId, engine: o.engine, pid: process.pid, chromePid: chrome.pid })
     await until(async () => { try { const raw = await stableFile(o.root + '/run.go', 4096), s = await lstat(o.root + '/run.go'); need((s.mode & 0o7777) === 0o444); const v = JSON.parse(raw.toString()); need(exact(v, ['schema', 'fixtureId', 'engine']) && v.schema === 'chengwang.subscription-ui-run/v1' && v.fixtureId === o.fixtureId && v.engine === o.engine); return true } catch (e) { if (e?.code === 'ENOENT') return false; throw e } }, 20000)
     checkpoint('NAVIGATE'); await viewport(1440)
-    if (page) await page.goto(ORIGIN + '/', { waitUntil: 'load', timeout: 15000 }); else { const r = await pageSend('Page.navigate', { url: ORIGIN + '/' }); need(!r.errorText); await until(async () => await evaluate('location.href===' + JSON.stringify(ORIGIN + '/') + '&&document.readyState==="complete"') === true) }
+    diagnostics.enter('NAVIGATE_RETURN', 'NAVIGATE_CALL_REJECTED')
+    if (page) { await page.goto(ORIGIN + '/', { waitUntil: 'load', timeout: 15000 }); diagnostics.complete('NAVIGATE_RETURN'); diagnostics.enter('READY', 'READY_WAIT_REJECTED') }
+    else { const r = await pageSend('Page.navigate', { url: ORIGIN + '/' }); if (r.errorText) diagnostics.setCause('NAVIGATE_ERROR_PRESENT'); need(!r.errorText); diagnostics.complete('NAVIGATE_RETURN'); diagnostics.enter('READY', 'READY_WAIT_REJECTED'); await until(async () => await evaluate('location.href===' + JSON.stringify(ORIGIN + '/') + '&&document.readyState==="complete"') === true) }
     await until(() => journal.idle() && journal.rows.some(v => v.kind === 'SNAPSHOT'))
-    await click('订阅与提供者'); await waitDOM(d => d.pageVisible && !d.controls.find(v => v.key === 'prepare_create').enabled); await record('anonymous')
+    diagnostics.complete('READY')
+    await click('订阅与提供者'); diagnostics.enter('ANON_DOM', 'ANON_DOM_WAIT_REJECTED'); await waitDOM(d => d.pageVisible && !d.controls.find(v => v.key === 'prepare_create').enabled); await record('anonymous'); diagnostics.complete('ANON_DOM')
+    diagnostics.enter('API_CERT', 'API_CERT_REJECTED')
     const documentRequest = [...journal.requests.values()].find(v => v.kind === 'DOCUMENT'); need(documentRequest?.response)
-    const certificateChain = (await pageSend('Network.getCertificate', { origin: ORIGIN })).tableNames, tls = helper.browserTLSProof(documentRequest.response, certificateChain, verified)
+    const certificateChain = (await pageSend('Network.getCertificate', { origin: ORIGIN })).tableNames
+    diagnostics.complete('API_CERT'); diagnostics.enter('TLS_VERIFIED', 'TLS_PROOF_REJECTED')
+    const tls = helper.browserTLSProof(documentRequest.response, certificateChain, verified); diagnostics.complete('TLS_VERIFIED')
     checkpoint('CONNECT'); await fill('subscription-token', input.operatorToken); await click('连接订阅会话')
     await waitDOM(d => d.controls.find(v => v.key === 'prepare_create').enabled && d.session.tokenEmpty && journal.rows.some(v => v.kind === 'SOURCES')); await record('connected')
     await fill('subscription-source-label', input.label); await click('准备创建来源'); await waitDOM(d => d.confirmation?.kind === 'create'); await record('prepared')
@@ -340,6 +370,9 @@ export async function runSubscriptionUI(o) {
       close: { normalCloseCommandCompleted: true, chromeExit, launcherExit, noLiveOwnedProcesses: true, processScope: 'CHROME_SESSION_AND_LAUNCHER_ONLY' },
       steps: [...STEPS], captures: { path: 'captures.jsonl', ...captures, records: journal.rows.length }, screenshots, production: false, fullSubscriptionE2EProven: false }
     safePublic(Buffer.from(JSON.stringify(report)), canaries); await publish(o.root + '/driver.private.json', report, 65536); checkpoint('COMPLETE'); return report
+  } catch (error) {
+    await diagnostics.writeFailure(o.root, journal)
+    throw error
   } finally {
     if (!closed) { try { if (context) await context.close(); else if (browserSend) await browserSend('Browser.close') } catch { /* Emergency cleanup is not normal-close evidence. */ }; transport?.socket.close() }
     if (!captured && journal?.rows.length) { try { const raw = Buffer.from([...journal.rows].sort((a, b) => a.ordinal - b.ordinal).map(v => JSON.stringify(v)).join('\n') + '\n'); safePublic(raw, canaries); await publish(o.root + '/captures.private.jsonl', raw, 24 << 20) } catch { /* Preserve originals; never replace failed evidence. */ } }

@@ -39,7 +39,8 @@ SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py
     'chengwang/deploy/browser-stream-matrix/run_matrix.py',
     'chengwang/web/scripts/trust-browser-tls.mjs',
     'chengwang/deploy/subscription-ui-browser/admission_fixture.py',
-    'chengwang/deploy/subscription-ui-browser/admission-contract.json']
+    'chengwang/deploy/subscription-ui-browser/admission-contract.json',
+    'chengwang/deploy/subscription-ui-browser/navigation_diagnostics.py']
 
 
 def need(value):
@@ -103,6 +104,10 @@ def admission():
 
 def remote_fetch():
     return load_module(pathlib.Path(__file__).with_name('remote_fetch_fixture.py'), 'subscription_ui_remote_fetch_fixture')
+
+
+def navigation_diagnostics():
+    return load_module(pathlib.Path(__file__).with_name('navigation_diagnostics.py'), 'subscription_ui_navigation_diagnostics')
 
 
 def selected_scenario(options):
@@ -434,6 +439,8 @@ def inner(options, repo, root, bundle, fixture, N, M):
             N.exclusive(options.output_dir / 'failure.json', N.canonical(dict(schema=SCHEMA,
                 sourceCommit=options.source_commit, fixtureId=fixture, engine=options.engine, stage=stage,
                 driverCheckpoints=checkpoints,
+                driverDiagnostics=navigation_diagnostics().read(root, fixture, options.engine, scenario,
+                    options.source_commit, N),
                 serverExitCode=None if server is None else server.poll(), controllerExitCode=None if node is None else node.poll(),
                 records=records, forcedSignals=forced, noLiveOwnedProcesses=no_owned, capturedOriginals=exported,
                 acceptance='REJECTED_DIAGNOSTIC_ONLY', production=False, **failure_extra)) + b'\n')

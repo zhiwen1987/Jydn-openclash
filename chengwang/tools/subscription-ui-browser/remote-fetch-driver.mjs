@@ -9,6 +9,7 @@ import {pathToFileURL} from 'node:url'
 import {ORIGIN,FAVICON,SCENARIO,SCOPE,LABEL,ROLES,STEPS,ACTIONS,need,exact,integer,sha,assetPaths,decodeBody,validatePrivateInput,secretVariants,publicFence,classifyRemoteRequest,wireFence,stepExpectation,validateRemoteStep} from './remote-fetch-contract.mjs'
 import {versionProjection} from './ui-contract.mjs'
 import {stableFile,ownedDirectory,publish,publishReady,until,Transport,chromeIdentity,noLiveChrome} from './ui-driver.mjs'
+import {NavigationDiagnostics,NAVIGATION_TARGET_EXPRESSION} from './navigation-diagnostics.mjs'
 const execute=promisify(execFile)
 const checkpoint=value=>process.stderr.write('SUBSCRIPTION_UI_STAGE='+value+'\n')
 const us=v=>{need(typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER/1000000);return Math.floor(v*1000000)}
@@ -95,6 +96,7 @@ export async function runRemoteFetchUI(o){
   await certutil(['-N','-d','sql:'+database,'--empty-password']);await certutil(['-A','-d','sql:'+database,'-n','chengwang-subscription-ui-root','-t','C,,','-i',o.root+'/api-ca.pem'])
   need(helper.inspectPublicTLS((await certutil(['-L','-d','sql:'+database,'-n','chengwang-subscription-ui-root','-a'])).stdout,leaf.toString('utf8')).caSHA256===verified.caSHA256)
   let context,page,transport,browserSend,pageSend,launcherChild,childResult,journal,closed=false,captured=false
+  const diagnostics=new NavigationDiagnostics({sourceCommit:o.sourceCommit,fixtureId:o.fixtureId,engine:o.engine,scenario:SCENARIO})
   try{
     checkpoint('LAUNCH');const args=['--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--disable-default-apps','--disable-extensions','--no-first-run','--no-default-browser-check','--disable-features=MediaRouter,OptimizationHints','--password-store=basic']
     if(o.engine==='chrome-cdp'){
@@ -117,14 +119,41 @@ export async function runRemoteFetchUI(o){
     const key=async(name,code,modifiers=0)=>{const domCode=name==='a'?'KeyA':name;await pageSend('Input.dispatchKeyEvent',{type:'rawKeyDown',key:name,code:domCode,windowsVirtualKeyCode:code,nativeVirtualKeyCode:code,modifiers});await pageSend('Input.dispatchKeyEvent',{type:'keyUp',key:name,code:domCode,windowsVirtualKeyCode:code,nativeVirtualKeyCode:code,modifiers})}
     const click=async(value,kind='button')=>{
       const expression=targetExpression(kind,value)
-      if(page){let t;if(kind==='button')t=page.getByRole('button',{name:value,exact:true});else if(kind==='radio')t=page.getByRole('radio',{name:value==='session'?'本会话已读回批准':'交接批准ID（未核验）',exact:true});else if(kind==='reference')t=page.locator('#subscription-reference');else t=page.locator(kind==='source'?'.subscription-source-list > li > button':'.subscription-candidate-list > li > button').filter({has:page.locator('code',{hasText:new RegExp('^'+value+'$')})});need(await t.count()===1);await t.click({timeout:10000})}
-      else{const point=await evaluate(`(()=>{const e=${expression};if(!e||e.disabled)throw Error('UI target rejected');e.scrollIntoView({block:'center',inline:'nearest'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!(r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))))throw Error('UI target rejected');return{x,y}})()`);await pageSend('Input.dispatchMouseEvent',{type:'mouseMoved',...point});await pageSend('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});await pageSend('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point})}
+      const initialNavigation=kind==='button'&&value==='订阅与提供者'&&diagnostics.nextPhase==='NAV_TARGET_FOUND'
+      if(initialNavigation)diagnostics.enter('NAV_TARGET_FOUND','NAV_TARGET_QUERY_REJECTED')
+      if(page){
+        let t;if(kind==='button')t=page.getByRole('button',{name:value,exact:true});else if(kind==='radio')t=page.getByRole('radio',{name:value==='session'?'本会话已读回批准':'交接批准ID（未核验）',exact:true});else if(kind==='reference')t=page.locator('#subscription-reference');else t=page.locator(kind==='source'?'.subscription-source-list > li > button':'.subscription-candidate-list > li > button').filter({has:page.locator('code',{hasText:new RegExp('^'+value+'$')})})
+        const count=await t.count();if(initialNavigation)need(diagnostics.observePlaywrightTarget(count));need(count===1)
+        if(initialNavigation)diagnostics.enter('INPUT_DISPATCHED','PW_CLICK_REJECTED')
+        await t.click({timeout:10000})
+        if(initialNavigation){diagnostics.playwrightClickReturned();diagnostics.complete('INPUT_DISPATCHED')}
+      }else{
+        const observed=await evaluate(initialNavigation?NAVIGATION_TARGET_EXPRESSION:`(()=>{const e=${expression};if(!e||e.disabled)throw Error('UI target rejected');e.scrollIntoView({block:'center',inline:'nearest'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!(r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))))throw Error('UI target rejected');return{x,y}})()`)
+        const point=initialNavigation?diagnostics.observeCDPTarget(observed):observed;need(point)
+        if(initialNavigation)diagnostics.enter('INPUT_DISPATCHED','INPUT_MOVE_REJECTED')
+        await pageSend('Input.dispatchMouseEvent',{type:'mouseMoved',...point})
+        if(initialNavigation){diagnostics.acknowledgeMouse('move');diagnostics.setCause('INPUT_PRESS_REJECTED')}
+        await pageSend('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point})
+        if(initialNavigation){diagnostics.acknowledgeMouse('press');diagnostics.setCause('INPUT_RELEASE_REJECTED')}
+        await pageSend('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point})
+        if(initialNavigation){diagnostics.acknowledgeMouse('release');diagnostics.complete('INPUT_DISPATCHED')}
+      }
     }
     const fill=async(id,value,replace=false)=>{need(INPUTS.includes(id)&&typeof value==='string'&&value.length>0&&value.length<=4096);if(page)await page.locator('#'+id).fill(value,{timeout:10000});else{need(await evaluate(`(()=>{const e=${targetExpression('input',id)};if(!e||e.disabled||(${replace?'false':"e.value!==''"}))return false;e.scrollIntoView({block:'center'});e.focus();return document.activeElement===e})()`));if(replace){await key('a',65,2);await key('Backspace',8)}await pageSend('Input.insertText',{text:value})}}
     const waitDOM=async predicate=>{let d;await until(async()=>{need(!journal.failure);d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d);return journal.idle()&&predicate(d)});return d}
     const waitWire=async count=>{let f;await until(async()=>{try{f=await readWireFence(o);return f.eventCount===count}catch(e){if(e instanceof WireBusy)return false;throw e}});return f}
     let actorRole='anonymous';const domRows=[],screenshots=[]
-    const record=async step=>{await until(()=>journal.idle());need(!journal.failure);const fence=await waitWire(stepExpectation(step).wireCount);need(await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.title==="澄网 · 网络代理与路由平台"&&!document.querySelector("vite-error-overlay,nextjs-portal,[data-vite-error-overlay]")')===true);const d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d);validateRemoteStep(step,d,journal.mutationCount(),actorRole,journal.facts,fence);const text=await evaluate(`(()=>{const p=document.querySelector('.subscriptions');return[p?.innerText??'',[...document.querySelectorAll('input:not([type="password"]):not([type="file"]),textarea')].map(e=>e.value).join('\\n')].join('\\n')})()`);need(typeof text==='string'&&Buffer.byteLength(text)<=131072);publicFence(Buffer.from(text),canaries);const row={schema:'chengwang.remote-fetch-ui-dom-capture/v1',ordinal:domRows.length+1,step,captureCount:journal.rows.length,mutationCount:journal.mutationCount(),actorRole,wireFence:fence,dom:d};publicFence(Buffer.from(JSON.stringify(row)),canaries);domRows.push(row);return d}
+    const record=async step=>{
+      await until(()=>journal.idle());need(!journal.failure);const fence=await waitWire(stepExpectation(step).wireCount)
+      if(step==='anonymous')diagnostics.setCause('ANON_IDENTITY_REJECTED')
+      need(await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.title==="澄网 · 网络代理与路由平台"&&!document.querySelector("vite-error-overlay,nextjs-portal,[data-vite-error-overlay]")')===true)
+      if(step==='anonymous')diagnostics.setCause('ANON_SHAPE_REJECTED')
+      const d=await evaluate(collector.SUBSCRIPTION_DOM_EXPRESSION);collector.validateSubscriptionDOM(d)
+      if(step==='anonymous')diagnostics.setCause('ANON_STEP_REJECTED')
+      validateRemoteStep(step,d,journal.mutationCount(),actorRole,journal.facts,fence)
+      if(step==='anonymous')diagnostics.setCause('ANON_CONTENT_FENCE_REJECTED')
+      const text=await evaluate(`(()=>{const p=document.querySelector('.subscriptions');return[p?.innerText??'',[...document.querySelectorAll('input:not([type="password"]):not([type="file"]),textarea')].map(e=>e.value).join('\\n')].join('\\n')})()`);need(typeof text==='string'&&Buffer.byteLength(text)<=131072);publicFence(Buffer.from(text),canaries);const row={schema:'chengwang.remote-fetch-ui-dom-capture/v1',ordinal:domRows.length+1,step,captureCount:journal.rows.length,mutationCount:journal.mutationCount(),actorRole,wireFence:fence,dom:d};publicFence(Buffer.from(JSON.stringify(row)),canaries);domRows.push(row);return d
+    }
     const revision=()=>Object.values(journal.facts.commands).at(-1)?.revision??0
     const ready=d=>d.sources.length===1&&d.sources[0].id===journal.facts.sourceId&&d.sources[0].selected&&d.sources[0].revision===revision()&&d.paging.candidates?.revision===revision()
     const connect=async role=>{need(ROLES.includes(role));await click('清除会话与令牌');actorRole='anonymous';await waitDOM(d=>!d.sources.length&&d.receipt===null&&d.session.tokenEmpty);const n=journal.rows.filter(r=>r.kind==='SOURCES').length;await fill('subscription-token',input.tokens[role]);await click('连接订阅会话');actorRole=role;await waitDOM(d=>journal.rows.filter(r=>r.kind==='SOURCES').length===n+1&&d.session.tokenEmpty)}
@@ -138,9 +167,15 @@ export async function runRemoteFetchUI(o){
     const shot=async step=>{const d=domRows.at(-1).dom;need(domRows.at(-1).step===step&&d.session.tokenEmpty&&d.session.fileEmpty);const raw=page?await page.screenshot({type:'png',fullPage:false,animations:'disabled',timeout:10000}):Buffer.from((await pageSend('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false})).data,'base64');need(raw.length>=1000&&raw.length<=4<<20&&raw.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));const name=step==='final_mobile'?'created-mobile':'created-desktop',m=await publish(o.root+'/'+name+'.private.png',raw,4<<20);screenshots.push({path:name+'.png',step,...m,viewport:{width:d.viewport.width,height:d.viewport.height},scrollX:d.viewport.scrollX,scrollY:d.viewport.scrollY,capturedWallTimeUs:Date.now()*1000})}
     await publishReady(o.root+'/driver-ready.private.json',{schema:'chengwang.subscription-ui-driver-ready/v1',scenario:SCENARIO,fixtureId:o.fixtureId,engine:o.engine,pid:process.pid,chromePid:chrome.pid})
     await until(async()=>{try{const raw=await stableFile(o.root+'/run.go',4096),s=await lstat(o.root+'/run.go');need((s.mode&0o7777)===0o444);const v=JSON.parse(raw.toString());need(exact(v,['schema','scenario','fixtureId','engine'])&&v.schema==='chengwang.subscription-ui-run/v1'&&v.scenario===SCENARIO&&v.fixtureId===o.fixtureId&&v.engine===o.engine);return true}catch(e){if(e?.code==='ENOENT')return false;throw e}},20000)
-    checkpoint('NAVIGATE');await viewport(1440);if(page)await page.goto(ORIGIN+'/',{waitUntil:'load',timeout:15000});else{const r=await pageSend('Page.navigate',{url:ORIGIN+'/'});need(!r.errorText);await until(async()=>await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.readyState==="complete"')===true)}
-    await until(()=>journal.idle()&&journal.rows.some(r=>r.kind==='SNAPSHOT'));await click('订阅与提供者');await waitDOM(d=>d.pageVisible);await record('anonymous')
-    const certificateChain=(await pageSend('Network.getCertificate',{origin:ORIGIN})).tableNames,documentRequest=[...journal.requests.values()].find(v=>v.kind==='DOCUMENT'),tls=helper.browserTLSProof(documentRequest.response,certificateChain,verified)
+    checkpoint('NAVIGATE');await viewport(1440);diagnostics.enter('NAVIGATE_RETURN','NAVIGATE_CALL_REJECTED')
+    if(page){await page.goto(ORIGIN+'/',{waitUntil:'load',timeout:15000});diagnostics.complete('NAVIGATE_RETURN');diagnostics.enter('READY','READY_WAIT_REJECTED')}
+    else{const r=await pageSend('Page.navigate',{url:ORIGIN+'/'});if(r.errorText)diagnostics.setCause('NAVIGATE_ERROR_PRESENT');need(!r.errorText);diagnostics.complete('NAVIGATE_RETURN');diagnostics.enter('READY','READY_WAIT_REJECTED');await until(async()=>await evaluate('location.href==='+JSON.stringify(ORIGIN+'/')+'&&document.readyState==="complete"')===true)}
+    await until(()=>journal.idle()&&journal.rows.some(r=>r.kind==='SNAPSHOT'));diagnostics.complete('READY')
+    await click('订阅与提供者');diagnostics.enter('ANON_DOM','ANON_DOM_WAIT_REJECTED');await waitDOM(d=>d.pageVisible);await record('anonymous');diagnostics.complete('ANON_DOM')
+    diagnostics.enter('API_CERT','API_CERT_REJECTED')
+    const certificateChain=(await pageSend('Network.getCertificate',{origin:ORIGIN})).tableNames,documentRequest=[...journal.requests.values()].find(v=>v.kind==='DOCUMENT')
+    diagnostics.complete('API_CERT');diagnostics.enter('TLS_VERIFIED','TLS_PROOF_REJECTED')
+    const tls=helper.browserTLSProof(documentRequest.response,certificateChain,verified);diagnostics.complete('TLS_VERIFIED')
     checkpoint('CREATE');await connect('operator');await record('operator_connected');await fill('subscription-source-label',LABEL);await prepare('准备创建来源','create');await record('create_prepared');await submit('create_source');await record('created')
     checkpoint('APPROVE');await connect('approver');await selectSource();await record('approver_source');await reference('good-b');await prepare('准备批准来源','approve');await record('approve_b_prepared');await click('取消本次操作');await waitDOM(d=>d.confirmation===null);await record('approve_b_cancelled');await prepare('准备批准来源','approve');await record('approve_b_prepared_again');await submit('approve_b');await record('approved_b')
     {const n=journal.rows.filter(r=>r.kind==='SOURCE_ACCESS').length;await click('刷新当前版本');await waitDOM(d=>ready(d)&&journal.rows.filter(r=>r.kind==='SOURCE_ACCESS').length===n+1&&d.sessionApproval?.approvalId===journal.facts.approval.commandId);await record('approval_refreshed')}
@@ -157,5 +192,6 @@ export async function runRemoteFetchUI(o){
     let launcherExit=null;if(childResult){launcherExit=await Promise.race([childResult,delay(2000).then(()=>null)]);need(launcherExit?.code===0&&launcherExit.signal===null)}await until(()=>noLiveChrome(o,chrome),5000);closed=true;transport?.socket.close()
     const capturesRaw=Buffer.from([...journal.rows].sort((a,b)=>a.ordinal-b.ordinal).map(v=>JSON.stringify(v)).join('\n')+'\n'),domRaw=Buffer.from(domRows.map(v=>JSON.stringify(v)).join('\n')+'\n');publicFence(capturesRaw,canaries);publicFence(domRaw,canaries);const captures=await publish(o.root+'/captures.private.jsonl',capturesRaw,24<<20);await publish(o.root+'/dom.private.jsonl',domRaw,1<<20);captured=true
     const report={schema:'chengwang.remote-fetch-ui-driver/v1',scenario:SCENARIO,sourceCommit:o.sourceCommit,engine:o.engine,fixtureId:o.fixtureId,origin:ORIGIN,scope:SCOPE,runtime:true,mockedResponses:false,injectedFetch:false,tlsBypass:false,browser,chrome,normalTrust:{method:'PRIVATE_NSS_SQL_XDG_LOCAL_CA',trustFlags:'C,,',caSHA256:verified.caSHA256,leafSHA256:verified.leafSHA256,homeEnvironmentAbsent:true,legacyDatabaseAbsent:true},tls,certificateChain,counters:journal.counters,close:{normalCloseCommandCompleted:true,chromeExit,launcherExit,noLiveOwnedProcesses:true,processScope:'CHROME_SESSION_AND_LAUNCHER_ONLY'},steps:[...STEPS],captures:{path:'captures.jsonl',...captures,records:journal.rows.length},screenshots,production:false,fullSubscriptionE2EProven:false};publicFence(Buffer.from(JSON.stringify(report)),canaries);await publish(o.root+'/driver.private.json',report,65536);checkpoint('COMPLETE');return report
-  }finally{if(!closed){try{if(context)await context.close();else if(browserSend)await browserSend('Browser.close')}catch{}transport?.socket.close()}if(!captured&&journal?.rows.length){try{const raw=Buffer.from([...journal.rows].sort((a,b)=>a.ordinal-b.ordinal).map(v=>JSON.stringify(v)).join('\n')+'\n');publicFence(raw,canaries);await publish(o.root+'/captures.private.jsonl',raw,24<<20)}catch{}}}
+  }catch(error){await diagnostics.writeFailure(o.root,journal);throw error}
+  finally{if(!closed){try{if(context)await context.close();else if(browserSend)await browserSend('Browser.close')}catch{}transport?.socket.close()}if(!captured&&journal?.rows.length){try{const raw=Buffer.from([...journal.rows].sort((a,b)=>a.ordinal-b.ordinal).map(v=>JSON.stringify(v)).join('\n')+'\n');publicFence(raw,canaries);await publish(o.root+'/captures.private.jsonl',raw,24<<20)}catch{}}}
 }

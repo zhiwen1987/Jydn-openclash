@@ -2,6 +2,8 @@
 
 更新日期：2026-10-24（Asia/Shanghai）。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
+**进行中：补CDP失败观测，不猜测修复。** 三代理已实现失败前私有快照、supervisor闭集投影与独立原件检查；成功14/21原件及旧业务门不改，viewport/点击/RPC/等待不扩容。根390项纯CPU（旧332＋新58）零跳过、4原日志门与13shell语法通过；根/C对96e历史缺诊断原件同报UNAVAILABLE、900Git，不补计数或根因。该增量真实CI尚待首轮执行，不称故障已修或生产已验。[合同、证据和剩余范围](P2-CDP-NAVIGATION-DIAGNOSTICS.md)。
+
 **本轮部分实现已验，整体未通过：96e51e4批准 → 交接 → 真实抓取。** 原UI40030609894/attempt1终态failure：新remote/PW成功，remote/CDP及旧create/CDP失败，另三个旧producer成功；整个fresh仅占位job跳过、未展开六重放。根/C新PW完整原CLI与CI报告逐字同，33steps/47requests/4mutations/900Git、正常三类TLS/3conn12wire/4进程wait0/8counter0；根/B三个旧成功完整原CLI同producer。两CDP仅UI_RUN/NAVIGATE/6启动捕获/0捕获写入，尚无唯一根因，不猜测修复。六原ZIP215成员APIsha/CRC已核，原失败保留不rerun；没有生产、main合并或正式发布。[本阶段实际结果](P2-SUBSCRIPTION-REMOTE-FETCH-UI.md)、[机器证据](evidence/p2-subscription-remote-fetch-96e51e4.json)。
 
 提交前根实跑纯 CPU：旧84＋旧76＋新remote86＋依赖86＝332项，零跳过；三辅助原日志门及7 Python AST/4新JS语法/11工作流shell语法通过。原件在 `C:/Users/Administrator/AppData/Local/Temp/cw-remote-root-cpu-sp0rri2c/`。无本地依赖安装、构建、浏览器或服务运行；真实 Linux 双引擎、原件独立重放与 PNG 检查仍待执行，不能把332项测试当上线或完整B08/B09/B10通过。

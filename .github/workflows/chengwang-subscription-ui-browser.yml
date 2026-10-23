@@ -226,6 +226,20 @@ jobs:
           python3 -B chengwang/deploy/subscription-ui-browser/check_remote_synthetic.py \
             --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/remote-synthetic.json"
 
+      - name: Preserve navigation diagnostic helper events separately from runtime evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          node --test --test-reporter=tap chengwang/tools/subscription-ui-browser/test-navigation-diagnostics.mjs \
+            2>&1 | tee "$reports/navigation-node.tap"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_navigation_diagnostics) \
+            2>&1 | tee "$reports/navigation-reader.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_navigation_diagnostics) \
+            2>&1 | tee "$reports/navigation-checker.log"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_navigation_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/navigation-synthetic.json"
+
       - name: Enforce reviewed browser pin and independently read actual expansion
         shell: bash
         run: |
@@ -251,6 +265,20 @@ jobs:
             --consumption-root "$lab/consumption" --consumption-report "$lab/reports/consumption-independent.json" \
             --node "$lab/bin/node" --server "$lab/bin/server" --dist "$lab/web-build/dist" --build-report "$lab/build.json" \
             --output-dir "$lab/reports/originals" 2>&1 | tee "$lab/reports/supervisor-original.log"
+
+      - name: Independently decode bounded navigation failure observations without product acceptance
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          if sudo --non-interactive test -f "$reports/originals/failure.json"; then
+            sudo --non-interactive /usr/bin/python3 -I -B chengwang/deploy/subscription-ui-browser/check_navigation_diagnostics.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+              --engine '${{ matrix.engine }}' --scenario '${{ matrix.scenario }}' \
+              --evidence "$reports/originals" --report "$reports/navigation-diagnostic.json" \
+              2>&1 | tee "$reports/navigation-diagnostic-original.log"
+          fi
 
       - name: Independent original API DOM PNG audit persistence and lifecycle verification
         shell: bash
@@ -325,6 +353,12 @@ jobs:
             --evidence "$RUNNER_TEMP/subscription-ui-input/originals" --report "$RUNNER_TEMP/subscription-ui-fresh/independent.json" \
             2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/independent-original.log"
           cmp "$RUNNER_TEMP/subscription-ui-input/independent.json" "$RUNNER_TEMP/subscription-ui-fresh/independent.json"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_navigation_synthetic.py \
+            --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
+            --report "$RUNNER_TEMP/subscription-ui-fresh/navigation-synthetic.json" \
+            2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/navigation-synthetic-original.log"
+          cmp "$RUNNER_TEMP/subscription-ui-input/navigation-synthetic.json" \
+            "$RUNNER_TEMP/subscription-ui-fresh/navigation-synthetic.json"
           if test '${{ matrix.scenario }}' = remote_fetch; then
             python3 -B chengwang/deploy/subscription-ui-browser/check_remote_synthetic.py \
               --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
