@@ -35,6 +35,12 @@
 
 当前新增的共享投影契约只能产出 `CONTRACT_VALIDATED_ONLY`，`runtimeProven=false`、`browserE2EProven=false` 固定不变。独立 CI 工具包锁定 `playwright-core@1.64.1`，与原 `web/package-lock.json` 分离；预检仅证明已安装接口、合成合同和源码不变，不启动浏览器，不属于下面的真实验收。
 
+预检实际结果：源码 `f366f8a2dc8d45038f50dcad7764e157ec836afa`，[run39902969323](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39902969323)/job120248451075/attempt1，success。实际 Node22.23.3、已安装 core1.64.1 的 `chromium.launch` 接口可导入；隔离无外网、只读源码、非 root/cap0/NNP 下实际 33 项 TAP run/pass（24 合同＋9 工具），0 fail/cancel/skip/todo，完整具名 SHA256 为 `28777c911ace31bdb8b81b04d6490cde0744e4f01c1e5f8eb5dbd931565dacf6`。报告范围固定为 `SYNTHETIC_CONTRACT_AND_TOOLCHAIN_ONLY`，`browserStarted=false`、`browserE2EProven=false`、`production=false`，不是浏览器运行证据。
+
+原 artifact12480035417 ZIP 4,853 bytes / SHA256 `14053ba24ccde8e857715a8060382ba5f4b8b6614e83106c127ae733dcd7cf70`，4 个常规文件共 13,148 bytes；原 API 日志 40,087 bytes / `843153bd26ac3f3e772de540982366369ffda5d2740ed9158a5ce01b95f5feea`。原 TAP 7,524 bytes / `38395155dbe874c956db00c8b164fcaff4dbbd88766c613def1f402f7cfe3c30`；preflight.json SHA256 `e91fc47792daaa872fa2b35eae156f5c37421bbd2a05edb0d0eb3ccee97e33df`。独立核对 source-before/after 原 bytes 相同，8 个唯一源码 Git 原 blob、54,681 bytes 均绑定确切 f366f8a。独立证据在本机 Temp `chengwang-browser-preflight-f366-b-i3hjs2f5`；14 天 CI retention 和 Temp 不是永久集中归档。
+
+同源码[父门39902969267](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39902969267)/job120248451083/attempt1亦 success，ordinary/race 各实际 2403 Test run/pass、各 12 Fuzz 分列、0 Test skip/0 fail；完整、新增 12、旧 2391/2320 名单 SHA 均与上述能力切片基线一致。原 API 日志 5,609,435 bytes / SHA256 `69ad40b73dffeb9a5ae5e618e88e7263c043873c1e320a5052cf8222301c06d3`，独立目录 Temp `chengwang-parent-f366-b-1lr_0mot`。此提交只改 CI 专用工具、忽略项与文档，产品 web/internal/cmd/deploy 及模块锁相对 2fe1231 无差异；不把 2fe 镜像工件改称 f366 新构建镜像。
+
 后续实施按以下退出条件执行，不能用预检或旧浏览器 trust 门代替：
 
 1. **两个独立、有界实验。** 每条路径各自产生真实 agent 的 6 份结果，使用同一候选源码和既有正常 DoT/HTTPS 约定；不把两次完整浏览器串进同一个短新鲜度窗口，也不延长 TTL 掩盖超时。保留原 backend 的 22 输入及 `NATIVE_BACKEND_ONLY` 声明；浏览器原始响应、投影、截图、进程及退出证据放在独立兄弟目录并由新运行态检查器关联。
