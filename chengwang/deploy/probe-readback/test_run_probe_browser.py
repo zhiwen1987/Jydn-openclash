@@ -69,6 +69,8 @@ class TestBrowserOrchestration(unittest.TestCase):
         self.assertEqual(lab.role_entrypoint(), lab.bundle / 'browser-runner')
         source = pathlib.Path(browser.__file__).read_text(encoding='utf-8')
         self.assertIn("backendSupervisorMode='WRAPPER_IMPORTS_NATIVE_HELPERS'", source)
+        self.assertIn("chrome=str(bundle / 'chrome/chrome')", source)
+        self.assertIn("'toolchain/chrome', executable_inputs=True", source)
         self.assertNotIn('N.__file__ =', source)
         self.assertNotIn('HOME=', source)
 

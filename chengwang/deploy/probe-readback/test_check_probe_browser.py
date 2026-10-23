@@ -133,7 +133,8 @@ def runtime_fixture(certificates, engine='chrome-cdp'):
            'assets/main.js': b'export const isolatedSynthetic=true;', 'assets/main.css': b'body{margin:0}',
            'assets/trust.js': b'export const deliberatelyNotBrowsed=true;'}
     for name, body in web.items(): copied.append(dict(path='built-web/' + name, bytes=len(body), sha256=gate.sha(body)))
-    for path, body in [('toolchain/node', b'synthetic-node'), ('npm/playwright-core/package.json', b'{}'),
+    for path, body in [('toolchain/node', b'synthetic-node'), ('toolchain/chrome/chrome', b'synthetic-chrome'),
+                       ('npm/playwright-core/package.json', b'{}'),
                        ('fonts/NotoSansCJKsc-Regular.otf', b'font'), ('fonts/NotoSansCJKsc-Bold.otf', b'bold'), ('fonts/LICENSE', b'license')]:
         copied.append(dict(path=path, bytes=len(body), sha256=gate.sha(body)))
     build = dict(schema='chengwang.probe-browser-build/v1', sourceCommit=commit, fixtureId=fixture, engine=engine,
@@ -147,7 +148,7 @@ def runtime_fixture(certificates, engine='chrome-cdp'):
     raw['browser-captures.json'] = encoded(dict(schema='chengwang.probe-browser-flow/v1', outcome='API_CAPTURE_UNBOUND',
         runtimeProven=False, browserE2EProven=False, authorization='BLOCKED', production=False, deviceActionsExecuted=False,
         engine=engine, captures=flow_captures, network=model['network'], files=sorted(capture_set), deadlineKind=model['deadlineKind']))
-    argv = ['/opt/google/chrome/chrome', '--no-sandbox', '--headless=new', '--user-data-dir=' + root + '/browser/chrome-profile']
+    argv = [bundle + '/chrome/chrome', '--no-sandbox', '--headless=new', '--user-data-dir=' + root + '/browser/chrome-profile']
     controller_args = [bundle + '/browser-node', bundle + '/source/chengwang/tools/probe-browser/browser-cli.mjs',
                        '--root', root, '--engine', engine, '--chrome', argv[0], '--launcher', bundle + '/chrome-launcher',
                        '--source-root', bundle + '/source', '--source-commit', commit]

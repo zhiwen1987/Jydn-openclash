@@ -305,7 +305,7 @@ def validate_build(directory, value, isolated, commit, fixture, engine):
         seen.add(name); integer(entry['bytes'], 1, 512 << 20); need(backend.HEX.fullmatch(entry['sha256']))
         if name.startswith('chengwang/'):
             need(name in sources and sources[name]['bytes'] == entry['bytes'] and sources[name]['sha256'] == entry['sha256'])
-        else: need(name.startswith(('built-web/', 'npm/playwright-core/', 'fonts/')) or name == 'toolchain/node')
+        else: need(name.startswith(('built-web/', 'npm/playwright-core/', 'fonts/', 'toolchain/chrome/')) or name == 'toolchain/node')
         if name.startswith('built-web/'):
             manifest[name[len('built-web/'):]] = entry
     mandatory = {'chengwang/deploy/probe-readback/run_probe_browser.py', 'chengwang/deploy/probe-readback/probe_chrome_launcher.py',
@@ -313,8 +313,9 @@ def validate_build(directory, value, isolated, commit, fixture, engine):
                  'chengwang/tools/probe-browser/probe-browser-contract.mjs', 'chengwang/tools/probe-browser/run-browser.mjs',
                  'chengwang/tools/probe-browser/browser-driver.mjs', 'chengwang/tools/probe-browser/browser-cli.mjs',
                  'chengwang/web/scripts/trust-browser-tls.mjs', 'chengwang/tools/image-binding/scripts/browser-process-guard.py',
-                 'toolchain/node', 'npm/playwright-core/package.json', 'fonts/NotoSansCJKsc-Regular.otf', 'fonts/NotoSansCJKsc-Bold.otf', 'fonts/LICENSE'}
-    need(mandatory <= seen and sum(entry['bytes'] for entry in entries) <= 512 << 20)
+                 'toolchain/node', 'toolchain/chrome/chrome', 'npm/playwright-core/package.json',
+                 'fonts/NotoSansCJKsc-Regular.otf', 'fonts/NotoSansCJKsc-Bold.otf', 'fonts/LICENSE'}
+    need(mandatory <= seen and sum(entry['bytes'] for entry in entries) <= 1536 << 20)
     webdir = directory / 'web'; need(webdir.is_dir() and not webdir.is_symlink())
     actual, web = set(), {}
     for child in webdir.rglob('*'):
@@ -361,8 +362,9 @@ def validate_processes(value, driver, build, isolated, raw, commit, fixture, eng
     bundle = '/tmp/chengwang-probe-harness-' + fixture; root = '/tmp/chengwang-probe-readback-' + fixture
     executable = keys(value['chromeExecutable'], {'path', 'bytes', 'sha256', 'sourceScope'})
     need(executable['sourceScope'] == 'TRUSTED_CI_SYSTEM_TOOL_NOT_INDEPENDENT_SUPPLY_CHAIN'
-         and type(executable['path']) is str and re.fullmatch(r'/[A-Za-z0-9_./+-]+', executable['path'])
-         and '..' not in executable['path'].split('/') and executable['sha256'] == chrome['exeSHA256'])
+         and executable['path'] == bundle + '/chrome/chrome'
+         and executable['sha256'] == chrome['exeSHA256'] == copies['toolchain/chrome/chrome']['sha256']
+         and type(executable['bytes']) is int and executable['bytes'] == copies['toolchain/chrome/chrome']['bytes'])
     integer(executable['bytes'], 1, 512 << 20)
     argv = value['chromeArgv']; need(type(argv) is list and 1 <= len(argv) <= 128)
     need(all(type(arg) is str and 0 < len(arg) <= 8192 and re.fullmatch(r'[\x20-\x7e]+', arg) for arg in argv))

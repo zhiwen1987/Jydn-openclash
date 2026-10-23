@@ -245,6 +245,55 @@ jobs:
           # only the actual ELF into this run's private, non-writable input
           # hierarchy; never chmod the shared cache or bypass checked_path.
           /usr/bin/install -m 0755 "$(readlink -f "$(command -v node)")" "$lab/bin/node"
+          # The hosted Chrome distribution is also shared and may be 0777.
+          # Keep resource/ICU/locales next to its ELF in a root-owned safe copy.
+          # This is trusted-CI tool acquisition, not independent provenance.
+          sudo --non-interactive /usr/bin/python3 -B - "$lab/chrome" "$lab/evidence/chrome-distribution.json" <<'PY'
+          import hashlib, json, os, pathlib, stat, sys
+          source = pathlib.Path('/opt/google/chrome'); target = pathlib.Path(sys.argv[1])
+          if (not target.is_absolute() or target.name != 'chrome' or target.parent.name != 'chengwang-probe-browser-runtime'
+              or target.exists() or target.is_symlink() or source.is_symlink()):
+              raise SystemExit('chrome-copy-target-rejected')
+          target.mkdir(mode=0o755); target.chmod(0o755)
+          records = []; total = 0
+          for current, dirs, files in os.walk(source, followlinks=False):
+              dirs.sort(); files.sort(); parent = pathlib.Path(current)
+              for name in dirs + files:
+                  path = parent / name; relative = path.relative_to(source)
+                  if len(relative.parts) > 16 or path.is_symlink():
+                      raise SystemExit('chrome-copy-link-or-depth-rejected')
+                  destination = target / relative; info = path.lstat()
+                  if stat.S_ISDIR(info.st_mode):
+                      destination.mkdir(mode=0o755); destination.chmod(0o755); continue
+                  if not stat.S_ISREG(info.st_mode) or not 0 <= info.st_size <= 512 << 20:
+                      raise SystemExit('chrome-copy-type-or-size-rejected')
+                  with path.open('rb') as incoming:
+                      before = os.fstat(incoming.fileno()); raw = incoming.read((512 << 20) + 1)
+                      after = os.fstat(incoming.fileno())
+                  named = path.lstat()
+                  identity = lambda row: (row.st_dev, row.st_ino, row.st_size, row.st_mode, row.st_uid, row.st_gid, row.st_mtime_ns, row.st_ctime_ns)
+                  if identity(info) != identity(before) or identity(before) != identity(after) or identity(after) != identity(named) or len(raw) != before.st_size:
+                      raise SystemExit('chrome-copy-input-changed')
+                  with destination.open('xb') as output:
+                      output.write(raw); output.flush(); os.fsync(output.fileno())
+                  destination.chmod(0o755 if info.st_mode & 0o111 else 0o644)
+                  digest = hashlib.sha256(raw).hexdigest()
+                  with destination.open('rb') as copied:
+                      if hashlib.file_digest(copied, 'sha256').hexdigest() != digest:
+                          raise SystemExit('chrome-copy-bytes-changed')
+                  total += len(raw)
+                  records.append(dict(path=relative.as_posix(), bytes=len(raw), sha256=digest,
+                      sourceMode=oct(stat.S_IMODE(info.st_mode)), copyMode=oct(stat.S_IMODE(destination.stat().st_mode))))
+                  if len(records) > 4096 or total > 1536 << 20:
+                      raise SystemExit('chrome-copy-budget-rejected')
+          with (target / 'chrome').open('rb') as executable:
+              if executable.read(4) != b'\x7fELF':
+                  raise SystemExit('chrome-copy-elf-rejected')
+          report = dict(schema='chengwang.probe-chrome-acquisition/v1',
+              scope='TRUSTED_CI_SYSTEM_TOOL_BYTE_COPY_NOT_INDEPENDENT_SUPPLY_CHAIN', files=records)
+          with pathlib.Path(sys.argv[2]).open('x') as output:
+              json.dump(report, output, separators=(',', ':')); output.write('\n')
+          PY
           sudo --non-interactive apt-get update -qq
           sudo --non-interactive apt-get install --no-install-recommends -y libnss3-tools
           /usr/bin/cp -a chengwang/web/. "$lab/web-build/"
@@ -404,7 +453,8 @@ jobs:
           import json, os, pathlib, stat, sys
           root = pathlib.Path(sys.argv[2]); records = []
           paths = [('source-node-not-runtime-input', pathlib.Path(sys.argv[3])),
-              ('node', root / 'bin/node'), ('chrome', pathlib.Path('/opt/google/chrome/chrome')),
+              ('node', root / 'bin/node'), ('source-chrome-not-runtime-input', pathlib.Path('/opt/google/chrome/chrome')),
+              ('chrome', root / 'chrome/chrome'),
               ('agent', root / 'bin/probe-agent'), ('server', root / 'bin/server'),
               ('driver', root / 'bin/probe-readback-driver'), ('web', root / 'web-build/dist'),
               ('fonts', root / 'fonts'), ('output', root / 'evidence/lab')]
@@ -424,7 +474,7 @@ jobs:
               --driver "$lab/bin/probe-readback-driver" --source-commit "$GITHUB_SHA" \
               --output-dir "$lab/evidence/lab" --web-dir "$lab/web-build/dist" \
               --fonts-dir "$lab/fonts" --node "$lab/bin/node" \
-              --chrome /opt/google/chrome/chrome --engine '${{ matrix.engine }}'
+              --chrome "$lab/chrome/chrome" --engine '${{ matrix.engine }}'
 
       - name: Independently verify original backend and bound browser evidence
         shell: bash

@@ -87,7 +87,7 @@ def copy_file(source, target, manifest, label, mode=0o440):
     manifest.append({'path': label, 'bytes': len(raw), 'sha256': N.sha(raw)})
 
 
-def copy_tree(source, destination, manifest, prefix):
+def copy_tree(source, destination, manifest, prefix, *, executable_inputs=False):
     need(source.is_dir() and not source.is_symlink(), 'COPY_INPUT')
     for current, dirs, files in os.walk(source, followlinks=False):
         dirs.sort(); files.sort()
@@ -98,8 +98,10 @@ def copy_tree(source, destination, manifest, prefix):
         for name in files:
             rel = (relative / name).as_posix()
             need(re.fullmatch(r'[A-Za-z0-9_./@+-]+', rel) and '..' not in pathlib.PurePosixPath(rel).parts, 'COPY_INPUT')
-            copy_file(pathlib.Path(current) / name, destination / rel, manifest, prefix + '/' + rel)
-            need(len(manifest) <= 8192 and sum(item['bytes'] for item in manifest) <= 512 << 20, 'COPY_LIMIT')
+            original = pathlib.Path(current) / name
+            mode = 0o550 if executable_inputs and original.lstat().st_mode & 0o111 else 0o440
+            copy_file(original, destination / rel, manifest, prefix + '/' + rel, mode)
+            need(len(manifest) <= 8192 and sum(item['bytes'] for item in manifest) <= 1536 << 20, 'COPY_LIMIT')
 
 
 def prepare_browser_bundle(options, source):
@@ -111,6 +113,10 @@ def prepare_browser_bundle(options, source):
         copy_file(source / 'chengwang/deploy/probe-readback/probe_chrome_launcher.py',
                   bundle / 'chrome-launcher', records, 'chengwang/deploy/probe-readback/probe_chrome_launcher.py', 0o550)
         copy_file(pathlib.Path(options.node), bundle / 'browser-node', records, 'toolchain/node', 0o550)
+        # /home/runner may be 0750. The low-privilege browser must not traverse
+        # it: keep the entire acquired distribution in this traversable bundle.
+        copy_tree(pathlib.Path(options.chrome).parent, bundle / 'chrome', records,
+                  'toolchain/chrome', executable_inputs=True)
         alias = bundle / 'source'
         directory = source / 'chengwang/tools/probe-browser'
         for name in ('package.json', 'package-lock.json', 'probe-browser-contract.mjs', 'run-browser.mjs',
@@ -131,7 +137,7 @@ def prepare_browser_bundle(options, source):
         N.exclusive(bundle / 'fonts/fonts.conf', font_xml, 0o440)
         os.chown(bundle / 'fonts/fonts.conf', 0, 10001)
         config = dict(schema='chengwang.probe-browser-config/v1', engine=options.engine,
-                      root=options.fixture_root, chrome=options.chrome)
+                      root=options.fixture_root, chrome=str(bundle / 'chrome/chrome'))
         N.exclusive(bundle / 'browser-config.json', N.canonical(config), 0o440)
         passwd = ('root:x:0:0:root:/root:/usr/sbin/nologin\nprobe-browser:x:10001:10001:probe:'
                   + options.fixture_root + '/browser/home:/usr/sbin/nologin\n').encode()
