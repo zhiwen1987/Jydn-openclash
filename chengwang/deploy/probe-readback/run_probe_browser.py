@@ -57,6 +57,7 @@ def public_failure_diagnostic(bundle):
         ('logs/browser.private', r'^PROBE_BROWSER_PAIR_STAGE=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_OPERATION=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_NETWORK_FAILURE=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(CANCELED|NOT_CANCELED|CANCEL_UNKNOWN):(ABORTED|OTHER):(RUNNING|CLOSING)$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_NETWORK_FAILURE_TIMING=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(NO_HEADERS|HTTP_2XX|HTTP_3XX|HTTP_4XX|HTTP_5XX|HTTP_OTHER):(AGE_LT1S|AGE_1_9S|AGE_9_11S|AGE_GE11S|AGE_UNKNOWN)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_ERROR=([A-Z_]+)$'),
         ('logs/browser.private', r'^PROBE_BROWSER_LAUNCH_FATAL=((?:base|chrome|content|components|sandbox|third_party)/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.cc):([1-9][0-9]{0,5})$'),
     ):
@@ -68,7 +69,7 @@ def public_failure_diagnostic(bundle):
             match = re.fullmatch(pattern, line)
             if not match:
                 continue
-            if line.startswith('PROBE_BROWSER_NETWORK_FAILURE='):
+            if line.startswith(('PROBE_BROWSER_NETWORK_FAILURE=', 'PROBE_BROWSER_NETWORK_FAILURE_TIMING=')):
                 sys.stderr.write(line + '\n')
                 continue
             if line.startswith('PROBE_BROWSER_LAUNCH_FATAL='):

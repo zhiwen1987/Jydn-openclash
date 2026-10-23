@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { validateLaunchOptions, parseProcessStat, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
   collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError, launchFatalLocations,
-  driverOperationFailure, networkFailureDiagnostic } from './browser-driver.mjs'
+  driverOperationFailure, networkFailureDiagnostic, networkFailureTimingDiagnostic } from './browser-driver.mjs'
 
 const sha = raw => createHash('sha256').update(raw).digest('hex')
 const uuid = 'a'.repeat(32), root = '/tmp/chengwang-probe-readback-' + uuid
@@ -156,6 +156,27 @@ test('driver asynchronous capture failures are fatal and console messages stay p
   const privateError = { toString() { throw Error('private-sentinel') } }
   assert.equal(networkFailureDiagnostic('https://127.0.0.1:17861/api/v1/snapshot', true, privateError, 'RUNNING'),
     'PROBE_BROWSER_NETWORK_FAILURE=SNAPSHOT:CANCELED:OTHER:RUNNING\n')
+  for (const [path, kind] of apiKinds) {
+    for (const [status, category] of [[null, 'NO_HEADERS'], [200, 'HTTP_2XX'], [299, 'HTTP_2XX'], [300, 'HTTP_3XX'],
+      [399, 'HTTP_3XX'], [400, 'HTTP_4XX'], [499, 'HTTP_4XX'], [500, 'HTTP_5XX'], [599, 'HTTP_5XX'],
+      [199, 'HTTP_OTHER'], [600, 'HTTP_OTHER'], [undefined, 'HTTP_OTHER'], [privateError, 'HTTP_OTHER']]) {
+      for (const [elapsed, age] of [[0, 'AGE_LT1S'], [0.999, 'AGE_LT1S'], [1, 'AGE_1_9S'], [8.999, 'AGE_1_9S'],
+        [9, 'AGE_9_11S'], [10.999, 'AGE_9_11S'], [11, 'AGE_GE11S'], [360, 'AGE_GE11S'],
+        [360.001, 'AGE_UNKNOWN'], [-1, 'AGE_UNKNOWN']]) {
+        assert.equal(networkFailureTimingDiagnostic('https://127.0.0.1:17861' + path, status, 100, 100 + elapsed),
+          `PROBE_BROWSER_NETWORK_FAILURE_TIMING=${kind}:${category}:${age}\n`)
+      }
+    }
+  }
+  for (const invalid of [undefined, null, 'private-sentinel', NaN, Infinity, -1, Number.MAX_SAFE_INTEGER, privateError]) {
+    assert.equal(networkFailureTimingDiagnostic('https://127.0.0.1:17861/api/v1/snapshot', null, invalid, 100),
+      'PROBE_BROWSER_NETWORK_FAILURE_TIMING=SNAPSHOT:NO_HEADERS:AGE_UNKNOWN\n')
+    assert.equal(networkFailureTimingDiagnostic('https://127.0.0.1:17861/api/v1/snapshot', null, 100, invalid),
+      'PROBE_BROWSER_NETWORK_FAILURE_TIMING=SNAPSHOT:NO_HEADERS:AGE_UNKNOWN\n')
+  }
+  for (const url of ['private-sentinel', 'https://127.0.0.1:17861/api/v1/unknown', {}, null]) {
+    assert.equal(networkFailureTimingDiagnostic(url, null, 0, 10), null)
+  }
   const originalWrite = process.stderr.write, diagnosticWrites = []
   process.stderr.write = value => { diagnosticWrites.push(value); return true }
   try {
@@ -164,9 +185,11 @@ test('driver asynchronous capture failures are fatal and console messages stay p
     for (let index = 0; index < 132; index++) {
       const [path] = apiKinds[index % apiKinds.length]
       if (index === 4) failed.lifePhase = 'CLOSING'
-      failed.handle('Network.requestWillBeSent', { requestId: String(index), type: 'Fetch', request: request(path,
+      failed.handle('Network.requestWillBeSent', { requestId: String(index), type: 'Fetch', timestamp: 20 + index, request: request(path,
         path === '/api/v1/probes/details' ? { Authorization: 'Bearer private-sentinel' } : {}) })
-      failed.handle('Network.loadingFailed', { requestId: String(index), canceled: index % 3 === 0 ? true : index % 3 === 1 ? false : undefined,
+      if (index < 4) failed.handle('Network.responseReceived', { requestId: String(index),
+        response: { url: 'https://127.0.0.1:17861' + path, status: [200, 302, 404, 503][index], mimeType: 'application/json' } })
+      failed.handle('Network.loadingFailed', { requestId: String(index), timestamp: 30 + index, canceled: index % 3 === 0 ? true : index % 3 === 1 ? false : undefined,
         errorText: index % 2 === 0 ? 'net::ERR_ABORTED' : 'private-sentinel' })
     }
     assert.equal(failed.counters.failedRequests, 132); assert.equal(failed.counters.assetErrors, 0)
@@ -175,11 +198,17 @@ test('driver asynchronous capture failures are fatal and console messages stay p
     failed.handle('Network.loadingFailed', { requestId: 'asset', canceled: true, errorText: 'private-sentinel' })
     failed.handle('Network.loadingFailed', { requestId: 'untracked-private-sentinel', canceled: true, errorText: 'private-sentinel' })
     assert.equal(failed.counters.failedRequests, 133); assert.equal(failed.counters.assetErrors, 1)
-    assert.equal(diagnosticWrites.length, 128)
-    assert.ok(Buffer.byteLength(diagnosticWrites.join('')) < 16 << 10)
+    assert.equal(diagnosticWrites.length, 256)
+    assert.ok(Buffer.byteLength(diagnosticWrites.join('')) < 24 << 10)
     assert.ok(!diagnosticWrites.join('').includes('private-sentinel'))
-    assert.ok(diagnosticWrites.every(line => /^PROBE_BROWSER_NETWORK_FAILURE=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(CANCELED|NOT_CANCELED|CANCEL_UNKNOWN):(ABORTED|OTHER):(RUNNING|CLOSING)\n$/.test(line)))
-    assert.ok(diagnosticWrites[0].endsWith(':RUNNING\n')); assert.ok(diagnosticWrites[4].endsWith(':CLOSING\n'))
+    const oldLines = diagnosticWrites.filter(line => line.startsWith('PROBE_BROWSER_NETWORK_FAILURE='))
+    const timingLines = diagnosticWrites.filter(line => line.startsWith('PROBE_BROWSER_NETWORK_FAILURE_TIMING='))
+    assert.equal(oldLines.length, 128); assert.equal(timingLines.length, 128)
+    assert.ok(oldLines.every(line => /^PROBE_BROWSER_NETWORK_FAILURE=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(CANCELED|NOT_CANCELED|CANCEL_UNKNOWN):(ABORTED|OTHER):(RUNNING|CLOSING)\n$/.test(line)))
+    assert.ok(timingLines.every(line => /^PROBE_BROWSER_NETWORK_FAILURE_TIMING=(SNAPSHOT|OBSERVATIONS|PROBE_STATUS|PROBE_DETAILS):(NO_HEADERS|HTTP_2XX|HTTP_3XX|HTTP_4XX|HTTP_5XX|HTTP_OTHER):(AGE_LT1S|AGE_1_9S|AGE_9_11S|AGE_GE11S|AGE_UNKNOWN)\n$/.test(line)))
+    assert.ok(oldLines[0].endsWith(':RUNNING\n')); assert.ok(oldLines[4].endsWith(':CLOSING\n'))
+    assert.equal(timingLines[0], 'PROBE_BROWSER_NETWORK_FAILURE_TIMING=SNAPSHOT:HTTP_2XX:AGE_9_11S\n')
+    assert.equal(timingLines[4], 'PROBE_BROWSER_NETWORK_FAILURE_TIMING=SNAPSHOT:NO_HEADERS:AGE_9_11S\n')
     const writeFailure = new NetworkJournal(async () => ({}), async () => {})
     process.stderr.write = () => { throw Error('private-sentinel') }
     writeFailure.handle('Network.requestWillBeSent', { requestId: 'write-failure', type: 'Fetch', request: request('/api/v1/probes/status') })
@@ -189,6 +218,10 @@ test('driver asynchronous capture failures are fatal and console messages stay p
     writeFailure.handle('Network.loadingFailed', Object.defineProperty({ requestId: 'accessor-failure' }, 'errorText',
       { get() { throw Error('private-sentinel') } }))
     assert.equal(writeFailure.counters.failedRequests, 2); assert.equal(writeFailure.failure, false)
+    writeFailure.handle('Network.requestWillBeSent', Object.defineProperty({ requestId: 'start-accessor', type: 'Fetch',
+      request: request('/api/v1/probes/status') }, 'timestamp', { get() { throw Error('private-sentinel') } }))
+    writeFailure.handle('Network.loadingFailed', { requestId: 'start-accessor', canceled: false, errorText: 'private-sentinel' })
+    assert.equal(writeFailure.counters.failedRequests, 3); assert.equal(writeFailure.failure, false)
   } finally { process.stderr.write = originalWrite }
   for (const operation of ['NAVIGATE', 'CLICK', 'CLICK_TEXT', 'FILL', 'VIEWPORT', 'SNAPSHOT', 'SCREENSHOT', 'NETWORK']) {
     assert.equal(driverOperationFailure(operation), `PROBE_BROWSER_DRIVER_OPERATION=${operation}\n`)

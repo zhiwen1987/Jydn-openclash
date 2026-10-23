@@ -202,9 +202,10 @@ import json
 import pathlib
 import sys
 report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-# Retain all 77 prior cases and require the 33 exact P1 unit scenarios.
+# Retain all 77 prior cases and the 33 exact P1 unit scenarios. The seven
+# single-flight cases are a separate increment, never a replacement baseline.
 # These are mocked component/transport checks, not real probe-agent evidence.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 110 or report.get("numPassedTests") != report.get("numTotalTests"):
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 117 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
 required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx"}
 results = report.get("testResults", [])
@@ -227,6 +228,18 @@ probe_increment = {
     "probe-api.test.ts": (21, "81955cb0b7996f5659a4d70a5d6cd56531f79a33f24e6066b06ab2117c64764a"),
     "ProbeReadback.test.tsx": (12, "727a3ac9da8d4910b0f6ddad8bb6b78fbd44e77f07007d768b1b10e327465c05"),
 }
+summary_singleflight_increment = frozenset((
+    "P1 ProbeReadback lifecycle does not abort a manual summary when the automatic poll overlaps it",
+    "P1 ProbeReadback lifecycle shares an active automatic summary instead of cancelling it on a click",
+    "P1 ProbeReadback lifecycle releases the single-flight latch after a real abort rejection at the deadline",
+    "P1 ProbeReadback lifecycle does not let an obsolete StrictMode completion unlock a newer summary",
+    "P1 ProbeReadback lifecycle clears protected reads immediately even when a summary refresh is joined",
+    "P1 ProbeReadback lifecycle rejects a timed-out late success without unlocking or overwriting its retry",
+    "P1 ProbeReadback lifecycle stops polling and deadlines on unmount and ignores late summary completion",
+))
+summary_singleflight_sha256 = "1ac0f0ac2b63cf57b4a8e5f26e1ddf1101842407b9d6097d0c9afc7fcdead76a"
+if len(summary_singleflight_increment) != 7 or hashlib.sha256("\n".join(sorted(summary_singleflight_increment)).encode()).hexdigest() != summary_singleflight_sha256:
+    raise SystemExit("single-flight frontend increment definition changed")
 for result in results:
     filename = pathlib.Path(result["name"]).name
     names = [case["fullName"] for case in result["assertionResults"]]
@@ -239,14 +252,20 @@ for result in results:
         raise SystemExit("accepted complete 36 transport scenarios changed")
     if filename in probe_increment:
         count, digest = probe_increment[filename]
-        if len(names) != count or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != digest:
+        retained = names
+        if filename == "ProbeReadback.test.tsx":
+            increment = frozenset(name for name in names if name in summary_singleflight_increment)
+            if len(names) != count + 7 or increment != summary_singleflight_increment or hashlib.sha256("\n".join(sorted(increment)).encode()).hexdigest() != summary_singleflight_sha256:
+                raise SystemExit("single-flight frontend scenarios missing, renamed or substituted")
+            retained = [name for name in names if name not in summary_singleflight_increment]
+        if len(retained) != count or hashlib.sha256("\n".join(sorted(retained)).encode()).hexdigest() != digest:
             raise SystemExit("reviewed 33 P1 frontend scenarios changed")
         continue
     old = sorted(name for name in names if filename != "image-trust-api.test.ts" or not name.startswith(new_prefixes))
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=7 tests=" + str(report["numPassedTests"]) + " retained=77 probe_increment=33 skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=7 tests=" + str(report["numPassedTests"]) + " retained=77 probe_increment=33 summary_singleflight_increment=7 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"

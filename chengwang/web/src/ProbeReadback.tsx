@@ -33,7 +33,8 @@ function readError(error: unknown): string {
 export function ProbeReadback() {
   const [status, setStatus] = useState<ProbeStatus | null>(null)
   const [summaryError, setSummaryError] = useState('')
-  const [generation, setGeneration] = useState(0)
+  const [loadingSummary, setLoadingSummary] = useState(true)
+  const refreshSummary = useRef<() => void>(() => {})
   const [now, setNow] = useState(Date.now)
   const [clientClockHealthy, setClientClockHealthy] = useState(true)
   const highWall = useRef(0)
@@ -46,22 +47,45 @@ export function ProbeReadback() {
   const detailAbort = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
     let current = true
-    const deadline = setTimeout(() => controller.abort(), 10_000)
-    getProbeStatus(controller.signal).then(value => {
-      if (!current || controller.signal.aborted) return
-      setStatus(value); setSummaryError(''); setNow(Date.now())
-    }).catch(error => {
-      if (!current) return
-      setStatus(null); setDetails(null); setSummaryError(readError(error))
-    }).finally(() => clearTimeout(deadline))
-    return () => { current = false; clearTimeout(deadline); controller.abort() }
-  }, [generation])
+    let active: { controller: AbortController; deadline?: ReturnType<typeof setTimeout> } | null = null
+    const readSummary = () => {
+      // One mount owns one in-flight anonymous read. Polls and repeated clicks
+      // join it rather than cancelling/restarting it or building a retry queue.
+      if (!current || active) return
+      const request = { controller: new AbortController(), deadline: undefined as ReturnType<typeof setTimeout> | undefined }
+      active = request
+      setLoadingSummary(true)
+      request.deadline = setTimeout(() => {
+        if (!current || active !== request) return
+        // Release independently of fetch rejecting: late success/finally from
+        // this request must neither restore old conclusions nor unlock a retry.
+        active = null
+        setStatus(null); setDetails(null); setSummaryError(readError(undefined)); setLoadingSummary(false)
+        request.controller.abort()
+      }, 10_000)
+      getProbeStatus(request.controller.signal).then(value => {
+        if (!current || active !== request || request.controller.signal.aborted) return
+        setStatus(value); setSummaryError(''); setNow(Date.now())
+      }).catch(error => {
+        if (!current || active !== request) return
+        setStatus(null); setDetails(null); setSummaryError(readError(error))
+      }).finally(() => {
+        clearTimeout(request.deadline)
+        if (current && active === request) { active = null; setLoadingSummary(false) }
+      })
+    }
+    refreshSummary.current = readSummary
+    readSummary()
+    // Only cached anonymous status is polled; this never executes a probe.
+    const timer = setInterval(readSummary, 30_000)
+    return () => {
+      current = false; refreshSummary.current = () => {}; clearInterval(timer)
+      if (active) { clearTimeout(active.deadline); active.controller.abort(); active = null }
+    }
+  }, [])
 
   useEffect(() => {
-    // Only cached anonymous status is polled. This never triggers probe execution.
-    const timer = setInterval(() => setGeneration(value => value + 1), 30_000)
     highWall.current = Math.max(highWall.current, Date.now())
     const clock = setInterval(() => {
       const current = Date.now()
@@ -69,7 +93,7 @@ export function ProbeReadback() {
       highWall.current = Math.max(highWall.current, current)
       setNow(current)
     }, 1_000)
-    return () => { clearInterval(timer); clearInterval(clock) }
+    return () => clearInterval(clock)
   }, [])
 
   useEffect(() => {
@@ -100,7 +124,7 @@ export function ProbeReadback() {
 
   return <section className="panel probe-readback" aria-labelledby="probe-heading">
     <header className="probe-heading"><div><p className="probe-eyebrow">独立于控制器的证据视图 · P1</p><h2 id="probe-heading"><ShieldCheck size={20} aria-hidden="true"/>主动探针证据（只读导入）</h2></div>
-      <button className="secondary" type="button" onClick={() => { clearDetails(); setStatus(null); setSummaryError(''); setGeneration(value => value + 1) }}><RefreshCw size={16} aria-hidden="true"/>刷新探针摘要</button></header>
+      <button className="secondary" type="button" aria-busy={loadingSummary} onClick={() => { clearDetails(); setStatus(null); setSummaryError(''); refreshSummary.current() }}><RefreshCw size={16} aria-hidden="true"/>刷新探针摘要</button></header>
     <p className="probe-boundary">只读取已授权探针留下的证据，不发起测速、不切换节点、不修改生产。P1 是本地受控来源，不是外部独立见证。</p>
     <div className="probe-live" role="status" aria-live="polite" aria-atomic="true">
       {summaryError ? <><AlertCircle size={18} aria-hidden="true"/>{summaryError}</> : status ? <><span className="probe-state">{!status.configured ? '未配置' : !usable ? '未评估' : status.coverage.partial ? '覆盖不足' : '已读回'}</span>{reason(!clientClockHealthy ? 'clock_rollback' : stale ? 'cache_expired' : status.reason)}</> : '正在读取脱敏摘要…'}

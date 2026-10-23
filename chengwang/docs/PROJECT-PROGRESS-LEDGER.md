@@ -2,7 +2,7 @@
 
 更新日期：2026-10-23。开发分支：`codex/chengwang-security-hardening`。后端原生验收源码：`700ea9ed2f58b267d1530ffcacc0a3f3cdba2dbb`；能力事实同步源码：`2fe1231de851417e7825b9c8b02083acf1ad08f3`。本台账由单一集成者按实际证据更新，不是产品自动生成的完成率。
 
-当前结果：真实 agent 到只读产品 API 的隔离后端链路通过 CI 并独立重放；新增机器能力事实已完成父门及原生后端复验，候选镜像回归 CI 终态 success。用户选择 CDP 和 Playwright 两条验收路径均实施；两引擎已完成真实采集及正常进程退出子验证。CDP 本机浏览器 gate 通过，但上传漏掉隐藏构建清单，下载原包不能完整重放；PW 有 1 次 API 请求失败，gate 严格拒绝。两条完整验收均尚未闭合，不能称已完成或上线。当前仅补公开归档白名单和安全失败类别观测，不忽略原失败计数。未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
+当前结果：真实 agent 到只读产品 API 的隔离后端链路通过 CI 并独立重放；新增机器能力事实已完成父门及原生后端复验，候选镜像回归 CI 终态 success。用户选择 CDP 和 Playwright 两条验收路径均实施。`06543d4` 的 CDP 完整原包下载、精确源码检查器重放已通过，隐藏构建清单归档缺口已补；PW 仍有 1 次运行期匿名摘要请求被取消，完整 gate 严格拒绝。现有证据不能唯一归因于刷新重叠或 10 秒超时。当前修正摘要单飞、超时/迟到结果所有权，保留原取消计数、TTL 和完整 gate，并补闭集耗时/响应类别观测；修正后双路径仍待新 CI。未修改生产、未合并 main、未正式发布镜像。不将测试数量折算为整个企业系统的完成百分比。
 
 ## 当前阶段进度
 
@@ -14,7 +14,7 @@
 | P1-04 | 独立检查器与失败关闭反例 | 已实现并隔离验收 | 44 辅助检查、24 wire 前置检查；原始 22 输入独立重放，失败历史保留 |
 | P1-05 | 原有后端回归 | 已复验 | `2fe1231`、`f366f8a` ordinary/race 均各 2403 Test run/pass；新增 12 项实际执行，旧 2391/2320 名单哈希均保留；各 12 Fuzz 另计 |
 | P1-06 | 控制台探针页面 | 已实现，真实数据闭环待验 | 既有 110 前端测试及合成 API 布局/交互验收；不能替代真实 API 浏览器读回 |
-| P1-07 | 正常 TLS 浏览器展示真实 runID 与过期状态 | 候选实现已接线，真实验收未完成 | 两条独立 matrix，各重采真实 6 结果；增加原子控制文件、私有 NSS、实际 Chrome wait 和单独 runtime gate。Node 65 项纯/fake 检查通过不等于真实 DOM、TLS、截图或清理通过；原预检 [39902969323](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39902969323)；[实现边界](../deploy/probe-readback/README.md#双浏览器扩展实现候选不是运行验收记录) |
+| P1-07 | 正常 TLS 浏览器展示真实 runID 与过期状态 | CDP 已独立验收；PW 尚未通过 | `06543d4` 的 CDP [39922631837](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39922631837/job/120311374441) 原工件完整重放、18 捕获/6 真实 API 字节、正常 TLS、实际 Node/Chrome 正常退出、8 错误计数全 0；同轮 PW 失败计数 1，不能以 CDP 代替。两引擎必须在后续精确源码各自完整通过；辅助测试不等于真实浏览器证明；[实现边界](../deploy/probe-readback/README.md#双浏览器扩展实现候选不是运行验收记录) |
 | P1-08 | 机器能力事实清单与新探针状态同步 | 已实现并隔离验收 | 默认 blocked，配置后仅 implemented_local；匿名清单不调用 probe reader；完整业务评估保持 design_only；4 API＋8 registry 测试实际执行；父门/原生/镜像 CI success |
 | P1-09 | 生产挂载、授权、公网业务与观察窗口 | 未执行 | 需要另行授权、备份及可验证回滚；本实验没有公共互联网出口 |
 
@@ -57,5 +57,6 @@
 | `a284291` | [第十轮 CI 39917846275](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39917846275) 两引擎实际越过 `EXPIRED_PUBLISH`，失败转到控制器 `CLOSE`。完整 18 capture 仍仅为失败候选，PW 已独立核对摘要、4 PNG 完整性、684 个 Git 原 blob，过期 0 样本/3 unknown；Chrome 实际 wait=0，但缺完整后端 22 输入及 flow/driver/build/processes，不能验收。下一轮只细分正常关闭各入口，不改变退出/无残留/无强制干预判断；父门普通/race 各 2403 Test 已独立验收 | 18 capture 或 Chrome wait0 已证明正常生命周期、完整 gate 或上线 |
 | `01af8d2` | [第十一轮 CI 39919271011](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39919271011) 真实关闭细分定位在 `CLOSE_SCAN`，未进入 `CLOSE_GUARD`。静态检查发现扫描所有同 UID 进程时，错误提前套用 Chrome 专属的正 pgrp/session 要求；隔离 PID namespace 内无关 API/controller 可合法显示 0。下一轮分离通用进程解析与严格 Chrome 身份解析，保留实际 Chrome pid/group/session、启动 tick、profile、argv 和无存活/无强制干预约束。父门普通/race 各 2403 Test 已独立验收，原生 CI 终态 success；浏览器仍失败 | 已完成正常退出、已用完整运行证据证明唯一根因，或放宽真实 Chrome 身份要求 |
 | `aba1049` | [第十二轮 CI 39920337249](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39920337249) CDP 本机 gate success，但独立下载重放发现上传包漏 `web/.vite/manifest.json`；完整 gate 必须拒绝，不补造原字节。PW 正常采集/生命周期子验已过，但 driver 有 1 次 API 请求失败，本机 gate 严格拒绝，公开记录尚不能区分取消或传输失败。两引擎原 backend22 及捕获/进程子验证通过，不代替完整验收。下一轮仅补有隐藏项白名单的公开归档及固定失败类别诊断，原计数和所有 gate 不变；父门普通/race 各 2403 Test 已独立验收 | CI 绿色已等于完整可重放工件；或可直接忽略 PW 的请求失败 |
+| `06543d4` | [第十三轮 CI 39922631837](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39922631837) CDP 原 ZIP 已含 898 字节 Vite manifest，完整原 Git checker/backend22 重放与 CI 报告逐字一致；browser canonical SHA256 `9069665f86fd863569fa49f58a5bb5ec2bfb2ba4b7f88a0a857fb844911fc566`。PW 仍严格失败，唯一非零为 `failedRequests=1`，固定诊断 `PROBE_STATUS:CANCELED:ABORTED:RUNNING`；日志不能唯一绑定自动/手动重叠或 10 秒 deadline。父门 ordinary/race 各 2403 Test、原生后端 22 输入已独立复验。下一轮修正摘要请求单飞和 owner 隔离，增加 7 个确定性前端反例与安全耗时类别，不改失败计数、10 秒 deadline 或完整 B gate | CDP 一条通过等于双路径已验收；推测取消根因等于事实；辅助单元测试等于真实浏览器成功 |
 
 下一顺序：CDP 与 Playwright 各自真实 API 正常 TLS 浏览器闭环 → 继续完整产品功能与隔离故障验收 → 获批后才进入备份、灰度、生产读回和回滚演练。每次阶段结束更新提交、已验/未验项、原始证据路径和生产变更记录。

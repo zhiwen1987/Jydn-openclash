@@ -40,11 +40,12 @@
 - 浏览器专属挂载覆盖私有 `/etc/passwd` 和 `/etc/group`，配合 `XDG_DATA_HOME` 建立私有 NSS 信任库；不设置 `HOME`、不修改宿主 CA。Playwright 使用原生 `launchPersistentContext`，不是把 CDP 连接换个标签。
 - 该专属 mount namespace 内用 tmpfs 覆盖 `/var/tmp`，固定 `TMPDIR=/var/tmp`，避免临时 Unix socket 路径过长；0700/10001:10001、64MiB、nosuid/nodev/noexec，降权前读回实际类型和标志，驱动再次核对所有权。既不修改宿主 `/var/tmp` 内容/权限，也不在宿主清空目录；挂载随 namespace 销毁。此启动修正须由真实运行验证，单元测试不是根因证明。
 - 先预热浏览器，再等待 API-second 的真实 fresh 窗口；页面显示实际最新 3 个 runID 和 15 个层级，API 原始字节含 6 个样本。验证清除令牌和明细、匿名摘要、旧结论到期撤回、实际过期后 0 样本/3 个 unknown、桌面和移动端。
+- 页面匿名摘要的自动轮询与手动刷新共用一个挂载期请求；重复操作加入当前读取，不中止旧请求或无限排队。手动刷新即使读取中也立即清除受保护明细。10 秒真实超时主动撤回旧结论并释放槽位，旧请求迟到不能覆盖或解锁新请求；卸载仍取消当前请求。7 个新增模拟反例不能替代双浏览器实测，也不能据此断言历史取消的唯一根因。
 - Chrome 的真实等待结果由 `probe_chrome_launcher.py` 保存。关闭命令返回不等于进程退出；正常通过要求 Chrome 和 Node 实际退出 0，且未用强制清理获得绿色结果。
 - 公开浏览器输出另在 `browser/`，包括 18 个固定 capture 文件、flow/driver/build/processes 四个记录，以及构建静态资源。令牌、私钥、完整页面 HTML 快照、profile、trace、HAR、storageState 和原始控制台内容不导出。静态构建的公开 `index.html` 不属于页面快照。
 - 控制器失败后，只把已由白名单 writer 写入且再次经令牌/私钥扫描的完整候选文件保存在 `failed-browser/`，不复制 profile 或日志；对应 `failure-candidates.json` 固定 `runtimeAcceptanceProven=false`。它们用于定位断点，不能替代完整 gate，也不能因存在截图而宣告通过。
 - 上传前单独限制隐藏项：仅允许公开 `lab/browser/web/.vite/manifest.json` 及其父目录，并拒绝链接、非普通文件和超预算文件；边界成功后才启用隐藏文件上传。这不是通用秘密内容扫描器，内容过滤仍由既有导出器负责。实际完整 ZIP 必须再次重放，不能用上传前的本机 PASS 替代。
-- 请求失败诊断只输出四个固定 API 类别、取消三态、有限错误类别和运行/关闭阶段，不输出原 URL、错误内容、请求头或响应体；不改变失败计数。界面主动取消、关闭中取消和真实传输失败必须有证据区分，不能自动当成功。
+- 请求失败诊断只输出四个固定 API 类别、取消三态、有限错误类别和运行/关闭阶段，以及独立的响应类别/单调时钟耗时分桶；缺失、倒序或超预算时间归 unknown。不输出原 URL、错误内容、请求头、响应体或原始时间值，不改变失败计数。界面主动取消、关闭中取消和真实传输失败必须有证据区分，不能自动当成功。
 
 采样时最终后端验收摘要尚不存在，因此 capture/flow 始终标为 `API_CAPTURE_UNBOUND`、`runtimeProven=false`，不填占位摘要。完成原 22 输入和清理后，独立 `check_probe_browser.py` 才重新验证后端原字节，并把真实摘要、API、白名单 DOM、PNG、正常 TLS 链、实际静态资源、进程/挂载/参数和正常退出关联到单独的 `chengwang.probe-browser-runtime-gate/v1` 报告。既有纯合同 schema 不会升级成运行证明。
 

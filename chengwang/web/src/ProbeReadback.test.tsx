@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { StrictMode } from 'react'
 import { ProbeReadback } from './ProbeReadback'
 import { probeDetails, probeResponse, probeStatus } from './probe-test-fixtures'
 
@@ -112,5 +113,158 @@ describe('P1 ProbeReadback lifecycle', () => {
     fireEvent.click(screen.getByRole('button', { name: '刷新探针摘要' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('暂时无法读取'))
     expect(screen.queryByText('已读回')).not.toBeInTheDocument(); expect(screen.queryByText('raw-network-secret')).not.toBeInTheDocument()
+  })
+  it('does not abort a manual summary when the automatic poll overlaps it', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    let finish!: (response: Response) => void
+    const signals: AbortSignal[] = []
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signals.push(init!.signal as AbortSignal)
+      return signals.length === 2 ? new Promise<Response>(resolve => { finish = resolve }) : Promise.resolve(probeResponse(probeStatus()))
+    })
+    vi.stubGlobal('fetch', fetcher); render(<ProbeReadback/>); await screen.findByText('已读回')
+    act(() => { vi.advanceTimersByTime(29_000) })
+    const button = screen.getByRole('button', { name: '刷新探针摘要' })
+    fireEvent.click(button)
+    expect(button).toHaveAttribute('aria-busy', 'true')
+    act(() => { vi.advanceTimersByTime(2000) })
+    fireEvent.click(button)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(signals[1].aborted).toBe(false)
+    await act(async () => { finish(probeResponse(probeStatus())) })
+    expect(button).toHaveAttribute('aria-busy', 'false')
+    await act(async () => { vi.advanceTimersByTime(29_000) })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+    expect(signals.every(signal => !signal.aborted)).toBe(true)
+    expect(button).toHaveAttribute('aria-busy', 'false')
+  })
+  it('shares an active automatic summary instead of cancelling it on a click', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    let finish!: (response: Response) => void
+    let pollSignal!: AbortSignal
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      if (fetcher.mock.calls.length === 2) {
+        pollSignal = init!.signal as AbortSignal
+        return new Promise<Response>(resolve => { finish = resolve })
+      }
+      return Promise.resolve(probeResponse(probeStatus()))
+    })
+    vi.stubGlobal('fetch', fetcher); render(<ProbeReadback/>); await screen.findByText('已读回')
+    act(() => { vi.advanceTimersByTime(30_000) })
+    const button = screen.getByRole('button', { name: '刷新探针摘要' })
+    expect(button).toHaveAttribute('aria-busy', 'true'); fireEvent.click(button)
+    expect(fetcher).toHaveBeenCalledTimes(2); expect(pollSignal.aborted).toBe(false)
+    await act(async () => { finish(probeResponse(probeStatus())) })
+    expect(button).toHaveAttribute('aria-busy', 'false')
+    await act(async () => { fireEvent.click(button) })
+    expect(fetcher).toHaveBeenCalledTimes(3); expect(button).toHaveAttribute('aria-busy', 'false')
+  })
+  it('releases the single-flight latch after a real abort rejection at the deadline', async () => {
+    vi.useFakeTimers()
+    let timeoutSignal!: AbortSignal
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      if (fetcher.mock.calls.length === 2) {
+        timeoutSignal = init!.signal as AbortSignal
+        return new Promise<Response>((_resolve, reject) => timeoutSignal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }))
+      }
+      return Promise.resolve(probeResponse(probeStatus()))
+    })
+    vi.stubGlobal('fetch', fetcher)
+    await act(async () => { render(<ProbeReadback/>) })
+    expect(screen.getByRole('status')).toHaveTextContent('已读回')
+    const button = screen.getByRole('button', { name: '刷新探针摘要' })
+    fireEvent.click(button)
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_001) })
+    expect(timeoutSignal.aborted).toBe(true)
+    expect(screen.getByRole('status')).toHaveTextContent('暂时无法读取')
+    expect(screen.queryByText('已读回')).not.toBeInTheDocument(); expect(button).toHaveAttribute('aria-busy', 'false')
+    await act(async () => { fireEvent.click(button) })
+    expect(screen.getByRole('status')).toHaveTextContent('已读回'); expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+  it('does not let an obsolete StrictMode completion unlock a newer summary', async () => {
+    let oldFinish!: (response: Response) => void
+    let newFinish!: (response: Response) => void
+    const signals: AbortSignal[] = []
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signals.push(init!.signal as AbortSignal)
+      if (signals.length === 1) return new Promise<Response>(resolve => { oldFinish = resolve })
+      if (signals.length === 3) return new Promise<Response>(resolve => { newFinish = resolve })
+      return Promise.resolve(probeResponse(probeStatus()))
+    })
+    vi.stubGlobal('fetch', fetcher); render(<StrictMode><ProbeReadback/></StrictMode>); await screen.findByText('已读回')
+    expect(signals).toHaveLength(2); expect(signals[0].aborted).toBe(true)
+    const button = screen.getByRole('button', { name: '刷新探针摘要' })
+    fireEvent.click(button)
+    await act(async () => { oldFinish(probeResponse(probeStatus())) })
+    expect(button).toHaveAttribute('aria-busy', 'true'); expect(signals[2].aborted).toBe(false)
+    await act(async () => { newFinish(probeResponse(probeStatus())) })
+    expect(button).toHaveAttribute('aria-busy', 'false'); expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+  it('clears protected reads immediately even when a summary refresh is joined', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    let finishStatus!: (response: Response) => void
+    let finishDetails!: (response: Response) => void
+    let detailSignal!: AbortSignal
+    let summaryReads = 0
+    const fetcher = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/details')) {
+        detailSignal = init!.signal as AbortSignal
+        return new Promise<Response>(resolve => { finishDetails = resolve })
+      }
+      summaryReads++
+      return summaryReads === 2 ? new Promise<Response>(resolve => { finishStatus = resolve }) : Promise.resolve(probeResponse(probeStatus()))
+    })
+    vi.stubGlobal('fetch', fetcher); render(<ProbeReadback/>); await screen.findByText('已读回'); connect()
+    act(() => { vi.advanceTimersByTime(30_000) })
+    const button = screen.getByRole('button', { name: '刷新探针摘要' })
+    // Two events in one React batch exercise the synchronous owner latch, not
+    // merely a rendered disabled button. The protected read is still revoked.
+    act(() => { fireEvent.click(button); fireEvent.click(button) })
+    expect(summaryReads).toBe(2); expect(detailSignal.aborted).toBe(true)
+    await act(async () => { finishDetails(probeResponse(probeDetails())); finishStatus(probeResponse(probeStatus())) })
+    expect(screen.queryByText('business-fixture')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('已读回')
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+  it('rejects a timed-out late success without unlocking or overwriting its retry', async () => {
+    vi.useFakeTimers()
+    let oldFinish!: (response: Response) => void
+    let retryFinish!: (response: Response) => void
+    const signals: AbortSignal[] = []
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signals.push(init!.signal as AbortSignal)
+      if (signals.length === 2) return new Promise<Response>(resolve => { oldFinish = resolve }) // Ignores abort deliberately.
+      if (signals.length === 3) return new Promise<Response>(resolve => { retryFinish = resolve })
+      return Promise.resolve(probeResponse(probeStatus()))
+    })
+    vi.stubGlobal('fetch', fetcher); await act(async () => { render(<ProbeReadback/>) })
+    const button = screen.getByRole('button', { name: '刷新探针摘要' })
+    fireEvent.click(button)
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_001) })
+    expect(signals[1].aborted).toBe(true); expect(button).toHaveAttribute('aria-busy', 'false')
+    expect(screen.getByRole('status')).toHaveTextContent('暂时无法读取')
+    fireEvent.click(button)
+    await act(async () => { oldFinish(probeResponse(probeStatus())) })
+    expect(screen.getByRole('status')).toHaveTextContent('正在读取脱敏摘要')
+    expect(button).toHaveAttribute('aria-busy', 'true'); expect(signals[2].aborted).toBe(false)
+    fireEvent.click(button); expect(fetcher).toHaveBeenCalledTimes(3)
+    await act(async () => { retryFinish(probeResponse(probeStatus({ configured: false, state: 'disabled', reason: 'disabled' }))) })
+    expect(screen.getByRole('status')).toHaveTextContent('未配置')
+    expect(screen.queryByText('已读回')).not.toBeInTheDocument(); expect(button).toHaveAttribute('aria-busy', 'false')
+  })
+  it('stops polling and deadlines on unmount and ignores late summary completion', async () => {
+    vi.useFakeTimers()
+    let finish!: (response: Response) => void
+    let signal!: AbortSignal
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signal = init!.signal as AbortSignal
+      return new Promise<Response>(resolve => { finish = resolve })
+    })
+    vi.stubGlobal('fetch', fetcher)
+    const view = render(<ProbeReadback/>)
+    view.unmount(); expect(signal.aborted).toBe(true)
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); finish(probeResponse(probeStatus())) })
+    expect(fetcher).toHaveBeenCalledOnce(); expect(vi.getTimerCount()).toBe(0)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

@@ -64,6 +64,11 @@ class TestBrowserOrchestration(unittest.TestCase):
                    b'PROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_DRIVER_OPERATION=SECRET\n'
                    b'PROBE_BROWSER_NETWORK_FAILURE=PROBE_STATUS:CANCELED:ABORTED:RUNNING\n'
                    b'PROBE_BROWSER_NETWORK_FAILURE=SECRET:CANCELED:ABORTED:RUNNING\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE_TIMING=PROBE_STATUS:NO_HEADERS:AGE_9_11S\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE_TIMING=SECRET:NO_HEADERS:AGE_9_11S\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE_TIMING=PROBE_STATUS:SECRET:AGE_9_11S\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE_TIMING=PROBE_STATUS:NO_HEADERS:SECRET\n'
+                   b'PROBE_BROWSER_NETWORK_FAILURE_TIMING=PROBE_STATUS:NO_HEADERS:10000\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n'
                    b'PROBE_BROWSER_LAUNCH_FATAL=base/../SECRET.cc:123\n'
                    b'PROBE_BROWSER_LAB=FAIL stage=PREWARM code=SECRET raw_input_suppressed=true\n')
@@ -71,7 +76,7 @@ class TestBrowserOrchestration(unittest.TestCase):
              mock.patch.object(browser.N, 'stable_read', return_value=(private, None)), \
              contextlib.redirect_stderr(diagnostic):
             browser.public_failure_diagnostic(pathlib.Path('/private'))
-        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_DRIVER_STAGE=CLOSE_DRAIN\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_NETWORK_FAILURE=PROBE_STATUS:CANCELED:ABORTED:RUNNING\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
+        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\nPROBE_BROWSER_DRIVER_STAGE=CLOSE_DRAIN\nPROBE_BROWSER_FLOW_STAGE=FRESH_API\nPROBE_BROWSER_PAIR_STAGE=EXPIRED_MODEL\nPROBE_BROWSER_DRIVER_OPERATION=NETWORK\nPROBE_BROWSER_NETWORK_FAILURE=PROBE_STATUS:CANCELED:ABORTED:RUNNING\nPROBE_BROWSER_NETWORK_FAILURE_TIMING=PROBE_STATUS:NO_HEADERS:AGE_9_11S\nPROBE_BROWSER_LAUNCH_FATAL=base/files/file.cc:123\n')
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory) / 'fixture'
             (root / 'browser/out').mkdir(parents=True)

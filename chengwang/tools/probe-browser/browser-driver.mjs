@@ -85,6 +85,25 @@ export function networkFailureDiagnostic(url, canceled, errorText, lifePhase) {
   return `PROBE_BROWSER_NETWORK_FAILURE=${kind}:${cancellation}:${code}:${lifePhase}\n`
 }
 
+export function networkFailureTimingDiagnostic(url, responseStatus, startedTimestamp, failedTimestamp) {
+  if (typeof url !== 'string') return null
+  const kind = new Map([[ORIGIN + '/api/v1/snapshot', 'SNAPSHOT'],
+    [ORIGIN + '/api/v1/observations/status', 'OBSERVATIONS'],
+    [ORIGIN + '/api/v1/probes/status', 'PROBE_STATUS'],
+    [ORIGIN + '/api/v1/probes/details', 'PROBE_DETAILS']]).get(url)
+  if (!kind) return null
+  const response = responseStatus === null ? 'NO_HEADERS' : Number.isInteger(responseStatus)
+    && responseStatus >= 200 && responseStatus < 600 ? `HTTP_${Math.floor(responseStatus / 100)}XX` : 'HTTP_OTHER'
+  let age = 'AGE_UNKNOWN'
+  if ([startedTimestamp, failedTimestamp].every(value => typeof value === 'number'
+    && Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER / 1000)) {
+    const elapsed = failedTimestamp - startedTimestamp
+    if (elapsed >= 0 && elapsed <= 360) age = elapsed < 1 ? 'AGE_LT1S'
+      : elapsed < 9 ? 'AGE_1_9S' : elapsed < 11 ? 'AGE_9_11S' : 'AGE_GE11S'
+  }
+  return `PROBE_BROWSER_NETWORK_FAILURE_TIMING=${kind}:${response}:${age}\n`
+}
+
 export function validateLaunchOptions(value) {
   need(exact(value, ['engine', 'root', 'chrome', 'sourceRoot', 'launcher']))
   need(['chrome-cdp', 'playwright'].includes(value.engine))
@@ -312,6 +331,7 @@ export class NetworkJournal {
         let request
         try { request = safeRequest(p.request, p.type) } catch { this.counters.forbiddenRequests++; reject() }
         this.active.set(p.requestId, { ...request, response: null, mime: '' })
+        try { this.active.get(p.requestId).failureStartedTimestamp = p.timestamp } catch { /* Timing is observation only. */ }
       }
       if (method === 'Network.responseReceived') {
         const request = this.active.get(p.requestId)
@@ -331,6 +351,8 @@ export class NetworkJournal {
             if (diagnostic !== null && this.failureDiagnostics < 128) {
               this.failureDiagnostics++
               process.stderr.write(diagnostic)
+              const timing = networkFailureTimingDiagnostic(item.url, item.response?.status ?? null, item.failureStartedTimestamp, p.timestamp)
+              if (timing !== null) process.stderr.write(timing)
             }
           } catch { /* Diagnostics never change event outcomes. */ }
         }
