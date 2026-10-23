@@ -24,25 +24,28 @@ import (
 	"chengwang/internal/policy"
 	"chengwang/internal/proxyiface"
 	"chengwang/internal/store"
+	"chengwang/internal/subscriptionctl"
 )
 
 type Options struct {
-	Mode                    string
-	AdminToken              string
-	AllowPublish            bool
-	Versions                *store.VersionStore
-	Mihomo                  MihomoReader
-	Evidence                EvidenceVerifier
-	Authn                   Authenticator
-	Operations              OperationLister
-	Control                 *control.Service
-	OperationWritesEnabled  bool
-	ManagementScope         authz.ResourceScope
-	EvidenceMaxAge          time.Duration
-	Observation             ObservationReader
-	Probes                  ProbeReader
-	ImageTrust              imagetrust.Backend
-	ImageTrustWritesEnabled bool
+	Mode                      string
+	AdminToken                string
+	AllowPublish              bool
+	Versions                  *store.VersionStore
+	Mihomo                    MihomoReader
+	Evidence                  EvidenceVerifier
+	Authn                     Authenticator
+	Operations                OperationLister
+	Control                   *control.Service
+	OperationWritesEnabled    bool
+	ManagementScope           authz.ResourceScope
+	EvidenceMaxAge            time.Duration
+	Observation               ObservationReader
+	Probes                    ProbeReader
+	ImageTrust                imagetrust.Backend
+	ImageTrustWritesEnabled   bool
+	Subscriptions             subscriptionctl.Backend
+	SubscriptionWritesEnabled bool
 }
 
 type MihomoReader interface {
@@ -76,10 +79,11 @@ type ObservationReader interface {
 }
 
 type server struct {
-	options          Options
-	runtime          *runtimeProvider
-	evidenceScanGate chan struct{}
-	imageTrustScope  authz.ResourceScope
+	options           Options
+	runtime           *runtimeProvider
+	evidenceScanGate  chan struct{}
+	imageTrustScope   authz.ResourceScope
+	subscriptionScope authz.ResourceScope
 }
 
 func New(options Options) http.Handler {
@@ -92,6 +96,11 @@ func New(options Options) http.Handler {
 	}
 	if options.ImageTrust != nil {
 		s.imageTrustScope = options.ImageTrust.Scope()
+	}
+	if !nilSubscriptionInterface(options.Subscriptions) {
+		s.subscriptionScope = options.Subscriptions.Scope()
+	} else {
+		s.options.Subscriptions = nil
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", s.health)
@@ -121,6 +130,16 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("/api/v1/image-trust/catalogue", s.imageTrustCatalogue)
 	mux.HandleFunc("/api/v1/image-trust/verifications", s.imageTrustVerification)
 	mux.HandleFunc("/api/v1/image-trust/history", s.imageTrustHistory)
+	mux.HandleFunc("/api/v1/subscriptions/sources", s.subscriptionSources)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/candidates", s.subscriptionCandidates)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/candidates/{candidateId}/nodes", s.subscriptionNodes)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/decisions", s.subscriptionDecision)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/rollbacks", s.subscriptionRollback)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/approvals", s.subscriptionApproval)
+	mux.HandleFunc("/api/v1/subscriptions/sources/{sourceId}/fetches", s.subscriptionFetch)
+	mux.HandleFunc("/api/v1/subscriptions/commands/{commandId}", s.subscriptionReceipt)
+	mux.HandleFunc("/api/v1/subscriptions", s.subscriptionUnavailableRoute)
+	mux.HandleFunc("/api/v1/subscriptions/", s.subscriptionUnavailableRoute)
 	return s.securityHeaders(s.requestID(mux))
 }
 

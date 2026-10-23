@@ -86,12 +86,14 @@ type storeAudit struct {
 	Hash          string    `json:"hash"`
 }
 type storeSnapshot struct {
-	Schema      string           `json:"schema"`
-	IdentityKey []byte           `json:"identityKey"`
-	Sources     []SourceView     `json:"sources"`
-	Candidates  []storeCandidate `json:"candidates"`
-	Requests    []storeRequest   `json:"requests"`
-	Audit       []storeAudit     `json:"audit"`
+	Schema      string               `json:"schema"`
+	IdentityKey []byte               `json:"identityKey"`
+	Sources     []SourceView         `json:"sources"`
+	Candidates  []storeCandidate     `json:"candidates"`
+	Requests    []storeRequest       `json:"requests"`
+	Audit       []storeAudit         `json:"audit"`
+	Commands    []controlCommandDisk `json:"commands,omitempty"`
+	Approvals   []ControlApproval    `json:"approvals,omitempty"`
 }
 
 func OpenStore(dir string) (*Store, error) {
@@ -781,5 +783,5 @@ func storeValidate(state storeSnapshot) error {
 			return bad()
 		}
 	}
-	return nil
+	return storeValidateControl(state)
 }

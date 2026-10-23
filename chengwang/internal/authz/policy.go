@@ -41,8 +41,14 @@ func Evaluate(request Request, now time.Time) Decision {
 	if !scopeAllowed(principal, request.Resource) {
 		return deny(ReasonDenyScopeMismatch)
 	}
+	if subscriptionAction(request.Action) && !subscriptionResource(request.Action, request.Resource) {
+		return deny(ReasonDenySubscriptionResourceInvalid)
+	}
 
 	// These are invariant safety gates. Emergency elevation cannot bypass them.
+	if request.BreakGlass != nil && subscriptionAction(request.Action) {
+		return deny(ReasonDenySubscriptionBreakGlassForbidden)
+	}
 	if request.BreakGlass != nil && (request.Action == ActionReadImageTrust || request.Action == ActionUpdateImageTrust || request.Action == ActionVerifyImageTrust || request.Action == ActionHistoryImageTrust) {
 		return deny(ReasonDenyImageTrustBreakGlassForbidden)
 	}
@@ -99,7 +105,9 @@ func knownAction(action Action) bool {
 	switch action {
 	case ActionReadResource, ActionReadEvidence, ActionCreateDraft,
 		ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation,
-		ActionDisableAudit, ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust, ActionHistoryImageTrust:
+		ActionDisableAudit, ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust, ActionHistoryImageTrust,
+		ActionReadSubscription, ActionManageSubscriptionSource, ActionImportSubscription, ActionDecideSubscription,
+		ActionApproveSubscriptionSource, ActionFetchSubscription, ActionRollbackSubscription:
 		return true
 	default:
 		return false
@@ -148,6 +156,25 @@ func fieldMatches(grant, target string) bool {
 
 func roleAllows(roles []Role, action Action, risk Risk) (allowed bool, riskDenied bool) {
 	for _, role := range roles {
+		if subscriptionAction(action) {
+			switch role {
+			case RoleAdmin:
+				return true, false
+			case RoleViewer, RoleAuditor:
+				if action == ActionReadSubscription {
+					return true, false
+				}
+			case RoleOperator:
+				if action == ActionReadSubscription || action == ActionManageSubscriptionSource || action == ActionImportSubscription || action == ActionFetchSubscription {
+					return true, false
+				}
+			case RoleApprover:
+				if action == ActionReadSubscription || action == ActionDecideSubscription || action == ActionApproveSubscriptionSource || action == ActionRollbackSubscription {
+					return true, false
+				}
+			}
+			continue
+		}
 		switch role {
 		case RoleViewer:
 			if action == ActionReadResource || action == ActionReadImageTrust {

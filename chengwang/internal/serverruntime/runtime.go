@@ -29,21 +29,26 @@ import (
 	"chengwang/internal/probe"
 	"chengwang/internal/probeview"
 	"chengwang/internal/store"
+	"chengwang/internal/subscription"
+	"chengwang/internal/subscriptionctl"
+	"chengwang/internal/subscriptionpolicy"
 	"chengwang/internal/webui"
 )
 
 type Config struct {
-	Addr, DataDir, IdentitiesFile, AdminToken string
-	TLSCertFile, TLSKeyFile                   string
-	TenantID, SiteID, ManagementObjectID      string
-	Mode, WebDir                              string
-	AllowPublish, OperationWritesEnabled      bool
-	MihomoURL, MihomoToken                    string
-	MihomoAllowedHosts                        []string
-	ObservationInterval, ObservationTTL       time.Duration
-	ProbeReadEnabled                          bool
-	ProbeCatalogFile, ProbeSpoolDir           string
-	ProbePollInterval, ProbeCacheMaxAge       time.Duration
+	Addr, DataDir, IdentitiesFile, AdminToken       string
+	TLSCertFile, TLSKeyFile                         string
+	TenantID, SiteID, ManagementObjectID            string
+	Mode, WebDir                                    string
+	AllowPublish, OperationWritesEnabled            bool
+	MihomoURL, MihomoToken                          string
+	MihomoAllowedHosts                              []string
+	ObservationInterval, ObservationTTL             time.Duration
+	ProbeReadEnabled                                bool
+	ProbeCatalogFile, ProbeSpoolDir                 string
+	ProbePollInterval, ProbeCacheMaxAge             time.Duration
+	SubscriptionsEnabled, SubscriptionWritesEnabled bool
+	SubscriptionPolicyFile                          string
 }
 
 type TrustDependencies struct {
@@ -66,7 +71,7 @@ type Options struct {
 	Listen          func(string, string) (net.Listener, error)
 	Signals         <-chan os.Signal
 	ShutdownTimeout time.Duration
-	WriteTimeout    time.Duration // zero preserves the original 15 seconds
+	WriteTimeout    time.Duration // zero: 15s normally, 30s with subscriptions enabled
 	MaxHeaderBytes  int           // zero preserves net/http's original default
 	Context         context.Context
 	Config          *Config
@@ -92,6 +97,9 @@ func ConfigFromEnvironment() (Config, error) {
 		}
 	}
 	if err := probeConfigFromEnvironment(&c); err != nil {
+		return Config{}, err
+	}
+	if err := subscriptionConfigFromEnvironment(&c); err != nil {
 		return Config{}, err
 	}
 	return c, nil
@@ -134,6 +142,12 @@ func RunWith(options Options) (result error) {
 	if c.ManagementObjectID == "" {
 		c.ManagementObjectID = "local"
 	}
+	if err := validateSubscriptionConfig(c); err != nil {
+		return err
+	}
+	if c.SubscriptionsEnabled && options.WriteTimeout > 0 && options.WriteTimeout < 30*time.Second {
+		return errors.New("subscription response timeout must be at least 30 seconds")
+	}
 	identity, err := OpenIdentityStore(c.IdentitiesFile)
 	if err != nil {
 		return fmt.Errorf("initialize identity store: %w", err)
@@ -147,6 +161,9 @@ func RunWith(options Options) (result error) {
 	}
 	if identity != nil && strings.TrimSpace(c.TenantID) == "" {
 		return errors.New("management tenant is required when identities are configured")
+	}
+	if c.SubscriptionsEnabled && (identity == nil || tlsConfig == nil) {
+		return errors.New("subscription admission requires real identities and TLS")
 	}
 	if options.TrustFactory != nil && (identity == nil || strings.TrimSpace(c.TenantID) == "" || strings.TrimSpace(c.SiteID) == "") {
 		return errors.New("trusted composition requires real identity and fixed management scope")
@@ -195,6 +212,34 @@ func RunWith(options Options) (result error) {
 		return fmt.Errorf("initialize evidence store: %w", err)
 	}
 	closers = append(closers, audit.Close)
+	var subscriptions subscriptionctl.Backend
+	if c.SubscriptionsEnabled {
+		var policies subscriptionctl.PolicyProvider
+		if c.SubscriptionPolicyFile != "" {
+			catalog, loadErr := subscriptionpolicy.LoadSecure(ctx, c.SubscriptionPolicyFile, subscriptionpolicy.Owner{UID: uint32(os.Geteuid()), GID: uint32(os.Getegid())})
+			if loadErr != nil {
+				return errors.New("initialize subscription policy failed")
+			}
+			if catalog.Scope() != (subscription.Scope{TenantID: c.TenantID, SiteID: c.SiteID, Environment: c.Mode}) {
+				return errors.New("subscription policy scope mismatch")
+			}
+			policies = catalog
+		}
+		path, pathErr := filepath.Abs(filepath.Join(c.DataDir, "subscriptions"))
+		if pathErr != nil {
+			return errors.New("initialize subscription storage failed")
+		}
+		inventory, openErr := subscription.OpenStore(path)
+		if openErr != nil {
+			return errors.New("initialize subscription storage failed")
+		}
+		closers = append(closers, inventory.Close)
+		application, applicationErr := subscriptionctl.New(ctx, subscriptionctl.Config{Scope: authz.ResourceScope{TenantID: c.TenantID, SiteID: c.SiteID, Environment: c.Mode, ObjectType: "subscription-store", ObjectID: c.ManagementObjectID}, Store: inventory, Audit: audit, Policies: policies, WritesEnabled: c.SubscriptionWritesEnabled})
+		if applicationErr != nil {
+			return errors.New("initialize subscription recovery failed")
+		}
+		subscriptions = application
+	}
 	var trust TrustComponent
 	if options.TrustFactory != nil {
 		trust, err = options.TrustFactory(ctx, TrustDependencies{Audit: audit, AuditDir: filepath.Join(c.DataDir, "evidence"), TenantID: c.TenantID, SiteID: c.SiteID, Environment: c.Mode})
@@ -250,7 +295,7 @@ func RunWith(options Options) (result error) {
 	if probes != nil {
 		probeReader = probes // Do not put a typed nil pointer in the API interface.
 	}
-	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled})
+	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled, Subscriptions: subscriptions, SubscriptionWritesEnabled: c.SubscriptionWritesEnabled})
 	if options.WebFactory != nil {
 		handler, err = options.WebFactory(handler)
 	} else if c.WebDir != "" {
@@ -263,6 +308,9 @@ func RunWith(options Options) (result error) {
 	writeTimeout := options.WriteTimeout
 	if writeTimeout == 0 {
 		writeTimeout = 15 * time.Second
+		if c.SubscriptionsEnabled {
+			writeTimeout = 30 * time.Second
+		}
 	}
 	server := &http.Server{Handler: admission, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: writeTimeout, MaxHeaderBytes: options.MaxHeaderBytes, IdleTimeout: 60 * time.Second, BaseContext: func(net.Listener) context.Context { return ctx }}
 	listener, err := options.Listen("tcp", c.Addr)
