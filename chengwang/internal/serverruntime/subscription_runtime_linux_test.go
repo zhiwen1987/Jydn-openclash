@@ -128,7 +128,8 @@ func runtimeSubscriptionStart(t *testing.T, f runtimeSubscriptionFixture) runtim
 		cancel()
 		select {
 		case <-done:
-		default:
+		case <-time.After(5 * time.Second):
+			t.Error("subscription runtime initialization did not join after cancellation")
 		}
 		t.Fatal("actual subscription runtime did not listen")
 	}

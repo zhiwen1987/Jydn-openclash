@@ -630,7 +630,10 @@ func TestSubscriptionControlConcurrentCommandsSingleFlight(t *testing.T) {
 }
 func TestSubscriptionControlJournalCapacityAndClosedErrors(t *testing.T) {
 	e := ctlTestOpen(t)
-	if MaxCommandRecords != 4096 || MaxCommandRecords != subscription.MaxControlCommands {
+	if MaxCommandRecords != 4096 {
+		t.Fatal("journal budget drift")
+	}
+	if MaxCommandRecords != subscription.MaxControlCommands {
 		t.Fatal("journal budget drift")
 	}
 	e.s.denials.Store(MaxCommandRecords)
