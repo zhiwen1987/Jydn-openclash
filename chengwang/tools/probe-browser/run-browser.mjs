@@ -37,6 +37,56 @@ function ns(text) {
 }
 const msCeil = nano => Number((nano + 999999n) / 1000000n)
 
+// A stale completed poll may belong to a different immutable cache generation.
+// Validate the entire public shape before allowing that pair to be retried;
+// malformed/extra/private fields must never be hidden behind a mismatch.
+function statusShape(value) {
+  exact(value, ['schema', 'configured', 'running', 'advisoryOnly', 'state', 'reason', 'clockHealthy', 'storageHealthy', 'cachedAt', 'expiresAt', 'coverage'])
+  need(value.schema === 'chengwang.probe-view-status/v1')
+  for (const key of ['configured', 'running', 'advisoryOnly', 'clockHealthy', 'storageHealthy']) need(value[key] === true)
+  need(['ready', 'partial', 'unknown', 'pending'].includes(value.state) && typeof value.reason === 'string' && /^[a-z_]{1,64}$/.test(value.reason))
+  need(ns(value.cachedAt) < ns(value.expiresAt) && ns(value.expiresAt) <= ns(value.cachedAt) + 30000000000n)
+  exact(value.coverage, ['declaredTargets', 'targetsWithSamples', 'targetsMissing', 'retainedSamples', 'validTotal', 'expiredTotal', 'eligibleTotal', 'rejectedTotal', 'truncated', 'partial'])
+  for (const key of ['declaredTargets', 'targetsWithSamples', 'targetsMissing', 'retainedSamples', 'validTotal', 'expiredTotal', 'eligibleTotal', 'rejectedTotal']) integer(value.coverage[key], 0, 256)
+  need(typeof value.coverage.truncated === 'boolean' && typeof value.coverage.partial === 'boolean')
+}
+function pairShape(summary, detail) {
+  statusShape(summary)
+  exact(detail, ['schema', 'status', 'catalogDigest', 'agentId', 'independence', 'advisoryOnly', 'targets', 'samples', 'rejections'])
+  statusShape(detail.status)
+  need(detail.schema === 'chengwang.probe-view-details/v1' && typeof detail.catalogDigest === 'string' && /^sha256:[a-f0-9]{64}$/.test(detail.catalogDigest) &&
+    detail.agentId === 'probe-readback-agent' && detail.independence === 'P1' && detail.advisoryOnly === true)
+  need(same(detail.rejections, { format: 0, integrity: 0, catalog: 0, future: 0, duplicate: 0, semantic: 0 }))
+  const conclusion = value => need(['unknown', 'available', 'degraded', 'restricted', 'unavailable', 'rate_limited'].includes(value))
+  const reason = value => need(typeof value === 'string' && /^[a-z_]{1,64}$/.test(value))
+  need(Array.isArray(detail.targets) && detail.targets.length === 3)
+  for (let index = 0; index < detail.targets.length; index++) {
+    const target = detail.targets[index]
+    exact(target, ['probeId', 'pathId', 'state', 'reason', 'consecutiveSuccess', 'consecutiveFailure', 'retainedSamples'], ['observedAt', 'expiresAt'])
+    need(target.probeId === ids[index] && target.pathId === 'direct'); conclusion(target.state); reason(target.reason)
+    for (const key of ['consecutiveSuccess', 'consecutiveFailure', 'retainedSamples']) integer(target[key], 0, 200)
+    for (const key of ['observedAt', 'expiresAt']) if (Object.hasOwn(target, key)) ns(target[key])
+  }
+  need(Array.isArray(detail.samples) && detail.samples.length <= 6)
+  const seen = new Set()
+  for (const sample of detail.samples) {
+    exact(sample, ['runId', 'probeId', 'pathId', 'attemptedAt', 'completedAt', 'expiresAt', 'conclusion', 'outcome', 'layers'], ['httpStatus', 'responseBytes', 'errorClass'])
+    need(typeof sample.runId === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(sample.runId) && !seen.has(sample.runId)); seen.add(sample.runId)
+    need(ids.includes(sample.probeId) && sample.pathId === 'direct' && ['pass', 'fail', 'indeterminate'].includes(sample.outcome)); conclusion(sample.conclusion)
+    need(ns(sample.attemptedAt) <= ns(sample.completedAt) && ns(sample.completedAt) < ns(sample.expiresAt))
+    if (Object.hasOwn(sample, 'httpStatus')) integer(sample.httpStatus, 100, 599)
+    if (Object.hasOwn(sample, 'responseBytes')) integer(sample.responseBytes, 0, 1 << 20)
+    if (Object.hasOwn(sample, 'errorClass')) reason(sample.errorClass)
+    exact(sample.layers, layers)
+    for (const layer of Object.values(sample.layers)) {
+      exact(layer, ['state', 'observedAt', 'expiresAt', 'latencyMillis', 'reason'], ['retryAfterSeconds'])
+      conclusion(layer.state); reason(layer.reason); integer(layer.latencyMillis, 0, 3000)
+      need(ns(layer.observedAt) < ns(layer.expiresAt))
+      if (Object.hasOwn(layer, 'retryAfterSeconds')) integer(layer.retryAfterSeconds, 1, 3600)
+    }
+  }
+}
+
 function status(value, phase) {
   exact(value, ['schema', 'configured', 'running', 'advisoryOnly', 'state', 'reason', 'clockHealthy', 'storageHealthy', 'cachedAt', 'expiresAt', 'coverage'])
   need(value.schema === 'chengwang.probe-view-status/v1')
@@ -54,6 +104,8 @@ function status(value, phase) {
 // corpus and reproject these bytes after backend22 and cleanup are complete.
 function fromBodies(statusBytes, detailsBytes, phase) {
   const summary = parseProbePublicJSON(statusBytes), detail = parseProbePublicJSON(detailsBytes)
+  pairShape(summary, detail)
+  if (!same(summary, detail.status)) return { generationMatches: false }
   status(summary, phase)
   exact(detail, ['schema', 'status', 'catalogDigest', 'agentId', 'independence', 'advisoryOnly', 'targets', 'samples', 'rejections'])
   status(detail.status, phase)
@@ -207,6 +259,9 @@ export async function exerciseProbeBrowser(input) {
       failure()
     }
     const summary = async stage => {
+      // Drain already completed automatic polls before choosing a new fence.
+      // Completion ordinals do not prove which request a click initiated.
+      await drain(stage)
       const fence = cursor; await bounded(() => driver.clickText('刷新探针摘要', '.probe-readback'))
       return response(STATUS, fence, stage)
     }

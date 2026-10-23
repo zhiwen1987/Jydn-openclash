@@ -81,7 +81,7 @@ class FakeDriver {
     // millisecond timestamp independently for the two coherent API responses.
     if (this.expired && !this.expiredFixture) this.expiredFixture = fixture(this.epoch, true)
     const value = clone(this.expired ? this.expiredFixture : this.initial)
-    if (path.endsWith('details') && this.options.mismatchedGeneration && !this.mismatchSent) {
+    if (path.endsWith('details') && this.options.mismatchedGeneration && (!this.mismatchSent || this.options.alwaysMismatch)) {
       value.details.status.cachedAt = date(Date.parse(value.details.status.cachedAt) + 1); this.mismatchSent = true
     }
     if (path.endsWith('details') && this.options.badAPI) value.details.samples[0].httpStatus = 200
@@ -168,6 +168,40 @@ unit('probe flow synthetic Playwright is separately labelled and uses the same s
 unit('probe flow retries actual status details generation conflicts through UI refresh', async () => {
   const value = setup({ mismatchedGeneration: true }); await exerciseProbeBrowser(value.input)
   assert.ok(value.driver.mismatchSent); assert.ok(value.driver.clicks.filter(text => text === '读取受保护明细').length >= 4)
+  assert.equal(value.saved.size, 18); assert.deepEqual(value.callbacks, ['fresh', 'fresh', 'expired'])
+  for (const inflight of [false, true]) {
+    const raced = setup(), click = raced.driver.clickText.bind(raced.driver)
+    let pending, delayed = false
+    const oldPoll = () => {
+      const wasExpired = raced.driver.expired; raced.driver.expired = false
+      raced.driver.emit('/api/v1/probes/status'); raced.driver.expired = wasExpired
+    }
+    raced.input.phaseSignals.waitExpired = async () => {
+      if (!inflight) oldPoll() // Already completed during the natural TTL wait.
+      raced.driver.expired = true
+    }
+    raced.driver.clickText = async (text, scope) => {
+      if (raced.driver.expired && text === '刷新探针摘要' && !delayed) {
+        delayed = true
+        if (inflight) oldPoll() // Older request completes after the new fence.
+        pending = new Promise((resolve, rejectResult) => setTimeout(() => click(text, scope).then(resolve, rejectResult), 20))
+        return
+      }
+      return click(text, scope)
+    }
+    try {
+      const result = await exerciseProbeBrowser(raced.input)
+      assert.equal(result.captures.length, 4); assert.equal(raced.saved.size, 18)
+      assert.deepEqual(raced.callbacks, ['fresh', 'fresh', 'expired'])
+      assert.equal(raced.driver.clicks.filter(text => text === '读取受保护明细').length, inflight ? 4 : 3)
+      const expired = JSON.parse(raced.saved.get('probe-browser-cdp-expired-status.json'))
+      assert.equal(expired.state, 'partial'); assert.equal(expired.reason, 'evidence_expired')
+    } finally { if (pending) await pending }
+  }
+  const exhausted = setup({ mismatchedGeneration: true, alwaysMismatch: true })
+  await reject(() => exerciseProbeBrowser(exhausted.input))
+  assert.equal(exhausted.driver.clicks.filter(text => text === '读取受保护明细').length, 8)
+  assert.equal(exhausted.saved.size, 0); assert.deepEqual(exhausted.callbacks, [])
 })
 unit('probe flow secret request headers are rejected before any public write', async () => {
   const value = setup({ secretMetadata: true }); await reject(() => exerciseProbeBrowser(value.input)); assert.equal(value.saved.size, 0)
@@ -209,6 +243,24 @@ unit('probe flow clear must actually empty the input and unmount the details', a
 })
 unit('probe flow malformed public API success cannot be accepted by a true callback', async () => {
   const value = setup({ badAPI: true }); await reject(() => exerciseProbeBrowser(value.input)); assert.equal(value.saved.size, 0)
+  for (const mutate of [
+    detail => { detail.samples[0].layers.dns.privateField = token },
+    detail => { delete detail.samples[0].layers.http },
+    detail => { detail.targets[0].consecutiveSuccess = '0' },
+    detail => { detail.status.coverage.extra = true },
+  ]) {
+    const malformed = setup({ mismatchedGeneration: true }), emit = malformed.driver.emit.bind(malformed.driver)
+    malformed.driver.emit = path => {
+      emit(path)
+      if (path.endsWith('details')) {
+        const event = malformed.driver.events.at(-1), detail = JSON.parse(event.body)
+        mutate(detail); event.body = bytes(detail); event.bodyBytes = event.body.length; event.bodySHA256 = sha(event.body)
+      }
+    }
+    await reject(() => exerciseProbeBrowser(malformed.input))
+    assert.equal(malformed.driver.clicks.filter(text => text === '读取受保护明细').length, 1)
+    assert.equal(malformed.saved.size, 0); assert.deepEqual(malformed.callbacks, [])
+  }
 })
 unit('probe flow hanging adapter commands are bounded without pretending cancellation succeeded', async () => {
   const value = setup({ shortDeadline: true }); value.driver.navigate = async () => new Promise(() => {})
