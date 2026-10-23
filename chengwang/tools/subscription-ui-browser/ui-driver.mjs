@@ -345,3 +345,7 @@ export async function runSubscriptionUI(o) {
     if (!captured && journal?.rows.length) { try { const raw = Buffer.from([...journal.rows].sort((a, b) => a.ordinal - b.ordinal).map(v => JSON.stringify(v)).join('\n') + '\n'); safePublic(raw, canaries); await publish(o.root + '/captures.private.jsonl', raw, 24 << 20) } catch { /* Preserve originals; never replace failed evidence. */ } }
   }
 }
+
+// Neutral low-level mechanisms only. Scenario flows, journals, route policies
+// and constants above remain private to the original create/receipt gate.
+export { stableFile, ownedDirectory, publish, publishReady, until, Transport, chromeIdentity, noLiveChrome }

@@ -31,7 +31,9 @@ SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py
     'chengwang/deploy/subscription-ui-browser/ui_chrome_launcher.py',
     'chengwang/deploy/subscription-ui-browser/contract.json',
     'chengwang/deploy/browser-stream-matrix/run_matrix.py',
-    'chengwang/web/scripts/trust-browser-tls.mjs']
+    'chengwang/web/scripts/trust-browser-tls.mjs',
+    'chengwang/deploy/subscription-ui-browser/admission_fixture.py',
+    'chengwang/deploy/subscription-ui-browser/admission-contract.json']
 
 
 def need(value):
@@ -52,13 +54,15 @@ def secret_variants(token):
     return sorted(result)
 
 
-def public_fence(raw, forbidden, *, captures=False, N=None):
+def public_fence(raw, forbidden, *, captures=False, N=None, scenario='create_receipt'):
     need(type(raw) is bytes and raw and b'PRIVATE KEY' not in raw
          and not any(secret in raw for secret in forbidden))
     if captures:
         need(N is not None)
-        lines = raw.splitlines(); need(0 < len(lines) <= 64); total = 0
+        need(scenario in ('create_receipt', 'local_admission'))
+        lines = raw.splitlines(); need(0 < len(lines) <= (256 if scenario == 'local_admission' else 64)); total = 0
         kinds = ('DOCUMENT', 'ASSET', 'SNAPSHOT', 'COLLECTION_ACCESS', 'SOURCES', 'CREATE', 'SOURCE_ACCESS', 'CANDIDATES', 'RECEIPT')
+        if scenario == 'local_admission': kinds += ('NODES', 'IMPORT', 'DECIDE', 'ROLLBACK')
         for line in lines:
             value = N.decode(line)
             need(type(value) is dict and type(value.get('responseBase64')) is str and value.get('kind') in kinds)
@@ -84,6 +88,16 @@ def load_module(path, name):
 
 def library(repo):
     return load_module(repo / 'chengwang/deploy/browser-stream-matrix/run_matrix.py', 'subscription_ui_matrix_primitives')
+
+
+def admission():
+    return load_module(pathlib.Path(__file__).with_name('admission_fixture.py'), 'subscription_ui_admission_fixture')
+
+
+def selected_scenario(options):
+    value = getattr(options, 'scenario', 'create_receipt')
+    need(value in ('create_receipt', 'local_admission'))
+    return value
 
 
 def safe_relative(value):
@@ -233,8 +247,9 @@ def prepare(options, repo, root, bundle, fixture, N, M):
 
 
 def export_observations(options, root, N, partial=False):
+    scenario = selected_scenario(options)
     names = [('driver.private.json', 'driver.json', 65536), ('captures.private.jsonl', 'captures.jsonl', 24 << 20),
-        ('dom.private.jsonl', 'dom.jsonl', 262144), ('created-desktop.private.png', 'created-desktop.png', 16 << 20),
+        ('dom.private.jsonl', 'dom.jsonl', 1 << 20 if scenario == 'local_admission' else 262144), ('created-desktop.private.png', 'created-desktop.png', 16 << 20),
         ('created-mobile.private.png', 'created-mobile.png', 16 << 20)]
     exported = []
     secrets_raw = []
@@ -242,7 +257,8 @@ def export_observations(options, root, N, partial=False):
     if input_path.exists():
         try:
             value = N.decode(N.stable_read(input_path, 8192, 10001, 0o600)[0])
-            secrets_raw.extend(secret_variants(value['operatorToken']))
+            if scenario == 'local_admission': secrets_raw.extend(admission().forbidden(value))
+            else: secrets_raw.extend(secret_variants(value['operatorToken']))
         except Exception:
             if partial: return []  # Unknown canaries cannot authorize publication.
             raise
@@ -254,7 +270,7 @@ def export_observations(options, root, N, partial=False):
         if partial and (not source.exists() or target.exists()): continue
         try:
             raw = N.stable_read(source, budget, 10001, 0o600)[0]
-            public_fence(raw, secrets_raw, captures=(public == 'captures.jsonl'), N=N)
+            public_fence(raw, secrets_raw, captures=(public == 'captures.jsonl'), N=N, scenario=scenario)
             if public.endswith('.png'): need(raw.startswith(b'\x89PNG\r\n\x1a\n'))
             else:
                 values = [N.decode(row) for row in raw.splitlines()] if public.endswith('.jsonl') else [N.decode(raw)]
@@ -276,6 +292,7 @@ def wait_server(root, server, N):
 
 
 def inner(options, repo, root, bundle, fixture, N, M):
+    scenario = selected_scenario(options)
     need(os.geteuid() == 0 and os.getpid() == 1)
     N.command(['mount', '--make-rprivate', '/']); N.mount_bind(repo, True); N.mount_bind(bundle, True)
     N.command(['ip', 'link', 'set', 'lo', 'up'])
@@ -287,10 +304,12 @@ def inner(options, repo, root, bundle, fixture, N, M):
         N.command(['mount', '--bind', str(bundle / source), target]); N.command(['mount', '-o', 'remount,bind,ro,nosuid,nodev', target])
     certs = M.certificates(root, N)
     N.exclusive(options.output_dir / 'certificates.json', N.canonical(certs) + b'\n')
-    token = secrets.token_hex(32)
-    for path, value in [('identities.json', identity(token)), ('browser-input.private.json',
-        dict(schema='chengwang.subscription-ui-input/v1', operatorToken=token, label='browser-ui-source'))]:
-        N.exclusive(root / path, N.canonical(value), 0o600); os.chown(root / path, 10001, 10001)
+    if scenario == 'local_admission': forbidden = admission().initialize(root, N)
+    else:
+        token = secrets.token_hex(32); forbidden = secret_variants(token)
+        for path, value in [('identities.json', identity(token)), ('browser-input.private.json',
+            dict(schema='chengwang.subscription-ui-input/v1', operatorToken=token, label='browser-ui-source'))]:
+            N.exclusive(root / path, N.canonical(value), 0o600); os.chown(root / path, 10001, 10001)
     (root / 'data').mkdir(mode=0o700); os.chown(root / 'data', 10001, 10001)
     prefix = ['setpriv', '--reuid=10001', '--regid=10001', '--clear-groups', '--bounding-set=-all',
               '--inh-caps=-all', '--ambient-caps=-all', '--no-new-privs']
@@ -302,13 +321,16 @@ def inner(options, repo, root, bundle, fixture, N, M):
         wait_server(root, server, N); stage = 'DRIVER_START'
         with (root / 'driver.private.log').open('xb') as log:
             node = subprocess.Popen([*prefix, str(bundle / 'node'),
-                str(bundle / 'source/chengwang/tools/subscription-ui-browser/ui-cli.mjs'), '--root', str(root),
+                str(bundle / ('source/chengwang/tools/subscription-ui-browser/admission-cli.mjs' if scenario == 'local_admission'
+                              else 'source/chengwang/tools/subscription-ui-browser/ui-cli.mjs')), '--root', str(root),
                 '--bundle', str(bundle), '--engine', options.engine, '--source-commit', options.source_commit],
                 stdin=subprocess.DEVNULL, stdout=log, stderr=log, env=dict(N.BASE_ENV, TMPDIR='/var/tmp'),
                 cwd=root, preexec_fn=M.child_limits)
         stage = 'DRIVER_BARRIER'; barrier = M.wait_file(root / 'driver-ready.private.json', node, N, 45)
-        need(barrier == dict(schema='chengwang.subscription-ui-driver-ready/v1', fixtureId=fixture,
-            engine=options.engine, pid=node.pid, chromePid=barrier.get('chromePid')))
+        expected_barrier = dict(schema='chengwang.subscription-ui-driver-ready/v1', fixtureId=fixture,
+            engine=options.engine, pid=node.pid, chromePid=barrier.get('chromePid'))
+        if scenario == 'local_admission': expected_barrier['scenario'] = scenario
+        need(barrier == expected_barrier)
         handoff = N.decode(N.stable_read(root / 'chrome-process.private.json', 8192, 10001, 0o600)[0])
         need(type(barrier['chromePid']) is int and handoff['pid'] == barrier['chromePid'] and handoff['uid'] == 10001)
         for role, pid, executable, limit in [('server', server.pid, bundle / 'server', 128 << 20),
@@ -316,8 +338,9 @@ def inner(options, repo, root, bundle, fixture, N, M):
             record = N.task_profile(pid, sha(N.stable_read(executable, limit)[0]), executable_limit=limit)
             record.update(role=role, argv=pathlib.Path('/proc', str(pid), 'cmdline').read_bytes()[:-1].decode().split('\0'))
             records.append(record)
-        stage = 'UI_RUN'; N.publish_atomic(root / 'run.go', N.canonical(dict(
-            schema='chengwang.subscription-ui-run/v1', fixtureId=fixture, engine=options.engine)), 0o444)
+        stage = 'UI_RUN'; run_gate = dict(schema='chengwang.subscription-ui-run/v1', fixtureId=fixture, engine=options.engine)
+        if scenario == 'local_admission': run_gate['scenario'] = scenario
+        N.publish_atomic(root / 'run.go', N.canonical(run_gate), 0o444)
         need(node.wait(timeout=125) == 0)
         stage = 'SERVER_STOP'; server.send_signal(signal.SIGTERM); need(server.wait(timeout=15) == 0)
         stage = 'PROCESS_REAP'
@@ -328,8 +351,8 @@ def inner(options, repo, root, bundle, fixture, N, M):
             processScope='TRUSTED_CI_PROC_AND_PARENT_WAIT_NOT_INDEPENDENT_SIGNAL_ATTESTATION', production=False)) + b'\n')
         stage = 'READBACK'
         private = N.decode(N.stable_read(root / 'data/subscriptions/store.json', 16 << 20, 10001, 0o600)[0])
-        readback = private_projection(private, options.source_commit, fixture)
-        forbidden = secret_variants(token)
+        readback = (admission().project(private, options.source_commit, fixture) if scenario == 'local_admission'
+                    else private_projection(private, options.source_commit, fixture))
         N.exclusive(options.output_dir / 'private-readback.json', public_fence(N.canonical(readback) + b'\n', forbidden))
         for original, public, limit in [('data/evidence/events.jsonl', 'audit-events.jsonl', 4 << 20),
                                        ('data/evidence/checkpoint.json', 'audit-checkpoint.json', 65536)]:
@@ -351,7 +374,8 @@ def inner(options, repo, root, bundle, fixture, N, M):
             no_owned = M.no_owned_processes(); exported = export_observations(options, root, N, partial=True)
             checkpoints = []
             if (root / 'driver.private.log').exists():
-                checkpoints = driver_checkpoints(N.stable_read(root / 'driver.private.log', 32 << 20)[0])
+                raw = N.stable_read(root / 'driver.private.log', 32 << 20)[0]
+                checkpoints = admission().checkpoints(raw) if scenario == 'local_admission' else driver_checkpoints(raw)
             N.exclusive(options.output_dir / 'failure.json', N.canonical(dict(schema=SCHEMA,
                 sourceCommit=options.source_commit, fixtureId=fixture, engine=options.engine, stage=stage,
                 driverCheckpoints=checkpoints,
@@ -366,6 +390,7 @@ def main():
         parser.add_argument('--' + name, required=True, type=pathlib.Path)
     parser.add_argument('--source-commit', required=True)
     parser.add_argument('--engine', required=True, choices=('chrome-cdp', 'playwright'))
+    parser.add_argument('--scenario', choices=('create_receipt', 'local_admission'), default='create_receipt')
     parser.add_argument('--fixture', default=None); parser.add_argument('--inner', action='store_true')
     options = parser.parse_args(); need(sys.platform == 'linux' and os.geteuid() == 0)
     repo = options.repo.resolve(strict=True); M = library(repo); N = M.load_native(repo)
@@ -382,6 +407,7 @@ def main():
         argv = ['unshare', '--mount', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc',
             sys.executable, '-I', '-B', str(pathlib.Path(__file__).resolve()), '--inner', '--fixture', fixture,
             '--source-commit', options.source_commit, '--engine', options.engine]
+        if options.scenario == 'local_admission': argv += ['--scenario', options.scenario]
         for name in ('repo', 'consumption-root', 'consumption-report', 'node', 'server', 'dist', 'build-report', 'output-dir'):
             argv += ['--' + name, str(getattr(options, name.replace('-', '_')))]
         with (bundle / 'supervisor.private.log').open('xb') as log:
