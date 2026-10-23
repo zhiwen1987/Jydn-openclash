@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { validateLaunchOptions, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
+import { validateLaunchOptions, parseProcessStat, parseChromeStat, safeRequest, responseBytes, NetworkJournal,
   collectProbeDOM, launchProbeDriver, remoteEvaluationValue, classifyLaunchError, launchFatalLocations,
   driverOperationFailure } from './browser-driver.mjs'
 
@@ -54,10 +54,29 @@ test('driver parses proc command names containing spaces and parentheses', () =>
   const fields = ['S', '20', '42', '42', ...Array(15).fill('0'), '98765', '0']
   assert.deepEqual(parseChromeStat('42 (chrome (test)) ' + fields.join(' ')),
     { pid: 42, group: 42, session: 42, startTicks: 98765, state: 'S' })
+  for (const [group, session] of [[0, 0], [0, 42], [42, 0]]) {
+    const general = [...fields]; general[2] = String(group); general[3] = String(session)
+    const raw = '42 (unrelated process (test)) ' + general.join(' ')
+    assert.deepEqual(parseProcessStat(raw), { pid: 42, group, session, startTicks: 98765, state: 'S' })
+    rejected(() => parseChromeStat(raw))
+  }
 })
 
 test('driver rejects missing zero and unsafe process identities', () => {
-  for (const raw of ['', '42 (chrome) S 1', '0 (chrome) ' + ['S', '1', '1', '1', ...Array(16).fill('0')].join(' ')]) rejected(() => parseChromeStat(raw))
+  for (const raw of ['', '42 (chrome) S 1', '0 (chrome) ' + ['S', '1', '1', '1', ...Array(16).fill('0')].join(' ')]) {
+    rejected(() => parseProcessStat(raw)); rejected(() => parseChromeStat(raw))
+  }
+  const fields = ['S', '20', '42', '42', ...Array(15).fill('0'), '98765', '0']
+  for (const [index, invalid] of [[2, '-1'], [3, '-1'], [19, '0'], [19, '-1'],
+    [2, '9007199254740992'], [3, '9007199254740992'], [19, '9007199254740992'], [2, 'NaN'], [3, 'Infinity']]) {
+    const malformed = [...fields]; malformed[index] = invalid
+    const raw = '42 (chrome) ' + malformed.join(' ')
+    rejected(() => parseProcessStat(raw)); rejected(() => parseChromeStat(raw))
+  }
+  for (const pid of ['-1', '1', '9007199254740992']) {
+    const raw = pid + ' (chrome) ' + fields.join(' ')
+    rejected(() => parseProcessStat(raw)); rejected(() => parseChromeStat(raw))
+  }
 })
 
 test('driver accepts only the required GET resources and auth placement', () => {
@@ -182,6 +201,13 @@ test('driver DOM extractor reads presentation without HTML state clock or fetch 
   assert.ok(!/\.value\s*=(?!=)|document\.cookie\s*=(?!=)/.test(expression))
   assert.ok(expression.includes('disclosure?.open && visible(sampleCode)'))
   const source = await readFile(new URL('./browser-driver.mjs', import.meta.url), 'utf8')
+  const ownedScan = source.slice(source.indexOf('async function liveOwnedChrome('), source.indexOf('\nclass CDP'))
+  assert.ok(ownedScan.includes("const stat = parseProcessStat(await readFile(`/proc/${name}/stat`, 'utf8'))"))
+  assert.ok(!ownedScan.includes('parseChromeStat('))
+  assert.ok(ownedScan.includes('if (stat.group === record.pid || bound) return true'))
+  const chromeIdentity = source.slice(source.indexOf('async function actualChrome('), source.indexOf('async function liveOwnedChrome('))
+  assert.equal((chromeIdentity.match(/parseChromeStat\(/g) ?? []).length, 2)
+  assert.ok(chromeIdentity.includes('first.pid === record.pid && first.group === record.pid && first.session === record.pid && first.startTicks === record.startTicks'))
   assert.ok(source.includes('launchPersistentContext'))
   assert.ok(!source.includes('connectOverCDP('))
   assert.equal((source.match(/'--hide-scrollbars'/g) ?? []).length, 1)

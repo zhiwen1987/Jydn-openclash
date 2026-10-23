@@ -84,14 +84,22 @@ export function validateLaunchOptions(value) {
   return { ...value, fixtureId, browserRoot: join(value.root, 'browser'), profile: join(value.root, 'browser/chrome-profile') }
 }
 
-export function parseChromeStat(raw) {
+export function parseProcessStat(raw) {
   need(typeof raw === 'string' && raw.length <= 8192)
   const end = raw.lastIndexOf(')'), pid = Number(raw.slice(0, raw.indexOf(' ')))
   const fields = raw.slice(end + 2).trim().split(/\s+/)
   need(end > 0 && fields.length >= 20 && Number.isSafeInteger(pid) && pid > 1)
   const [group, session, ticks] = [fields[2], fields[3], fields[19]].map(Number)
-  need([group, session, ticks].every(n => Number.isSafeInteger(n) && n > 0))
+  // A process group or session outside this PID namespace is reported as 0.
+  need([group, session].every(n => Number.isSafeInteger(n) && n >= 0)
+    && Number.isSafeInteger(ticks) && ticks > 0)
   return { pid, group, session, startTicks: ticks, state: fields[0] }
+}
+
+export function parseChromeStat(raw) {
+  const value = parseProcessStat(raw)
+  need(value.group > 0 && value.session > 0)
+  return value
 }
 
 export function safeRequest(request, type = 'Other') {
@@ -183,7 +191,7 @@ async function liveOwnedChrome(options, record) {
   for (const name of names.filter(name => /^[0-9]+$/.test(name))) {
     try {
       if ((await lstat(`/proc/${name}`)).uid !== 10001) continue
-      const stat = parseChromeStat(await readFile(`/proc/${name}/stat`, 'utf8'))
+      const stat = parseProcessStat(await readFile(`/proc/${name}/stat`, 'utf8'))
       if (['Z', 'X'].includes(stat.state)) continue
       const rawargv = await readFile(`/proc/${name}/cmdline`)
       need(rawargv.length <= 262144)
