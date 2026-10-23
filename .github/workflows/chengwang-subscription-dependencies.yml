@@ -1,0 +1,181 @@
+name: Chengwang Subscription Dependency Evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - codex/chengwang-security-hardening
+    paths:
+      - ".github/workflows/chengwang-subscription-dependencies.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-subscription-dependencies-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  vendor-evidence:
+    name: Generate pinned YAML vendor evidence without changing checkout
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOWORK: "off"
+      GOENV: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=mod
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      GOPRIVATE: ""
+      GONOPROXY: ""
+      GONOSUMDB: ""
+      GOINSECURE: ""
+      CGO_ENABLED: "0"
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned Go
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+
+      - name: Generate and validate the closed dependency delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -B - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import shutil
+          import stat
+          import subprocess
+          import tempfile
+
+          def require(value, reason):
+              if not value:
+                  raise SystemExit(reason)
+
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+
+          checkout = pathlib.Path.cwd()
+          source = checkout / 'chengwang'
+          private = pathlib.Path(tempfile.mkdtemp(prefix='chengwang-subscription-dependency-', dir=os.environ['RUNNER_TEMP']))
+          private.chmod(0o700)
+          copied = private / 'module'
+          output = pathlib.Path(os.environ['RUNNER_TEMP']) / 'chengwang-subscription-dependencies' / 'evidence'
+          output.mkdir(parents=True, mode=0o700)
+          require(not any(output.iterdir()), 'dependency_output_not_empty')
+
+          def inventory(directory):
+              values = []
+              for item in sorted(directory.rglob('*')):
+                  info = item.lstat()
+                  require(not stat.S_ISLNK(info.st_mode), 'dependency_symlink_rejected')
+                  if stat.S_ISDIR(info.st_mode):
+                      continue
+                  require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, 'dependency_nonregular_rejected')
+                  raw = item.read_bytes()
+                  values.append({'path': item.relative_to(directory).as_posix(), 'bytes': len(raw), 'sha256': sha(raw)})
+              return values
+
+          before = inventory(source)
+          original_vendor = inventory(source / 'vendor')
+          original_modules = (source / 'vendor/modules.txt').read_bytes()
+          original_mod = (source / 'go.mod').read_bytes()
+          original_sum = (source / 'go.sum').read_bytes()
+          shutil.copytree(source, copied)
+
+          def go(*arguments):
+              stage = {('env', 'GOVERSION'): 'TOOLCHAIN', ('mod', 'edit', '-json'): 'MODULE_METADATA',
+                  ('mod', 'edit', '-require=go.yaml.in/yaml/v3@v3.0.4'): 'PIN_YAML',
+                  ('mod', 'download', '-json', 'go.yaml.in/yaml/v3@v3.0.4'): 'DOWNLOAD_YAML',
+                  ('mod', 'download', '-json', 'gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405'): 'DOWNLOAD_DECLARED_TEST_DEPENDENCY',
+                  ('mod', 'download'): 'DOWNLOAD_GRAPH', ('mod', 'verify'): 'VERIFY_MODULES',
+                  ('list', '-m', '-json', 'go.yaml.in/yaml/v3'): 'SELECT_YAML',
+                  ('mod', 'vendor'): 'VENDOR'}.get(arguments)
+              require(stage is not None, 'dependency_unknown_command')
+              print('SUBSCRIPTION_DEPENDENCY_STAGE=' + stage, flush=True)
+              result = subprocess.run(['go', *arguments], cwd=copied, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180)
+              require(result.returncode == 0, 'dependency_go_command_failed')
+              return result.stdout
+
+          require(go('env', 'GOVERSION').strip() == b'go1.23.12', 'dependency_toolchain_mismatch')
+          old_module = json.loads(go('mod', 'edit', '-json'))
+          fixture = copied / 'subscriptiondependencyfixture'
+          require(not fixture.exists(), 'dependency_fixture_collision')
+          fixture.mkdir(mode=0o700)
+          (fixture / 'import.go').write_text('package subscriptiondependencyfixture\n\nimport _ "go.yaml.in/yaml/v3"\n', encoding='utf-8')
+          go('mod', 'edit', '-require=go.yaml.in/yaml/v3@v3.0.4')
+          downloaded = json.loads(go('mod', 'download', '-json', 'go.yaml.in/yaml/v3@v3.0.4'))
+          require(downloaded.get('Path') == 'go.yaml.in/yaml/v3' and downloaded.get('Version') == 'v3.0.4' and not downloaded.get('Error'), 'dependency_download_identity')
+          yaml_go_mod = pathlib.Path(downloaded['GoMod']).read_text(encoding='utf-8')
+          require('require gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405' in yaml_go_mod, 'dependency_declared_test_requirement')
+          test_dependency = json.loads(go('mod', 'download', '-json', 'gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405'))
+          require(test_dependency.get('Path') == 'gopkg.in/check.v1' and test_dependency.get('Version') == 'v0.0.0-20161208181325-20d25e280405' and not test_dependency.get('Error'), 'dependency_test_module_identity')
+          require(all(isinstance(test_dependency.get(key), str) and test_dependency[key].startswith('h1:') for key in ['Sum', 'GoModSum']), 'dependency_test_checksum_missing')
+          go('mod', 'download')
+          require(go('mod', 'verify').strip() == b'all modules verified', 'dependency_verification_failed')
+          selected = json.loads(go('list', '-m', '-json', 'go.yaml.in/yaml/v3'))
+          require(selected.get('Path') == 'go.yaml.in/yaml/v3' and selected.get('Version') == 'v3.0.4' and 'Replace' not in selected, 'dependency_selection_mismatch')
+          require(selected.get('Sum') == downloaded.get('Sum') and selected.get('GoModSum') == downloaded.get('GoModSum'), 'dependency_sum_mismatch')
+          require(isinstance(selected.get('Sum'), str) and selected['Sum'].startswith('h1:') and isinstance(selected.get('GoModSum'), str) and selected['GoModSum'].startswith('h1:'), 'dependency_missing_checksum')
+          new_module = json.loads(go('mod', 'edit', '-json'))
+          old_require = {item['Path']: item for item in old_module.pop('Require')}
+          new_require = {item['Path']: item for item in new_module.pop('Require')}
+          require(old_module == new_module and all(new_require.get(key) == value for key, value in old_require.items()), 'dependency_existing_module_changed')
+          added_requirement = new_require.get('go.yaml.in/yaml/v3', {})
+          require(set(new_require) - set(old_require) == {'go.yaml.in/yaml/v3'} and added_requirement.get('Path') == 'go.yaml.in/yaml/v3' and added_requirement.get('Version') == 'v3.0.4' and not added_requirement.get('Indirect') and set(added_requirement) <= {'Path', 'Version', 'Indirect'}, 'dependency_unexpected_requirement')
+          go('mod', 'vendor')
+          after_vendor = inventory(copied / 'vendor')
+          original_files = {entry['path']: entry for entry in original_vendor if entry['path'] != 'modules.txt'}
+          current_files = {entry['path']: entry for entry in after_vendor if entry['path'] != 'modules.txt'}
+          require(all(current_files.get(name) == value for name, value in original_files.items()), 'dependency_existing_vendor_changed')
+          additions = set(current_files) - set(original_files)
+          require(additions and all(name.startswith('go.yaml.in/yaml/v3/') for name in additions), 'dependency_unexpected_vendor_delta')
+          new_modules = (copied / 'vendor/modules.txt').read_bytes()
+          stanza = b'# go.yaml.in/yaml/v3 v3.0.4\n## explicit; go 1.16\ngo.yaml.in/yaml/v3\n'
+          require(new_modules.count(stanza) == 1 and new_modules.replace(stanza, b'', 1) == original_modules, 'dependency_modules_delta')
+          new_sum = (copied / 'go.sum').read_bytes()
+          old_lines = set(original_sum.splitlines())
+          new_lines = set(new_sum.splitlines())
+          expected_lines = {('go.yaml.in/yaml/v3 v3.0.4 ' + selected['Sum']).encode(), ('go.yaml.in/yaml/v3 v3.0.4/go.mod ' + selected['GoModSum']).encode()}
+          optional_test_lines = {('gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 ' + test_dependency['Sum']).encode(), ('gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod ' + test_dependency['GoModSum']).encode()}
+          require(old_lines <= new_lines and expected_lines <= new_lines and new_lines - old_lines <= expected_lines | optional_test_lines, 'dependency_unexpected_sum_delta')
+          for relative in ['go.mod', 'go.sum', 'vendor/modules.txt', *['vendor/' + name for name in sorted(additions)]]:
+              source_file = copied / relative
+              target = output / relative
+              target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+              with target.open('xb') as stream:
+                  stream.write(source_file.read_bytes())
+          require(before == inventory(source), 'dependency_source_changed')
+          commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=checkout).decode('ascii').strip()
+          require(commit == os.environ['GITHUB_SHA'], 'dependency_commit_mismatch')
+          manifest = {'schema': 'chengwang.subscription-dependency-evidence/v1', 'sourceCommit': commit, 'authorization': 'BLOCKED', 'production': False, 'goVersion': 'go1.23.12', 'module': {'path': selected['Path'], 'version': selected['Version'], 'sum': selected['Sum'], 'goModSum': selected['GoModSum']}, 'declaredTestDependency': {'path': test_dependency['Path'], 'version': test_dependency['Version'], 'sum': test_dependency['Sum'], 'goModSum': test_dependency['GoModSum'], 'testCodeExecuted': False}, 'originalGoModSHA256': sha(original_mod), 'originalGoSumSHA256': sha(original_sum), 'originalModulesSHA256': sha(original_modules), 'existingVendorFilesVerified': len(original_files), 'existingVendorUnchanged': True, 'checkoutModuleUnchanged': True, 'files': inventory(output)}
+          (output / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf-8')
+          print('SUBSCRIPTION_DEPENDENCY_EVIDENCE=PASS module=go.yaml.in/yaml/v3 version=v3.0.4 existing_vendor_unchanged=true checkout_unchanged=true production=false')
+          PY
+
+      - name: Verify checkout remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+      - name: Export only the validated dependency delta
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: subscription-dependencies-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-subscription-dependencies/evidence/
+          if-no-files-found: error
+          retention-days: 14
