@@ -412,3 +412,11 @@ ed756d74719891c2fc473b90867dbfda95f37f0c的绑定39865484513/job120126497803、�
 主代理及三名独立子代理分别下载1354原工件，重算新72工件/75输入关系和原49/65/151/909门；67条完整TLS/HTTP连接、268事件、18动作、10journal/20实际审计、36Registry快照/12运行及重开零请求窗口、6产品正常退出0/6来源TERM join0/7所属容器精确清理保持。原728/race728、父各2320、Registry各3、浏览器40/45/45均保留；新8profile/32verifier为合成检查器测试，不当产品业务证据。612checkout+92module＝704源记录，612唯一文件逐Git原blob一致，无CRLF归一化。[实际验收、原证据与未完成项](P0D12-PRODUCT-SOURCE-WAVE1-ACCEPTANCE.md)。
 
 **状态仅为 actual-product source wave1 implemented+tested isolated-only。** 没有修改产品运行逻辑或生产服务。TLS CA/SAN/SPKI单因负矩阵、完整HTTP/帧/真实超时/hint/gap/fork/两类64及字节预算、来源重启、实际在途撤销内核屏障、其他异常恢复边界、长期soak、正式authority/发行/企业功能和生产灰度仍未闭合；不解除九项blocker，不承诺可用率或零bug。无SSH、main合并、正式Registry发布或生产变更。
+
+## P0-d12 首次来源 TLS 故障与同进程恢复已隔离验收（2026-10-23）
+
+上节为历史第一批范围。本批代码 b8abe163fdd40f0dffe327c97989cf6f858fb762，绑定 39883622207/job120186562390、父 39883621995/job120186561748 均 attempt1/success。CA/SAN/SPKI 单因故障×两签名六格，共 12 条故障来源连接/0 HTTP/API 未确认，正常来源 6 条完整原 G1 HTTP 后同产品 PID/startTime/二进制/两配置摘要恢复 Fresh。每格 G1/sequence1/J0/A0/L0，初始/最终实际逻辑记录、审计日志和 checkpoint 原摘要不变。18 连接/60 事件、24 动作、114 自有工件/117 输入关系、48 Registry 快照/18 零请求窗口、7 容器/12 来源/6 产品正常退出与精确清理独立复算通过。
+
+主代理及三名独立子代理分别下载 1470 原工件，OpenSSL 与另写 Node X.509/Ed25519 交叉验证原证书/目录/批准和实际 API/fence，不从 TLS failed 枚举单独归因。原五门 49/65/151/909/75 与新增 117 的 CLI 结果均与原 CI outcome 逐字相同；普通/race 各 728、父各 2320、Registry 各 3 和浏览器 40/45/45 保留。新 profile8/checker32 是合成反例，实际 Linux 0skip，不能当 40 项产品业务。619checkout+94module＝713 记录/619unique 逐 Git 原 blob 匹配，前后原清单相同，无 CRLF 归一化。[原始证据和边界](P0D12-PRODUCT-SOURCE-TLS-ACCEPTANCE.md)。
+
+**状态仅为 initial-source-TLS rejection/recovery implemented+tested isolated-only。** 已确认后的 TLS 陈旧、在线轮换/冷确认、完整来源/超时/预算、真实在途撤销及消费后屏障、长期 soak/正式发行/生产灰度仍未完成。主服务仍未接入主动 probe 读回，控制台仍含明确 demo，编译不是完整可运行配置，publish 不下发设备，executor 仍缺失；订阅、DNS、多内核、自动修复和企业闭环不能被本批测试替代。下一产品主线为[真实探针只读 API/工作台接入（设计态）](P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md)，再推进订阅准入/完整配置与实验设备发布回滚。未动生产、main 或正式 Registry，不解除九项 blocker。

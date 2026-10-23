@@ -26,6 +26,7 @@
 - P0-d12 的自动刷新重复拒绝保护由ed756d7隔离验收：有界16槽且每次重新执行真实只读验证，避免同一坏候选持续追加拒绝审计；新增28项使ordinary/race各728，原700及全部镜像门保留。**新4项来源/追代是同进程runtime集成，完整镜像来源负矩阵、跨重启去重及生产上线未完成**。见[拒绝保护验收与剩余项](docs/P0D12-REFRESH-REJECTION-ACCEPTANCE.md)。
 - P0-d12 的异常HTTPS来源fixture前置由57fd54c隔离验收：24项（8格式/16Linux）、32项合成checker、34观测段/19wire均通过，原全部镜像回归保留；真实启动失败与诊断修复留档。**仅测试工具前置，不是完整产品来源拒绝/超时/追代/在途撤销矩阵，更不是上线**。见[来源fixture验收与未完成项](docs/P0D12-SOURCE-FIXTURE-ACCEPTANCE.md)。
 - P0-d12 的真实产品来源第一批由563e51a隔离验收：403陈旧/恢复、坏签名去重/恢复、合法前缀提交后坏签拒绝/恢复，三流程×两签名六格，原镜像回归均保留。**仅本批六格已证；TLS单因负例、在途撤销、来源重启及完整故障矩阵仍未完成，未上线**。见[实际验收与剩余项](docs/P0D12-PRODUCT-SOURCE-WAVE1-ACCEPTANCE.md)。
+- P0-d12 的首次来源 TLS CA/SAN/SPKI 故障×两签名六格已由 b8abe16 隔离验收：坏源 12 次真实尝试/零 HTTP，修正后 6 次完整 G1 响应及同 PID Fresh，持久状态零写，原五门与回归保留。**仅首次故障→同进程恢复已证，不是已确认后陈旧、在线轮换、完整矩阵或上线**。见[TLS 实际验收](docs/P0D12-PRODUCT-SOURCE-TLS-ACCEPTANCE.md)；下一实质产品切片为[真实探针 API/工作台接入（待实施）](docs/P1-PROBE-READBACK-INTEGRATION-PROTOCOL.md)。
 
 > 源码实现不等于生产能力已经开放。`10.88.0.254` 已部署并验收默认锁定的 Shadow 操作 API 与“操作中心”，但没有配置身份文件，`CHENGWANG_OPERATION_WRITES_ENABLED=false`，也不存在设备执行器；因此线上只证明失败关闭、只读读回和界面边界，未形成生产写入闭环。见 [10.88.0.254 部署记录](docs/DEPLOYMENT-10.88.0.254.md)。
 

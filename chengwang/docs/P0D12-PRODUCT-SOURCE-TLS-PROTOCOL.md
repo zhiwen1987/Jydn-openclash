@@ -1,6 +1,6 @@
 # D12 真实产品来源 TLS 拒绝与同进程恢复协议
 
-状态：实施中，尚无本批实际镜像验收结论。此前[第一批来源验收](P0D12-PRODUCT-SOURCE-WAVE1-ACCEPTANCE.md)不能代替本协议。只使用隔离 CI 的临时来源、临时 CA、临时签名 authority 和真实候选镜像；不访问生产设备、不合并 main、不发布正式镜像。根代理为单一集成者。
+状态：代码 `b8abe163fdd40f0dffe327c97989cf6f858fb762` 已完成本批六格真实镜像隔离验收，主代理及三名独立子代理原工件复算通过。见[实际证据与未完成项](P0D12-PRODUCT-SOURCE-TLS-ACCEPTANCE.md)。此前[第一批来源验收](P0D12-PRODUCT-SOURCE-WAVE1-ACCEPTANCE.md)与本批分别保留证明边界。只使用隔离 CI 的临时来源、临时 CA、临时签名 authority 和真实候选镜像；不访问生产设备、不合并 main、不发布正式镜像。根代理为单一集成者。
 
 ## 目标与明确不证明的内容
 
