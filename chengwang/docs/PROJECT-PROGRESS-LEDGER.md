@@ -14,7 +14,7 @@ P1历史结果（不替代上述最新失败）：`cadb9f4b5ecf63f3bf1556ffe61ed
 
 最新已验增量 `409aa9c`：[pin强制消费/安全展开](P2-BROWSER-PIN-CONSUMPTION.md)已在原 run39988647783 的 producer/fresh 两Linux实际通过，根/代理复核小包原件及精确Git5。实际301文件/309成员、全部CRC与落地hash、305061192B Chrome ELF结构一致；20合成项只计producer一次。没有执行浏览器，不证明runtime或取消修复；父门39988647521与订阅39988647516均终态成功，尚未在本阶段逐项独立重放其全套原门。历史参考pin未改。
 
-本轮进行中：[五case正常TLS/CDP/PW候选矩阵](P2-BROWSER-STREAM-MATRIX.md)已实现，含独立类型/证书验签、失败原件保管与watchdog约束，正在送隔离CI做真实运行。合成检查不等于实际矩阵成功，更不等于产品新订阅页E2E；旧原门不改，生产未动。
+本轮进行中：[五case正常TLS/CDP/PW候选矩阵](P2-BROWSER-STREAM-MATRIX.md)首轮 `de875c0` 原run39992474501终态失败：96合成事件0skip，两引擎执行步骤成功，但独立CLI在HEADERS≤FINISH时间假设拒绝，fresh跳过，不能算通过。已查固定157源码确认HEADERS取dispatch Now而FINISH携带较早completion_time，修正仅该成功分支，失败时间/seq/字节/身份等门不变；新增8回归，修正版实际CI待验。合成检查和单独子验证不等于实际矩阵成功或产品新订阅页E2E；旧原门不改，生产未动。
 
 | 编号 | 交付项 | 实际状态 | 证据与剩余边界 |
 | --- | --- | --- | --- |

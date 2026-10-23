@@ -158,7 +158,12 @@ def validate_network(rows, cases):
     for ordinal, group in groups.items():
         need(len(group) == 3 and [r['event'] for r in group[:2]] == ['START', 'HEADERS'])
         start, header, end = group
-        need(start['timeUs'] <= header['timeUs'] <= end['timeUs'] and end['event'] in ('FINISH', 'FAIL'))
+        # Chromium tag 41520584: responseReceived is stamped at dispatch Now(),
+        # loadingFinished carries saved monotonic_finish_time. A successful
+        # completion timestamp may precede HEADERS dispatch despite seq order.
+        # loadingFailed instead uses dispatch Now(); retain its stronger bound.
+        need(start['timeUs'] <= header['timeUs'] and start['timeUs'] <= end['timeUs'] and end['event'] in ('FINISH', 'FAIL'))
+        if end['event'] == 'FAIL': need(header['timeUs'] <= end['timeUs'])
         need(type(header['status']) is int and header['status'] == 200 and header['noStore'] is True)
         case = start['case']
         expected_length = HTML_BYTES if case == 'DOCUMENT' else BODY_LIMIT if case == 'boundary-success' else None if case == 'oversize' else 11

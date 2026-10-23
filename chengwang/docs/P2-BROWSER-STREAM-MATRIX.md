@@ -1,6 +1,6 @@
 # P2：固定浏览器的正常 TLS 流矩阵
 
-状态：已实现候选与合成合同，真实 Linux CI 尚待验收。这里只验证独立合成协议场景，**不是产品页面、新订阅交互、历史故障唯一归因或生产验收**。
+状态：首轮 `de875c0` 真实 Linux CI 因独立 verifier 的时间语义错误拒绝，原失败保留；修正版待新的实际运行及独立验收。这里只验证独立合成协议场景，**不是产品页面、新订阅交互、历史故障唯一归因或生产验收**。
 
 ## 为什么单独验证
 
@@ -40,6 +40,16 @@ Node/服务器/Chrome 的实际身份由控制器放行前的 barrier 固定。l
 
 源码完整 Git blob 列表、复制输入摘要、真实 ELF/Node 进程 hash、正常 TLS、协议模型和正常退出均由独立 Python CLI 校核。fresh Linux job 下载原件重放相同 CLI，与 producer 报告逐字比较。可信 CI 的 `/proc` 与父进程 wait 不是抗恶意同 UID 或独立供应商签名的远程证明；Python/Node/NPM/系统库也未独立重建。
 
-新合成测试共32 Node +64 Python（24服务端/launcher、24模型、8严格类型/TLS反例、8失败保管），真实事件和冻结名单均核对，0 skip 才可通过。它们不替代实际浏览器矩阵，不并入原80/新56或旧产品门计数。
+首轮新合成测试共32 Node +64 Python（24服务端/launcher、24模型、8严格类型/TLS反例、8失败保管），原CI已实际核对96事件、0 skip；修正版另加8 native回归，共104，不能把尚未运行的新CI计数写成首轮结果。它们不替代实际浏览器矩阵，不并入原80/新56或旧产品门计数。
+
+## 首轮拒绝与精准修正
+
+[原 run39992474501](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39992474501)，源码 `de875c014124e83a768c178a67df136b933b1d4b`、attempt1。两个真实引擎执行步骤成功，独立 CLI 均拒绝，fresh 未运行，故整体失败，不能后补 PASS。
+
+PW 原 DOCUMENT 的 START/HEADERS/FINISH 为 `62746256/62794278/62793624`，split 为 `62817809/62861753/62861394` 微秒；实际接收 seq 仍按 START→HEADERS→FINISH。根完整旧 Git checker 重放确认在 `validate_network` 的 `HEADERS.timeUs <= FINISH.timeUs` 拒绝。
+
+查阅固定版本 [responseReceived实现](https://github.com/chromium/chromium/blob/41520584daa68d0040db7746ae562a0ff82187f6/third_party/blink/renderer/core/inspector/inspector_network_agent.cc#L1678-L1683)、[loadingFinished实现](https://github.com/chromium/chromium/blob/41520584daa68d0040db7746ae562a0ff82187f6/third_party/blink/renderer/core/inspector/inspector_network_agent.cc#L1803-L1809) 及 [loadingFailed实现](https://github.com/chromium/chromium/blob/41520584daa68d0040db7746ae562a0ff82187f6/third_party/blink/renderer/core/inspector/inspector_network_agent.cc#L1853-L1858)：HEADERS/FAIL 使用 dispatch 的 Now，FINISH 则携带先前保存的 monotonic_finish_time。相同时钟不代表不同语义的字段按发送顺序数值递增。
+
+仅去掉成功 FINISH 的这条比较；START≤HEADERS、START≤terminal、FAIL 的 HEADERS≤FAIL、严格到达 seq/三条事件/请求身份以及全部字节、状态、摘要、TLS和正常退出不变。不排序、不改原时间、不加经验性容差，不忽略失败。新8回归还确认既有 argv SHA 的 AST 分隔符原本就是 NUL `00`；工具JSON转义显示不是源码缺陷证据，没有修改这段正确逻辑。本修正只解释本轮 verifier 拒绝，不证明其他历史取消的唯一根因。
 
 下一退出条件：两个真实引擎及 fresh 原件独立验收；随后将验证过的候选接入**实际产品**安全 reader 与新订阅页面端到端流程，再运行原有回归。即便本矩阵成功，历史偶发取消的唯一归因、长期稳定性和整套产品上线仍未证明。

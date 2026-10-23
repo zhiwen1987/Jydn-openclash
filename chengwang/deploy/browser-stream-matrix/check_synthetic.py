@@ -11,6 +11,7 @@ PYTHON = {
     'test_check_matrix': ('TestMatrixContracts', 24, 'ffeca5e08c45508e80018b869fb5a16428b2c772e45811d5dc76a7c9b2d06b55'),
     'test_check_matrix_full': ('TestMatrixFullHelpers', 8, '2cff899bb14b0df8a53949c8a4ea7deded555f144e1317f898a380c2d39b7902'),
     'test_run_matrix': ('TestMatrixRunnerContracts', 8, '1f62c75187d2bdc5e0f0188ab172c776a69741794e878c7b57af89df9f0bcded'),
+    'test_native_regressions': ('TestNativeObservationRegressions', 8, '2dd11d56cf57568062dae4f2cabade4e8d9ea97e746ed19d421c026bb4bed1aa'),
 }
 
 
@@ -66,11 +67,11 @@ def main():
     need(re.fullmatch(r'[a-f0-9]{40}', args.source_commit))
     results = verify(args.evidence)
     report = dict(schema='chengwang.stream-matrix-synthetic/v1', sourceCommit=args.source_commit,
-        suites=results, tests=96, skipped=0, runtime=False, browserStarted=False, production=False,
+        suites=results, tests=104, skipped=0, runtime=False, browserStarted=False, production=False,
         scope='SYNTHETIC_CONTRACTS_NOT_REAL_BROWSER_OR_PRODUCT_ACCEPTANCE')
     with args.report.open('xb') as handle:
         handle.write((json.dumps(report,sort_keys=True,separators=(',',':'))+'\n').encode())
-    print('STREAM_MATRIX_SYNTHETIC=PASS node=32 python=64 skips=0 browser_started=false')
+    print('STREAM_MATRIX_SYNTHETIC=PASS node=32 python=72 skips=0 browser_started=false')
 
 
 if __name__ == '__main__':

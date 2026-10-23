@@ -54,7 +54,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --test --test-reporter=tap chengwang/tools/browser-stream-matrix/test-matrix-contract.mjs \
             2>&1 | tee "$reports/node.tap"
-          for module in test_server_contract test_check_matrix test_check_matrix_full test_run_matrix; do
+          for module in test_server_contract test_check_matrix test_check_matrix_full test_run_matrix test_native_regressions; do
             (cd chengwang/deploy/browser-stream-matrix && python3 -B -m unittest -v "$module") \
               2>&1 | tee "$reports/$module.log"
           done
