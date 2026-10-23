@@ -1,0 +1,188 @@
+name: Chengwang Pinned Browser Stream Matrix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-security-hardening]
+    paths:
+      - '.github/workflows/chengwang-browser-stream-matrix.yml'
+      - 'chengwang/deploy/browser-stream-matrix/**'
+      - 'chengwang/tools/browser-stream-matrix/**'
+      - 'chengwang/tools/browser-runtime-candidate/**'
+      - 'chengwang/tools/browser-acquisition/check_acquisition.py'
+      - 'chengwang/tools/browser-acquisition/candidate.json'
+      - 'chengwang/deploy/probe-readback/run_probe_readback.py'
+      - 'chengwang/web/scripts/trust-browser-tls.mjs'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/chengwang-browser-stream-matrix.yml'
+      - 'chengwang/deploy/browser-stream-matrix/**'
+      - 'chengwang/tools/browser-stream-matrix/**'
+      - 'chengwang/tools/browser-runtime-candidate/**'
+      - 'chengwang/tools/browser-acquisition/check_acquisition.py'
+      - 'chengwang/tools/browser-acquisition/candidate.json'
+      - 'chengwang/deploy/probe-readback/run_probe_readback.py'
+      - 'chengwang/web/scripts/trust-browser-tls.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-browser-stream-matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  contracts:
+    name: Frozen synthetic contracts (not browser runtime)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 22.23.3
+          check-latest: false
+      - name: Preserve original events and verify actual names, results and zero skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/stream-contracts"
+          install -d -m 0700 "$reports"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test --test-reporter=tap chengwang/tools/browser-stream-matrix/test-matrix-contract.mjs \
+            2>&1 | tee "$reports/node.tap"
+          for module in test_server_contract test_check_matrix test_check_matrix_full test_run_matrix; do
+            (cd chengwang/deploy/browser-stream-matrix && python3 -B -m unittest -v "$module") \
+              2>&1 | tee "$reports/$module.log"
+          done
+          python3 -B chengwang/deploy/browser-stream-matrix/check_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/verification.json"
+          git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: stream-matrix-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stream-contracts
+          retention-days: 14
+          if-no-files-found: error
+
+  matrix:
+    name: Actual pinned Chrome normal TLS (${{ matrix.engine }})
+    needs: contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chrome-cdp, playwright]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 22.23.3
+          check-latest: false
+      - name: Install only locked isolated CI tool and normal NSS support
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node --version)" = v22.23.3
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          install -d -m 0700 "$RUNNER_TEMP/stream-reports" "$RUNNER_TEMP/stream-inputs"
+          npm ci --prefix chengwang/tools/browser-stream-matrix --ignore-scripts --no-audit --no-fund
+          sudo --non-interactive apt-get update -qq
+          sudo --non-interactive apt-get install -y --no-install-recommends libnss3-tools
+          sudo --non-interactive install -m 0555 "$(command -v node)" "$RUNNER_TEMP/stream-inputs/node"
+
+      - name: Enforce reviewed archive pin, expand and independently read actual tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/tools/browser-runtime-candidate/consume_pin.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/stream-consumption" --report "$RUNNER_TEMP/stream-reports/consumption.json" \
+            2>&1 | tee "$RUNNER_TEMP/stream-reports/consumption-original.log"
+          python3 -B chengwang/tools/browser-runtime-candidate/check_consumption.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/stream-consumption" --report "$RUNNER_TEMP/stream-reports/consumption-independent.json" \
+            2>&1 | tee "$RUNNER_TEMP/stream-reports/consumption-independent-original.log"
+          cmp "$RUNNER_TEMP/stream-reports/consumption.json" "$RUNNER_TEMP/stream-reports/consumption-independent.json"
+
+      - name: Execute fixed no-retry five-case matrix inside private namespaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux \
+            /usr/bin/python3 -I -B chengwang/deploy/browser-stream-matrix/run_matrix.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --consumption-root "$RUNNER_TEMP/stream-consumption" \
+            --consumption-report "$RUNNER_TEMP/stream-reports/consumption-independent.json" \
+            --node "$RUNNER_TEMP/stream-inputs/node" --output-dir "$RUNNER_TEMP/stream-reports/originals" \
+            2>&1 | tee "$RUNNER_TEMP/stream-reports/supervisor-original.log"
+
+      - name: Independently verify original records, actual identity, TLS and exits
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo --non-interactive /usr/bin/python3 -I -B chengwang/deploy/browser-stream-matrix/check_matrix.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --evidence "$RUNNER_TEMP/stream-reports/originals" --report "$RUNNER_TEMP/stream-reports/independent.json" \
+            2>&1 | tee "$RUNNER_TEMP/stream-reports/independent-original.log"
+          git diff --exit-code
+
+      - name: Make only public reports readable for artifact custody
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This exact new CI directory contains only structured public reports.
+          # No archive, expanded tree, profile, private log or key is uploaded.
+          sudo --non-interactive chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/stream-reports"
+          chmod -R u+rX,go-rwx "$RUNNER_TEMP/stream-reports"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: stream-matrix-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stream-reports
+          retention-days: 14
+          if-no-files-found: error
+
+  fresh:
+    name: Fresh Linux original-record replay (${{ matrix.engine }})
+    needs: matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chrome-cdp, playwright]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: stream-matrix-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stream-input-reports
+      - name: Recompute from closed originals without a browser, compare exact report
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 0700 "$RUNNER_TEMP/stream-fresh"
+          python3 -B chengwang/deploy/browser-stream-matrix/check_matrix.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --evidence "$RUNNER_TEMP/stream-input-reports/originals" --report "$RUNNER_TEMP/stream-fresh/independent.json" \
+            2>&1 | tee "$RUNNER_TEMP/stream-fresh/independent-original.log"
+          cmp "$RUNNER_TEMP/stream-input-reports/independent.json" "$RUNNER_TEMP/stream-fresh/independent.json"
+          git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: stream-matrix-fresh-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stream-fresh
+          retention-days: 14
+          if-no-files-found: error

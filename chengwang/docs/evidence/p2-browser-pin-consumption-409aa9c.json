@@ -1,0 +1,203 @@
+{
+  "schema": "chengwang.browser-pin-consumption-acceptance/v1",
+  "sourceCommit": "409aa9c109060cb1248914940e292b4ce0ab9ac7",
+  "reviewDateAsiaShanghai": "2026-10-24",
+  "stageOutcome": "PIN_ENFORCED_AND_EXPANDED_VERIFIED_NO_BROWSER_EXECUTION",
+  "overallSystemAccepted": false,
+  "pinDownloadAndExpansionEnforcedInIsolatedCI": true,
+  "browserExecuted": false,
+  "runtimeProductProven": false,
+  "runtimeRevisionProven": false,
+  "projectCancellationFixProven": false,
+  "publisherSignatureProven": false,
+  "productionActionsInThisStage": false,
+  "mainMergePerformedInThisStage": false,
+  "formalRegistryPushPerformedInThisStage": false,
+  "run": {
+    "id": 39988647783,
+    "attempt": 1,
+    "url": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39988647783",
+    "status": "completed",
+    "conclusion": "success",
+    "rerunUsedForAcceptance": false,
+    "workflow": ".github/workflows/chengwang-browser-pin-consumption.yml",
+    "producerJobId": 120534356721,
+    "freshJobId": 120534599570,
+    "producerCompletedAtUTC": "2026-10-23T16:40:22Z",
+    "freshCompletedAtUTC": "2026-10-23T16:40:50Z"
+  },
+  "historicalReferencePin": {
+    "path": "chengwang/tools/browser-runtime-candidate/pin.json",
+    "bytes": 2870,
+    "sha256": "404667848e68330c45b463702578967becb7c2857a174d5e5921364f898e8bea",
+    "acquisitionSourceCommit": "22f07577932c329ba363a0f789b2d3a2dc85e4a7",
+    "acquisitionRunId": 39982138256,
+    "referenceFileMutated": false,
+    "referenceConsumedByExecutionHarnessField": false,
+    "referenceObservedRuntimeProduct": null,
+    "referenceObservedRuntimeRevision": null,
+    "scopeNote": "Historical reference remains unchanged; new consumer evidence, not a rewritten historical flag, proves download and expansion pin enforcement. No browser launch harness execution is proven."
+  },
+  "sourceContracts": {
+    "exactGitFilesLocallyRechecked": 5,
+    "files": {
+      "chengwang/tools/browser-runtime-candidate/pin.json": {"bytes": 2870, "sha256": "404667848e68330c45b463702578967becb7c2857a174d5e5921364f898e8bea"},
+      "chengwang/tools/browser-runtime-candidate/consume_pin.py": {"bytes": 7539, "sha256": "71bb6d4db008ee86ca371149c3b42ae9c1c887a605c6fcd053a696d7a9a51894"},
+      "chengwang/tools/browser-runtime-candidate/check_consumption.py": {"bytes": 25589, "sha256": "0062fe1eb05dafee7db89800bfa71ab120cde52ab02d79bbe3922530ecd739a2"},
+      "chengwang/tools/browser-acquisition/check_acquisition.py": {"bytes": 22800, "sha256": "c57314a5e7ceea8e4eb83e3dfcea2da1726e909970230d5e3aa71e27bc00c98c"},
+      "chengwang/tools/browser-acquisition/candidate.json": {"bytes": 2703, "sha256": "d35b831fa52f64df7905769c1fef60caf7b08030847269160e5fdf7c96c67601"}
+    }
+  },
+  "browserOriginalZip": {
+    "versionReference": "157.0.8103.6",
+    "platform": "linux64",
+    "distribution": "FULL_CHROME_FOR_TESTING_NOT_HEADLESS_SHELL",
+    "url": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.6/linux64/chrome-linux64.zip",
+    "bytes": 202676171,
+    "sha256": "7802b25411aa5b8aa387cc733a45df6eed1aea8cc046fd4e2dec64d5918b1853",
+    "md5Base64": "5qChIL/Gh+8hZv73vzEakQ==",
+    "generation": "1792024099984701",
+    "producerHTTPGoogleHashFields": ["md5=5qChIL/Gh+8hZv73vzEakQ==", "crc32c=EJCYzQ=="],
+    "crc32cFieldIsNotAnIndependentLocalCRC32CRecomputation": true,
+    "downloadAndArchiveEnforcementModes": ["PUBLIC_HTTPS_PINNED_ARCHIVE", "EXISTING_PINNED_ARCHIVE"],
+    "freshHTTPReceipt": null,
+    "shaAndMd5RecomputedOn": ["producer-Linux", "fresh-Linux"],
+    "browserZipDownloadedLocally": false,
+    "browserZipRecomputedLocally": false
+  },
+  "expansion": {
+    "archiveInventoryMembersSHA256": "40a84f87dd5799295c8a50582ee893af1e284f7e5d2a85e79683f299b688c015",
+    "expandedMemberCount": 309,
+    "regularFileCount": 301,
+    "explicitDirectoryMemberCount": 8,
+    "derivedPhysicalDirectoryCount": 11,
+    "expandedBytes": 425547397,
+    "expandedMembersSHA256": "527a3556f1a2db2d89dc0449c77594f2974d46eb54f50ab96d84d8d00ac3e171",
+    "actualMemberCRCAndSizeVerifiedOnBothLinuxJobs": true,
+    "actualExpandedFileSHA256VerifiedOnBothLinuxJobs": true,
+    "crossJobExpandedMemberModelsEqual": true,
+    "sourceExecutableAllowlistPaths": 9,
+    "outputRootMode": "0700",
+    "regularDataMode": "0400",
+    "allowlistedExecutableMode": "0500",
+    "expandedDirectoryMode": "0500",
+    "setuidAndSetgidStripped": true,
+    "expandedTreeUploadedAsArtifact": false,
+    "expandedTreeOrMemberBytesRecomputedLocally": false
+  },
+  "actualELFReadbackFromBothLinuxJobs": {
+    "path": "chrome-linux64/chrome",
+    "bytes": 305061192,
+    "sha256": "ec4e78d65a5382c2b50aaf28c6a655a624973b3d3c711a2a4ae34369fd9a3444",
+    "class": "ELF64",
+    "byteOrder": "little",
+    "machine": "x86_64",
+    "type": "DYN",
+    "entryPoint": 124443728,
+    "programHeaderCount": 12,
+    "loadSegments": 4,
+    "executed": false,
+    "runtimeProduct": null,
+    "runtimeRevision": null,
+    "scope": "BOUNDED_HEADER_AND_PROGRAM_SEGMENT_STRUCTURE_NOT_OS_LOADER_OR_BROWSER_RUNTIME_ACCEPTANCE"
+  },
+  "artifacts": {
+    "originalZipOnly": {
+      "id": 12517205795,
+      "name": "pinned-browser-original-39988647783-1",
+      "bytes": 202676307,
+      "sha256": "7845a22c1dda272c1a75bdaa1390182f2a305ab8c9821fc0d3eedf12a6ce125d",
+      "downloadedOnlyOnFreshLinuxForAcceptance": true,
+      "downloadedLocally": false,
+      "scope": "GITHUB_ARTIFACT_ENVELOPE_NOT_INNER_BROWSER_ZIP_SHA256"
+    },
+    "producerSmallReports": {
+      "id": 12515759562,
+      "name": "pin-consumption-producer-reports-39988647783-1",
+      "bytes": 15328,
+      "sha256": "4a62d65d0b0a168f155d964e466efed723fcc9835afafdd2a6e937a151b254aa",
+      "files": 7,
+      "allExtractedSmallFilesByteEqualOriginalArtifactMembers": true,
+      "containsBrowserZipOrELF": false
+    },
+    "freshSmallReports": {
+      "id": 12516273045,
+      "name": "pin-consumption-fresh-reports-39988647783-1",
+      "bytes": 15153,
+      "sha256": "7ea62d6281ced7bef7afc54e451cd49baf4d181796caba628c060c49c64a5642",
+      "files": 7,
+      "allExtractedSmallFilesByteEqualOriginalArtifactMembers": true,
+      "containsBrowserZipOrELF": false
+    }
+  },
+  "originalReports": {
+    "producer": {
+      "mode": "PUBLIC_HTTPS_PINNED_ARCHIVE",
+      "bytes": 1304,
+      "sha256": "0e8d93fa920538cf5bb6f4d33242f7f4e65f3e44e77ad1f8693e4025acd44b99",
+      "consumerAndIndependentCLIReportsAndStdoutByteEqual": true,
+      "sameCanonicalReportOccurrencesInOriginalJobLog": 2,
+      "manifestBytes": 66013,
+      "manifestSHA256": "aa29932a9566a69065dee1cd453949899288f1002814a7e866d4b986a20c08c0"
+    },
+    "fresh": {
+      "mode": "EXISTING_PINNED_ARCHIVE",
+      "bytes": 1300,
+      "sha256": "bbbc8cc799c5e3a09b1feb54f41ddb70b4c634f034e8371b790bf393360ffc52",
+      "consumerAndIndependentCLIReportsAndStdoutByteEqual": true,
+      "sameCanonicalReportOccurrencesInOriginalJobLog": 2,
+      "manifestBytes": 65674,
+      "manifestSHA256": "b9264b281ce3f9119da302effd4e8fe0cb379b0324ce2e0d0edb85d5b61d2a3d"
+    },
+    "crossJobReportsEqualExceptMode": true,
+    "crossJobManifestsEqualExceptModeAndHTTPReceipt": true,
+    "freshDidNotInventSecondHTTPReceipt": true
+  },
+  "syntheticContracts": {
+    "executedIn": ["producer"],
+    "actualTestsRun": 20,
+    "actualTestsPassed": 20,
+    "skipped": 0,
+    "failures": 0,
+    "freshCopiesOriginalLogNotAnother20Executions": true,
+    "namesMatchedExactCommitTestAST": true,
+    "sortedNamesLFNoTrailingLFSHA256": "28d61521916e7bd80da9303a9bb4ec25549fd12d6e984849af1fa1c4e361f103",
+    "originalLogBytes": 2760,
+    "originalLogSHA256": "89b2e06ead5de93e1bd63208c056f91bbe4601720fdf060f241d45eeba2f3e61",
+    "verificationBytes": 332,
+    "verificationSHA256": "5e72ff36f143ed63215b3bfaf2fa7eb9a4cccb7513212bd019e5d16ff99d3f04",
+    "testSourceBytes": 9686,
+    "testSourceSHA256": "853377e7187cf0891224230da3ecc93fc60ac5730eef3ef08bfb858da24e737b",
+    "notAddedToOlderGateCounts": true
+  },
+  "rawCustody": {
+    "localAuditDirectory": "C:/Users/Administrator/AppData/Local/Temp/chengwang-pin-consumption-409aa9-audit-550ca2f3b0324790b8d5b6ca3462996c",
+    "jobLogFormat": "ORIGINAL_GITHUB_JOB_LOG_HTTP_BODY_WITH_ORIGINAL_ANSI_NOT_GH_RUN_VIEW_PREFIXED",
+    "producerJobLogBytes": 28294,
+    "producerJobLogSHA256": "5f106f6e08a2c5a2676d1ae1008c80a74541e783a4ec8e49e87bb2f4a20a0eb7",
+    "freshJobLogBytes": 24164,
+    "freshJobLogSHA256": "dbe55ef720baba5279abb1b64d3ef4e08103a08841b432cbc7ed8efdc8f793ad",
+    "runMetadataBytes": 12752,
+    "runMetadataSHA256": "56192bed7462cf86288e20c91c4bb536881725a861cd89900edb65afa3a3af6f",
+    "artifactMetadataBytes": 2285,
+    "artifactMetadataSHA256": "1afb6a6650e923a8ba0df152594900ec45a3fd583de3556440adc711423a3efe"
+  },
+  "limitations": [
+    "No browser or extracted member execution occurred in this stage.",
+    "Full original ZIP decompression, CRC and actual extracted file SHA readback occurred on two Linux CI jobs, not on the local review machine.",
+    "Local review recomputed small artifact envelopes, report and manifest consistency, member-record models, exact Git source contracts, original logs and finite synthetic events only.",
+    "Independent fresh execution reuses the same Git-bound verification implementation; this is not a heterogeneous implementation proof or publisher signature.",
+    "ELF structure and file identity do not prove OS loader compatibility, actual browser version or revision, application behavior or cancellation-fix causality.",
+    "The matched alpha Playwright package has not been installed or exercised by this stage; existing 1.64.1 gates are not replaced.",
+    "This isolated acceptance is not full system or production acceptance."
+  ],
+  "remaining": [
+    "matched-alpha-package-source-and-integrity-enforced-acquisition",
+    "launcher-must-copy-and-enforce-consumed-ELF-identity-before-execution",
+    "real-browser-product-revision-and-protocol-readback",
+    "strict-real-no-store-split-stream-positive-and-negative-matrix",
+    "complete-original-CDP-and-Playwright-gates-with-candidate",
+    "new-subscription-page-real-browser-E2E",
+    "full-system-and-production-authorization-acceptance"
+  ]
+}
