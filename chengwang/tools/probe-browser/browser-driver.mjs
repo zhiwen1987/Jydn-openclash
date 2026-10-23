@@ -292,31 +292,41 @@ export class NetworkJournal {
 
 async function launchImplementation(input) {
   const options = validateLaunchOptions(input)
+  // Closed checkpoints mean entry into a factory step, never its completion.
+  const checkpoint = stage => process.stderr.write(`PROBE_BROWSER_DRIVER_STAGE=${stage}\n`)
+  checkpoint('ENVIRONMENT')
   need(process.platform === 'linux' && process.getuid?.() === 10001 && process.getgid?.() === 10001
     && !Object.hasOwn(process.env, 'HOME') && typeof WebSocket === 'function')
+  checkpoint('HOME')
   const home = join(options.browserRoot, 'home')
   need(homedir() === home)
+  checkpoint('DIRECTORIES')
   await privateDirectory(options.root); await privateDirectory(options.browserRoot)
   await privateDirectory(home, true); await privateDirectory(options.profile, true)
   const data = join(home, '.local/share'), database = join(data, 'pki/nssdb')
   await mkdir(database, { mode: 0o700, recursive: true })
   try { await lstat(join(home, '.pki/nssdb')); reject() } catch (error) { if (error?.code !== 'ENOENT') throw new Error('probe browser driver rejected') }
   for (const name of ['config', 'cache', 'tmp']) await privateDirectory(join(options.profile, name), true)
+  checkpoint('CONFIG')
   await stableFile(options.launcher, 65536, { rootOwned: true })
   const config = parseProbePublicJSON(await stableFile(join(dirname(options.launcher), 'browser-config.json'), 4096, { rootOwned: true }))
   need(exact(config, ['schema', 'engine', 'root', 'chrome']) && config.schema === 'chengwang.probe-browser-config/v1'
     && config.engine === options.engine && config.root === options.root && config.chrome === options.chrome)
+  checkpoint('CERTIFICATES')
   const helper = await import(pathToFileURL(join(options.sourceRoot, 'chengwang/web/scripts/trust-browser-tls.mjs')).href)
   const [ca, leaf] = await Promise.all(['api-ca.pem', 'api-cert.pem'].map(name => stableFile(join(options.root, name), 65536, { privateInput: true })))
   const verified = helper.inspectPublicTLS(ca.toString('utf8'), leaf.toString('utf8'))
   const environment = { PATH: '/usr/bin:/bin', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8',
     XDG_DATA_HOME: data, XDG_CONFIG_HOME: join(options.profile, 'config'),
     XDG_CACHE_HOME: join(options.profile, 'cache'), TMPDIR: join(options.profile, 'tmp') }
+  checkpoint('NSS_INIT')
   await stableFile('/usr/bin/certutil', 16 << 20, { rootOwned: true })
   const certutil = args => execute('/usr/bin/certutil', args, { env: environment, timeout: 10000, maxBuffer: 65536, encoding: 'utf8' })
   try {
     await certutil(['-N', '-d', `sql:${database}`, '--empty-password'])
+    checkpoint('NSS_IMPORT')
     await certutil(['-A', '-d', `sql:${database}`, '-n', 'chengwang-probe-browser-api-ca', '-t', 'C,,', '-i', join(options.root, 'api-ca.pem')])
+    checkpoint('NSS_READBACK')
     const imported = (await certutil(['-L', '-d', `sql:${database}`, '-n', 'chengwang-probe-browser-api-ca', '-a'])).stdout
     need(helper.inspectPublicTLS(imported, leaf.toString('utf8')).caSHA256 === verified.caSHA256)
   } catch { reject() }
@@ -325,6 +335,7 @@ async function launchImplementation(input) {
   let proof = null, chain = [], product = '', journal, screenshotCount = 0, closed = false
   const secrets = new Set()
   try {
+    checkpoint('LAUNCH')
     const args = ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-networking',
       '--disable-component-update', '--disable-sync', '--disable-default-apps', '--disable-extensions', '--no-first-run',
       '--no-default-browser-check', '--disable-features=MediaRouter,OptimizationHints', '--password-store=basic']
@@ -362,6 +373,7 @@ async function launchImplementation(input) {
       for (const method of ['Network.requestWillBeSent', 'Network.responseReceived', 'Network.loadingFinished', 'Network.loadingFailed',
         'Runtime.exceptionThrown', 'Runtime.consoleAPICalled', 'Log.entryAdded']) session.on(method, params => journal?.handle(method, params))
     }
+    checkpoint('IDENTITY')
     const version = await browserSend('Browser.getVersion')
     need(typeof version.product === 'string' && /^(?:Chrome|HeadlessChrome)\/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(version.product))
     product = version.product; record = await actualChrome(options, browserSend)
@@ -382,6 +394,7 @@ async function launchImplementation(input) {
       })
       await browserSend('Target.setDiscoverTargets', { discover: true })
     }
+    checkpoint('READY')
     await Promise.all(['Runtime.enable', 'Page.enable', 'Network.enable', 'Log.enable'].map(method => pageSend(method)))
     await pageSend('Network.setCacheDisabled', { cacheDisabled: true })
     const evaluate = async expression => {

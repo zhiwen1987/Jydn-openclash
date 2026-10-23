@@ -55,6 +55,15 @@ class TestBrowserOrchestration(unittest.TestCase):
             self.assertEqual(browser.main(['--unknown-SECRET', '/private/SECRET']), 1)
         self.assertIn('raw_input_suppressed=true', stream.getvalue())
         self.assertNotIn('SECRET', stream.getvalue())
+        diagnostic = io.StringIO()
+        private = (b'raw SECRET exception\nPROBE_BROWSER_DRIVER_STAGE=HOME\n'
+                   b'PROBE_BROWSER_DRIVER_STAGE=SECRET\n'
+                   b'PROBE_BROWSER_LAB=FAIL stage=PREWARM code=SECRET raw_input_suppressed=true\n')
+        with mock.patch.object(browser.pathlib.Path, 'exists', return_value=True), \
+             mock.patch.object(browser.N, 'stable_read', return_value=(private, None)), \
+             contextlib.redirect_stderr(diagnostic):
+            browser.public_failure_diagnostic(pathlib.Path('/private'))
+        self.assertEqual(diagnostic.getvalue(), 'PROBE_BROWSER_DRIVER_STAGE=HOME\n')
 
     def test_original_default_hooks_are_noops_and_entrypoint_remains_runner(self):
         lab = object.__new__(browser.N.Lab); lab.bundle = pathlib.Path('/private/bundle')

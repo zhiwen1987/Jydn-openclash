@@ -52,6 +52,7 @@ def public_failure_diagnostic(bundle):
     for relative, pattern in (
         ('supervisor.private', r'^PROBE_BROWSER_LAB=FAIL stage=([A-Z_]+) code=([A-Z_]+) raw_input_suppressed=true$'),
         ('logs/browser.private', r'^PROBE_BROWSER_CONTROLLER=FAIL stage=([A-Z_]+) raw_input_suppressed=true$'),
+        ('logs/browser.private', r'^PROBE_BROWSER_DRIVER_STAGE=([A-Z_]+)$'),
     ):
         path = bundle / relative
         if not path.exists():
@@ -61,7 +62,9 @@ def public_failure_diagnostic(bundle):
             match = re.fullmatch(pattern, line)
             if not match:
                 continue
-            stages = {'ARGUMENTS', 'PREWARM', 'FLOW', 'WAIT_EXPIRED', 'EXPIRED', 'CLOSE', 'DONE', 'FRESH', 'UNEXPECTED'}
+            stages = {'ARGUMENTS', 'PREWARM', 'FLOW', 'WAIT_EXPIRED', 'EXPIRED', 'CLOSE', 'DONE', 'FRESH', 'UNEXPECTED',
+                      'ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES',
+                      'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY'}
             if match[1] in stages and (len(match.groups()) == 1 or match[2] in ERRORS):
                 sys.stderr.write(line + '\n')
 

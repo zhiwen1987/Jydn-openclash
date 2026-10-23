@@ -147,8 +147,17 @@ test('driver DOM extractor reads presentation without HTML state clock or fetch 
   assert.ok(!source.includes('connectOverCDP('))
   assert.ok(!/\bHOME\s*:/.test(source)); assert.ok(!source.includes('process.env.HOME ='))
   assert.ok(source.includes("'chrome-exit.private.json'")); assert.ok(source.includes('exit.exitCode === 0'))
+  assert.deepEqual([...source.matchAll(/checkpoint\('([A-Z_]+)'\)/g)].map(match => match[1]),
+    ['ENVIRONMENT', 'HOME', 'DIRECTORIES', 'CONFIG', 'CERTIFICATES', 'NSS_INIT', 'NSS_IMPORT', 'NSS_READBACK', 'LAUNCH', 'IDENTITY', 'READY'])
+  assert.ok(source.includes('Closed checkpoints mean entry into a factory step, never its completion.'))
+  assert.ok(source.indexOf('const options = validateLaunchOptions(input)') < source.indexOf("checkpoint('ENVIRONMENT')"))
 })
 
 test('driver invalid factory invocation is sanitized before any launch or filesystem work', async () => {
-  await assert.rejects(launchProbeDriver({ engine: 'private-sentinel' }), { message: 'probe browser driver rejected' })
+  const original = process.stderr.write, writes = []
+  process.stderr.write = function (value) { writes.push(value); return true }
+  try {
+    await assert.rejects(launchProbeDriver({ engine: 'private-sentinel' }), { message: 'probe browser driver rejected' })
+  } finally { process.stderr.write = original }
+  assert.deepEqual(writes, [])
 })
