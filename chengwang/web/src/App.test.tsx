@@ -58,7 +58,11 @@ describe('App', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: '代理节点' }))
+    const observationNavigation = screen.getByRole('button', { name: '代理节点' })
+    // The icon-only mobile sidebar must retain a programmatic name even when
+    // its visual text span is hidden by responsive CSS.
+    expect(observationNavigation).toHaveAttribute('aria-label', '代理节点')
+    fireEvent.click(observationNavigation)
     expect(await screen.findByText('Mihomo Controller 周期读回成功')).toBeInTheDocument()
     expect(screen.getByText('延迟和控制器可达不等于业务可用')).toBeInTheDocument()
     expect(screen.getAllByText('未评估').length).toBeGreaterThanOrEqual(4)

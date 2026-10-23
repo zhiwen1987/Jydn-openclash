@@ -30,7 +30,11 @@ CHENGWANG_PROBE_CACHE_MAX_AGE=30s
 
 本地 Node 25.2.1 / npm 11.6.2；实际安装 React 19.3.1 / Vite 8.3.4，未更新依赖锁。110 个前端单元测试通过（原 77 + 新 33），lint/build 通过。UI/React 技能用于清晰空态、可访问标签、取消与竞态清除、TTL 降级；Browser plugin not available，因此使用现有 Playwright，在 1440×1000 与 375×900 渲染，展开样本、清除令牌、验证无横向溢出/无 pageerror。浏览器输入为明确合成 fixture，不是服务端/真实探针证明；初次未拦截 API 的页面请求失败不计为真实服务可用。
 
-新增 71 个父模块具名 Linux 测试（secure reader 32、provider 19、API 10、runtime 10）；子模块新增 4 个显式配置测试。它们尚待真实 Linux 普通/race/vet 结果，不能从源码存在推断已通过。CI 要求新增 exact 名单，并原样保留 2320/728/700 历史名单与哈希；Python 闭集反例只验证门本身，不替代 Go 执行。
+补充浏览器 QA：正常等待 7 秒原 TTL 越界，绿色层与原 runID 消失；键盘 Enter 可展开；人为 503 后旧明细清空。直接以 375px 打开时发现既有图标导航的文字隐藏后缺少可访问名称，已补 `aria-label`/`title`（不改导航结构或视觉），并补原 App 场景断言。修正后直接手机宽度加载、键盘进入代理节点、读取未配置空态均通过，宽度 375/scrollWidth 375，最后会话 console error/warning 0。此前动态 import/无名称定位失败仅为浏览器试验失败，不计为通过或真实服务故障。截图在本机 Temp：`chengwang-p1-probe-desktop.png`、`chengwang-p1-probe-mobile.png`、`chengwang-p1-probe-expired-error-mobile.png`、`chengwang-p1-probe-mobile-direct-entry.png`；不是永久证据库或生产截图。
+
+新增 71 个父模块具名 Linux 测试（secure reader 32、provider 19、API 10、runtime 10）；子模块新增 4 个显式配置测试。CI 要求新增 exact 名单，并原样保留 2320/728/700 历史名单与哈希；Python 闭集反例只验证门本身，不替代 Go 执行。
+
+修正提交 `f44366634c76db06d1f5ed326aec16ee643c86a5` 的父 CI [39890627971](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/39890627971) 已成功。root 独立下载 job `120209257183` 原 API 日志 5,581,085 bytes，SHA256 `b706f3ad82afc59ba1f0ac6161595750d063c88ca057ffdede86d30f91f86a71`；按最后主命令块分离普通/race，各实际 2391 Test pass/0 Test skip/0 fail＝旧 2320 + exact 新 71，旧集合 SHA256 两轮均 `fe56888dcace3a596e76409a6c63b83c9f68ef57ef4921d34577c6a11bd112e8`，32 secure native 在两轮均实际通过；vet 静默命令所在步骤成功，不冒称有独立 vet 输出。不能把 Fuzz 种子和无测试包 skip 混作这些 Test 计数。子 image-binding CI 与追加手机导航变更的最终 CI 尚需单独读回；不得把此结果套到任意后续 HEAD。
 
 Windows 不运行 Go build/test/mod/download、Docker 或 WSL。仅 gofmt 和本地前端/Python 检查。实际 Linux CI 结果必须另行读回并记录。
 
@@ -38,7 +42,7 @@ Windows 不运行 Go build/test/mod/download、Docker 或 WSL。仅 gofmt 和本
 
 ## 尚未完成
 
-1. 新能力的真实 Linux 普通/race/vet 与原始回归读回（提交时待执行）。
+1. 子模块 image-binding 整体回归，以及手机导航追加提交的最终 CI；父 Go 的 f443666 指定范围已按上文完成原始读回，不外推其它提交或真实 agent 链路。
 2. 真实 probe-agent 经正常 DoT+HTTPS 产生 spool/ledger，再由主 API 经正常 TLS 与浏览器读回原 runID、catalog、各层结果，以及重启和原始 bytes 不变的端到端实验；现有 native 测试只覆盖 reader/runtime，不冒充这个闭环。
 3. 真实设备部署、生产挂载/真实外网目标、灰度观察、回滚演练与运营监控。完整系统其它缺口仍见 [能力缺口审计](SYSTEM-COMPLETION-GAP-AUDIT.md)。
 

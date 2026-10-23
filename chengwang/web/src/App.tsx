@@ -64,7 +64,7 @@ function App() {
       <TopBar snapshot={snapshot} />
       <aside className="sidebar" aria-label="主导航">
         <nav>{nav.map(section => <div className="nav-group" key={section.group}><span className="nav-group-title">{section.group}</span>{section.items.map(([label, Icon]) => (
-          <button key={label} className={page === label ? 'nav-item active' : 'nav-item'} onClick={() => setPage(label)}>
+          <button key={label} aria-label={label} title={label} className={page === label ? 'nav-item active' : 'nav-item'} onClick={() => setPage(label)}>
             <Icon size={18} /><span>{label}</span>
           </button>
         ))}</div>)}</nav>
