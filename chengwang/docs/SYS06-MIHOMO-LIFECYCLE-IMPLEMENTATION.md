@@ -147,3 +147,9 @@ db99f13的[实际CI 40113825822](https://github.com/zhiwen1987/Jydn-openclash/ac
 新实际产品测试通过14次HTTPS检查独立批准、UNKNOWN状态、候选已更新但旧head仍为generation1、原始transport结果及耐久观察、重放和再次创建不增加请求。被阻止的新建复用原候选，避免“同配置本来就拒绝”的空验收。4阶段原始采集、故障观察、Go事件、源绑定、退出及5端口清理均由独立新检查器核验；采集器不生成旧positive报告来骗过原检查器。新入口的源码或合成模型通过不构成新Linux实测通过；必须取得同提交的真实原件与fresh结果后另行记账。
 
 新epoch恢复仍未实现。即使候选读回稳定，也不得自动重发、清除UNKNOWN、篡改旧结果或把JSON/PID当能力。下一恢复阶段必须有单独批准的目标完整工件、原owned进程实际Stop／Wait／stream／group／监听关闭、新epoch实际启动与验证、旧未知事实保留及耐久head提交；控制面丢失原句柄的场景需要另设可信supervisor边界。完整故障矩阵、恢复自动化、多内核、DNS、业务分流、企业治理、全功能UI、容量／浸泡、灰度和生产读回均未完成。
+
+### c9167f 首次实际 UNKNOWN 运行：产品实验成功，格式门使整 CI 失败
+
+提交 `c9167f3299bbe438cfc945caff5d16e906a1f6d3` 的实际运行 `40140626055` 已终结：13任务中9成功、4失败。新增UNKNOWN的真实Go进程退出0，原报告PASS，58公件齐全，实际14次HTTPS和32份GET正文保留；原生Transport的真实204／零正文EOF／成功Close观察与adapter的unknown／dispatched=true／status0分开。旧head为generation1，耐久原transport及一次观察保留，replay／新建后原WAL与0→1→1→1计数不变，关闭返回与五端口拒绝均有原件。Go事件有33项胶囊MODEL语义和1项真实产品顶层实验；不能把33项模型称为33次真实业务验证。
+
+整门没有通过：实际gofmt产生58,029字节差异，foundation／UNKNOWN及各自fresh均失败。独立复核确认原未改checker拒绝；另副本仅排除这一项空格式约束并将原PASS返回替换为诊断检查点后，抵达其余原语句的返回前，不执行或构造原PASS。因此该诊断不等于原检查器通过。四份实际formatter补丁已严格按c9167f原Git preimage转入源码，foundation与UNKNOWN两份补丁派生结果逐字节一致；没有本机执行gofmt。修正版必须再次真实CI验收，原失败不改判。另加强三个既有负例，让after／replay／final一致变异，直接检验durable attempt／transport／observation门，避免只被前面的快照不一致检查拒绝。

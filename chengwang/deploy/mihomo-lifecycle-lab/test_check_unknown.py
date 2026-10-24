@@ -128,6 +128,26 @@ class SyntheticUnknownEvidenceModels(unittest.TestCase):
             row = report['http'][index]; value = response(row); mutate(value); set_response(row, value)
         self.report_reject(change)
 
+    def coherent_durable_reject(self, mutate):
+        # Mutate all three snapshots together so snapshot inequality cannot
+        # mask the durable-result/attempt/observation gate being exercised.
+        raw, sources = fixture(); report = json.loads(raw['unknown-report.json'])
+        for phase in ('after', 'replay', 'final'):
+            mutate(report[phase])
+        self.assertEqual(report['after'], report['replay'])
+        self.assertEqual(report['after'], report['final'])
+        raw['unknown-report.json'] = wire(report)
+        elf = json.loads(raw['consumption.json'])['elf']
+        netns = int(json.loads(raw['sandbox.json'])['networkNamespace'][5:-1])
+        captures = [U.capture(raw, stage, i, COMMIT, elf, netns) for i, stage in enumerate(U.S.STAGES)]
+        operation, planned, approved, result, initial, head = U.http(report)
+        # Both the direct semantic gate and complete public gate must reject;
+        # successful capture/HTTP prerequisites run outside either assertion.
+        with self.assertRaises(ValueError):
+            U.states(report, captures, COMMIT, operation, planned, result, head)
+        with self.assertRaises(ValueError):
+            U.verify_raw(raw, sources, COMMIT)
+
     def test_complete_synthetic_unknown_has_bounded_claims_not_execution(self):
         raw, sources = fixture(); value = U.verify_raw(raw, sources, COMMIT)
         self.assertEqual(len(raw), 58); self.assertEqual(len(sources), len(U.FILES))
@@ -251,18 +271,18 @@ class SyntheticUnknownEvidenceModels(unittest.TestCase):
 
     def test_old_unknown_wal_and_missing_or_invented_observation_reject(self):
         self.report_reject(lambda r:r['after'].__setitem__('state',copy.deepcopy(r['before'])))
-        self.report_reject(lambda r:r['after'].__setitem__('lastObservation',None))
-        self.report_reject(lambda r:r['after']['state'].__setitem__('unknownObservationCount',0))
-        self.report_reject(lambda r:r['after'].__setitem__('activeAttempt',2))
+        self.coherent_durable_reject(lambda v:v.__setitem__('lastObservation',None))
+        self.coherent_durable_reject(lambda v:v['state'].__setitem__('unknownObservationCount',0))
+        self.coherent_durable_reject(lambda v:v.__setitem__('activeAttempt',2))
 
     def test_durable_unknown_cannot_be_completed_or_lose_original_result(self):
-        self.report_reject(lambda r:r['after']['state'].__setitem__('activePhase','ACKNOWLEDGED_SUPPORTED_POSTCONDITION'))
-        self.report_reject(lambda r:r['after'].__setitem__('activeTransport',None))
-        self.report_reject(lambda r:r['after']['state']['completed'].append({}))
+        self.coherent_durable_reject(lambda v:v['state'].__setitem__('activePhase','ACKNOWLEDGED_SUPPORTED_POSTCONDITION'))
+        self.coherent_durable_reject(lambda v:v.__setitem__('activeTransport',None))
+        self.coherent_durable_reject(lambda v:v['state']['completed'].append({}))
 
     def test_durable_observation_must_bind_original_intent_revision_and_receipt(self):
         for key,value in [('intentSHA256','d'*64),('evidenceSHA256','e'*64),('conclusion','STABLE_NEW_PROJECTION'),('commitRevision',8),('commitRevision',9.0)]:
-            self.report_reject(lambda r,k=key,v=value:r['after']['lastObservation'].__setitem__(k,v))
+            self.coherent_durable_reject(lambda v,k=key,x=value:v['lastObservation'].__setitem__(k,x))
 
     def test_replay_requires_exact_original_request_and_only_replayed_flag(self):
         self.response_reject(11,lambda e:e['result'].__setitem__('replayed',False))

@@ -23,16 +23,16 @@ var processLabReloadFaultIssuer labReloadFaultIssuer
 // LabReloadFaultObservation is instrumentation, never approval or proof of
 // server payload application. Nil means the corresponding event was not seen.
 type LabReloadFaultObservation struct {
-	Schema              string  `json:"schema"`
-	State               string  `json:"state"`
-	Claimed             bool    `json:"claimed"`
+	Schema               string  `json:"schema"`
+	State                string  `json:"state"`
+	Claimed              bool    `json:"claimed"`
 	UnderlyingRoundTrips int     `json:"underlyingRoundTrips"`
-	StatusCode          *int    `json:"statusCode"`
-	BodyBytes           *int    `json:"bodyBytes"`
-	EOFObserved         *bool   `json:"eofObserved"`
-	CloseSucceeded      *bool   `json:"closeSucceeded"`
-	Injected            bool    `json:"injected"`
-	FailureCode         *string `json:"failureCode"`
+	StatusCode           *int    `json:"statusCode"`
+	BodyBytes            *int    `json:"bodyBytes"`
+	EOFObserved          *bool   `json:"eofObserved"`
+	CloseSucceeded       *bool   `json:"closeSucceeded"`
+	Injected             bool    `json:"injected"`
+	FailureCode          *string `json:"failureCode"`
 }
 
 type labReloadFaultIssuer struct {
@@ -53,7 +53,7 @@ type LabReloadFaultHandle struct{ core *labReloadFaultCore }
 
 var _ json.Marshaler = LabReloadFaultHandle{}
 
-func (h LabReloadFaultHandle) String() string { return labReloadFaultDebug }
+func (h LabReloadFaultHandle) String() string   { return labReloadFaultDebug }
 func (h LabReloadFaultHandle) GoString() string { return labReloadFaultDebug }
 func (h LabReloadFaultHandle) Format(state fmt.State, verb rune) {
 	_, _ = io.WriteString(state, labReloadFaultDebug)
@@ -86,11 +86,26 @@ func (issuer *labReloadFaultIssuer) issue() (*LabReloadFaultHandle, error) {
 }
 
 func labReloadFaultCopy(value LabReloadFaultObservation) LabReloadFaultObservation {
-	if value.StatusCode != nil { v := *value.StatusCode; value.StatusCode = &v }
-	if value.BodyBytes != nil { v := *value.BodyBytes; value.BodyBytes = &v }
-	if value.EOFObserved != nil { v := *value.EOFObserved; value.EOFObserved = &v }
-	if value.CloseSucceeded != nil { v := *value.CloseSucceeded; value.CloseSucceeded = &v }
-	if value.FailureCode != nil { v := *value.FailureCode; value.FailureCode = &v }
+	if value.StatusCode != nil {
+		v := *value.StatusCode
+		value.StatusCode = &v
+	}
+	if value.BodyBytes != nil {
+		v := *value.BodyBytes
+		value.BodyBytes = &v
+	}
+	if value.EOFObserved != nil {
+		v := *value.EOFObserved
+		value.EOFObserved = &v
+	}
+	if value.CloseSucceeded != nil {
+		v := *value.CloseSucceeded
+		value.CloseSucceeded = &v
+	}
+	if value.FailureCode != nil {
+		v := *value.FailureCode
+		value.FailureCode = &v
+	}
 	return value
 }
 
@@ -149,7 +164,9 @@ func (transport *labReloadFaultTransport) finish(core *labReloadFaultCore, state
 	core.value.EOFObserved = eof
 	core.value.CloseSucceeded = closed
 	core.value.Injected = injected
-	if code != "" { core.value.FailureCode = &code }
+	if code != "" {
+		core.value.FailureCode = &code
+	}
 }
 
 func (transport *labReloadFaultTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -173,7 +190,10 @@ func (transport *labReloadFaultTransport) RoundTrip(request *http.Request) (*htt
 	issuer.mu.Unlock()
 	response, err := transport.inner.RoundTrip(request)
 	var status *int
-	if response != nil { v := response.StatusCode; status = &v }
+	if response != nil {
+		v := response.StatusCode
+		status = &v
+	}
 	if err != nil {
 		transport.finish(core, "PASSTHROUGH", "UNDERLYING_ERROR", status, nil, nil, nil, false)
 		return response, err
@@ -183,9 +203,13 @@ func (transport *labReloadFaultTransport) RoundTrip(request *http.Request) (*htt
 		return response, nil
 	}
 	code := ""
-	if response.StatusCode != http.StatusNoContent { code = "STATUS_NOT_204" } else if response.Body == nil {
+	if response.StatusCode != http.StatusNoContent {
+		code = "STATUS_NOT_204"
+	} else if response.Body == nil {
 		code = "BODY_UNAVAILABLE"
-	} else if !labReloadFaultFraming(response) { code = "FRAMING_REJECTED" } else if request.Context().Err() != nil {
+	} else if !labReloadFaultFraming(response) {
+		code = "FRAMING_REJECTED"
+	} else if request.Context().Err() != nil {
 		code = "CONTEXT_REJECTED"
 	}
 	if code != "" {
@@ -199,9 +223,15 @@ func (transport *labReloadFaultTransport) RoundTrip(request *http.Request) (*htt
 	eof := readErr == nil && size < maxReloadResponseBytes+1
 	closeErr := response.Body.Close()
 	closed := closeErr == nil
-	if readErr != nil { code = "READ_REJECTED" } else if size != 0 { code = "BODY_NOT_EMPTY" } else if closeErr != nil {
+	if readErr != nil {
+		code = "READ_REJECTED"
+	} else if size != 0 {
+		code = "BODY_NOT_EMPTY"
+	} else if closeErr != nil {
 		code = "CLOSE_REJECTED"
-	} else if request.Context().Err() != nil { code = "CONTEXT_REJECTED" }
+	} else if request.Context().Err() != nil {
+		code = "CONTEXT_REJECTED"
+	}
 	if code != "" {
 		transport.finish(core, "FAILED", code, status, &size, &eof, &closed, false)
 		return nil, errLabReloadResponseLost
