@@ -1,0 +1,59 @@
+{
+  "schema": "chengwang.capability-failure-diagnostics-development/v1",
+  "baseCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+  "scope": "FAILURE_ONLY_DIAGNOSTICS_NOT_BUSINESS_CAUSE_OR_FIX_PROOF",
+  "failureSchema": "chengwang.capability-truth-driver-failure/v2",
+  "closedOperations": 41,
+  "successfulPublicFilesUnchanged": 17,
+  "successCheckerAndLegacySourcesUnchanged": true,
+  "helperTests": {
+    "actualPassed": 187,
+    "supervisor": 16,
+    "scene": 36,
+    "checker": 50,
+    "node": 85,
+    "oldSceneNamesPreserved": 28,
+    "oldNodeNamesPreserved": 79,
+    "skipped": 0,
+    "sourceStable": true,
+    "directory": "D:/CodexData/workspace/capability-diagnostics-cpu-zemrbp8t",
+    "resultSHA256": "3c533b3fd572e1a164f2ac2241a319afd4d68a30c522f8fd8e52f247534fe06d"
+  },
+  "failedAttemptsRetained": [
+    {
+      "directory": "D:/CodexData/workspace/capability-diagnostics-cpu-nn_6omxv",
+      "observation": "16_SUPERVISOR_AND_36_SCENE_PASSED_CHECKER_48_PASSED_2_ERRORS_NODE_NOT_STARTED",
+      "cause": "TEST_ONLY_TAP_FRAMING_FIXTURE_FIXED_AT_79_AFTER_FROZEN_NODE_LIST_EXTENDED_TO_85",
+      "correction": "USE_CURRENT_FROZEN_NODE_COUNT_IN_GENERIC_FRAMING_FIXTURE_OLD_TEST_NAMES_AND_NEGATIVES_RETAINED"
+    },
+    {
+      "directory": "D:/CodexData/workspace/capability-diagnostics-cpu-dizwbtok",
+      "observation": "102_PYTHON_PASSED_NODE_84_PASSED_1_FAILED",
+      "cause": "NEW_TEST_FIXTURE_READ_CAPTURE_SCHEMA_FROM_NESTED_INSTEAD_OF_TOP_EXACT_SCHEMA_TABLE",
+      "correction": "FIX_TEST_SCHEMA_LOOKUP_ONLY_NO_RUNTIME_OR_TEST_NAME_CHANGE"
+    }
+  ],
+  "staticChecks": {
+    "directory": "D:/CodexData/workspace/capability-diagnostics-static-wuvyfbfo",
+    "resultSHA256": "9b440de2b311638f6105f2ac1af3069446f7a603a67570e87240911cd01cc0ce",
+    "closedOperationSetsEqual": 41,
+    "nodeSyntaxFiles": 7,
+    "workflowShellBlocks": 21,
+    "sourceStable": true
+  },
+  "businessFailureCauseEstablished": false,
+  "independentPeerReview": {
+    "directory": "D:/CodexData/workspace/capability-v2-peer-review-d7c1558fad14",
+    "resultSHA256": "91a2c088db5ea43566361e160c6bef96783d4624d5097e56454658ba935255b2",
+    "actualCPUOriginalLogsIndependentlyRead": true,
+    "remainingBlockingSourceFindingObserved": false,
+    "runtimeAcceptanceProven": false
+  },
+  "realV2BrowserEvidenceObtained": false,
+  "localProductRuntimeExecuted": false,
+  "localBuildExecuted": false,
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "overallProjectComplete": false
+}

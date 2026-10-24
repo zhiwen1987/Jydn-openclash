@@ -1,0 +1,88 @@
+{
+  "schema": "chengwang.capability-failure-analysis/v1",
+  "sourceCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+  "runId": 40068275370,
+  "observation": "ACTUAL_FAILED_CI_ORIGINALS_NOT_SUCCESS",
+  "originalDirectory": "D:/CodexData/workspace/capability-ci-index-m5_gnx3f",
+  "failures": [
+    {
+      "artifact": "capability-truth-backend_configured-chrome-cdp-40068275370-1",
+      "failureSHA256": "231a8c749fc4724839cf0baca8dc8180424f2f5366a8fe2dbfd0ee1ea2c366ec",
+      "stage": "UI_RUN",
+      "driverDiagnostics": {
+        "captures": 2,
+        "events": 17,
+        "failed": true,
+        "normalCloseCompleted": false,
+        "production": false,
+        "schema": "chengwang.capability-truth-driver-failure/v1",
+        "stage": "NAVIGATE"
+      },
+      "capturedOriginals": [],
+      "serverExitCode": 0,
+      "controllerExitCode": 1,
+      "forcedSignals": 1
+    },
+    {
+      "artifact": "capability-truth-backend_configured-playwright-40068275370-1",
+      "failureSHA256": "7feed1b155e56605cf312f99269892c3a2b2508e4a650e79ffa84bb86d239611",
+      "stage": "UI_RUN",
+      "driverDiagnostics": {
+        "captures": 1,
+        "events": 16,
+        "failed": true,
+        "normalCloseCompleted": false,
+        "production": false,
+        "schema": "chengwang.capability-truth-driver-failure/v1",
+        "stage": "NAVIGATE"
+      },
+      "capturedOriginals": [],
+      "serverExitCode": 0,
+      "controllerExitCode": 1,
+      "forcedSignals": 1
+    },
+    {
+      "artifact": "capability-truth-default-chrome-cdp-40068275370-1",
+      "failureSHA256": "77b868094da231b78b66d5a8a876f3edd3aea281eedd5b75fa103414b8ee1216",
+      "stage": "UI_RUN",
+      "driverDiagnostics": {
+        "captures": 0,
+        "events": 15,
+        "failed": true,
+        "normalCloseCompleted": false,
+        "production": false,
+        "schema": "chengwang.capability-truth-driver-failure/v1",
+        "stage": "NAVIGATE"
+      },
+      "capturedOriginals": [],
+      "serverExitCode": 0,
+      "controllerExitCode": 1,
+      "forcedSignals": 1
+    },
+    {
+      "artifact": "capability-truth-default-playwright-40068275370-1",
+      "failureSHA256": "4174a0cd6c317ab1857313c1f44ef4ff0beb79bf8637a63f2b1a14b75bb7e81e",
+      "stage": "UI_RUN",
+      "driverDiagnostics": {
+        "captures": 0,
+        "events": 15,
+        "failed": true,
+        "normalCloseCompleted": false,
+        "production": false,
+        "schema": "chengwang.capability-truth-driver-failure/v1",
+        "stage": "NAVIGATE"
+      },
+      "capturedOriginals": [],
+      "serverExitCode": 0,
+      "controllerExitCode": 1,
+      "forcedSignals": 1
+    }
+  ],
+  "causeEstablished": false,
+  "knownDiagnosticGap": "NO_CAPTURE_DOM_DRIVER_OR_PNG_EXPORTED_ON_FAILURE_ONLY_BROAD_NAVIGATE_AND_COUNTS",
+  "proposedAction": "VERSIONED_FAILURE_ONLY_CLOSED_OPERATION_FIRST_FAILURE_AND_ACTUAL_COUNTERS_THEN_ISOLATED_CI",
+  "successContractChanged": false,
+  "production": false,
+  "mainMerged": false,
+  "overallProjectComplete": false
+}

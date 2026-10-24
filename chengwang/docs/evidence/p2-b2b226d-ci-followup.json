@@ -1,0 +1,74 @@
+{
+  "schema": "chengwang.capability-correction-ci-followup/v1",
+  "sourceCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+  "pushed": true,
+  "remoteVerified": true,
+  "filesCommitted": 11,
+  "localHelperCPU": {
+    "tests": 702,
+    "pythonTests": 404,
+    "nodeTests": 298,
+    "capabilitySubsetIncluded": 173,
+    "skipped": 0,
+    "independentAuditSHA256": "2d89ce65c10e86a15e3bfd05c7d838eb78c076a1a62e795760b8440aa2542801"
+  },
+  "actualSourceBoundCLIs": {
+    "actualCLIExitCodes": [
+      0,
+      0
+    ],
+    "originalLogsStable": true,
+    "production": false,
+    "realBrowserExecuted": false,
+    "realProductServerExecuted": false,
+    "reportSHA256": "fb4d87b95ad2c915629e1611047c56de9df3260eb4777b3320664b8bfd627fcd",
+    "reportsByteEqual": true,
+    "scope": "ACTUAL_COMMITTED_SOURCE_BOUND_CPU_TRANSCRIPT_CLIS_NOT_REAL_BROWSER",
+    "sourceCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+    "sourceFiles": 17,
+    "sourceStable": true,
+    "tests": 173,
+    "directory": "D:/CodexData/workspace/capability-source-cli-6zwg7mo7",
+    "resultSHA256": "b0472fbb19a32f5fe28fccc9063ad7ab3595334f63d884509c44210deba0f5da"
+  },
+  "ci": {
+    "state": "UNKNOWN_RATE_LIMITED",
+    "httpStatus": 403,
+    "remaining": 0,
+    "resetUTC": "2026-10-24T06:37:17Z",
+    "originalDirectory": "D:/CodexData/workspace/capability-ci-index-ipbsir9n",
+    "runHandlesObserved": []
+  },
+  "previous448BrowserWorkflowRemainsFailed": true,
+  "ciReadAfterRateLimitReset": {
+    "observedAtUTC": "2026-10-24T06:45:53Z",
+    "sourceCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+    "originalDirectory": "D:/CodexData/workspace/capability-ci-index-m5_gnx3f",
+    "parent": {"runId": 40068275506, "conclusion": "success"},
+    "subscriptionReadback": {"runId": 40068275429, "conclusion": "success"},
+    "browser": {
+      "runId": 40068275370,
+      "conclusion": "failure",
+      "legacyProducerSuccess": 8,
+      "legacyFreshSuccess": 8,
+      "capabilityProducerFailure": 4,
+      "capabilityFreshFailure": 4,
+      "capabilityFailureStage": "UI_RUN",
+      "capabilityServerExitCodes": [0, 0, 0, 0],
+      "capabilityControllerExitCodes": [1, 1, 1, 1],
+      "failureCause": "NOT_YET_DETERMINED",
+      "localIndependentSemanticReplayComplete": false
+    }
+  },
+  "independentFeatureDevelopment": {
+    "branch": "codex/chengwang-live-overview-20261024",
+    "worktree": "D:/CodexData/workspace/chengwang-live-overview-ou0cpq5q/r",
+    "sourceBase": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+    "state": "SOURCE_PROTOTYPE_UNCOMPILED_UNTESTED_NOT_PUSHED",
+    "production": false
+  },
+  "overallProjectComplete": false,
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false
+}

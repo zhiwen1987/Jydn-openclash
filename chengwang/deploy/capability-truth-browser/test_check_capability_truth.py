@@ -199,10 +199,11 @@ def observed_pages():
 
 def cpu_tap_framing():
     # Generic CPU text isolates transcript framing; the names pin is mocked in
-    # these two tests only. Actual B79 names are verified against its real TAP
+    # these two tests only. Actual frozen names are verified against real TAP
     # separately, and these strings never become browser evidence or a report.
-    rows = [line for i in range(1, 80) for line in ('# Subtest: CPU case ' + str(i), 'ok ' + str(i) + ' - CPU case ' + str(i))]
-    return ('\n'.join(rows + ['1..79', '# tests 79', '# suites 0', '# pass 79', '# fail 0', '# cancelled 0', '# skipped 0', '# todo 0']) + '\n').encode()
+    count = S.NODE_COUNT
+    rows = [line for i in range(1, count + 1) for line in ('# Subtest: CPU case ' + str(i), 'ok ' + str(i) + ' - CPU case ' + str(i))]
+    return ('\n'.join(rows + ['1..' + str(count), '# tests ' + str(count), '# suites 0', '# pass ' + str(count), '# fail 0', '# cancelled 0', '# skipped 0', '# todo 0']) + '\n').encode()
 
 
 class CapabilityCheckerContracts(unittest.TestCase):

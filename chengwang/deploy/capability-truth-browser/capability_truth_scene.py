@@ -12,6 +12,16 @@ SCHEMA = 'chengwang.capability-truth-supervisor/v1'
 TRUST = 'SOURCE_BOUND_TRUSTED_CI_NOT_INDEPENDENT_PRIVATE_STORAGE_ATTESTATION'
 ENDPOINT = 'ISOLATED_LOOPBACK_17892'
 FAILURE_STAGES = ('ENVIRONMENT', 'LAUNCH', 'NAVIGATE', 'KERNELS', 'CAPABILITIES', 'REFRESH', 'MOBILE', 'CLOSE', 'COMPLETE')
+FAILURE_OPERATIONS = ('ENVIRONMENT', 'LAUNCH', 'READY_WAIT', 'VIEWPORT', 'GOTO', 'DOCUMENT_READY', 'SNAPSHOT_WAIT',
+    'CHECKPOINT_SETTLE', 'PAGE_IDENTITY', 'DOM_READ', 'DOM_VALIDATE', 'PNG_CAPTURE', 'PNG_PUBLISH', 'CLICK_TARGET',
+    'CLICK_DISPATCH', 'PAGE_WAIT', 'TLS_CERTIFICATE', 'NORMAL_CLOSE', 'CHROME_EXIT_WAIT', 'LAUNCHER_EXIT_WAIT',
+    'PROCESS_EXIT_WAIT', 'JOURNAL_FINALIZE', 'PUBLIC_EXPORT', 'DRIVER_PUBLISH', 'COMPLETE', 'EVENT_REQUEST',
+    'EVENT_HEADERS', 'EVENT_FINISH', 'EVENT_FAILURE',
+    'RUNTIME_EVENT', 'TRANSPORT_EVENT', 'BODY_READ', 'BODY_DECODE', 'BODY_FENCE', 'BODY_BUILD_BINDING',
+    'CAPTURE_ROW', 'CAPTURE_EVENT', 'UNCLASSIFIED', 'EVENT_REQUEST_TIME', 'EVENT_HEADERS_TIME', 'EVENT_FINISH_TIME')
+FAILURE_COUNTERS = {'runtime_error': 'runtimeErrors', 'console_error': 'consoleErrors', 'console_warning': 'consoleWarnings',
+    'csp_error': 'cspErrors', 'asset_error': 'assetErrors', 'forbidden_request': 'forbiddenRequests',
+    'capture_error': 'captureErrors', 'net_fail': 'failedRequests'}
 PUBLIC = {'driver.json', 'captures.jsonl', 'dom.jsonl', 'overview-desktop.png', 'capabilities-desktop.png',
     'kernels-desktop.png', 'overview-mobile.png', 'capabilities-mobile.png', 'kernels-mobile.png',
     'processes.json', 'isolation.json', 'inputs.json', 'certificates.json', 'pin-consumption.json',
@@ -282,13 +292,30 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
         raw = N.stable_read(root / 'capability-failure.private.json', 4096, 10001, 0o600)[0]
         scene_fence_public(raw, 'capability-failure.private.json', policy[1], key, N, True)
         value = N.decode(raw)
-        keys = {'schema', 'stage', 'production', 'normalCloseCompleted', 'events', 'captures', 'failed'}
-        need(type(value) is dict and set(value) == keys and value['schema'] == 'chengwang.capability-truth-driver-failure/v1'
+        keys = {'schema', 'stage', 'production', 'normalCloseCompleted', 'events', 'captures', 'failed',
+            'operation', 'firstFailure', 'counters'}
+        need(type(value) is dict and set(value) == keys and value['schema'] == 'chengwang.capability-truth-driver-failure/v2'
              and value['stage'] in FAILURE_STAGES and value['production'] is False and value['failed'] is True
-             and type(value['normalCloseCompleted']) is bool)
+             and type(value['normalCloseCompleted']) is bool and type(value['operation']) is str
+             and value['operation'] in FAILURE_OPERATIONS)
         bounds = contract()['captureRules']['bounds']
         need(type(value['events']) is int and 0 <= value['events'] <= bounds['events']
              and type(value['captures']) is int and 0 <= value['captures'] <= bounds['requests'])
+        counters = value['counters']
+        if counters is not None:
+            need(type(counters) is dict and set(counters) == set(contract()['eightZero'])
+                 and all(type(count) is int and 0 <= count <= 512 for count in counters.values()))
+        first = value['firstFailure']
+        if first is not None:
+            need(type(first) is dict and set(first) == {'operation', 'code', 'requestId', 'kind'}
+                 and type(first['operation']) is str and first['operation'] in FAILURE_OPERATIONS
+                 and type(first['code']) is str and first['code'] in FAILURE_COUNTERS)
+            request_id = first['requestId']
+            need(request_id is None or type(request_id) is str and re.fullmatch(r'r([1-9]|[1-5][0-9]|6[0-8])', request_id))
+            need(first['kind'] is None or type(first['kind']) is str and first['kind'] in ('DOCUMENT', 'ASSET', 'SNAPSHOT', 'CAPABILITIES'))
+            # First journal rejection may be asynchronous relative to the main
+            # driver operation. Missing counters stay unknown, never zero-filled.
+            if counters is not None: need(counters[FAILURE_COUNTERS[first['code']]] >= 1)
         diagnostic = {name: value[name] for name in keys}
     except Exception:
         # Unavailable or unsafe observations stay unknown, never normal zeroes.

@@ -3,6 +3,7 @@ import base64
 import importlib.util
 import json
 import pathlib
+import re
 import types
 import unittest
 from unittest import mock
@@ -30,6 +31,13 @@ def native(values):
     return types.SimpleNamespace(canonical=lambda v: json.dumps(v).encode(), decode=json.loads, stable_read=mock.Mock(side_effect=read))
 
 
+def failure_fixture(**changes):
+    value = dict(schema='chengwang.capability-truth-driver-failure/v2', stage='CAPABILITIES', production=False,
+        normalCloseCompleted=False, events=7, captures=3, failed=True, operation='DOM_READ', firstFailure=None, counters=None)
+    value.update(changes)
+    return value
+
+
 class CapabilitySceneContracts(unittest.TestCase):
     def _failure_native(self, failure, *, missing=False, unknown_secret=False):
         secret = dict(schema='chengwang.capability-truth-secrets/v1', profile='default', fenceCanary='a' * 64, identityToken=None)
@@ -46,8 +54,7 @@ class CapabilitySceneContracts(unittest.TestCase):
         return types.SimpleNamespace(stable_read=mock.Mock(side_effect=read), decode=mock.Mock(side_effect=json.loads)), secret_raw, failure_raw
 
     def test_failure_diagnostic_projects_only_the_actual_closed_safe_record(self):
-        value = dict(schema='chengwang.capability-truth-driver-failure/v1', stage='CAPABILITIES', production=False,
-            normalCloseCompleted=False, events=7, captures=3, failed=True)
+        value = failure_fixture()
         N, _, _ = self._failure_native(value)
         observed = C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)
         self.assertEqual(observed, dict(driverCheckpoints=[], driverDiagnostics=value))
@@ -64,8 +71,7 @@ class CapabilitySceneContracts(unittest.TestCase):
         self.assertEqual([call.args[0].name for call in N.stable_read.call_args_list], ['supervisor-secret.private.json'])
 
     def test_malformed_failure_types_ranges_and_stages_are_suppressed(self):
-        good = dict(schema='chengwang.capability-truth-driver-failure/v1', stage='CLOSE', production=False,
-            normalCloseCompleted=True, events=7, captures=3, failed=True)
+        good = failure_fixture(stage='CLOSE', operation='NORMAL_CLOSE', normalCloseCompleted=True)
         patches = [dict(extra='unapproved'), dict(stage='UNKNOWN'), dict(events=True), dict(events=513), dict(captures=69),
             dict(events=-1), dict(normalCloseCompleted=1), dict(production=0), dict(failed=False), dict(schema='legacy/v1')]
         for patch in patches:
@@ -76,12 +82,98 @@ class CapabilitySceneContracts(unittest.TestCase):
         self.assertIsNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
 
     def test_leaking_failure_is_fenced_before_the_failure_json_decoder(self):
-        value = dict(schema='chengwang.capability-truth-driver-failure/v1', stage='a' * 64, production=False,
-            normalCloseCompleted=False, events=7, captures=3, failed=True)
+        value = failure_fixture(stage='a' * 64)
         N, secret_raw, failure_raw = self._failure_native(value)
         self.assertIsNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
         self.assertEqual(N.decode.call_args_list, [mock.call(secret_raw)])
         self.assertNotIn(mock.call(failure_raw), N.decode.call_args_list)
+
+    def test_failure_v2_operation_literals_match_the_driver_without_import_or_eval(self):
+        path = BASE.parents[1] / 'tools/capability-truth-browser/ui-driver.mjs'
+        source = path.read_text(encoding='utf-8')
+        matches = re.findall(r'export const FAILURE_OPERATIONS\s*=\s*Object\.freeze\(\s*(\[[\s\S]*?\])\s*\)', source)
+        self.assertEqual(len(matches), 1)
+        operations = json.loads(matches[0])
+        expected = {'ENVIRONMENT', 'LAUNCH', 'READY_WAIT', 'VIEWPORT', 'GOTO', 'DOCUMENT_READY', 'SNAPSHOT_WAIT',
+            'CHECKPOINT_SETTLE', 'PAGE_IDENTITY', 'DOM_READ', 'DOM_VALIDATE', 'PNG_CAPTURE', 'PNG_PUBLISH',
+            'CLICK_TARGET', 'CLICK_DISPATCH', 'PAGE_WAIT', 'TLS_CERTIFICATE', 'NORMAL_CLOSE', 'CHROME_EXIT_WAIT',
+            'LAUNCHER_EXIT_WAIT', 'PROCESS_EXIT_WAIT', 'JOURNAL_FINALIZE', 'PUBLIC_EXPORT', 'DRIVER_PUBLISH',
+            'COMPLETE', 'EVENT_REQUEST', 'EVENT_HEADERS', 'EVENT_FINISH', 'EVENT_FAILURE', 'RUNTIME_EVENT',
+            'TRANSPORT_EVENT', 'BODY_READ', 'BODY_DECODE', 'BODY_FENCE', 'BODY_BUILD_BINDING', 'CAPTURE_ROW',
+            'CAPTURE_EVENT', 'UNCLASSIFIED', 'EVENT_REQUEST_TIME', 'EVENT_HEADERS_TIME', 'EVENT_FINISH_TIME'}
+        self.assertEqual(len(operations), 41)
+        self.assertEqual(len(set(operations)), 41)
+        self.assertEqual(set(operations), expected)
+        self.assertEqual(tuple(operations), C.FAILURE_OPERATIONS)
+
+    def test_failure_v2_all_operation_and_error_counter_codes_are_readable(self):
+        for operation in C.FAILURE_OPERATIONS:
+            value = failure_fixture(operation=operation)
+            N, _, _ = self._failure_native(value)
+            self.assertEqual(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'], value)
+        for code, counter in C.FAILURE_COUNTERS.items():
+            counters = dict.fromkeys(C.contract()['eightZero'], 0); counters[counter] = 1
+            value = failure_fixture(firstFailure=dict(operation='EVENT_FINISH_TIME', code=code, requestId='r68', kind='CAPABILITIES'), counters=counters)
+            N, _, _ = self._failure_native(value)
+            self.assertEqual(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'], value)
+
+    def test_failure_v2_nullable_observations_are_not_zero_filled(self):
+        first = dict(operation='BODY_READ', code='capture_error', requestId=None, kind='ASSET')
+        for first_failure, counters in [(None, None), (first, None), (None, dict.fromkeys(C.contract()['eightZero'], 0))]:
+            value = failure_fixture(firstFailure=first_failure, counters=counters)
+            N, _, _ = self._failure_native(value)
+            observed = C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics']
+            self.assertEqual(observed, value)
+            if counters is None: self.assertIsNone(observed['counters'])
+            if first_failure is None: self.assertIsNone(observed['firstFailure'])
+
+    def test_failure_v2_first_failure_keys_aliases_kinds_and_types_are_closed(self):
+        good = dict(operation='EVENT_REQUEST_TIME', code='capture_error', requestId='r1', kind='DOCUMENT')
+        patches = [dict(extra='unapproved'), dict(operation='PRIVATE_OPERATION'), dict(code='PRIVATE_ERROR'),
+            dict(requestId='raw.123'), dict(requestId='r0'), dict(requestId='r01'), dict(requestId='r69'),
+            dict(requestId='/private/path'), dict(requestId=True), dict(kind='PRIVATE_KIND'), dict(kind=1)]
+        for patch in patches:
+            N, _, _ = self._failure_native(failure_fixture(firstFailure={**good, **patch}))
+            self.assertIsNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
+        for first in [True, [], {}, {key: value for key, value in good.items() if key != 'kind'}]:
+            N, _, _ = self._failure_native(failure_fixture(firstFailure=first))
+            self.assertIsNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
+
+    def test_failure_v2_counters_are_exact_bounded_integers(self):
+        good = dict.fromkeys(C.contract()['eightZero'], 0)
+        for counters in [{**good, 'extra': 0}, {key: count for key, count in good.items() if key != 'failedRequests'},
+                *[{**good, 'captureErrors': count} for count in [True, -1, 513, 1.5, '1']], [], False]:
+            N, _, _ = self._failure_native(failure_fixture(counters=counters))
+            self.assertIsNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
+        N, _, _ = self._failure_native(failure_fixture(counters={**good, 'captureErrors': 512}))
+        self.assertIsNotNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
+
+    def test_failure_v2_first_failure_requires_its_own_observed_counter(self):
+        first = dict(operation='EVENT_FAILURE', code='net_fail', requestId=None, kind=None)
+        counters = dict.fromkeys(C.contract()['eightZero'], 0); counters['captureErrors'] = 1
+        N, _, _ = self._failure_native(failure_fixture(firstFailure=first, counters=counters))
+        self.assertIsNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
+        counters['failedRequests'] = 1
+        N, _, _ = self._failure_native(failure_fixture(firstFailure=first, counters=counters))
+        self.assertIsNotNone(C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics'])
+
+    def test_failure_v2_keeps_async_first_operation_independent_of_main_operation(self):
+        first = dict(operation='BODY_BUILD_BINDING', code='capture_error', requestId='r2', kind=None)
+        counters = dict.fromkeys(C.contract()['eightZero'], 0); counters['captureErrors'] = 1
+        value = failure_fixture(operation='SNAPSHOT_WAIT', firstFailure=first, counters=counters)
+        N, _, _ = self._failure_native(value)
+        observed = C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)['driverDiagnostics']
+        self.assertEqual(observed, value)
+        self.assertNotEqual(observed['operation'], observed['firstFailure']['operation'])
+
+    def test_failure_v2_rejects_legacy_or_missing_operation_without_exposing_text(self):
+        values = [failure_fixture(schema='chengwang.capability-truth-driver-failure/v1'),
+            failure_fixture(operation='https://private.invalid/?token=sentinel'), failure_fixture(operation=True),
+            {key: value for key, value in failure_fixture().items() if key != 'firstFailure'}]
+        for value in values:
+            N, _, _ = self._failure_native(value)
+            observed = C.scene_failure_diagnostics(None, None, ROOT, 'b' * 32, DEFAULT, N)
+            self.assertEqual(observed, dict(driverCheckpoints=[], driverDiagnostics=None))
 
     def test_profiles_are_closed_and_do_not_accept_legacy_scenarios(self):
         self.assertEqual(C.profile(DEFAULT), 'default'); self.assertEqual(C.profile(CONFIGURED), 'backend_configured')

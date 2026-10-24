@@ -14,13 +14,13 @@ SELF = 'chengwang/deploy/capability-truth-browser/check_capability_synthetic.py'
 PYTHON = {
     'supervisor-unit.log': ('chengwang/deploy/browser-scene-supervisor/test_supervisor.py', 'SupervisorContracts', 16,
         '55a5b1f94d354448556388c29a1a6d90b7367df1320d66170acc66f687c288bb'),
-    'capability-scene-unit.log': ('chengwang/deploy/capability-truth-browser/test_capability_truth_scene.py', 'CapabilitySceneContracts', 28,
-        '777329e8788c8fbec831322b6114f88479dacbb19a1624b304aa416cadb84164'),
+    'capability-scene-unit.log': ('chengwang/deploy/capability-truth-browser/test_capability_truth_scene.py', 'CapabilitySceneContracts', 36,
+        '994351e2bfa2755621cd700b6a0817cbd60d946ef2cf71432d70e0f9ea2c951d'),
     'capability-checker-unit.log': ('chengwang/deploy/capability-truth-browser/test_check_capability_truth.py', 'CapabilityCheckerContracts', 50,
         '2a364ac25ecc8528b3a913692d4860cb85dc6c73b2ecc1733f24a4c47c1fbf36'),
 }
-NODE_COUNT = 79
-NODE_PIN = '3397e65e1908dbb15e4e7d91c765609cb42a9025d359ceaf110af896f0ca50cf'
+NODE_COUNT = 85
+NODE_PIN = 'c2cf855933c818665df5249bc611eaf5a4a9712c81732a97c963a0380371125f'
 SOURCES = [SELF, 'chengwang/deploy/capability-truth-browser/contract.json',
     'chengwang/deploy/capability-truth-browser/check_capability_truth.py',
     'chengwang/deploy/capability-truth-browser/capability_truth_scene.py',

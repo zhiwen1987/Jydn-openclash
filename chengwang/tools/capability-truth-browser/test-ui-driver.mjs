@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { loadContract, manifestGraph, sha, canaryVariants, FAVICON } from './ui-contract.mjs'
-import { CapabilityJournal, configureNativeLocale, clickExpression } from './ui-driver.mjs'
+import { CapabilityJournal, configureNativeLocale, clickExpression, FAILURE_OPERATIONS, failureObservation } from './ui-driver.mjs'
 const c=loadContract(await readFile(new URL('../../deploy/capability-truth-browser/contract.json',import.meta.url)))
 const graph=manifestGraph({'index.html':{file:'assets/main.js',isEntry:true}},c)
 const canaries=canaryVariants('c'.repeat(64)), body=Buffer.from('actual-static-body')
@@ -42,3 +42,73 @@ test('native locale protocol rejection is never ignored',async()=>{await assert.
 test('native click expression only permits four actual controls',()=>{assert(clickExpression('nav_capabilities',c).includes("getAttribute('aria-label')"));assert(clickExpression('refresh_capabilities',c).includes('elementFromPoint'));assert.throws(()=>clickExpression('kernel_import',c));assert.throws(()=>clickExpression('arbitrary selector',c))})
 test('real driver and CLI imports perform no launch or stdout side effects',()=>{const driver=fileURLToPath(new URL('./ui-driver.mjs',import.meta.url)),cli=fileURLToPath(new URL('./ui-cli.mjs',import.meta.url));for(const file of [driver,cli]){const r=spawnSync(process.execPath,['--input-type=module','-e',`await import(${JSON.stringify(pathToFileURL(file).href)})`],{encoding:'utf8',timeout:10000});assert.equal(r.status,0,r.stderr);assert.equal(r.stdout,'');assert.equal(r.stderr,'')}})
 test('CLI rejects malformed args with fixed safe error only',()=>{const r=spawnSync(process.execPath,[fileURLToPath(new URL('./ui-cli.mjs',import.meta.url)),'raw-secret-token'],{encoding:'utf8',timeout:10000});assert.equal(r.status,1);assert.equal(r.stdout,'');assert.equal(r.stderr,'CAPABILITY_TRUTH=REJECTED raw_input_suppressed=true\n')})
+
+test('failure observation uses explicit v2 without changing success event schemas',async()=>{
+  assert.equal(FAILURE_OPERATIONS.length,41);assert.equal(new Set(FAILURE_OPERATIONS).size,41);assert(Object.isFrozen(FAILURE_OPERATIONS))
+  const missing=failureObservation('NAVIGATE','GOTO',undefined,false)
+  assert.deepEqual(Object.keys(missing).sort(),['schema','stage','production','normalCloseCompleted','events','captures','failed','operation','firstFailure','counters'].sort())
+  assert.equal(missing.schema,'chengwang.capability-truth-driver-failure/v2');assert.equal(missing.firstFailure,null);assert.equal(missing.counters,null)
+  const j=await full();j.finalize();assert.equal(j.firstFailure,null)
+  assert.deepEqual(Object.keys(j.events.at(-1)).sort(),[...c.nestedExactKeys['driver.events.META']].sort())
+  for(const e of j.events)assert.deepEqual(Object.keys(e).sort(),[...c.nestedExactKeys['driver.events.'+e.type]].sort())
+  assert(!j.events.some(e=>Object.hasOwn(e,'operation')||Object.hasOwn(e,'firstFailure')))
+})
+
+test('first journal failure is immutable and never copies private identities',()=>{
+  const j=make();j.handle('Runtime.exceptionThrown',{exceptionDetails:{text:'PRIVATE_EXCEPTION',url:'PRIVATE_URL',stackTrace:'PRIVATE_STACK'}})
+  const first=j.firstFailure;j.handle('Runtime.consoleAPICalled',{type:'error',args:[{value:'PRIVATE_CONSOLE'}]})
+  assert.equal(j.firstFailure,first);assert(Object.isFrozen(first))
+  assert.deepEqual(first,{operation:'RUNTIME_EVENT',code:'runtime_error',requestId:null,kind:null})
+  const d=failureObservation('NAVIGATE','SNAPSHOT_WAIT',j,false);assert.equal(d.counters.runtimeErrors,1);assert.equal(d.counters.consoleErrors,1)
+  assert(!JSON.stringify(d).includes('PRIVATE_'));j.counters.runtimeErrors=2;assert.equal(d.counters.runtimeErrors,1)
+  const unsafe=make();unsafe.reject('forbidden_request',{requestId:'PRIVATE_CDP_ID',kind:'PRIVATE_KIND'},'PRIVATE_OPERATION')
+  const safe=failureObservation('NAVIGATE','GOTO',unsafe,false);assert.deepEqual(safe.firstFailure,{operation:'UNCLASSIFIED',code:'forbidden_request',requestId:null,kind:null});assert(!JSON.stringify(safe).includes('PRIVATE_'))
+  const net=make();req(net);net.handle('Network.loadingFailed',{requestId:'private.opaque/123',errorText:'PRIVATE_NETWORK_ERROR'})
+  const failure=failureObservation('NAVIGATE','SNAPSHOT_WAIT',net,false);assert.equal(failure.firstFailure.code,'net_fail');assert.equal(failure.firstFailure.operation,'EVENT_FAILURE');assert.equal(failure.counters.failedRequests,1)
+})
+
+test('request header and finish time rejection have separate operations',()=>{
+  const request=make();request.handle('Network.requestWillBeSent',{requestId:'PRIVATE_ID',timestamp:1,request:{url:c.origin+'/',method:'GET',headers:{}}})
+  assert.equal(request.firstFailure.operation,'EVENT_REQUEST_TIME')
+  const header=make();req(header);header.handle('Network.responseReceived',{requestId:'private.opaque/123',timestamp:0.5,response:{url:c.origin+'/',status:200,mimeType:'text/html',headers:{}}})
+  assert.equal(header.firstFailure.operation,'EVENT_HEADERS_TIME')
+  const finished=make();req(finished);headers(finished);finish(finished,'private.opaque/123',{timestamp:1.05})
+  assert.equal(finished.firstFailure.operation,'EVENT_FINISH_TIME')
+  const structural=make();req(structural);finish(structural);assert.equal(structural.firstFailure.operation,'EVENT_FINISH')
+  const event=make(),emit=event.emit.bind(event);event.emit=(type,fields)=>{if(type==='FINISH')throw Error('PRIVATE_EVENT');return emit(type,fields)}
+  req(event);headers(event);finish(event);assert.equal(event.firstFailure.operation,'EVENT_FINISH')
+  for(const j of [request,header,finished,structural,event]){assert(j.failure);assert.equal(j.counters.captureErrors,1);assert(!JSON.stringify(failureObservation('NAVIGATE','SNAPSHOT_WAIT',j,false)).includes('PRIVATE_ID'))}
+})
+
+test('capture failure operations distinguish read decode fence and build binding',async()=>{
+  const changed={...c,exactKeySchemas:{...c.exactKeySchemas,'captures.jsonl[]':[...c.exactKeySchemas['captures.jsonl[]'],'missing']}}
+  const cases=[
+    ['BODY_READ',async()=>{throw Error('PRIVATE_BODY_READ')},c],
+    ['BODY_DECODE',async()=>({body:'PRIVATE_BODY',base64Encoded:'PRIVATE_TYPE'}),c],
+    ['BODY_FENCE',async()=>({body:canaries[0],base64Encoded:false}),c],
+    ['BODY_BUILD_BINDING',async()=>({body:'different-static-build-bytes',base64Encoded:false}),c],
+    ['CAPTURE_ROW',async()=>({body:body.toString(),base64Encoded:false}),changed],
+  ]
+  for(const [operation,reader,contract]of cases){const j=make(reader,contract);req(j);headers(j);finish(j);await drain(j);const d=failureObservation('NAVIGATE','SNAPSHOT_WAIT',j,false);assert.equal(d.firstFailure.operation,operation);assert.equal(d.firstFailure.code,'capture_error');assert.equal(d.counters.captureErrors,1);assert(j.failure);assert(!JSON.stringify(d).includes('PRIVATE_'))}
+  const j=make(),emit=j.emit.bind(j);j.emit=(type,fields)=>{if(type==='CAPTURE')throw Error('PRIVATE_EMIT');return emit(type,fields)}
+  req(j);headers(j);finish(j);await drain(j);assert.equal(j.firstFailure.operation,'CAPTURE_EVENT');assert.equal(j.counters.captureErrors,1)
+})
+
+test('failure counters become unavailable without clamping or invented zeroes',()=>{
+  const fresh=make();assert.deepEqual(failureObservation('NAVIGATE','GOTO',fresh,false).counters,Object.fromEntries(c.eightZero.map(k=>[k,0])))
+  for(const invalid of [-1,513,true,NaN]){const j=make();j.reject('capture_error');j.counters.captureErrors=invalid;const d=failureObservation('NAVIGATE','SNAPSHOT_WAIT',j,false);assert.equal(d.counters,null);assert.equal(d.firstFailure.code,'capture_error')}
+  const extra=make();extra.counters.PRIVATE_COUNTER=1;assert.equal(failureObservation('NAVIGATE','GOTO',extra,false).counters,null)
+  const missing=make();delete missing.counters.captureErrors;assert.equal(failureObservation('NAVIGATE','GOTO',missing,false).counters,null)
+  const inconsistent=make();inconsistent.rememberFailure('capture_error',null,'BODY_READ');assert.equal(failureObservation('NAVIGATE','SNAPSHOT_WAIT',inconsistent,false).counters,null)
+})
+
+test('failure projection rejects unknown operation code kind and alias',()=>{
+  assert.throws(()=>failureObservation('PRIVATE_STAGE','GOTO',undefined,false));assert.throws(()=>failureObservation('NAVIGATE','PRIVATE_OPERATION',undefined,false))
+  for(const change of [{operation:'PRIVATE_OPERATION'},{code:'PRIVATE_CODE'},{code:{toString:()=> 'capture_error'}},{requestId:'PRIVATE_ID'},{requestId:'r69'},{kind:'PRIVATE_KIND'},{rawError:'PRIVATE_ERROR'}]){
+    const j=make();j.firstFailure={operation:'BODY_READ',code:'capture_error',requestId:'r1',kind:'DOCUMENT',...change};j.counters.captureErrors=1
+    assert.throws(()=>failureObservation('NAVIGATE','SNAPSHOT_WAIT',j,false),e=>e.message==='capability truth rejected')
+  }
+  const coercible={toString:()=> 'capture_error'};assert.throws(()=>make().rememberFailure(coercible,null,'BODY_READ'));assert.throws(()=>make().reject(coercible))
+  const j=make();j.firstFailure={operation:'BODY_READ',code:'capture_error',requestId:'r68',kind:null};j.counters.captureErrors=1
+  const d=failureObservation('NAVIGATE','DOM_READ',j,false);assert.equal(d.firstFailure.requestId,'r68');assert.equal(d.firstFailure.kind,null);assert.notEqual(d.firstFailure.operation,d.operation)
+})

@@ -1,0 +1,29 @@
+{
+  "schema": "chengwang.old-subscription-independent-acceptance/v1",
+  "sourceCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+  "runId": 40068275370,
+  "scope": "OFFLINE_RECONSTRUCTION_OF_EIGHT_OLD_SUBSCRIPTION_CI_SCENES_ONLY",
+  "actualOriginalCLIExecutions": 50,
+  "actualExitZero": 50,
+  "producerReportsByteEqual": 50,
+  "freshReportsByteEqual": 34,
+  "producerOnlyReports": 16,
+  "sourceGitBlobsStable": 1035,
+  "ZIPsStable": 16,
+  "ZIPCRCAndMemberBytesStable": 466,
+  "directory": "D:/CodexData/workspace/b2-old-ui-originals-pdm6k41e",
+  "summarySHA256": "093d4ac9dbd015f7ae6be595412294c1fe4e031d7108bc90e82dce1759723078",
+  "independentAuditSHA256": "f50b279f5b2ae6d33d96dd49b0628ad4cd08bd57f0f59d377cb91c3aa32e19f3",
+  "rootIndependentRecheck": {
+    "directory": "D:/CodexData/workspace/b2-old-ui-root-audit-5syg8a86",
+    "resultSHA256": "dd8658fb1dc333a00afb5a1bbffed0bd25ee88373bba25db8ea5549f8a82c115",
+    "actualLogsAndReportsAndSourceAndZIPBytesRechecked": true
+  },
+  "fullSubscriptionB01B23Proven": false,
+  "newCapabilityTruthAccepted": false,
+  "newLiveOverviewAccepted": false,
+  "browserRerunLocally": false,
+  "localProductRuntimeExecuted": false,
+  "production": false,
+  "overallProjectComplete": false
+}
