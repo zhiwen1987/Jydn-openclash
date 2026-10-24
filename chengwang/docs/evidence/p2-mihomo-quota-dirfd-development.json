@@ -1,0 +1,23 @@
+{
+  "actualGoTestsExecuted": false,
+  "baseline": "5313007c80c772171238147f8d896bf7d0765781",
+  "declaredGoTests": 92,
+  "defect": "DirEntry.Info on os.NewFile(fd,'.') resolves metadata against working directory instead of the opened object directory",
+  "existingLinuxInitialPutDeclaresCoverage": true,
+  "mainMerged": false,
+  "officialSources": [
+    "https://github.com/golang/go/blob/go1.23.12/src/os/file_unix.go#L483-L509",
+    "https://github.com/golang/go/blob/go1.23.12/src/os/dir_unix.go#L132"
+  ],
+  "originalCIAndFormatResultsPending": true,
+  "peerPath": "D:/CodexData/workspace/mihomo-preflight-5313007-peer-20261024-a/repair-peer.json",
+  "peerSHA256": "5186d4f9ac6a6ae520ad5a9ad34fc2a8fdc3d7e4129792c066b83aab84de55ed",
+  "production": false,
+  "registryPublished": false,
+  "repair": "openat/fstat/close and named object identity check before bounded quota accounting",
+  "schema": "chengwang.mihomo-quota-dirfd-development/v1",
+  "scope": "SOURCE_FIX_AND_READ_ONLY_PEER_NOT_GO_OR_FILESYSTEM_EXECUTION",
+  "sourceSHA256": {
+    "chengwang/internal/mihomodeploy/artifact_linux.go": "986ce9f59d2704059571c3a45dd6f8faf0466adfe02b5a86834fc77cf7af474c"
+  }
+}

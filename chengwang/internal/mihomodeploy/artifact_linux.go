@@ -233,8 +233,15 @@ func (d *artifactLinuxDisk) putObject(raw []byte) (bool, error) {
 	for {
 		batch, err := entries.ReadDir(32)
 		for _, e := range batch {
-			count++; info, statErr := e.Info()
-			if statErr != nil { return false, ErrArtifactUnsafe }; total += info.Size()
+			// DirEntry.Info resolves os.NewFile's display name (".") against
+			// the working directory. Quotas must instead stay bound to objects.
+			object, openErr := artifactOpen(d.objects, e.Name(), syscall.O_RDONLY, 0)
+			if openErr != nil { return false, ErrArtifactUnsafe }
+			info, statErr := artifactStat(object)
+			closeErr := object.Close()
+			if statErr != nil || closeErr != nil || !d.fileSafe(info) || info.Size > maxSourceSpecBytes ||
+				d.named(d.objects, e.Name(), info, true) != nil { return false, ErrArtifactUnsafe }
+			count++; total += info.Size
 			if count >= maxArtifactObjects || total > maxArtifactAggregateBytes { return false, ErrArtifactLimit }
 		}
 		if errors.Is(err, io.EOF) { break }; if err != nil { return false, ErrArtifactUnsafe }
