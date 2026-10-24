@@ -34,6 +34,45 @@ export const SESSION_FAULTS = Object.freeze([
   'PAGE_CLOSED', 'PAGE_CRASHED', 'CONTEXT_CLOSED', 'HOOK_REJECTED',
   'PROTOCOL_REJECTED', 'STARTUP_REJECTED', 'CLOSE_REJECTED',
 ])
+// Failure-only labels; no observation authorizes a target or retries startup.
+export const NATIVE_OPEN_STAGES = Object.freeze([
+  'ENVIRONMENT', 'OWNED_DIRECTORIES', 'LAUNCH_CONFIG', 'CERTIFICATES',
+  'NSS_DIRECTORIES', 'EXECUTABLES', 'NSS_CREATE', 'NSS_IMPORT', 'NSS_VERIFY',
+  'CDP_LAUNCH', 'CDP_PORT_WAIT', 'CDP_WEBSOCKET', 'CDP_TRANSPORT',
+  'CDP_INITIAL_TARGETS', 'CDP_CREATE_TARGET', 'CDP_ATTACH_TARGET',
+  'CDP_SESSION_BIND', 'CDP_POST_TARGETS', 'CDP_DISCOVER_TARGETS',
+  'PW_PACKAGE', 'PW_LAUNCH', 'PW_ATTACH', 'PW_TARGETS', 'BROWSER_VERSION',
+  'PROCESS_IDENTITY', 'DOMAINS_ENABLE', 'NETWORK_ENABLE', 'LOCALE', 'OPEN_COMPLETE',
+])
+export function projectInitialTargets(rows) {
+  const invalid = () => ({ shape: 'INVALID', total: null, pages: null, blankPages: null })
+  try {
+    if (!Array.isArray(rows) || rows.length > 64) return invalid()
+    let pages = 0, blankPages = 0
+    for (let i = 0; i < rows.length; i++) {
+      const row = Object.getOwnPropertyDescriptor(rows, String(i))?.value
+      if (!row || typeof row !== 'object' || Array.isArray(row)) return invalid()
+      const type = Object.getOwnPropertyDescriptor(row, 'type')
+      if (!type || !Object.hasOwn(type, 'value') || !targetType(type.value)) return invalid()
+      if (type.value === 'page') {
+        pages++
+        const url = Object.getOwnPropertyDescriptor(row, 'url')
+        if (!url || !Object.hasOwn(url, 'value') || typeof url.value !== 'string') return invalid()
+        if (url.value === 'about:blank') blankPages++
+      }
+    }
+    return { shape: 'ARRAY', total: rows.length, pages, blankPages }
+  } catch { return invalid() }
+}
+export function nativeOpenObservation(stage, firstFault, initialTargets) {
+  need(NATIVE_OPEN_STAGES.includes(stage) && (firstFault === null || SESSION_FAULTS.includes(firstFault)))
+  need(exact(initialTargets, ['shape', 'total', 'pages', 'blankPages']))
+  const { shape, total, pages, blankPages } = initialTargets
+  need(['UNOBSERVED', 'INVALID', 'ARRAY'].includes(shape))
+  if (shape === 'ARRAY') need(integer(total, 0, 64) && integer(pages, 0, total) && integer(blankPages, 0, pages))
+  else need(total === null && pages === null && blankPages === null)
+  return { schema: 'chengwang.native-open-failure/v1', stage, firstFault, initialTargets: { shape, total, pages, blankPages } }
+}
 
 // The real PW session and CPU protocol tests share this registration path.
 export function registerSessionEvents(session, onEvent) {
@@ -174,6 +213,8 @@ export async function finishNativeSession(o, chrome, mechanisms) {
  * caller must install its journal BEFORE awaiting openNativeSession. onFault is
  * synchronous, receives closed codes plus {phase,targetKind}, and cannot clear a
  * sticky failure. No URL/target/session IDs appear in returned public metadata.
+ * Optional onDiagnostic receives a closed failure-only observation before
+ * disposal; its rejection is suppressed without changing the startup rejection.
  *
  * browser = {product,revision,protocolVersion} (serializable version metadata).
  * chrome = {pid,startTicks,uid,profile,argvSHA256,exeSHA256,exeBytes} (the existing
@@ -186,8 +227,10 @@ export async function finishNativeSession(o, chrome, mechanisms) {
  */
 export async function openNativeSession(o, hooks) {
   validateSessionOptions(o)
-  need(exact(hooks, ['onEvent', 'onFault']) && typeof hooks.onEvent === 'function' && typeof hooks.onFault === 'function')
+  need((exact(hooks, ['onEvent', 'onFault']) || exact(hooks, ['onEvent', 'onFault', 'onDiagnostic'])) && typeof hooks.onEvent === 'function' && typeof hooks.onFault === 'function'
+    && (!Object.hasOwn(hooks, 'onDiagnostic') || typeof hooks.onDiagnostic === 'function'))
   let phase = 'STARTING', firstFault = null, context, page, transport, browserSendRaw, pageSendRaw, childResult = null, child
+  let openStage = 'ENVIRONMENT', initialTargets = { shape: 'UNOBSERVED', total: null, pages: null, blankPages: null }
   const fault = (code, detail = { phase, targetKind: null }) => {
     need(SESSION_FAULTS.includes(code)); firstFault ??= code
     try { hooks.onFault(code, detail) } catch { firstFault = 'HOOK_REJECTED' }
@@ -209,42 +252,64 @@ export async function openNativeSession(o, hooks) {
   }
   try {
     need(process.platform === 'linux' && process.getuid?.() === 10001 && process.getgid?.() === 10001 && !Object.hasOwn(process.env, 'HOME') && process.env.TMPDIR === '/var/tmp' && homedir() === o.home && typeof WebSocket === 'function')
+    openStage = 'OWNED_DIRECTORIES'
     await ownedDirectory(o.root); await ownedDirectory('/var/tmp'); await ownedDirectory(o.home, true); await ownedDirectory(o.profile, true)
+    openStage = 'LAUNCH_CONFIG'
     const config = JSON.parse((await stableFile(o.bundle + '/launch.json', 4096)).toString())
     need(exact(config, ['schema', 'engine', 'fixtureId', 'root', 'chrome', 'chromeSHA256']) && config.schema === 'chengwang.subscription-ui-launch/v1' && config.engine === o.engine && config.fixtureId === o.fixtureId && config.root === o.root && config.chrome === o.chrome && /^[a-f0-9]{64}$/.test(config.chromeSHA256))
+    openStage = 'CERTIFICATES'
     const ca = await stableFile(o.root + '/api-ca.pem', 65536, true), leaf = await stableFile(o.root + '/api-leaf.pem', 65536, true)
     const verified = inspectPublicTLS(ca.toString(), leaf.toString())
     const data = o.home + '/.local/share', database = data + '/pki/nssdb'
+    openStage = 'NSS_DIRECTORIES'
     await mkdir(database, { mode: 0o700, recursive: true })
     for (const path of [o.home + '/.local', data, data + '/pki', database]) await ownedDirectory(path)
     try { await lstat(o.home + '/.pki/nssdb'); need(false) } catch (error) { need(error?.code === 'ENOENT') }
     for (const name of ['config', 'cache']) await ownedDirectory(o.profile + '/' + name, true)
     const env = { PATH: '/usr/bin:/bin', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', TMPDIR: '/var/tmp', XDG_DATA_HOME: data, XDG_CONFIG_HOME: o.profile + '/config', XDG_CACHE_HOME: o.profile + '/cache' }
+    openStage = 'EXECUTABLES'
     await stableFile('/usr/bin/certutil', 16 << 20); await stableFile(o.launcher, 131072)
     const certutil = args => execute('/usr/bin/certutil', args, { env, timeout: 10000, maxBuffer: 65536, encoding: 'utf8' })
-    await certutil(['-N', '-d', 'sql:' + database, '--empty-password'])
-    await certutil(['-A', '-d', 'sql:' + database, '-n', 'chengwang-native-browser-root', '-t', 'C,,', '-i', o.root + '/api-ca.pem'])
+    openStage = 'NSS_CREATE'; await certutil(['-N', '-d', 'sql:' + database, '--empty-password'])
+    openStage = 'NSS_IMPORT'; await certutil(['-A', '-d', 'sql:' + database, '-n', 'chengwang-native-browser-root', '-t', 'C,,', '-i', o.root + '/api-ca.pem'])
+    openStage = 'NSS_VERIFY'
     need(inspectPublicTLS((await certutil(['-L', '-d', 'sql:' + database, '-n', 'chengwang-native-browser-root', '-a'])).stdout, leaf.toString()).caSHA256 === verified.caSHA256)
     const args = ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--disable-default-apps', '--disable-extensions', '--no-first-run', '--no-default-browser-check', '--disable-features=MediaRouter,OptimizationHints', '--password-store=basic']
     if (o.engine === 'chrome-cdp') {
+      openStage = 'CDP_LAUNCH'
       child = spawn(o.launcher, [...args, '--headless=new', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', '--user-data-dir=' + o.profile, 'about:blank'], { stdio: ['ignore', 'ignore', 'ignore'], env })
       childResult = new Promise(resolve => { child.once('error', () => resolve({ code: null, signal: null })); child.once('exit', (code, signal) => resolve({ code, signal })) })
       let endpoint
+      openStage = 'CDP_PORT_WAIT'
       await until(async () => { need(child.exitCode === null && child.signalCode === null); try { const raw = await readFile(o.profile + '/DevToolsActivePort', 'utf8'); need(raw.length <= 1024); const a = raw.trim().split('\n'); need(a.length === 2 && /^[1-9][0-9]{0,4}$/.test(a[0]) && Number(a[0]) <= 65535 && /^\/devtools\/browser\/[a-f0-9-]{1,80}$/.test(a[1])); endpoint = 'ws://127.0.0.1:' + a[0] + a[1]; return true } catch (error) { if (error?.code === 'ENOENT') return false; throw error } }, 20000)
+      openStage = 'CDP_WEBSOCKET'
       const socket = new WebSocket(endpoint)
       await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(rejected()), 10000); socket.addEventListener('open', () => { clearTimeout(timer); resolve() }, { once: true }); socket.addEventListener('error', () => { clearTimeout(timer); reject(rejected()) }, { once: true }) })
+      openStage = 'CDP_TRANSPORT'
       transport = new Transport(socket); browserSendRaw = (method, params) => transport.send(method, params)
       socket.addEventListener('close', () => { if (!['CLOSING', 'CLOSED', 'DISPOSED'].includes(phase)) fault('TRANSPORT_CLOSED') })
       socket.addEventListener('error', () => { if (!['CLOSING', 'CLOSED', 'DISPOSED'].includes(phase)) fault('TRANSPORT_CLOSED') })
       transport.listeners.push(m => { if (!m.sessionId) guard.observe(m.method, m.params) })
-      await initializeCDPTargets(browserSendRaw, guard, sessionId => {
+      let firstTargets = true
+      const bootstrapSend = async (method, params) => {
+        openStage = method === 'Target.getTargets' ? (firstTargets ? 'CDP_INITIAL_TARGETS' : 'CDP_POST_TARGETS')
+          : ({ 'Target.createTarget': 'CDP_CREATE_TARGET', 'Target.attachToTarget': 'CDP_ATTACH_TARGET', 'Target.setDiscoverTargets': 'CDP_DISCOVER_TARGETS' })[method]
+        need(NATIVE_OPEN_STAGES.includes(openStage))
+        const result = await browserSendRaw(method, params)
+        if (method === 'Target.getTargets' && firstTargets) { initialTargets = projectInitialTargets(result?.targetInfos); firstTargets = false }
+        return result
+      }
+      await initializeCDPTargets(bootstrapSend, guard, sessionId => {
+        openStage = 'CDP_SESSION_BIND'
         pageSendRaw = (method, params) => transport.send(method, params, sessionId)
         transport.listeners.push(m => { if (m.sessionId === sessionId) event(m.method, m.params ?? {}) })
       })
     } else {
+      openStage = 'PW_PACKAGE'
       const dir = o.bundle + '/source/chengwang/tools/subscription-ui-browser/node_modules/playwright-core/'
       need(JSON.parse((await stableFile(dir + 'package.json', 65536)).toString()).version === '1.65.0-alpha-2026-10-23')
       const pw = await import(pathToFileURL(dir + 'index.mjs').href)
+      openStage = 'PW_LAUNCH'
       context = await pw.chromium.launchPersistentContext(o.profile, { executablePath: o.launcher, headless: true, chromiumSandbox: false, ignoreHTTPSErrors: false, bypassCSP: false, locale: 'zh-CN', timezoneId: 'UTC', deviceScaleFactor: 1, args, env, timeout: 20000 })
       page = context.pages()[0]; need(page && context.pages().length === 1)
       context.on('page', p => { if (p !== page) fault('EXTRA_TARGET', { phase, targetKind: 'page' }) })
@@ -252,9 +317,11 @@ export async function openNativeSession(o, hooks) {
       context.on('close', () => { if (!['CLOSING', 'CLOSED', 'DISPOSED'].includes(phase)) fault('CONTEXT_CLOSED') })
       page.on('close', () => { if (!['CLOSING', 'CLOSED', 'DISPOSED'].includes(phase)) fault('PAGE_CLOSED') })
       page.on('crash', () => fault('PAGE_CRASHED'))
+      openStage = 'PW_ATTACH'
       const session = await context.newCDPSession(page), bs = await context.browser().newBrowserCDPSession()
       pageSendRaw = (method, params) => session.send(method, params); browserSendRaw = (method, params) => bs.send(method, params)
       registerSessionEvents(session, event)
+      openStage = 'PW_TARGETS'
       const target = await pageSendRaw('Target.getTargetInfo'); need(targetId(target?.targetInfo?.targetId))
       bs.on('Target.targetCreated', params => guard.observe('Target.targetCreated', params))
       bs.on('Target.targetDestroyed', params => guard.observe('Target.targetDestroyed', params))
@@ -262,11 +329,18 @@ export async function openNativeSession(o, hooks) {
       await browserSendRaw('Target.setDiscoverTargets', { discover: true }); guard.arm()
     }
     healthy()
-    const version = await browserSendRaw('Browser.getVersion'), browser = versionProjection(version), chrome = await chromeIdentity(o, browserSendRaw)
+    openStage = 'BROWSER_VERSION'
+    const version = await browserSendRaw('Browser.getVersion'), browser = versionProjection(version)
+    openStage = 'PROCESS_IDENTITY'
+    const chrome = await chromeIdentity(o, browserSendRaw)
     need(chrome.exeSHA256 === config.chromeSHA256)
+    openStage = 'DOMAINS_ENABLE'
     await Promise.all(['Runtime.enable', 'Page.enable', 'Log.enable'].map(method => pageSendRaw(method)))
+    openStage = 'NETWORK_ENABLE'
     await pageSendRaw('Network.enable', { maxTotalBufferSize: 32 << 20, maxResourceBufferSize: 8 << 20 })
+    openStage = 'LOCALE'
     if (!page) await configureNativeLocale(pageSendRaw, version.userAgent)
+    openStage = 'OPEN_COMPLETE'
     phase = 'OPEN'; healthy()
     const safeCall = async (method, params, send) => {
       healthy()
@@ -305,6 +379,9 @@ export async function openNativeSession(o, hooks) {
       assertHealthy: healthy,
     })
   } catch {
-    fault('STARTUP_REJECTED'); await dispose(); throw rejected()
+    fault('STARTUP_REJECTED')
+    // A failed diagnostic sink cannot produce success or expose the exception.
+    try { if (hooks.onDiagnostic) await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets)) } catch { /* Observation unavailable. */ }
+    await dispose(); throw rejected()
   }
 }

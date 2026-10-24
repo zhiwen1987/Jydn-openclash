@@ -38,11 +38,20 @@ export function observeOverviewDOM(slots, schema) {
       unobstructed: !!e && !!r && x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && e.contains(document.elementFromPoint(x, y)),
       ariaPressed: e?.getAttribute('aria-pressed') ?? null, rect: r }
   })
-  const main = q('.main-content'), evidence = q('.evidence-overview-page', main), kernel = q('.kernel-page', main)
-  const device = q('.readback-page', main), nodes = q('.observation-page', main), subscription = q('.subscriptions', main)
+  const main = q('.main-content')
+  // App preserves a hidden subscription sibling across navigation. Mounted
+  // roots alone cannot identify the current page; use observed rendering.
+  const activeRoot = selector => {
+    const matches = all(selector, main).filter(rendered)
+    if (matches.length > 1) throw Error('overview DOM rejected')
+    return matches[0] ?? null
+  }
+  const evidence = activeRoot('.evidence-overview-page'), kernel = activeRoot('.kernel-page')
+  const device = activeRoot('.readback-page'), nodes = activeRoot('.observation-page'), subscription = activeRoot('.subscriptions')
+  if ([evidence, kernel, device, nodes, subscription].filter(Boolean).length > 1) throw Error('overview DOM rejected')
   const active = q('.sidebar .nav-item.active'), navigationPage = actualLabel(active)
   const root = evidence || kernel || device || nodes || subscription || main
-  const viewKind = evidence ? 'actual' : kernel ? 'kernels' : device ? 'device_readback' : nodes ? 'proxy_observation' : subscription ? 'subscriptions' : q(':scope > .page-heading h1', main) ? 'demo' : 'unknown'
+  const viewKind = evidence ? 'actual' : kernel ? 'kernels' : device ? 'device_readback' : nodes ? 'proxy_observation' : subscription ? 'subscriptions' : rendered(q(':scope > .page-heading h1', main)) ? 'demo' : 'unknown'
   const h = q('h1', root), vb = all('.topbar .version b')
   let actual = null, demo = null, detail = null
   if (evidence) {

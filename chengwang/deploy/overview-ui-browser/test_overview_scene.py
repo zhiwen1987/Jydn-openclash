@@ -1,9 +1,11 @@
 """CPU-only fixtures and mocks; no product/browser/process execution evidence."""
 import base64
+import ast
 import copy
 import importlib.util
 import json
 import pathlib
+import re
 import tempfile
 import types
 import unittest
@@ -169,6 +171,58 @@ class OverviewSceneContracts(unittest.TestCase):
         result = A.scene_failure_diagnostics(None, None, None, None, S.OVERVIEW_KEYS[0], None)
         self.assertEqual(result, dict(driverCheckpoints=[], driverDiagnostics=None))
         self.assertNotIn('normalCloseCompleted', result)
+        # Synthetic private-file readback, not a replay of any CI secret fence.
+        c = A.contract(); root = pathlib.Path('/synthetic-private-root')
+        options = types.SimpleNamespace(source_commit='a'*40, engine='chrome-cdp')
+        fixture = 'b'*32; key = S.OVERVIEW_KEYS[0]; reads = []
+        value = dict(schema='chengwang.overview-driver-failure/v1', sourceCommit=options.source_commit,
+            fixtureId=fixture, engine=options.engine, scenario='overview_ui', profile='evidence_disabled',
+            phase='NATIVE_OPEN', attemptedCheckpoint=None, lastCompletedCheckpoint=None,
+            native=dict(schema='chengwang.native-open-failure/v1', stage='CDP_INITIAL_TARGETS', firstFault='STARTUP_REJECTED',
+                initialTargets=dict(shape='ARRAY', total=0, pages=0, blankPages=0)), counters=None)
+        raw = json.dumps(value).encode(); gid = 10001
+        def read(path, maximum, owner, mode):
+            reads.append((path, maximum, owner, mode)); return raw, types.SimpleNamespace(st_gid=gid)
+        N = types.SimpleNamespace(stable_read=read)
+        def observed(candidate):
+            nonlocal raw
+            raw = candidate if type(candidate) is bytes else json.dumps(candidate).encode()
+            return A.scene_failure_diagnostics(None, options, root, fixture, key, N)['driverDiagnostics']
+        with mock.patch.object(A, 'scene_export_policy', return_value=([], [b'SYNTHETIC-FENCE-CANARY'])):
+            self.assertEqual(observed(value), value)
+            self.assertEqual(reads[-1], (root/'overview-open-diagnostic.private.json', 4096, 10001, 0o600))
+            ui = dict(value, phase='DOM_VALIDATE', attemptedCheckpoint='actual_enter_desktop',
+                lastCompletedCheckpoint='demo_desktop', native=None,
+                counters={name: (1 if name == 'captureErrors' else 0) for name in c['counterRules']['rawKeys']})
+            self.assertEqual(observed(ui), ui)
+            for target in [dict(shape='UNOBSERVED', total=None, pages=None, blankPages=None),
+                           dict(shape='INVALID', total=None, pages=None, blankPages=None),
+                           dict(shape='ARRAY', total=2, pages=1, blankPages=0)]:
+                candidate = copy.deepcopy(value); candidate['native']['initialTargets'] = target
+                self.assertEqual(observed(candidate), candidate)
+            variants = [dict(value, **patch) for patch in [dict(schema='v2'), dict(sourceCommit='c'*40),
+                dict(fixtureId='c'*32), dict(engine='playwright'), dict(profile='evidence_enabled_unknown'),
+                dict(scenario='other'), dict(phase='PRIVATE-RAW-PATH'), dict(extra='secret'),
+                dict(native=None), dict(attemptedCheckpoint='demo_desktop'), dict(counters={}),
+                dict(counters={name: True for name in c['counterRules']['rawKeys']})]]
+            for patch in [dict(stage='raw/error'), dict(firstFault='PRIVATE KEY'), dict(extra='secret'),
+                          dict(initialTargets=dict(shape='ARRAY', total=True, pages=0, blankPages=0)),
+                          dict(initialTargets=dict(shape='ARRAY', total=65, pages=1, blankPages=1)),
+                          dict(initialTargets=dict(shape='ARRAY', total=1, pages=2, blankPages=0)),
+                          dict(initialTargets=dict(shape='UNOBSERVED', total=0, pages=None, blankPages=None))]:
+                candidate = copy.deepcopy(value); candidate['native'].update(patch); variants.append(candidate)
+            variants += [dict(ui, **patch) for patch in [dict(attemptedCheckpoint='unknown'),
+                dict(attemptedCheckpoint=None), dict(lastCompletedCheckpoint='actual_mobile'), dict(phase='NATIVE_OPEN')]]
+            for count in [-1, 513, 0.5]: variants.append(dict(ui, counters=dict(ui['counters'], captureErrors=count)))
+            for candidate in variants:
+                with self.subTest(candidate=candidate): self.assertIsNone(observed(candidate))
+            for bad in [b'{}', b'x'*4097, b'PRIVATE KEY', b'SYNTHETIC-FENCE-CANARY',
+                        json.dumps(value).replace('"phase": "NATIVE_OPEN"', '"phase":"NATIVE_OPEN","phase":"DOM_READ"').encode()]:
+                self.assertIsNone(observed(bad))
+            gid = 0; self.assertIsNone(observed(value)); gid = 10001
+            with mock.patch.object(N, 'stable_read', side_effect=FileNotFoundError): self.assertIsNone(observed(value))
+        with mock.patch.object(A, 'scene_export_policy', return_value=None):
+            reads.clear(); self.assertIsNone(observed(value)); self.assertEqual(reads, [])
 
     def test_actual_source_contract_matches_environment_and_public_closed_set(self):
         contract = A.contract(); self.assertEqual(len(contract['publicFiles']), 19)
@@ -179,6 +233,17 @@ class OverviewSceneContracts(unittest.TestCase):
             run = A.scene_run_message('b'*32, 'chrome-cdp', key)
             self.assertEqual(set(ready), set(contract['exactKeySchemas']['ready']))
             self.assertEqual(set(run), set(contract['exactKeySchemas']['run']))
+        # Parse closed literal lists only: never import or evaluate JS drivers.
+        tools = BASE.parents[1] / 'tools'
+        for filename, export, expected in [
+            ('browser-scene-driver/native-session.mjs', 'NATIVE_OPEN_STAGES', A.NATIVE_OPEN_STAGES),
+            ('browser-scene-driver/native-session.mjs', 'SESSION_FAULTS', A.NATIVE_FAULTS),
+            ('overview-ui-browser/ui-driver.mjs', 'OVERVIEW_FAILURE_PHASES', A.FAILURE_PHASES)]:
+            source = (tools/filename).read_text(encoding='utf-8')
+            match = re.search(r'export const '+export+r' = Object\.freeze\((\[[\s\S]*?\])\)', source)
+            self.assertIsNotNone(match); names = ast.literal_eval(match.group(1))
+            self.assertEqual(len(names), len(set(names))); self.assertEqual(tuple(names), expected)
+        self.assertNotIn('overview-open-diagnostic.private.json', A.PUBLIC)
 
     def test_missing_driver_dependency_is_rejected_before_any_launch(self):
         self.assertEqual(A.scene_tool_directories(S.OVERVIEW_KEYS[0]), (

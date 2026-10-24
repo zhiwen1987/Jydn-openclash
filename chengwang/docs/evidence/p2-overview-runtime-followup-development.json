@@ -1,0 +1,80 @@
+{
+  "schema": "chengwang.overview-runtime-followup-development/v1",
+  "baseline": "c43fae4701536debb3463af2f9901b9747282b61",
+  "priorRealCISource": "1f5c2efe852211f0defdd46e8bb489c66dc0d0a5",
+  "priorRealCIRun": 40089506522,
+  "state": "SOURCE_FIX_AND_FAILURE_OBSERVABILITY_NOT_REAL_BROWSER_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/deploy/overview-ui-browser/overview_ui_scene.py": "0383ea56aad812db9ccbaa82507cd9cb67db5ddc937dacbbb873f9e4db684441",
+    "chengwang/deploy/overview-ui-browser/test_overview_scene.py": "1b8456def87ed71027cb29e8f3202925336aaf03d09e23a8be39ca7141a5525d",
+    "chengwang/tools/browser-scene-driver/native-session.mjs": "17e6b21c44b2401f5fabf11ae78df4622ba78b36fbb6401c287794d9a699f01a",
+    "chengwang/tools/browser-scene-driver/test-native-session.mjs": "9b9149686a8c24a1a4ec06d0a6eb29781e236237879273402a064c455df13c9a",
+    "chengwang/tools/overview-ui-browser/ui-driver.mjs": "802dfe7f753c6e84bade11da1d5607d7934112a252256b816f2fd9f8175f1583",
+    "chengwang/tools/overview-ui-browser/test-ui-driver.mjs": "af292930eda0766308f74cfaef7f4b02c3b6909f023b1ac7f6d8ba60b1037769",
+    "chengwang/tools/overview-ui-browser/ui-dom.mjs": "05452136db6745b5935ad5570bf85557b4d22c1bdc060f886f7e5106658f732c",
+    "chengwang/tools/overview-ui-browser/test-ui-dom.mjs": "b1d18dcbcf900c7146d8129745c9c0d9a6bd96bf1d0bbc62a2a2d0a3ae88cfa7"
+  },
+  "receipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\overview-candidate-combined-n65_gewv\\result.json",
+      "sha256": "ce6da5424886335cbb1a9e63a2f54247dfde09363304487899381129fa90d68e"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-failure-observation-final-20261024T120333838987Z\\result.json",
+      "sha256": "a6d1860f133e9d596b3670b8c23666d0d8aa77df5f340ba50867a3a318f08754"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-hidden-sibling-cpu-3ff4508889\\candidate-result.json",
+      "sha256": "a5feedb2541716ac732f1bf78ff8981d19e8716b7e66cce5b56fb64043ae38b6"
+    }
+  ],
+  "changes": [
+    "Classify only rendered roots and their own heading; reject conflicting visible roots",
+    "Observe failure-only closed startup and UI phases, actual checkpoint ownership and nullable observations",
+    "Write exclusive bounded0600 private diagnostics and strictly validate identity/schema/stable owner/mode/fence before failure-only projection"
+  ],
+  "validation": {
+    "actualCombinedCPU": 236,
+    "skipped": 0,
+    "stableSources": true,
+    "allFrozenNamesUnchanged": true,
+    "oldDOMWithNewCounterexample": {
+      "passed": 33,
+      "failed": 1
+    },
+    "newDOM": {
+      "passed": 34,
+      "failed": 0
+    },
+    "subsetsNotAdditionalTotals": [
+      37,
+      25,
+      16,
+      34
+    ]
+  },
+  "unchanged": [
+    "Successful19-public-file closure",
+    "SYN9logs236test names",
+    "Launch/close/deadline budgets",
+    "TargetGuard authorizations and protocol request count",
+    "Ordinary TLS without bypass",
+    "Originalraw8error observations",
+    "Production/main/Registry/release scope"
+  ],
+  "independentPeer": {
+    "state": "NO_BLOCKER_FOUND_READ_ONLY_SOURCE_AND_ORIGINAL_CPU_LOGS",
+    "path": "D:/CodexData/workspace/overview-failure-observation-peer-20261024/result.json",
+    "sha256": "0798524532ac0ee3ee3322663f06fdd43706082cfc6d0124cbeda8f30950de4d",
+    "realBrowserProven": false
+  },
+  "remaining": [
+    "HistoricalCDP unique rootcause unknown; startup readiness only an unproven candidate",
+    "Historical failing DOM unavailable; hiddenDOMsource conflict not unique causal proof",
+    "New samecommit sourceboundSYNCLI and real4profiles-engines producer/fresh/visual acceptance pending",
+    "Earlyinput/hardtermination/filesystemfailure may still leave no diagnostics",
+    "Diagnostic stage records last entered operation, not asynchronous causal proof"
+  ],
+  "production": false,
+  "mainMerged": false
+}

@@ -18,6 +18,20 @@ SOURCES = ['chengwang/deploy/browser-scene-supervisor/supervisor.py', 'chengwang
     'chengwang/deploy/overview-ui-browser/overview_ui_scene.py', 'chengwang/deploy/overview-ui-browser/run_overview_ui.py',
     'chengwang/deploy/overview-ui-browser/contract.json', 'chengwang/deploy/subscription-ui-browser/ui_chrome_launcher.py',
     'chengwang/deploy/browser-stream-matrix/run_matrix.py', 'chengwang/web/scripts/trust-browser-tls.mjs']
+FAILURE_PHASES = (
+    'NATIVE_OPEN', 'INITIALIZE', 'READY_PUBLISH', 'RUN_BARRIER', 'CHECKPOINT_ACTION',
+    'CHECKPOINT_SETTLE', 'PAGE_IDENTITY', 'DOM_READ', 'DOM_VALIDATE', 'DOM_ROW',
+    'PNG_CAPTURE', 'PNG_PUBLISH', 'CHECKPOINT_COMPLETE', 'JOURNAL_COMPLETE',
+    'TLS_PROOF', 'NORMAL_CLOSE', 'JOURNAL_FINALIZE', 'CAPTURE_PUBLISH', 'DOM_PUBLISH', 'DRIVER_PUBLISH')
+NATIVE_OPEN_STAGES = (
+    'ENVIRONMENT', 'OWNED_DIRECTORIES', 'LAUNCH_CONFIG', 'CERTIFICATES',
+    'NSS_DIRECTORIES', 'EXECUTABLES', 'NSS_CREATE', 'NSS_IMPORT', 'NSS_VERIFY',
+    'CDP_LAUNCH', 'CDP_PORT_WAIT', 'CDP_WEBSOCKET', 'CDP_TRANSPORT',
+    'CDP_INITIAL_TARGETS', 'CDP_CREATE_TARGET', 'CDP_ATTACH_TARGET', 'CDP_SESSION_BIND',
+    'CDP_POST_TARGETS', 'CDP_DISCOVER_TARGETS', 'PW_PACKAGE', 'PW_LAUNCH', 'PW_ATTACH',
+    'PW_TARGETS', 'BROWSER_VERSION', 'PROCESS_IDENTITY', 'DOMAINS_ENABLE', 'NETWORK_ENABLE', 'LOCALE', 'OPEN_COMPLETE')
+NATIVE_FAULTS = ('EXTRA_TARGET', 'INVALID_TARGET_STATE', 'TRANSPORT_CLOSED', 'SESSION_DETACHED',
+    'PAGE_CLOSED', 'PAGE_CRASHED', 'CONTEXT_CLOSED', 'HOOK_REJECTED', 'PROTOCOL_REJECTED', 'STARTUP_REJECTED', 'CLOSE_REJECTED')
 
 
 def need(value):
@@ -247,8 +261,55 @@ def scene_fence_public(raw, public_name, forbidden, key, N, partial):
 
 
 def scene_failure_diagnostics(state, options, root, fixture, key, N):
-    # No absent driver checkpoint or normal-close result is inferred from source.
-    profile(key); return dict(driverCheckpoints=[], driverDiagnostics=None)
+    selected = profile(key); diagnostic = None
+    try:
+        # Secret fence is established before reading/decoding the observation.
+        policy = scene_export_policy(root, key, N, True); need(policy is not None)
+        raw, info = N.stable_read(root / 'overview-open-diagnostic.private.json', 4096, 10001, 0o600)
+        need(info.st_gid == 10001 and type(raw) is bytes and 0 < len(raw) <= 4096)
+        scene_fence_public(raw, 'overview-open-diagnostic.private.json', policy[1], key, N, True)
+        def unique(pairs):
+            result = {}
+            for name, child in pairs: need(name not in result); result[name] = child
+            return result
+        value = json.loads(raw.decode('utf-8'), object_pairs_hook=unique, parse_constant=lambda _: need(False))
+        keys = {'schema', 'sourceCommit', 'fixtureId', 'engine', 'scenario', 'profile', 'phase',
+            'attemptedCheckpoint', 'lastCompletedCheckpoint', 'native', 'counters'}
+        need(type(value) is dict and set(value) == keys and value['schema'] == 'chengwang.overview-driver-failure/v1'
+             and value['sourceCommit'] == options.source_commit and value['fixtureId'] == fixture
+             and value['engine'] == options.engine and value['scenario'] == 'overview_ui' and value['profile'] == selected
+             and type(value['phase']) is str and value['phase'] in FAILURE_PHASES)
+        need(type(value['sourceCommit']) is str and re.fullmatch('[a-f0-9]{40}', value['sourceCommit'])
+             and type(fixture) is str and re.fullmatch('[a-f0-9]{32}', fixture)
+             and options.engine in ('chrome-cdp', 'playwright'))
+        c = contract(); steps = [row[0] for row in c['stepFences'][selected]]
+        attempted, completed = value['attemptedCheckpoint'], value['lastCompletedCheckpoint']
+        need(all(item is None or type(item) is str and item in steps for item in (attempted, completed)))
+        need(completed is None or attempted is not None and steps.index(completed) <= steps.index(attempted))
+        native = value['native']
+        if native is not None:
+            need(value['phase'] == 'NATIVE_OPEN' and attempted is None and completed is None
+                 and type(native) is dict and set(native) == {'schema', 'stage', 'firstFault', 'initialTargets'}
+                 and native['schema'] == 'chengwang.native-open-failure/v1'
+                 and type(native['stage']) is str and native['stage'] in NATIVE_OPEN_STAGES
+                 and (native['firstFault'] is None or type(native['firstFault']) is str and native['firstFault'] in NATIVE_FAULTS))
+            target = native['initialTargets']
+            need(type(target) is dict and set(target) == {'shape', 'total', 'pages', 'blankPages'}
+                 and type(target['shape']) is str and target['shape'] in ('UNOBSERVED', 'INVALID', 'ARRAY'))
+            if target['shape'] == 'ARRAY':
+                need(all(type(target[name]) is int for name in ('total', 'pages', 'blankPages'))
+                     and 0 <= target['blankPages'] <= target['pages'] <= target['total'] <= 64)
+            else: need(all(target[name] is None for name in ('total', 'pages', 'blankPages')))
+        else: need(value['phase'] != 'NATIVE_OPEN')
+        counters = value['counters']
+        need(counters is None or type(counters) is dict and set(counters) == set(c['counterRules']['rawKeys'])
+             and all(type(count) is int and 0 <= count <= 512 for count in counters.values()))
+        diagnostic = value
+    except Exception:
+        # Missing, unsafe or invalid observations remain unknown. This is never
+        # a success record, a replacement body, or proof of normal browser close.
+        diagnostic = None
+    return dict(driverCheckpoints=[], driverDiagnostics=diagnostic)
 def scene_inner_success(state, options, root, fixture, key, N): profile(key)
 def scene_outer_success(options, root, bundle, fixture, key, N):
     profile(key); print('OVERVIEW_UI=CAPTURED independent_verification=pending production=false business_health_proven=false')

@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { orchestrateOverview, runOverview } from './ui-driver.mjs'
+import { orchestrateOverview, runOverview, overviewFailureObservation, OVERVIEW_FAILURE_PHASES } from './ui-driver.mjs'
 import { loadContract, parseArguments, sha } from './ui-contract.mjs'
 import { main } from './ui-cli.mjs'
 
@@ -50,7 +50,7 @@ function model(profile,changes={}) {
     async waitRun(){calls.push('runBarrier');if(changes.barrierFail)throw Error('synthetic wrong run barrier')},
     async wait(predicate){for(let i=0;i<20;i++){clock+=10;if(await predicate())return}throw Error('synthetic bounded wait')},
     async observe(){return {viewKind:page==='overview'?(actual?'actual':'demo'):page,viewport:{width,height,scrollX:0,scrollY:0}}},
-    validate(step,d,observed,contract,selected){assert.equal(selected,profile);const fence=contract.stepFences[profile].find(v=>v[0]===step);assert.equal(d.viewKind,fence[3]);assert.equal(d.viewport.width,fence[5]);assert.equal(d.apiFence.overviewCaptureOrdinals.length,fence[7]);assert.equal(d.apiFence.snapshotCaptureOrdinal,observed.find(r=>r.kind==='SNAPSHOT').ordinal)}}
+    validate(step,d,observed,contract,selected){if(changes.badDOM)throw Error('PRIVATE-DOM-ASSERTION');assert.equal(selected,profile);const fence=contract.stepFences[profile].find(v=>v[0]===step);assert.equal(d.viewKind,fence[3]);assert.equal(d.viewport.width,fence[5]);assert.equal(d.apiFence.overviewCaptureOrdinals.length,fence[7]);assert.equal(d.apiFence.snapshotCaptureOrdinal,observed.find(r=>r.kind==='SNAPSHOT').ordinal)}}
   return {o,input,session,journal,io,writes,calls,count,get disposed(){return disposeCount},run:()=>orchestrateOverview(session,journal,c,input,o,io)}
 }
 test('d01 actual orchestrator completes both full profile plans eight PNGs and close ordering',async()=>{
@@ -76,12 +76,29 @@ test('d04 rows and screenshot records bind completed capture ordinals and publis
 })
 test('d05 default run rejects fake dependency options before any application I/O',async()=>{
   const m=model('evidence_disabled');await assert.rejects(runOverview({...m.o,openNativeSession:async()=>m.session}));assert.equal(m.calls.length,0)
+  const native={schema:'chengwang.native-open-failure/v1',stage:'CDP_INITIAL_TARGETS',firstFault:'STARTUP_REJECTED',initialTargets:{shape:'ARRAY',total:0,pages:0,blankPages:0}}
+  const d=overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,native,m.journal.counters)
+  assert.deepEqual(d.native,native);assert.deepEqual(d.counters,m.journal.counters)
+  assert.equal(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,native,null).counters,null)
+  for(const count of [true,-1,513,1.5])assert.equal(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,native,{...m.journal.counters,failedRequests:count}).counters,null)
+  for(const args of [['PRIVATE-PHASE',null,null,null],['NATIVE_OPEN',null,null,null],['DOM_READ','PRIVATE-STEP',null,null],['DOM_READ',null,'demo_desktop',null],['DOM_READ','demo_desktop','actual_mobile',null]])assert.throws(()=>overviewFailureObservation(m.o,m.input.profile,c,...args,m.journal.counters))
+  assert.equal(new Set(OVERVIEW_FAILURE_PHASES).size,OVERVIEW_FAILURE_PHASES.length)
 })
 test('d06 barrier failure and real action rejection dispose without publishing success driver',async()=>{
-  for(const changes of [{barrierFail:true},{failClick:'cta_nodes'}]){const m=model('evidence_enabled_unknown',changes);await assert.rejects(m.run());assert.equal(m.disposed,1);assert.equal(m.writes.has(m.o.root+'/driver.private.json'),false)}
+  for(const changes of [{barrierFail:true},{failClick:'cta_nodes'}]){
+    const m=model('evidence_enabled_unknown',changes);await assert.rejects(m.run());assert.equal(m.disposed,1);assert.equal(m.writes.has(m.o.root+'/driver.private.json'),false)
+    const raw=m.writes.get(m.o.root+'/overview-open-diagnostic.private.json'),d=JSON.parse(raw)
+    assert.equal(d.native,null);assert.deepEqual(d.counters,m.journal.counters);assert(raw.length<=4096);assert(!raw.includes('private fixture'))
+    if(changes.barrierFail){assert.equal(d.phase,'RUN_BARRIER');assert.equal(d.attemptedCheckpoint,null);assert.equal(d.lastCompletedCheckpoint,null)}
+    else{assert.equal(d.phase,'CHECKPOINT_ACTION');assert.equal(d.attemptedCheckpoint,'nodes_page_desktop');assert.equal(d.lastCompletedCheckpoint,'actual_return_from_device')}
+  }
 })
 test('d07 stalled body journal or sticky native fault cannot pass a checkpoint',async()=>{
-  for(const changes of [{stalled:true},{fault:true}]){const m=model('evidence_disabled',changes);await assert.rejects(m.run());assert.equal(m.disposed,1);assert.equal(m.calls.includes('close'),false)}
+  for(const changes of [{stalled:true},{fault:true},{badDOM:true}]){const m=model('evidence_disabled',changes);await assert.rejects(m.run());assert.equal(m.disposed,1);assert.equal(m.calls.includes('close'),false)
+    const raw=m.writes.get(m.o.root+'/overview-open-diagnostic.private.json'),d=JSON.parse(raw)
+    assert(!raw.includes('PRIVATE-DOM-ASSERTION'));assert.equal(d.lastCompletedCheckpoint,null)
+    if(changes.badDOM){assert.equal(d.phase,'DOM_VALIDATE');assert.equal(d.attemptedCheckpoint,'demo_desktop')}
+  }
 })
 test('d08 same-source resize and extra node poll regressions fail exact API fences',async()=>{
   for(const changes of [{sameSourceGET:true},{resizeGET:true},{extraPoll:true}]){const m=model('evidence_enabled_unknown',changes);await assert.rejects(m.run());assert.equal(m.disposed,1);assert.equal(m.writes.has(m.o.root+'/driver.private.json'),false)}

@@ -95,7 +95,38 @@ function syntheticWindow() {
 }
 
 test('d01 synthetic profile matrix accepts all eleven and seventeen declared steps', () => { for (const profile of C.profiles) for (const f of C.stepFences[profile]) assert.equal(check(fixture(profile, f[0])).viewKind, f[3]) })
-test('d02 actual nav label and nested actual heading are distinct observations', () => { const w = syntheticWindow(), d = w.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)); assert.equal(d.navigationPage, '运行总览'); assert.equal(d.viewKind, 'actual'); assert.equal(d.heading, 'OBSERVED ACTUAL HEADING'); assert.equal(d.apiFence.snapshotCaptureOrdinal, 0); assert.deepEqual(d.apiFence.overviewCaptureOrdinals, []) })
+test('d02 actual nav label and nested actual heading are distinct observations', () => {
+  const w = syntheticWindow(), d = w.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom))
+  assert.equal(d.navigationPage, '运行总览'); assert.equal(d.viewKind, 'actual'); assert.equal(d.heading, 'OBSERVED ACTUAL HEADING'); assert.equal(d.apiFence.snapshotCaptureOrdinal, 0); assert.deepEqual(d.apiFence.overviewCaptureOrdinals, [])
+  const subscription = (tree, title, hidden = false) => {
+    const wrapper = new Element('DIV'), section = new Element('SECTION'), heading = new Element('H1', title)
+    wrapper.hidden = hidden; wrapper.parentElement = tree.main; wrapper.append(section); section.set('h1', heading)
+    return { wrapper, section, heading }
+  }
+  // The actual App retains Subscriptions inside a hidden sibling DIV even on
+  // the demo page. Query presence must not replace the visible page identity.
+  for (const hide of [s => s.wrapper.hidden = true, s => s.wrapper.style.display = 'none', s => s.wrapper.style.visibility = 'hidden', s => s.wrapper.style.opacity = '0', s => s.section.isConnected = false]) {
+    const demo = syntheticWindow(), mounted = subscription(demo, 'HIDDEN SUBSCRIPTION HEADING')
+    hide(mounted); demo.main.set('.evidence-overview-page').set('.subscriptions', mounted.section)
+    const heading = new Element('H1', 'OBSERVED DEMO HEADING')
+    demo.main.set(':scope > .page-heading h1', heading).set('h1', heading)
+    const observed = demo.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom))
+    assert.equal(observed.viewKind, 'demo'); assert.equal(observed.heading, 'OBSERVED DEMO HEADING'); assert.equal(observed.pageVisible, true); assert.equal(observed.detail, null)
+  }
+  const actual = syntheticWindow(), hidden = subscription(actual, 'HIDDEN SUBSCRIPTION HEADING', true)
+  actual.main.set('.subscriptions', hidden.section)
+  assert.equal(actual.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)).viewKind, 'actual')
+  const active = syntheticWindow(), absent = subscription(active, 'HIDDEN OLD HEADING', true), visible = subscription(active, 'OBSERVED SUBSCRIPTION HEADING')
+  active.main.set('.evidence-overview-page').set('.subscriptions', absent.section, visible.section)
+  const observed = active.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom))
+  assert.equal(observed.viewKind, 'subscriptions'); assert.equal(observed.heading, 'OBSERVED SUBSCRIPTION HEADING'); assert.equal(observed.pageVisible, true)
+  const duplicate = subscription(active, 'SECOND VISIBLE SUBSCRIPTION')
+  active.main.set('.subscriptions', visible.section, duplicate.section)
+  assert.throws(() => active.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)))
+  const mixed = syntheticWindow(), other = subscription(mixed, 'VISIBLE SUBSCRIPTION BESIDE ACTUAL')
+  mixed.main.set('.subscriptions', other.section)
+  assert.throws(() => mixed.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)))
+})
 test('d03 collector reads both actual boundary paragraphs across br without constants', () => { const w = syntheticWindow(), d = w.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)); assert.equal(d.actual.boundaryText, 'OBSERVED FIRST OBSERVED SECOND'); assert(!d.actual.boundaryText.includes(C.domSemantics.asOfNotice)); assert.equal(d.actual.sourceCards[0].sections[0].facts[0].text, '未配置') })
 test('d04 changing actual observed fact survives capture and is rejected by mapping', () => { const w = syntheticWindow(); w.cards[0].children[0].querySelectorAll('dd')[0].childNodes[0].nodeValue = 'OBSERVED DIFFERENT'; const observed = w.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)); assert.equal(observed.actual.sourceCards[0].sections[0].facts[0].text, 'OBSERVED DIFFERENT'); const x = ready(); x.d.actual.sourceCards = observed.actual.sourceCards; assert.throws(() => check(x)) })
 test('d05 hidden mobile topbar retains mounted text without pretending it rendered', () => { const w = syntheticWindow(); for (const node of [w.product, ...w.values]) node.style.display = 'none'; const d = w.run(() => observeOverviewDOM(C.controlSlots, C.schemaNames.dom)); assert.equal(d.topbar.product.text, 'OBSERVED PRODUCT'); assert.equal(d.topbar.product.present, true); assert.equal(d.topbar.product.rendered, false); assert.equal(d.topbar.product.inViewport, false); assert.equal(d.topbar.product.rect, null) })

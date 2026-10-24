@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { validateSessionOptions, validateChromeExit, TargetGuard, initializeCDPTargets, registerSessionEvents, nativeClickExpression, dispatchNativeClick, finishNativeSession, openNativeSession, SESSION_EVENTS, SESSION_FAULTS } from './native-session.mjs'
+import { validateSessionOptions, validateChromeExit, TargetGuard, initializeCDPTargets, registerSessionEvents, nativeClickExpression, dispatchNativeClick, finishNativeSession, openNativeSession, SESSION_EVENTS, SESSION_FAULTS, NATIVE_OPEN_STAGES, projectInitialTargets, nativeOpenObservation } from './native-session.mjs'
 import { OverviewJournal } from '../overview-ui-browser/overview-journal.mjs'
 
 const fixtureId = 'a'.repeat(32), sourceCommit = 'b'.repeat(40)
@@ -26,7 +26,7 @@ function closer(overrides = {}) {
 test('n01 exact options bind both engines to owned fixed paths', () => { for (const engine of ['chrome-cdp', 'playwright']) { const o = options(engine); assert.equal(validateSessionOptions(o), o) } })
 test('n02 options reject arbitrary paths engines and extra fake dependencies', () => { for (const change of [{ root: '/tmp/other' }, { engine: 'fake' }, { chrome: '/usr/bin/chrome' }, { home: '/root' }, { profile: '/tmp/profile' }, { launcher: '/tmp/run' }, { fixtureId: '../private' }, { sourceCommit: 'main' }, { io: {} }]) assert.throws(() => validateSessionOptions({ ...options(), ...change }), /^Error: native browser session rejected$/) })
 test('n03 invalid open arguments reject before process and filesystem setup', async () => { let calls = 0; await assert.rejects(openNativeSession({ ...options(), root: '/private-sensitive-value' }, { onEvent() { calls++ }, onFault() { calls++ } }), /^Error: native browser session rejected$/); assert.equal(calls, 0) })
-test('n04 hooks must be present exact synchronous callback slots', async () => { for (const hooks of [{}, { onEvent() {}, onFault: false }, { onEvent() {}, onFault() {}, fakeTransport: true }]) await assert.rejects(openNativeSession(options(), hooks), /^Error: native browser session rejected$/) })
+test('n04 hooks must be present exact synchronous callback slots', async () => { for (const hooks of [{}, { onEvent() {}, onFault: false }, { onEvent() {}, onFault() {}, fakeTransport: true }, { onEvent() {}, onFault() {}, onDiagnostic: false }, { onEvent() {}, onFault() {}, onDiagnostic: undefined }]) await assert.rejects(openNativeSession(options(), hooks), /^Error: native browser session rejected$/) })
 test('n05 chrome exit requires exact identity and actual zero normal join', () => { assert.equal(validateChromeExit(exit(), options(), chrome).joined, true); for (const change of [{ exitCode: 1 }, { forced: true }, { joined: false }, { pid: 124 }, { startTicks: 457 }, { engine: 'playwright' }, { fixtureId: 'c'.repeat(32) }, { extra: true }, { exitCode: false }]) assert.throws(() => validateChromeExit({ ...exit(), ...change }, options(), chrome)) })
 
 test('n06 known discovery replays before baseline are reconciled without faults', () => { const { guard: g, faults } = make(); g.observe('Target.targetCreated', created('owned')); g.observe('Target.targetCreated', created('initial')); baseline(g); g.arm(); assert.equal(g.phase, 'ARMED'); assert.deepEqual(faults, []); assert.equal(g.queue.length, 0) })
@@ -56,7 +56,26 @@ test('n27 launcher signal exit or timeout cannot produce success close', async (
 test('n28 live residual process and proc permission failure both reject close', async () => { for (const noLive of [async () => false, async () => { throw Error('synthetic-proc-denied') }]) { const x = closer({ noLive }); await assert.rejects(finishNativeSession(x.o, chrome, x.mechanisms)) } })
 test('n29 playwright close has null launcher record and still requires no residue', async () => { const x = closer({ launcherResult: null, readExit: async () => exit('playwright') }); x.o = options('playwright'); const r = await finishNativeSession(x.o, chrome, x.mechanisms); assert.equal(r.launcherExit, null); assert(x.calls.includes('proc')) })
 test('n30 session module has no business routes mock hooks or insecure launch switches', () => { const s = readFileSync(new URL('./native-session.mjs', import.meta.url), 'utf8'); assert(!s.includes('/api/v1/')); for (const forbidden of ['ignoreHTTPSErrors: true', 'bypassCSP: true', 'setIgnoreCertificateErrors', '--ignore-certificate-errors', '.route(', 'dispatchEvent(', 'fakeTransport']) assert(!s.includes(forbidden)); assert(s.includes('inspectPublicTLS')); assert(s.includes('configureNativeLocale')); assert(s.includes('noLiveChrome(o, chrome)')); assert(s.includes("phase = 'CLOSED'")) })
-test('n31 closed event and fault lists contain no duplicate or arbitrary text channel', () => { assert.equal(new Set(SESSION_EVENTS).size, SESSION_EVENTS.length); assert.equal(new Set(SESSION_FAULTS).size, SESSION_FAULTS.length); assert(SESSION_EVENTS.includes('Network.loadingFailed')); assert(SESSION_EVENTS.includes('Network.responseReceivedExtraInfo')); assert(SESSION_EVENTS.includes('Network.directUDPSocketCreated')); assert(SESSION_FAULTS.every(v => /^[A-Z_]+$/.test(v))) })
+test('n31 closed event and fault lists contain no duplicate or arbitrary text channel', () => {
+  assert.equal(new Set(SESSION_EVENTS).size, SESSION_EVENTS.length); assert.equal(new Set(SESSION_FAULTS).size, SESSION_FAULTS.length); assert(SESSION_EVENTS.includes('Network.loadingFailed')); assert(SESSION_EVENTS.includes('Network.responseReceivedExtraInfo')); assert(SESSION_EVENTS.includes('Network.directUDPSocketCreated')); assert(SESSION_FAULTS.every(v => /^[A-Z_]+$/.test(v)))
+  assert.equal(new Set(NATIVE_OPEN_STAGES).size,NATIVE_OPEN_STAGES.length); assert(NATIVE_OPEN_STAGES.every(v=>/^[A-Z_]+$/.test(v)))
+  const unseen={shape:'UNOBSERVED',total:null,pages:null,blankPages:null}
+  assert.deepEqual(nativeOpenObservation('CDP_PORT_WAIT','STARTUP_REJECTED',unseen).initialTargets,unseen)
+  assert.deepEqual(projectInitialTargets([]),{shape:'ARRAY',total:0,pages:0,blankPages:0})
+  assert.deepEqual(projectInitialTargets([{type:'page',url:'about:blank',targetId:'PRIVATE-ID'},{type:'service_worker',url:'PRIVATE-URL'}]),{shape:'ARRAY',total:2,pages:1,blankPages:1})
+  const invalid={shape:'INVALID',total:null,pages:null,blankPages:null}
+  let getterCalls=0
+  const hostile={get type(){getterCalls++;throw Error('PRIVATE-GETTER')}}
+  for(const rows of [null,{},Array(65).fill({type:'page',url:'PRIVATE-URL'}),[hostile],[{type:'page',get url(){getterCalls++;return 'PRIVATE-URL'}}],Array(1)])assert.deepEqual(projectInitialTargets(rows),invalid)
+  assert.equal(getterCalls,0)
+  const safe=nativeOpenObservation('CDP_INITIAL_TARGETS','EXTRA_TARGET',projectInitialTargets([{type:'page',url:'PRIVATE-URL',targetId:'PRIVATE-ID'}]))
+  assert(!JSON.stringify(safe).includes('PRIVATE'))
+  for(const patch of [{shape:'ARRAY',total:true,pages:0,blankPages:0},{shape:'ARRAY',total:1,pages:2,blankPages:0},{...unseen,total:0},{...unseen,url:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_INITIAL_TARGETS',null,patch))
+  assert.throws(()=>nativeOpenObservation('PRIVATE-STAGE',null,unseen)); assert.throws(()=>nativeOpenObservation('CDP_PORT_WAIT','PRIVATE-FAULT',unseen))
+  const source=readFileSync(new URL('./native-session.mjs',import.meta.url),'utf8')
+  assert(source.includes('await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets))'))
+  assert(source.indexOf('await hooks.onDiagnostic(')<source.lastIndexOf('await dispose(); throw rejected()'))
+})
 
 test('n32 queued unknown target cannot be authorized by appearing in a later snapshot', () => {
   for (const kind of ['page', 'service_worker', 'shared_worker']) {
@@ -101,7 +120,11 @@ test('n35 actual CDP initializer freezes before create and installs selected lis
   assert.deepEqual(calls, ['Target.getTargets', 'Target.createTarget', 'Target.attachToTarget', 'Target.getTargets', 'Target.setDiscoverTargets'])
   assert.deepEqual(result, { targetId: 'owned', sessionId: 'selected-session' }); assert.equal(g.phase, 'ARMED')
   const source = readFileSync(new URL('./native-session.mjs', import.meta.url), 'utf8')
-  assert(source.includes('await initializeCDPTargets(browserSendRaw, guard, sessionId =>'))
+  assert(source.includes('await initializeCDPTargets(bootstrapSend, guard, sessionId =>'))
+  const wrapper = source.match(/const bootstrapSend = async \(method, params\) => \{([\s\S]*?)\n      \}/)?.[1]
+  assert(wrapper); assert.equal((wrapper.match(/await browserSendRaw\(method, params\)/g)||[]).length,1)
+  assert(wrapper.includes('initialTargets = projectInitialTargets(result?.targetInfos)')); assert(wrapper.includes('return result'))
+  for(const forbidden of ['until(', 'setTimeout(', 'guard.', 'spawn(', 'catch'])assert(!wrapper.includes(forbidden))
   assert(source.includes("'--user-data-dir=' + o.profile, 'about:blank'"))
 })
 test('n36 actual CDP initializer rejects snapshot promotion before discovery can arm', async () => {
