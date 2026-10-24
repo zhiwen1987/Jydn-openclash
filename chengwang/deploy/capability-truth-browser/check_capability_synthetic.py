@@ -12,8 +12,8 @@ import subprocess
 HERE = Path(__file__).parent
 SELF = 'chengwang/deploy/capability-truth-browser/check_capability_synthetic.py'
 PYTHON = {
-    'supervisor-unit.log': ('chengwang/deploy/browser-scene-supervisor/test_supervisor.py', 'SupervisorContracts', 15,
-        'e4d5b392b4de713755c55dac9c93dbc774982a20486353e49af2b66975027020'),
+    'supervisor-unit.log': ('chengwang/deploy/browser-scene-supervisor/test_supervisor.py', 'SupervisorContracts', 16,
+        '55a5b1f94d354448556388c29a1a6d90b7367df1320d66170acc66f687c288bb'),
     'capability-scene-unit.log': ('chengwang/deploy/capability-truth-browser/test_capability_truth_scene.py', 'CapabilitySceneContracts', 28,
         '777329e8788c8fbec831322b6114f88479dacbb19a1624b304aa416cadb84164'),
     'capability-checker-unit.log': ('chengwang/deploy/capability-truth-browser/test_check_capability_truth.py', 'CapabilityCheckerContracts', 50,

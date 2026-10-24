@@ -1,0 +1,123 @@
+{
+  "schema": "chengwang.capability-truth-ci-followup/v1",
+  "sourceCommit": "448e20bdac0aa657505ebb53f56b5fe1aac6c356",
+  "developmentBranch": "codex/chengwang-security-hardening",
+  "pushed": true,
+  "remoteRefVerified": true,
+  "implementationFilesCommitted": 24,
+  "actualLocalCPU": {
+    "tests": 172,
+    "failed": 0,
+    "skipped": 0
+  },
+  "actualSourceBoundTranscriptCLI": {
+    "exitCodes": [
+      0,
+      0
+    ],
+    "reportsByteEqual": true,
+    "reportSHA256": "21be7f978c59a51a808bf0fefc1b3f4748983cf8267398a4e551c8a15c37d678",
+    "sourceFiles": 17,
+    "sourceAndOriginalLogsStable": true,
+    "directory": "D:/CodexData/workspace/capability-source-cli-a4i79l8x",
+    "realBrowserProven": false,
+    "realProductServerProven": false
+  },
+  "ciObservations": [
+    {
+      "state": "UNKNOWN_RATE_LIMITED",
+      "responseHTTPStatus": 403,
+      "remaining": 0,
+      "resetUTC": "2026-10-24T05:37:17Z",
+      "originalDirectory": "D:/CodexData/workspace/capability-ci-index-mu2dtl4y",
+      "runHandlesObserved": []
+    },
+    {
+      "state": "COMPLETED_FAILURE",
+      "originalDirectory": "D:/CodexData/workspace/capability-ci-index-5u9r8zoe",
+      "runs": [
+        {
+          "id": 40066607879,
+          "name": "static",
+          "conclusion": "success"
+        },
+        {
+          "id": 40066607931,
+          "name": "subscription-readback",
+          "conclusion": "success"
+        },
+        {
+          "id": 40066607892,
+          "name": "subscription-ui",
+          "conclusion": "failure"
+        }
+      ],
+      "actualJobs": 27,
+      "uiProducerJobs": 12,
+      "uiFreshJobs": 12,
+      "uiFailedJobs": 24,
+      "uiBuildStepsSuccess": 12,
+      "uiBrowserStepsSkipped": 12,
+      "realProductBrowserExecuted": false,
+      "representativePublicArtifacts": {
+        "count": 5,
+        "safeMembers": 76
+      },
+      "observedFailures": [
+        {
+          "kind": "NEW_UNIT_FIXTURE_COLLIDES_WITH_HOST_PROC",
+          "tests": "test_supervisor two fake-positive cases",
+          "fakePIDs": [
+            20,
+            21,
+            22
+          ],
+          "productionCleanupAssertionChanged": false
+        },
+        {
+          "kind": "LEGACY_AST_GUARDS_EXPECT_OLD_INLINE_STRUCTURE",
+          "tests": [
+            "test_navigation_diagnostics.test_runner_copies_helper_and_projects_only_inside_failure_finally",
+            "test_feedback_projection.test_16_runner_publishes_only_after_success_and_old_file_set_closes"
+          ]
+        }
+      ],
+      "additionalLocalFullSweepFailure": {
+        "suite": "test_handoff_navigation_diagnostics",
+        "test": "test_10_runner_projects_only_negative_failure_and_keeps_success_public_sets",
+        "cause": "same old inline-structure assumption",
+        "actualPassedModulesBeforeFailure": 17,
+        "actualPassedCasesBeforeFailure": 383,
+        "directory": "D:/CodexData/workspace/all-ui-helper-cpu-z2wmqb1g",
+        "completeModulePassedCases": 374,
+        "partialModulePassedCases": 9,
+        "countClarification": "383 includes9 cases in the failing18th module; the17 complete modules had374 passing cases."
+      },
+      "correctionStatus": "LOCAL_FULL_HELPER_702_PASS_WITH_173_SUBSET_PENDING_NEW_COMMIT_AND_CI"
+    }
+  ],
+  "expectedFromPathFiltersNotRuntimeEvidence": {
+    "workflows": [
+      "Chengwang M2b Candidate Static Gate",
+      "Chengwang Subscription Product Readback Lab",
+      "Chengwang Real Subscription UI Browser"
+    ],
+    "jobs": 27,
+    "legacyUIProducer": 8,
+    "legacyUIFresh": 8,
+    "capabilityProducer": 4,
+    "capabilityFresh": 4,
+    "otherJobs": 3,
+    "imageBindingAndProbeAutomaticallyRerun": false
+  },
+  "remaining": [
+    "Test-only correction candidate must complete all workflow helper events, keep runtime invariants, then commit and obtain a new actual CI run.",
+    "Acquire bounded public originals and independently reconstruct all successful capability and legacy scenes.",
+    "Review actual product screenshots; monitor screenshots do not cover product UI.",
+    "Finish real fault, live provider, full feature, recovery, canary and production acceptance."
+  ],
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "overallProjectComplete": false
+}

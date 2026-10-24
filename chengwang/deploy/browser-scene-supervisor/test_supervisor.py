@@ -51,7 +51,7 @@ class SupervisorContracts(unittest.TestCase):
         self.assertEqual(new['profile'], 'default'); self.assertEqual(new['scenario'], 'capability_truth')
         self.assertFalse(new['production'])
 
-    def _run_inner(self, *, key='capability_truth:default', fail=None, node_code=0, server_code=0):
+    def _run_inner(self, *, key='capability_truth:default', fail=None, node_code=0, server_code=0, proc_exists=False):
         with tempfile.TemporaryDirectory(prefix='scene-supervisor-cpu-') as temp:
             root = pathlib.Path(temp) / 'private'; root.mkdir(); bundle = pathlib.Path(temp) / 'bundle'; bundle.mkdir()
             output = pathlib.Path(temp) / 'out'; output.mkdir(); server = FakeChild(20, server_code); node = FakeChild(21, node_code)
@@ -83,6 +83,13 @@ class SupervisorContracts(unittest.TestCase):
             if fail == 'barrier': barrier['fixtureId'] = 'wrong'
             matrix = types.SimpleNamespace(certificates=lambda *a: {'caPEM': 'synthetic', 'leafPEM': 'synthetic'}, child_limits=mock.Mock(),
                 wait_file=lambda *a: barrier, no_owned_processes=lambda: True)
+            real_exists = pathlib.Path.exists; proc_checks = []
+            fake_proc_paths = {pathlib.Path('/proc', str(pid)) for pid in (20, 21, 22)}
+            def exists(path):
+                if path in fake_proc_paths:
+                    proc_checks.append(path)
+                    return proc_exists
+                return real_exists(path)
             with contextlib.ExitStack() as stack:
                 stack.enter_context(mock.patch.object(S, 'load_scene_adapter', return_value=adapter))
                 stack.enter_context(mock.patch.object(S.os, 'geteuid', return_value=0, create=True))
@@ -91,9 +98,13 @@ class SupervisorContracts(unittest.TestCase):
                 stack.enter_context(mock.patch.object(S.subprocess, 'Popen', side_effect=[server, node]))
                 stack.enter_context(mock.patch.object(S, 'wait_server'))
                 stack.enter_context(mock.patch.object(S, 'export_scene_evidence', return_value=[]))
-                if fail or node_code or server_code:
+                # Fake PIDs must never consult the host's unrelated /proc entries.
+                stack.enter_context(mock.patch.object(pathlib.Path, 'exists', new=exists))
+                if fail or node_code or server_code or proc_exists:
                     with self.assertRaises((ValueError, RuntimeError)): S.supervise_scene(options, pathlib.Path(temp), root, bundle, 'b' * 32, key, native, matrix, leaf)
                 else: S.supervise_scene(options, pathlib.Path(temp), root, bundle, 'b' * 32, key, native, matrix, leaf)
+            if not (fail or node_code or server_code):
+                self.assertEqual(proc_checks, [pathlib.Path('/proc', str(observed['pid']))])
             return published, run_gates, captured, observed, adapter, leaf
 
     def test_shared_normal_path_preserves_real_wait_ownership_and_profile_identity(self):
@@ -105,6 +116,28 @@ class SupervisorContracts(unittest.TestCase):
     def test_shared_legacy_path_does_not_add_capability_fields_to_old_outputs(self):
         published, _, _, _, _, _ = self._run_inner(key='subscription:create_receipt')
         self.assertNotIn('profile', published['processes.json']); self.assertNotIn('scenario', published['processes.json'])
+
+    def test_residual_fake_proc_rejects_success_despite_zero_exits_and_no_owned_claim(self):
+        real_exists = pathlib.Path.exists
+        def forbid_host_proc(path):
+            if path == pathlib.Path('/proc') or pathlib.Path('/proc') in path.parents:
+                raise AssertionError('fake process test must not read host proc existence')
+            return real_exists(path)
+        with mock.patch.object(pathlib.Path, 'exists', new=forbid_host_proc):
+            for present in (False, True):
+                with self.subTest(fake_proc_exists=present):
+                    published, gates, states, observed, adapter, leaf = self._run_inner(proc_exists=present)
+                    self.assertEqual(len(gates), 1); leaf.terminate_children.assert_called_once()
+                    self.assertEqual(states[0].server.returncode, 0); self.assertEqual(states[0].node.returncode, 0)
+                    self.assertEqual(states[0].succeeded, not present)
+                    if present:
+                        failure = published['failure.json']
+                        self.assertEqual(failure['stage'], 'PROCESS_REAP'); self.assertEqual(failure['records'], [observed])
+                        self.assertTrue(failure['noLiveOwnedProcesses'])
+                        self.assertNotIn('processes.json', published); adapter.scene_post_stop.assert_not_called()
+                    else:
+                        self.assertNotIn('failure.json', published); self.assertIn('processes.json', published)
+                        adapter.scene_post_stop.assert_called_once()
 
     def test_partial_process_records_survive_failure_and_do_not_open_run_gate(self):
         published, gates, _, observed, adapter, _ = self._run_inner(fail='records')

@@ -1,0 +1,326 @@
+{
+  "schema": "chengwang.shared-supervisor-helper-correction/v1",
+  "baselineCommit": "448e20bdac0aa657505ebb53f56b5fe1aac6c356",
+  "status": "LOCAL_CORRECTION_PASSED_PENDING_NEW_COMMIT_AND_LINUX_CI",
+  "changedImplementationScope": "TESTS_AND_CPU_TRANSCRIPT_PIN_ONLY",
+  "runtimeCoreChanged": false,
+  "productFrontendChanged": false,
+  "legacyTestNamesPreserved": true,
+  "oldSupervisorTests": 15,
+  "newSupervisorTests": 16,
+  "capabilitySubsetTests": 173,
+  "actualWorkflowHelperCPU": {
+    "pythonModules": 19,
+    "nodeGroups": 8,
+    "totalTests": 702,
+    "capabilitySubsetIncludedNotAdditional": 173,
+    "skipped": 0,
+    "sourceStable": true,
+    "originalDirectory": "D:/CodexData/workspace/all-ui-helper-cpu-2w5g0a73",
+    "resultSHA256": "2210a66f8145c59b3403119f12bea351f39f9f9a8b3f6bdd4be386b0355ea155",
+    "results": [
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "supervisor-unit.log",
+        "namesSHA256": "8cdc9f8d034f600a442a590f1334873de84f75cc3eccce1e7774418640a96765",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "capability-scene-unit.log",
+        "namesSHA256": "700d20fb27294b4fea464197f54eec461842ec2eed1b06775467c5f5009f497c",
+        "skipped": 0,
+        "tests": 28
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "capability-checker-unit.log",
+        "namesSHA256": "00702b2b1f6cf3aa7e86a75d9039583ee598903f1c554effe178a9020d49d80a",
+        "skipped": 0,
+        "tests": 50
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "runner.log",
+        "namesSHA256": "b71beac21a3c7666f241c566c1f97c21448be60396e73d7f5856461e398a80ac",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "checker.log",
+        "namesSHA256": "06b7485b8971b9e804eb9904ec3a30e48e1007c95fc3b9c1d399ee352df1ece8",
+        "skipped": 0,
+        "tests": 36
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "admission-fixture.log",
+        "namesSHA256": "3606959d837d648c1c8c94d39d86cf51add916d30d52c9851eb88a130f224e77",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "admission-checker.log",
+        "namesSHA256": "7412651ce7632fe2dddfe45d11a0bc5bbeac72341e26f5ade8b4701419be68f5",
+        "skipped": 0,
+        "tests": 28
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "remote-fixture.log",
+        "namesSHA256": "02cbd687d38e5a2e5fbd27e8b550bbc6444fec185c937749c2bf8286229902fe",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "remote-checker.log",
+        "namesSHA256": "dcff5427798d97711f8640f9959628aff0a68a01b769b7b888afef820130bdfe",
+        "skipped": 0,
+        "tests": 26
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "remote-synthetic-checker.log",
+        "namesSHA256": "5ce04ae223ce1eda06df48a19dd9f45c2251d70eeb3e864a3ce0416fb5bdf5b6",
+        "skipped": 0,
+        "tests": 12
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "handoff-fixture.log",
+        "namesSHA256": "02f3091a93105ba5a691a13d5c19210ef3f80661d05254b70fad97b886cf3967",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "handoff-checker.log",
+        "namesSHA256": "6e6570e3057df2379db7a59dc46102056f70aed36d9046b6b2d3d105627fe960",
+        "skipped": 0,
+        "tests": 32
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "handoff-synthetic-checker.log",
+        "namesSHA256": "8e03801723673ba947a7ea91fa9b99b55c49e9fe61a59405e465079e293f5f8b",
+        "skipped": 0,
+        "tests": 12
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "feedback-projection.log",
+        "namesSHA256": "e97d64c1f333bf0764fe7c35fc6391155427ecf0d45b13a2334da4dee41ef3c1",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "feedback-checker.log",
+        "namesSHA256": "0688a4e60f6838c0bb791372300db2e634542718d0bc0492b519bbedeb60a4d3",
+        "skipped": 0,
+        "tests": 20
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "navigation-reader.log",
+        "namesSHA256": "91cc8934d369786eaca10f7266f6b7940ab131676d8631f0de1efb99661e5ce2",
+        "skipped": 0,
+        "tests": 16
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "navigation-checker.log",
+        "namesSHA256": "de5b7f99246021741534c751f1f6377059dc2023c834f80063764d38501271cb",
+        "skipped": 0,
+        "tests": 18
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "handoff-navigation-reader.log",
+        "namesSHA256": "bd407f5b28e4b6f3a7c1eb077e1706dce90f98f002ad98c6848b51c7beca9740",
+        "skipped": 0,
+        "tests": 10
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "python",
+        "log": "handoff-navigation-checker.log",
+        "namesSHA256": "a207d4d95601f84141ba99138eb70859d4a06139b206d3cd061d588059f7667b",
+        "skipped": 0,
+        "tests": 20
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "capability-node.tap",
+        "namesSHA256": "3397e65e1908dbb15e4e7d91c765609cb42a9025d359ceaf110af896f0ca50cf",
+        "skipped": 0,
+        "tests": 79
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "node.tap",
+        "namesSHA256": "4785e3a43d51027cbf6be3dc41671d74d767e36c883ab541f06679e56175ee44",
+        "skipped": 0,
+        "tests": 32
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "admission-node.tap",
+        "namesSHA256": "b2e9fc4705056c7dd07f4f80caeb41316ccc8138989891d3cf8f394d23bdec81",
+        "skipped": 0,
+        "tests": 32
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "remote-node.tap",
+        "namesSHA256": "789f5e6ab7cebdfb39e7032db3abb3faec66a3173c31653db2633cc2bc0f2b4e",
+        "skipped": 0,
+        "tests": 32
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "handoff-node.tap",
+        "namesSHA256": "62550e3a811d1f717c585de07911f855a01b0de470d013ed45781cd72897c3ce",
+        "skipped": 0,
+        "tests": 48
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "feedback-node.tap",
+        "namesSHA256": "0faa2544102d1f91cd0ee4340fa87fb802cd666582e132ae210774df6a819e3b",
+        "skipped": 0,
+        "tests": 24
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "navigation-node.tap",
+        "namesSHA256": "21b66dd221501d40a0e41f9f6eb13bb4de999a5c2feffff78ec3d16cc347bb13",
+        "skipped": 0,
+        "tests": 24
+      },
+      {
+        "actualExitCode": 0,
+        "kind": "node",
+        "log": "handoff-navigation-node.tap",
+        "namesSHA256": "7d2f8c4d2386cb54a68a2914ecdf52471823c1797fbf3903954f83d7c62626eb",
+        "skipped": 0,
+        "tests": 27
+      }
+    ],
+    "sourceSHA256": {
+      "chengwang/deploy/browser-scene-supervisor/lifecycle.py": "79f446505c6cfb3811e4638f8e0c1afe8673d8e9d26558d7a3584ded9481f20a",
+      "chengwang/deploy/browser-scene-supervisor/supervisor.py": "63aa0c3ac0a723470f77dc918e4b66a758ad6b4160bb3bbf4fde029e73d334ff",
+      "chengwang/deploy/browser-scene-supervisor/test_supervisor.py": "975fbed805700749caee4f9cd293473628a35ef181820371124da58bf7016b49",
+      "chengwang/deploy/capability-truth-browser/capability_truth_scene.py": "e25e31b4417406e31e17da5d42ca9b1f6cdc47e51dfeb651a235c9a7206b4191",
+      "chengwang/deploy/capability-truth-browser/check_capability_synthetic.py": "3e6eaea8f63cda5316fbda38894e1845a9b2d65be8208c8f1aadf867bd34f7f0",
+      "chengwang/deploy/capability-truth-browser/check_capability_truth.py": "cb3f3254c170d737d2de59396056ea817acefbe34ad256a8c033410551755f02",
+      "chengwang/deploy/capability-truth-browser/contract.json": "ef9b9bd3c05760cd306551e09004445d06ab8faab6166bc65c3c71f56f579b4c",
+      "chengwang/deploy/capability-truth-browser/run_capability_truth.py": "cbe1ab4bd0481fb7cf38a5a89376ee312adfbbcd8cf7b3c5c961fa8d4389cf47",
+      "chengwang/deploy/capability-truth-browser/test_capability_truth_scene.py": "1334d22808c21f0a24f76da2267391419d9dea0209736fb427005cc48210ee6a",
+      "chengwang/deploy/capability-truth-browser/test_check_capability_truth.py": "58c4c3dbfcdf9fbc22f95ad6a1c756a506609b3c581a978310301c7b012faa44",
+      "chengwang/deploy/subscription-ui-browser/test_admission_fixture.py": "b8050739d135487968128cc55550738638e75de8836e5622cc2b878f1c8d4abb",
+      "chengwang/deploy/subscription-ui-browser/test_check_admission_ui.py": "afd869cc75be90b0c231142c38ad2a101d51860c5fa327f5e047b744d9009b4c",
+      "chengwang/deploy/subscription-ui-browser/test_check_handoff_feedback.py": "11737a56d1f8449de49349e52f4eb977fbcfedff6d60082a67c15a12d731e903",
+      "chengwang/deploy/subscription-ui-browser/test_check_handoff_navigation_diagnostics.py": "835e5aa4f04e22112417ddcaef6df1757dc34ad7b732df122f22cb6b18c9cd23",
+      "chengwang/deploy/subscription-ui-browser/test_check_handoff_negative_synthetic.py": "db5808dd24568f844f85d63d20089a600346de01efed50711a08de274423165e",
+      "chengwang/deploy/subscription-ui-browser/test_check_handoff_negative_ui.py": "b3ce793dc5ad1f8b473c876f090454e5eee4dd866db0240967558f71f2e683cc",
+      "chengwang/deploy/subscription-ui-browser/test_check_navigation_diagnostics.py": "d2e06bc09a181ad7feff56b406e9ee3ee43940a68769d6954402f1393ee08ec7",
+      "chengwang/deploy/subscription-ui-browser/test_check_remote_fetch_ui.py": "70ecf5d00326bb623a15fd70bbe738e62f4383e4c9087e49927fd79a471ce17e",
+      "chengwang/deploy/subscription-ui-browser/test_check_remote_synthetic.py": "a51314796999bfc9773037ba177ca7fddbe9ac18dd8a1d17039cdce1e8a480e0",
+      "chengwang/deploy/subscription-ui-browser/test_check_subscription_ui.py": "a45f12af6c1b811e3c9c1015b5278e8115728b81bdc4c7a1879bbdcc33c32455",
+      "chengwang/deploy/subscription-ui-browser/test_feedback_projection.py": "f51b16e988664e0b1b812270acf50911953863a67a88636396ccdc044c9558aa",
+      "chengwang/deploy/subscription-ui-browser/test_handoff_navigation_diagnostics.py": "aefaeaa75972bc3d7187f2a74221a4aeb4b535c7b89b140b83bfde76aaf75a40",
+      "chengwang/deploy/subscription-ui-browser/test_handoff_negative_fixture.py": "d0c9b52c58fadc3ff2ee0332f4d2aa9a4a2f55662558c001978cc73536cc8c1f",
+      "chengwang/deploy/subscription-ui-browser/test_navigation_diagnostics.py": "c0ab044ea80803ce93a2690e5f7bcd7de9eba6cb1eaf320702b129841cca573c",
+      "chengwang/deploy/subscription-ui-browser/test_remote_fetch_fixture.py": "235081839939ebb57392dd1a84e09425a563f23406dd43e611b56415626ab402",
+      "chengwang/deploy/subscription-ui-browser/test_run_subscription_ui.py": "ef896b381cceb195f9b2c3fa1444058a40704c69bdfe98e8743f2168836cf81f",
+      "chengwang/tools/capability-truth-browser/test-ui-contract.mjs": "c834aeb64b22728a822df344d6d347dd88360460256c01314320ccaf9aca984a",
+      "chengwang/tools/capability-truth-browser/test-ui-dom.mjs": "bf00f59faf43f4222e952895dec398c2321d1a6dedf25515f31b643a8d13bc96",
+      "chengwang/tools/capability-truth-browser/test-ui-driver.mjs": "f2c94273629b99fbe3cf6e2a1c6f882ce7f0800c494eeedc3ad593c5239d2284",
+      "chengwang/tools/capability-truth-browser/ui-cli.mjs": "4b00ba8f949aec127a29edc12370cfa4a76a3f1250376fc60df2b94b2487dee5",
+      "chengwang/tools/capability-truth-browser/ui-contract.mjs": "eeafe9cf60efec4f5e06bb695b82355a0654be2371160cfc1eb292a5da8b4aea",
+      "chengwang/tools/capability-truth-browser/ui-dom.mjs": "45071ac12d229727ba039e1a5596f4e83fb7b63a4c3f7999765acb2508d867e6",
+      "chengwang/tools/capability-truth-browser/ui-driver.mjs": "19d0c3b5ca6370cdb55fb41cb54c360e8cba753a80dea14f95811b311940421e",
+      "chengwang/tools/subscription-ui-browser/test-admission-contract.mjs": "dcf24b9135cb8b27c70c2201d9345dba805c7ce80d7f4a5afd19b55f132f0a4d",
+      "chengwang/tools/subscription-ui-browser/test-handoff-api-sampler.mjs": "d9d88c0ad6fc9ee6995e29a0c9ec3f5ad88550c7f491d7edf228298d697b6fe8",
+      "chengwang/tools/subscription-ui-browser/test-handoff-feedback.mjs": "823546144f94fa20def143d0d6d552468fe0a227c80cd5c0f3cfa4d0ed59d8c5",
+      "chengwang/tools/subscription-ui-browser/test-handoff-navigation-diagnostics.mjs": "211f9a11d432202c23792821a629ac0fe3cc6f35437d00d012476a2ba1bd5960",
+      "chengwang/tools/subscription-ui-browser/test-handoff-negative-contract.mjs": "7ad02f2051e08dc7d0fcfb0423f636bb40d229ff5f35d850469c6787b5cea6fc",
+      "chengwang/tools/subscription-ui-browser/test-navigation-diagnostics.mjs": "7f74091b1d45eee94f60c6164930a9791d00ccf2591e519b29e967e6e253cce1",
+      "chengwang/tools/subscription-ui-browser/test-remote-fetch-contract.mjs": "eec9b05c3dc9f95623d748b2148e26d15cb018d8f63783676e8813491ff16ea0",
+      "chengwang/tools/subscription-ui-browser/test-ui-contract.mjs": "6f04c137918922f32225c7213d6f994493569e7403178ab263c6e08e53e47175"
+    },
+    "pythonTests": 404,
+    "nodeTests": 298,
+    "independentAudit": {
+      "directory": "D:/CodexData/workspace/all-ui-helper-independent-final-aa9a3dfac3d74db18bab106f57a2965b",
+      "sha256": "2d89ce65c10e86a15e3bfd05c7d838eb78c076a1a62e795760b8440aa2542801",
+      "evidenceFilesStable": 130,
+      "listedSourcesStable": 41,
+      "lifecycle19Included": false
+    }
+  },
+  "corrections": [
+    "Model only fake /proc/20, /proc/21 and /proc/22 in fake-process tests instead of reading host process entries; keep runtime residual-process rejection unchanged and add a surviving-fake-process negative.",
+    "Bind legacy navigation diagnosis guard to wrapper, fixed supervisor registry, failure-only finally branch, adapter and serialized **details; preserve private-helper, sudo and closed public-set checks.",
+    "Bind legacy feedback guard to actual export/host-readback/public-set ordering, strict owner/modes, confidentiality fence and normal success output, with mutation rejection cases.",
+    "Bind negative-handoff diagnosis guard to the actual failure-only shared call chain and negative scenario branch, including unchanged125-second wait, zero exit and forcedSignals=0.",
+    "Update exact supervisor test count and name pin; dynamic capability helper total becomes173. Keep old legacy names and pins."
+  ],
+  "retainedFailures": [
+    {
+      "scope": "ACTUAL_448_LINUX_CI",
+      "runId": 40066607892,
+      "producerFailed": 12,
+      "freshFailed": 12,
+      "browserStepsSkipped": 12,
+      "productionBrowserExecuted": false
+    },
+    {
+      "scope": "ROOT_FULL_HELPER_SWEEP_BEFORE_HANDOFF_GUARD_CORRECTION",
+      "directory": "D:/CodexData/workspace/all-ui-helper-cpu-z2wmqb1g",
+      "passedModules": 17,
+      "failedCases": 1,
+      "completeModulePassedCases": 374,
+      "partialModulePassedCases": 9,
+      "totalPassedCases": 383
+    }
+  ],
+  "notProven": [
+    "No actual new Linux CI result is established by these Windows CPU events.",
+    "No product browser, upstream, business, long-term reliability or production acceptance is established.",
+    "The old448 readback CLI local replay still rejects Windows cross-channel ctime; successful CI fresh metadata must not be relabelled local full replay."
+  ],
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false
+}

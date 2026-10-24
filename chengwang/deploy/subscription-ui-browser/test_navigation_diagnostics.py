@@ -204,18 +204,110 @@ class NavigationDiagnosticsContracts(unittest.TestCase):
 
     def test_runner_copies_helper_and_projects_only_inside_failure_finally(self):
         self.assertIn('chengwang/deploy/subscription-ui-browser/navigation_diagnostics.py', R.SOURCE_FILES)
-        tree = ast.parse((BASE / 'run_subscription_ui.py').read_text(encoding='utf-8'))
-        inner = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'inner')
-        diagnostic_calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
-                            and any(key.arg == 'driverDiagnostics' for key in node.keywords)]
-        self.assertEqual(len(diagnostic_calls), 1)
-        final = next(node.finalbody for node in ast.walk(inner) if isinstance(node, ast.Try) and node.finalbody)
-        failure = next(node for node in final if isinstance(node, ast.If)
-                       and isinstance(node.test, ast.UnaryOp) and isinstance(node.test.operand, ast.Name)
-                       and node.test.operand.id == 'succeeded')
-        self.assertIn(diagnostic_calls[0], list(ast.walk(failure)))
-        self.assertIn("options.output_dir / 'failure.json'", ast.get_source_segment(
-            (BASE / 'run_subscription_ui.py').read_text(encoding='utf-8'), failure))
+        runner_source = (BASE / 'run_subscription_ui.py').read_text(encoding='utf-8')
+        core_path = REPO / 'chengwang/deploy/browser-scene-supervisor/supervisor.py'
+        core_source = core_path.read_text(encoding='utf-8')
+        tree, core = ast.parse(runner_source), ast.parse(core_source)
+
+        def expression(value):
+            return ast.dump(ast.parse(value, mode='eval').body, include_attributes=False)
+
+        def function(module, name):
+            matches = [n for n in module.body if isinstance(n, ast.FunctionDef) and n.name == name]
+            self.assertEqual(len(matches), 1)
+            return matches[0]
+
+        def check_flow(runner_tree, core_tree):
+            # Follow the fixed wrapper to the actual shared implementation,
+            # rather than searching unrelated source text for old strings.
+            inner = function(runner_tree, 'inner')
+            self.assertEqual(len(inner.body), 1)
+            self.assertIsInstance(inner.body[0], ast.Return)
+            self.assertEqual(ast.dump(inner.body[0].value, include_attributes=False), expression(
+                "supervisor(repo).supervise_scene(options, repo, root, bundle, fixture, "
+                "'subscription:' + selected_scenario(options), N, M, lifecycle(repo))"))
+            loader = function(runner_tree, 'supervisor')
+            self.assertEqual(len(loader.body), 1)
+            self.assertIsInstance(loader.body[0], ast.Return)
+            self.assertEqual(ast.dump(loader.body[0].value, include_attributes=False), expression(
+                "load_module(repo / 'chengwang/deploy/browser-scene-supervisor/supervisor.py', "
+                "'subscription_ui_shared_supervisor')"))
+
+            shared = function(core_tree, 'supervise_scene')
+            adapter_assignments = [n for n in shared.body if isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'A' for t in n.targets)]
+            self.assertEqual(len(adapter_assignments), 1)
+            self.assertEqual(ast.dump(adapter_assignments[0].value, include_attributes=False),
+                             expression('load_scene_adapter(repo, key)'))
+            adapter_loader = function(core_tree, 'load_scene_adapter')
+            relatives = [n for n in adapter_loader.body if isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'relative' for t in n.targets)]
+            self.assertEqual(len(relatives), 1)
+            self.assertEqual(ast.dump(relatives[0].value, include_attributes=False),
+                             expression("LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_PATH"))
+            legacy_paths = [n.value.value for n in core_tree.body if isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'LEGACY_PATH' for t in n.targets)
+                and isinstance(n.value, ast.Constant)]
+            self.assertEqual(legacy_paths, ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py'])
+
+            final_blocks = [n.finalbody for n in shared.body if isinstance(n, ast.Try) and n.finalbody]
+            self.assertEqual(len(final_blocks), 1)
+            failures = [n for n in final_blocks[0] if isinstance(n, ast.If)
+                        and ast.dump(n.test, include_attributes=False) == expression('not state.succeeded')]
+            self.assertEqual(len(failures), 1)
+            failure = failures[0]
+            calls = [n for n in ast.walk(core_tree) if isinstance(n, ast.Call)
+                     and ast.dump(n.func, include_attributes=False) == expression('A.scene_failure_diagnostics')]
+            self.assertEqual(len(calls), 1)
+            assignments = [n for n in failure.body if isinstance(n, ast.Assign) and n.value is calls[0]]
+            self.assertEqual(len(assignments), 1)
+            self.assertEqual([ast.dump(t, include_attributes=False) for t in assignments[0].targets],
+                             [ast.dump(ast.Name(id='details', ctx=ast.Store()), include_attributes=False)])
+            self.assertEqual(ast.dump(calls[0], include_attributes=False),
+                             expression('A.scene_failure_diagnostics(state, options, root, fixture, key, N)'))
+            writes = [n.value for n in failure.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                      and ast.dump(n.value.func, include_attributes=False) == expression('N.exclusive')
+                      and n.value.args and ast.dump(n.value.args[0], include_attributes=False) ==
+                      expression("options.output_dir / 'failure.json'")]
+            self.assertEqual(len(writes), 1)
+            self.assertLess(failure.body.index(assignments[0]),
+                            next(i for i, n in enumerate(failure.body) if isinstance(n, ast.Expr) and n.value is writes[0]))
+            payloads = [n for n in ast.walk(writes[0].args[1]) if isinstance(n, ast.Call)
+                        and isinstance(n.func, ast.Name) and n.func.id == 'dict']
+            self.assertEqual(len(payloads), 1)
+            expansions = [k.value for k in payloads[0].keywords if k.arg is None]
+            self.assertEqual([ast.dump(v, include_attributes=False) for v in expansions], [expression('details')])
+            acceptance = [k.value for k in payloads[0].keywords if k.arg == 'acceptance']
+            self.assertEqual([ast.literal_eval(v) for v in acceptance], ['REJECTED_DIAGNOSTIC_ONLY'])
+
+            # The legacy adapter defines this field exactly once, returns that
+            # result, and the shared failure-only path serializes **details.
+            adapter = function(runner_tree, 'scene_failure_diagnostics')
+            diagnostic_calls = [n for n in ast.walk(runner_tree) if isinstance(n, ast.Call)
+                                and any(k.arg == 'driverDiagnostics' for k in n.keywords)]
+            self.assertEqual(len(diagnostic_calls), 1)
+            self.assertIn(diagnostic_calls[0], list(ast.walk(adapter)))
+            results = [n for n in adapter.body if isinstance(n, ast.Assign) and n.value is diagnostic_calls[0]]
+            self.assertEqual(len(results), 1)
+            self.assertEqual([ast.dump(t, include_attributes=False) for t in results[0].targets],
+                             [ast.dump(ast.Name(id='result', ctx=ast.Store()), include_attributes=False)])
+            returned = [n for n in adapter.body if isinstance(n, ast.Return)]
+            self.assertEqual(len(returned), 1)
+            self.assertEqual(ast.dump(returned[0].value, include_attributes=False), expression('result'))
+            self.assertFalse(any(isinstance(n, ast.keyword) and n.arg == 'driverDiagnostics' for n in ast.walk(core_tree)))
+            return shared, failure, assignments[0], payloads[0]
+
+        check_flow(tree, core)
+        # AST mutations must fail: moving the diagnostic out of the guarded
+        # finally or dropping its serialized expansion cannot satisfy the test.
+        moved_core = ast.parse(core_source)
+        shared, failure, assignment, _ = check_flow(tree, moved_core)
+        failure.body.remove(assignment); shared.body.insert(0, assignment)
+        with self.assertRaises(AssertionError): check_flow(tree, moved_core)
+        dropped_core = ast.parse(core_source)
+        _, _, _, payload = check_flow(tree, dropped_core)
+        next(k for k in payload.keywords if k.arg is None).value = ast.Dict(keys=[], values=[])
+        with self.assertRaises(AssertionError): check_flow(tree, dropped_core)
         # The original directory is root-owned 0700 until the final artifact
         # ownership step. A plain test/python would silently skip diagnosis.
         workflow = (BASE.parents[2] / '.github/workflows/chengwang-subscription-ui-browser.yml').read_text(encoding='utf-8')

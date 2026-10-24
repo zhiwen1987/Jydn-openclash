@@ -146,22 +146,117 @@ class HandoffNavigationReaderContracts(unittest.TestCase):
 
     def test_10_runner_projects_only_negative_failure_and_keeps_success_public_sets(self):
         text=(BASE/'run_subscription_ui.py').read_text(encoding='utf-8'); tree=ast.parse(text)
-        inner=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='inner')
-        calls=[n for n in ast.walk(inner) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
-            and n.func.attr=='read' and isinstance(n.func.value,ast.Call) and isinstance(n.func.value.func,ast.Name)
-            and n.func.value.func.id=='handoff_navigation_diagnostics']
-        self.assertEqual(len(calls),1)
-        failure=next(n for n in ast.walk(inner) if isinstance(n,ast.If) and isinstance(n.test,ast.UnaryOp)
-            and isinstance(n.test.operand,ast.Name) and n.test.operand.id=='succeeded')
-        self.assertIn(calls[0],list(ast.walk(failure)))
+        core_text=(REPO/'chengwang/deploy/browser-scene-supervisor/supervisor.py').read_text(encoding='utf-8')
+        core=ast.parse(core_text)
+
+        def expression(value):
+            return ast.dump(ast.parse(value,mode='eval').body,include_attributes=False)
+
+        def function(module,name):
+            found=[n for n in module.body if isinstance(n,ast.FunctionDef) and n.name==name]
+            self.assertEqual(len(found),1)
+            return found[0]
+
+        def check_flow(runner,shared_tree):
+            inner=function(runner,'inner')
+            self.assertEqual(len(inner.body),1); self.assertIsInstance(inner.body[0],ast.Return)
+            self.assertEqual(ast.dump(inner.body[0].value,include_attributes=False),expression(
+                "supervisor(repo).supervise_scene(options, repo, root, bundle, fixture, "
+                "'subscription:' + selected_scenario(options), N, M, lifecycle(repo))"))
+            loader=function(runner,'supervisor')
+            self.assertEqual(len(loader.body),1); self.assertIsInstance(loader.body[0],ast.Return)
+            self.assertEqual(ast.dump(loader.body[0].value,include_attributes=False),expression(
+                "load_module(repo / 'chengwang/deploy/browser-scene-supervisor/supervisor.py', "
+                "'subscription_ui_shared_supervisor')"))
+            shared=function(shared_tree,'supervise_scene')
+            adapter_loads=[n for n in shared.body if isinstance(n,ast.Assign)
+                and any(isinstance(t,ast.Name) and t.id=='A' for t in n.targets)]
+            self.assertEqual(len(adapter_loads),1)
+            self.assertEqual(ast.dump(adapter_loads[0].value,include_attributes=False),expression('load_scene_adapter(repo, key)'))
+            load_adapter=function(shared_tree,'load_scene_adapter')
+            selected=[n.value for n in load_adapter.body if isinstance(n,ast.Assign)
+                and any(isinstance(t,ast.Name) and t.id=='relative' for t in n.targets)]
+            self.assertEqual([ast.dump(n,include_attributes=False) for n in selected],
+                [expression("LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_PATH")])
+            legacy=[n.value.value for n in shared_tree.body if isinstance(n,ast.Assign)
+                and any(isinstance(t,ast.Name) and t.id=='LEGACY_PATH' for t in n.targets)
+                and isinstance(n.value,ast.Constant)]
+            self.assertEqual(legacy,['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py'])
+            tries=[n for n in shared.body if isinstance(n,ast.Try) and n.finalbody]
+            self.assertEqual(len(tries),1)
+            failures=[n for n in tries[0].finalbody if isinstance(n,ast.If)
+                and ast.dump(n.test,include_attributes=False)==expression('not state.succeeded')]
+            self.assertEqual(len(failures),1); failure=failures[0]
+            hooks=[n for n in ast.walk(shared_tree) if isinstance(n,ast.Call)
+                and ast.dump(n.func,include_attributes=False)==expression('A.scene_failure_diagnostics')]
+            self.assertEqual(len(hooks),1)
+            assignments=[n for n in failure.body if isinstance(n,ast.Assign) and n.value is hooks[0]]
+            self.assertEqual(len(assignments),1)
+            self.assertEqual([ast.dump(t,include_attributes=False) for t in assignments[0].targets],
+                [ast.dump(ast.Name(id='details',ctx=ast.Store()),include_attributes=False)])
+            self.assertEqual(ast.dump(hooks[0],include_attributes=False),
+                expression('A.scene_failure_diagnostics(state, options, root, fixture, key, N)'))
+            writes=[n.value for n in failure.body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call)
+                and ast.dump(n.value.func,include_attributes=False)==expression('N.exclusive')
+                and n.value.args and ast.dump(n.value.args[0],include_attributes=False)==expression("options.output_dir / 'failure.json'")]
+            self.assertEqual(len(writes),1)
+            payloads=[n for n in ast.walk(writes[0].args[1]) if isinstance(n,ast.Call)
+                and isinstance(n.func,ast.Name) and n.func.id=='dict']
+            self.assertEqual(len(payloads),1)
+            self.assertEqual([ast.dump(k.value,include_attributes=False) for k in payloads[0].keywords if k.arg is None],[expression('details')])
+            self.assertEqual([ast.literal_eval(k.value) for k in payloads[0].keywords if k.arg=='acceptance'],['REJECTED_DIAGNOSTIC_ONLY'])
+
+            adapter=function(runner,'scene_failure_diagnostics')
+            calls=[n for n in ast.walk(runner) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
+                and n.func.attr=='read' and isinstance(n.func.value,ast.Call) and isinstance(n.func.value.func,ast.Name)
+                and n.func.value.func.id=='handoff_navigation_diagnostics']
+            self.assertEqual(len(calls),1); self.assertIn(calls[0],list(ast.walk(adapter)))
+            results=[n for n in adapter.body if isinstance(n,ast.Assign) and isinstance(n.value,ast.Call)
+                and any(k.arg=='driverDiagnostics' for k in n.value.keywords)]
+            self.assertEqual(len(results),1)
+            self.assertEqual([ast.dump(t,include_attributes=False) for t in results[0].targets],
+                [ast.dump(ast.Name(id='result',ctx=ast.Store()),include_attributes=False)])
+            projection=next(k.value for k in results[0].value.keywords if k.arg=='driverDiagnostics')
+            self.assertIsInstance(projection,ast.IfExp)
+            self.assertEqual(ast.dump(projection.test,include_attributes=False),expression("scenario == 'remote_handoff_negative'"))
+            self.assertIs(projection.body,calls[0])
+            self.assertEqual(ast.dump(projection.body,include_attributes=False),expression(
+                'handoff_navigation_diagnostics().read(root, fixture, options.engine, scenario, options.source_commit, N)'))
+            self.assertEqual(ast.dump(projection.orelse,include_attributes=False),expression(
+                'navigation_diagnostics().read(root, fixture, options.engine, scenario, options.source_commit, N)'))
+            returns=[n for n in adapter.body if isinstance(n,ast.Return)]
+            self.assertEqual(len(returns),1)
+            self.assertEqual(ast.dump(returns[0].value,include_attributes=False),expression('result'))
+            # Preserve the original lifecycle assertions at their real source:
+            # normal node exit and zero forced signals belong to success only.
+            waits=[n for n in tries[0].body if isinstance(n,ast.Expr)
+                and ast.dump(n.value,include_attributes=False)==expression('need(state.node.wait(timeout=125) == 0)')]
+            self.assertEqual(len(waits),1)
+            success_writes=[n.value for n in tries[0].body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call)
+                and ast.dump(n.value.func,include_attributes=False)==expression('N.exclusive')
+                and n.value.args and ast.dump(n.value.args[0],include_attributes=False)==expression("options.output_dir / 'processes.json'")]
+            self.assertEqual(len(success_writes),1)
+            self.assertEqual([ast.literal_eval(n.value) for n in ast.walk(success_writes[0])
+                if isinstance(n,ast.keyword) and n.arg=='forcedSignals'],[0])
+            return shared,failure,assignments[0],projection,payloads[0]
+
+        check_flow(tree,core)
+        # Real AST counterexamples remain within this original named case.
+        moved=ast.parse(core_text); shared,failure,assignment,_,_=check_flow(tree,moved)
+        failure.body.remove(assignment); shared.body.insert(0,assignment)
+        with self.assertRaises(AssertionError): check_flow(tree,moved)
+        wrong=ast.parse(text); _,_,_,projection,_=check_flow(wrong,core)
+        projection.test=ast.Constant(value=True)
+        with self.assertRaises(AssertionError): check_flow(wrong,core)
+        dropped=ast.parse(core_text); _,_,_,_,payload=check_flow(tree,dropped)
+        next(k for k in payload.keywords if k.arg is None).value=ast.Dict(keys=[],values=[])
+        with self.assertRaises(AssertionError): check_flow(tree,dropped)
         self.assertIn('chengwang/deploy/subscription-ui-browser/handoff_navigation_diagnostics.py',R.HANDOFF_SOURCE_FILES)
         expected={'driver.json','captures.jsonl','dom.jsonl','created-desktop.png','created-mobile.png','processes.json',
             'isolation.json','inputs.json','certificates.json','pin-consumption.json','private-readback.json',
             'audit-events.jsonl','audit-checkpoint.json','build.json'}
         self.assertEqual(R.PUBLIC,expected); self.assertEqual(R.HANDOFF_PUBLIC,R.REMOTE_PUBLIC|{'api-sampler.jsonl'})
         self.assertNotIn(D.PRIVATE_FILE,R.HANDOFF_PUBLIC)
-        self.assertIn('need(node.wait(timeout=125) == 0)',text)
-        self.assertIn('forcedSignals=0',text)
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

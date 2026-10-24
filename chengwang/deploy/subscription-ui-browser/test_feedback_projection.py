@@ -117,27 +117,141 @@ class FeedbackProjectionContracts(unittest.TestCase):
         with self.assertRaises(ValueError): P.project(b'FAILURE ONLY\n',dom,allow_noise=True)
 
     def test_16_runner_publishes_only_after_success_and_old_file_set_closes(self):
-        source=Path(__file__).with_name('run_subscription_ui.py').read_text(encoding='utf-8'); tree=ast.parse(source)
-        inner=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='inner')
-        main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
-        inner_text=ast.get_source_segment(source,inner); main_text=ast.get_source_segment(source,main)
-        self.assertLess(inner_text.index("stage = 'EXPORT'"),inner_text.index('allow_noise=True'))
-        self.assertLess(main_text.index('before == after and source_before == source_after'),main_text.index('allow_noise=False'))
-        self.assertLess(main_text.index('HANDOFF_PUBLIC if options.scenario'),main_text.index('allow_noise=False'))
-        self.assertLess(main_text.index('allow_noise=False'),main_text.index('SUBSCRIPTION_UI=CAPTURED'))
-        self.assertIn('child.returncode != 0 or timed_out',main_text)
-        self.assertIn("N.stable_read(root / 'driver.private.log', 32 << 20, 0, 0o600)",inner_text)
-        self.assertIn("N.stable_read(bundle / 'supervisor.private.log', 65536, 0, 0o600)",main_text)
-        self.assertIn('os.fchmod(log.fileno(), 0o600)',inner_text)
-        self.assertIn('os.fchmod(log.fileno(), 0o600)',main_text)
-        for text in (inner_text,main_text):
-            self.assertIn("N.stable_read(options.output_dir / 'dom.jsonl', 1 << 20, 0, 0o644)",text)
+        # Follow the fixed wrapper -> common supervisor -> legacy hooks. Merely
+        # finding safety strings in unrelated/dead functions cannot satisfy the
+        # order assertions or either hook's complete source-only AST contract.
+        source=Path(__file__).with_name('run_subscription_ui.py').read_text(encoding='utf-8')
+        common=(Path(__file__).parents[1]/'browser-scene-supervisor/supervisor.py').read_text(encoding='utf-8')
+        tree, core=ast.parse(source), ast.parse(common)
+        def shape(node): return ast.dump(node,include_attributes=False)
+        def expression(value): return ast.parse(value,mode='eval').body
+        def statement(value): return ast.parse(value).body[0]
+        def one(values):
+            values=list(values); self.assertEqual(len(values),1); return values[0]
+        def function(module,name):
+            return one(node for node in module.body if isinstance(node,ast.FunctionDef) and node.name==name)
+        def matching(values,expected):
+            return one(node for node in values if shape(node)==shape(expected))
+        def call_statement(values,value): return matching(values,statement(value))
+        def assert_architecture(legacy,shared):
+            inner,main=function(legacy,'inner'),function(legacy,'main')
+            self.assertEqual(shape(inner.body[0]),shape(statement(
+                "return supervisor(repo).supervise_scene(options, repo, root, bundle, fixture, 'subscription:' + selected_scenario(options), N, M, lifecycle(repo))")))
+            self.assertEqual(len(inner.body),1)
+            self.assertEqual(shape(main.body[-1]),shape(statement(
+                "return supervisor(repo).run_scene_outer(options, repo, root, bundle, fixture, 'subscription:' + selected_scenario(options), N, M, L)")))
+            matching(main.body,statement('if options.inner: inner(options, repo, root, bundle, fixture, N, M); return'))
+            self.assertEqual(shape(function(legacy,'supervisor').body[0]),shape(statement(
+                "return load_module(repo / 'chengwang/deploy/browser-scene-supervisor/supervisor.py', 'subscription_ui_shared_supervisor')")))
+            matching(shared.body,statement("LEGACY_PATH = 'chengwang/deploy/subscription-ui-browser/run_subscription_ui.py'"))
+            loader=function(shared,'load_scene_adapter')
+            matching(loader.body,statement("relative = LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_PATH"))
+            inner_core,outer_core=function(shared,'supervise_scene'),function(shared,'run_scene_outer')
+            for body in (inner_core.body,outer_core.body):
+                matching(body,statement('A = load_scene_adapter(repo, key)'))
+            inner_try=one(node for node in inner_core.body if isinstance(node,ast.Try))
+            outer_try=one(node for node in outer_core.body if isinstance(node,ast.Try))
+            export_stage=matching(inner_try.body,statement("state.stage = 'EXPORT'"))
+            export=call_statement(inner_try.body,'export_scene_evidence(options, root, key, N)')
+            inner_hook=call_statement(inner_try.body,'A.scene_inner_success(state, options, root, fixture, key, N)')
+            succeeded=matching(inner_try.body,statement('state.succeeded = True'))
+            self.assertLess(inner_try.body.index(export_stage),inner_try.body.index(export))
+            self.assertLess(inner_try.body.index(export),inner_try.body.index(inner_hook))
+            self.assertLess(inner_try.body.index(inner_hook),inner_try.body.index(succeeded))
+            for value in ('need(state.node.wait(timeout=125) == 0)',
+                          'need(M.no_owned_processes() and all(not pathlib.Path("/proc", str(row["pid"])).exists() for row in state.records))'):
+                self.assertLess(inner_try.body.index(call_statement(inner_try.body,value)),inner_try.body.index(export))
+            before=matching(outer_core.body,statement('before, source_before = N.host_observation(repo, options.source_commit)'))
+            self.assertLess(outer_core.body.index(before),outer_core.body.index(outer_try))
+            after=matching(outer_try.body,statement('after, source_after = N.host_observation(repo, options.source_commit)'))
+            stable=call_statement(outer_try.body,'need(before == after and source_before == source_after)')
+            closed=call_statement(outer_try.body,'need({path.name for path in options.output_dir.iterdir()} == A.scene_public_files(key, options))')
+            outer_hook=call_statement(outer_try.body,'A.scene_outer_success(options, root, bundle, fixture, key, N)')
+            failure=one(node for node in outer_try.body if isinstance(node,ast.If) and
+                        shape(node.test)==shape(expression('child.returncode != 0 or timed_out')))
+            self.assertEqual(shape(failure.body[-1]),shape(statement('need(False)')))
+            self.assertLess(outer_try.body.index(after),outer_try.body.index(stable))
+            self.assertLess(outer_try.body.index(stable),outer_try.body.index(failure))
+            self.assertLess(outer_try.body.index(failure),outer_try.body.index(closed))
+            self.assertLess(outer_try.body.index(closed),outer_try.body.index(outer_hook))
+            matching(outer_try.body,statement("entry = LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_ENTRY"))
+            public=function(legacy,'scene_public_files')
+            self.assertEqual(shape(public.body[-1]),shape(statement(
+                "return set(HANDOFF_PUBLIC if options.scenario == 'remote_handoff_negative' else REMOTE_PUBLIC if options.scenario == 'remote_fetch' else PUBLIC)")))
+            self.assertEqual(shape(function(legacy,'feedback_projection').body[0]),shape(statement(
+                "return load_module(pathlib.Path(__file__).with_name('feedback_projection.py'), 'subscription_ui_feedback_projection')")))
+            expected_inner=ast.parse('''def expected():
+    if _scene_scenario(key) != 'remote_handoff_negative': return
+    state.stage = 'FEEDBACK_PROJECTION'
+    safe_feedback = feedback_projection().project(N.stable_read(root / 'driver.private.log', 32 << 20, 0, 0o600)[0], N.stable_read(options.output_dir / 'dom.jsonl', 1 << 20, 0, 0o644)[0], allow_noise=True)
+    print(safe_feedback.decode('ascii'), end='', flush=True)
+''').body[0]
+            expected_outer=ast.parse('''def expected():
+    if _scene_scenario(key) == 'remote_handoff_negative':
+        safe_feedback = feedback_projection().project(N.stable_read(bundle / 'supervisor.private.log', 65536, 0, 0o600)[0], N.stable_read(options.output_dir / 'dom.jsonl', 1 << 20, 0, 0o644)[0], allow_noise=False)
+        print(safe_feedback.decode('ascii'), end='', flush=True)
+    print('SUBSCRIPTION_UI=CAPTURED independent_verification=pending production=false full_subscription_e2e=false')
+''').body[0]
+            for name,expected in (('scene_inner_success',expected_inner),('scene_outer_success',expected_outer)):
+                self.assertEqual([shape(n) for n in function(legacy,name).body],[shape(n) for n in expected.body])
+            logs=[]
+            for body,path,spawn_target in ((inner_try.body,"(root / 'driver.private.log').open('xb')",'state.node'),
+                                           (outer_try.body,"(bundle / 'supervisor.private.log').open('xb')",'child')):
+                log=one(n for n in body if isinstance(n,ast.With) and len(n.items)==1 and shape(n.items[0].context_expr)==shape(expression(path)))
+                self.assertEqual(shape(log.items[0].optional_vars),shape(ast.Name(id='log',ctx=ast.Store())))
+                chmod=one(n for n in log.body if isinstance(n,ast.If) and shape(n.test)==shape(expression("key == 'subscription:remote_handoff_negative'")))
+                self.assertEqual([shape(n) for n in chmod.body],[shape(statement('os.fchmod(log.fileno(), 0o600)'))])
+                spawn=one(n for n in log.body if isinstance(n,ast.Assign) and len(n.targets)==1 and shape(n.targets[0])==shape(ast.parse(spawn_target+' = None').body[0].targets[0]))
+                self.assertLess(log.body.index(chmod),log.body.index(spawn)); logs.append(chmod)
+                self.assertIsInstance(spawn.value,ast.Call)
+                self.assertEqual(shape(spawn.value.func),shape(expression('subprocess.Popen')))
+                keywords={k.arg:k.value for k in spawn.value.keywords}
+                for key in ('stdout','stderr'): self.assertEqual(shape(keywords[key]),shape(expression('log')))
+            exporter=function(shared,'export_scene_evidence')
+            self.assertEqual([n.arg for n in exporter.args.kwonlyargs],['partial'])
+            self.assertEqual([ast.literal_eval(n) for n in exporter.args.kw_defaults],[False])
+            loop=one(n for n in exporter.body if isinstance(n,ast.For))
+            checked=one(n for n in loop.body if isinstance(n,ast.Try))
+            fence=call_statement(checked.body,'A.scene_fence_public(raw, public, forbidden, key, N, partial)')
+            publish=call_statement(checked.body,'N.exclusive(target, raw)')
+            self.assertLess(checked.body.index(fence),checked.body.index(publish))
+            self.assertEqual(shape(function(legacy,'scene_fence_public').body[0]),shape(statement(
+                "public_fence(raw, forbidden, captures=(public_name == 'captures.jsonl'), N=N, scenario=_scene_scenario(key))")))
+            self.assertEqual(shape(function(legacy,'public_fence').body[0]),shape(statement(
+                "need(type(raw) is bytes and raw and b'PRIVATE KEY' not in raw and not any(secret in raw for secret in forbidden))")))
+            self.assertNotIn('feedback-observations.json',ast.unparse(legacy))
+            self.assertNotIn('feedback-observations.json',ast.unparse(shared))
+            return inner_try,outer_try,inner_hook,outer_hook,export,closed,stable,failure,logs,checked,fence
+
+        assert_architecture(tree,core)
+        # Mutation counterexamples exercise this guard itself without executing
+        # any supervisor, production API, process launcher or browser.
+        for mutation in ('early_inner','early_outer','missing_closed_set','missing_host_check','ignored_timeout',
+                         'public_driver_log','unfenced_export','partial_export','inner_noise','outer_noise','dom_mode','raw_print','wrong_wrapper'):
+            wrong_legacy,wrong_core=copy.deepcopy(tree),copy.deepcopy(core)
+            inside,outside,inner_hook,outer_hook,export,closed,stable,failure,logs,checked,fence=assert_architecture(wrong_legacy,wrong_core)
+            if mutation=='early_inner': inside.body.remove(inner_hook); inside.body.insert(inside.body.index(export),inner_hook)
+            elif mutation=='early_outer': outside.body.remove(outer_hook); outside.body.insert(outside.body.index(stable),outer_hook)
+            elif mutation=='missing_closed_set': outside.body.remove(closed)
+            elif mutation=='missing_host_check': outside.body.remove(stable)
+            elif mutation=='ignored_timeout': failure.test=expression('child.returncode != 0')
+            elif mutation=='public_driver_log': logs[0].body[0].value.args[-1]=ast.Constant(value=0o644)
+            elif mutation=='unfenced_export': checked.body.remove(fence)
+            elif mutation=='partial_export': function(wrong_core,'export_scene_evidence').args.kw_defaults[0]=ast.Constant(value=True)
+            elif mutation in ('inner_noise','outer_noise','dom_mode','raw_print'):
+                hook=function(wrong_legacy,'scene_inner_success' if mutation=='inner_noise' else 'scene_outer_success')
+                if mutation=='raw_print': hook.body.insert(0,statement("print('PRIVATE LOG')"))
+                else:
+                    projection=one(n for n in ast.walk(hook) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='project')
+                    if mutation=='dom_mode': projection.args[1].value.args[-1]=ast.Constant(value=0o600)
+                    else: projection.keywords[0].value=ast.Constant(value=mutation!='inner_noise')
+            else: function(wrong_legacy,'inner').body[0].value.func.attr='run_scene_outer'
+            with self.subTest(mutation=mutation),self.assertRaises(AssertionError): assert_architecture(wrong_legacy,wrong_core)
         native=Path(__file__).parents[1]/'probe-readback/run_probe_readback.py'
         native_tree=ast.parse(native.read_bytes())
         exclusive=next(node for node in native_tree.body if isinstance(node,ast.FunctionDef) and node.name=='exclusive')
         self.assertEqual(ast.literal_eval(exclusive.args.defaults[-1]),0o644)
-        self.assertIn('os.fchmod(fd, mode)',ast.get_source_segment(native.read_text(encoding='utf-8'),exclusive))
-        self.assertNotIn('feedback-observations.json',source)
+        matching(ast.walk(exclusive),expression('os.fchmod(fd, mode)'))
 
 
 if __name__ == '__main__': unittest.main()

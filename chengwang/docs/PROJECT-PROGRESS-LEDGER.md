@@ -2,7 +2,23 @@
 
 日常查看：[项目任务清单](LIVE-TASKS.md)（当前优先项、完整剩余功能、依赖与验收条件）。[实时执行动态](http://127.0.0.1:8765)复用本机现有监控台；其估算百分比不代表项目完成率。任务清单由实际结果驱动更新，不冒称每秒自动同步或生产已上线。
 
-## 最新任务核对：2026-10-24 12:59（Asia/Shanghai）
+## 最新实际回归：448e20b浏览器辅助门失败；修正候选702项CPU通过
+
+2026-10-24 13:53：配额恢复后的原索引确认448父40066607879、订阅40066607931成功，浏览器40066607892失败；27 jobs已实际读取，其中UI24全部失败，12个build步骤成功而12个产品浏览器步骤全部skipped。三份代表decoded日志及五份安全原件（76成员）已保管；不能称本轮真实浏览器或普通TLS已运行。见[失败跟进](evidence/p2-448e20b-ci-followup.json)。
+
+新common两个假进程正例在Linux读取/proc/20等宿主路径而失败，已仅改测试模型，加入残留假进程反例，运行时清理断言不变。旧navigation／feedback及扩大检查后发现的negative-handoff三个源码守卫仍定位旧inline inner/main，已改为验证固定wrapper→共享core→legacy hook的实际顺序和权限／保密／失败出口，并保旧名称及拒绝性反例。当前主代理实际19个Python模块＋8组Node共702项通过、0skip（Python404＋Node298），包含新能力173项；独立审计核对27执行记录、41源和130证据文件稳定，原lifecycle19另计。D原件`all-ui-helper-cpu-2w5g0a73`。纠正前述失败尝试计数范围：17个完整通过模块有374项，第18个失败模块另9通过／1失败，总383通过／1失败；原件不覆盖。见[修正范围](evidence/p2-shared-supervisor-helper-correction.json)。尚未提交该修正或取得新CI，不能覆盖448失败。
+
+448订阅本机原CLI重放实际退出1，拒绝点为`public-file-open-race`；20文件只有lstat／fstat的ctime跨渠道不同，其余身份字段和各渠道前后稳定，25＋1原件及源码无变更。该次未到业务语义核验，不写通过，也不由此归因数据损坏。D失败及诊断`subscription-448-readback-3d891c96af`，暂未修改或包装原检查器。
+
+## 历史集成：448e20b已推送；当时实际新CI待配额恢复
+
+2026-10-24 13:34：24文件已统一提交`448e20bdac0aa657505ebb53f56b5fe1aac6c356`并推送开发分支，远端引用一致，用户三原scripts摘要保持；生产／main／正式Registry未改。最终仅修一行EOF空白后重新实跑172项CPU、21个shell块及7份Node语法，零失败／跳过。已按实际提交执行两条完整synthetic CLI，退出0／报告逐字节相等，17份源码及四原日志稳定，D证据为`capability-source-cli-a4i79l8x/result.json`。该门只证明CPU转录与提交源码绑定，不代替产品浏览器。
+
+新CI索引实际HTTP403／remaining=0，reset=2026-10-24 05:37:17 UTC，目前没有新run句柄可确认已运行。按24路径与12个workflow规则核对，预期只触发父门、旧订阅readback、订阅UI三条，合计27 jobs；image-binding／Probe等不会由本次路径自动重跑，不能沿用旧五条预期或其成功。
+
+前序1cde镜像六条完整产品CLI已全部补验：6／6实际退出0、六报告均同CI字节，1470原件／ZIP／1013源blob前后稳定，独立journal审计通过；主代理再核六份报告的实际字节相等。1356不同投影参与本次语义重算，另外114仅保管核验；不以此证明全部故障、完整来源矩阵、真实断电或生产。见[六门跟进](evidence/p2-1cdeba4-image-acceptance-followup.json)，本段及跟进待下一次归档。
+
+## 历史任务核对：2026-10-24 12:59（Asia/Shanghai）
 
 后续实际增量：新能力链路已由主代理组合执行172项CPU测试，零失败／跳过，源字节前后稳定；21个CI shell块与7份Node文件语法检查通过。根记录`D:/CodexData/workspace/capability-root-cpu-qpnnrzio/result.json`及`capability-root-preflight-h_898gvp/result.json`。首个根测试包装因过早替换subprocess.Popen阻止Windows asyncio类初始化而未开始测试，日志保留在`capability-root-cpu-g3ei2vvf`；先导入标准库再安装拒绝外部执行guard后实际172通过，不能把首个包装失败说成产品测试失败。
 

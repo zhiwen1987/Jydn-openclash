@@ -1,0 +1,81 @@
+{
+  "schema": "chengwang.image-acceptance-followup/v1",
+  "sourceCommit": "1cdeba4bc0e7c9b5cd25c9e7608cb4ac8f9e2ef8",
+  "runId": 40059993206,
+  "scope": "ARCHIVED_SAFE_PROJECTIONS_RECONSTRUCTED_NOT_NEW_RUNTIME_OR_PRODUCTION",
+  "actualProductCLI": [
+    {
+      "name": "registry",
+      "exitCode": 0,
+      "reportSHA256": "d3e1c59ca6a67dae77b3b412332a3a073f3f07399b80aaf14b4ec607223f9d03",
+      "bytes": 6805,
+      "byteEqual": true
+    },
+    {
+      "name": "lifecycle",
+      "exitCode": 0,
+      "reportSHA256": "8a9ba48e24d0912954352fe385e22d6249b10c1696523602fd18bf832e5bd68a",
+      "bytes": 9160,
+      "byteEqual": true
+    },
+    {
+      "name": "source",
+      "exitCode": 0,
+      "reportSHA256": "302dd9d67026187821c9c1619f08b9916c19ddd8a713151c73fd09fd69323bf1",
+      "bytes": 12907,
+      "byteEqual": true
+    },
+    {
+      "name": "tls",
+      "exitCode": 0,
+      "reportSHA256": "a2821a8db72e214d71db80c3707278f1410a1f7caaa6bf014a226b5174deb0e8",
+      "bytes": 19430,
+      "byteEqual": true
+    },
+    {
+      "name": "crash",
+      "exitCode": 0,
+      "reportSHA256": "ae157c24dd41cde7fa04b764a3a4ad33da514cd18c30180dc9a95b6dd0b35a31",
+      "bytes": 21644,
+      "byteEqual": true
+    },
+    {
+      "name": "state",
+      "exitCode": 0,
+      "reportSHA256": "8f9ab2bcf11561e41a3778fce21dd15fbdb9733d1e93f814225f580c5666c686",
+      "bytes": 134764,
+      "byteEqual": true
+    }
+  ],
+  "actualCLIs": 6,
+  "actualExitZero": 6,
+  "reportsByteEqual": 6,
+  "zipSHA256": "6a0c8282b0ce8a30ee4d62d5e54b9f76050f50262f9bc32745e0a82e396af27b",
+  "originalMembers": 1470,
+  "sourceGitBlobs": 1013,
+  "originalsStable": true,
+  "sourceStable": true,
+  "uniqueReferencedEvidenceFiles": 1356,
+  "checksummedButNotAllSemanticallyReplayedMembers": 114,
+  "freshCIComparisons": 0,
+  "rootReportByteComparisonConfirmed": true,
+  "evidence": {
+    "directory": "D:/CodexData/workspace/notice-six-product-624f18376c",
+    "resultSHA256": "f8e58d589f6be8d50025e8b9fce7592aaf310dfdbf6af2ef8fc318ad1f54bd06",
+    "journalIndependentAuditSHA256": "c36029a298d3a7d93de033e8e22fd63a6fe9f490139b90541ef75c35a8c6aa4f"
+  },
+  "limits": [
+    "Only archived safe projections are reconstructed, not independent private graph bytes or new runtime",
+    "No fresh CI job for these six reports; compares local independent output against the original producer bytes",
+    "No image/signature publisher authorization, full crash/source matrix, physical power-loss test, screenshot visual QA, live business or production proof"
+  ],
+  "localRuntimeExecuted": false,
+  "production": false,
+  "mainMerged": false,
+  "notProven": [
+    "No new build, product, browser, Registry or Docker execution occurred in this local replay.",
+    "Earlier parent, subscription and probe metadata still requires scope-specific acceptance; this record does not close those workflows.",
+    "This commit evidence does not establish acceptance of later capability candidate448e20b.",
+    "No complete fault matrix, physical power-loss, formal Registry publication, canary or production-readback acceptance."
+  ]
+}
