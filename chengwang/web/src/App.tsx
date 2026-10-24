@@ -7,6 +7,7 @@ import {
   Sparkles, Users, Wrench, X,
 } from 'lucide-react'
 import { getSnapshot, validateProxyInterfaces } from './api'
+import { SNAPSHOT_FORMAT_ERROR } from './snapshot-report'
 import type { BusinessPolicy, BusinessStatus, ProxyInterface, Snapshot, ValidationResult } from './types'
 import { MihomoReadback } from './MihomoReadback'
 import { SystemReadiness } from './SystemReadiness'
@@ -59,7 +60,12 @@ function App() {
         setSnapshot(data)
         setNotice(data.dataSource === 'demo' ? '演示总览：实际状态请查看设备读回' : '控制面快照；实际运行与生产状态须独立核验')
       })
-      .catch(() => { if (!controller.signal.aborted) setNotice('演示模式：无法读取本地控制面') })
+      .catch(reason => {
+        if (controller.signal.aborted) return
+        setNotice(reason instanceof Error && reason.message === SNAPSHOT_FORMAT_ERROR
+          ? '演示模式：控制面快照格式不受支持，尚未核验'
+          : '演示模式：无法读取本地控制面')
+      })
     return () => controller.abort()
   }, [])
 

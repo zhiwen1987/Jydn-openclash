@@ -306,7 +306,7 @@ describe('SnapshotTruth', () => {
   it('keeps malformed live snapshot arrays out of the rendered success branch', async () => {
     const input = wireSnapshot(); input.dataSource = 'live'; input.businesses = {}
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(input))); render(<App />)
-    expect(await screen.findByText('演示模式：无法读取本地控制面')).toBeInTheDocument()
+    expect(await screen.findByText('演示模式：控制面快照格式不受支持，尚未核验')).toBeInTheDocument()
     expect(screen.getByText('当前总览没有接入真实运行数据')).toBeInTheDocument(); expect(screen.queryByText('Synthetic source metadata')).not.toBeInTheDocument()
   })
   it('renders legal live nil inventories as empty without inventing events or DNS health', async () => {

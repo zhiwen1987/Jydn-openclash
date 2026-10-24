@@ -155,7 +155,7 @@ describe('CapabilityTruth', () => {
   })
   it('rejects an unsupported snapshot source instead of entering the live success branch', async () => {
     fetchReport({ ...liveSnapshot(), dataSource: 'synthetic_unknown' }); render(<App />)
-    await waitFor(() => expect(screen.getByText('演示模式：控制面数据源不受支持，尚未核验')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('演示模式：控制面快照格式不受支持，尚未核验')).toBeInTheDocument())
     expect(screen.getByText('当前总览没有接入真实运行数据')).toBeInTheDocument()
     expect(screen.queryByText('Synthetic control snapshot')).not.toBeInTheDocument()
   })
