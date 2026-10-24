@@ -1,0 +1,303 @@
+{
+  "schema": "chengwang.mihomo-runtime-apply-contract/v1",
+  "scope": "ACTUAL_FIXED_KERNEL_LOCAL_APPLY_EXPERIMENT_NOT_API_AUTHORIZATION_HEAD_OR_PRODUCTION",
+  "tag": "chengwang_mihomo_apply",
+  "goPackage": "./internal/mihomodeploy",
+  "topTests": [
+    "TestMihomoApplyReloadReadbackAndLocalProxy"
+  ],
+  "goTimeoutSeconds": 90,
+  "sessionTimeoutSeconds": 60,
+  "paths": {
+    "module": "/tmp/mihomo-apply-source",
+    "goRoot": "/tmp/mihomo-apply-go",
+    "kernelDirectory": "/tmp/mihomo-apply-kernel",
+    "kernel": "/tmp/mihomo-apply-kernel/mihomo",
+    "receipt": "/tmp/mihomo-apply-kernel/consumption.json",
+    "serviceHome": "/tmp/mihomo-apply-home",
+    "buildHome": "/tmp/mihomo-apply-build",
+    "privateOutput": "/tmp/mihomo-apply-private",
+    "exportAlias": "/tmp/mihomo-apply-export"
+  },
+  "ports": {
+    "mixed": 28411,
+    "controller": 28412,
+    "proxyA": 28413,
+    "proxyB": 28414,
+    "origin": 28415
+  },
+  "publicTestFiles": [
+    "apply-observations.jsonl",
+    "apply-report.json",
+    "kernel.stdout",
+    "kernel.stderr",
+    "syntax.exec.json",
+    "syntax.stdout",
+    "syntax.stderr"
+  ],
+  "privateExtraFiles": [
+    ".secrets.private.json",
+    "base.config.private.yaml",
+    "candidate.config.private.yaml"
+  ],
+  "secretsSchema": "chengwang.mihomo-apply-private-secrets/v1",
+  "secretsKeys": [
+    "schema",
+    "controller",
+    "routeA",
+    "routeB"
+  ],
+  "bindingKeys": [
+    "sha256",
+    "bytes"
+  ],
+  "bodyKeys": [
+    "sha256",
+    "bytes",
+    "complete"
+  ],
+  "streamKeys": [
+    "bytes",
+    "totalBytes",
+    "sha256",
+    "truncated",
+    "complete"
+  ],
+  "reportSchema": "chengwang.mihomo-runtime-apply-report/v1",
+  "reportKeys": [
+    "schema",
+    "scope",
+    "sourceCommit",
+    "outcome",
+    "failureCode",
+    "baseInput",
+    "candidateInput",
+    "syntaxSHA256",
+    "kernelObservation",
+    "ownedBefore",
+    "ownedAfter",
+    "readbacks",
+    "readiness",
+    "clientReloadInvocations",
+    "controllerReceivedCount",
+    "reloadPayload",
+    "reloadResult",
+    "reloadErrorClass",
+    "routes",
+    "fixtureCleanup",
+    "flags"
+  ],
+  "readbackKeys": [
+    "conclusion",
+    "sampleCount",
+    "requestsObserved",
+    "previousProjectionSHA256",
+    "candidateProjectionSHA256",
+    "observedProjectionSHA256",
+    "dataplaneProven",
+    "fullPayloadProven",
+    "authorizationProven",
+    "production"
+  ],
+  "readinessKeys": [
+    "role",
+    "statusCode",
+    "body",
+    "errorClass"
+  ],
+  "routeKeys": [
+    "phase",
+    "nonceSHA256",
+    "clientResponse",
+    "proxyResponse",
+    "originResponse",
+    "countersBefore",
+    "countersAfter",
+    "matched"
+  ],
+  "counterKeys": [
+    "role",
+    "connectIngress",
+    "tunnelRequests",
+    "forwardInvocations",
+    "originRequests",
+    "rejected"
+  ],
+  "fixtureCleanupKeys": [
+    "role",
+    "shutdownReturned",
+    "serveReturned",
+    "forcedConnectionsClosed",
+    "errorClass"
+  ],
+  "flags": {
+    "apiExercised": false,
+    "authorizationExercised": false,
+    "authorizationProven": false,
+    "fullPayloadProven": false,
+    "headAdvanced": false,
+    "production": false,
+    "perGetRawEvidenceAvailable": false,
+    "independentProjectionRecomputeProven": false,
+    "internetBusinessProven": false
+  },
+  "syntaxSchema": "chengwang.mihomo-apply-syntax-exec/v1",
+  "syntaxKeys": [
+    "schema",
+    "sourceCommit",
+    "binary",
+    "receiptSHA256",
+    "input",
+    "argvClass",
+    "observation"
+  ],
+  "journalSchema": "chengwang.mihomo-apply-observation/v1",
+  "journalKeys": [
+    "schema",
+    "seq",
+    "stage",
+    "observedAtUTC",
+    "facts"
+  ],
+  "journalFactKeys": [
+    "code",
+    "baseInput",
+    "candidateInput",
+    "receiptSHA256",
+    "kernelObservation",
+    "ownedIdentity",
+    "readinessProbe",
+    "readback",
+    "reloadPayload",
+    "reloadResult",
+    "clientReloadInvocations",
+    "route",
+    "fixtureCleanup"
+  ],
+  "journalStages": [
+    "INPUT_OPENED",
+    "ARTIFACTS_BOUND",
+    "FIXTURES_LISTENING",
+    "KERNEL_START_BEGIN",
+    "KERNEL_START_RESULT",
+    "READINESS_PROBE",
+    "BASELINE_READ_BEGIN",
+    "BASELINE_READ_RESULT",
+    "BASELINE_ROUTE_RESULT",
+    "SYNTAX_BEGIN",
+    "SYNTAX_RESULT",
+    "RELOAD_BEGIN",
+    "RELOAD_RESULT",
+    "CANDIDATE_READ_BEGIN",
+    "CANDIDATE_READ_RESULT",
+    "CANDIDATE_ROUTE_RESULT",
+    "OWNED_FINAL_RESULT",
+    "KERNEL_STOP_RESULT",
+    "FIXTURE_STOP_RESULT",
+    "FINAL_RESULT"
+  ],
+  "maxJournalLines": 128,
+  "controllerReceivedCount": null,
+  "knownGaps": [
+    "per-GET original response evidence and independent projection recomputation",
+    "actual API authentication and independent approval",
+    "real durable head bootstrap and advancement",
+    "lost response, timeout, crash and UNKNOWN recovery matrix",
+    "internet business acceptance and production rollout"
+  ],
+  "production": false,
+  "workerPublicFiles": [
+    "sandbox.json",
+    "execution.json",
+    "go-version.txt",
+    "gofmt.patch",
+    "gofmt.stderr",
+    "apply.json",
+    "apply.stderr"
+  ],
+  "preexistingPublicFiles": [
+    "host-before.json",
+    "host-after.json",
+    "consumption.json",
+    "consumption-independent.json"
+  ],
+  "publicFiles": [
+    "apply-observations.jsonl",
+    "apply-report.json",
+    "kernel.stdout",
+    "kernel.stderr",
+    "syntax.exec.json",
+    "syntax.stdout",
+    "syntax.stderr",
+    "sandbox.json",
+    "execution.json",
+    "go-version.txt",
+    "gofmt.patch",
+    "gofmt.stderr",
+    "apply.json",
+    "apply.stderr",
+    "host-before.json",
+    "host-after.json",
+    "consumption.json",
+    "consumption-independent.json"
+  ],
+  "sandboxSchema": "chengwang.mihomo-apply-sandbox/v1",
+  "sandboxKeys": [
+    "schema",
+    "sourceCommit",
+    "uid",
+    "gid",
+    "effectiveCaps",
+    "noNewPrivileges",
+    "networkNamespace",
+    "mountNamespace",
+    "pidNamespace",
+    "environmentKeys",
+    "interfaceNames",
+    "defaultV4Routes",
+    "defaultV6Routes",
+    "sourceModuleSHA256",
+    "sourceReadOnly",
+    "goReadOnly",
+    "kernelCopy",
+    "inputCustody"
+  ],
+  "executionSchema": "chengwang.mihomo-apply-execution/v1",
+  "executionKeys": [
+    "schema",
+    "sourceCommit",
+    "formatExit",
+    "goExit",
+    "realMihomoExecutionObserved",
+    "production"
+  ],
+  "environmentKeys": [
+    "CGO_ENABLED",
+    "CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT",
+    "GOCACHE",
+    "GOENV",
+    "GOFLAGS",
+    "GOMODCACHE",
+    "GOPROXY",
+    "GOROOT",
+    "GOSUMDB",
+    "GOTOOLCHAIN",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "TMPDIR",
+    "TZ"
+  ],
+  "maxPublicLogBytes": 8388608,
+  "failureFiles": [
+    "worker-failure.json"
+  ],
+  "workerFailureSchema": "chengwang.mihomo-apply-worker-failure/v1",
+  "workerFailureKeys": [
+    "schema",
+    "sourceCommit",
+    "failureCode",
+    "rawOutputSuppressed"
+  ]
+}

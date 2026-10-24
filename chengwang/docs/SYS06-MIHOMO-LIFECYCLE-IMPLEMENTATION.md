@@ -4,6 +4,22 @@
 
 ## 本次已有代码
 
+### 2026-10-25 新增真实应用实验入口：源码与证据检查阶段
+
+开发分支增加带`linux && chengwang_mihomo_apply`标签的唯一真实内核实验、独立worker／入口／合同、公开原件检查器及其合成反例模型；CI增加apply及apply-fresh，不替代旧7个任务。新Go标签用例与合成模型分别记录，源码存在不代表已经执行。6231584此前提交的284项基础声明保持不变。
+
+实验按固定官方候选来源，拟在无默认外网出口的私有net／mount／PID空间，以UID10001、零能力、只读源码与ELF运行：实际旧完整输入启动、受控进程与监听归属、合法／缺失／错误令牌探测、两轮各4个GET的旧投影、实际本地A代理链路、候选完整正文语法检查、一次客户端Reload调用、两轮候选投影、实际B代理链路及确认退出／清理。客户端只能拨实际mixed端口；代理fixture仅接受固定CONNECT目标并实际访问独立本地origin，三方完整读取摘要和路径计数交叉核对，不伪造Mihomo响应。
+
+18份成功公件只包含安全观测／真实原始流；三份私密正文／密钥材料不导出。无法通过私密围栏时抑制原流并单列worker-failure.json，不能用脱敏摘要混充stderr或补造空原件。heavy child的启动意图、实际PID／pidfd及Wait观测保留root私有耐久journal；不按裸PID／PGID扩大终止范围。fresh任务只重算原件与源码，不第二次执行内核。
+
+公开检查器无法独立重算未公开的逐GET正文，也不能独立重做持私密材料的围栏；报告明确依赖source-bound worker，相关证明字段为false。一次客户端调用不是服务端接收次数，controllerReceivedCount保持null；本地origin成功不是ChatGPT等互联网业务通过。当前实验没有产品API、范围批准、真实head推进或自动恢复，九项范围旗标保持false。清理或最终证据写失败必须同时让报告及Go用例失败。
+
+新47项合成证据模型已由主集成者首次统一实际执行，零跳过／退出0，D:/CodexData/workspace/mihomo-apply-models-actual-j4o2t40k/result.json保留PID、原stdout／stderr、退出和前后源码摘要。检查器明确绑定61源、18公件，新增沙箱网络命名空间与实际进程identity的交叉比较、origin不可能关闭Hijack连接及代理关闭数不得超过真实入口数的约束；对应反例同步篡改报告和journal后仍须拒绝。模型数据明确为SYNTHETIC，不是实际Start／HTTP／业务观测；旧25＋34证据模型的既有结果不替新场景验收。
+
+父db99实际兼容原件另已按44源及1151个Git blob独立复算，报告与producer／fresh逐字一致；D:/CodexData/workspace/mihomo-db99-compat-finalized-63shut5a/result.json。其基础ordinary／race各2项顶层失败及整条CI的failure保持；修正6231584的新CI最近查询仍受API配额限制，尚未读到运行句柄。新实验的实际Linux编译、格式、Start／GET／PUT／本地流量／Wait均须新CI证据，不能由上述源码、既有兼容性或合成模型代证。
+
+以下保留逐阶段事实；实际owned-head首次初始化、产品API与独立批准执行协调器、合法成功的head CAS、零PUT未知对账／恢复、完整异常矩阵和生产灰度仍未完成。本轮不改生产、main或Registry。
+
 ### 2026-10-25 最新状态：兼容性真实通过，基础回归仍失败
 
 db99f13的[实际CI 40113825822](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40113825822)已经完成，整体failure。固定Mihomo版本／两份生成配置语法／畸形配置拒绝的compat以及独立fresh均成功；基础contracts及其fresh失败。ordinary／race各290项语义用例通过、209项顶层通过、2项顶层失败、零跳过。失败是旧Store的软链接错误文案兼容和测试把untyped nil的%x标准诊断误当typed-nil Formatter输出。修正保留软链接拒绝及typed-nil隐私断言；没有将原失败重写成通过。

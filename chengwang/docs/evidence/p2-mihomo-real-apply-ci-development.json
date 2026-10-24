@@ -1,0 +1,97 @@
+{
+  "actualValidation": {
+    "actualGoOrKernelOrNamespaceExecuted": false,
+    "foundation284DeclarationsPreserved": true,
+    "modelReceipt": "D:/CodexData/workspace/mihomo-apply-models-actual-j4o2t40k/result.json",
+    "modelReceiptSHA256": "cf9bcaa45f594dfb56cecdf6bacb176caf4728e74e0e115e9a1b25aa9750ae21",
+    "modelSkips": 0,
+    "oldSevenJobsPreserved": true,
+    "peers": [
+      {
+        "path": "D:/CodexData/workspace/mihomo-check-apply-peer-20261025-c/receipt-final.json",
+        "sha256": "8b4b51414e4f8e751e232843e2b42bfb66d0e7eda158c42d516a92e9367c1850"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-check-apply-peer-20261025-c/result-final.json",
+        "sha256": "187f944dc4b9d38a658b550340f79ad5c5c67c48e5271ad3b8dd54864f47703c"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-apply-checker-static-20261025-a/HANDOFF.md",
+        "sha256": "14222f954786b1a2024c17302df0e445302e7b264af0158c76aaae7851fe9b1b"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-apply-entry-static-20261025-c/result.json",
+        "sha256": "fdf87d10d44a75b3edd6e895e11e1a368da9c68a5067340663f0f2693407da24"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-runtime-apply-peer-20261025-a/REVIEW.md",
+        "sha256": "d8b01955361ec5891a951343c23a92b44265e4610d687f456ba48c211952a2ad"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-apply-worker-static-20261025-b/source-freeze-v2.json",
+        "sha256": "289335c87745687c628315ee9e01df899ccf434c9380da5d433f869df64d70fe"
+      }
+    ],
+    "publicOriginals": 18,
+    "sourceBindings": 61,
+    "staticReceipt": "D:\\CodexData\\workspace\\mihomo-apply-ci-final-static-fheolt56\\result.json",
+    "staticSHA256": "ac750da420ee2499fa34696c82926f0a19cb0deb57c9a0fed8de129107041933",
+    "syntheticModelsPassed": 47,
+    "workflowJobs": 9
+  },
+  "baseline": "62315846ab69b6af7a3f83a51df893fb4725adfc",
+  "boundaries": {
+    "authorizationProven": false,
+    "controllerReceivedCount": null,
+    "fullPayloadProven": false,
+    "headAdvanced": false,
+    "independentProjectionRecomputeProven": false,
+    "internetBusinessProven": false,
+    "newGoCompiledOrTested": false,
+    "perGetRawEvidenceAvailable": false
+  },
+  "implemented": [
+    "tagged one-kernel actual loopback startup, authentication, projection, one-client-reload, A/B local proxy route and cleanup experiment source",
+    "source-owned bounded Linux namespace worker with readonly input, UID10001 and private disclosure fences",
+    "pidfd-based bounded child observation with private fsynced start/reference/wait metadata",
+    "independent 61-source 18-original checker and fresh original-only CI job",
+    "strict report and journal cross-bindings including network namespace and per-role cleanup limits"
+  ],
+  "mainMerged": false,
+  "notCompleted": [
+    "actual new-source Linux compilation, formatting, ordinary/race and apply-tag execution",
+    "actual pinned service response/log shape acceptance and original producer/fresh recomputation",
+    "per-GET response originals and independent supported projection reconstruction",
+    "real owned-head provisioning and durable bootstrap",
+    "product API/current identity/independent approval/final once-only dispatch",
+    "lawful head generation advancement and zero-PUT UNKNOWN reconciliation/recovery",
+    "whole product business/other kernels/DNS/UI/fault/long-soak acceptance",
+    "production rollout, readback and operational closure"
+  ],
+  "parentState": {
+    "actualKnownRunHandle": null,
+    "ciStatus": "NOT_OBSERVED_RATE_LIMIT_ZERO_UNTIL_2026_10_25_023904_ASIA_SHANGHAI",
+    "commit": "62315846ab69b6af7a3f83a51df893fb4725adfc",
+    "earlierCommit": "db99f1327dcd07b3872c9a9408a4e16137a0829b",
+    "earlierCompatAndFresh": "success",
+    "earlierFoundationFailedTopLevelPerSuite": 2,
+    "earlierIndependentCompatFullFunction": "D:/CodexData/workspace/mihomo-db99-compat-finalized-63shut5a/result.json",
+    "earlierOverall": "failure",
+    "earlierRun": 40113825822,
+    "lastQuery": "D:/CodexData/workspace/chengwang-commit-ci-05tpfba9"
+  },
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-runtime-apply-ci-development/v1",
+  "scope": "SOURCE_BOUND_ISOLATED_ACTUAL_KERNEL_EXPERIMENT_AND_EVIDENCE_GATES_NOT_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "8be3239b664aa06284422f7a494b8da1691247ae6dd41b469eb70a8f817002ef",
+    "chengwang/deploy/mihomo-lifecycle-lab/apply_contract.json": "65637ed71b4257fae57a16987010877c715fa44eb8d071800977123c690ec61d",
+    "chengwang/deploy/mihomo-lifecycle-lab/apply_worker.py": "6ea40c38bfe08dc143f39929c369e151549d6b1d37f29e3b71b1a29276263b08",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py": "e6c0b7efc55e8dd638071009df64bd0f3bfa237f0afa91113e172f972c9a7765",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_apply.sh": "d32cd8812f286ac98e4a5da4daf08531eeb65f4b5c4b5bbef9d70869dfc56b8b",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py": "61e689a1669c175655dbbff56ff3fb8a60f97268645dafdb1622c65b83f726cb",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "64ed9b89f9547d0fe9fedfe55ff5bb43702a08887ff9bd25e63d2258d65ef268",
+    "chengwang/internal/mihomodeploy/runtime_apply_linux_test.go": "e6c866f2cb708e58409e23e4441780cfbaae3574bf088268e0b9053924034255"
+  }
+}

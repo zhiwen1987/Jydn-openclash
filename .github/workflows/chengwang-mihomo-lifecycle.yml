@@ -294,6 +294,140 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+
+  apply:
+    needs: [development-only, acquisition]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Run synthetic apply-evidence models without executing a kernel
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-apply-models"
+          test ! -e "$root"
+          install -d -m 0700 "$root"
+          (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_apply) 2>&1 | tee "$root/models.log"
+          python3 - "$root/models.log" <<'PY'
+          import ast,hashlib,re,sys
+          from pathlib import Path
+          text=Path(sys.argv[1]).read_text(encoding='utf8').replace('\r\n','\n')
+          tree=ast.parse(Path('chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py').read_text(encoding='utf8'))
+          cls='SyntheticApplyEvidenceModels'
+          names=sorted(n.name for c in tree.body if isinstance(c,ast.ClassDef) and c.name==cls for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+          observed=re.findall(r'^(test_[A-Za-z0-9_]+) \(test_check_apply\.'+cls+r'\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',text,re.M)
+          assert len(names)==len(set(names))==len(observed)==47 and all(a==b for a,b in observed)
+          assert sorted(a for a,_ in observed)==names and hashlib.sha256('\n'.join(names).encode()).hexdigest()=='c3bb2df75a387eb33847af4510a4e2048f423aefcfb91ad529152a661a3f90c3'
+          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==['47'] and re.findall(r'^OK$',text,re.M)==['OK']
+          assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
+          print('APPLY_MODELS=PASS actual_synthetic_models=47 actual_kernel_execution=false')
+          PY
+      - name: Acquire and independently check the fixed candidate before execution
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-apply-acquisition"
+          public="$RUNNER_TEMP/mihomo-apply-public"
+          test ! -e "$root"
+          test ! -e "$public"
+          install -d -m 0700 "$root"
+          install -d -m 0755 "$public"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$public/consumption-independent.json"
+          install -m 0600 "$root/consumed/consumption.json" "$public/consumption.json"
+          cmp "$public/consumption.json" "$public/consumption-independent.json"
+      - name: Record host state before the private apply namespace
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/mihomo-apply-public/host-before.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+      - name: Run one controlled actual reload and local proxy route experiment in private namespaces
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-lifecycle-lab/run_apply.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-apply-public" "$go_root" \
+            "$RUNNER_TEMP/mihomo-apply-acquisition/consumed" "$GITHUB_SHA"
+      - name: Record host state after attempt and independently verify original local-apply experiment evidence
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-apply-public"
+          test -d "$root"
+          python3 - "$root/host-after.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_apply.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$root" \
+            --report "$RUNNER_TEMP/mihomo-apply-verification.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-apply-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mihomo-apply-public/*
+            ${{ runner.temp }}/mihomo-apply-models/*.log
+            ${{ runner.temp }}/mihomo-apply-verification.json
+          if-no-files-found: error
+          retention-days: 14
+
+  apply-fresh:
+    needs: [development-only, apply]
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-apply-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-apply-original
+      - name: Recompute original execution evidence without executing Go or Mihomo again
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_apply.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/mihomo-apply-original/mihomo-apply-public" \
+            --report "$RUNNER_TEMP/mihomo-apply-fresh.json"
+          cmp "$RUNNER_TEMP/mihomo-apply-original/mihomo-apply-verification.json" \
+            "$RUNNER_TEMP/mihomo-apply-fresh.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-apply-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-apply-fresh.json
+          if-no-files-found: error
+          retention-days: 14
+
   acquisition:
     needs: development-only
     runs-on: ubuntu-24.04
