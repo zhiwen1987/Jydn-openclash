@@ -432,7 +432,8 @@
   .core-strip { grid-template-columns: repeat(2, 1fr); }
   .core-strip > div:nth-child(2) { border-right: 0; }
   .core-strip > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-  .kernel-grid { grid-template-columns: 1fr; }
+  .kernel-page .kernel-grid { grid-template-columns: minmax(0, 1fr); }
+  .kernel-page .kernel-grid > * { min-width: 0; }
   .proxy-layout { grid-template-columns: 1fr; }
   .proxy-editor { position: static; }
   .proxy-editor form { max-height: none; }
@@ -449,6 +450,19 @@
   .lifecycle > div:last-child { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .page-heading { align-items: flex-start; gap: 10px; }
   .page-heading p { align-items: flex-start; flex-wrap: wrap; }
+  .kernel-page { min-width: 0; }
+  .kernel-page > .page-heading { flex-direction: column; align-items: stretch; }
+  .kernel-page > .page-heading > div { min-width: 0; }
+  .kernel-page .actions { flex-wrap: wrap; max-width: 100%; }
+  .kernel-page .actions button { max-width: 100%; }
+  .kernel-page .kernel-table, .kernel-page .capability {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .kernel-page .instance dl { grid-template-columns: minmax(0, 95px) minmax(0, 1fr); }
+  .kernel-page .instance dt, .kernel-page .instance dd { min-width: 0; overflow-wrap: anywhere; }
+  .kernel-page .instance-actions { flex-wrap: wrap; }
   .topology {
     height: auto;
     flex-direction: column;

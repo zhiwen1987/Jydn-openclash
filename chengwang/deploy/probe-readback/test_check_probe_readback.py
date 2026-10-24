@@ -489,17 +489,136 @@ class CheckerTests(unittest.TestCase):
     def test_forced_cleanup_and_boolean_exit_code_are_rejected(self):
         self.mutate('processes', lambda r: r['exits'][0].update(exitCode=False)); self.reject()
 
+    def test_default_decoded_list_limit_remains_1024(self):
+        for enabled in (False, True):
+            self.assertEqual(len(gate.decoded(compact(list(range(1024))), source_manifest=enabled)), 1024)
+            with self.assertRaises(gate.Rejected):
+                gate.decoded(compact(list(range(1025))), source_manifest=enabled)
+
+    def test_opted_in_both_source_manifests_accept_1035_and_2000(self):
+        for count in (1035, 2000):
+            rows = [dict(path=f'chengwang/unit/{index:04d}.go', bytes=0, sha256='0' * 64) for index in range(count)]
+            value = dict(sourceFilesBefore=rows, sourceFilesAfter=rows)
+            decoded = gate.decoded(compact(value), source_manifest=True)
+            for field in ('sourceFilesBefore', 'sourceFilesAfter'):
+                self.assertEqual(len(decoded[field]), count)
+                gate.source_list(decoded[field])
+
+    def test_opted_in_source_manifest_2001_is_rejected(self):
+        for field in ('sourceFilesBefore', 'sourceFilesAfter'):
+            with self.subTest(field=field), self.assertRaises(gate.Rejected):
+                gate.decoded(compact({field: [None] * 2001}), source_manifest=True)
+
+    def test_large_source_manifest_without_explicit_context_is_rejected(self):
+        for field in ('sourceFilesBefore', 'sourceFilesAfter'):
+            with self.subTest(field=field), self.assertRaises(gate.Rejected):
+                gate.decoded(compact({field: [None] * 1035}))
+
+    def test_nested_source_manifest_keys_do_not_receive_larger_budget(self):
+        values = (
+            dict(nested=dict(sourceFilesBefore=[None] * 1025)),
+            [dict(sourceFilesAfter=[None] * 1025)],
+            dict(sourceFilesBefore=[dict(sourceFilesAfter=[None] * 1025)]),
+        )
+        for value in values:
+            with self.assertRaises(gate.Rejected):
+                gate.decoded(compact(value), source_manifest=True)
+
+    def test_other_large_lists_remain_bounded_with_manifest_context(self):
+        for field in ('sourceFiles', 'sourceFilesBeforeOther', 'sourceFilesAfterOther', 'other'):
+            with self.subTest(field=field), self.assertRaises(gate.Rejected):
+                gate.decoded(compact({field: [None] * 1025}), source_manifest=True)
+
+    def test_manifest_items_retain_dictionary_key_and_child_list_limits(self):
+        values = (
+            {str(index): 0 for index in range(513)},
+            {'x' * 129: 0},
+            dict(child=[None] * 1025),
+        )
+        for item in values:
+            with self.assertRaises(gate.Rejected):
+                gate.decoded(compact(dict(sourceFilesBefore=[item])), source_manifest=True)
+
+    def test_manifest_items_retain_depth_string_and_number_limits(self):
+        nested = None
+        for _ in range(25):
+            nested = dict(child=nested)
+        for item in (nested, 'x' * ((1 << 20) + 1), float('nan'), float('inf')):
+            with self.assertRaises(gate.Rejected):
+                gate.decoded(compact(dict(sourceFilesAfter=[item])), source_manifest=True)
+
+    def test_manifest_source_list_semantic_guards_remain_required(self):
+        original = [dict(path=f'chengwang/unit/{index:04d}.go', bytes=0, sha256='0' * 64) for index in range(1035)]
+        mutations = (
+            lambda rows: rows[0].update(path='chengwang/../private'),
+            lambda rows: rows[0].update(path='outside/source.go'),
+            lambda rows: rows[1].update(path=rows[0]['path']),
+            lambda rows: rows.reverse(),
+            lambda rows: rows[0].update(sha256='not-a-digest'),
+            lambda rows: rows[0].update(bytes=True),
+            lambda rows: rows[0].update(bytes=(16 << 20) + 1),
+            lambda rows: rows[0].update(extra='unexpected'),
+        )
+        for mutate in mutations:
+            rows = copy.deepcopy(original); mutate(rows)
+            decoded = gate.decoded(compact(dict(sourceFilesBefore=rows)), source_manifest=True)
+            with self.assertRaises(gate.Rejected):
+                gate.source_list(decoded['sourceFilesBefore'])
+
+    def test_verify_admits_large_synthetic_isolation_with_original_semantics(self):
+        value = self.json('isolation')
+        rows = copy.deepcopy(value['sourceFilesBefore'])
+        rows.extend(dict(path=f'chengwang/unit/{index:04d}.go', bytes=0, sha256='0' * 64)
+                    for index in range(1035 - len(rows)))
+        rows.sort(key=lambda row: row['path'])
+        value['sourceFilesBefore'] = rows; value['sourceFilesAfter'] = copy.deepcopy(rows)
+        source_sha = digest(json.dumps(rows, sort_keys=True, separators=(',', ':')).encode('ascii'))
+        for field in ('hostBefore', 'hostAfter'):
+            value[field]['sourceSHA256'] = source_sha
+        self.save('isolation', value)
+        result = gate.verify(self.evidence, HEAD)
+        self.assertEqual(result['outcome'], 'PASS')
+        self.assertFalse(result['browserE2EProven'])
+        self.assertFalse(result['actualInternetReachabilityProven'])
+        value['sourceFilesAfter'][0]['bytes'] += 1
+        self.save('isolation', value)
+        self.reject()
+
+    def test_verify_enables_manifest_context_only_for_exact_isolation_file(self):
+        isolation_raw = (self.evidence / (PREFIX + 'isolation.json')).read_bytes()
+        with mock.patch.object(gate, 'decoded', wraps=gate.decoded) as decoder:
+            self.assertEqual(gate.verify(self.evidence, HEAD)['outcome'], 'PASS')
+        enabled = [call for call in decoder.call_args_list if call.kwargs.get('source_manifest') is True]
+        self.assertEqual(len(enabled), 1)
+        self.assertEqual(enabled[0].args, (isolation_raw,))
+        self.assertGreater(len(decoder.call_args_list), len(enabled))
+        for call in decoder.call_args_list:
+            if call.args[0] != isolation_raw:
+                self.assertIsNot(call.kwargs.get('source_manifest'), True)
+
+    def test_manifest_context_requires_bool_and_still_rejects_duplicate_keys(self):
+        for enabled in (1, 0, 'true', None):
+            with self.subTest(enabled=enabled), self.assertRaises(gate.Rejected):
+                gate.decoded(b'{}', source_manifest=enabled)
+        with self.assertRaises(gate.Rejected):
+            gate.decoded(b'{"sourceFilesBefore":[],"sourceFilesBefore":[]}', source_manifest=True)
+
+    def test_manifest_context_preserves_entire_raw_byte_budget(self):
+        raw = b' ' * ((2 << 20) + 1)
+        with self.assertRaises(gate.Rejected):
+            gate.decoded(raw, source_manifest=True)
+
 
 if __name__ == '__main__':
     names = sorted(unittest.defaultTestLoader.getTestCaseNames(CheckerTests))
     names_sha256 = digest(('\n'.join(names) + '\n').encode('ascii'))
-    expected_sha256 = '772f67d373fd79722dcf5ede8cf553b5ab483d9fbef77c68deead5805d242d31'
-    if len(names) != 32 or names_sha256 != expected_sha256:
+    expected_sha256 = 'c2a48593683e0bdb50986f66b2d79bfef9e7c42e19c712e43d3626e391cfaf23'
+    if len(names) != 45 or names_sha256 != expected_sha256:
         print('PROBE_READBACK_CHECKER_TESTS=FAIL fixed_names_mismatch=true', file=sys.stderr)
         raise SystemExit(1)
     result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(CheckerTests))
-    accepted = result.wasSuccessful() and result.testsRun == 32 and not result.skipped
+    accepted = result.wasSuccessful() and result.testsRun == 45 and not result.skipped
     if accepted:
-        print('PROBE_READBACK_CHECKER_TESTS=PASS tests=32 passed=32 skipped=0 namesSHA256=' + names_sha256 +
+        print('PROBE_READBACK_CHECKER_TESTS=PASS tests=45 passed=45 skipped=0 namesSHA256=' + names_sha256 +
               ' synthetic_only=true native_backend_not_proven=true')
     raise SystemExit(0 if accepted else 1)

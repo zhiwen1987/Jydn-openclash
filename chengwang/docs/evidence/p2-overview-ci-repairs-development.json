@@ -1,0 +1,81 @@
+{
+  "schema": "chengwang.ci-repairs-development/v1",
+  "baselineCommit": "a8e66210b1a3e65c433e16b93cadad68992afce5",
+  "branch": "codex/chengwang-live-overview-20261024",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-m2b-candidate.yml": "2d0b97c0d631ce7007e0a6617f7ada75d8ba7a8191beae61e47ac1bbe9464fde",
+    ".github/workflows/chengwang-probe-browser.yml": "4053de84f6c324bb6f3c933ef6a26cea489329a80d29aa5786b415acd2c71965",
+    ".github/workflows/chengwang-probe-readback.yml": "db9c4c227d1b312a08e6fd7218affd8a472625e256f7abdf2d6f03c6c70a950a",
+    "chengwang/deploy/probe-readback/check_probe_readback.py": "c3f1838b980cb9a813f0b37724c08ee7f630f1f560ffdb3145ee9f087e11aea7",
+    "chengwang/deploy/probe-readback/test_check_probe_readback.py": "01525b9ea407e2e3123c9cb131c868fe2d22b01b1af0cef313f2d9a87f094942",
+    "chengwang/docs/P2-CI-REPAIR-CANDIDATE.md": "e49dd89a142157a9755187888677a810c746204daf1bfacd69ee4919bc9ecc64",
+    "chengwang/internal/api/overview.go": "505a2a2b19689d5826e5ddc4a38114f7633773cbe9a9bdc415cd9972948f34f9",
+    "chengwang/internal/api/overview_test.go": "1c49bb603ce905af9d32023bc2f48bb4d0441b6f087140f5ed697cb73bacb192",
+    "chengwang/internal/overview/model.go": "b6b29be0792268a7b7fb0428c0ca56556ac22859d4b8cdd3e9201953ca23cb2e",
+    "chengwang/internal/overview/provider.go": "3d95405e359a346384aab91f4f5fd9f493b0b95cb529430b0f0cdf3d08b009df",
+    "chengwang/internal/overview/provider_test.go": "9fb6573dc436fd5629b8107a32ac07c0b375d788e1bdef10964871eb94c917c9",
+    "chengwang/internal/serverruntime/overview_runtime_linux_test.go": "b231b3eccc7ad1210d4a48a684d9043089e085709ec06d8b5a2a586a04932f89",
+    "chengwang/web/src/EvidenceOverview.test.tsx": "554368d2a3afcb4c75ec8e335ded5e31294562630e4d2afcb02c68b0066ff2c1",
+    "chengwang/web/src/EvidenceOverview.tsx": "8ac8425b71003646a123d34c831aaefa1efd650539cbdf9ac51e98bc49c84eb4",
+    "chengwang/web/src/OverviewTransport.test.ts": "feb4ef179e5c28eed712d444df95ac8f9ecf249ced8468546b8b74c5e2f04b4c",
+    "chengwang/web/src/layout-v2.css": "2417779d00ec50fff6fddbeb640b021ac37a2d9d1330fc875886a96f5956cfa1"
+  },
+  "sourceStable": true,
+  "remoteFormatterPatch": {
+    "directory": "D:/CodexData/workspace/a8e-format-transcript-audit-20261024",
+    "filesChecked": 10,
+    "filesChanged": 6,
+    "afterHashesMatched": true,
+    "localGoOrFormatterExecuted": false
+  },
+  "nativeCheckerCPU": {
+    "directory": "D:\\CodexData\\workspace\\native-source-manifest-budget-gwtaff21",
+    "tests": 45,
+    "retainedOriginalMethods": 32,
+    "newMethods": 13,
+    "skipped": 0,
+    "exitCode": 0,
+    "originalLogSHA256": "8b82388dcc6b13ffe5c8b448ebb9e7690f32745f5e0dc918f814e49fd55998a9",
+    "directMethodPinWithLF": "c2a48593683e0bdb50986f66b2d79bfef9e7c42e19c712e43d3626e391cfaf23",
+    "scope": "CPU_SYNTHETIC_CHECKER_CASES_WITH_OPENSSL_NOT_NATIVE_RUNTIME"
+  },
+  "sourceStatic": {
+    "directory": "D:\\CodexData\\workspace\\overview-ci-repairs-static-_kevky7m",
+    "resultSHA256": "b1a8dcfc133e5e3b8907fb9263674d1aaea551b834f506b105caf71784a410e7",
+    "exactCIHelperTests": 35,
+    "workflowShellBlocks": 68,
+    "frontendASTFiles": 3,
+    "typecheck": false,
+    "vitest": false,
+    "productBuild": false
+  },
+  "independentReview": {
+    "directory": "D:\\CodexData\\workspace\\a8e-native-decoder-peer-20261024",
+    "resultSHA256": "6ed102fd73b6fcfbb8e70cd0e2d185ef62ca64582dee155cfd26ae85275ec428",
+    "findings": [],
+    "historicalEvidenceCommit": "a8e66210b1a3e65c433e16b93cadad68992afce5",
+    "scope": "NEW_CANDIDATE_CHECKER_REVIEW_OF_HISTORICAL_A8E_PARSE_ONLY_NOT_ORIGINAL_CI_PASS",
+    "originalInputsStable": true
+  },
+  "previousCI": {
+    "a8eParentGoOrdinaryAndRaceSemanticTestsEach": 2709,
+    "a8eParentOverall": "failure",
+    "a8eFrontend": "TS2353_BEFORE_TEST_EXECUTION",
+    "a8eNative": "RUNNER_PASS_INDEPENDENT_CHECKER_FAIL",
+    "8eUI": "failure"
+  },
+  "remaining": [
+    "New commit remote formatting, Go ordinary/race and original transcript upload",
+    "New commit TypeScript build and frontend exact gate",
+    "New commit native runner plus independent checker",
+    "New commit CDP and Playwright browser/fresh checker/visual acceptance",
+    "Handoff Target failure remains independently unresolved",
+    "Actual overview browser scenes still not implemented",
+    "Full functional baseline, recovery, gray deployment and production acceptance"
+  ],
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "realProductRuntimeExecutedLocally": false,
+  "overallProjectComplete": false
+}

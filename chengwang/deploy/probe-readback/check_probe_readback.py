@@ -106,24 +106,29 @@ def unique_object(pairs):
     return value
 
 
-def decoded(raw):
+def decoded(raw, *, source_manifest=False):
     require(type(raw) is bytes and 0 < len(raw) <= 2 << 20)
+    require(type(source_manifest) is bool)
     try:
         value = json.loads(raw, object_pairs_hook=unique_object,
                            parse_constant=lambda _: (_ for _ in ()).throw(Rejected()))
     except (ValueError, UnicodeError, RecursionError):
         raise Rejected('evidence-rejected') from None
-    def bounded(item, depth=0):
+    def bounded(item, depth=0, path=()):
         require(depth <= 24)
         if isinstance(item, dict):
             require(len(item) <= 512)
             for key, child in item.items():
                 require(type(key) is str and len(key) <= 128)
-                bounded(child, depth + 1)
+                bounded(child, depth + 1, path + (key,))
         elif isinstance(item, list):
-            require(len(item) <= 1024)
-            for child in item:
-                bounded(child, depth + 1)
+            # Only verify's exact isolation document opts into the existing
+            # source_list budget. Nested/lookalike keys and every child keep
+            # all ordinary depth, dictionary, string and list limits.
+            maximum = 2000 if source_manifest and path in (('sourceFilesBefore',), ('sourceFilesAfter',)) else 1024
+            require(len(item) <= maximum)
+            for index, child in enumerate(item):
+                bounded(child, depth + 1, path + (index,))
         elif isinstance(item, str):
             require(len(item) <= 1 << 20)
         else:
@@ -799,7 +804,8 @@ def verify(evidence_dir, source_commit):
     require(evidence_dir.is_dir() and not evidence_dir.is_symlink())
     require(set(item.name for item in evidence_dir.iterdir()) == INPUT_FILES and len(INPUT_FILES) == 22)
     raw = {name: read_file(evidence_dir / name) for name in INPUT_FILES}
-    data = {name: decoded(value) for name, value in raw.items() if name.endswith('.json')}
+    data = {name: decoded(value, source_manifest=(name == PREFIX + 'isolation.json'))
+            for name, value in raw.items() if name.endswith('.json')}
     reports = {name: data[PREFIX + name + '.json'] for name in REPORT_NAMES}
     prepare = reports['prepare']
     object_keys(prepare, COMMON | {'catalogRaw', 'catalogDigest', 'certificates'})

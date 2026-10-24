@@ -3,7 +3,7 @@ import { getOverview } from './overview-api'
 import { overviewFixture } from './overview-test-fixture'
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
-function reply(body = JSON.stringify(overviewFixture()), headers = { 'content-type': 'application/json' }) { return new Response(body, { headers }) }
+function reply(body = JSON.stringify(overviewFixture()), headers: HeadersInit = { 'content-type': 'application/json' }) { return new Response(body, { headers }) }
 function trackedRead(chunks: Uint8Array[], options: { stuck?: boolean; cancelStuck?: boolean; failRead?: boolean } = {}) {
   let index = 0
   const releaseLock = vi.fn(), cancel = vi.fn(() => options.cancelStuck ? new Promise<void>(() => undefined) : Promise.resolve())

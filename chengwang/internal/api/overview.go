@@ -45,9 +45,13 @@ func (s *server) overview(w http.ResponseWriter, r *http.Request) {
 	// locks. This budget is cooperative; no abandoned goroutine is created.
 	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
 	defer cancel()
-	if overviewContextError(w, ctx.Err()) { return }
+	if overviewContextError(w, ctx.Err()) {
+		return
+	}
 	value, err := s.options.Overview.Snapshot(ctx)
-	if overviewContextError(w, ctx.Err()) || overviewContextError(w, err) { return }
+	if overviewContextError(w, ctx.Err()) || overviewContextError(w, err) {
+		return
+	}
 	if err != nil || overview.Validate(value) != nil {
 		writeError(w, http.StatusServiceUnavailable, "overview_projection_invalid", "实际证据汇总安全投影无效")
 		return
@@ -57,7 +61,9 @@ func (s *server) overview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "overview_projection_invalid", "实际证据汇总安全投影无效")
 		return
 	}
-	if overviewContextError(w, ctx.Err()) { return }
+	if overviewContextError(w, ctx.Err()) {
+		return
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(append(raw, '\n'))

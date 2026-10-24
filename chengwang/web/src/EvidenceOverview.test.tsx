@@ -26,7 +26,8 @@ describe('EvidenceOverview', () => {
   })
   it('labels current probe coverage as evidence completeness rather than success rate', async () => {
     read.mockResolvedValue(currentProbeFixture()); render(<EvidenceOverview />)
-    await screen.findByText('当前缓存覆盖')
+    await screen.findByText('汇总时有缓存覆盖')
+    expect(screen.getByText(/以下状态对应本次读回的服务端汇总时点/)).toBeInTheDocument()
     expect(screen.getByText('声明目标数')).toBeInTheDocument()
     expect(screen.getByText('覆盖数量描述证据完整性，不是节点或业务成功率。')).toBeInTheDocument()
     expect(screen.getByText(/本阶段不宣称全网健康/)).toBeInTheDocument()

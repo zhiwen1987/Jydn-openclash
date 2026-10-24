@@ -939,8 +939,8 @@ jobs:
         with:
           name: overview-parent-transcripts-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/chengwang-go-test.json
-            ${{ runner.temp }}/chengwang-go-race.json
-            ${{ runner.temp }}/chengwang-overview-helper-cpu.log
+            ${{ runner.temp }}/chengwang-m2b-static-gate/chengwang-go-test.json
+            ${{ runner.temp }}/chengwang-m2b-static-gate/chengwang-go-race.json
+            ${{ runner.temp }}/chengwang-m2b-static-gate/chengwang-overview-helper-cpu.log
           if-no-files-found: error
           retention-days: 7

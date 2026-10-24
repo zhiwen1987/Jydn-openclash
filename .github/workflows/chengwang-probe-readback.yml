@@ -143,7 +143,7 @@ jobs:
           reports = []
           pinned = {
               'test_run_probe_readback': (12, 'b12e53d8fe95fb131f7a8a047a0393944764dd8343db8e9ce531ef7998d11dc1'),
-              'test_check_probe_readback': (32, '1b766f1b579cc390eb0ab7b2e31cf81a4121c1fb95662931ef95be3a6d04ee73'),
+              'test_check_probe_readback': (45, '46fafa0e2a822f441c1856b9f8cca55920d7b409b8aefb338de737db545cdbfa'),
           }
           class Recorded(unittest.TextTestResult):
               def __init__(self, *args):
