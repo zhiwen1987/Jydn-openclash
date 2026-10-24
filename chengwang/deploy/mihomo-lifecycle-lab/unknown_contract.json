@@ -1,0 +1,18 @@
+{
+  "schema": "chengwang.mihomo-unknown-experiment-contract/v1",
+  "scope": "ACTUAL_FIXED_KERNEL_UNKNOWN_OUTCOME_NO_RESEND_NOT_RECOVERY_OR_PRODUCTION",
+  "tags": ["chengwang_mihomo_service", "chengwang_mihomo_faults"],
+  "goPackages": ["./internal/adapter/mihomo", "./internal/serverruntime"],
+  "topTests": ["TestLabReloadFaultCapsuleModelBoundaries", "TestMihomoServiceHTTPUnknownOutcomeBlocksReplayAndNewPlan"],
+  "goTimeoutSeconds": 75,
+  "outerGoTimeoutSeconds": 90,
+  "privateRoot": "/tmp/chengwang-mihomo-service-private",
+  "identityRoot": "/tmp/chengwang-mihomo-service-identities",
+  "stateRoot": "/tmp/chengwang-mihomo-service-state",
+  "captureStages": ["bootstrap", "op-01/create", "op-01/pre-dispatch", "op-01/post-dispatch"],
+  "captureFiles": ["transcript.json", "body-1.json", "body-2.json", "body-3.json", "body-4.json", "body-5.json", "body-6.json", "body-7.json", "body-8.json", "verification.json"],
+  "maxPublicBytes": 16777216,
+  "maxCaptureBodyBytes": 262144,
+  "maxVerificationBytes": 65536,
+  "production": false
+}

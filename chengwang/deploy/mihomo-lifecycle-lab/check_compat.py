@@ -66,6 +66,14 @@ LAB_COMPOSITION_FILES = (
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_SERVICE_FILES]
 FOUNDATION += ['chengwang/internal/api/' + name for name in LAB_API_FILES]
 FOUNDATION += ['chengwang/internal/serverruntime/' + name for name in LAB_COMPOSITION_FILES]
+FOUNDATION += [
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_default.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_linux.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_unsupported.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_linux_test.go',
+    'chengwang/internal/mihomodeploy/lab_unknown_acceptance_linux.go',
+    'chengwang/internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
+]
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -144,7 +152,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 87)
+    need(len(FILES) == len(set(FILES)) == 93)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw

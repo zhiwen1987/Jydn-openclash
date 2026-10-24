@@ -101,6 +101,14 @@ files+=(
   internal/serverruntime/mihomo_service_e2e_linux_test.go
   internal/serverruntime/runtime.go
 )
+files+=(
+  internal/adapter/mihomo/lab_reload_fault_default.go
+  internal/adapter/mihomo/lab_reload_fault_linux.go
+  internal/adapter/mihomo/lab_reload_fault_unsupported.go
+  internal/adapter/mihomo/lab_reload_fault_linux_test.go
+  internal/mihomodeploy/lab_unknown_acceptance_linux.go
+  internal/serverruntime/mihomo_unknown_e2e_linux_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?

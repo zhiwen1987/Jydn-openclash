@@ -225,7 +225,7 @@ class ContractEvidenceModels(unittest.TestCase):
             S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
-        self.assertEqual(len(self.sources), 76)
+        self.assertEqual(len(self.sources), 82)
         self.assertEqual(len(S.PACKAGES), 5)
         result = self.verify_model()
         self.assertEqual(set(result['suites']), {'ordinary.json', 'race.json'})

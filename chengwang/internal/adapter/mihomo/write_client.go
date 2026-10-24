@@ -160,7 +160,7 @@ func NewWriteClient(rawURL, token string, timeout time.Duration) (*WriteClient, 
 		endpoint: endpoint.String(),
 		token:    token,
 		httpClient: &http.Client{
-			Transport: transport,
+			Transport: wrapLabReloadTransport(transport),
 			Timeout:   timeout,
 			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 				return http.ErrUseLastResponse

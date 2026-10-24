@@ -69,6 +69,14 @@ LAB_COMPOSITION_FILES = (
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_SERVICE_FILES]
 FILES += ['chengwang/internal/api/' + name for name in LAB_API_FILES]
 FILES += ['chengwang/internal/serverruntime/' + name for name in LAB_COMPOSITION_FILES]
+FILES += [
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_default.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_linux.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_unsupported.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_fault_linux_test.go',
+    'chengwang/internal/mihomodeploy/lab_unknown_acceptance_linux.go',
+    'chengwang/internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
+]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
