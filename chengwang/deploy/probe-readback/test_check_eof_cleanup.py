@@ -111,6 +111,17 @@ class EOFCleanupVerifierContracts(unittest.TestCase):
     def verify(self):
         return C.verify(self.evidence, self.repo, T.COMMIT, self.engine, self.base)
 
+    def manifest_rows(self, count):
+        # Extend the complete EOF fixture, not the mocked original CLI's scope.
+        # Only the sixteen required real host/Git bindings are consumed here;
+        # the extra records exercise this helper's exact build decoder entry.
+        rows = copy.deepcopy(self.build['sourceFilesBefore'])
+        self.assertGreaterEqual(count, len(rows))
+        for number in range(count - len(rows)):
+            rows.append(dict(path='chengwang/internal/eof_fixture_%04d.go' % number,
+                             bytes=1, sha256=C.sha(b'x')))
+        return rows
+
     def rejected(self):
         with self.assertRaises((ValueError, B.Rejected, C.R.D.Rejected)):
             self.verify()
@@ -126,6 +137,19 @@ class EOFCleanupVerifierContracts(unittest.TestCase):
                           'independentBrowserInternalAttestationProven', 'longTermStabilityProven', 'production'):
                 self.assertIs(value[field], False)
             self.assertEqual(value['authorization'], 'BLOCKED')
+            for count in (1035, 2000):
+                self.write_fixture(engine=engine)
+                rows = self.manifest_rows(count)
+                self.build['sourceFilesBefore'] = rows
+                self.build['sourceFilesAfter'] = copy.deepcopy(rows)
+                self.put('lab/browser/browser-build.json', self.build)
+                # The default decoder still rejects these exact original bytes.
+                with self.assertRaises(B.Rejected):
+                    B.decoded((self.evidence / 'lab/browser/browser-build.json').read_bytes())
+                expanded = self.verify()
+                self.assertEqual(expanded['normalJSONEOFs'], 7)
+                self.assertEqual(expanded['requiredGitBlobsVerified'], 16)
+                self.assertFalse(expanded['cancellationRootCauseProven'])
 
     def test_02_original_clis_are_actually_called_before_observation_acceptance(self):
         self.verify()
@@ -273,6 +297,19 @@ class EOFCleanupVerifierContracts(unittest.TestCase):
                 self.build['sourceFilesAfter'] = copy.deepcopy(self.build['sourceFilesBefore'])
             else:
                 self.build['sourceFilesAfter'][0]['bytes'] += 1
+            self.put('lab/browser/browser-build.json', self.build)
+            self.commands.clear()
+            self.rejected()
+            self.assertEqual(self.commands, [])
+        for kind in ('oversize_before', 'oversize_after', 'unrelated_list', 'nested_lookalike'):
+            self.write_fixture()
+            if kind in ('oversize_before', 'oversize_after'):
+                field = 'sourceFilesBefore' if kind == 'oversize_before' else 'sourceFilesAfter'
+                self.build[field] = self.manifest_rows(2001)
+            elif kind == 'unrelated_list':
+                self.build['copiedInputs'] = [None] * 1025
+            else:
+                self.build['nested'] = dict(sourceFilesBefore=[None] * 1025)
             self.put('lab/browser/browser-build.json', self.build)
             self.commands.clear()
             self.rejected()

@@ -211,7 +211,7 @@ def verify(evidence, repo, commit, engine, scratch_parent):
     need(type(commit) is str and re.fullmatch('[a-f0-9]{40}', commit)
          and engine in ('chrome-cdp', 'playwright'))
     before = input_snapshot(evidence)
-    build = B.decoded(before['lab/browser/browser-build.json'])
+    build = B.decoded(before['lab/browser/browser-build.json'], source_manifest=True)
     bindings, host = bind_sources(repo, commit, build)
     reports = replay_originals(evidence, repo, commit, engine, scratch_parent, before)
     browser, binding_report = reports['browser'], reports['binding']
