@@ -4,6 +4,18 @@
 
 ## 本次已有代码
 
+### 2026-10-25 实际应用场景已运行，整体验收仍失败
+
+已读取6231584的实际运行40118290564及9cc8162的40121289102，两次整体均failure，兼容性与对应fresh均success。基础ordinary／race各377项语义通过、290项顶层通过、1项顶层失败、零跳过；唯一失败为TestLabKernelInitialUnobservedIdentityNeverCreatesCapability。初始化身份没有建立时，旧identity仍用零bound.PID调用observer，覆盖了测试保留的实际已启动PID；修正应在任何新观察／验证I/O前要求完整源绑定的初始身份，保留原Start、错误持有者、stop／Wait及进程消失断言，不能仅修改模型Store来掩盖问题。
+
+9cc真实apply标签用例已通过（实际Go事件1.52秒），报告记录旧／新各8次GET投影、缺失／错误令牌401、一次客户端Reload调用及204、两个本地真实代理链路的A→B字节／计数对证、受控身份及退出清理。它不包含产品API、独立批准、head推进、互联网业务或完整未知恢复；九范围旗标仍为false，controllerReceivedCount仍为null。其成功不使整条CI通过。
+
+应用原件实际有71,427字节非空gofmt.patch，原独立checker及fresh正确拒绝；基础格式差异另为434,926字节。实际格式补丁已分别按原件转入20份旧源和1份应用测试源，没有本机运行gofmt；随后仅两份Linux内核身份源／测试作定点修正，仍须新Linux普通／race及全9任务确认。原CI／格式失败不覆盖、不改判。
+
+实际应用原件经独立离线复算，原函数49条非格式语义语句及交叉约束通过，格式门仍保持失败；49是原源码语句，不是49个测试。D:/CodexData/workspace/mihomo-9cc-apply-semantic-subgates-20261025-b/result.json保留18公件、19 ZIP成员、61个Git blob的字节绑定与前后稳定证据。Windows原严格custody读绑定拒绝单独保留，辅助字节／Git绑定不能冒称正式Linux CLI通过，也未放宽产品读守门。逐GET原文独立重算仍未实现。
+
+下文保留历史阶段，发生冲突时以上述实际结果及后续新CI为准；当前还没有整套产品上线或生产切换结论。
+
 ### 2026-10-25 新增真实应用实验入口：源码与证据检查阶段
 
 开发分支增加带`linux && chengwang_mihomo_apply`标签的唯一真实内核实验、独立worker／入口／合同、公开原件检查器及其合成反例模型；CI增加apply及apply-fresh，不替代旧7个任务。新Go标签用例与合成模型分别记录，源码存在不代表已经执行。6231584此前提交的284项基础声明保持不变。

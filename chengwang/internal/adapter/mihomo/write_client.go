@@ -60,7 +60,7 @@ type writeClientCore struct {
 	token      string
 	httpClient *http.Client
 }
-type WriteClient struct { *writeClientCore }
+type WriteClient struct{ *writeClientCore }
 
 var (
 	_ fmt.Stringer   = WriteClient{}

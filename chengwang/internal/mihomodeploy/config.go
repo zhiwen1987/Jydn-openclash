@@ -109,9 +109,10 @@ type labConfigArtifactCore struct {
 	raw        []byte
 	descriptor LabConfigDescriptor
 }
+
 // Unsupported fmt verbs may bypass Formatter. A copied wrapper therefore has
 // only an opaque pointer, never inline secret YAML or its reversible byte slice.
-type LabConfigArtifact struct { *labConfigArtifactCore }
+type LabConfigArtifact struct{ *labConfigArtifactCore }
 
 func (a *LabConfigArtifact) Bytes() []byte {
 	if a == nil || a.labConfigArtifactCore == nil {
@@ -299,8 +300,8 @@ func renderedLabConfig(mixedPort, controllerPort uint16, secret string, proxies 
 	return labRawConfig{MixedPort: mixedPort, BindAddress: "127.0.0.1", Mode: "rule", LogLevel: "silent", FindProcessMode: "off",
 		ExternalController: net.JoinHostPort("127.0.0.1", strconv.Itoa(int(controllerPort))), Secret: secret,
 		ExternalControllerCors: labCors{AllowOrigins: []string{}},
-		DNS: labDNS{EnhancedMode: "redir-host", Nameserver: []string{"127.0.0.1:1"}, DefaultNameserver: []string{"127.0.0.1:1"}, Fallback: []string{}},
-		Proxies: proxies, Groups: groups, Rules: rules}
+		DNS:                    labDNS{EnhancedMode: "redir-host", Nameserver: []string{"127.0.0.1:1"}, DefaultNameserver: []string{"127.0.0.1:1"}, Fallback: []string{}},
+		Proxies:                proxies, Groups: groups, Rules: rules}
 }
 
 // BuildLabConfig produces full typed YAML, never arbitrary YAML/provider input.

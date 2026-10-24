@@ -46,7 +46,7 @@ type preparedReloadCore struct {
 	candidate  []byte
 	backup     []byte
 }
-type PreparedReload struct { *preparedReloadCore }
+type PreparedReload struct{ *preparedReloadCore }
 
 func (p *PreparedReload) CandidateBytes() []byte {
 	if p == nil || p.preparedReloadCore == nil {
@@ -61,7 +61,9 @@ func (p *PreparedReload) BackupBytes() []byte {
 	return bytes.Clone(p.backup)
 }
 func (p PreparedReload) Descriptor() ReloadPreparationDescriptor {
-	if p.preparedReloadCore == nil { return ReloadPreparationDescriptor{} }
+	if p.preparedReloadCore == nil {
+		return ReloadPreparationDescriptor{}
+	}
 	d := p.descriptor
 	d.Plan.Artifact = cloneArtifactDescriptor(d.Plan.Artifact)
 	d.Plan.Backup.Artifact = cloneArtifactDescriptor(d.Plan.Backup.Artifact)

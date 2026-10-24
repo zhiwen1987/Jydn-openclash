@@ -115,18 +115,18 @@ func Open(path string) (*Store, error) {
 }
 
 type credentialOSState struct {
-	uid, gid, links uint64
+	uid, gid, links     uint64
 	ctimeSec, ctimeNsec int64
 }
 
 type credentialPathState struct {
 	path string
 	info os.FileInfo
-	os credentialOSState
+	os   credentialOSState
 }
 
 type credentialSnapshot struct {
-	store *Store
+	store  *Store
 	digest [sha256.Size]byte
 }
 
@@ -241,7 +241,7 @@ func credentialPathSnapshot(path string, strict bool) ([]credentialPathState, er
 		}
 	}
 	chain := make([]credentialPathState, 0, len(reversed))
-	for i := len(reversed)-1; i >= 0; i-- {
+	for i := len(reversed) - 1; i >= 0; i-- {
 		name := reversed[i]
 		info, err := os.Lstat(name)
 		if err != nil {
@@ -381,7 +381,7 @@ func rejectCredentialDuplicateKeys(payload []byte) error {
 				}
 				seen[name] = true
 			}
-			if err := value(depth+1); err != nil {
+			if err := value(depth + 1); err != nil {
 				return err
 			}
 		}

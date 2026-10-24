@@ -497,7 +497,9 @@ func TestWriteClientResultAndErrorsCannotDiscloseSecretBearingInputs(t *testing.
 	for _, view := range []any{client, copyOfClient, &copyOfClient} {
 		for _, verb := range []string{"%p", "%d", "%T", "%w", "%x", "%#v"} {
 			text := fmt.Sprintf(verb, view)
-			if strings.Contains(text, client.token) || strings.Contains(text, client.endpoint) { t.Fatal("unsupported formatting exposed write client credentials") }
+			if strings.Contains(text, client.token) || strings.Contains(text, client.endpoint) {
+				t.Fatal("unsupported formatting exposed write client credentials")
+			}
 		}
 	}
 	zero := WriteClient{}
