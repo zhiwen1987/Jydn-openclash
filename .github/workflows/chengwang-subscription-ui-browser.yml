@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
       - 'chengwang/deploy/subscription-ui-browser/**'
+      - 'chengwang/deploy/browser-scene-supervisor/**'
       - 'chengwang/tools/subscription-ui-browser/**'
       - 'chengwang/tools/subscription-browser/**'
       - 'chengwang/tools/browser-runtime-candidate/**'
@@ -26,6 +27,7 @@ on:
     paths:
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
       - 'chengwang/deploy/subscription-ui-browser/**'
+      - 'chengwang/deploy/browser-scene-supervisor/**'
       - 'chengwang/tools/subscription-ui-browser/**'
       - 'chengwang/tools/subscription-browser/**'
       - 'chengwang/tools/browser-runtime-candidate/**'
@@ -186,6 +188,40 @@ jobs:
               distFiles=records,production=False,authorization='BLOCKED')
           with (root/'build.json').open('xb') as f:f.write((json.dumps(value,sort_keys=True,separators=(',',':'))+'\n').encode())
           PY
+
+      - name: Freeze shared lifecycle leaf contracts without claiming real process acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          (
+            cd chengwang/deploy/browser-scene-supervisor
+            python3 -B - <<'PY' 2>&1 | tee "$reports/lifecycle-unit.log"
+          import ast, hashlib, importlib, pathlib, unittest
+          module_name = 'test_lifecycle'
+          tree = ast.parse(pathlib.Path(module_name + '.py').read_bytes())
+          names = sorted(module_name + '.' + cls.name + '.' + method.name
+              for cls in tree.body if isinstance(cls, ast.ClassDef)
+              for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_'))
+          if (len(names) != 19 or len(set(names)) != 19
+              or hashlib.sha256('\n'.join(names).encode()).hexdigest() != 'd9f983437ea30eda82ebaa6c8ad8927849a1b8a444e7dc9faa547705d6df79ea'):
+              raise SystemExit('scene-lifecycle-unit-names-rejected')
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args); self.runs = []; self.passes = []
+              def startTest(self, test):
+                  self.runs.append(test.id()); super().startTest(test)
+              def addSuccess(self, test):
+                  self.passes.append(test.id()); super().addSuccess(test)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(
+              unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(module_name)))
+          if (not result.wasSuccessful() or result.testsRun != 19 or result.skipped
+              or result.expectedFailures or result.unexpectedSuccesses
+              or sorted(result.runs) != names or sorted(result.passes) != names):
+              raise SystemExit('scene-lifecycle-unit-events-rejected')
+          print('SCENE_LIFECYCLE_SYNTHETIC=PASS tests=19 skips=0 real_processes=false')
+          PY
+          )
 
       - name: Preserve actual synthetic test output separately from real UI acceptance
         shell: bash

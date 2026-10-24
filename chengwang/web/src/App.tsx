@@ -127,10 +127,10 @@ function DemoOverview({ snapshot }: { snapshot: Snapshot }) {
     ['自动化与拓扑', '当前仅有产品设计', '不冒充已执行动作或实时流量路径'],
   ]
   return <>
-    <div className="page-heading"><div><h1>运行总览</h1><p><span className="unknown-dot"/>{snapshot.status}<span>影子模式下只观察，不改变现网</span></p></div><button className="secondary" disabled title="运行态刷新尚未接入"><RefreshCw size={16}/>刷新</button></div>
+    <div className="page-heading"><div><h1>运行总览</h1><p><span className="unknown-dot"/>{snapshot.status}<span>总览仅展示数据边界；执行权限以服务端授权为准</span></p></div><button className="secondary" disabled title="运行态刷新尚未接入"><RefreshCw size={16}/>刷新</button></div>
     <div className="demo-source-alert" role="alert"><AlertCircle size={19}/><div><strong>当前总览没有接入真实运行数据</strong><span>为防止把界面示例误认为生产状态，本页已隐藏设备数量、订阅数量、业务健康、节点延迟、DNS 延迟和自动化事件等演示值。</span></div></div>
     <div className="core-strip evidence-strip">
-      <div><ShieldCheck/><span>控制面模式</span><strong>Shadow</strong><Status value="只读"/></div>
+      <div><ShieldCheck/><span>控制面模式</span><strong>{snapshot.mode}</strong><Status value="总览只读"/></div>
       <div><FileDiff/><span>真实设备证据</span><strong>设备读回</strong><Status value="可查看"/></div>
       <div><Activity/><span>业务评估</span><strong>未接入</strong><Status value="未知"/></div>
       <div><Globe2/><span>DNS 评估</span><strong>未接入</strong><Status value="未知"/></div>

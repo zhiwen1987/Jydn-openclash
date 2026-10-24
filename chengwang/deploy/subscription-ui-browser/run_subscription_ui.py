@@ -45,7 +45,8 @@ SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py
     'chengwang/web/scripts/trust-browser-tls.mjs',
     'chengwang/deploy/subscription-ui-browser/admission_fixture.py',
     'chengwang/deploy/subscription-ui-browser/admission-contract.json',
-    'chengwang/deploy/subscription-ui-browser/navigation_diagnostics.py']
+    'chengwang/deploy/subscription-ui-browser/navigation_diagnostics.py',
+    'chengwang/deploy/browser-scene-supervisor/lifecycle.py']
 
 
 def need(value):
@@ -102,6 +103,10 @@ def load_module(path, name):
 
 def library(repo):
     return load_module(repo / 'chengwang/deploy/browser-stream-matrix/run_matrix.py', 'subscription_ui_matrix_primitives')
+
+
+def lifecycle(repo):
+    return load_module(repo / 'chengwang/deploy/browser-scene-supervisor/lifecycle.py', 'subscription_ui_lifecycle_primitives')
 
 
 def admission():
@@ -337,6 +342,7 @@ def wait_server(root, server, N):
 def inner(options, repo, root, bundle, fixture, N, M):
     scenario = selected_scenario(options)
     need(os.geteuid() == 0 and os.getpid() == 1)
+    L = lifecycle(repo)
     N.command(['mount', '--make-rprivate', '/']); N.mount_bind(repo, True); N.mount_bind(bundle, True)
     N.command(['ip', 'link', 'set', 'lo', 'up'])
     need(len(N.command(['ip', '-o', 'link', 'show']).splitlines()) == 1
@@ -406,10 +412,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
         tasks = [('server', server.pid, bundle / 'server', 128 << 20),
             ('controller', node.pid, bundle / 'node', 256 << 20), ('chrome', handoff['pid'], bundle / 'chrome/chrome', 512 << 20)]
         if scenario in ('remote_fetch', 'remote_handoff_negative'): tasks.append(('wire', wire.pid, pathlib.Path(sys.executable).resolve(strict=True), 128 << 20))
-        for role, pid, executable, limit in tasks:
-            record = N.task_profile(pid, sha(N.stable_read(executable, limit)[0]), executable_limit=limit)
-            record.update(role=role, argv=pathlib.Path('/proc', str(pid), 'cmdline').read_bytes()[:-1].decode().split('\0'))
-            records.append(record)
+        L.append_process_records(tasks, records, N)
         stage = 'UI_RUN'; run_gate = dict(schema='chengwang.subscription-ui-run/v1', fixtureId=fixture, engine=options.engine)
         if scenario != 'create_receipt': run_gate['scenario'] = scenario
         N.publish_atomic(root / 'run.go', N.canonical(run_gate), 0o444)
@@ -455,11 +458,7 @@ def inner(options, repo, root, bundle, fixture, N, M):
             print(safe_feedback.decode('ascii'), end='', flush=True)
         succeeded = True
     finally:
-        for child in (node, server, wire):
-            if child is not None and child.poll() is None:
-                forced += 1; child.terminate()
-                try: child.wait(timeout=5)
-                except subprocess.TimeoutExpired: forced += 1; child.kill(); child.wait(timeout=3)
+        forced = L.terminate_children((node, server, wire), forced)
         if not succeeded:
             no_owned = M.no_owned_processes(); exported = export_observations(options, root, N, partial=True)
             checkpoints = []
@@ -490,6 +489,7 @@ def main():
     parser.add_argument('--fixture', default=None); parser.add_argument('--inner', action='store_true')
     options = parser.parse_args(); need(sys.platform == 'linux' and os.geteuid() == 0)
     repo = options.repo.resolve(strict=True); M = library(repo); N = M.load_native(repo)
+    L = lifecycle(repo)
     need(re.fullmatch('[a-f0-9]{40}', options.source_commit))
     fixture = options.fixture or uuid.uuid4().hex; need(re.fullmatch('[a-f0-9]{32}', fixture))
     root = pathlib.Path('/tmp/chengwang-subscription-ui-' + fixture)
@@ -509,14 +509,7 @@ def main():
         with (bundle / 'supervisor.private.log').open('xb') as log:
             if options.scenario == 'remote_handoff_negative': os.fchmod(log.fileno(), 0o600)
             child = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=log, stderr=log, env=dict(N.BASE_ENV), cwd='/')
-            timed_out = False
-            try: child.wait(timeout=225)
-            except subprocess.TimeoutExpired: timed_out = True
-            finally:
-                if child.poll() is None:
-                    child.terminate()
-                    try: child.wait(timeout=5)
-                    except subprocess.TimeoutExpired: child.kill(); child.wait(timeout=3)
+            timed_out = L.wait_namespace(child, wait_seconds=225, terminate_seconds=5, kill_seconds=3)
         after, source_after = N.host_observation(repo, options.source_commit)
         need(before == after and source_before == source_after)
         if child.returncode != 0 or timed_out:
