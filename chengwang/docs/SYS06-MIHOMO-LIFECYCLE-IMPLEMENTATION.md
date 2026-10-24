@@ -153,3 +153,11 @@ db99f13的[实际CI 40113825822](https://github.com/zhiwen1987/Jydn-openclash/ac
 提交 `c9167f3299bbe438cfc945caff5d16e906a1f6d3` 的实际运行 `40140626055` 已终结：13任务中9成功、4失败。新增UNKNOWN的真实Go进程退出0，原报告PASS，58公件齐全，实际14次HTTPS和32份GET正文保留；原生Transport的真实204／零正文EOF／成功Close观察与adapter的unknown／dispatched=true／status0分开。旧head为generation1，耐久原transport及一次观察保留，replay／新建后原WAL与0→1→1→1计数不变，关闭返回与五端口拒绝均有原件。Go事件有33项胶囊MODEL语义和1项真实产品顶层实验；不能把33项模型称为33次真实业务验证。
 
 整门没有通过：实际gofmt产生58,029字节差异，foundation／UNKNOWN及各自fresh均失败。独立复核确认原未改checker拒绝；另副本仅排除这一项空格式约束并将原PASS返回替换为诊断检查点后，抵达其余原语句的返回前，不执行或构造原PASS。因此该诊断不等于原检查器通过。四份实际formatter补丁已严格按c9167f原Git preimage转入源码，foundation与UNKNOWN两份补丁派生结果逐字节一致；没有本机执行gofmt。修正版必须再次真实CI验收，原失败不改判。另加强三个既有负例，让after／replay／final一致变异，直接检验durable attempt／transport／observation门，避免只被前面的快照不一致检查拒绝。
+
+### 2bba397 修正版：UNKNOWN零重发隔离验收通过，整套系统仍未完成
+
+实际接受源码固定为 `2bba397183464e456a62184e11a674405df7402e`。GitHub push运行 `40141260943` 的13任务全部success；12个原ZIP的208成员按API摘要、CRC和逐文件SHA保管，精确源码1227个Git blob已核。Foundation普通／race各879唯一语义run／pass、407必需顶层逐项齐全，零skip／fail，格式与stderr空；正常service、apply、compat、candidate及新增UNKNOWN均由原验证器与三路独立复核重算，六组producer／fresh报告逐字节一致。
+
+新增UNKNOWN原未改 `check_unknown.verify_raw` 对58公件完整返回PASS，无AST例外；32份GET正文、14次HTTPS、33项胶囊MODEL语义与1项真实产品实验、实际204丢响应、客户端unknown／true／0、旧head generation1／写阻塞、原WAL及0→1→1→1计数、真实清理与五端口拒绝均有原件。底层控制器收到次数仍为null，不把Transport调用次数冒充该值。本机纯raw报告保留 `sourceGitVerified=false`，两份实际LinuxCLI报告为true；只在独立比较副本核其余字节，不修改原件或冒称本机LinuxCLI执行。
+
+统一实际收据见 `evidence/sys06-unknown-acceptance-2bba397-20261025.json`。该接受只覆盖固定双配置的正常链路及显式响应丢失UNKNOWN不重发实验；旧c9167f失败保留。完整中断／撤销／到期／崩溃矩阵、独立预批准的新epoch恢复、完整私密载荷／WAL及持密围栏独立证明、互联网业务、DNS、多内核、企业治理、真实UI、容量／浸泡、整套恢复、灰度和生产读回均未由此证明。本次只归档文档与证据，不改已验收的产品源码，不触碰生产、main或Registry。
