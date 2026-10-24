@@ -1,3 +1,19 @@
+/* Keep header labels in their own flex space; never truncate source evidence. */
+.topbar > .brand,
+.topbar .brand-mark,
+.topbar > .freeze,
+.topbar > .icon-button,
+.topbar > .avatar { flex-shrink: 0; }
+.topbar > .version { min-width: 0; flex-wrap: wrap; white-space: normal; row-gap: 2px; }
+.topbar > .version b { overflow-wrap: anywhere; }
+.topbar > .command,
+.topbar > .command input { min-width: 0; }
+
+/* A heading yields space to its action instead of breaking a short label. */
+.page-heading > div:first-child { min-width: 0; }
+.page-heading > .secondary { flex-shrink: 0; white-space: nowrap; }
+.page-heading > .secondary > svg { flex-shrink: 0; }
+
 .sidebar nav {
   display: flex;
   flex-direction: column;

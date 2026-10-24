@@ -1,0 +1,36 @@
+{
+  "actualProductBrowserOrBuildRunLocally": false,
+  "baseline": "e3636cebc21fe75b6c3b09197b2da3b60c2b645f",
+  "changes": [
+    "prevent demo heading refresh text and icon flex shrink and wrapping",
+    "keep brand and action icons stable while source labels wrap fully in their own flex region",
+    "preserve original responsive hiding and actual overview stacked heading rules"
+  ],
+  "currentRenderedAcceptance": false,
+  "desktopOverlapConfirmed": false,
+  "domTextRoutesAPIRequestsUnchanged": true,
+  "historicalCorrectionPath": "D:/CodexData/workspace/c8-pw-independent-replay-37c58a020caf/CORRECTION.md",
+  "historicalCorrectionSHA256": "dc0786920366879e950c6a9e50d4da074c8a9ffe038636b52b53d408bfe214d0",
+  "mainMerged": false,
+  "mobileOldScreenshotWrapConfirmed": true,
+  "newCSSPrefixBytes": 655,
+  "newCSSRules": 7,
+  "noNewTestsOrDependencies": true,
+  "originalCSSSuffixPreserved": true,
+  "priorDesktopClaimWithdrawn": true,
+  "production": false,
+  "registryPublished": false,
+  "remaining": [
+    "new source actual frontend build",
+    "actual Playwright and CDP flow",
+    "new original desktop and mobile screenshot review",
+    "full role and fault acceptance matrix"
+  ],
+  "schema": "chengwang.overview-layout-development/v1",
+  "scope": "CSS_SOURCE_AND_STATIC_PEER_NOT_CURRENT_RENDERING_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/web/src/layout-v2.css": "e21a439097b8f3b26c94d0249e722e0cf952febc86177d8d9ce4a59ee49e9c6b"
+  },
+  "staticPeerPath": "D:/CodexData/workspace/overview-css-peer-e363-20261024-a/result.json",
+  "staticPeerSHA256": "7065e2c9f20092d45a0121b75c193000b33c24b30d6510120847244fe933b070"
+}
