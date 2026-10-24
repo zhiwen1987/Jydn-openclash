@@ -365,6 +365,19 @@ func TestReloadPreparationValueCopiesAndFormattingNeverReflectPrivateBodies(t *t
 			}
 		}
 	}
+	for _, view := range []any{prepared, valueCopy, &valueCopy} {
+		for _, verb := range []string{"%p", "%d", "%T", "%w", "%x", "%#v"} {
+			text := fmt.Sprintf(verb, view)
+			for _, body := range [][]byte{candidate, backup} {
+				for _, needle := range []string{string(body), fmt.Sprint(body), base64.StdEncoding.EncodeToString(body), hex.EncodeToString(body)} {
+					if strings.Contains(text, needle) { t.Fatal("unsupported formatting exposed a private reload body") }
+				}
+			}
+			if strings.Contains(text, artifactFixtureSpec().ControllerSecret) { t.Fatal("unsupported formatting exposed controller credentials") }
+		}
+	}
+	zero := PreparedReload{}
+	if zero.CandidateBytes() != nil || zero.BackupBytes() != nil || zero.Descriptor().Schema != "" { t.Fatal("opaque zero preparation became usable") }
 	if strings.Contains(string(expected), artifactFixtureSpec().ControllerSecret) || strings.Contains(string(expected), "127.0.0.1") {
 		t.Fatal("private controller material escaped metadata")
 	}

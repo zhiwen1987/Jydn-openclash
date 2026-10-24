@@ -17,9 +17,9 @@ import (
 
 var (
 	ErrSnapshotUnavailable = errors.New("credential snapshot unavailable")
-	ErrSnapshotStale = errors.New("credential snapshot reference invalid or stale")
-	ErrSnapshotClock = errors.New("credential snapshot trusted time rejected")
-	ErrSnapshotClosed = errors.New("credential snapshot manager closed")
+	ErrSnapshotStale       = errors.New("credential snapshot reference invalid or stale")
+	ErrSnapshotClock       = errors.New("credential snapshot trusted time rejected")
+	ErrSnapshotClosed      = errors.New("credential snapshot manager closed")
 	ErrSnapshotUnsupported = errors.New("credential snapshot platform unsupported")
 )
 
@@ -35,13 +35,13 @@ type SnapshotRef struct {
 }
 
 type snapshotRefCore struct {
-	owner *snapshotManagerCore
-	manager [32]byte
-	epoch [32]byte
+	owner      *snapshotManagerCore
+	manager    [32]byte
+	epoch      [32]byte
 	generation uint64
 }
 
-func (SnapshotRef) String() string { return snapshotRefLabel }
+func (SnapshotRef) String() string   { return snapshotRefLabel }
 func (SnapshotRef) GoString() string { return snapshotRefLabel }
 func (SnapshotRef) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"MEMORY_AUTHN_SNAPSHOT_REFERENCE_NOT_AUTHORIZATION"}`), nil
@@ -68,21 +68,21 @@ type SnapshotManager struct {
 }
 
 type snapshotManagerCore struct {
-	mu sync.Mutex
-	path string
-	manager [32]byte
-	epoch [32]byte
+	mu         sync.Mutex
+	path       string
+	manager    [32]byte
+	epoch      [32]byte
 	generation uint64
-	digest [sha256.Size]byte
-	store *Store
-	ref *snapshotRefCore
-	lastTime time.Time
-	closed bool
-	read func(string) (credentialSnapshot, error)
-	random io.Reader
+	digest     [sha256.Size]byte
+	store      *Store
+	ref        *snapshotRefCore
+	lastTime   time.Time
+	closed     bool
+	read       func(string) (credentialSnapshot, error)
+	random     io.Reader
 }
 
-func (SnapshotManager) String() string { return snapshotManagerLabel }
+func (SnapshotManager) String() string   { return snapshotManagerLabel }
 func (SnapshotManager) GoString() string { return snapshotManagerLabel }
 func (SnapshotManager) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"MEMORY_AUTHN_FRESHNESS_NOT_AUTHORIZATION"}`), nil

@@ -1,0 +1,137 @@
+{
+  "baseline": "65fc5446eaefa53a3e50a0e96d3f9ffda7198ca6",
+  "formatting": {
+    "actualParentCIFormatTransferredFiles": 9,
+    "localFormatterExecuted": false,
+    "newSourceFormattingUnverified": true,
+    "semanticModifiedOldFilesNotOverwritten": 3,
+    "sourceReceipt": "D:/CodexData/workspace/db99-ci-format-transfer-buzz3clz/result.json"
+  },
+  "implemented": [
+    "strict two-round four-endpoint supported projection comparison with ambiguous/unstable outcomes",
+    "private current-principal critical RBAC approval association without execution permit",
+    "fixed-source owned kernel handle with start/Wait/output/listener and retained unknown cleanup",
+    "actual admitted canonical artifact-to-expected-projection bridge",
+    "opaque private output wrappers and invalid-verb formatting privacy",
+    "typed-nil test expectation and symlink diagnostic compatibility corrections"
+  ],
+  "mainMerged": false,
+  "notCompleted": [
+    "new-source Linux Go compilation, ordinary/race and formatting acceptance",
+    "actual pinned-kernel GET-shape and runtime identity acceptance",
+    "real owned head bootstrap and collector",
+    "product API/current authentication/approval/final dispatch coordinator integration",
+    "single actual PUT and independent supported readback with proxy data-plane verification",
+    "durable lawful success/head CAS and unknown recovery",
+    "full application UI/business/fault/long soak acceptance",
+    "production rollout, readback and operational closure"
+  ],
+  "parentActualCI": {
+    "commit": "db99f1327dcd07b3872c9a9408a4e16137a0829b",
+    "compat": "success",
+    "compatFresh": "success",
+    "contracts": "failure",
+    "contractsFresh": "failure",
+    "failedTopLevelPerSuite": 2,
+    "failureSummarySHA256": "599605e9689168c237a83a2d7590208d37669834aa15be0388c9af4168bad3c3",
+    "ordinarySemanticPassing": 290,
+    "originals": "D:/CodexData/workspace/mihomo-ci-observed-db99-l2nmp_0s",
+    "outcome": "failure",
+    "passingTopLevelPerSuite": 209,
+    "raceSemanticPassing": 290,
+    "run": 40113825822,
+    "zeroSkips": true
+  },
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-lab-runtime-primitives-development/v1",
+  "scope": "SOURCE_READBACK_AUTHORITY_OWNED_KERNEL_AND_ARTIFACT_EXPECTATION_NOT_CLOSED_RUNTIME_LIFECYCLE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "9ebe5d4ecbb32182e99baa822de3822c2168e3cc50e80aa9efd3d5fbd0bd6a95",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "c4c78bc874d5272153eaa988d32fec0c3097ea7adbef01e652906af06518d736",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "8b53dbe451db6f51666cc97d1aa4ed06c28652cbea1a75cd774bbf198d243860",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "dbfc73acf8342040e125c2783e8abcb9c7af1d8c8a9b0c7435e84c684be71b4c",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "fcd422ea890d483228c455f74a4e27144d71bad82552816452c823cf3df3cfc1",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "a79aca482831de75e3aa93ad999d731e0541e9a7bef4d4d9151dedf0e27ede51",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "28c35e341603c386d537c07aab050bd54cb64b1ef7ed0a25e49b977ced1c9c74",
+    "chengwang/internal/adapter/mihomo/lab_readback.go": "352c95e3b085ce131a11ca3904a09a5604b402ddac27b0a9d7ea7c50a622236d",
+    "chengwang/internal/adapter/mihomo/lab_readback_test.go": "2e15fd87906f142549912ab856569e473b376ba3081953d641a4b301b21796d8",
+    "chengwang/internal/adapter/mihomo/write_client.go": "9d52709bdf593a8d41706250e8c7881db8494db6e2d9b86d3bc5be012710cc36",
+    "chengwang/internal/adapter/mihomo/write_client_test.go": "ceaeb1edcfbb2d42684221a8fe3ac77a28edae72366a518a29d37e7381683db5",
+    "chengwang/internal/authn/snapshot_manager.go": "4a7754623fdec7f2d40a969f4829d4edfab607a3d0ad5f55113b02516e0ca69a",
+    "chengwang/internal/authn/snapshot_manager_linux_test.go": "71336c11d100e2c9754a3a7040bdcc82862c8cb6391da9d2cb442a7e9e177edf",
+    "chengwang/internal/authn/snapshot_manager_test.go": "9b91ec510a19d1a55eb72c697a37ffd1166a34877798aec8beec83e25ef3a580",
+    "chengwang/internal/authn/store.go": "8d2c0b3d94bf67b207654e5482c01528b521af96504ba8d029b72c88ca9546c7",
+    "chengwang/internal/mihomodeploy/artifact.go": "c9344e566d068f0c04bbd9cfa7bdc3bdcd672c691fab8cca3360fc638e829a45",
+    "chengwang/internal/mihomodeploy/artifact_linux.go": "39206ba953d51861c382cbb0e5beb9a31ae514a464720a4a16d800be6ef1a7c9",
+    "chengwang/internal/mihomodeploy/config.go": "a09f452c0674f2bbcd11a0c32a2393ee0c50f296ee272d5c4ce31e18c2309a1b",
+    "chengwang/internal/mihomodeploy/config_test.go": "32faeaf33590a7c81774f92e801bac47b3e830683c88d56fe67286a2cd76286c",
+    "chengwang/internal/mihomodeploy/lab_authority.go": "bfb1994ae72e3142e68dc1df435bbe55233fe05d262b0c45a60a3335fe4e3d31",
+    "chengwang/internal/mihomodeploy/lab_authority_test.go": "421ace1343fad921c362868e081fc95145a13a4c25f654ef10d730163c0742ab",
+    "chengwang/internal/mihomodeploy/lab_expectation.go": "0ed486e39b403a344e29546b74242613645264513c4bbd326c8b77abd80a97ae",
+    "chengwang/internal/mihomodeploy/lab_expectation_test.go": "a5e8487330a3eebfdfb77eb02668fd97c2e6f992900aaae5ec23b1cf3a6aedbb",
+    "chengwang/internal/mihomodeploy/lab_kernel.go": "0d9e87fdb6487034bb9ee4856d70f8423071530e1615a234ba3ac3622f660ea0",
+    "chengwang/internal/mihomodeploy/lab_kernel_linux.go": "4023acc29a4239ceb5bdb3f4ea9dd6a97ed02f13bcaa76382bc8496dd8d5889a",
+    "chengwang/internal/mihomodeploy/lab_kernel_linux_test.go": "086a70a8a13d5656ff4343cf328222c20ca3a207e9148f55e6acccaf304f34d9",
+    "chengwang/internal/mihomodeploy/lab_kernel_unsupported.go": "b16301262c5229aada08a1a2d92921afe2a35d5b07fcfbb722d207d02b094387",
+    "chengwang/internal/mihomodeploy/lab_kernel_unsupported_test.go": "2da81bbf45e8e4f088eb8e8e5accaf285a749b6b57f15d4cfc6625dcde772073",
+    "chengwang/internal/mihomodeploy/lifecycle.go": "53d95359277f427a2d149f6e1d9507ba131b91eb84be9f35ffcbb05b7498b74d",
+    "chengwang/internal/mihomodeploy/lifecycle_disk.go": "6a50a710f19bd5fe8f94cbbd452da2abeb9837ae5d99cb91d04e686b23a0ad9f",
+    "chengwang/internal/mihomodeploy/lifecycle_linux.go": "0532c6147f7cb178abdb824151d2a13c574bf33aeb79362a67d9d458ec00e08f",
+    "chengwang/internal/mihomodeploy/lifecycle_linux_test.go": "4a9a0f1d593c65554576575538d7f88c933d46c8621324fccdf2165e46b458e2",
+    "chengwang/internal/mihomodeploy/lifecycle_test.go": "addd6ba8cf393a7c76f4df4009c12b65385c174637f42dec94acda98b3816400",
+    "chengwang/internal/mihomodeploy/lifecycle_unsupported_test.go": "bc2c31c826fe3b7a8f66b385c77f1d8dc7e26c5fe4ee6f9751eec7ceb9ca673e",
+    "chengwang/internal/mihomodeploy/prepare.go": "9ee0eed11ba88d986ab3a9efb76c4579938b663ebcf5aebf78befceabb19d7e4",
+    "chengwang/internal/mihomodeploy/prepare_test.go": "a75cd33d9d9701b83236ff3cf43a13e4ffe5680b8f7745bad3b72a8300c09e09",
+    "chengwang/internal/mihomodeploy/private_atomic_linux.go": "c4eef184e53074c633e1c34a7a34c6177df3bdab7cba8e79b7caf7b20b7d68e8"
+  },
+  "validation": {
+    "actualKernelServiceOrGETOrPUTExecuted": false,
+    "actualSyntheticModelsPassed": [
+      25,
+      34
+    ],
+    "compatibilitySources": 55,
+    "declaredRequiredGoTopLevel": 284,
+    "formatterInputs": 39,
+    "foundationSources": 44,
+    "modelReceipt": "D:/CodexData/workspace/lifecycle-expanded-models-vkssikqy/result.json",
+    "newDeclarations": {
+      "artifactBridge": 5,
+      "authority": 25,
+      "linuxKernelModel": 22,
+      "reader": 28
+    },
+    "newGoCompiledOrExecuted": false,
+    "original204Preserved": true,
+    "peerReceipts": [
+      {
+        "path": "D:/CodexData/workspace/mihomo-lab-readback-peer-20261025-c/result.json",
+        "sha256": "91225507e56c6bbb211850a05365e5b953678483b48f4811e5ec1271813f4f7a"
+      },
+      {
+        "path": "D:/CodexData/workspace/lab-authority-peer-20261025-c/result.json",
+        "sha256": "d68a9047f46daca4d6cfeabfcc1fcffdf0b360dbb5c5cb2db219fd9b804b8ed8"
+      },
+      {
+        "path": "D:/CodexData/workspace/lab-kernel-peer-b-20261025/result-final.json",
+        "sha256": "c5e2e9ba6f346ce634281c3a05e8736512ee3053e723673455ca23d38e6b19fc"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-root-privacy-bridge-peer-20261025-a/targeted-final.json",
+        "sha256": "1d55d80819b91fc05adf0953d404afe0d742fa2c663df57643116331690fea82"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-root-privacy-bridge-peer-20261025-a/REVIEW.md",
+        "sha256": "655d9625e65aaa8615d51a385880cda894c669c0b355e46fcdeab70e0a284f78"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-next11-ci-plan-20261025/integrated-delta-result.json",
+        "sha256": "e208ea1f3ac45432b1afb26d3088ca01c2c757359e0402d9ea040c6bf52df27b"
+      }
+    ],
+    "requiredTestFiles": 15,
+    "staticReceipt": "D:\\CodexData\\workspace\\lab-primitives-final-static-3cmo8b14\\result.json",
+    "staticSHA256": "c73d585f7a07dd426eb15afcbc6163f96250db3dd02386c2d0863ff84048afd0"
+  }
+}

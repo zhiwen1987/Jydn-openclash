@@ -311,7 +311,7 @@ func TestSnapshotManagerDuplicateHeadersCannotReturnReference(t *testing.T) {
 	reads := 0
 	reader := manager.core.read
 	manager.core.read = func(path string) (credentialSnapshot, error) { reads++; return reader(path) }
-	for _, headers := range [][]string{nil, {"Bearer "+token, "Bearer "+token}, {"Basic "+token}} {
+	for _, headers := range [][]string{nil, {"Bearer " + token, "Bearer " + token}, {"Basic " + token}} {
 		if principal, ref, err := manager.AuthenticateAuthorizationValues(headers, now); err == nil || principal.ID != "" || ref != (SnapshotRef{}) {
 			t.Fatal("denied authentication supplied principal or ref")
 		}
@@ -373,12 +373,18 @@ func TestCredentialStableReadRejectsParentDirectoryReplacement(t *testing.T) {
 	_, path, _, _, _ := snapshotFixture(t)
 	raw, _ := os.ReadFile(path)
 	dir := filepath.Dir(path)
-	moved := dir+"-moved"
+	moved := dir + "-moved"
 	t.Cleanup(func() { _ = os.RemoveAll(moved) })
 	if _, err := readCredentialSnapshot(path, true, func() {
-		if err := os.Rename(dir, moved); err != nil { t.Fatal(err) }
-		if err := os.Mkdir(dir, 0700); err != nil { t.Fatal(err) }
-		if err := os.WriteFile(path, raw, 0600); err != nil { t.Fatal(err) }
+		if err := os.Rename(dir, moved); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Mkdir(dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
 	}); err == nil {
 		t.Fatal("same-byte file under replacement parent accepted")
 	}
@@ -386,17 +392,27 @@ func TestCredentialStableReadRejectsParentDirectoryReplacement(t *testing.T) {
 
 func TestCredentialStableReadRejectsModeChangeAndHardlinks(t *testing.T) {
 	manager, path, token, _, now := snapshotFixture(t)
-	if _, err := readCredentialSnapshot(path, true, func() { if err := os.Chmod(path, 0640); err != nil { t.Fatal(err) } }); err == nil {
+	if _, err := readCredentialSnapshot(path, true, func() {
+		if err := os.Chmod(path, 0640); err != nil {
+			t.Fatal(err)
+		}
+	}); err == nil {
 		t.Fatal("mode changed during read was accepted")
 	}
-	if err := os.Chmod(path, 0600); err != nil { t.Fatal(err) }
+	if err := os.Chmod(path, 0600); err != nil {
+		t.Fatal(err)
+	}
 	ref := snapshotAuthenticate(t, manager, token, now)
-	link := path+"-hardlink"
-	if err := os.Link(path, link); err != nil { t.Fatal(err) }
+	link := path + "-hardlink"
+	if err := os.Link(path, link); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := manager.CurrentPrincipal(ref, "snapshot-principal", now); !errors.Is(err, ErrSnapshotUnavailable) {
 		t.Fatal("hardlinked credential file accepted")
 	}
-	if err := os.Remove(link); err != nil { t.Fatal(err) }
+	if err := os.Remove(link); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := manager.CurrentPrincipal(ref, "snapshot-principal", now); !errors.Is(err, ErrSnapshotStale) {
 		t.Fatal("removing hardlink revived invalidated reference")
 	}
@@ -404,18 +420,24 @@ func TestCredentialStableReadRejectsModeChangeAndHardlinks(t *testing.T) {
 
 func TestCredentialStableReadRejectsSymlinksAndNonregularFiles(t *testing.T) {
 	_, path, _, _, now := snapshotFixture(t)
-	link := path+"-symlink"
-	if err := os.Symlink(path, link); err != nil { t.Fatal(err) }
+	link := path + "-symlink"
+	if err := os.Symlink(path, link); err != nil {
+		t.Fatal(err)
+	}
 	if manager, err := OpenSnapshotManager(link, now); manager != nil || !errors.Is(err, ErrSnapshotUnavailable) {
 		t.Fatal("symlink credential accepted")
 	}
-	fifo := path+"-fifo"
-	if err := syscall.Mkfifo(fifo, 0600); err != nil { t.Fatal(err) }
+	fifo := path + "-fifo"
+	if err := syscall.Mkfifo(fifo, 0600); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := readCredentialSnapshot(fifo, true, nil); err == nil {
 		t.Fatal("nonregular credential accepted")
 	}
 	opened, err := openCredentialFile(fifo, true)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer opened.Close()
 	if info, err := opened.Stat(); err != nil || info.Mode().IsRegular() {
 		t.Fatal("nonblocking FIFO regression fixture invalid")
@@ -432,7 +454,9 @@ func (info snapshotStatInfo) Sys() any { return &info.stat }
 func TestCredentialMetadataRejectsForeignOwnerAndCapturesChangeTime(t *testing.T) {
 	_, path, _, _, _ := snapshotFixture(t)
 	info, err := os.Lstat(path)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	stat := *info.Sys().(*syscall.Stat_t)
 	foreign := stat
 	foreign.Uid++
@@ -440,7 +464,9 @@ func TestCredentialMetadataRejectsForeignOwnerAndCapturesChangeTime(t *testing.T
 		t.Fatal("foreign file owner accepted")
 	}
 	meta, err := credentialMetadata(info, true, false)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	changed := stat
 	changed.Ctim.Nsec++
 	other, err := credentialMetadata(snapshotStatInfo{FileInfo: info, stat: changed}, true, false)
@@ -451,7 +477,7 @@ func TestCredentialMetadataRejectsForeignOwnerAndCapturesChangeTime(t *testing.T
 
 func TestSnapshotManagerRejectsUntrustedStartupPathAndBoundsFile(t *testing.T) {
 	_, path, _, _, now := snapshotFixture(t)
-	for _, invalid := range []string{"", "relative.json", " "+path, filepath.Dir(path)+"/./identities.json"} {
+	for _, invalid := range []string{"", "relative.json", " " + path, filepath.Dir(path) + "/./identities.json"} {
 		if manager, err := OpenSnapshotManager(invalid, now); manager != nil || !errors.Is(err, ErrSnapshotUnavailable) {
 			t.Fatal("untrusted noncanonical startup path accepted")
 		}
@@ -466,7 +492,9 @@ func TestSnapshotManagerCurrentLookupDoesNotGrantRBAC(t *testing.T) {
 	manager, _, token, _, now := snapshotFixture(t)
 	ref := snapshotAuthenticate(t, manager, token, now)
 	principal, err := manager.CurrentPrincipal(ref, "snapshot-principal", now)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	decision := authz.Evaluate(authz.Request{Principal: principal, Action: authz.ActionExecuteOperation, Risk: authz.RiskCritical,
 		Resource: authz.ResourceScope{TenantID: "tenant-1", Environment: "isolated-lab"}, InitiatorID: "initiator", ApprovedByID: "approver"}, now)
 	if decision.Allowed {

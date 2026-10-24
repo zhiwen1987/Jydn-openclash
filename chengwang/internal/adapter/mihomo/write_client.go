@@ -55,11 +55,12 @@ var (
 // reloads a supplied configuration at a literal loopback HTTP controller.
 // Approval, owned-target identity, backup and reconciliation belong to the
 // lifecycle coordinator; constructing this client does not supply them.
-type WriteClient struct {
+type writeClientCore struct {
 	endpoint   string
 	token      string
 	httpClient *http.Client
 }
+type WriteClient struct { *writeClientCore }
 
 var (
 	_ fmt.Stringer   = WriteClient{}
@@ -77,13 +78,9 @@ func (c WriteClient) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"loopback_reload_only"}`), nil
 }
 
-// A typed nil pointer formats safely without invoking a value-method wrapper.
-// The fixed representation deliberately ignores format flags and credentials.
-func (c *WriteClient) Format(state fmt.State, verb rune) {
-	if c == nil {
-		_, _ = io.WriteString(state, "<nil>")
-		return
-	}
+// Ordinary verbs use fixed text; special unsupported struct formatting sees
+// only the opaque core pointer. fmt handles a typed nil value receiver safely.
+func (c WriteClient) Format(state fmt.State, verb rune) {
 	_, _ = io.WriteString(state, writeClientDebug)
 }
 
@@ -142,7 +139,7 @@ func NewWriteClient(rawURL, token string, timeout time.Duration) (*WriteClient, 
 		ResponseHeaderTimeout:  timeout,
 	}
 	endpoint := url.URL{Scheme: "http", Host: parsed.Host, Path: "/configs", RawQuery: "force=true"}
-	return &WriteClient{
+	return &WriteClient{writeClientCore: &writeClientCore{
 		endpoint: endpoint.String(),
 		token:    token,
 		httpClient: &http.Client{
@@ -152,14 +149,14 @@ func NewWriteClient(rawURL, token string, timeout time.Duration) (*WriteClient, 
 				return http.ErrUseLastResponse
 			},
 		},
-	}, nil
+	}}, nil
 }
 
 // Reload makes one PUT attempt and never retries or initiates rollback.
 // A 204 acknowledges only this request; all subsequent verification is separate.
 func (c *WriteClient) Reload(ctx context.Context, payload []byte) (ReloadResult, error) {
 	unsent := ReloadResult{State: ReloadRejected}
-	if c == nil || c.httpClient == nil || ctx == nil || ctx.Err() != nil ||
+	if c == nil || c.writeClientCore == nil || c.httpClient == nil || ctx == nil || ctx.Err() != nil ||
 		len(payload) == 0 || len(payload) > maxReloadPayloadBytes || !utf8.Valid(payload) {
 		return unsent, errReloadUnsent
 	}

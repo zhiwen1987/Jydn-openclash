@@ -21,6 +21,12 @@ FOUNDATION += ['chengwang/internal/mihomodeploy/' + n for n in ('lifecycle_disk.
     'lifecycle_linux.go', 'lifecycle_linux_test.go', 'lifecycle_unsupported.go', 'lifecycle_unsupported_test.go', 'private_atomic_linux.go')]
 FOUNDATION += ['chengwang/internal/authn/' + n for n in ('store.go', 'store_test.go', 'snapshot_manager.go', 'snapshot_manager_test.go',
     'snapshot_manager_linux.go', 'snapshot_manager_linux_test.go', 'snapshot_manager_unsupported.go')]
+LAB_READER_FILES = ('lab_readback.go', 'lab_readback_test.go')
+LAB_RUNTIME_FILES = ('lab_authority.go', 'lab_authority_test.go', 'lab_expectation.go', 'lab_expectation_test.go',
+    'lab_kernel.go', 'lab_kernel_linux.go', 'lab_kernel_linux_test.go',
+    'lab_kernel_unsupported.go', 'lab_kernel_unsupported_test.go')
+FOUNDATION += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_READER_FILES]
+FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RUNTIME_FILES]
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -99,7 +105,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 44)
+    need(len(FILES) == len(set(FILES)) == 55)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw

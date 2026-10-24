@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net"
 	"net/netip"
 	"regexp"
@@ -103,19 +105,22 @@ type LabConfigDescriptor struct {
 
 // LabConfigArtifact owns secret YAML. Only Bytes deliberately discloses it to
 // the private lifecycle writer; formatters/JSON expose safe metadata alone.
-type LabConfigArtifact struct {
+type labConfigArtifactCore struct {
 	raw        []byte
 	descriptor LabConfigDescriptor
 }
+// Unsupported fmt verbs may bypass Formatter. A copied wrapper therefore has
+// only an opaque pointer, never inline secret YAML or its reversible byte slice.
+type LabConfigArtifact struct { *labConfigArtifactCore }
 
 func (a *LabConfigArtifact) Bytes() []byte {
-	if a == nil {
+	if a == nil || a.labConfigArtifactCore == nil {
 		return nil
 	}
 	return append([]byte(nil), a.raw...)
 }
 func (a *LabConfigArtifact) Descriptor() LabConfigDescriptor {
-	if a == nil {
+	if a == nil || a.labConfigArtifactCore == nil {
 		return LabConfigDescriptor{}
 	}
 	d := a.descriptor
@@ -130,11 +135,22 @@ func (a *LabConfigArtifact) Descriptor() LabConfigDescriptor {
 func (a LabConfigArtifact) MarshalJSON() ([]byte, error) { return json.Marshal((&a).Descriptor()) }
 func (a LabConfigArtifact) String() string               { raw, _ := a.MarshalJSON(); return string(raw) }
 func (a LabConfigArtifact) GoString() string             { return a.String() }
+func (a LabConfigArtifact) Format(state fmt.State, verb rune) {
+	formatLabMetadata(state, verb, a.String())
+}
+func formatLabMetadata(state fmt.State, verb rune, text string) {
+	switch verb {
+	case 's', 'q', 'x', 'X':
+		_, _ = fmt.Fprintf(state, fmt.FormatString(state, verb), text)
+	default:
+		_, _ = io.WriteString(state, text)
+	}
+}
 
 // AdmissionError is mandatory before any lifecycle admission/start. Parsing
 // YAML or passing the kernel's -t cannot discharge external policy obligations.
 func (a *LabConfigArtifact) AdmissionError() error {
-	if a == nil || len(a.raw) == 0 || len(a.raw) != a.descriptor.Bytes || labConfigHash(a.raw) != a.descriptor.SHA256 {
+	if a == nil || a.labConfigArtifactCore == nil || len(a.raw) == 0 || len(a.raw) != a.descriptor.Bytes || labConfigHash(a.raw) != a.descriptor.SHA256 {
 		return labConfigFailure(LabConfigInvalid, "artifact")
 	}
 	if !a.descriptor.Admissible || len(a.descriptor.Requirements) != 0 {
@@ -277,6 +293,14 @@ type labRawConfig struct {
 	Proxies                []labProxy `yaml:"proxies"`
 	Groups                 []labGroup `yaml:"proxy-groups"`
 	Rules                  []string   `yaml:"rules"`
+}
+
+func renderedLabConfig(mixedPort, controllerPort uint16, secret string, proxies []labProxy, groups []labGroup, rules []string) labRawConfig {
+	return labRawConfig{MixedPort: mixedPort, BindAddress: "127.0.0.1", Mode: "rule", LogLevel: "silent", FindProcessMode: "off",
+		ExternalController: net.JoinHostPort("127.0.0.1", strconv.Itoa(int(controllerPort))), Secret: secret,
+		ExternalControllerCors: labCors{AllowOrigins: []string{}},
+		DNS: labDNS{EnhancedMode: "redir-host", Nameserver: []string{"127.0.0.1:1"}, DefaultNameserver: []string{"127.0.0.1:1"}, Fallback: []string{}},
+		Proxies: proxies, Groups: groups, Rules: rules}
 }
 
 // BuildLabConfig produces full typed YAML, never arbitrary YAML/provider input.
@@ -477,11 +501,7 @@ func BuildLabConfig(spec LabConfigSpec) (*LabConfigArtifact, error) {
 	sort.Slice(proxies, func(i, j int) bool { return proxies[i].Name < proxies[j].Name })
 	sort.Slice(groups, func(i, j int) bool { return groups[i].Name < groups[j].Name })
 	rules = append(rules, "MATCH,"+labDefaultSelector)
-	config := labRawConfig{MixedPort: spec.MixedPort, BindAddress: "127.0.0.1", Mode: "rule", LogLevel: "silent", FindProcessMode: "off",
-		ExternalController: net.JoinHostPort("127.0.0.1", strconv.Itoa(int(spec.ControllerPort))), Secret: spec.ControllerSecret,
-		ExternalControllerCors: labCors{AllowOrigins: []string{}},
-		DNS:                    labDNS{EnhancedMode: "redir-host", Nameserver: []string{"127.0.0.1:1"}, DefaultNameserver: []string{"127.0.0.1:1"}, Fallback: []string{}},
-		Proxies:                proxies, Groups: groups, Rules: rules}
+	config := renderedLabConfig(spec.MixedPort, spec.ControllerPort, spec.ControllerSecret, proxies, groups, rules)
 	raw, err := yaml.Marshal(config)
 	if err != nil || len(raw) == 0 || len(raw) > MaxLabConfigBytes {
 		return nil, labConfigFailure(LabConfigInvalid, "artifact")
@@ -507,5 +527,5 @@ func BuildLabConfig(spec LabConfigSpec) (*LabConfigArtifact, error) {
 		DraftSHA256: draftHash, RequirementsSHA256: labConfigHash(requirementRaw),
 		Capabilities: []string{"static_domain_suffix_rules", "explicit_selectors", "loopback_http_nodes", "private_loopback_controller", "built_in_dns_disabled"},
 		Requirements: requirements, Admissible: len(blockers) == 0, Blockers: blockers}
-	return &LabConfigArtifact{raw: append([]byte(nil), raw...), descriptor: descriptor}, nil
+	return &LabConfigArtifact{labConfigArtifactCore: &labConfigArtifactCore{raw: append([]byte(nil), raw...), descriptor: descriptor}}, nil
 }

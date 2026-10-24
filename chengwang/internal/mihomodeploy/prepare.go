@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"reflect"
 	"time"
 )
@@ -42,25 +41,27 @@ type ReloadPreparationDescriptor struct {
 // PreparedReload owns private immutable body copies. JSON imports and its zero
 // value cannot populate these fields. No approval, I/O or execution method is
 // supplied: a future executor must still enforce RBAC, leases and durable WAL.
-type PreparedReload struct {
+type preparedReloadCore struct {
 	descriptor ReloadPreparationDescriptor
 	candidate  []byte
 	backup     []byte
 }
+type PreparedReload struct { *preparedReloadCore }
 
 func (p *PreparedReload) CandidateBytes() []byte {
-	if p == nil {
+	if p == nil || p.preparedReloadCore == nil {
 		return nil
 	}
 	return bytes.Clone(p.candidate)
 }
 func (p *PreparedReload) BackupBytes() []byte {
-	if p == nil {
+	if p == nil || p.preparedReloadCore == nil {
 		return nil
 	}
 	return bytes.Clone(p.backup)
 }
 func (p PreparedReload) Descriptor() ReloadPreparationDescriptor {
+	if p.preparedReloadCore == nil { return ReloadPreparationDescriptor{} }
 	d := p.descriptor
 	d.Plan.Artifact = cloneArtifactDescriptor(d.Plan.Artifact)
 	d.Plan.Backup.Artifact = cloneArtifactDescriptor(d.Plan.Backup.Artifact)
@@ -69,12 +70,8 @@ func (p PreparedReload) Descriptor() ReloadPreparationDescriptor {
 func (p PreparedReload) MarshalJSON() ([]byte, error) { return json.Marshal(p.Descriptor()) }
 func (p PreparedReload) String() string               { raw, _ := p.MarshalJSON(); return string(raw) }
 func (p PreparedReload) GoString() string             { return p.String() }
-func (p *PreparedReload) Format(state fmt.State, verb rune) {
-	if p == nil {
-		_, _ = io.WriteString(state, "<nil>")
-		return
-	}
-	_, _ = io.WriteString(state, p.String())
+func (p PreparedReload) Format(state fmt.State, verb rune) {
+	formatLabMetadata(state, verb, p.String())
 }
 
 func validatePreparationPlan(plan Plan, now time.Time) error {
@@ -156,7 +153,7 @@ func (s *ArtifactStore) PrepareReload(ctx context.Context, plan Plan, now time.T
 	if err := artifactContext(ctx); err != nil {
 		return nil, err
 	}
-	return &PreparedReload{descriptor: ReloadPreparationDescriptor{Schema: ReloadPreparationSchema,
+	return &PreparedReload{preparedReloadCore: &preparedReloadCore{descriptor: ReloadPreparationDescriptor{Schema: ReloadPreparationSchema,
 		Boundary: ReloadPreparationBoundary, Plan: plan.Descriptor(), PreparedAt: now.UTC()},
-		candidate: candidate.Bytes(), backup: backup.Bytes()}, nil
+		candidate: candidate.Bytes(), backup: backup.Bytes()}}, nil
 }

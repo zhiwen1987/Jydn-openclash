@@ -121,7 +121,7 @@ func (ArtifactStore) MarshalJSON() ([]byte, error) {
 }
 
 func cloneArtifactDescriptor(value ArtifactDescriptor) ArtifactDescriptor {
-	a := &LabConfigArtifact{descriptor: value.Config}
+	a := &LabConfigArtifact{labConfigArtifactCore: &labConfigArtifactCore{descriptor: value.Config}}
 	value.Config = a.Descriptor()
 	return value
 }
@@ -132,7 +132,7 @@ func backupRecordFor(d BackupDescriptor) backupRecord {
 	return backupRecord{backupRecordSchema, d.OperationID, d.Artifact, d.Target}
 }
 func newArtifactDescriptor(config LabConfigDescriptor, sourceSHA256 string, sourceBytes int, controllerPort, mixedPort uint16) (ArtifactDescriptor, error) {
-	config = (&LabConfigArtifact{descriptor: config}).Descriptor()
+	config = (&LabConfigArtifact{labConfigArtifactCore: &labConfigArtifactCore{descriptor: config}}).Descriptor()
 	d := ArtifactDescriptor{Schema: ArtifactSchema, Config: config, SourceSpecSHA256: sourceSHA256, SourceSpecBytes: sourceBytes, ControllerPort: controllerPort, MixedPort: mixedPort}
 	raw, err := json.Marshal(artifactRecordFor(d))
 	if err != nil {

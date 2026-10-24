@@ -178,7 +178,7 @@ func TestSharedCredentialParserRetainsIdentityAndUnknownFieldValidation(t *testi
 }
 
 func TestSharedCredentialParserBoundsBytesUTF8AndDepth(t *testing.T) {
-	for _, raw := range [][]byte{nil, bytes.Repeat([]byte(" "), maxFileBytes+1), {0xff}, []byte(strings.Repeat("[", 26)+"0"+strings.Repeat("]", 26))} {
+	for _, raw := range [][]byte{nil, bytes.Repeat([]byte(" "), maxFileBytes+1), {0xff}, []byte(strings.Repeat("[", 26) + "0" + strings.Repeat("]", 26))} {
 		if _, err := parseCredentialPayload(raw); err == nil {
 			t.Fatal("invalid or unbounded credential bytes accepted")
 		}

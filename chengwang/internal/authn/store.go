@@ -244,8 +244,14 @@ func credentialPathSnapshot(path string, strict bool) ([]credentialPathState, er
 	for i := len(reversed)-1; i >= 0; i-- {
 		name := reversed[i]
 		info, err := os.Lstat(name)
-		if err != nil || info.Mode()&os.ModeSymlink != 0 || (i > 0 && !info.IsDir()) {
+		if err != nil {
 			return nil, errors.New("credential path inspection failed")
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil, errors.New("credential symbolic links are not allowed")
+		}
+		if i > 0 && !info.IsDir() {
+			return nil, errors.New("credential path directory rejected")
 		}
 		meta, err := credentialMetadata(info, strict, i > 0)
 		if err != nil {

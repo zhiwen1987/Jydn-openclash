@@ -17,11 +17,11 @@ const lifecycleRootPath = "/var/lib/chengwang-mihomo-lab-lifecycle"
 const lifecycleGlobalLockPath = "/run/chengwang-mihomo-lab-writer.lock"
 
 var (
-	errLifecycleUnsafe = errors.New("Mihomo laboratory lifecycle state rejected")
-	errLifecycleLocked = errors.New("Mihomo laboratory lifecycle writer unavailable")
+	errLifecycleUnsafe        = errors.New("Mihomo laboratory lifecycle state rejected")
+	errLifecycleLocked        = errors.New("Mihomo laboratory lifecycle writer unavailable")
 	errLifecycleCommitUnknown = errors.New("Mihomo laboratory lifecycle commit uncertain")
-	errLifecyclePoisoned = errors.New("Mihomo laboratory lifecycle store is fail-closed")
-	errLifecycleUnsupported = errors.New("Mihomo laboratory lifecycle durability unsupported")
+	errLifecyclePoisoned      = errors.New("Mihomo laboratory lifecycle store is fail-closed")
+	errLifecycleUnsupported   = errors.New("Mihomo laboratory lifecycle durability unsupported")
 )
 
 // CAS belongs to the mutex-protected portable store while this disk retains

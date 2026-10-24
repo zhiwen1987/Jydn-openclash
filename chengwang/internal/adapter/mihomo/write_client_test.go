@@ -494,6 +494,15 @@ func TestWriteClientResultAndErrorsCannotDiscloseSecretBearingInputs(t *testing.
 	if copyOfClient.String() != writeClientDebug || copyOfClient.GoString() != writeClientDebug || client.String() != writeClientDebug || client.GoString() != writeClientDebug {
 		t.Fatal("client string methods expose instance fields")
 	}
+	for _, view := range []any{client, copyOfClient, &copyOfClient} {
+		for _, verb := range []string{"%p", "%d", "%T", "%w", "%x", "%#v"} {
+			text := fmt.Sprintf(verb, view)
+			if strings.Contains(text, client.token) || strings.Contains(text, client.endpoint) { t.Fatal("unsupported formatting exposed write client credentials") }
+		}
+	}
+	zero := WriteClient{}
+	zeroResult, zeroErr := zero.Reload(context.Background(), []byte("model body"))
+	assertWriteOutcome(t, zeroResult, zeroErr, ReloadRejected, false, 0)
 	var absent *WriteClient
 	for _, verb := range []string{"%v", "%+v", "%#v", "%s"} {
 		if actual := fmt.Sprintf(verb, absent); actual != "<nil>" {

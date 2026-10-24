@@ -347,27 +347,43 @@ func (d *artifactLinuxDisk) replace(dir *os.File, name string, raw []byte, repla
 	return privateAtomicReplace(dir, name, raw, privateAtomicPolicy{
 		kind: privateAtomicArtifact, unsafe: ErrArtifactUnsafe, unknown: ErrArtifactCommitUnknown,
 		verify: d.verify, safe: d.fileSafe,
-		named: func(dir *os.File, name string, st syscall.Stat_t) error { return d.named(dir, name, st, true) },
+		named:    func(dir *os.File, name string, st syscall.Stat_t) error { return d.named(dir, name, st, true) },
 		syncFile: func(f *os.File) error { return f.Sync() }, closeFile: func(f *os.File) error { return f.Close() },
-		rename: func(dir *os.File, from, to string) error { return syscall.Renameat(int(dir.Fd()), from, int(dir.Fd()), to) },
+		rename: func(dir *os.File, from, to string) error {
+			return syscall.Renameat(int(dir.Fd()), from, int(dir.Fd()), to)
+		},
 		syncDirectory: d.syncDirectory,
 		beforeRename: func(_ string) error {
 			// Preserve the artifact policy while its one owned temp exists.
 			if !replacingIndex {
 				existing, err := artifactOpen(dir, name, syscall.O_RDONLY, 0)
-				if err == nil { _ = existing.Close(); return ErrArtifactUnsafe }
-				if !errors.Is(err, syscall.ENOENT) { return ErrArtifactUnsafe }
-			} else if d.indexExists && d.named(d.directory(), "index.json", d.indexIdentity, true) != nil { return ErrArtifactUnsafe }
+				if err == nil {
+					_ = existing.Close()
+					return ErrArtifactUnsafe
+				}
+				if !errors.Is(err, syscall.ENOENT) {
+					return ErrArtifactUnsafe
+				}
+			} else if d.indexExists && d.named(d.directory(), "index.json", d.indexIdentity, true) != nil {
+				return ErrArtifactUnsafe
+			}
 			for i, c := range d.chain {
 				v, err := artifactStat(c.file)
-				if err != nil || !artifactSame(c.identity, v, false) || (i > 0 && d.named(d.chain[i-1].file, c.name, v, false) != nil) { return ErrArtifactUnsafe }
+				if err != nil || !artifactSame(c.identity, v, false) || (i > 0 && d.named(d.chain[i-1].file, c.name, v, false) != nil) {
+					return ErrArtifactUnsafe
+				}
 			}
-			if d.named(d.directory(), "writer.lock", d.lockIdentity, true) != nil || d.named(d.directory(), "objects", d.objectsIdentity, false) != nil { return ErrArtifactUnsafe }
+			if d.named(d.directory(), "writer.lock", d.lockIdentity, true) != nil || d.named(d.directory(), "objects", d.objectsIdentity, false) != nil {
+				return ErrArtifactUnsafe
+			}
 			return nil
 		},
 		afterRename: func(f *os.File) error {
 			if replacingIndex {
-				st, err := artifactStat(f); if err != nil { return ErrArtifactUnsafe }
+				st, err := artifactStat(f)
+				if err != nil {
+					return ErrArtifactUnsafe
+				}
 				d.indexIdentity, d.indexExists = st, true
 			}
 			return d.verify()

@@ -180,6 +180,16 @@ func TestLabConfigRawAndMetadataAreOwnedAndSecretSafe(t *testing.T) {
 			t.Fatal("pointer or value JSON exposed non-metadata content")
 		}
 	}
+	for _, view := range []any{artifact, valueCopy, &valueCopy} {
+		for _, verb := range []string{"%p", "%d", "%T", "%w", "%x", "%#v"} {
+			text := fmt.Sprintf(verb, view)
+			for _, needle := range []string{spec.ControllerSecret, string(before), fmt.Sprint(before), hex.EncodeToString([]byte(spec.ControllerSecret))} {
+				if strings.Contains(text, needle) { t.Fatal("unsupported formatting exposed private artifact fields") }
+			}
+		}
+	}
+	zero := LabConfigArtifact{}
+	if zero.Bytes() != nil || zero.AdmissionError() == nil || zero.Descriptor().Admissible { t.Fatal("opaque zero artifact became usable") }
 	var nilArtifact *LabConfigArtifact
 	for _, verb := range []string{"%v", "%+v", "%#v", "%x"} {
 		if fmt.Sprintf(verb, nilArtifact) != "<nil>" {

@@ -48,6 +48,10 @@ ADDITIONAL_MODEL_TESTS = {
     'lifecycle_linux_test.go': 'TestSyntheticLifecycleLinux',
     'snapshot_manager_test.go': 'TestSyntheticSnapshotManager',
     'snapshot_manager_linux_test.go': 'TestSyntheticSnapshotLinux',
+    'lab_readback_test.go': 'TestSyntheticLabReadback',
+    'lab_authority_test.go': 'TestSyntheticLabAuthority',
+    'lab_expectation_test.go': 'TestSyntheticLabExpectation',
+    'lab_kernel_linux_test.go': 'TestSyntheticLabKernelLinux',
 }
 
 

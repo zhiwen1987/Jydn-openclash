@@ -498,7 +498,9 @@ func (s *lifecycleStore) recordPrepared(t *lifecycleOwnerToken,p *PreparedReload
 	if s==nil||s.lifecycleStoreCore==nil||s.mu==nil{return errLifecycleUnsafe};s.mu.Lock();defer s.mu.Unlock()
 	if err:=s.verify();err!=nil{return err};if err:=s.token(t,true,now);err!=nil{return err}
 	a:=s.record.wire.Active
-	if a==nil||a.Phase!="APPROVED"||p==nil||!reflect.DeepEqual(p.descriptor.Plan,a.Plan)||p.descriptor.Schema!=ReloadPreparationSchema||p.descriptor.Boundary!=ReloadPreparationBoundary||
+	// The wrapper may be nonnil with no private backing. Reject that before
+	// reading promoted fields, including on an otherwise valid APPROVED path.
+	if a==nil||a.Phase!="APPROVED"||p==nil||p.preparedReloadCore==nil||!reflect.DeepEqual(p.descriptor.Plan,a.Plan)||p.descriptor.Schema!=ReloadPreparationSchema||p.descriptor.Boundary!=ReloadPreparationBoundary||
 		!lifecycleTime(p.descriptor.PreparedAt)||p.descriptor.PreparedAt.After(now)||len(p.candidate)==0||len(p.backup)==0||
 		labConfigHash(p.candidate)!=a.Plan.Artifact.Config.SHA256||labConfigHash(p.backup)!=a.Plan.Backup.Artifact.Config.SHA256{return errLifecycleUnsafe}
 	next,err:=s.copyRecord();if err!=nil{return err};next.wire.Active.Phase="PREPARED";lifecycleAppendAudit(next.wire.Active,"PREPARED");return s.commit(next,now)

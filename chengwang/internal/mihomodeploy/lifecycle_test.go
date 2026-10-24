@@ -70,8 +70,8 @@ func lifecycleTestOwner(t *testing.T,s *lifecycleStore,now time.Time) *lifecycle
 }
 func lifecycleTestPrepared(t *testing.T,p Plan,now time.Time) *PreparedReload {
 	t.Helper();old:=labConfigTestSpec();candidate:=labConfigTestSpec();candidate.DefaultTarget="REJECT"
-	return &PreparedReload{descriptor:ReloadPreparationDescriptor{Schema:ReloadPreparationSchema,Boundary:ReloadPreparationBoundary,Plan:p.Descriptor(),PreparedAt:now},
-		candidate:labConfigTestBuild(t,candidate).Bytes(),backup:labConfigTestBuild(t,old).Bytes()}
+	return &PreparedReload{preparedReloadCore: &preparedReloadCore{descriptor:ReloadPreparationDescriptor{Schema:ReloadPreparationSchema,Boundary:ReloadPreparationBoundary,Plan:p.Descriptor(),PreparedAt:now},
+		candidate:labConfigTestBuild(t,candidate).Bytes(),backup:labConfigTestBuild(t,old).Bytes()}}
 }
 func lifecycleTestArmed(t *testing.T) (*lifecycleStore,*lifecycleModelDisk,*lifecycleOwnerToken,Plan,time.Time) {
 	t.Helper();r,p,now:=lifecycleTestRecord(t);s,d:=lifecycleTestOpen(t,r);token:=lifecycleTestOwner(t,s,now)
@@ -244,6 +244,10 @@ func TestLifecycleApprovalDerivedIDDoesNotBecomeAuthority(t *testing.T) {
 func TestLifecyclePreparedBodyAndPlanMustMatchActualPrivatePreparation(t *testing.T) {
 	r,p,now:=lifecycleTestRecord(t);s,_:=lifecycleTestOpen(t,r);token:=lifecycleTestOwner(t,s,now)
 	if s.recordPlan(token,p,now)!=nil||s.recordApproval(token,planTestApproval(p,now),now)!=nil{t.Fatal("model setup")}
+	before:=bytes.Clone(s.raw);revision:=s.record.wire.Revision
+	for _,missing:=range []*PreparedReload{nil,{}}{
+		if err:=s.recordPrepared(token,missing,now);!errors.Is(err,errLifecycleUnsafe)||s.record.wire.Active.Phase!="APPROVED"||s.record.wire.Revision!=revision||!bytes.Equal(s.raw,before){t.Fatal("missing private backing accepted or altered approved record")}
+	}
 	prepared:=lifecycleTestPrepared(t,p,now);prepared.candidate=[]byte("substituted")
 	if s.recordPrepared(token,prepared,now)==nil{t.Fatal("substituted prepared bytes accepted")}
 	if s.recordPrepared(token,lifecycleTestPrepared(t,p,now),now)!=nil{t.Fatal("valid model preparation rejected")}
@@ -377,7 +381,9 @@ func TestLifecycleRecordOwnerStoreFormattingAndJSONNeverExportPrivateIdentity(t 
 		raw,err:=json.Marshal(value);if err!=nil||string(raw)!=expected{t.Fatal("JSON exposed owner or identity")}
 	}
 	var recordNil *lifecycleRecord;var ownerNil *lifecycleOwnerToken;var storeNil *lifecycleStore
-	for _,value:=range []any{nil,recordNil,ownerNil,storeNil}{
+	// Only typed nil pointers exercise these Formatter implementations.
+	// Untyped nil with %x is a standard fmt diagnostic, not their output.
+	for _,value:=range []any{recordNil,ownerNil,storeNil}{
 		for _,verb:=range []string{"%v","%+v","%#v","%x"}{if got:=fmt.Sprintf(verb,value);got!="<nil>"{t.Fatal("typed nil formatting changed")}}
 		raw,err:=json.Marshal(value);if err!=nil||string(raw)!="null"{t.Fatal("nil JSON changed")}
 	}
