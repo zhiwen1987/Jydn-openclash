@@ -172,7 +172,24 @@ class HandoffNavigationReaderContracts(unittest.TestCase):
             adapter_loads=[n for n in shared.body if isinstance(n,ast.Assign)
                 and any(isinstance(t,ast.Name) and t.id=='A' for t in n.targets)]
             self.assertEqual(len(adapter_loads),1)
-            self.assertEqual(ast.dump(adapter_loads[0].value,include_attributes=False),expression('load_scene_adapter(repo, key)'))
+            self.assertEqual(ast.dump(adapter_loads[0].value,include_attributes=False),expression('scene_adapter(repo, key)'))
+            dispatch=function(shared_tree,'scene_adapter')
+            expected_dispatch=ast.parse('''def expected(repo, key):
+    if key in OVERVIEW_KEYS:
+        need(isinstance(repo, pathlib.Path))
+        spec = importlib.util.spec_from_file_location('trusted_overview_scene', repo / OVERVIEW_PATH)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module
+    return load_scene_adapter(repo, key)
+''').body[0]
+            self.assertEqual([ast.dump(n,include_attributes=False) for n in dispatch.body],
+                [ast.dump(n,include_attributes=False) for n in expected_dispatch.body])
+            for name,expected in (
+                ('OVERVIEW_KEYS',('overview_ui:evidence_disabled','overview_ui:evidence_enabled_unknown')),
+                ('OVERVIEW_PATH','chengwang/deploy/overview-ui-browser/overview_ui_scene.py')):
+                constants=[ast.literal_eval(n.value) for n in shared_tree.body if isinstance(n,ast.Assign)
+                    and any(isinstance(t,ast.Name) and t.id==name for t in n.targets)]
+                self.assertEqual(constants,[expected])
             load_adapter=function(shared_tree,'load_scene_adapter')
             selected=[n.value for n in load_adapter.body if isinstance(n,ast.Assign)
                 and any(isinstance(t,ast.Name) and t.id=='relative' for t in n.targets)]
@@ -251,6 +268,12 @@ class HandoffNavigationReaderContracts(unittest.TestCase):
         dropped=ast.parse(core_text); _,_,_,_,payload=check_flow(tree,dropped)
         next(k for k in payload.keywords if k.arg is None).value=ast.Dict(keys=[],values=[])
         with self.assertRaises(AssertionError): check_flow(tree,dropped)
+        for mutation in ('bypass_legacy','dynamic_path','broaden_key'):
+            wrong=ast.parse(core_text); dispatch=function(wrong,'scene_adapter')
+            if mutation=='bypass_legacy': dispatch.body[-1]=ast.parse('return None').body[0]
+            elif mutation=='dynamic_path': dispatch.body[0].body[1]=ast.parse("spec = importlib.util.spec_from_file_location('trusted_overview_scene', repo / key)").body[0]
+            else: dispatch.body[0].test=ast.parse('True',mode='eval').body
+            with self.subTest(mutation=mutation),self.assertRaises(AssertionError): check_flow(tree,wrong)
         self.assertIn('chengwang/deploy/subscription-ui-browser/handoff_navigation_diagnostics.py',R.HANDOFF_SOURCE_FILES)
         expected={'driver.json','captures.jsonl','dom.jsonl','created-desktop.png','created-mobile.png','processes.json',
             'isolation.json','inputs.json','certificates.json','pin-consumption.json','private-readback.json',

@@ -1,0 +1,101 @@
+{
+  "acceptance": {
+    "combined": {
+      "skipped": 0,
+      "sourceStable": true,
+      "tests": 236
+    },
+    "fiveOldWorkflowExecutionBodiesUnchanged": true,
+    "oldCapability": {
+      "sourceStable": true,
+      "tests": 188
+    },
+    "oldFeedbackNavigation": {
+      "sourceStable": true,
+      "tests": 42
+    },
+    "yaml": {
+      "files": 7,
+      "runtimeProven": false
+    }
+  },
+  "baseline": "37ab0fef43194e1dc3045ddda11b19322254301c",
+  "branch": "codex/chengwang-overview-browser-20261024",
+  "limitations": [
+    "CPU Git and OpenSSL test fixtures are modelled, not real cryptographic or browser execution",
+    "Source-bound full SYN CLI awaits commit; not claimed here",
+    "HTTP503 Log qualification uses actual request association; does not prove causal browser internals",
+    "Observed headers precede Log in reviewed Chromium source; real dual-engine ordering is not yet proven",
+    "All new real browser, TLS, namespace, normal-close and fresh readback acceptance remains pending",
+    "No production, main merge, Registry or formal release change"
+  ],
+  "mainMerged": false,
+  "phase": "IMPLEMENTED_CPU_VERIFIED_REAL_BROWSER_PENDING",
+  "preservedFailures": [
+    "D:\\CodexData\\workspace\\overview-integration-static-i_o4uttv\\failure.json",
+    "D:\\CodexData\\workspace\\overview-integration-static-3ucd122b\\failure.json"
+  ],
+  "production": false,
+  "receipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\overview-candidate-combined-cviak_89\\result.json",
+      "sha256": "1c6c2f482b1e15056b38207f7b8fc6eefe4806f9027b6563dbf3fca15b80ede1"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-integration-static-hk0zd6n4\\result.json",
+      "sha256": "96f524db130d2b4355382ae0b698d87ae39913cd939cdf09cf419a77bfeedf9c"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-dispatch-legacy-capability-cpu-64kmwimo\\result.json",
+      "sha256": "0c1965376546d4612608f7d3500b94896a8f2480e8c234e1798c4a6f8ae52e5e"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-ci-wiring-static-20261024\\checker-peer\\result.json",
+      "sha256": "299a99030a48a5657829d8f78c5a45379904a616a6dde573e1c974047be6070d"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-ci-wiring-static-20261024\\journal-pinned-peer\\result.json",
+      "sha256": "d3d54a9dcfdc2e7a0109e4163d1be398be9bf4a73d076d84b415e6ef46a2e612"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-ci-wiring-static-20261024\\network-log-research\\result.json",
+      "sha256": "257ee612e1cb6a882b2a3101789c33b462a730398a876f74c09384b400a2c2de"
+    }
+  ],
+  "schema": "chengwang.overview-browser-development-evidence/v1",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-image-binding.yml": "20dfb128762f8162a69357074ec88479f7539db04659176729eedb0dd5ef14ba",
+    ".github/workflows/chengwang-m2b-candidate.yml": "6ed79158bc9c623c565d304adfbfb5b8b9af13ceb4f8434fd6597b63edb7670b",
+    ".github/workflows/chengwang-overview-ui-browser.yml": "de5a2292a6c1c06f843630851d753800b5d7d4f67a05d281d1cba1d7fc7638bd",
+    ".github/workflows/chengwang-probe-browser.yml": "28b841af88253a1e2f2c667cba1cedb21c0ca52763ebb8f8d526f1fe6e0bbabf",
+    ".github/workflows/chengwang-probe-readback.yml": "199ed34ceab0a3009671802d2fee2042bbb13d455cac8f39e4d5357a2459a5bd",
+    ".github/workflows/chengwang-subscription-readback.yml": "2ef0b1a4b610bca179fd4cb6f05cb247cc239934999204205e39a0a61f12bde1",
+    ".github/workflows/chengwang-subscription-ui-browser.yml": "c956ed810545be5f6cfeb874962cd0513c0713995de02e868123f1f794122918",
+    "chengwang/deploy/browser-scene-supervisor/supervisor.py": "f0701e86569d1deb9dddf5305cfd5da30de843d6b7caa740adfbd9ef3ae0c0ef",
+    "chengwang/deploy/overview-ui-browser/check_overview_synthetic.py": "8f8cd4d3db1abc1245328cf46bc7f52a55b04b9787d3a4a67e078fff9b2729a0",
+    "chengwang/deploy/overview-ui-browser/check_overview_ui.py": "ab11fa8efc84a77a06973842ea93a0c152ae9fb89ec697eec6942feb151caf3a",
+    "chengwang/deploy/overview-ui-browser/contract.json": "eac47cd21a7be49960ed51ed05b3f8be7f22f70b13062640dd8b4ee3cda4bd81",
+    "chengwang/deploy/overview-ui-browser/overview_ui_scene.py": "bad58b2d9f6a0c15fe824add21f487bf937dc83e82a8f35e13f7db5d7257b694",
+    "chengwang/deploy/overview-ui-browser/run_overview_ui.py": "74fef41fc9f37228a2fdbb300ffa1e8db80b89cf73db5ae0747ef00a37b70dac",
+    "chengwang/deploy/overview-ui-browser/test_check_overview_ui.py": "8031eb06e65761426821352d5a0f04db610a0a344dbc9da22d4e4e0774021d5b",
+    "chengwang/deploy/overview-ui-browser/test_overview_contract.py": "cac01ee54f8fa0ec38d9aa1680b0c1a8966fe777fb6df0c1422bdf74153e6ae9",
+    "chengwang/deploy/overview-ui-browser/test_overview_scene.py": "ecb2cb856c8cb1dc9f70d3f8aeac8e651ef56109c4d3544cef0528d1ac95bfe5",
+    "chengwang/deploy/subscription-ui-browser/test_feedback_projection.py": "3c444d449d2b689f4bf7baacc646f718ee6b91133930dfaf5e39abbbc7218017",
+    "chengwang/deploy/subscription-ui-browser/test_handoff_navigation_diagnostics.py": "afe0baf36acdd1595f2a6c542d64fd5da6054e1f3895f2fb88d955f50e26abdf",
+    "chengwang/deploy/subscription-ui-browser/test_navigation_diagnostics.py": "3f5a183d28437be1397ac33127a2078cea5158ec132ad481b372a0cb61efa724",
+    "chengwang/docs/OVERVIEW-REAL-BROWSER-CONTRACT.md": "f8aea655e478d00e47a4aef6b23d2fcda067b885b7a320bc43b4bceef34f20ed",
+    "chengwang/tools/browser-scene-driver/native-session.mjs": "c89b5bb024d085236366b5da3e9addd5f290d9f1558113b033242edcb4c8fbc4",
+    "chengwang/tools/browser-scene-driver/test-native-session.mjs": "41468242900df1584c3b6d3afc8dc46d42b28de078b83de8a1bb482c87eb9d9e",
+    "chengwang/tools/overview-ui-browser/overview-journal.mjs": "c82c657df4ec31326b097f8fc6fad61411e8caaf9a9090b0163877d237307440",
+    "chengwang/tools/overview-ui-browser/test-overview-journal.mjs": "da858ab5112780bf3d672899d4ba7c7b0721450844586071f2f6060eb36e221f",
+    "chengwang/tools/overview-ui-browser/test-ui-contract.mjs": "9a7cc5af8d5db80d9afd60d85b12e817a788c43c8b56b5819d201f0e61681923",
+    "chengwang/tools/overview-ui-browser/test-ui-dom.mjs": "41058d2a4a0349339c3038e3f95a75f41d07b99587b65b5c63b0c9b1f1fd3288",
+    "chengwang/tools/overview-ui-browser/test-ui-driver.mjs": "9b5afe912336904989c272591618687b3c30c98328863002aa1319453421a32d",
+    "chengwang/tools/overview-ui-browser/test-wire-contract.mjs": "9cd4597c240b7e372c056a0785eaac800078f66347980354c0619ae8191a8101",
+    "chengwang/tools/overview-ui-browser/ui-cli.mjs": "a9bfc4ee8aa1bb7e1e6b144d6c4c56514d47d038f07bcc94c255817738cba630",
+    "chengwang/tools/overview-ui-browser/ui-contract.mjs": "f2d8a2cc08893c211a7f696d99a225ddfc0a4d600ac00fb66bb8a24bd5f8f61d",
+    "chengwang/tools/overview-ui-browser/ui-dom.mjs": "a42ee859142c0e11f6c04ef392f67c6085be3b765818c49330d92c674bb46978",
+    "chengwang/tools/overview-ui-browser/ui-driver.mjs": "8c37d184a564a0e677d25e25f03f80a9c8fdee88c29511d38d47d4ea2f3d95f3",
+    "chengwang/tools/overview-ui-browser/wire-contract.mjs": "6c14c6ede44c4d7b46ecd9854578d98355073dfe5f1e124dadf843f795c20747"
+  }
+}

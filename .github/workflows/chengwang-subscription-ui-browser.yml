@@ -1,9 +1,16 @@
 name: Chengwang Real Subscription UI Browser
 
 on:
+  workflow_call:
+    inputs:
+      scene-family:
+        description: Closed source-owned scene family
+        type: string
+        required: false
+        default: legacy
   workflow_dispatch:
   push:
-    branches: [codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
+    branches: [codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024, codex/chengwang-overview-browser-20261024]
     paths:
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
       - 'chengwang/deploy/subscription-ui-browser/**'
@@ -51,25 +58,80 @@ permissions:
   contents: read
 
 concurrency:
-  group: chengwang-subscription-ui-browser-${{ github.ref }}
+  group: chengwang-subscription-ui-browser-${{ github.ref }}-${{ inputs.scene-family }}
   cancel-in-progress: false
 
 jobs:
+  select-family:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      family: ${{ steps.select.outputs.family }}
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - id: select
+        name: Select only a literal reviewed scene matrix
+        env:
+          SCENE_INPUTS_JSON: ${{ toJSON(inputs) }}
+          SCENE_EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I -B - <<'PY'
+          import json, os
+          raw = os.environ['SCENE_INPUTS_JSON']
+          if len(raw.encode('utf-8')) > 2048: raise SystemExit('scene-family-rejected')
+          value = json.loads(raw)
+          # Runner v2.338.0 supplies null for absent expression contexts;
+          # ToJson serializes that as null, and empty mappings as {}.
+          if value is None or value == {}:
+              if os.environ['SCENE_EVENT_NAME'] not in ('push', 'pull_request', 'workflow_dispatch'):
+                  raise SystemExit('missing-scene-family-rejected')
+              family = 'legacy'
+          else:
+              if type(value) is not dict or set(value) != {'scene-family'}: raise SystemExit('scene-family-rejected')
+              family = value['scene-family']
+          if family not in ('legacy', 'overview'): raise SystemExit('scene-family-rejected')
+          if family == 'legacy':
+              rows = [dict(engine=e, scenario=s, profile='') for e in ('chrome-cdp', 'playwright')
+                  for s in ('create_receipt', 'local_admission', 'remote_fetch', 'remote_handoff_negative')]
+              rows += [dict(engine=e, scenario='capability_truth', profile=p) for p in ('default', 'backend_configured')
+                  for e in ('chrome-cdp', 'playwright')]
+          else:
+              rows = [dict(engine=e, scenario='overview_ui', profile=p) for p in ('evidence_disabled', 'evidence_enabled_unknown')
+                  for e in ('chrome-cdp', 'playwright')]
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('family=' + family + '\n')
+              output.write('matrix=' + json.dumps(dict(include=rows), separators=(',', ':')) + '\n')
+          PY
+
   browser:
     name: Real product ${{ matrix.scenario }} (${{ matrix.engine }}) ${{ matrix.profile }}
+    needs: select-family
     runs-on: ubuntu-24.04
     timeout-minutes: 22
     strategy:
       fail-fast: false
-      matrix:
-        engine: [chrome-cdp, playwright]
-        scenario: [create_receipt, local_admission, remote_fetch, remote_handoff_negative]
-        include:
-          - { engine: chrome-cdp, scenario: capability_truth, profile: default }
-          - { engine: playwright, scenario: capability_truth, profile: default }
-          - { engine: chrome-cdp, scenario: capability_truth, profile: backend_configured }
-          - { engine: playwright, scenario: capability_truth, profile: backend_configured }
+      matrix: ${{ fromJSON(needs.select-family.outputs.matrix) }}
+    env:
+      SCENE_FAMILY: ${{ needs.select-family.outputs.family }}
+      SCENE: ${{ matrix.scenario }}
+      SCENE_ENGINE: ${{ matrix.engine }}
+      SCENE_PROFILE: ${{ matrix.profile }}
     steps:
+      - name: Reject cross-family or unknown scenario values before setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I -B - <<'PY'
+          import os
+          family, scene, profile, engine = (os.environ[k] for k in ('SCENE_FAMILY', 'SCENE', 'SCENE_PROFILE', 'SCENE_ENGINE'))
+          if engine not in ('chrome-cdp', 'playwright'): raise SystemExit('scene-engine-rejected')
+          valid = family == 'overview' and scene == 'overview_ui' and profile in ('evidence_disabled', 'evidence_enabled_unknown')
+          valid = valid or family == 'legacy' and ((scene == 'capability_truth' and profile in ('default', 'backend_configured'))
+              or scene in ('create_receipt', 'local_admission', 'remote_fetch', 'remote_handoff_negative') and profile == '')
+          if not valid: raise SystemExit('scene-matrix-rejected')
+          PY
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
@@ -181,7 +243,7 @@ jobs:
             --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
             "$node_binary" node_modules/vite/bin/vite.js build
           SH
-          python3 -B - "$lab" "$GITHUB_SHA" '${{ matrix.scenario }}' <<'PY'
+          python3 -B - "$lab" "$GITHUB_SHA" "$SCENE" <<'PY'
           import base64,hashlib,json,pathlib,sys
           root=pathlib.Path(sys.argv[1]); dist=root/'web-build/dist'; records=[]
           digest=lambda raw:hashlib.sha256(raw).hexdigest()
@@ -192,13 +254,15 @@ jobs:
           if not {'index.html','trust.html','.vite/manifest.json'} <= {r['path'] for r in records}: raise SystemExit('dist-incomplete')
           binary=(root/'bin/server').read_bytes()
           if binary[:4] != b'\x7fELF': raise SystemExit('server-not-elf')
+          if sys.argv[3] not in ('create_receipt','local_admission','remote_fetch','remote_handoff_negative','capability_truth','overview_ui'):
+              raise SystemExit('build-scene-rejected')
           value=dict(schema='chengwang.subscription-ui-build/v1',sourceCommit=sys.argv[2],goVersion='go1.23.12',nodeVersion='v22.23.3',
               moduleMode='vendor',goDependencyDownloads=False,server=dict(name='server',bytes=len(binary),sha256=digest(binary)),
               distFiles=records,production=False,authorization='BLOCKED')
-          if sys.argv[3] == 'capability_truth':
+          if sys.argv[3] in ('capability_truth', 'overview_ui'):
               manifest=(dist/'.vite/manifest.json').read_bytes()
               if not 0 < len(manifest) <= 262144: raise SystemExit('manifest-budget-rejected')
-              value['schema']='chengwang.capability-truth-build/v1'
+              value['schema']='chengwang.capability-truth-build/v1' if sys.argv[3] == 'capability_truth' else 'chengwang.overview-ui-build/v1'
               value['manifestBase64']=base64.b64encode(manifest).decode('ascii')
           with (root/'build.json').open('xb') as f:f.write((json.dumps(value,sort_keys=True,separators=(',',':'))+'\n').encode())
           PY
@@ -322,6 +386,40 @@ jobs:
           python3 -B chengwang/deploy/subscription-ui-browser/check_admission_synthetic.py \
             --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/admission-synthetic.json"
 
+      - name: Preserve the independent closed overview CPU transcripts
+        if: matrix.scenario == 'overview_ui'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          install -d -m 0700 "$reports/overview-synthetic"
+          units="$reports/overview-synthetic"
+          (cd chengwang/deploy/overview-ui-browser && python3 -B -m unittest -v test_overview_contract) \
+            2>&1 | tee "$units/overview-contract-original.log"
+          (cd chengwang/deploy/overview-ui-browser && python3 -B -m unittest -v test_overview_scene) \
+            2>&1 | tee "$units/overview-scene-original.log"
+          (cd chengwang/deploy/overview-ui-browser && python3 -B -m unittest -v test_check_overview_ui) \
+            2>&1 | tee "$units/overview-checker-original.log"
+          node --test --test-reporter=tap chengwang/tools/browser-scene-driver/test-native-session.mjs \
+            2>&1 | tee "$units/native-session.tap"
+          node --test --test-reporter=tap chengwang/tools/overview-ui-browser/test-wire-contract.mjs \
+            2>&1 | tee "$units/wire-contract.tap"
+          node --test --test-reporter=tap chengwang/tools/overview-ui-browser/test-overview-journal.mjs \
+            2>&1 | tee "$units/overview-journal.tap"
+          node --test --test-reporter=tap chengwang/tools/overview-ui-browser/test-ui-dom.mjs \
+            2>&1 | tee "$units/overview-dom.tap"
+          node --test --test-reporter=tap chengwang/tools/overview-ui-browser/test-ui-contract.mjs \
+            2>&1 | tee "$units/overview-contract.tap"
+          node --test --test-reporter=tap chengwang/tools/overview-ui-browser/test-ui-driver.mjs \
+            2>&1 | tee "$units/overview-driver.tap"
+          # The source-bound checker enforces every actual case/name/count,
+          # including its final independently frozen N. Missing helper rejects.
+          python3 -B chengwang/deploy/overview-ui-browser/check_overview_synthetic.py \
+            --evidence "$units" --source-commit "$GITHUB_SHA" --repo "$GITHUB_WORKSPACE" \
+            --report "$RUNNER_TEMP/subscription-ui/overview-synthetic.json"
+          test ! -e "$reports/overview-synthetic.json"
+          install -m 0600 "$RUNNER_TEMP/subscription-ui/overview-synthetic.json" "$reports/overview-synthetic.json"
+
       - name: Preserve independent remote-fetch helper events without replacing previous suites
         if: matrix.scenario == 'remote_fetch'
         shell: bash
@@ -419,6 +517,16 @@ jobs:
         run: |
           set -euo pipefail
           lab="$RUNNER_TEMP/subscription-ui"
+          if test "$SCENE" = overview_ui; then
+            sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux \
+              /usr/bin/python3 -I -B chengwang/deploy/overview-ui-browser/run_overview_ui.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine "$SCENE_ENGINE" \
+              --profile "$SCENE_PROFILE" \
+              --consumption-root "$lab/consumption" --consumption-report "$lab/reports/consumption-independent.json" \
+              --node "$lab/bin/node" --server "$lab/bin/server" --dist "$lab/web-build/dist" --build-report "$lab/build.json" \
+              --output-dir "$lab/reports/originals" 2>&1 | tee "$lab/reports/supervisor-original.log"
+            exit 0
+          fi
           if test '${{ matrix.scenario }}' = capability_truth; then
             sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux \
               /usr/bin/python3 -I -B chengwang/deploy/capability-truth-browser/run_capability_truth.py \
@@ -429,6 +537,10 @@ jobs:
               --output-dir "$lab/reports/originals" 2>&1 | tee "$lab/reports/supervisor-original.log"
             exit 0
           fi
+          case "$SCENE" in
+            create_receipt|local_admission|remote_fetch|remote_handoff_negative) ;;
+            *) echo 'unknown-scene-rejected' >&2; exit 1 ;;
+          esac
           sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux \
             /usr/bin/python3 -I -B chengwang/deploy/subscription-ui-browser/run_subscription_ui.py \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
@@ -439,7 +551,7 @@ jobs:
 
       - name: Independently decode bounded navigation failure observations without product acceptance
         # Keep the original schema restricted to its reviewed scenarios.
-        if: always() && matrix.scenario != 'remote_handoff_negative' && matrix.scenario != 'capability_truth'
+        if: always() && matrix.scenario != 'remote_handoff_negative' && matrix.scenario != 'capability_truth' && matrix.scenario != 'overview_ui'
         shell: bash
         run: |
           set -euo pipefail
@@ -466,7 +578,7 @@ jobs:
           fi
 
       - name: Independent original API DOM PNG audit persistence and lifecycle verification
-        if: matrix.scenario != 'capability_truth'
+        if: matrix.scenario != 'capability_truth' && matrix.scenario != 'overview_ui'
         shell: bash
         run: |
           set -euo pipefail
@@ -498,6 +610,20 @@ jobs:
           test ! -e "$lab/reports/independent.json"
           sudo --non-interactive install -m 0600 "$lab/independent.json" "$lab/reports/independent.json"
 
+      - name: Independently reconstruct the nineteen overview originals
+        if: matrix.scenario == 'overview_ui'
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/subscription-ui"
+          sudo --non-interactive /usr/bin/python3 -I -B chengwang/deploy/overview-ui-browser/check_overview_ui.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine "$SCENE_ENGINE" \
+            --profile "$SCENE_PROFILE" --evidence "$lab/reports/originals" \
+            --report "$lab/overview-independent.json" 2>&1 | tee "$lab/reports/independent-original.log"
+          test ! -e "$lab/reports/independent.json"
+          sudo --non-interactive install -m 0600 "$lab/overview-independent.json" "$lab/reports/independent.json"
+          git diff --exit-code
+
       - name: Independently verify real feedback observations after original business acceptance
         if: matrix.scenario == 'remote_handoff_negative'
         shell: bash
@@ -520,9 +646,17 @@ jobs:
           sudo --non-interactive chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/subscription-ui/reports"
           chmod -R u+rX,go-rwx "$RUNNER_TEMP/subscription-ui/reports"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always() && matrix.scenario != 'capability_truth'
+        if: always() && matrix.scenario != 'capability_truth' && matrix.scenario != 'overview_ui'
         with:
           name: subscription-ui-${{ matrix.scenario }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/subscription-ui/reports
+          if-no-files-found: error
+          retention-days: 14
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && matrix.scenario == 'overview_ui'
+        with:
+          name: overview-ui-${{ matrix.profile }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/subscription-ui/reports
           if-no-files-found: error
           retention-days: 14
@@ -537,30 +671,33 @@ jobs:
 
   fresh:
     name: Fresh original ${{ matrix.scenario }} replay (${{ matrix.engine }}) ${{ matrix.profile }}
-    needs: browser
+    needs: [select-family, browser]
     # A failed scene must not suppress independent evidence for every other
     # successful scene. Missing/failed inputs still reject their own replay.
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.select-family.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
-      matrix:
-        engine: [chrome-cdp, playwright]
-        scenario: [create_receipt, local_admission, remote_fetch, remote_handoff_negative]
-        include:
-          - { engine: chrome-cdp, scenario: capability_truth, profile: default }
-          - { engine: playwright, scenario: capability_truth, profile: default }
-          - { engine: chrome-cdp, scenario: capability_truth, profile: backend_configured }
-          - { engine: playwright, scenario: capability_truth, profile: backend_configured }
+      matrix: ${{ fromJSON(needs.select-family.outputs.matrix) }}
+    env:
+      SCENE_FAMILY: ${{ needs.select-family.outputs.family }}
+      SCENE: ${{ matrix.scenario }}
+      SCENE_ENGINE: ${{ matrix.engine }}
+      SCENE_PROFILE: ${{ matrix.profile }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        if: matrix.scenario != 'capability_truth'
+        if: matrix.scenario != 'capability_truth' && matrix.scenario != 'overview_ui'
         with:
           name: subscription-ui-${{ matrix.scenario }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/subscription-ui-input
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: matrix.scenario == 'overview_ui'
+        with:
+          name: overview-ui-${{ matrix.profile }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/subscription-ui-input
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         if: matrix.scenario == 'capability_truth'
@@ -579,6 +716,22 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/dependency-original.log"
           cmp "$RUNNER_TEMP/subscription-ui-input/dependency-verification.json" \
             "$RUNNER_TEMP/subscription-ui-fresh/dependency-verification.json"
+          if test "$SCENE" = overview_ui; then
+            python3 -B chengwang/deploy/overview-ui-browser/check_overview_synthetic.py \
+              --evidence "$RUNNER_TEMP/subscription-ui-input/overview-synthetic" --source-commit "$GITHUB_SHA" \
+              --repo "$GITHUB_WORKSPACE" --report "$RUNNER_TEMP/subscription-ui-fresh/overview-synthetic.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/overview-synthetic-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/overview-synthetic.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/overview-synthetic.json"
+            python3 -B chengwang/deploy/overview-ui-browser/check_overview_ui.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine "$SCENE_ENGINE" \
+              --profile "$SCENE_PROFILE" --evidence "$RUNNER_TEMP/subscription-ui-input/originals" \
+              --report "$RUNNER_TEMP/subscription-ui-fresh/independent.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/independent-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/independent.json" "$RUNNER_TEMP/subscription-ui-fresh/independent.json"
+            git diff --exit-code
+            exit 0
+          fi
           if test '${{ matrix.scenario }}' = capability_truth; then
             python3 -B chengwang/deploy/capability-truth-browser/check_capability_synthetic.py \
               --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
@@ -595,6 +748,10 @@ jobs:
             git diff --exit-code
             exit 0
           fi
+          case "$SCENE" in
+            create_receipt|local_admission|remote_fetch|remote_handoff_negative) ;;
+            *) echo 'unknown-fresh-scene-rejected' >&2; exit 1 ;;
+          esac
           checker=chengwang/deploy/subscription-ui-browser/check_subscription_ui.py
           if test '${{ matrix.scenario }}' = local_admission; then
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py
@@ -650,9 +807,16 @@ jobs:
           fi
           git diff --exit-code
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always() && matrix.scenario != 'capability_truth'
+        if: always() && matrix.scenario != 'capability_truth' && matrix.scenario != 'overview_ui'
         with:
           name: subscription-ui-fresh-${{ matrix.scenario }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/subscription-ui-fresh
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && matrix.scenario == 'overview_ui'
+        with:
+          name: overview-ui-fresh-${{ matrix.profile }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/subscription-ui-fresh
           if-no-files-found: error
           retention-days: 14

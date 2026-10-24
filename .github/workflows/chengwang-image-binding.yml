@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "chengwang/deploy/overview-ui-browser/**"
+      - "chengwang/deploy/browser-scene-supervisor/**"
+      - "chengwang/tools/overview-ui-browser/**"
+      - "chengwang/tools/browser-scene-driver/**"
       - ".github/workflows/chengwang-image-binding.yml"
       - "chengwang/tools/image-binding/**"
       - "chengwang/tools/image-verifier/**"
@@ -22,8 +26,12 @@ on:
       - "chengwang/go.mod"
       - "chengwang/go.sum"
   push:
-    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024, codex/chengwang-overview-browser-20261024]
     paths:
+      - "chengwang/deploy/overview-ui-browser/**"
+      - "chengwang/deploy/browser-scene-supervisor/**"
+      - "chengwang/tools/overview-ui-browser/**"
+      - "chengwang/tools/browser-scene-driver/**"
       - ".github/workflows/chengwang-image-binding.yml"
       - "chengwang/tools/image-binding/**"
       - "chengwang/tools/image-verifier/**"

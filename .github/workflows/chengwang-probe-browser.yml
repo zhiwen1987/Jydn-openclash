@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "chengwang/deploy/overview-ui-browser/**"
+      - "chengwang/deploy/browser-scene-supervisor/**"
+      - "chengwang/tools/overview-ui-browser/**"
+      - "chengwang/tools/browser-scene-driver/**"
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
       - "chengwang/tools/subscription-browser/**"
@@ -16,8 +20,12 @@ on:
       - "chengwang/go.sum"
       - "chengwang/vendor/**"
   push:
-    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024, codex/chengwang-overview-browser-20261024]
     paths:
+      - "chengwang/deploy/overview-ui-browser/**"
+      - "chengwang/deploy/browser-scene-supervisor/**"
+      - "chengwang/tools/overview-ui-browser/**"
+      - "chengwang/tools/browser-scene-driver/**"
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
       - "chengwang/tools/subscription-browser/**"

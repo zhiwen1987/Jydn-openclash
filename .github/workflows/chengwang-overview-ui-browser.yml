@@ -1,0 +1,54 @@
+name: Chengwang Real Overview Evidence UI Browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-overview-browser-20261024]
+    paths:
+      - '.github/workflows/chengwang-overview-ui-browser.yml'
+      - '.github/workflows/chengwang-subscription-ui-browser.yml'
+      - 'chengwang/deploy/overview-ui-browser/**'
+      - 'chengwang/tools/overview-ui-browser/**'
+      - 'chengwang/tools/browser-scene-driver/**'
+      - 'chengwang/deploy/browser-scene-supervisor/**'
+      - 'chengwang/deploy/capability-truth-browser/**'
+      - 'chengwang/tools/capability-truth-browser/**'
+      - 'chengwang/deploy/subscription-ui-browser/**'
+      - 'chengwang/tools/subscription-ui-browser/**'
+      - 'chengwang/tools/subscription-browser/**'
+      - 'chengwang/tools/browser-runtime-candidate/**'
+      - 'chengwang/tools/browser-acquisition/check_acquisition.py'
+      - 'chengwang/tools/browser-acquisition/candidate.json'
+      - 'chengwang/deploy/probe-readback/run_probe_readback.py'
+      - 'chengwang/deploy/browser-stream-matrix/run_matrix.py'
+      - 'chengwang/web/**'
+      - 'chengwang/internal/**'
+      - 'chengwang/cmd/server/**'
+      - 'chengwang/go.mod'
+      - 'chengwang/go.sum'
+      - 'chengwang/vendor/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-overview-ui-caller-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  development-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Reject a manual request outside the isolated development branch
+        env:
+          REQUEST_REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REQUEST_REF" = refs/heads/codex/chengwang-overview-browser-20261024
+  overview:
+    needs: development-only
+    uses: ./.github/workflows/chengwang-subscription-ui-browser.yml
+    with:
+      scene-family: overview

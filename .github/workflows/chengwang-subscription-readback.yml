@@ -8,7 +8,7 @@ on:
       - ".github/workflows/chengwang-subscription-readback.yml"
       - "chengwang/**"
   push:
-    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024, codex/chengwang-overview-browser-20261024]
     paths:
       - ".github/workflows/chengwang-subscription-readback.yml"
       - "chengwang/**"

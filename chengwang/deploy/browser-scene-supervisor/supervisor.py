@@ -23,6 +23,9 @@ CORE_PATH = 'chengwang/deploy/browser-scene-supervisor/supervisor.py'
 LEGACY_PATH = 'chengwang/deploy/subscription-ui-browser/run_subscription_ui.py'
 CAPABILITY_PATH = 'chengwang/deploy/capability-truth-browser/capability_truth_scene.py'
 CAPABILITY_ENTRY = 'chengwang/deploy/capability-truth-browser/run_capability_truth.py'
+OVERVIEW_KEYS = ('overview_ui:evidence_disabled', 'overview_ui:evidence_enabled_unknown')
+OVERVIEW_PATH = 'chengwang/deploy/overview-ui-browser/overview_ui_scene.py'
+OVERVIEW_ENTRY = 'chengwang/deploy/overview-ui-browser/run_overview_ui.py'
 PREFIX = ['setpriv', '--reuid=10001', '--regid=10001', '--clear-groups', '--bounding-set=-all',
           '--inh-caps=-all', '--ambient-caps=-all', '--no-new-privs']
 
@@ -58,6 +61,33 @@ def identity(commit, fixture, engine, key):
     return value
 
 
+def select_overview_key(profile):
+    need(profile in ('evidence_disabled', 'evidence_enabled_unknown'))
+    return 'overview_ui:' + profile
+
+
+def scene_adapter(repo, key):
+    if key in OVERVIEW_KEYS:
+        need(isinstance(repo, pathlib.Path))
+        spec = importlib.util.spec_from_file_location('trusted_overview_scene', repo / OVERVIEW_PATH)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module
+    return load_scene_adapter(repo, key)
+
+
+def scene_identity(commit, fixture, engine, key):
+    if key in OVERVIEW_KEYS:
+        return dict(schema='chengwang.overview-ui-supervisor/v1', sourceCommit=commit,
+            fixtureId=fixture, engine=engine, production=False, scenario='overview_ui', profile=key.split(':')[1])
+    return identity(commit, fixture, engine, key)
+
+
+def scene_entry(key):
+    if key in OVERVIEW_KEYS: return OVERVIEW_ENTRY
+    need(key in KEYS)
+    return LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_ENTRY
+
+
 def secret_variants(token):
     need(type(token) is str and re.fullmatch('[a-f0-9]{64}', token))
     values = set()
@@ -90,7 +120,7 @@ def clean_owned(path, fixture):
 
 
 def prepare_scene_inputs(options, repo, root, bundle, fixture, key, N, M):
-    A = load_scene_adapter(repo, key)
+    A = scene_adapter(repo, key)
     os.mkdir(root, 0o700); os.chown(root, 10001, 10001)
     os.mkdir(bundle, 0o750); os.chown(bundle, 0, 10001)
     records = []
@@ -148,14 +178,14 @@ def prepare_scene_inputs(options, repo, root, bundle, fixture, key, N, M):
         for name in dirs:
             path = pathlib.Path(current) / name; os.chown(path, 0, 10001); path.chmod(0o550)
     bundle.chmod(0o550)
-    N.exclusive(options.output_dir / 'inputs.json', N.canonical(dict(identity(options.source_commit, fixture, options.engine, key),
+    N.exclusive(options.output_dir / 'inputs.json', N.canonical(dict(scene_identity(options.source_commit, fixture, options.engine, key),
         copiedInputs=records, inputTrustScope='SOURCE_GIT_AND_NPM_LOCK_TRUSTED_CI_NOT_INDEPENDENT_REBUILD')) + b'\n')
     N.exclusive(options.output_dir / 'pin-consumption.json', receipt_raw)
     N.exclusive(options.output_dir / 'build.json', build_raw)
 
 
 def export_scene_evidence(options, root, key, N, *, partial=False):
-    repo = options.repo.resolve(strict=True); A = load_scene_adapter(repo, key)
+    repo = options.repo.resolve(strict=True); A = scene_adapter(repo, key)
     policy = A.scene_export_policy(root, key, N, partial)
     if policy is None: return []
     names, forbidden = policy; exported = []
@@ -194,7 +224,7 @@ class RunState:
 
 
 def supervise_scene(options, repo, root, bundle, fixture, key, N, M, L):
-    A = load_scene_adapter(repo, key); state = RunState()
+    A = scene_adapter(repo, key); state = RunState()
     need(os.geteuid() == 0 and os.getpid() == 1)
     N.command(['mount', '--make-rprivate', '/']); N.mount_bind(repo, True); N.mount_bind(bundle, True)
     N.command(['ip', 'link', 'set', 'lo', 'up'])
@@ -238,7 +268,7 @@ def supervise_scene(options, repo, root, bundle, fixture, key, N, M, L):
         state.stage = 'PROCESS_REAP'
         need(M.no_owned_processes() and all(not pathlib.Path('/proc', str(row['pid'])).exists() for row in state.records))
         need(extra == (dict(wireExitCode=0) if state.wire is not None else {}))
-        N.exclusive(options.output_dir / 'processes.json', N.canonical(dict(identity(options.source_commit, fixture, options.engine, key),
+        N.exclusive(options.output_dir / 'processes.json', N.canonical(dict(scene_identity(options.source_commit, fixture, options.engine, key),
             records=state.records, serverExitCode=0, controllerExitCode=0, noLiveOwnedProcesses=True, forcedSignals=0,
             processScope='TRUSTED_CI_PROC_AND_PARENT_WAIT_NOT_INDEPENDENT_SIGNAL_ATTESTATION', **extra)) + b'\n')
         state.stage = 'READBACK'; A.scene_post_stop(state, options, root, fixture, key, N)
@@ -254,7 +284,7 @@ def supervise_scene(options, repo, root, bundle, fixture, key, N, M, L):
         if not state.succeeded:
             no_owned = M.no_owned_processes(); exported = export_scene_evidence(options, root, key, N, partial=True)
             details = A.scene_failure_diagnostics(state, options, root, fixture, key, N)
-            N.exclusive(options.output_dir / 'failure.json', N.canonical(dict(identity(options.source_commit, fixture, options.engine, key),
+            N.exclusive(options.output_dir / 'failure.json', N.canonical(dict(scene_identity(options.source_commit, fixture, options.engine, key),
                 stage=state.stage, serverExitCode=None if state.server is None else state.server.poll(),
                 controllerExitCode=None if state.node is None else state.node.poll(), records=state.records,
                 forcedSignals=state.forced, noLiveOwnedProcesses=no_owned, capturedOriginals=exported,
@@ -262,13 +292,13 @@ def supervise_scene(options, repo, root, bundle, fixture, key, N, M, L):
 
 
 def run_scene_outer(options, repo, root, bundle, fixture, key, N, M, L):
-    A = load_scene_adapter(repo, key)
+    A = scene_adapter(repo, key)
     need(os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Linux' and options.fixture is None)
     options.output_dir = options.output_dir.absolute(); need(not options.output_dir.exists()); options.output_dir.mkdir(mode=0o700)
     before, source_before = N.host_observation(repo, options.source_commit)
     try:
         prepare_scene_inputs(options, repo, root, bundle, fixture, key, N, M)
-        entry = LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_ENTRY
+        entry = scene_entry(key)
         argv = ['unshare', '--mount', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc',
             sys.executable, '-I', '-B', str(repo / entry), '--inner', '--fixture', fixture,
             '--source-commit', options.source_commit, '--engine', options.engine]
@@ -286,11 +316,11 @@ def run_scene_outer(options, repo, root, bundle, fixture, key, N, M, L):
         need(before == after and source_before == source_after)
         if child.returncode != 0 or timed_out:
             export_scene_evidence(options, root, key, N, partial=True)
-            N.exclusive(options.output_dir / 'failed-host-readback.json', N.canonical(dict(identity(options.source_commit, fixture, options.engine, key),
+            N.exclusive(options.output_dir / 'failed-host-readback.json', N.canonical(dict(scene_identity(options.source_commit, fixture, options.engine, key),
                 hostBefore=before, hostAfter=after, sourceFilesBefore=source_before, sourceFilesAfter=source_after,
                 innerExitCode=child.returncode, innerTimedOut=timed_out, acceptance='REJECTED_DIAGNOSTIC_ONLY')) + b'\n'); need(False)
         isolation = N.decode(N.stable_read(options.output_dir / 'inner-isolation.private.json')[0])
-        N.exclusive(options.output_dir / 'isolation.json', N.canonical(dict(identity(options.source_commit, fixture, options.engine, key),
+        N.exclusive(options.output_dir / 'isolation.json', N.canonical(dict(scene_identity(options.source_commit, fixture, options.engine, key),
             hostBefore=before, hostAfter=after, sourceFilesBefore=source_before, sourceFilesAfter=source_after,
             lab=isolation, authorization='BLOCKED', deviceActionsExecuted=False, pythonBinaryProvenanceProven=False)) + b'\n')
         (options.output_dir / 'inner-isolation.private.json').unlink()

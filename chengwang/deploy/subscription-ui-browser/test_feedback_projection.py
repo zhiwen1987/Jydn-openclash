@@ -117,7 +117,7 @@ class FeedbackProjectionContracts(unittest.TestCase):
         with self.assertRaises(ValueError): P.project(b'FAILURE ONLY\n',dom,allow_noise=True)
 
     def test_16_runner_publishes_only_after_success_and_old_file_set_closes(self):
-        # Follow the fixed wrapper -> common supervisor -> legacy hooks. Merely
+        # Follow wrapper -> closed dispatcher -> legacy loader -> legacy hooks. Merely
         # finding safety strings in unrelated/dead functions cannot satisfy the
         # order assertions or either hook's complete source-only AST contract.
         source=Path(__file__).with_name('run_subscription_ui.py').read_text(encoding='utf-8')
@@ -146,9 +146,31 @@ class FeedbackProjectionContracts(unittest.TestCase):
             matching(shared.body,statement("LEGACY_PATH = 'chengwang/deploy/subscription-ui-browser/run_subscription_ui.py'"))
             loader=function(shared,'load_scene_adapter')
             matching(loader.body,statement("relative = LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_PATH"))
+            expected_dispatch=ast.parse('''def expected(repo, key):
+    if key in OVERVIEW_KEYS:
+        need(isinstance(repo, pathlib.Path))
+        spec = importlib.util.spec_from_file_location('trusted_overview_scene', repo / OVERVIEW_PATH)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module
+    return load_scene_adapter(repo, key)
+''').body[0]
+            self.assertEqual([shape(n) for n in function(shared,'scene_adapter').body],
+                [shape(n) for n in expected_dispatch.body])
+            matching(shared.body,statement("OVERVIEW_KEYS = ('overview_ui:evidence_disabled', 'overview_ui:evidence_enabled_unknown')"))
+            matching(shared.body,statement("OVERVIEW_PATH = 'chengwang/deploy/overview-ui-browser/overview_ui_scene.py'"))
+            matching(shared.body,statement("OVERVIEW_ENTRY = 'chengwang/deploy/overview-ui-browser/run_overview_ui.py'"))
+            expected_entry=ast.parse('''def expected(key):
+    if key in OVERVIEW_KEYS: return OVERVIEW_ENTRY
+    need(key in KEYS)
+    return LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_ENTRY
+''').body[0]
+            self.assertEqual([shape(n) for n in function(shared,'scene_entry').body],
+                [shape(n) for n in expected_entry.body])
             inner_core,outer_core=function(shared,'supervise_scene'),function(shared,'run_scene_outer')
             for body in (inner_core.body,outer_core.body):
-                matching(body,statement('A = load_scene_adapter(repo, key)'))
+                matching(body,statement('A = scene_adapter(repo, key)'))
+            for name in ('prepare_scene_inputs','export_scene_evidence'):
+                matching(function(shared,name).body,statement('A = scene_adapter(repo, key)'))
             inner_try=one(node for node in inner_core.body if isinstance(node,ast.Try))
             outer_try=one(node for node in outer_core.body if isinstance(node,ast.Try))
             export_stage=matching(inner_try.body,statement("state.stage = 'EXPORT'"))
@@ -174,7 +196,7 @@ class FeedbackProjectionContracts(unittest.TestCase):
             self.assertLess(outer_try.body.index(stable),outer_try.body.index(failure))
             self.assertLess(outer_try.body.index(failure),outer_try.body.index(closed))
             self.assertLess(outer_try.body.index(closed),outer_try.body.index(outer_hook))
-            matching(outer_try.body,statement("entry = LEGACY_PATH if key.startswith('subscription:') else CAPABILITY_ENTRY"))
+            matching(outer_try.body,statement('entry = scene_entry(key)'))
             public=function(legacy,'scene_public_files')
             self.assertEqual(shape(public.body[-1]),shape(statement(
                 "return set(HANDOFF_PUBLIC if options.scenario == 'remote_handoff_negative' else REMOTE_PUBLIC if options.scenario == 'remote_fetch' else PUBLIC)")))
@@ -227,7 +249,8 @@ class FeedbackProjectionContracts(unittest.TestCase):
         # Mutation counterexamples exercise this guard itself without executing
         # any supervisor, production API, process launcher or browser.
         for mutation in ('early_inner','early_outer','missing_closed_set','missing_host_check','ignored_timeout',
-                         'public_driver_log','unfenced_export','partial_export','inner_noise','outer_noise','dom_mode','raw_print','wrong_wrapper'):
+                         'public_driver_log','unfenced_export','partial_export','inner_noise','outer_noise','dom_mode','raw_print','wrong_wrapper',
+                         'dispatcher_bypass','dispatcher_dynamic_path','entry_bypass','entry_unknown_key'):
             wrong_legacy,wrong_core=copy.deepcopy(tree),copy.deepcopy(core)
             inside,outside,inner_hook,outer_hook,export,closed,stable,failure,logs,checked,fence=assert_architecture(wrong_legacy,wrong_core)
             if mutation=='early_inner': inside.body.remove(inner_hook); inside.body.insert(inside.body.index(export),inner_hook)
@@ -245,7 +268,11 @@ class FeedbackProjectionContracts(unittest.TestCase):
                     projection=one(n for n in ast.walk(hook) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='project')
                     if mutation=='dom_mode': projection.args[1].value.args[-1]=ast.Constant(value=0o600)
                     else: projection.keywords[0].value=ast.Constant(value=mutation!='inner_noise')
-            else: function(wrong_legacy,'inner').body[0].value.func.attr='run_scene_outer'
+            elif mutation=='wrong_wrapper': function(wrong_legacy,'inner').body[0].value.func.attr='run_scene_outer'
+            elif mutation=='dispatcher_bypass': function(wrong_core,'scene_adapter').body[-1]=statement('return None')
+            elif mutation=='dispatcher_dynamic_path': function(wrong_core,'scene_adapter').body[0].body[1]=statement("spec = importlib.util.spec_from_file_location('trusted_overview_scene', repo / key)")
+            elif mutation=='entry_bypass': outside.body[outside.body.index(matching(outside.body,statement('entry = scene_entry(key)')))]=statement('entry = LEGACY_PATH')
+            else: function(wrong_core,'scene_entry').body[1]=statement('need(True)')
             with self.subTest(mutation=mutation),self.assertRaises(AssertionError): assert_architecture(wrong_legacy,wrong_core)
         native=Path(__file__).parents[1]/'probe-readback/run_probe_readback.py'
         native_tree=ast.parse(native.read_bytes())
