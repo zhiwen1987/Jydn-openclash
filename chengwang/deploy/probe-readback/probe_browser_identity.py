@@ -161,7 +161,7 @@ def main():
     root = args.evidence_root.resolve(strict=True); report = args.report.resolve()
     need(not report.is_relative_to(root))
     raw = B.read_file(root / 'browser-identity.json', 8192)
-    build = B.decoded(B.read_file(root / 'browser/browser-build.json'))
+    build = B.decoded(B.read_file(root / 'browser/browser-build.json'), source_manifest=True)
     processes = B.decoded(B.read_file(root / 'browser/browser-processes.json'))
     driver = B.decoded(B.read_file(root / 'browser/browser-driver.json'))
     # Recompute original backend/build/process evidence, not a stored PASS flag.
@@ -173,9 +173,9 @@ def main():
     browser_dir = root / 'browser'
     need({p.name for p in browser_dir.iterdir()} == own_names | {'web'})
     originals = {name: B.read_file(browser_dir / name, 8 << 20) for name in own_names}
-    need(build == B.decoded(originals['browser-build.json']) and processes == B.decoded(originals['browser-processes.json'])
+    need(build == B.decoded(originals['browser-build.json'], source_manifest=True) and processes == B.decoded(originals['browser-processes.json'])
          and driver == B.decoded(originals['browser-driver.json']))
-    isolation = B.decoded(B.read_file(root / 'backend' / (B.PREFIX + 'isolation.json')))
+    isolation = B.decoded(B.read_file(root / 'backend' / (B.PREFIX + 'isolation.json')), source_manifest=True)
     legacy.validate_build(browser_dir, build, isolation, args.source_commit, native['fixtureId'], args.engine)
     legacy.validate_processes(processes, driver, build, isolation, originals, args.source_commit, native['fixtureId'], args.engine)
     result = verify(B.decoded(raw), build, processes, driver, args.source_commit, args.engine)

@@ -294,7 +294,75 @@ def validate_build(c, build, commit):
     return files, closure(False), closure(True)
 
 
-def validate_captures(c, rows, files, required, allowed):
+CONFIGURED_IDENTITY_PUBLIC_TEXTS = {
+    ('evidence', 0): '受保护的 /api/v1/operations 接口使用严格 Bearer 身份文件',
+    ('limitations', 0): '仅为本地高熵静态 Bearer 凭据哈希，不是密码登录、会话、MFA、SSO 或令牌轮换服务',
+}
+
+
+def configured_identity_source_texts(registry_raw):
+    """Recognize this reviewed source subset, never a general Go evaluator."""
+    need(type(registry_raw) is bytes and 0 < len(registry_raw) <= 1 << 20)
+    registry = registry_raw.decode('utf-8')
+    literal = r'("(?:[^"\\\r\n]|\\.)*")'
+    pattern = (r'if facts\.IdentityConfigured \{\s*identityState = StateImplementedLocal\s*'
+               r'identityEvidence = \[\]string\{' + literal + r'\}\s*'
+               r'identityLimitations = \[\]string\{\s*' + literal + r',\s*' + literal + r',\s*\}\s*\}')
+    matches = list(re.finditer(pattern, registry))
+    need(len(matches) == 1)
+    need(len(re.findall(r'\bidentityEvidence\s*=\s*\[\]string', registry)) == 1
+         and len(re.findall(r'\bidentityLimitations\s*=\s*\[\]string', registry)) == 1)
+    values = [json.loads(value) for value in matches[0].groups()]
+    need(all(type(value) is str for value in values))
+    result = {('evidence', 0): values[0], ('limitations', 0): values[1]}
+    same(result, CONFIGURED_IDENTITY_PUBLIC_TEXTS)
+    # The remaining literal is not a Bearer exception and must not introduce
+    # another credential-shaped string into the recognized source block.
+    need('Bearer ' not in values[2] and 'PRIVATE KEY' not in values[2])
+    return result
+
+
+def read_configured_identity_source(repo, commit):
+    need(type(commit) is str and re.fullmatch('[a-f0-9]{40}', commit))
+    return configured_identity_source_texts(git_file(repo, commit, 'chengwang/internal/capability/registry.go'))
+
+
+def public_body_fence(c, raw, kind, profile, source_texts=None):
+    """Only two complete, source-checked documentation strings are exempt."""
+    need(type(raw) is bytes and kind in c['captureRules']['kindEnum'] and profile in c['profiles'])
+    if source_texts is not None:
+        need(type(source_texts) is dict and all(type(key) is tuple and len(key) == 2
+             and type(key[0]) is str and type(key[1]) is int and key[1] == 0 for key in source_texts))
+        same(source_texts, CONFIGURED_IDENTITY_PUBLIC_TEXTS)
+    need(b'PRIVATE KEY' not in raw)
+    if kind == 'ASSET':
+        return
+    if kind != 'CAPABILITIES':
+        need(b'Bearer ' not in raw)
+        return
+    value = capability(c, raw, profile)
+    def strings(item, path=()):
+        if type(item) is dict:
+            for key, child in item.items():
+                yield path + (key,), key
+                yield from strings(child, path + (key,))
+        elif type(item) is list:
+            for index, child in enumerate(item):
+                yield from strings(child, path + (index,))
+        elif type(item) is str:
+            yield path, item
+    for path, line in strings(value):
+        need('PRIVATE KEY' not in line)
+        if 'Bearer ' not in line:
+            continue
+        need(profile == 'backend_configured' and source_texts is not None)
+        need(len(path) == 4 and path[0] == 'capabilities' and type(path[1]) is int
+             and path[2:] in CONFIGURED_IDENTITY_PUBLIC_TEXTS)
+        need(value['capabilities'][path[1]]['id'] == 'real_authentication')
+        same(line, source_texts[path[2:]])
+
+
+def validate_captures(c, rows, files, required, allowed, *, profile='default', source_texts=None):
     bounds = c['captureRules']['bounds']
     need(type(rows) is list and 4 <= len(rows) <= bounds['requests'])
     ids, starts, kinds, total = {}, set(), {}, 0
@@ -326,7 +394,7 @@ def validate_captures(c, rows, files, required, allowed):
         need(total <= bounds['decodedTotal'])
         same(row['responseBytes'], len(raw))
         same(row['responseSHA256'], sha(raw))
-        need(b'PRIVATE KEY' not in raw and (kind == 'ASSET' or b'Bearer ' not in raw))
+        public_body_fence(c, raw, kind, profile, source_texts)
         if relative:
             same(dict(bytes=len(raw), sha256=sha(raw)), {k: files[relative][k] for k in ('bytes', 'sha256')})
         for name in ('startedWallTimeUs', 'startTimeUs', 'headerTimeUs', 'endTimeUs'):
@@ -1035,7 +1103,8 @@ def verify(directory, repo, commit, engine, profile):
     build = decode(raw['build.json'])
     files, required, allowed = validate_build(c, build, commit)
     captures = json_lines(raw['captures.jsonl'], bounds['requests'], 12 << 20)
-    capture_ids, kinds = validate_captures(c, captures, files, required, allowed)
+    public_texts = read_configured_identity_source(repo, commit) if profile == 'backend_configured' else None
+    capture_ids, kinds = validate_captures(c, captures, files, required, allowed, profile=profile, source_texts=public_texts)
     validate_events(c, driver, capture_ids)
     same(driver['captures'], dict(path='captures.jsonl', bytes=len(raw['captures.jsonl']), sha256=sha(raw['captures.jsonl']), records=len(captures)))
     snapshot = Snapshot().parse(unbase64(kinds['SNAPSHOT'][0]['responseBase64'], bounds['bodyAPI']))

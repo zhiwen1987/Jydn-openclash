@@ -259,6 +259,47 @@ jobs:
           test ! -e "$reports/capability-synthetic.json"
           install -m 0600 "$RUNNER_TEMP/subscription-ui/capability-synthetic.json" "$reports/capability-synthetic.json"
 
+      - name: Verify separate source-bound public documentation privacy cases
+        if: matrix.scenario == 'capability_truth'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          (
+            cd chengwang/deploy/capability-truth-browser
+            python3 -B - <<'PY' 2>&1 | tee "$reports/capability-public-source-text-unit.log"
+          import hashlib
+          import unittest
+          def names_in(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from names_in(item)
+                  else:
+                      yield item.id()
+          suite = unittest.defaultTestLoader.loadTestsFromName('test_public_source_text')
+          expected = sorted(names_in(suite))
+          pin = hashlib.sha256(('\n'.join(expected) + '\n').encode('ascii')).hexdigest()
+          if len(expected) != 22 or len(set(expected)) != 22 or pin != '6bc3ccf7d66215dc4af9ac88cfa73918787012cc27f7bef301924a0b84caf25f':
+              raise SystemExit('public source text exact names rejected')
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args)
+                  self.started = []
+                  self.passed = []
+              def startTest(self, test):
+                  self.started.append(test.id())
+                  super().startTest(test)
+              def addSuccess(self, test):
+                  self.passed.append(test.id())
+                  super().addSuccess(test)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(suite)
+          if (not result.wasSuccessful() or result.testsRun != 22 or result.skipped or result.expectedFailures
+                  or result.unexpectedSuccesses or sorted(result.started) != expected or sorted(result.passed) != expected):
+              raise SystemExit('public source text exact events rejected')
+          print('CAPABILITY_PUBLIC_SOURCE_TEXT_CPU=PASS tests=22 skipped=0 browser_acceptance=false')
+          PY
+          )
+
       - name: Preserve actual synthetic test output separately from real UI acceptance
         shell: bash
         run: |

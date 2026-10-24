@@ -263,8 +263,8 @@ def verify(backend_dir, browser_dir, source_commit, engine):
     for stage, value in zip(STAGES, flow['captures']):
         need(type(value) is dict and same({k: v for k, v in value.items() if k != 'artifact'}, model['captures'][stage]))
         raw_reference(value['artifact'], raw[prefix + stage + '-dom.json'], prefix + stage + '-dom.json')
-    build = backend.decoded(raw['browser-build.json'])
-    isolation = backend.decoded(backend.read_file(backend_dir / (backend.PREFIX + 'isolation.json')))
+    build = backend.decoded(raw['browser-build.json'], source_manifest=True)
+    isolation = backend.decoded(backend.read_file(backend_dir / (backend.PREFIX + 'isolation.json')), source_manifest=True)
     web = validate_build(browser_dir, build, isolation, source_commit, native['fixtureId'], engine)
     driver = backend.decoded(raw['browser-driver.json'])
     processes = backend.decoded(raw['browser-processes.json'])

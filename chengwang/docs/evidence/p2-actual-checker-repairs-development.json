@@ -1,0 +1,82 @@
+{
+  "schema": "chengwang.actual-checker-repairs-development/v1",
+  "baselineCommit": "aed4712253f840d1c68b2482bd0c0edf4fa4e7f4",
+  "branch": "codex/chengwang-live-overview-20261024",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-subscription-ui-browser.yml": "46a31fee080d5b9ea8c4ce41b6c47e8a25083464a7e5a345695e7b749decfa28",
+    "chengwang/deploy/capability-truth-browser/check_capability_truth.py": "a7b89b95870796a15974b370365fb8edc5306613ec797766a3f4c2bd6e2ca756",
+    "chengwang/deploy/capability-truth-browser/test_public_source_text.py": "2a53a53b4e29abc0796a2cd3888c7c117e8682036c6141f16d4a3c61395b6752",
+    "chengwang/deploy/probe-readback/check_probe_browser.py": "a39079d7b4fc831616a78cbb34740a104489a2cec160e8d835008c4be0bbf98a",
+    "chengwang/deploy/probe-readback/check_request_binding.py": "926dcf669590bccc003ad8d26ab86a67a24c48fe7e3526c2c8f5bf1f47772c51",
+    "chengwang/deploy/probe-readback/check_status_diagnostic.py": "e990b4005122a921b555e6521feb6e5b826514e46e2f32859bb34ece0890f657",
+    "chengwang/deploy/probe-readback/check_status_network_lifecycle.py": "1c07288925e7239feaab13e6f1cc6846dd6641042f3ddad7cefe6396361a2cac",
+    "chengwang/deploy/probe-readback/probe_browser_identity.py": "6ea3692f4b7958fbdde4ea8184b9f215da5a4946bfbbe1056800212aeec20a00"
+  },
+  "sourceStable": true,
+  "actualPriorCI": {
+    "parent": 40080597037,
+    "image": 40080597089,
+    "native": 40080597084,
+    "subscription": 40080597036,
+    "ui": 40080597094,
+    "probeBrowser": 40080597128,
+    "passedWorkflows": 4,
+    "failedWorkflows": 2
+  },
+  "parentRawReplay": "D:/CodexData/workspace/aed-parent-originals-replay-rcqyl8te/result.json",
+  "goOrdinaryAndRaceSemanticEventsEachForPriorCommit": 2709,
+  "frontendPassedForPriorCommit": 345,
+  "frontendFilesForPriorCommit": 18,
+  "static": {
+    "directory": "D:\\CodexData\\workspace\\actual-checker-repairs-static-s7qy4ka1",
+    "shellBlocks": 69,
+    "exactCIHelperCases": 22,
+    "resultSHA256": "4e5cd00fb0dc3ddb18e8def9a0ae0c8f95d3eb9627a193a91ee90a1eeb489d50"
+  },
+  "capabilityPublicText": {
+    "directory": "D:\\CodexData\\workspace\\capability-public-source-text-cpu-20261024-final",
+    "resultSHA256": "42efc42f35a9ee87304d11d3f434aba72072e7670525525918f9015069ffd783",
+    "newCases": 22,
+    "oldCasesRetainedAndPassed": 50,
+    "newFullnamesWithTrailingLFPin": "6bc3ccf7d66215dc4af9ac88cfa73918787012cc27f7bef301924a0b84caf25f",
+    "historicalBodiesChecked": 8,
+    "historicalBodyReceipt": "D:\\CodexData\\workspace\\aed-cap-configured-first-reject-20261024\\candidate-eight-bodies.json",
+    "historicalBodyReceiptSHA256": "03dec3332a6a3b26d1f73b2b974c0609fcca34cd94695554a769e195a9fd5670",
+    "historicalEvidenceCommit": "aed4712253f840d1c68b2482bd0c0edf4fa4e7f4",
+    "notOriginalCIReclassification": true
+  },
+  "legacyCapabilityCPU": {
+    "directory": "D:\\CodexData\\workspace\\actual-checker-repairs-legacy-cpu-0ndrvfb3",
+    "tests": 188,
+    "skips": 0,
+    "originalTestsUnchanged": true
+  },
+  "probeContext": {
+    "directory": "D:\\CodexData\\workspace\\aed-probe-context-fix-20261024",
+    "resultSHA256": "a3fed903f567f51017a4b66d8d62d20aa4ba7f13538b2df6dfd3f698c6b3fc73",
+    "files": 5,
+    "exactOptInCalls": 8,
+    "ordinaryDecoderBudgetUnchanged": 1024,
+    "manifestTopLevelBudgetUnchanged": 2000,
+    "existingCPUPassed": 107,
+    "candidateHistoricalCLIs": 10,
+    "candidatePassed": 5,
+    "candidateRejected": 5,
+    "historicalIdentityFailuresRetained": 4,
+    "actualCDPFailedRequestsRetained": 1,
+    "peerResult": "D:\\CodexData\\workspace\\aed-probe-context-peer-20261024\\result.json",
+    "peerSHA256": "49cd2be3ccf708f69c03dcce8ac57cc02eca4d117051c3e984608f982c672af6"
+  },
+  "remaining": [
+    "New same-commit CI for source-bound checker/sidecar verification",
+    "Strict real CDP cancellation remains rejected; investigate fixed browser pin in separate isolated comparison",
+    "New overview browser driver/checker/CI and full functional baseline",
+    "Recovery, gray deployment and production readback"
+  ],
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "browserVersionChanged": false,
+  "localGoOrFrontendOrProductRuntimeExecuted": false,
+  "overallProjectComplete": false
+}

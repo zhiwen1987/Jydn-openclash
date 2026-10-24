@@ -267,7 +267,7 @@ def main():
              'build': root / 'browser/browser-build.json'}
     raw = {k: B.read_file(p, D.MAX_BYTES + 16384 if k == 'binding' else OLD.MAX_LOG_BYTES if k == 'old' else 2 << 20)
            for k, p in paths.items()}
-    value, build = B.decoded(raw['binding']), B.decoded(raw['build'])
+    value, build = B.decoded(raw['binding']), B.decoded(raw['build'], source_manifest=True)
     result = verify(value, raw['old'], build, args.source_commit, args.engine)
     sources = {row['path']: row for row in build['sourceFilesBefore']}
     for name in sorted(REQUIRED_SOURCES):

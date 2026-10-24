@@ -100,7 +100,7 @@ def main():
                  old=root/'lab/status-diagnostic.json', build=root/'lab/browser/browser-build.json')
     limits = dict(sidecar=D.MAX_BYTES + 16384, binding=540672, old=329728, build=2 << 20)
     raw = {k: B.read_file(checked_path(v), limits[k]) for k, v in paths.items()}
-    value, build = D.decoded(raw['sidecar']), B.decoded(raw['build'])
+    value, build = D.decoded(raw['sidecar']), B.decoded(raw['build'], source_manifest=True)
     result = verify(value, raw['binding'], raw['old'], build, a.source_commit, a.engine)
     sources = {r['path']: r for r in build['sourceFilesBefore']}
     for name in sorted(REQUIRED_SOURCES):

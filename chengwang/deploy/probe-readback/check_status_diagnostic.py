@@ -70,7 +70,7 @@ def main():
     D.need(not report.is_relative_to(root))
     value_raw = backend.read_file(root / 'status-diagnostic.json', D.MAX_LOG_BYTES)
     build_raw = backend.read_file(root / 'browser/browser-build.json', 2 << 20)
-    value, build = backend.decoded(value_raw), backend.decoded(build_raw)
+    value, build = backend.decoded(value_raw), backend.decoded(build_raw, source_manifest=True)
     result = verify(value, build, args.source_commit, args.engine)
     copies = {row['path']: row for row in build['copiedInputs']}
     for name in REQUIRED_COPIES:
