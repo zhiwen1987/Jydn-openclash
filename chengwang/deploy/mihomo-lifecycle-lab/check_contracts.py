@@ -17,10 +17,10 @@ FILES = [PREFIX + 'run_contracts.sh', PREFIX + 'check_contracts.py',
     'chengwang/internal/adapter/mihomo/write_client_test.go',
     'chengwang/internal/mihomodeploy/config.go', 'chengwang/internal/mihomodeploy/config_test.go', 'chengwang/go.mod',
     *['chengwang/internal/mihomodeploy/' + name for name in ('artifact.go', 'artifact_linux.go',
-        'artifact_unsupported.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan.go', 'plan_test.go')]]
+        'artifact_unsupported.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan.go', 'plan_test.go', 'prepare.go', 'prepare_test.go')]]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
-      for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go')]]
+      for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go')]]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,
     'race.stderr': 1 << 20, 'gofmt.patch': 1 << 20, 'gofmt.stderr': 1 << 20,

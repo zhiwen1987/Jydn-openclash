@@ -43,6 +43,7 @@ ADDITIONAL_MODEL_TESTS = {
     'artifact_test.go': 'TestSyntheticArtifact',
     'artifact_linux_test.go': 'TestSyntheticArtifactLinux',
     'plan_test.go': 'TestSyntheticPlan',
+    'prepare_test.go': 'TestSyntheticPrepare',
 }
 
 

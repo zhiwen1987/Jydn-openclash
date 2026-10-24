@@ -1,0 +1,81 @@
+{
+  "actualGoFormattingPatchTransferred": {
+    "bytes": 140513,
+    "files": 6,
+    "localGoFormatterExecuted": false,
+    "receipt": "D:/CodexData/workspace/mihomo-9e367-format-transfer-i6looz0c/before.json"
+  },
+  "actualNewCIStatus": "UNREAD_NOT_INFERRED_FROM_PUSH",
+  "baseline": "9e367d829d109d53f438d3e4158cf7e2f512ea79",
+  "implemented": [
+    "actual private candidate and exact old backup reread under one store lock",
+    "full Plan reconstruction, digest, trusted-time and target binding validation",
+    "reject controller credential rotation unsupported by upstream payload reload",
+    "detached private old/new byte copies with metadata-only formatting and JSON"
+  ],
+  "mainMerged": false,
+  "notImplemented": [
+    "trusted lifecycle authority and RBAC approval",
+    "target lease and durable dispatch WAL",
+    "single real PUT with verified runtime and local data plane",
+    "unknown-state reconciliation and approved bounded recovery",
+    "product execution API/UI and production acceptance"
+  ],
+  "parentActualCI": {
+    "commit": "9e367d829d109d53f438d3e4158cf7e2f512ea79",
+    "failedCase": "TestLabPlanPointerValueAndNilFormattingAreMetadataOnly",
+    "ordinary": {
+      "failedTopLevel": 1,
+      "passedTopLevel": 98,
+      "skipped": 0
+    },
+    "originalsRoot": "D:/CodexData/workspace/mihomo-ci-observed-9e367-20261024",
+    "outcome": "failure",
+    "race": {
+      "failedTopLevel": 1,
+      "passedTopLevel": 98,
+      "skipped": 0
+    },
+    "run": 40102862989,
+    "wholeGatePassed": false
+  },
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-private-reload-preparation-development/v1",
+  "scope": "PRIVATE_PREPARATION_AND_SOURCE_CONTRACTS_NOT_RUNTIME_AUTHORIZATION",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "c03b8aa6e4bfcbfb3901410e4b2c8c4f6e6f74e8c801172bd3420ebb6866acf8",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "69a85b938897aac0b342c26d70ef02353a8ead965cb252555a48eed883fe8323",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "d160e0e1524b94564a8f50e6f4b1526c26efe3f345d19adb06d4c9cb0c1e638d",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "632473d919111f40540c6dbb12da0a67da9379d247c655d7cb47975a2b088a15",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "53102db8cd82b93bd44310534502b0667efbad1927d4773b8e78a5fb02651204",
+    "chengwang/internal/mihomodeploy/artifact.go": "5f6dbdf8d1bad755063b7a37e641c8990ce0736d31bffe1cb7ec7ec9835067f8",
+    "chengwang/internal/mihomodeploy/artifact_linux.go": "e89f51a42429ae9a1b209e31360f6d38742977d2db9da0c7055d19936d69d222",
+    "chengwang/internal/mihomodeploy/artifact_linux_test.go": "5b8734ad00d8dec1f482f568c164ce13dcceb6b89bcb8497fb347a768ba9ae21",
+    "chengwang/internal/mihomodeploy/artifact_test.go": "2a470a126c82ab6d17d503d416479987d390a0858c0a5b6d957c574dca709f6f",
+    "chengwang/internal/mihomodeploy/plan.go": "4789047307c0796f2be86c91e5d73f96ca8a6c36c6a5c1b3ab5658e1c3c5d463",
+    "chengwang/internal/mihomodeploy/plan_test.go": "7e12eb75c258ab0ee558e501b2369b71b3b8ed940f6f33e896474efaecbb1a70",
+    "chengwang/internal/mihomodeploy/prepare.go": "ffc8dff20966438b5f897242c523b8578aac123488e0d6d65dc222799e1ba87c",
+    "chengwang/internal/mihomodeploy/prepare_test.go": "3ebba322f2b1edad3348e50b4dd0f11302336daa356aa435135506822a0ef05a"
+  },
+  "testCorrection": {
+    "existingNameCountUnchanged": 26,
+    "legalNestedSHA256PreviouslyRejected": true,
+    "peer": "D:/CodexData/workspace/plan-privacy-peer-9e367-20261024-a/result.json",
+    "privateBodySecretURLAndEncodingNegativeCasesKept": true,
+    "topLevelMetadataClosedSet": true
+  },
+  "validation": {
+    "actualNewGoTestsExecuted": false,
+    "actualPythonModels": 23,
+    "boundSources": 18,
+    "declaredMandatoryGoTests": 109,
+    "declaredNewPreparationTests": 17,
+    "gofmtSourceFiles": 13,
+    "modelsReceipt": "D:/CodexData/workspace/mihomo-prepare-evidence-models-vnzaqepk/result.json",
+    "requiredTestSourceFiles": 6,
+    "skipped": 0,
+    "staticPeer": "D:/CodexData/workspace/mihomo-prepare-final-static-peer-20261024-a/result-final.json",
+    "staticPeerSHA256": "d55ec7dc6a2c770f217ec9f07c1534e9e1393d9c70bfc0a26205d9064ad67c7e"
+  }
+}

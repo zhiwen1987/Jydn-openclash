@@ -56,6 +56,7 @@ PY
 files=(internal/adapter/mihomo/write_client.go internal/adapter/mihomo/write_client_test.go internal/mihomodeploy/config.go internal/mihomodeploy/config_test.go)
 files+=(internal/mihomodeploy/artifact.go internal/mihomodeploy/artifact_linux.go internal/mihomodeploy/artifact_unsupported.go
   internal/mihomodeploy/artifact_test.go internal/mihomodeploy/artifact_linux_test.go internal/mihomodeploy/plan.go internal/mihomodeploy/plan_test.go)
+files+=(internal/mihomodeploy/prepare.go internal/mihomodeploy/prepare_test.go)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?

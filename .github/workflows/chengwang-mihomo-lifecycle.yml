@@ -73,8 +73,8 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
-          assert len(declared)==92 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='45f322db6c2d266390abddfa330c68c0d311cc25756f60f50925ad6f9f9f0043'
-          print('GO_TEST_DECLARATIONS=92 execution_not_proven=true')
+          assert len(declared)==109 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='11ee8bf77f0543bf1c01a872f0f7a2e5b41156233367615e915231e27f9d7fbd'
+          print('GO_TEST_DECLARATIONS=109 execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |

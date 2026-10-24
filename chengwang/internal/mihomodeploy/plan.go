@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	LabEnvironment = "isolated-lab"
-	LabObjectType = "mihomo-lab"
-	LabPlanSchema = "chengwang.mihomo-lab-plan/v1"
+	LabEnvironment  = "isolated-lab"
+	LabObjectType   = "mihomo-lab"
+	LabPlanSchema   = "chengwang.mihomo-lab-plan/v1"
 	LabPlanBoundary = "STRUCTURAL_ISOLATED_LAB_PLAN_NOT_AUTHORIZATION"
 )
 
@@ -26,32 +26,32 @@ var planHash = regexp.MustCompile(`^[a-f0-9]{64}$`)
 // The later isolated executor must construct 127.0.0.1 endpoints itself and
 // recheck the process, namespace, listeners and durable generation/head.
 type TargetBinding struct {
-	DeviceRef string `json:"deviceRef"`
-	Scope authz.ResourceScope `json:"scope"`
-	Generation uint64 `json:"generation"`
-	HeadSHA256 string `json:"headSHA256"`
-	KernelSHA256 string `json:"kernelSHA256"`
-	PID int `json:"pid"`
-	StartTicks uint64 `json:"startTicks"`
-	NetNSInode uint64 `json:"netNSInode"`
-	ControllerPort uint16 `json:"controllerPort"`
-	MixedPort uint16 `json:"mixedPort"`
+	DeviceRef      string              `json:"deviceRef"`
+	Scope          authz.ResourceScope `json:"scope"`
+	Generation     uint64              `json:"generation"`
+	HeadSHA256     string              `json:"headSHA256"`
+	KernelSHA256   string              `json:"kernelSHA256"`
+	PID            int                 `json:"pid"`
+	StartTicks     uint64              `json:"startTicks"`
+	NetNSInode     uint64              `json:"netNSInode"`
+	ControllerPort uint16              `json:"controllerPort"`
+	MixedPort      uint16              `json:"mixedPort"`
 }
 
 type PlanCode string
 
 const (
-	PlanInvalid PlanCode = "lab_plan_invalid"
-	PlanExpired PlanCode = "lab_plan_expired"
-	PlanTargetMismatch PlanCode = "lab_plan_target_mismatch"
+	PlanInvalid         PlanCode = "lab_plan_invalid"
+	PlanExpired         PlanCode = "lab_plan_expired"
+	PlanTargetMismatch  PlanCode = "lab_plan_target_mismatch"
 	PlanArtifactInvalid PlanCode = "lab_plan_artifact_invalid"
-	PlanBackupInvalid PlanCode = "lab_plan_backup_invalid"
+	PlanBackupInvalid   PlanCode = "lab_plan_backup_invalid"
 	PlanApprovalInvalid PlanCode = "lab_plan_approval_material_invalid"
 	PlanApprovalExpired PlanCode = "lab_plan_approval_material_expired"
 )
 
 // PlanError deliberately carries no input, cause, address or configuration.
-type PlanError struct { Code PlanCode }
+type PlanError struct{ Code PlanCode }
 
 func (*PlanError) Error() string { return "Mihomo laboratory plan rejected" }
 
@@ -60,50 +60,52 @@ func planFailure(code PlanCode) error { return &PlanError{Code: code} }
 // PlanSpec contains public descriptors only. DeclaredInitiatorRef is an opaque
 // declaration to bind approval material, never an authenticated principal.
 type PlanSpec struct {
-	OperationID string
+	OperationID          string
 	DeclaredInitiatorRef string
-	Target TargetBinding
-	Artifact ArtifactDescriptor
-	Backup BackupDescriptor
-	ExpiresAt time.Time
+	Target               TargetBinding
+	Artifact             ArtifactDescriptor
+	Backup               BackupDescriptor
+	ExpiresAt            time.Time
 }
 
 type planBinding struct {
-	Schema string `json:"schema"`
-	Boundary string `json:"boundary"`
-	OperationID string `json:"operationId"`
-	DeclaredInitiatorRef string `json:"declaredInitiatorRef"`
-	Target TargetBinding `json:"target"`
-	Artifact ArtifactDescriptor `json:"artifact"`
-	Backup BackupDescriptor `json:"backup"`
-	CreatedAt time.Time `json:"createdAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	Schema               string             `json:"schema"`
+	Boundary             string             `json:"boundary"`
+	OperationID          string             `json:"operationId"`
+	DeclaredInitiatorRef string             `json:"declaredInitiatorRef"`
+	Target               TargetBinding      `json:"target"`
+	Artifact             ArtifactDescriptor `json:"artifact"`
+	Backup               BackupDescriptor   `json:"backup"`
+	CreatedAt            time.Time          `json:"createdAt"`
+	ExpiresAt            time.Time          `json:"expiresAt"`
 }
 
 // Plan is immutable outside this package. Its zero value and JSON imports do
 // not create a plan, authorize a write, acquire a lease or commit any file.
 type Plan struct {
 	binding planBinding
-	sha256 string
+	sha256  string
 }
 
 type PlanDescriptor struct {
-	Schema string `json:"schema"`
-	Boundary string `json:"boundary"`
-	OperationID string `json:"operationId"`
-	DeclaredInitiatorRef string `json:"declaredInitiatorRef"`
-	Target TargetBinding `json:"target"`
-	Artifact ArtifactDescriptor `json:"artifact"`
-	Backup BackupDescriptor `json:"backup"`
-	CreatedAt time.Time `json:"createdAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	PlanSHA256 string `json:"planSHA256"`
+	Schema               string             `json:"schema"`
+	Boundary             string             `json:"boundary"`
+	OperationID          string             `json:"operationId"`
+	DeclaredInitiatorRef string             `json:"declaredInitiatorRef"`
+	Target               TargetBinding      `json:"target"`
+	Artifact             ArtifactDescriptor `json:"artifact"`
+	Backup               BackupDescriptor   `json:"backup"`
+	CreatedAt            time.Time          `json:"createdAt"`
+	ExpiresAt            time.Time          `json:"expiresAt"`
+	PlanSHA256           string             `json:"planSHA256"`
 }
 
 func validateTargetBinding(target TargetBinding) error {
 	for _, value := range []string{target.DeviceRef, target.Scope.TenantID, target.Scope.SiteID,
 		target.Scope.ObjectType, target.Scope.ObjectID, target.Scope.Environment} {
-		if !planReference.MatchString(value) { return planFailure(PlanInvalid) }
+		if !planReference.MatchString(value) {
+			return planFailure(PlanInvalid)
+		}
 	}
 	if target.Scope.Environment != LabEnvironment || target.Scope.ObjectType != LabObjectType ||
 		target.Scope.ObjectID != target.DeviceRef || target.Generation == 0 || target.Generation == ^uint64(0) ||
@@ -141,8 +143,12 @@ func NewPlan(spec PlanSpec, now time.Time) (Plan, error) {
 		return Plan{}, planFailure(PlanInvalid)
 	}
 	now, expires := now.UTC(), spec.ExpiresAt.UTC()
-	if !expires.After(now) { return Plan{}, planFailure(PlanExpired) }
-	if validateTargetBinding(spec.Target) != nil { return Plan{}, planFailure(PlanInvalid) }
+	if !expires.After(now) {
+		return Plan{}, planFailure(PlanExpired)
+	}
+	if validateTargetBinding(spec.Target) != nil {
+		return Plan{}, planFailure(PlanInvalid)
+	}
 	if validateArtifactDescriptor(spec.Artifact) != nil || !spec.Artifact.Config.Admissible {
 		return Plan{}, planFailure(PlanArtifactInvalid)
 	}
@@ -160,7 +166,9 @@ func NewPlan(spec PlanSpec, now time.Time) (Plan, error) {
 		OperationID: spec.OperationID, DeclaredInitiatorRef: spec.DeclaredInitiatorRef, Target: spec.Target,
 		Artifact: spec.Artifact, Backup: spec.Backup, CreatedAt: now, ExpiresAt: expires})
 	raw, err := json.Marshal(binding)
-	if err != nil { return Plan{}, planFailure(PlanInvalid) }
+	if err != nil {
+		return Plan{}, planFailure(PlanInvalid)
+	}
 	return Plan{binding: binding, sha256: labConfigHash(raw)}, nil
 }
 
@@ -173,13 +181,16 @@ func (p Plan) Descriptor() PlanDescriptor {
 }
 
 func (p Plan) MarshalJSON() ([]byte, error) { return json.Marshal(p.Descriptor()) }
-func (p Plan) String() string { raw, _ := p.MarshalJSON(); return string(raw) }
-func (p Plan) GoString() string { return p.String() }
+func (p Plan) String() string               { raw, _ := p.MarshalJSON(); return string(raw) }
+func (p Plan) GoString() string             { return p.String() }
 
 // Formatter protects typed nil pointers too. Value copies are protected by the
 // value-receiver String/GoString/MarshalJSON methods, not by pointer methods.
 func (p *Plan) Format(state fmt.State, verb rune) {
-	if p == nil { _, _ = io.WriteString(state, "<nil>"); return }
+	if p == nil {
+		_, _ = io.WriteString(state, "<nil>")
+		return
+	}
 	_, _ = io.WriteString(state, p.String())
 }
 
@@ -188,12 +199,12 @@ func (p *Plan) Format(state fmt.State, verb rune) {
 // check real authn/RBAC, revocation, write gates and the actual initiator again.
 // This type has no Approved, Permit or authority-producing method.
 type ApprovalMaterial struct {
-	PlanSHA256 string `json:"planSHA256"`
-	Scope authz.ResourceScope `json:"scope"`
-	InitiatorRef string `json:"initiatorRef"`
-	ApproverRef string `json:"approverRef"`
-	IssuedAt time.Time `json:"issuedAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	PlanSHA256   string              `json:"planSHA256"`
+	Scope        authz.ResourceScope `json:"scope"`
+	InitiatorRef string              `json:"initiatorRef"`
+	ApproverRef  string              `json:"approverRef"`
+	IssuedAt     time.Time           `json:"issuedAt"`
+	ExpiresAt    time.Time           `json:"expiresAt"`
 }
 
 // ValidateApprovalMaterial checks consistency only; nil is not authorization.
@@ -204,9 +215,13 @@ func ValidateApprovalMaterial(plan Plan, material ApprovalMaterial, now time.Tim
 		return planFailure(PlanApprovalInvalid)
 	}
 	raw, err := json.Marshal(plan.binding)
-	if err != nil || labConfigHash(raw) != plan.sha256 { return planFailure(PlanApprovalInvalid) }
+	if err != nil || labConfigHash(raw) != plan.sha256 {
+		return planFailure(PlanApprovalInvalid)
+	}
 	now, issued, expires := now.UTC(), material.IssuedAt.UTC(), material.ExpiresAt.UTC()
-	if !now.Before(plan.binding.ExpiresAt) || !expires.After(now) { return planFailure(PlanApprovalExpired) }
+	if !now.Before(plan.binding.ExpiresAt) || !expires.After(now) {
+		return planFailure(PlanApprovalExpired)
+	}
 	if material.PlanSHA256 != plan.sha256 || material.Scope != plan.binding.Target.Scope ||
 		!planReference.MatchString(material.InitiatorRef) || material.InitiatorRef != plan.binding.DeclaredInitiatorRef ||
 		!planReference.MatchString(material.ApproverRef) || material.ApproverRef == material.InitiatorRef ||
