@@ -1,0 +1,52 @@
+{
+  "acceptance": {
+    "inlinePythonAST": 12,
+    "pythonSourceAST": 3,
+    "selectorCases": 23,
+    "shellSyntax": 23,
+    "skipped": 0,
+    "sourceStable": true,
+    "unitTests": 31,
+    "yamlFiles": 2
+  },
+  "baseline": "37ab0fef43194e1dc3045ddda11b19322254301c",
+  "branch": "codex/chengwang-probe-pinned157-20261024",
+  "mainMerged": false,
+  "phase": "IMPLEMENTED_CPU_VERIFIED_REAL_BROWSER_PENDING",
+  "production": false,
+  "receipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\pinned157-scope-null-final-a608447164f64f1a8b8f447a26a387ee\\result.json",
+      "sha256": "e40993231e0f5ccfa713bbd31d579cf4e9eb16895b429ad7cf9da5662303108c"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\pinned157-scope-null-final-a608447164f64f1a8b8f447a26a387ee\\selector-per-process\\result.json",
+      "sha256": "4ed769476a19184c2e5373aac837425e11c39ed14a8107833901f14de8fcae04"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\overview-ci-wiring-static-20261024\\journal-pinned-peer\\result.json",
+      "sha256": "d3d54a9dcfdc2e7a0109e4163d1be398be9bf4a73d076d84b415e6ef46a2e612"
+    }
+  ],
+  "schema": "chengwang.probe-pinned157-development-evidence/v1",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-probe-browser.yml": "8254ec8755084c0589816d1827b12503d8513915033ed9364ed635ff46118673",
+    ".github/workflows/chengwang-probe-pinned157.yml": "207615b3ca3273613b3cf175f0d1ddc3c530ecb3b17bc4d5d6bdae083a94c631",
+    "chengwang/deploy/probe-readback/PINNED157.md": "95822f72ad4d64631415574e14269649b34095ed48db62a3d6b4612b0fa5eda5",
+    "chengwang/deploy/probe-readback/check_pinned157.py": "417af68b8614ed0d8a4b08419d734f7642c260c87f68f7d492ccc07e299d31a7",
+    "chengwang/deploy/probe-readback/prepare_pinned157.py": "5ddd14ab3663adfd0eff9a8aa8592c496aa17dc0f3aa73223bc3813b8418449c",
+    "chengwang/deploy/probe-readback/test_pinned157.py": "bcd5404887b6c94bdbb76f45ba408b94c3b2197980206bdc9de75a8c82539d8c"
+  },
+  "unchanged": [
+    "Original probe runner/driver/product/PW1.64.1 lock",
+    "Hosted Chrome acquisition default path",
+    "Eight raw zero counters, EOF, identity, clock and TLS acceptance constraints"
+  ],
+  "unexecuted": [
+    "Source-bound full pinned CLI and actual Linux consumption/copy",
+    "Chrome157 with unchanged Playwright1.64.1 compatibility",
+    "Real probe CDP/PW producer and independent fresh checks",
+    "TLS, network namespaces, normal close and no-residual processes",
+    "Production or release promotion"
+  ]
+}

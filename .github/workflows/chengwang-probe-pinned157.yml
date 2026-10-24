@@ -1,0 +1,125 @@
+name: Chengwang Probe Pinned157 Isolated Comparison
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-probe-pinned157-20261024]
+    paths:
+      - '.github/workflows/chengwang-probe-*.yml'
+      - 'chengwang/deploy/probe-readback/**'
+      - 'chengwang/tools/probe-browser/**'
+      - 'chengwang/tools/browser-runtime-candidate/**'
+      - 'chengwang/tools/browser-acquisition/**'
+      - 'chengwang/web/**'
+      - 'chengwang/internal/**'
+      - 'chengwang/cmd/**'
+      - 'chengwang/go.*'
+      - 'chengwang/vendor/**'
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-producer:
+    # This invokes the same source-owned scenario and strict gates. It has no
+    # dependency on the separate hosted workflow or its successful outcome.
+    if: ${{ github.ref == 'refs/heads/codex/chengwang-probe-pinned157-20261024' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    uses: ./.github/workflows/chengwang-probe-browser.yml
+    with:
+      browser-runtime: pinned157
+
+  fresh-pinned-verifier:
+    name: Independent fresh pinned157 readback (${{ matrix.engine }})
+    needs: pinned-producer
+    if: ${{ !cancelled() && github.ref == 'refs/heads/codex/chengwang-probe-pinned157-20261024' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.pinned-producer.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chrome-cdp, playwright]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 22.23.3
+          check-latest: false
+      - name: Acquire unchanged locked1.64.1 and fresh fixed browser bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(node --version)" = v22.23.3
+          install -d -m 0700 "$RUNNER_TEMP/pinned157-fresh"
+          npm ci --prefix chengwang/tools/probe-browser --ignore-scripts --no-audit --no-fund
+          node chengwang/tools/probe-browser/check-toolchain.mjs > "$RUNNER_TEMP/pinned157-fresh/toolchain.json"
+          python3 -B chengwang/tools/browser-runtime-candidate/consume_pin.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/pinned157-fresh-consumption" \
+            --report "$RUNNER_TEMP/pinned157-fresh/consumption-producer.json"
+          python3 -B chengwang/tools/browser-runtime-candidate/check_consumption.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/pinned157-fresh-consumption" \
+            --report "$RUNNER_TEMP/pinned157-fresh/consumption-independent.json"
+          cmp "$RUNNER_TEMP/pinned157-fresh/consumption-producer.json" "$RUNNER_TEMP/pinned157-fresh/consumption-independent.json"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: probe-browser-pinned157-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pinned157-originals
+      - name: Rebuild every original acceptance gate from immutable downloaded inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          original="$RUNNER_TEMP/pinned157-originals"
+          fresh="$RUNNER_TEMP/pinned157-fresh"
+          status=0
+          cmp "$original/pinned157-consumption.json" "$fresh/consumption-independent.json" || status=1
+          cmp "$original/toolchain.json" "$fresh/toolchain.json" || status=1
+          # Execute every original checker even after an earlier rejection.
+          # Each command/byte comparison stays fatal to the final job result.
+          check_step() {
+            name="$1"; shift
+            if "$@" 2>&1 | tee "$fresh/$name.log"; then
+              cmp "$original/$name.json" "$fresh/$name.json" || status=1
+            else
+              status=1
+            fi
+          }
+          check_step backend-verification python3 -B chengwang/deploy/probe-readback/check_probe_readback.py verify \
+            --evidence-dir "$original/lab/backend" --source-commit "$GITHUB_SHA" --report "$fresh/backend-verification.json"
+          check_step browser-verification python3 -B chengwang/deploy/probe-readback/check_probe_browser.py verify \
+            --backend-dir "$original/lab/backend" --browser-dir "$original/lab/browser" \
+            --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' --report "$fresh/browser-verification.json"
+          check_step status-diagnostic-verification python3 -B chengwang/deploy/probe-readback/check_status_diagnostic.py \
+            --evidence-root "$original/lab" --source-commit "$GITHUB_SHA" \
+            --engine '${{ matrix.engine }}' --report "$fresh/status-diagnostic-verification.json"
+          check_step request-binding-verification python3 -B chengwang/deploy/probe-readback/check_request_binding.py \
+            --evidence-root "$original/lab" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --repo "$GITHUB_WORKSPACE" --report "$fresh/request-binding-verification.json"
+          check_step status-network-lifecycle-verification python3 -B chengwang/deploy/probe-readback/check_status_network_lifecycle.py \
+            --evidence-root "$original" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --repo "$GITHUB_WORKSPACE" --report "$fresh/status-network-lifecycle-verification.json"
+          check_step browser-identity-verification python3 -B chengwang/deploy/probe-readback/probe_browser_identity.py \
+            --evidence-root "$original/lab" --source-commit "$GITHUB_SHA" \
+            --engine '${{ matrix.engine }}' --report "$fresh/browser-identity-verification.json"
+          check_step eof-cleanup-verification python3 -B chengwang/deploy/probe-readback/check_eof_cleanup.py \
+            --evidence-root "$original" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --repo "$GITHUB_WORKSPACE" --report "$fresh/eof-cleanup-verification.json"
+          check_step pinned157-verification python3 -B chengwang/deploy/probe-readback/check_pinned157.py \
+            --evidence-root "$original" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --repo "$GITHUB_WORKSPACE" --consumption-root "$RUNNER_TEMP/pinned157-fresh-consumption" \
+            --report "$fresh/pinned157-verification.json"
+          git diff --check
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          exit "$status"
+      - name: Preserve fresh checker outputs and failures without claiming browser success
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: probe-pinned157-fresh-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pinned157-fresh/
+          if-no-files-found: error
+          retention-days: 14

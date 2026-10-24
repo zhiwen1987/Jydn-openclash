@@ -1,6 +1,12 @@
 name: Chengwang Probe Browser Acceptance
 
 on:
+  workflow_call:
+    inputs:
+      browser-runtime:
+        description: Closed CI-only browser acquisition selector; never a command or executable path
+        type: string
+        default: hosted
   workflow_dispatch:
   pull_request:
     branches: [main]
@@ -16,7 +22,7 @@ on:
       - "chengwang/go.sum"
       - "chengwang/vendor/**"
   push:
-    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024, codex/chengwang-probe-pinned157-20261024]
     paths:
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"
@@ -33,7 +39,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: chengwang-probe-browser-preflight-${{ github.ref }}
+  group: chengwang-probe-browser-preflight-${{ github.workflow }}-${{ github.ref }}-${{ inputs.browser-runtime }}
   # Preserve both engines' running evidence instead of canceling on a fix push.
   cancel-in-progress: false
 
@@ -42,7 +48,33 @@ jobs:
     name: Offline synthetic contracts and installed Playwright interface (not browser E2E)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      browser-runtime: ${{ steps.runtime_selector.outputs.runtime }}
     steps:
+      - name: Reject unknown browser runtime selectors before acquisition
+        id: runtime_selector
+        env:
+          BROWSER_RUNTIME_INPUTS: ${{ toJSON(inputs) }}
+          BROWSER_RUNTIME_EVENT: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json, os
+          value = json.loads(os.environ['BROWSER_RUNTIME_INPUTS'])
+          if value is None or (type(value) is dict and not value):
+              if os.environ['BROWSER_RUNTIME_EVENT'] not in ('push', 'pull_request', 'workflow_dispatch'):
+                  raise SystemExit('PROBE_BROWSER_RUNTIME=REJECTED')
+              runtime = 'hosted'
+          else:
+              if type(value) is not dict or set(value) != {'browser-runtime'}:
+                  raise SystemExit('PROBE_BROWSER_RUNTIME=REJECTED')
+              runtime = value['browser-runtime']
+          if type(runtime) is not str or runtime not in ('hosted', 'pinned157'):
+              raise SystemExit('PROBE_BROWSER_RUNTIME=REJECTED')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('runtime=' + runtime + '\n')
+          PY
       - name: Checkout exact source without persistent credentials
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -189,7 +221,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: probe-browser-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ steps.runtime_selector.outputs.runtime == 'pinned157' && 'probe-browser-pinned157-preflight' || 'probe-browser-preflight' }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/chengwang-probe-browser-preflight/
           if-no-files-found: error
           retention-days: 14
@@ -204,6 +236,7 @@ jobs:
       matrix:
         engine: [chrome-cdp, playwright]
     env:
+      PROBE_BROWSER_RUNTIME: ${{ needs.contract-preflight.outputs.browser-runtime }}
       GOWORK: "off"
       GOENV: "off"
       GOTOOLCHAIN: local
@@ -242,8 +275,6 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(node --version)" = v22.23.3
           test "$(go env GOVERSION)" = go1.23.12
-          test -f /opt/google/chrome/chrome
-          test ! -L /opt/google/chrome/chrome
           # Hosted tool-cache ancestors are not our custody boundary. Copy
           # only the actual ELF into this run's private, non-writable input
           # hierarchy; never chmod the shared cache or bypass checked_path.
@@ -251,6 +282,9 @@ jobs:
           # The hosted Chrome distribution is also shared and may be 0777.
           # Keep resource/ICU/locales next to its ELF in a root-owned safe copy.
           # This is trusted-CI tool acquisition, not independent provenance.
+          if test "$PROBE_BROWSER_RUNTIME" = hosted; then
+          test -f /opt/google/chrome/chrome
+          test ! -L /opt/google/chrome/chrome
           sudo --non-interactive /usr/bin/python3 -B - "$lab/chrome" "$lab/evidence/chrome-distribution.json" <<'PY'
           import hashlib, json, os, pathlib, stat, sys
           source = pathlib.Path('/opt/google/chrome'); target = pathlib.Path(sys.argv[1])
@@ -297,6 +331,7 @@ jobs:
           with pathlib.Path(sys.argv[2]).open('x') as output:
               json.dump(report, output, separators=(',', ':')); output.write('\n')
           PY
+          fi
           sudo --non-interactive apt-get update -qq
           sudo --non-interactive apt-get install --no-install-recommends -y libnss3-tools
           /usr/bin/cp -a chengwang/web/. "$lab/web-build/"
@@ -330,6 +365,63 @@ jobs:
                   raw = path.read_bytes()
                   records.append(dict(path=path.as_posix(), bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest()))
           pathlib.Path(sys.argv[1]).write_text(json.dumps(records, separators=(',', ':')) + '\n')
+          PY
+
+      - name: Independently consume reviewed157 and prepare a new root-owned distribution
+        if: needs.contract-preflight.outputs.browser-runtime == 'pinned157'
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          consumed="$RUNNER_TEMP/chengwang-probe-pinned157-consumption"
+          python3 -B chengwang/tools/browser-runtime-candidate/consume_pin.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --output "$consumed" \
+            --report "$lab/evidence/pinned157-consumption-producer.json"
+          python3 -B chengwang/tools/browser-runtime-candidate/check_consumption.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$consumed" \
+            --report "$lab/evidence/pinned157-consumption.json"
+          cmp "$lab/evidence/pinned157-consumption-producer.json" "$lab/evidence/pinned157-consumption.json"
+          sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux RUNNER_TEMP="$RUNNER_TEMP" \
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE" \
+            /usr/bin/python3 -B chengwang/deploy/probe-readback/prepare_pinned157.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --consumption-root "$consumed" \
+            --receipt "$lab/evidence/pinned157-consumption.json" --destination "$lab/chrome" \
+            --report "$lab/evidence/pinned157-copy.json"
+
+      - name: Check pinned-runtime helper contracts without a browser
+        if: needs.contract-preflight.outputs.browser-runtime == 'pinned157'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ( cd chengwang/deploy/probe-readback
+            python3 -B -m unittest -v test_pinned157 2>&1 \
+              | tee "$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence/pinned157-unit.log"
+          )
+          python3 -B - "$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence/pinned157-unit.log" <<'PY'
+          import hashlib, pathlib, re, sys
+          raw = pathlib.Path(sys.argv[1]).read_bytes()
+          if not 0 < len(raw) <= 1048576:
+              raise SystemExit('PINNED157_CPU=REJECTED')
+          lines = raw.decode('ascii').splitlines(); names = []
+          summary = 0; result = 0; separator = 0
+          for line in lines:
+              if not line:
+                  continue
+              match = re.fullmatch(r'(test_[a-z0-9_]+) \(test_pinned157\.Pinned157Contracts\.\1\) \.\.\. ok', line)
+              if match:
+                  names.append(match.group(1))
+              elif re.fullmatch(r'Ran 31 tests in [0-9]+\.[0-9]+s', line):
+                  summary += 1
+              elif line == 'OK':
+                  result += 1
+              elif line == '-' * 70:
+                  separator += 1
+              else:
+                  raise SystemExit('PINNED157_CPU=REJECTED')
+          if (len(names) != len(set(names)) or len(names) != 31 or (summary, result, separator) != (1, 1, 1)
+              or hashlib.sha256('\n'.join(sorted(names)).encode()).hexdigest() != 'b5d798f29e1f585cdb0e2a4256c127d05483edf80aa02fe9ddbb53ce952e49f7'):
+              raise SystemExit('PINNED157_CPU=REJECTED')
+          print('PINNED157_CPU=PASS tests=31 skips=0 browser_started=false')
           PY
 
       - name: Build real product binaries and frontend offline with read-only source
@@ -576,8 +668,10 @@ jobs:
           python3 -B - "$lab/evidence/input-paths.json" "$lab" "$(readlink -f "$(command -v node)")" <<'PY'
           import json, os, pathlib, stat, sys
           root = pathlib.Path(sys.argv[2]); records = []
+          source_chrome = (root.parent / 'chengwang-probe-pinned157-consumption/chrome-linux64/chrome'
+              if os.environ['PROBE_BROWSER_RUNTIME'] == 'pinned157' else pathlib.Path('/opt/google/chrome/chrome'))
           paths = [('source-node-not-runtime-input', pathlib.Path(sys.argv[3])),
-              ('node', root / 'bin/node'), ('source-chrome-not-runtime-input', pathlib.Path('/opt/google/chrome/chrome')),
+              ('node', root / 'bin/node'), ('source-chrome-not-runtime-input', source_chrome),
               ('chrome', root / 'chrome/chrome'),
               ('agent', root / 'bin/probe-agent'), ('server', root / 'bin/server'),
               ('driver', root / 'bin/probe-readback-driver'), ('web', root / 'web-build/dist'),
@@ -707,6 +801,19 @@ jobs:
           print('PROBE_BROWSER_SOURCE=UNCHANGED')
           PY
 
+      - name: Bind pinned157 receipt to actual copied distribution process and observed version
+        if: ${{ !cancelled() && needs.contract-preflight.outputs.browser-runtime == 'pinned157' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          report="$RUNNER_TEMP/probe-pinned157-verification.json"
+          python3 -B chengwang/deploy/probe-readback/check_pinned157.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence-root "$evidence" \
+            --consumption-root "$RUNNER_TEMP/chengwang-probe-pinned157-consumption" \
+            --engine '${{ matrix.engine }}' --report "$report"
+          install -m 0644 "$report" "$evidence/pinned157-verification.json"
+
       - name: Validate hidden-file boundary of public evidence archive
         id: public_archive_boundary
         if: always()
@@ -729,7 +836,7 @@ jobs:
         if: always() && steps.public_archive_boundary.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: probe-browser-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ needs.contract-preflight.outputs.browser-runtime == 'pinned157' && 'probe-browser-pinned157' || 'probe-browser' }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/chengwang-probe-browser-runtime/evidence/
           include-hidden-files: true
           if-no-files-found: error
