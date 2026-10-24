@@ -216,7 +216,7 @@ class SyntheticApplyEvidenceModels(unittest.TestCase):
     def test_synthetic_complete18_model_is_not_actual_kernel_or_authorization(self):
         # Preserve the historical test ID while checking the version2 set.
         raw, sources = fixture(); report = C.verify_raw(raw, sources, COMMIT)
-        self.assertEqual(len(raw), 36); self.assertEqual(len(sources), 65)
+        self.assertEqual(len(raw), 36); self.assertEqual(len(sources), 95)
         self.assertEqual(report['schema'], 'chengwang.mihomo-runtime-apply-verification/v2')
         self.assertEqual(report['scope'], 'ACTUAL_LOCAL_APPLY_EXPERIMENT_NOT_FULL_PROJECT')
         self.assertIs(report['production'], False)

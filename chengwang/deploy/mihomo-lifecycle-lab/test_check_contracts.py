@@ -53,6 +53,16 @@ ADDITIONAL_MODEL_TESTS = {
     'lab_authority_test.go': 'TestSyntheticLabAuthority',
     'lab_expectation_test.go': 'TestSyntheticLabExpectation',
     'lab_kernel_linux_test.go': 'TestSyntheticLabKernelLinux',
+    'lab_bootstrap_linux_test.go': 'TestSyntheticLabBootstrapLinux',
+    'lab_bootstrap_test.go': 'TestSyntheticLabBootstrap',
+    'lab_collector_linux_test.go': 'TestSyntheticLabCollectorLinux',
+    'lab_collector_test.go': 'TestSyntheticLabCollector',
+    'lab_local_route_test.go': 'TestSyntheticLabLocalRoute',
+    'lab_service_diagnostics_test.go': 'TestSyntheticLabServiceDiagnostics',
+    'lab_service_test.go': 'TestSyntheticLabService',
+    'lab_syntax_linux_test.go': 'TestSyntheticLabSyntaxLinux',
+    'mihomo_lab_test.go': 'TestSyntheticMihomoLabAPI',
+    'mihomo_lab_config_test.go': 'TestSyntheticMihomoLabComposition',
 }
 
 
@@ -68,7 +78,7 @@ class ContractEvidenceModels(unittest.TestCase):
         self.repo.mkdir()
         self.evidence.mkdir()
         self.sources = {}
-        self.required = {package: list(names) for package, names in REQUIRED.items()}
+        self.required = {package: [] for package in S.PACKAGES}
         for path in S.FILES:
             value = b'synthetic source\n'
             if path.endswith('check_contracts.py'):
@@ -76,7 +86,7 @@ class ContractEvidenceModels(unittest.TestCase):
             elif path.endswith('_test.go'):
                 name = ADDITIONAL_MODEL_TESTS.get(Path(path).name, 'TestSynthetic')
                 value = ('func ' + name + '(t *testing.T) {\n}\n').encode()
-                if name != 'TestSynthetic' and path in dict(S.TEST_FILES):
+                if path in dict(S.TEST_FILES):
                     self.required[dict(S.TEST_FILES)[path]].append(name)
             target = self.repo / path
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -165,12 +175,13 @@ class ContractEvidenceModels(unittest.TestCase):
 
     def test_authentication_package_cannot_be_omitted_or_fabricated_as_package_pass(self):
         rows = event_rows(self.required)
-        for altered in (
-            [row for row in rows if row['Package'] != 'chengwang/internal/authn'],
-            [row for row in rows if row['Package'] != 'chengwang/internal/authn' or 'Test' not in row],
-        ):
-            with self.assertRaises(ValueError):
-                S.events(transcript(altered), self.required)
+        for package in sorted(S.PACKAGES):
+            for altered in (
+                [row for row in rows if row['Package'] != package],
+                [row for row in rows if row['Package'] != package or 'Test' not in row],
+            ):
+                with self.assertRaises(ValueError):
+                    S.events(transcript(altered), self.required)
 
     def test_lifecycle_and_snapshot_source_tests_are_individually_mandatory(self):
         required = S.required_names(self.sources)
@@ -214,6 +225,8 @@ class ContractEvidenceModels(unittest.TestCase):
             S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
+        self.assertEqual(len(self.sources), 76)
+        self.assertEqual(len(S.PACKAGES), 5)
         result = self.verify_model()
         self.assertEqual(set(result['suites']), {'ordinary.json', 'race.json'})
         self.assertEqual(result['scope'], 'SOURCE_CONTRACTS_ONLY_NOT_LIFECYCLE_OR_DEPLOYMENT_ACCEPTANCE')

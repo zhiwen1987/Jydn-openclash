@@ -1,0 +1,18 @@
+{
+  "schema": "chengwang.mihomo-service-experiment-contract/v1",
+  "scope": "ACTUAL_ISOLATED_PRODUCT_HTTP_AND_LOCAL_POSTCONDITION_NOT_FULL_SYSTEM_OR_PRODUCTION",
+  "tag": "chengwang_mihomo_service",
+  "goPackage": "./internal/serverruntime",
+  "topTest": "TestMihomoServiceHTTPApprovalReloadReadbackAndReplay",
+  "goTimeoutSeconds": 75,
+  "outerGoTimeoutSeconds": 90,
+  "privateRoot": "/tmp/chengwang-mihomo-service-private",
+  "identityRoot": "/tmp/chengwang-mihomo-service-identities",
+  "stateRoot": "/tmp/chengwang-mihomo-service-state",
+  "captureStages": ["bootstrap", "op-01/create", "op-01/pre-dispatch", "op-01/post-dispatch"],
+  "captureFiles": ["transcript.json", "body-1.json", "body-2.json", "body-3.json", "body-4.json", "body-5.json", "body-6.json", "body-7.json", "body-8.json", "verification.json"],
+  "maxPublicBytes": 16777216,
+  "maxCaptureBodyBytes": 262144,
+  "maxVerificationBytes": 65536,
+  "production": false
+}

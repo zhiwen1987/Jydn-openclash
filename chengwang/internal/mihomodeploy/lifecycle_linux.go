@@ -176,8 +176,9 @@ func (d *lifecycleLinuxDisk) openChain(path string, leaf, create bool) ([]lifecy
 	return chain, nil
 }
 
-// Alternate paths are package-private test inputs only. No exported constructor
-// or HTTP surface may choose the durable directory or host lock path.
+// Alternate paths remain package-private: tests and the source-fixed isolated
+// runtime factory are the only callers. No exported constructor or HTTP surface
+// may choose either path. A private namespace lock is not a host-wide fence.
 func openLifecycleDiskAt(path, globalPath string) (lifecycleDisk, error) {
 	if !filepath.IsAbs(globalPath) || filepath.Clean(globalPath) != globalPath || globalPath == "/" ||
 		!filepath.IsAbs(path) || filepath.Clean(path) != path || path == "/" || globalPath == path ||

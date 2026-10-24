@@ -30,6 +30,45 @@ LAB_RUNTIME_FILES = ('lab_authority.go', 'lab_authority_test.go', 'lab_expectati
     'lab_kernel_unsupported.go', 'lab_kernel_unsupported_test.go')
 FILES += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_READER_FILES]
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RUNTIME_FILES]
+LAB_SERVICE_FILES = (
+    'lab_backend.go',
+    'lab_bootstrap.go',
+    'lab_bootstrap_linux.go',
+    'lab_bootstrap_linux_test.go',
+    'lab_bootstrap_state.go',
+    'lab_bootstrap_test.go',
+    'lab_bootstrap_unsupported.go',
+    'lab_collector.go',
+    'lab_collector_linux.go',
+    'lab_collector_linux_test.go',
+    'lab_collector_test.go',
+    'lab_collector_unsupported.go',
+    'lab_local_route.go',
+    'lab_local_route_test.go',
+    'lab_service.go',
+    'lab_service_acceptance_linux.go',
+    'lab_service_diagnostics.go',
+    'lab_service_diagnostics_test.go',
+    'lab_service_test.go',
+    'lab_syntax_linux.go',
+    'lab_syntax_linux_test.go',
+    'lab_syntax_unsupported.go',
+    'lab_syntax_unsupported_test.go',
+)
+LAB_API_FILES = (
+    'mihomo_lab.go',
+    'mihomo_lab_test.go',
+    'server.go',
+)
+LAB_COMPOSITION_FILES = (
+    'mihomo_lab_runtime.go',
+    'mihomo_lab_config_test.go',
+    'mihomo_service_e2e_linux_test.go',
+    'runtime.go',
+)
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_SERVICE_FILES]
+FILES += ['chengwang/internal/api/' + name for name in LAB_API_FILES]
+FILES += ['chengwang/internal/serverruntime/' + name for name in LAB_COMPOSITION_FILES]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
@@ -40,7 +79,12 @@ TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_readback_test.go', 'cheng
 TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_evidence_test.go', 'chengwang/internal/adapter/mihomo')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
     for name in ('lab_authority_test.go', 'lab_expectation_test.go', 'lab_kernel_linux_test.go')]
-PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn'}
+TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
+    for name in ('lab_bootstrap_linux_test.go', 'lab_bootstrap_test.go', 'lab_collector_linux_test.go', 'lab_collector_test.go', 'lab_local_route_test.go', 'lab_service_diagnostics_test.go', 'lab_service_test.go', 'lab_syntax_linux_test.go')]
+TEST_FILES += [('chengwang/internal/api/mihomo_lab_test.go', 'chengwang/internal/api'),
+    ('chengwang/internal/serverruntime/mihomo_lab_config_test.go', 'chengwang/internal/serverruntime')]
+PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
+    'chengwang/internal/api', 'chengwang/internal/serverruntime'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,
     'race.stderr': 1 << 20, 'gofmt.patch': 1 << 20, 'gofmt.stderr': 1 << 20,
     'execution.json': 4096, 'sandbox.json': 4096, 'go-version.txt': 4096,

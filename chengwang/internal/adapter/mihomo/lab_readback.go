@@ -621,89 +621,153 @@ func (c *LabReadbackClient) get(ctx context.Context, path string, capture *labEv
 	if path != "/version" && path != "/configs" && path != "/proxies" && path != "/rules" {
 		return nil, ErrLabReadbackInput
 	}
-	record:=capture.begin(path)
-	if capture!=nil&&record==nil {return nil,ErrLabReadbackInput}
-	defer func(){if record!=nil {record.ContextState=labEvidenceContext(ctx)}}()
-	fail:=func(code string,err error)(any,error){labEvidenceTerminal(record,code);return nil,err}
-	if !labContextOK(ctx) {return fail("CONTEXT",ErrLabReadbackUnavailable)}
+	record := capture.begin(path)
+	if capture != nil && record == nil {
+		return nil, ErrLabReadbackInput
+	}
+	defer func() {
+		if record != nil {
+			record.ContextState = labEvidenceContext(ctx)
+		}
+	}()
+	fail := func(code string, err error) (any, error) { labEvidenceTerminal(record, code); return nil, err }
+	if !labContextOK(ctx) {
+		return fail("CONTEXT", ErrLabReadbackUnavailable)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.core.endpoint+path, nil)
 	if err != nil {
-		return fail("INPUT",ErrLabReadbackInput)
+		return fail("INPUT", ErrLabReadbackInput)
 	}
 	req.Close = true
 	req.Header.Set("Authorization", "Bearer "+c.core.secret)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Encoding", "identity")
-	if record!=nil {record.RequestBuilt=true}
-	if !labContextOK(ctx) {return fail("CONTEXT",ErrLabReadbackUnavailable)}
-	if record!=nil {record.DoInvoked=true}
+	if record != nil {
+		record.RequestBuilt = true
+	}
+	if !labContextOK(ctx) {
+		return fail("CONTEXT", ErrLabReadbackUnavailable)
+	}
+	if record != nil {
+		record.DoInvoked = true
+	}
 	resp, err := c.core.client.Do(req)
-	if err!=nil {labEvidenceTerminal(record,"NETWORK")}
-	if resp!=nil&&record!=nil {if !labEvidenceResponse(record,resp) {record.LimitReached=true;labEvidenceTerminal(record,"LIMIT")}}
-	closed:=false
-	closeBody:=func() error {
-		if closed||resp==nil||resp.Body==nil {return nil};closed=true
-		if record!=nil {record.CloseAttempted=true}
-		err:=resp.Body.Close()
-		if record!=nil {code:=labEvidenceError(err);record.CloseErrorClass=&code}
+	if err != nil {
+		labEvidenceTerminal(record, "NETWORK")
+	}
+	if resp != nil && record != nil {
+		if !labEvidenceResponse(record, resp) {
+			record.LimitReached = true
+			labEvidenceTerminal(record, "LIMIT")
+		}
+	}
+	closed := false
+	closeBody := func() error {
+		if closed || resp == nil || resp.Body == nil {
+			return nil
+		}
+		closed = true
+		if record != nil {
+			record.CloseAttempted = true
+		}
+		err := resp.Body.Close()
+		if record != nil {
+			code := labEvidenceError(err)
+			record.CloseErrorClass = &code
+		}
 		return err
 	}
-	defer func(){if closeErr:=closeBody();closeErr!=nil {labEvidenceTerminal(record,"CLOSE");if failure==nil {value=nil;failure=ErrLabReadbackUnavailable}}}()
+	defer func() {
+		if closeErr := closeBody(); closeErr != nil {
+			labEvidenceTerminal(record, "CLOSE")
+			if failure == nil {
+				value = nil
+				failure = ErrLabReadbackUnavailable
+			}
+		}
+	}()
 	if err != nil {
-		return fail("NETWORK",ErrLabReadbackUnavailable)
+		return fail("NETWORK", ErrLabReadbackUnavailable)
 	}
-	if resp==nil||resp.Body==nil {return fail("INTERNAL",ErrLabReadbackUnavailable)}
-	if record!=nil&&record.Headers==nil {return fail("LIMIT",ErrLabReadbackLimit)}
+	if resp == nil || resp.Body == nil {
+		return fail("INTERNAL", ErrLabReadbackUnavailable)
+	}
+	if record != nil && record.Headers == nil {
+		return fail("LIMIT", ErrLabReadbackLimit)
+	}
 	if resp.StatusCode != 200 || len(resp.Header.Values("Set-Cookie")) != 0 {
-		return fail("STATUS",ErrLabReadbackUnavailable)
+		return fail("STATUS", ErrLabReadbackUnavailable)
 	}
 	if resp.ContentLength > labReadbackBodyLimit {
-		if record!=nil {record.LimitReached=true}
-		return fail("LIMIT",ErrLabReadbackLimit)
+		if record != nil {
+			record.LimitReached = true
+		}
+		return fail("LIMIT", ErrLabReadbackLimit)
 	}
-	if resp.ContentLength < -1||resp.Uncompressed {return fail("HEADER",ErrLabReadbackShape)}
+	if resp.ContentLength < -1 || resp.Uncompressed {
+		return fail("HEADER", ErrLabReadbackShape)
+	}
 	ct := resp.Header.Values("Content-Type")
 	if len(ct) != 1 {
-		return fail("HEADER",ErrLabReadbackShape)
+		return fail("HEADER", ErrLabReadbackShape)
 	}
 	media, params, err := mime.ParseMediaType(ct[0])
 	if err != nil || media != "application/json" || len(params) > 1 {
-		return fail("HEADER",ErrLabReadbackShape)
+		return fail("HEADER", ErrLabReadbackShape)
 	}
 	for k, v := range params {
 		if k != "charset" || !strings.EqualFold(v, "utf-8") {
-			return fail("HEADER",ErrLabReadbackShape)
+			return fail("HEADER", ErrLabReadbackShape)
 		}
 	}
 	ce := resp.Header.Values("Content-Encoding")
 	if len(ce) > 1 || (len(ce) == 1 && ce[0] != "identity") {
-		return fail("HEADER",ErrLabReadbackShape)
+		return fail("HEADER", ErrLabReadbackShape)
 	}
-	if len(resp.TransferEncoding)>1||(len(resp.TransferEncoding)==1&&resp.TransferEncoding[0]!="chunked") {return fail("HEADER",ErrLabReadbackShape)}
-	if record!=nil {record.ReadAttempted=true}
-	raw,eof,err:=labReadEntity(resp.Body)
-	capture.retain(record,raw,eof,err)
+	if len(resp.TransferEncoding) > 1 || (len(resp.TransferEncoding) == 1 && resp.TransferEncoding[0] != "chunked") {
+		return fail("HEADER", ErrLabReadbackShape)
+	}
+	if record != nil {
+		record.ReadAttempted = true
+	}
+	raw, eof, err := labReadEntity(resp.Body)
+	capture.retain(record, raw, eof, err)
 	if err != nil {
-		return fail("READ",ErrLabReadbackUnavailable)
+		return fail("READ", ErrLabReadbackUnavailable)
 	}
 	if len(raw) > labReadbackBodyLimit {
-		return fail("LIMIT",ErrLabReadbackLimit)
+		return fail("LIMIT", ErrLabReadbackLimit)
 	}
-	if resp.ContentLength>=0&&resp.ContentLength!=int64(len(raw)) {return fail("READ",ErrLabReadbackUnavailable)}
+	if resp.ContentLength >= 0 && resp.ContentLength != int64(len(raw)) {
+		return fail("READ", ErrLabReadbackUnavailable)
+	}
 	if !labContextOK(ctx) {
-		return fail("CONTEXT",ErrLabReadbackUnavailable)
+		return fail("CONTEXT", ErrLabReadbackUnavailable)
 	}
-	if closeErr:=closeBody();closeErr!=nil {return fail("CLOSE",ErrLabReadbackUnavailable)}
-	if !labContextOK(ctx) {return fail("CONTEXT",ErrLabReadbackUnavailable)}
-	value,err=labDecode(raw)
-	if err!=nil {
-		code:="JSON"
-		if record!=nil {record.ParseState="JSON_REJECTED"}
-		if errors.Is(err,ErrLabReadbackLimit) {code="LIMIT";if record!=nil {record.LimitReached=true}}
-		return fail(code,err)
+	if closeErr := closeBody(); closeErr != nil {
+		return fail("CLOSE", ErrLabReadbackUnavailable)
 	}
-	if record!=nil {record.ParseState="JSON_ACCEPTED"}
-	return value,nil
+	if !labContextOK(ctx) {
+		return fail("CONTEXT", ErrLabReadbackUnavailable)
+	}
+	value, err = labDecode(raw)
+	if err != nil {
+		code := "JSON"
+		if record != nil {
+			record.ParseState = "JSON_REJECTED"
+		}
+		if errors.Is(err, ErrLabReadbackLimit) {
+			code = "LIMIT"
+			if record != nil {
+				record.LimitReached = true
+			}
+		}
+		return fail(code, err)
+	}
+	if record != nil {
+		record.ParseState = "JSON_ACCEPTED"
+	}
+	return value, nil
 }
 func labTimestamp(v any) bool {
 	s, ok := v.(string)
@@ -961,14 +1025,14 @@ func (c *LabReadbackClient) ReadStable(ctx context.Context) (LabSamples, error) 
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.core.timeout)
 	defer cancel()
-	return c.readStable(ctx,nil)
+	return c.readStable(ctx, nil)
 }
 
-func (c *LabReadbackClient) readStable(ctx context.Context,capture *labEvidenceCore) (LabSamples,error) {
+func (c *LabReadbackClient) readStable(ctx context.Context, capture *labEvidenceCore) (LabSamples, error) {
 	core := &labSamplesCore{}
 	for round := 0; round < 2; round++ {
 		sample := labSample{started: time.Now().UTC()}
-		v, err := c.get(ctx, "/version",capture)
+		v, err := c.get(ctx, "/version", capture)
 		if err != nil {
 			return LabSamples{}, err
 		}
@@ -979,7 +1043,7 @@ func (c *LabReadbackClient) readStable(ctx context.Context,capture *labEvidenceC
 			return LabSamples{}, ErrLabReadbackShape
 		}
 		capture.shape(nil)
-		v, err = c.get(ctx, "/configs",capture)
+		v, err = c.get(ctx, "/configs", capture)
 		if err != nil {
 			return LabSamples{}, err
 		}
@@ -990,7 +1054,7 @@ func (c *LabReadbackClient) readStable(ctx context.Context,capture *labEvidenceC
 			return LabSamples{}, err
 		}
 		capture.shape(nil)
-		v, err = c.get(ctx, "/proxies",capture)
+		v, err = c.get(ctx, "/proxies", capture)
 		if err != nil {
 			return LabSamples{}, err
 		}
@@ -1001,7 +1065,7 @@ func (c *LabReadbackClient) readStable(ctx context.Context,capture *labEvidenceC
 			return LabSamples{}, err
 		}
 		capture.shape(nil)
-		v, err = c.get(ctx, "/rules",capture)
+		v, err = c.get(ctx, "/rules", capture)
 		if err != nil {
 			return LabSamples{}, err
 		}

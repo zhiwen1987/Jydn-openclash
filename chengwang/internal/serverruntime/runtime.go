@@ -43,6 +43,7 @@ type Config struct {
 	Mode, WebDir                                    string
 	AllowPublish, OperationWritesEnabled            bool
 	LiveOverviewEnabled                             bool
+	MihomoLabEnabled                                bool
 	MihomoURL, MihomoToken                          string
 	MihomoAllowedHosts                              []string
 	ObservationInterval, ObservationTTL             time.Duration
@@ -107,6 +108,9 @@ func ConfigFromEnvironment() (Config, error) {
 	if err := overviewConfigFromEnvironment(&c); err != nil {
 		return Config{}, err
 	}
+	if err := mihomoLabConfigFromEnvironment(&c); err != nil {
+		return Config{}, err
+	}
 	return c, nil
 }
 
@@ -149,6 +153,12 @@ func RunWith(options Options) (result error) {
 	}
 	if err := validateSubscriptionConfig(c); err != nil {
 		return err
+	}
+	if err := validateMihomoLabConfig(c); err != nil {
+		return err
+	}
+	if c.MihomoLabEnabled && (options.TrustFactory != nil || (options.WriteTimeout > 0 && options.WriteTimeout < 45*time.Second)) {
+		return errMihomoLabRuntime
 	}
 	if c.SubscriptionsEnabled && options.WriteTimeout > 0 && options.WriteTimeout < 30*time.Second {
 		return errors.New("subscription response timeout must be at least 30 seconds")
@@ -217,6 +227,20 @@ func RunWith(options Options) (result error) {
 		return fmt.Errorf("initialize evidence store: %w", err)
 	}
 	closers = append(closers, audit.Close)
+	var mihomoLab *MihomoLabRuntime
+	if c.MihomoLabEnabled {
+		mihomoLab, err = OpenMihomoLabRuntime(ctx, c)
+		if mihomoLab != nil {
+			closers = append(closers, func() error {
+				closing, stop := context.WithTimeout(context.Background(), 10*time.Second)
+				defer stop()
+				return mihomoLab.Close(closing)
+			})
+		}
+		if err != nil {
+			return errMihomoLabRuntime
+		}
+	}
 	var subscriptions subscriptionctl.Backend
 	if c.SubscriptionsEnabled {
 		var policies subscriptionctl.PolicyProvider
@@ -307,7 +331,9 @@ func RunWith(options Options) (result error) {
 			return errors.New("initialize actual overview failed")
 		}
 	}
-	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Overview: actualOverview, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled, Subscriptions: subscriptions, SubscriptionWritesEnabled: c.SubscriptionWritesEnabled})
+	apiOptions := api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Overview: actualOverview, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled, Subscriptions: subscriptions, SubscriptionWritesEnabled: c.SubscriptionWritesEnabled}
+	apiOptions = mihomoLab.ApplyAPIOptions(apiOptions)
+	var handler http.Handler = api.New(apiOptions)
 	if options.WebFactory != nil {
 		handler, err = options.WebFactory(handler)
 	} else if c.WebDir != "" {
@@ -322,6 +348,9 @@ func RunWith(options Options) (result error) {
 		writeTimeout = 15 * time.Second
 		if c.SubscriptionsEnabled {
 			writeTimeout = 30 * time.Second
+		}
+		if c.MihomoLabEnabled {
+			writeTimeout = 45 * time.Second
 		}
 	}
 	server := &http.Server{Handler: admission, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: writeTimeout, MaxHeaderBytes: options.MaxHeaderBytes, IdleTimeout: 60 * time.Second, BaseContext: func(net.Listener) context.Context { return ctx }}

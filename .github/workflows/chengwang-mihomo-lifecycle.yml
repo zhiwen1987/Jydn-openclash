@@ -9,6 +9,8 @@ on:
       - 'chengwang/internal/adapter/mihomo/**'
       - 'chengwang/internal/mihomodeploy/**'
       - 'chengwang/internal/authn/**'
+      - 'chengwang/internal/api/**'
+      - 'chengwang/internal/serverruntime/**'
       - 'chengwang/deploy/mihomo-lifecycle-lab/**'
       - 'chengwang/tools/mihomo-runtime-candidate/**'
       - 'chengwang/go.mod'
@@ -74,8 +76,8 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
-          assert len(declared)==306 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='618c12a131895b9b505eebda4c8ebcc7e7640c3946cbf5c518c7dbf6a70adf2a'
-          print('GO_TEST_DECLARATIONS=306 execution_not_proven=true')
+          assert len(declared)==407 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='9178e55615de9ba4573e912c2fc1a4748dc668fe5bb207116e51750dcc727e4c'
+          print('GO_TEST_DECLARATIONS=407 execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |
@@ -519,5 +521,141 @@ jobs:
         with:
           name: mihomo-candidate-fresh-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/mihomo-foundation-fresh/independent.json
+          if-no-files-found: error
+          retention-days: 14
+
+  service:
+    needs: [development-only, acquisition]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Run distinct synthetic service and disclosure models without running a worker
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-service-models"
+          test ! -e "$root"
+          install -d -m 0700 "$root"
+          (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_service) 2>&1 | tee "$root/service-models.log"
+          (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_service_worker) 2>&1 | tee "$root/disclosure-models.log"
+          python3 - "$root" <<'PY'
+          import ast,hashlib,re,sys,unicodedata
+          from pathlib import Path
+          assert unicodedata.unidata_version == '15.0.0'
+          root=Path(sys.argv[1])
+          cases=[('test_check_service','SyntheticServiceEvidenceModels','service-models.log'),('test_service_worker','SyntheticServiceDisclosureModels','disclosure-models.log')]
+          for module,cls,log in cases:
+              tree=ast.parse(Path('chengwang/deploy/mihomo-lifecycle-lab',module+'.py').read_bytes())
+              names=sorted(n.name for c in tree.body if isinstance(c,ast.ClassDef) and c.name==cls for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+              text=(root/log).read_text(encoding='utf-8').replace('\r\n','\n')
+              observed=re.findall(r'^(test_[A-Za-z0-9_]+) \('+module+r'\.'+cls+r'\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',text,re.M)
+              assert names and len(names)==len(set(names))==len(observed) and all(a==b for a,b in observed) and sorted(a for a,b in observed)==names
+              assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==[str(len(names))] and re.findall(r'^OK$',text,re.M)==['OK']
+              assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
+              print(module+' SYNTHETIC_MODELS=PASS count='+str(len(names))+' namesSHA256='+hashlib.sha256('\n'.join(names).encode()).hexdigest()+' runtime_execution=false')
+          PY
+      - name: Acquire and independently check the fixed candidate before execution
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-service-acquisition"
+          public="$RUNNER_TEMP/mihomo-service-public"
+          test ! -e "$root"
+          test ! -e "$public"
+          install -d -m 0700 "$root"
+          install -d -m 0755 "$public"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$public/consumption-independent.json"
+          install -m 0600 "$root/consumed/consumption.json" "$public/consumption.json"
+          cmp "$public/consumption.json" "$public/consumption-independent.json"
+      - name: Record host state before the private service namespace
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/mihomo-service-public/host-before.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+      - name: Run actual authenticated service approval, reload, response-drop recovery and replay in private namespaces
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-lifecycle-lab/run_service.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-service-public" "$go_root" \
+            "$RUNNER_TEMP/mihomo-service-acquisition/consumed" "$GITHUB_SHA"
+      - name: Record host state after attempt and independently verify original product HTTP service evidence
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-service-public"
+          test -d "$root"
+          python3 - "$root/host-after.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_service.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$root" \
+            --report "$RUNNER_TEMP/mihomo-service-verification.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-service-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mihomo-service-public/*
+            ${{ runner.temp }}/mihomo-service-models/*.log
+            ${{ runner.temp }}/mihomo-service-verification.json
+          if-no-files-found: error
+          retention-days: 14
+
+  service-fresh:
+    needs: [development-only, service]
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-service-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-service-original
+      - name: Recompute original execution evidence without executing Go or Mihomo again
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_service.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/mihomo-service-original/mihomo-service-public" \
+            --report "$RUNNER_TEMP/mihomo-service-fresh.json"
+          cmp "$RUNNER_TEMP/mihomo-service-original/mihomo-service-verification.json" \
+            "$RUNNER_TEMP/mihomo-service-fresh.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-service-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-service-fresh.json
           if-no-files-found: error
           retention-days: 14

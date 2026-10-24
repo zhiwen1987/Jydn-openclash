@@ -69,12 +69,44 @@ files+=(internal/adapter/mihomo/lab_readback.go internal/adapter/mihomo/lab_read
   internal/mihomodeploy/lab_expectation.go internal/mihomodeploy/lab_expectation_test.go
   internal/mihomodeploy/lab_kernel.go internal/mihomodeploy/lab_kernel_linux.go internal/mihomodeploy/lab_kernel_linux_test.go
   internal/mihomodeploy/lab_kernel_unsupported.go internal/mihomodeploy/lab_kernel_unsupported_test.go)
+files+=(
+  internal/mihomodeploy/lab_backend.go
+  internal/mihomodeploy/lab_bootstrap.go
+  internal/mihomodeploy/lab_bootstrap_linux.go
+  internal/mihomodeploy/lab_bootstrap_linux_test.go
+  internal/mihomodeploy/lab_bootstrap_state.go
+  internal/mihomodeploy/lab_bootstrap_test.go
+  internal/mihomodeploy/lab_bootstrap_unsupported.go
+  internal/mihomodeploy/lab_collector.go
+  internal/mihomodeploy/lab_collector_linux.go
+  internal/mihomodeploy/lab_collector_linux_test.go
+  internal/mihomodeploy/lab_collector_test.go
+  internal/mihomodeploy/lab_collector_unsupported.go
+  internal/mihomodeploy/lab_local_route.go
+  internal/mihomodeploy/lab_local_route_test.go
+  internal/mihomodeploy/lab_service.go
+  internal/mihomodeploy/lab_service_acceptance_linux.go
+  internal/mihomodeploy/lab_service_diagnostics.go
+  internal/mihomodeploy/lab_service_diagnostics_test.go
+  internal/mihomodeploy/lab_service_test.go
+  internal/mihomodeploy/lab_syntax_linux.go
+  internal/mihomodeploy/lab_syntax_linux_test.go
+  internal/mihomodeploy/lab_syntax_unsupported.go
+  internal/mihomodeploy/lab_syntax_unsupported_test.go
+  internal/api/mihomo_lab.go
+  internal/api/mihomo_lab_test.go
+  internal/api/server.go
+  internal/serverruntime/mihomo_lab_runtime.go
+  internal/serverruntime/mihomo_lab_config_test.go
+  internal/serverruntime/mihomo_service_e2e_linux_test.go
+  internal/serverruntime/runtime.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?
-"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn > "$out/ordinary.json" 2> "$out/ordinary.stderr"
+"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime > "$out/ordinary.json" 2> "$out/ordinary.stderr"
 ordinary_code=$?
-"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn > "$out/race.json" 2> "$out/race.stderr"
+"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime > "$out/race.json" 2> "$out/race.stderr"
 race_code=$?
 set -e
 printf '{"schema":"chengwang.mihomo-contract-execution/v1","formatExit":%d,"ordinaryExit":%d,"raceExit":%d,"realMihomoExecuted":false,"production":false}\n' "$format_code" "$ordinary_code" "$race_code" > "$out/execution.json"

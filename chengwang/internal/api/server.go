@@ -19,6 +19,7 @@ import (
 	"chengwang/internal/domain"
 	"chengwang/internal/evidence"
 	"chengwang/internal/imagetrust"
+	"chengwang/internal/mihomodeploy"
 	"chengwang/internal/observation"
 	"chengwang/internal/operation"
 	"chengwang/internal/overview"
@@ -48,6 +49,8 @@ type Options struct {
 	ImageTrustWritesEnabled   bool
 	Subscriptions             subscriptionctl.Backend
 	SubscriptionWritesEnabled bool
+	MihomoLab                 mihomodeploy.LabBackend
+	MihomoLabWritesEnabled    bool
 }
 
 type MihomoReader interface {
@@ -86,6 +89,7 @@ type server struct {
 	evidenceScanGate  chan struct{}
 	imageTrustScope   authz.ResourceScope
 	subscriptionScope authz.ResourceScope
+	mihomoLabScope    authz.ResourceScope
 }
 
 func New(options Options) http.Handler {
@@ -103,6 +107,11 @@ func New(options Options) http.Handler {
 		s.subscriptionScope = options.Subscriptions.Scope()
 	} else {
 		s.options.Subscriptions = nil
+	}
+	if !nilSubscriptionInterface(options.MihomoLab) {
+		s.mihomoLabScope = options.MihomoLab.Scope()
+	} else {
+		s.options.MihomoLab = nil
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", s.health)
@@ -145,7 +154,7 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("/api/v1/subscriptions/commands/{commandId}", s.subscriptionReceipt)
 	mux.HandleFunc("/api/v1/subscriptions", s.subscriptionUnavailableRoute)
 	mux.HandleFunc("/api/v1/subscriptions/", s.subscriptionUnavailableRoute)
-	return s.securityHeaders(s.requestID(mux))
+	return s.securityHeaders(s.requestID(s.mihomoLabRoutes(mux)))
 }
 
 func (s *server) capabilities(w http.ResponseWriter, _ *http.Request) {

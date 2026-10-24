@@ -796,7 +796,7 @@ def _kernel_stdio(out, err):
 
 def verify_raw(raw, sources, commit):
     need(type(raw) is dict and set(raw) == set(PUBLIC) and type(sources) is dict and set(sources) == set(FILES))
-    need(len(FILES) == len(set(FILES)) == 65 and type(commit) is str and COMMIT.fullmatch(commit) is not None)
+    need(len(FILES) == len(set(FILES)) == 95 and type(commit) is str and COMMIT.fullmatch(commit) is not None)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     need(all(type(v) is bytes and len(v) <= 8 << 20 for v in raw.values()))
     contract(sources)
@@ -866,7 +866,7 @@ def source_bindings(repo, commit):
 
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit)
     need(Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 65)
+    need(len(FILES) == len(set(FILES)) == 95)
     sources = {}
     for path in FILES:
         value = C.read(repo / path, 1 << 20, False)

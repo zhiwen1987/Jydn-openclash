@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -42,6 +43,22 @@ type ReloadResult struct {
 	State      ReloadState `json:"state"`
 	Dispatched bool        `json:"dispatched"`
 	StatusCode int         `json:"statusCode"`
+}
+
+// ReloadCounters measures entries into Reload and calls to http.Client.Do in
+// this process. It contains no target or credential and grants no capability.
+// Do calls do not prove receipt by a controller. Concurrent snapshots of the
+// two independent counters are not a transactional dispatch ledger.
+type ReloadCounters struct {
+	ReloadInvocations uint64 `json:"reloadInvocations"`
+	DoInvocations uint64 `json:"doInvocations"`
+}
+
+var reloadInvocations atomic.Uint64
+var reloadDoInvocations atomic.Uint64
+
+func ObserveReloadCounters() ReloadCounters {
+	return ReloadCounters{ReloadInvocations: reloadInvocations.Load(), DoInvocations: reloadDoInvocations.Load()}
 }
 
 var (
@@ -155,8 +172,9 @@ func NewWriteClient(rawURL, token string, timeout time.Duration) (*WriteClient, 
 // Reload makes one PUT attempt and never retries or initiates rollback.
 // A 204 acknowledges only this request; all subsequent verification is separate.
 func (c *WriteClient) Reload(ctx context.Context, payload []byte) (ReloadResult, error) {
+	reloadInvocations.Add(1)
 	unsent := ReloadResult{State: ReloadRejected}
-	if c == nil || c.writeClientCore == nil || c.httpClient == nil || ctx == nil || ctx.Err() != nil ||
+	if c == nil || c.writeClientCore == nil || c.httpClient == nil || !labContextOK(ctx) ||
 		len(payload) == 0 || len(payload) > maxReloadPayloadBytes || !utf8.Valid(payload) {
 		return unsent, errReloadUnsent
 	}
@@ -181,6 +199,7 @@ func (c *WriteClient) Reload(ctx context.Context, payload []byte) (ReloadResult,
 		return unsent, errReloadUnsent
 	}
 	result := ReloadResult{State: ReloadUnknown, Dispatched: true}
+	reloadDoInvocations.Add(1)
 	response, err := c.httpClient.Do(req)
 	if response != nil {
 		result.StatusCode = response.StatusCode

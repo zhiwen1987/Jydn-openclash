@@ -25,8 +25,10 @@ var (
 )
 
 // CAS belongs to the mutex-protected portable store while this disk retains
-// both host-wide and directory writer locks. Missing bytes are not bootstrap
-// permission. COMMITTED requires an actual safe reopen and exact byte readback.
+// the source-selected cooperation-scope and directory writer locks. The fixed
+// isolated runtime's private lock does not fence other mount namespaces.
+// Missing bytes are not bootstrap permission. COMMITTED requires an actual
+// safe reopen and exact byte readback.
 type lifecycleDisk interface {
 	verify() error
 	readControl() ([]byte, bool, error)

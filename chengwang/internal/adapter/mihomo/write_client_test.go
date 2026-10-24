@@ -168,6 +168,8 @@ func TestWriteClientPayloadByteLimitAndUTF8BoundaryRemainUsable(t *testing.T) {
 	}
 }
 
+type writeNilContext struct{ context.Context }
+
 func TestWriteClientCanceledExpiredAndNilContextsStayUnsent(t *testing.T) {
 	client := newWriteTestClient(t, "http://127.0.0.1:9090")
 	var calls atomic.Int32
@@ -179,7 +181,8 @@ func TestWriteClientCanceledExpiredAndNilContextsStayUnsent(t *testing.T) {
 	cancel()
 	expired, finish := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer finish()
-	for _, ctx := range []context.Context{canceled, expired, nil} {
+	var typedNil *writeNilContext
+	for _, ctx := range []context.Context{canceled, expired, nil, typedNil} {
 		result, err := client.Reload(ctx, []byte("mode: rule\n"))
 		assertWriteOutcome(t, result, err, ReloadRejected, false, 0)
 	}

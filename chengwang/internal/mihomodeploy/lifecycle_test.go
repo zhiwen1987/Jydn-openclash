@@ -722,7 +722,7 @@ func TestLifecycleTombstoneIdentityAndTerminalRevisionMustBeUnique(t *testing.T)
 	lifecycleTestReject(t, r)
 }
 func TestLifecycleCurrentCodecRejectsUnimplementedSuccessReadbackRecovery(t *testing.T) {
-	for _, phase := range []string{"VERIFIED_SUCCESS", "RECONCILED_CURRENT_POSTCONDITION"} {
+	for _, phase := range []string{"VERIFIED_SUCCESS", "RECONCILED_CURRENT_POSTCONDITION", lifecycleCompletedPhase} {
 		s, _, _, _, _ := lifecycleTestArmed(t)
 		r := s.record
 		r.wire.Active.Phase = phase

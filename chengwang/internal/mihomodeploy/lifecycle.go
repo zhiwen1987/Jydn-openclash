@@ -18,6 +18,7 @@ import (
 )
 
 const lifecycleSchema = "chengwang.mihomo-lifecycle-record/v1"
+const lifecycleSchemaV2 = "chengwang.mihomo-lifecycle-record/v2"
 const lifecycleBoundary = "STRUCTURAL_DURABLE_LAB_RECORD_NOT_AUTHORIZATION"
 const lifecycleHeadSchema = "chengwang.mihomo-lifecycle-head/v1"
 const lifecycleIntentSchema = "chengwang.mihomo-reload-intent/v1"
@@ -76,6 +77,8 @@ type lifecycleIntent struct {
 type lifecycleResult struct {
 	Reload     mihomo.ReloadResult `json:"reload"`
 	ObservedAt time.Time           `json:"observedAt"`
+	Origin     string              `json:"origin,omitempty"`
+	ServiceGate *labServiceGateFact `json:"serviceGate,omitempty"`
 }
 type lifecycleReadback struct {
 	Conclusion     string    `json:"conclusion"`
@@ -113,6 +116,7 @@ type lifecycleWire struct {
 	Owner         *lifecycleOwner      `json:"owner"`
 	Active        *lifecycleActive     `json:"active"`
 	Tombstones    []lifecycleTombstone `json:"tombstones"`
+	V2            *lifecycleV2Wire    `json:"v2,omitempty"`
 }
 
 // One opaque pointer is intentional: fmt's unsupported-verb error path can
@@ -172,6 +176,20 @@ func lifecycleIntentHash(v lifecycleIntent) (string, error) {
 	}{v.Schema, v.OperationID, v.PlanSHA256, v.ExpectedHeadSHA256, v.CandidateRecordSHA256, v.BackupSHA256, v.OwnerFence, v.ArmedAt})
 }
 func lifecycleRecordHash(w lifecycleWire) (string, error) {
+	if w.Schema == lifecycleSchemaV2 {
+		return lifecycleHash(struct {
+			Schema string `json:"schema"`
+			Boundary string `json:"boundary"`
+			Revision uint64 `json:"revision"`
+			LastTrustedAt time.Time `json:"lastTrustedAt"`
+			LastFence uint64 `json:"lastFence"`
+			Head *lifecycleHead `json:"head"`
+			Owner *lifecycleOwner `json:"owner"`
+			Active *lifecycleActive `json:"active"`
+			Tombstones []lifecycleTombstone `json:"tombstones"`
+			V2 *lifecycleV2Wire `json:"v2"`
+		}{w.Schema,w.Boundary,w.Revision,w.LastTrustedAt,w.LastFence,w.Head,w.Owner,w.Active,w.Tombstones,w.V2})
+	}
 	return lifecycleHash(struct {
 		Schema        string               `json:"schema"`
 		Boundary      string               `json:"boundary"`
@@ -291,7 +309,7 @@ func lifecycleHeadTarget(h lifecycleHead) TargetBinding {
 		KernelSHA256: h.KernelSHA256, PID: h.PID, StartTicks: h.StartTicks, NetNSInode: h.NetNSInode,
 		ControllerPort: h.ControllerPort, MixedPort: h.MixedPort}
 }
-func lifecycleTerminal(phase string) bool { return phase == "REVOKED" || phase == "UNSENT_REJECTED" }
+func lifecycleTerminal(phase string) bool { return phase == "REVOKED" || phase == "UNSENT_REJECTED" || phase == lifecycleCompletedPhase }
 func lifecyclePrearm(a *lifecycleActive) bool {
 	return a != nil && a.Attempt == 0 && a.Intent == nil && a.Result == nil &&
 		(a.Phase == "PLANNED" || a.Phase == "APPROVED" || a.Phase == "PREPARED")
@@ -307,8 +325,8 @@ func lifecyclePhaseTransition(from, to string) bool {
 	case "DISPATCH_ARMED":
 		return to == from || to == "ACKNOWLEDGED" || to == "UNSENT_REJECTED" || to == "RESPONSE_REJECTED" || to == "UNKNOWN"
 	case "ACKNOWLEDGED":
-		return to == from || to == "UNKNOWN"
-	case "UNKNOWN", "MANUAL_REQUIRED", "RESPONSE_REJECTED", "REVOKED", "UNSENT_REJECTED":
+		return to == from || to == "UNKNOWN" || to == lifecycleCompletedPhase
+	case "UNKNOWN", "MANUAL_REQUIRED", "RESPONSE_REJECTED", "REVOKED", "UNSENT_REJECTED", lifecycleCompletedPhase:
 		return to == from
 	default:
 		return false
@@ -334,7 +352,8 @@ func validateLifecycleRecord(r lifecycleRecord) error {
 	if w == nil {
 		return errLifecycleUnsafe
 	}
-	if w.Schema != lifecycleSchema || w.Boundary != lifecycleBoundary || w.Revision == 0 || !lifecycleTime(w.LastTrustedAt) ||
+	if (w.Schema != lifecycleSchema && w.Schema != lifecycleSchemaV2) || (w.Schema == lifecycleSchema && w.V2 != nil) ||
+		(w.Schema == lifecycleSchemaV2 && w.V2 == nil) || w.Boundary != lifecycleBoundary || w.Revision == 0 || !lifecycleTime(w.LastTrustedAt) ||
 		w.Tombstones == nil || len(w.Tombstones) > maxLifecycleTombstones {
 		return errLifecycleUnsafe
 	}
@@ -366,11 +385,11 @@ func validateLifecycleRecord(r lifecycleRecord) error {
 	var previous uint64
 	for _, t := range w.Tombstones {
 		if !planReference.MatchString(t.OperationID) || !lifecycleNonzeroHash(t.PlanSHA256) || t.TerminalRevision <= previous || t.TerminalRevision > w.Revision ||
-			!lifecycleTerminal(t.Phase) || ops[t.OperationID] || plans[t.PlanSHA256] {
+			!lifecycleTerminal(t.Phase) || (w.Schema == lifecycleSchema && t.Phase == lifecycleCompletedPhase) || ops[t.OperationID] || plans[t.PlanSHA256] {
 			return errLifecycleUnsafe
 		}
 		if (t.Phase == "REVOKED" && (t.Attempt != 0 || t.IntentSHA256 != nil)) ||
-			(t.Phase == "UNSENT_REJECTED" && (t.Attempt != 1 || t.IntentSHA256 == nil || !lifecycleNonzeroHash(*t.IntentSHA256))) {
+			((t.Phase == "UNSENT_REJECTED" || t.Phase == lifecycleCompletedPhase) && (t.Attempt != 1 || t.IntentSHA256 == nil || !lifecycleNonzeroHash(*t.IntentSHA256))) {
 			return errLifecycleUnsafe
 		}
 		if t.IntentSHA256 != nil {
@@ -384,16 +403,22 @@ func validateLifecycleRecord(r lifecycleRecord) error {
 		plans[t.PlanSHA256] = true
 	}
 	if w.Active == nil {
-		return nil
+		return validateLifecycleV2(w)
 	}
 	a := w.Active
-	if w.Head == nil || w.Owner == nil || a.Readback != nil || a.Recovery != nil || a.AuditProjection == nil || len(a.AuditProjection) > len(lifecycleAuditKeys) {
+	if w.Head == nil || w.Owner == nil || (a.Readback != nil && (w.Schema != lifecycleSchemaV2 || a.Phase != lifecycleCompletedPhase)) || a.Recovery != nil || a.AuditProjection == nil || len(a.AuditProjection) > len(lifecycleAuditKeys) {
 		return errLifecycleUnsafe
+	}
+	boundHead := w.Head
+	if a.Phase == lifecycleCompletedPhase {
+		if w.Schema != lifecycleSchemaV2 || len(w.V2.Completed) == 0 { return errLifecycleUnsafe }
+		boundHead = &w.V2.Completed[len(w.V2.Completed)-1].PreviousHead
 	}
 	p, err := lifecyclePlan(a.Plan)
-	if err != nil || a.Plan.Target != lifecycleHeadTarget(*w.Head) || !reflect.DeepEqual(a.Plan.Backup.Artifact, w.Head.Artifact) || a.Plan.CreatedAt.After(w.LastTrustedAt) {
+	if err != nil || a.Plan.Target != lifecycleHeadTarget(*boundHead) || !reflect.DeepEqual(a.Plan.Backup.Artifact, boundHead.Artifact) || a.Plan.CreatedAt.After(w.LastTrustedAt) {
 		return errLifecycleUnsafe
 	}
+	if w.Schema==lifecycleSchemaV2 && a.Plan.CreatedAt.Before(boundHead.VerifiedAt) { return errLifecycleUnsafe }
 	seen := map[string]bool{}
 	for _, key := range a.AuditProjection {
 		if !lifecycleAuditKeys[key] || seen[key] {
@@ -445,13 +470,13 @@ func validateLifecycleRecord(r lifecycleRecord) error {
 		}
 		hash, err := lifecycleIntentHash(*i)
 		if i.Schema != lifecycleIntentSchema || i.OperationID != a.Plan.OperationID || i.PlanSHA256 != a.Plan.PlanSHA256 ||
-			i.ExpectedHeadSHA256 != w.Head.HeadSHA256 || i.CandidateRecordSHA256 != a.Plan.Artifact.RecordSHA256 ||
+			i.ExpectedHeadSHA256 != boundHead.HeadSHA256 || i.CandidateRecordSHA256 != a.Plan.Artifact.RecordSHA256 ||
 			i.BackupSHA256 != a.Plan.Backup.BackupSHA256 || i.OwnerFence != w.Owner.Fence || !lifecycleTime(i.ArmedAt) ||
 			i.ArmedAt.Before(a.Plan.CreatedAt) || i.ArmedAt.Before(a.Approval.Material.IssuedAt) || !i.ArmedAt.Before(a.Plan.ExpiresAt) ||
 			!i.ArmedAt.Before(a.Approval.Material.ExpiresAt) || i.ArmedAt.After(w.LastTrustedAt) || err != nil || hash != i.IntentSHA256 {
 			return errLifecycleUnsafe
 		}
-		if a.Result != nil && (!lifecycleResultValid(a.Result.Reload) || !lifecycleTime(a.Result.ObservedAt) || a.Result.ObservedAt.Before(i.ArmedAt) || a.Result.ObservedAt.After(w.LastTrustedAt)) {
+		if a.Result != nil && (!lifecycleResultValid(a.Result.Reload) || !lifecycleResultSourceValid(w.Schema,a) || !lifecycleTime(a.Result.ObservedAt) || a.Result.ObservedAt.Before(i.ArmedAt) || a.Result.ObservedAt.After(w.LastTrustedAt)) {
 			return errLifecycleUnsafe
 		}
 		switch a.Phase {
@@ -464,6 +489,8 @@ func validateLifecycleRecord(r lifecycleRecord) error {
 			if a.Result == nil || a.Result.Reload.State != mihomo.ReloadAcknowledged {
 				return errLifecycleUnsafe
 			}
+		case lifecycleCompletedPhase:
+			if w.Schema != lifecycleSchemaV2 || a.Result == nil || a.Result.Reload.State != mihomo.ReloadAcknowledged || !lifecycleReadbackValid(a.Readback,lifecycleCompletedConclusion,w.LastTrustedAt) || a.Readback.ObservedAt.Before(a.Result.ObservedAt) { return errLifecycleUnsafe }
 		case "UNSENT_REJECTED":
 			if a.Result == nil || a.Result.Reload.State != mihomo.ReloadRejected || a.Result.Reload.Dispatched {
 				return errLifecycleUnsafe
@@ -494,7 +521,7 @@ func validateLifecycleRecord(r lifecycleRecord) error {
 	if a.Intent != nil && intents[a.Intent.IntentSHA256] && !matched {
 		return errLifecycleUnsafe
 	}
-	return nil
+	return validateLifecycleV2(w)
 }
 
 // lifecycleOwnerToken is a process-local possession check, NOT authentication.
@@ -605,6 +632,9 @@ func (s *lifecycleStore) verify() error {
 	return nil
 }
 func (s *lifecycleStore) commit(next lifecycleRecord, now time.Time) error {
+	return s.commitTransition(next,now,lifecycleNoNewEvidence)
+}
+func (s *lifecycleStore) commitTransition(next lifecycleRecord, now time.Time, mode lifecycleEvidenceTransition) error {
 	if err := s.verify(); err != nil {
 		return err
 	}
@@ -615,9 +645,16 @@ func (s *lifecycleStore) commit(next lifecycleRecord, now time.Time) error {
 		return errLifecycleUnsafe
 	}
 	old := s.record.wire
+	if mode==lifecycleAppendCompletion && (next.wire.V2==nil || len(next.wire.V2.Completed)==0 || !next.wire.V2.Completed[len(next.wire.V2.Completed)-1].CommittedAt.Equal(now)) { return errLifecycleUnsafe }
+	if mode==lifecycleAppendTermination && (next.wire.V2==nil || len(next.wire.V2.Terminated)==0 || !next.wire.V2.Terminated[len(next.wire.V2.Terminated)-1].CommittedAt.Equal(now)){return errLifecycleUnsafe}
+	// Do not let concurrent revocation/renewal consume the final revisions
+	// reserved for the real result and acknowledged completion after dispatch.
+	if next.wire.Schema==lifecycleSchemaV2 && next.wire.Active!=nil &&
+		((next.wire.Active.Phase=="DISPATCH_ARMED" && old.Revision>^uint64(0)-3) ||
+		(next.wire.Active.Phase=="ACKNOWLEDGED" && old.Revision>^uint64(0)-2)) { return errLifecycleUnsafe }
 	// No current source can bootstrap/replace a running head. Terminal head
 	// advancement requires a future authenticated collector and codec evolution.
-	if !reflect.DeepEqual(next.wire.Head, old.Head) || len(next.wire.Tombstones) < len(old.Tombstones) ||
+	if !lifecycleV2Transition(old,next.wire,mode) || len(next.wire.Tombstones) < len(old.Tombstones) ||
 		!reflect.DeepEqual(next.wire.Tombstones[:len(old.Tombstones)], old.Tombstones) {
 		return errLifecycleUnsafe
 	}
@@ -825,6 +862,11 @@ func (s *lifecycleStore) recordPlan(t *lifecycleOwnerToken, p Plan, now time.Tim
 		return err
 	}
 	next.wire.Active = &lifecycleActive{Plan: p.Descriptor(), Phase: "PLANNED", AuditProjection: []string{"PLANNED"}}
+	if next.wire.Schema==lifecycleSchemaV2 {
+		prospective,err:=json.Marshal(next.wire)
+		if err!=nil{return errLifecycleUnsafe}
+		if err:=lifecycleReserveCapacity(next.wire,len(prospective),now);err!=nil{return err}
+	}
 	return s.commit(next, now)
 }
 func lifecycleApprovalID(plan PlanDescriptor) string {
@@ -910,6 +952,7 @@ func (s *lifecycleStore) recordIntent(t *lifecycleOwnerToken, expectedHead strin
 	if a == nil || a.Phase != "PREPARED" || a.Attempt != 0 || a.Revocation != nil || s.record.wire.Head.HeadSHA256 != expectedHead || !now.Before(a.Plan.ExpiresAt) || !now.Before(a.Approval.Material.ExpiresAt) {
 		return errLifecycleUnsafe
 	}
+	if err := s.reserveLifecycleResultCapacity(now); err != nil { return err }
 	next, err := s.copyRecord()
 	if err != nil {
 		return err
@@ -950,6 +993,7 @@ func (s *lifecycleStore) recordResult(t *lifecycleOwnerToken, intentSHA string, 
 	}
 	n := next.wire.Active
 	n.Result = &lifecycleResult{Reload: result, ObservedAt: now}
+	if next.wire.Schema == lifecycleSchemaV2 { n.Result.Origin = "ADAPTER" }
 	switch result.State {
 	case mihomo.ReloadAcknowledged:
 		n.Phase = "ACKNOWLEDGED"
@@ -966,6 +1010,10 @@ func (s *lifecycleStore) recordResult(t *lifecycleOwnerToken, intentSHA string, 
 	if lifecycleTerminal(n.Phase) {
 		if err := lifecycleAddTombstone(&next); err != nil {
 			return err
+		}
+		if next.wire.Schema==lifecycleSchemaV2 {
+			if err:=lifecycleAppendTerminalArchive(&next,now);err!=nil{return err}
+			return s.commitTransition(next,now,lifecycleAppendTermination)
 		}
 	}
 	return s.commit(next, now)
@@ -1020,6 +1068,10 @@ func (s *lifecycleStore) recordRevocation(t *lifecycleOwnerToken, reason, actor 
 		n.Phase = "REVOKED"
 		if err := lifecycleAddTombstone(&next); err != nil {
 			return err
+		}
+		if next.wire.Schema==lifecycleSchemaV2 {
+			if err:=lifecycleAppendTerminalArchive(&next,now);err!=nil{return err}
+			return s.commitTransition(next,now,lifecycleAppendTermination)
 		}
 	}
 	return s.commit(next, now)

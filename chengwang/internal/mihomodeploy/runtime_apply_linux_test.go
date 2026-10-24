@@ -107,7 +107,7 @@ type applyReport struct {
 		Baseline  *mihomo.LabReadbackReport `json:"baseline"`
 		Candidate *mihomo.LabReadbackReport `json:"candidate"`
 	} `json:"readbacks"`
-	GetEvidence       struct {
+	GetEvidence struct {
 		Baseline  *applyBinding `json:"baseline"`
 		Candidate *applyBinding `json:"candidate"`
 	} `json:"getEvidence"`
