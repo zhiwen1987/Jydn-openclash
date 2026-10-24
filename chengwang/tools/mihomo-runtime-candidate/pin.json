@@ -1,0 +1,19 @@
+{
+  "schema": "chengwang.mihomo-runtime-candidate-pin/v1",
+  "component": "MetaCubeX/mihomo",
+  "version": "v1.19.32",
+  "upstreamSourceCommit": "88dcbf7f1614a67c3b36b848ee3592dfa92ada36",
+  "artifact": {
+    "name": "mihomo-linux-amd64-v1-v1.19.32.gz",
+    "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz",
+    "publishedSHA256": "306f81e723e60ce6b828899a6fe83e1d00e9ecefb2dc8d4d849312a5bc00efdc",
+    "exactCompressedBytes": null,
+    "elfSHA256": null,
+    "elfBytes": null
+  },
+  "limits": {"compressedBytes": 67108864, "expandedBytes": 134217728},
+  "researchManifestSHA256": "76b194ad7183cb661ad2deef164f30f9d8a260ddbc823e53b7760253a71bc7dc",
+  "publisherSignatureProven": false,
+  "productionApproved": false,
+  "runtimeExecuted": false
+}

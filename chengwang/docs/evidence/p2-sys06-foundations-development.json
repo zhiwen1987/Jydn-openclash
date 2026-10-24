@@ -1,0 +1,97 @@
+{
+  "CIInterruptionKillChildConfiguredButNotRuntimeProven": true,
+  "actualCandidateDownloaded": false,
+  "actualGoFmtExecuted": false,
+  "actualGoTestsExecuted": false,
+  "actualMihomoExecuted": false,
+  "artifactAdmissionMustBeCheckedByFutureCoordinator": true,
+  "baseline": "c8f20aa0d721f17b70936ca40cc8c1733f1234f5",
+  "blockedPolicyRequirementsAreNotDropped": true,
+  "branch": "codex/chengwang-mihomo-lifecycle-20261024",
+  "controller204IsNotDeploymentSuccess": true,
+  "declaredGoTopLevelTests": 40,
+  "kernelPublisherSignatureProven": false,
+  "mainMerged": false,
+  "production": false,
+  "productionApproved": false,
+  "pythonSyntheticTests": {
+    "goEvidenceModels": 23,
+    "pinConsumption": 47
+  },
+  "receipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\sys06-mihomo-consumption-unit-20261024-b\\source-hashes.json",
+      "sha256": "979e10257835b1b4a739a4dac00f6966b0d01baff9a0cabe8253b930b47fc928"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\sys06-contracts-model-final-908c895be164\\result.json",
+      "sha256": "f1643579114a885a85077a528def72bc9d210942ca7eb1aab15004be944a35f1"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-write-client-static-20261024\\debug-safety\\result.json",
+      "sha256": "00fc9605bfdc470ddb9122727f079bbdbeb3bd4691c75461f357b3cd8b1c70cf"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\sys06-lab-config-handoff-20261024\\source-and-declarations-final.json",
+      "sha256": "bcfd41f0f66e0059db030023ac8db91b7ffe773a77cc498707e8deeb2bacda9d"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-foundations-static-o4p2i375\\result.json",
+      "sha256": "b55f387d39e1cbf705849d9ecb488aaab9b433c734570a6df9034264f53e3f13"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-foundations-static-gwh5i1ic\\result.json",
+      "sha256": "6439829967a34942495201c7600b67d6b27ce14318d4e86f64289f5cbc8f6ced"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\sys06-workflow-peer-20261024-a\\PEER-REVIEW.md",
+      "sha256": "7b3efd99c2229653ae95c221a5ff67b7b132c7943cd2f32f70285278016540ad"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\sys06-contracts-model-final-908c895be164\\PEER-REVIEW.md",
+      "sha256": "63764f67b13fac088a4c016617581abffa999864ce6d51d7ccaec8270e158072"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\sys06-config-peer-20261024-a\\PEER-REVIEW.md",
+      "sha256": "11963b6037c47971aeeacfa59c876c79ae6e6075b70b5b12e222e5bf4468a466"
+    }
+  ],
+  "reviewedFixes": [
+    "Artifact valuecopy formatter leakage",
+    "All fixed-kernel reserved proxy/group names",
+    "Business/node/pool ID trim",
+    "WriteClient pointer/value debug metadata",
+    "Go event order/types/path containment and namespace evidence"
+  ],
+  "schema": "chengwang.sys06-foundations-development/v1",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "562bcd0ff1a7d438ee6e5e06f8e9c70d19ddc8363d4713a0b917c28f4563d293",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "eec1a6e90bfe42a9a2f37c49ff632d39820876b4cc42e6402a3cf3dcd2ab3486",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "ab969cc4f8992fe69544e40ee83824eeaf0c356738ba67397acad06d28f9555c",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "710e761101239fd69b45905eb1175a79c189cc2ef4ac024b3cfa3235a07e5e53",
+    "chengwang/internal/adapter/mihomo/write_client.go": "80a1e6cadb14180c81cb4c293e0f91dea1343ef97c44ebb9c81c35f2312773b8",
+    "chengwang/internal/adapter/mihomo/write_client_test.go": "a1cb22733f0be8d7eb9c2d9575fe7845971fd16c59435ab66531de541280738e",
+    "chengwang/internal/mihomodeploy/config.go": "d702e483b856ff877dab6fd7b849aa68d98a91fe370d937b9849b992228e8cc0",
+    "chengwang/internal/mihomodeploy/config_test.go": "64200a69c8413b9fe96a8c42fed83fe268a018268a3b8dbf6b65b013428483f3",
+    "chengwang/tools/mihomo-runtime-candidate/README.md": "dc682eab0dfb62c9e9b91351a46a5804d6fcb0c9dcb77f588e88621e0541aa7a",
+    "chengwang/tools/mihomo-runtime-candidate/check_consumption.py": "d7a1ef02c70441cfe4dcb5fa51e837e71c088d0df477ab0c797273e20b77160c",
+    "chengwang/tools/mihomo-runtime-candidate/consume_pin.py": "3849aef51c258e3d4c81dbc964add249849fb596add213a3ae420e272e352412",
+    "chengwang/tools/mihomo-runtime-candidate/pin.json": "5785b7d056ae09905bbde6bd6a1f9f0fd0c87b59cbe270e97014e3e48e83b49c",
+    "chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py": "11bdf83e0f1ca1fceaf575aa824639c13fa81990e9f2b83b8df7bad904b3ef81"
+  },
+  "state": "SOURCE_AND_PYTHON_MODELS_IMPLEMENTED_REAL_GO_KERNEL_AND_LIFECYCLE_PENDING",
+  "staticOnly": {
+    "bashSyntaxBlocks": 8,
+    "notActionsRuntime": true,
+    "pythonAST": 5,
+    "workflowYAML": true
+  },
+  "unimplemented": [
+    "Full private artifact/backups and generation-bound signed/approved plans",
+    "Target lease and WAL unknown reconcile",
+    "Actual dual-core canary/apply/readback/dataplane/rollback/restart acceptance",
+    "Protected product API/UI and durable evidence integration",
+    "Complete business policy capability enforcement and production release"
+  ],
+  "wholeSystemComplete": false
+}

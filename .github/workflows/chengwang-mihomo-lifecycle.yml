@@ -1,0 +1,196 @@
+name: Chengwang Mihomo Lifecycle Foundations
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-mihomo-lifecycle-20261024]
+    paths:
+      - '.github/workflows/chengwang-mihomo-lifecycle.yml'
+      - 'chengwang/internal/adapter/mihomo/**'
+      - 'chengwang/internal/mihomodeploy/**'
+      - 'chengwang/deploy/mihomo-lifecycle-lab/**'
+      - 'chengwang/tools/mihomo-runtime-candidate/**'
+      - 'chengwang/go.mod'
+      - 'chengwang/go.sum'
+      - 'chengwang/vendor/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-mihomo-lifecycle-foundations-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  development-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Reject use outside the isolated development branch
+        env:
+          REQUEST_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$REQUEST_REF" = refs/heads/codex/chengwang-mihomo-lifecycle-20261024
+
+  contracts:
+    needs: development-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Run separately labelled Python protocol models
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-foundation-models"
+          test ! -e "$root"
+          install -d -m 0700 "$root"
+          (cd chengwang/tools/mihomo-runtime-candidate && python3 -B -m unittest -v test_consume_pin) 2>&1 | tee "$root/pin-models.log"
+          (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_contracts) 2>&1 | tee "$root/go-evidence-models.log"
+          python3 - "$root" <<'PY'
+          import ast,hashlib,re,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',23,'4d3b1387d10de742f1f8bbc89703d5fc0d7ecb9f51aa1ebc583115ce96af6c37')]
+          for log,path,cls,count,pin in checks:
+              text=(root/log).read_text(encoding='utf8').replace('\r\n','\n')
+              tree=ast.parse(Path(path).read_text(encoding='utf8'))
+              names=sorted(n.name for c in tree.body if isinstance(c,ast.ClassDef) and c.name==cls for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+              observed=re.findall(r'^(test_[A-Za-z0-9_]+) \([A-Za-z0-9_]+\.'+cls+r'\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',text,re.M)
+              assert len(names)==len(set(names))==count and len(observed)==count and all(a==b for a,b in observed)
+              assert sorted(a for a,_ in observed)==names and hashlib.sha256('\n'.join(names).encode()).hexdigest()==pin
+              assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==[str(count)] and re.findall(r'^OK$',text,re.M)==['OK']
+              assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
+          print('PYTHON_MODELS=PASS pin47 evidence23 not_go_or_kernel_execution=true')
+          PY
+      - name: Observe host before isolated Go execution
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-foundation-contracts"
+          test ! -e "$root"
+          install -d -m 0755 "$root"
+          python3 - "$root/host-before.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+      - name: Run actual Go and race contracts with private namespaces and read-only source
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-foundation-contracts" "$go_root"
+      - name: Observe host after attempt and independently decode actual Go events
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-foundation-contracts"
+          test -d "$root"
+          python3 - "$root/host-after.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$root" \
+            --report "$RUNNER_TEMP/mihomo-contract-verification.json"
+      - name: Preserve model and real Go originals including formatter patches and failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-foundation-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mihomo-foundation-models/*.log
+            ${{ runner.temp }}/mihomo-foundation-contracts/*.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/*.stderr
+            ${{ runner.temp }}/mihomo-foundation-contracts/gofmt.patch
+            ${{ runner.temp }}/mihomo-foundation-contracts/go-version.txt
+            ${{ runner.temp }}/mihomo-contract-verification.json
+          retention-days: 14
+          if-no-files-found: error
+
+  acquisition:
+    needs: development-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Consume only the fixed published candidate without executing it
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-foundation-acquisition"
+          test ! -e "$root"
+          install -d -m 0700 "$root" "$root/public"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$root/public/independent.json"
+          install -m 0600 "$root/consumed/consumption.json" "$root/public/consumption.json"
+          cmp "$root/public/consumption.json" "$root/public/independent.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-candidate-consumption-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-foundation-acquisition/public/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+  fresh:
+    needs: [development-only, acquisition]
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-candidate-consumption-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-candidate-original
+      - name: Independently reacquire and recompute candidate facts without execution
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-foundation-fresh"
+          test ! -e "$root"
+          install -d -m 0700 "$root"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$root/independent.json"
+          cmp "$root/consumed/consumption.json" "$root/independent.json"
+          cmp "$RUNNER_TEMP/mihomo-candidate-original/consumption.json" "$root/independent.json"
+          cmp "$RUNNER_TEMP/mihomo-candidate-original/independent.json" "$root/independent.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-candidate-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-foundation-fresh/independent.json
+          if-no-files-found: error
+          retention-days: 14
