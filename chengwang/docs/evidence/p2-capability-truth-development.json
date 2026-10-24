@@ -1,0 +1,117 @@
+{
+  "schema": "chengwang.capability-truth-development-evidence/v1",
+  "baselineCommit": "1cdeba4bc0e7c9b5cd25c9e7608cb4ac8f9e2ef8",
+  "status": "IMPLEMENTED_LOCAL_PENDING_COMMITTED_SOURCE_CLI_AND_REAL_CI",
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "actualLocalCPU": {
+    "tests": 172,
+    "failed": 0,
+    "skipped": 0,
+    "nodeVersion": "v25.2.1",
+    "pythonVersion": "3.12.10",
+    "scope": "ACTUAL_LOCAL_CPU_NOT_REAL_BROWSER_OR_LINUX_PINNED_RUNTIME",
+    "suites": {
+      "capability-checker-unit.log": {
+        "namesSHA256": "2a364ac25ecc8528b3a913692d4860cb85dc6c73b2ecc1733f24a4c47c1fbf36",
+        "originalSHA256": "e29ec4939fe47a6dd7c42df03f3c1d47bf3561098e1133e5c55ca626e3d6d4e6",
+        "passed": 50,
+        "skipped": 0,
+        "sourceSHA256": "58c4c3dbfcdf9fbc22f95ad6a1c756a506609b3c581a978310301c7b012faa44",
+        "tests": 50
+      },
+      "capability-node.tap": {
+        "namesSHA256": "3397e65e1908dbb15e4e7d91c765609cb42a9025d359ceaf110af896f0ca50cf",
+        "originalSHA256": "f2e559f0de1f9d6b50ed4b87852fa0a25ce427772cfe82af090671c0ac4e2db2",
+        "passed": 79,
+        "skipped": 0,
+        "tests": 79
+      },
+      "capability-scene-unit.log": {
+        "namesSHA256": "777329e8788c8fbec831322b6114f88479dacbb19a1624b304aa416cadb84164",
+        "originalSHA256": "5b2edbadc41e37c7e1c3ab67f16ad22bcea902b7049fb65bded417b3e74ea7f8",
+        "passed": 28,
+        "skipped": 0,
+        "sourceSHA256": "1334d22808c21f0a24f76da2267391419d9dea0209736fb427005cc48210ee6a",
+        "tests": 28
+      },
+      "supervisor-unit.log": {
+        "namesSHA256": "e4d5b392b4de713755c55dac9c93dbc774982a20486353e49af2b66975027020",
+        "originalSHA256": "e4cc2087172a1dc7199d837a3348daf57d9c73d57fdd1414a21c351dfccbfdea",
+        "passed": 15,
+        "skipped": 0,
+        "sourceSHA256": "d4a1d02a7a675d013e11bb2ce623c7b270506f7cafc398bc49cffba58716f0b4",
+        "tests": 15
+      }
+    },
+    "sourceSHA256": {
+      "chengwang/deploy/browser-scene-supervisor/lifecycle.py": "79f446505c6cfb3811e4638f8e0c1afe8673d8e9d26558d7a3584ded9481f20a",
+      "chengwang/deploy/browser-scene-supervisor/supervisor.py": "63aa0c3ac0a723470f77dc918e4b66a758ad6b4160bb3bbf4fde029e73d334ff",
+      "chengwang/deploy/browser-scene-supervisor/test_supervisor.py": "d4a1d02a7a675d013e11bb2ce623c7b270506f7cafc398bc49cffba58716f0b4",
+      "chengwang/deploy/capability-truth-browser/capability_truth_scene.py": "e25e31b4417406e31e17da5d42ca9b1f6cdc47e51dfeb651a235c9a7206b4191",
+      "chengwang/deploy/capability-truth-browser/check_capability_synthetic.py": "3521f6da790c619e46b087fc3fbd90ef1fbb83e636fecbdca52845eccaab2d26",
+      "chengwang/deploy/capability-truth-browser/check_capability_truth.py": "cb3f3254c170d737d2de59396056ea817acefbe34ad256a8c033410551755f02",
+      "chengwang/deploy/capability-truth-browser/contract.json": "ef9b9bd3c05760cd306551e09004445d06ab8faab6166bc65c3c71f56f579b4c",
+      "chengwang/deploy/capability-truth-browser/run_capability_truth.py": "cbe1ab4bd0481fb7cf38a5a89376ee312adfbbcd8cf7b3c5c961fa8d4389cf47",
+      "chengwang/deploy/capability-truth-browser/test_capability_truth_scene.py": "1334d22808c21f0a24f76da2267391419d9dea0209736fb427005cc48210ee6a",
+      "chengwang/deploy/capability-truth-browser/test_check_capability_truth.py": "58c4c3dbfcdf9fbc22f95ad6a1c756a506609b3c581a978310301c7b012faa44",
+      "chengwang/tools/capability-truth-browser/test-ui-contract.mjs": "c834aeb64b22728a822df344d6d347dd88360460256c01314320ccaf9aca984a",
+      "chengwang/tools/capability-truth-browser/test-ui-dom.mjs": "bf00f59faf43f4222e952895dec398c2321d1a6dedf25515f31b643a8d13bc96",
+      "chengwang/tools/capability-truth-browser/test-ui-driver.mjs": "f2c94273629b99fbe3cf6e2a1c6f882ce7f0800c494eeedc3ad593c5239d2284",
+      "chengwang/tools/capability-truth-browser/ui-cli.mjs": "4b00ba8f949aec127a29edc12370cfa4a76a3f1250376fc60df2b94b2487dee5",
+      "chengwang/tools/capability-truth-browser/ui-contract.mjs": "eeafe9cf60efec4f5e06bb695b82355a0654be2371160cfc1eb292a5da8b4aea",
+      "chengwang/tools/capability-truth-browser/ui-dom.mjs": "45071ac12d229727ba039e1a5596f4e83fb7b63a4c3f7999765acb2508d867e6",
+      "chengwang/tools/capability-truth-browser/ui-driver.mjs": "19d0c3b5ca6370cdb55fb41cb54c360e8cba753a80dea14f95811b311940421e"
+    },
+    "sourceStableBeforeAfter": true,
+    "originalDirectory": "D:/CodexData/workspace/capability-root-cpu-9kkbnj3l",
+    "resultSHA256": "b040568daf67e35c8e0aea8a75296b3ced269579ff54471860be4d4d4c77c810"
+  },
+  "actualStaticIntegration": {
+    "shellSyntaxBlocks": 21,
+    "nodeSyntaxFiles": 7,
+    "sourceFiles": 20,
+    "sourceStableBeforeAfter": true,
+    "productFrontendAndLocksUnchanged": true,
+    "userThreeScriptsPreserved": true,
+    "yamlRuntimeValidation": false,
+    "directory": "D:/CodexData/workspace/capability-root-preflight-afx8tq9j",
+    "resultSHA256": "234240c7390bc1a283d3769fc9c2459d3e0d679435e90d7558f5288e93ebad53"
+  },
+  "implemented": [
+    "Closed shared supervisor and legacy four-scenario adapters with unchanged success budgets and legacy gates.",
+    "Two real product fixture profiles with all production write gates closed.",
+    "CDP and Playwright producers using native navigation and refresh, with seven DOM checkpoints and six screenshots required.",
+    "Independent API, DOM, safe-event, manifest, TLS, process and copied-source reconstruction; producer logic is not imported.",
+    "Exact-name CPU transcript gate and fresh byte-equality wiring; output stays outside the input evidence directory.",
+    "Failure-only closed diagnostic projection; malformed or secret-bearing diagnostics are suppressed, never accepted as success."
+  ],
+  "expectedCIMatrixNotYetObserved": {
+    "legacyProducer": 8,
+    "legacyFresh": 8,
+    "capabilityProducer": 4,
+    "capabilityFresh": 4
+  },
+  "retainedFailures": [
+    {
+      "kind": "ROOT_AUDIT_HARNESS_STARTUP_NOT_PRODUCT_TEST_FAILURE",
+      "directory": "D:/CodexData/workspace/capability-root-cpu-g3ei2vvf",
+      "reason": "Replacing subprocess.Popen before importing unittest.mock prevented Windows asyncio class initialization; no test began. Importing the standard library before installing the deny-external-execution guard allowed the actual 172-test audit."
+    },
+    {
+      "kind": "STAGED_WHITESPACE_GATE_NOT_PRODUCT_TEST_FAILURE",
+      "directory": "D:/CodexData/workspace/capability-truth-commit-fsyv6nlv",
+      "reason": "git diff --cached --check rejected one extra blank line at checker EOF; no commit or push occurred. Removed only that blank line, then reran the actual 172 CPU cases and 21 shell syntax blocks against the final bytes."
+    }
+  ],
+  "knownLimits": [
+    "The original service snapshot provider is still seed/demo; this scene does not establish live inventory or a live provider.",
+    "Configured loopback upstream is intentionally not listening. Configuration does not establish upstream or business availability.",
+    "No deadline, late-response, cancellation, unknown-result or timeout fault browser path has run in this scene.",
+    "Private storage and proc projections are trusted source-bound CI observations, not independent remote attestations.",
+    "No current-subject RBAC, production write, canary, HA, sustained availability or whole-system acceptance is established.",
+    "New full source-bound synthetic CLI, real four-profile-engine browser matrix, fresh reconstruction and product screenshots are still pending.",
+    "Local monitor browser checks and 25 parser tests belong to the separate monitor preview; they do not prove this product browser scene."
+  ]
+}

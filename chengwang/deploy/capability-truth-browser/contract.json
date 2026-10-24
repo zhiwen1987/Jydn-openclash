@@ -1,0 +1,1385 @@
+{
+  "browserEnvironment": {
+    "deviceScaleFactor": 1,
+    "language": "zh-CN",
+    "physicalTouchDeviceProven": false,
+    "timeZone": "UTC"
+  },
+  "budgetPolicy": "captureRules.bounds is the single numeric budget table. PNG per file max4194304. Build JSON max1048576. No retries. All legacy scene budgets remain unchanged.",
+  "buildFileBytesMax": 1048576,
+  "captureRules": {
+    "authorizationPresent": false,
+    "bounds": {
+      "assets": 64,
+      "bodyAPI": 65536,
+      "bodyAsset": 8388608,
+      "captureFile": 25165824,
+      "decodedTotal": 16777216,
+      "domFileBytes": 2097152,
+      "domRowBytes": 262144,
+      "driverFileBytes": 1048576,
+      "eventRowBytes": 1024,
+      "events": 512,
+      "manifestBytes": 262144,
+      "requests": 68
+    },
+    "count": "1 DOCUMENT + actual reachable manifest assets + exactly1 SNAPSHOT + exactly2 CAPABILITIES",
+    "kindEnum": [
+      "DOCUMENT",
+      "ASSET",
+      "SNAPSHOT",
+      "CAPABILITIES"
+    ],
+    "methods": "GET only",
+    "origin": "https://127.0.0.1:17891 only",
+    "rejectedOrFailed": "any forbidden method/origin/API/safety field, request failure, duplicate identity, missing RESPONSE/FINISH, unfinished graph, journal overflow/rejection => reject; no zero-fill",
+    "requestGraph": "REQUEST→HEADERS→FINISH→CAPTURE per alias, allowing interleaving; completion captureOrdinal is assigned synchronously on FINISH in event order, not body promise settlement; exact captured bytes/hash crosslinks; NET_FAIL is distinct failed terminal and always rejects; no active pending/tasks on final sole META",
+    "requestId": "anonymous alias r + contiguous requestOrdinal, e.g. r1; original CDP request ID remains private same-session map only",
+    "requestPublic": null,
+    "secretPolicy": "no raw request headers, tokens, private key, Authorization body; asset Bearer literal is source content, not a runtime header; scan actual generated secrets privately before export",
+    "status": 200,
+    "terminal": "FINISH required, encodedDataLength integer>=0, not a body-size equality guarantee"
+  },
+  "controlSlots": [
+    [
+      "nav_overview",
+      "运行总览"
+    ],
+    [
+      "nav_kernels",
+      "内核与协议"
+    ],
+    [
+      "nav_capabilities",
+      "系统闭环"
+    ],
+    [
+      "refresh_capabilities",
+      "重新核验"
+    ],
+    [
+      "kernel_check_updates",
+      "检查更新"
+    ],
+    [
+      "kernel_import",
+      "导入内核"
+    ],
+    [
+      "kernel_add_instance",
+      "新增运行实例"
+    ],
+    [
+      "kernel_manage_versions",
+      "管理版本"
+    ],
+    [
+      "kernel_compare",
+      "对比所选内核"
+    ],
+    [
+      "kernel_start_parallel",
+      "启动并行实例"
+    ],
+    [
+      "kernel_set_default",
+      "切换默认内核"
+    ]
+  ],
+  "domRules": {
+    "capabilityTime": "generatedAtLabel exact 清单生成时间; browser timeZone UTC; parse observed normalized Chinese numeric calendar fields and compare actual RFC3339 components. Raw expected string must not come from driver formatter; freeze allowable separators/hour width before implementation",
+    "demo": "demo alert and source labels remain; mode equals actual snapshot.mode in topbar and overview; badge 总览只读 and permission boundary exact; no seed business/pool/event/metric widgets or simulated topology/observed DNS health",
+    "fence": "captureCount is settled capture prefix; snapshotCaptureOrdinal and capabilitiesCaptureOrdinals must exactly equal API bodies present in prefix. Checker derives latest actual response from prefix and graph; ordinals declare observation position, not app consumption proof. Need independent full DOM-to-body equality.",
+    "kernels": "source-frozen4rows/matrix/evidencefields, actual unknown/planning labels;7main actions disabled, no installed/running/ready runtime inference",
+    "normalState": "no deadline/pending fault assertions from fast successful API; no token/current user authorizations",
+    "png": "6 actual PNGs with exactly corresponding dimensions/hash/bytes/step/scroll, <=4MiB each; viewport screenshot not all rows visibility; independent visual review stays false"
+  },
+  "domSemantics": {
+    "activePage": "page is observed active navigation accessible label; h1 must equal same name, pageMounted/pageVisible from actual main heading. Only active page payload nonnull. Hidden Subscriptions is never operated.",
+    "apiFence": "Metadata only, captureCount exact settled prefix. Independent checker derives snapshot+capability ordinals from actual captures and verifies arrays; not proof of React consumption without DOM-to-body equality.",
+    "capabilities": "All18 actual article IDs/names/classes/state/readOnly text/evidence/limitations must match latest captured raw API. Summary stateClass is actual child className (currently empty string), not synthesized capability-state enum; fixed summary order establishes association. Actual group DOM first-appearance order and counts. Do not substitute fixture text for observed DOM.",
+    "controls": "11 fixed slots; absent => label/labelSourcenull, all booleansfalse,rectnull. Present label prefers actual nonempty aria-label else actual visible innerText. labelSource ARIA_LABEL/VISIBLE_TEXT/null. Native nav requires ARIA_LABEL. Disabled kernel controls may be belowfold; no universal inViewport requirement. Clicked nav/refresh must enabled/visible/inViewport/unobstructed.",
+    "geometry": "rect exact finite x/y/width/height, width,height>=0. visible computed ancestor styles+rect; inViewport intersection; unobstructed uses actual elementFromPoint for center inside viewport. Only controls/topbar have geometry; DOM mounted content belowfold and viewport PNGs do not prove every row visible.",
+    "kernels": "Four actual table rows as six-key objects; statusClass from real status node; 12 matrix rows feature plus3 cells text/className; six dl dt/dd evidenceFields pairs. Lifecycle design text is not runtime evidence. All7 actions disabled.",
+    "limits": "DOM2MiB total,256KiB/row, text strings <=2048UTF16 unless API tighter; source top headings <=160; item/group counts exactly current18, hard cap256. Reject control/bidi unsafe characters, not strip silently.",
+    "overview": "Actual DemoOverview extraction: status from direct heading-p text node; mode/badge from first evidence-strip cell; boundaryText from heading p final span; alerts from actual strong/span. Four evidence-strip entries and five boundary rows exact observed text. Evidence status class is actual status node class. Six absence booleans from actual known mounted widget selectors; not arbitrary universal no-fabrication theorem.",
+    "scope": "driver.scope actual ManagementScope object, equal independent A runtime projection. default empty tenant/site,candidate/control-plane/local; configured capability-truth-lab/isolated,candidate/control-plane/local. Fixture configured scope only, not authenticated or authorized current user.",
+    "time": "Observe actual zh-CN navigator.language and Intl resolved UTC. Capture displayed generatedAtText verbatim normalized whitespace. Independent checker parses numeric calendar fields with allowed / or - date separators, space date/time separator and : clock, one/two-digit month/day/hour, four-digit year and two-digit minute/second, compare actual raw RFC3339 UTC components; no driver-created expected timestamp.",
+    "topbar": "Four fields remain product/sourceLabel/mode/kernel, each node {text,visible,rect}. Observed normalized textContent allows truthful hidden mobile node text; hidden => visiblefalse/rectnull. Never interpret hidden text as accessible or visible. Existing HEAD already has nav ARIA/title; no product edit required."
+  },
+  "eightZero": [
+    "runtimeErrors",
+    "consoleErrors",
+    "consoleWarnings",
+    "cspErrors",
+    "assetErrors",
+    "forbiddenRequests",
+    "failedRequests",
+    "captureErrors"
+  ],
+  "engines": [
+    "chrome-cdp",
+    "playwright"
+  ],
+  "eventContract": {
+    "aliases": "only r[1-9][0-9]* <=68; all references already REQUESTed except ERROR requestId may null; no rawIDs/URL/errors/console text",
+    "errors": [
+      "runtime_error",
+      "console_error",
+      "console_warning",
+      "csp_error",
+      "asset_error",
+      "forbidden_request",
+      "capture_error"
+    ],
+    "kind": "DOCUMENT/ASSET/SNAPSHOT/CAPABILITIES, source path additionally checked from successful capture",
+    "maxRowUTF8Bytes": 1024,
+    "maxRows": 512,
+    "meta": "exactly final unique META after normal close/wait; requests/headers/finished/failed/captured = reconstructed sets, pending0/tasks0/mutations0/overflowfalse; unknown/postMETA/duplicate/missing graph => reject",
+    "method": "GET/OTHER only, OTHER rejects",
+    "mimeClass": [
+      "HTML",
+      "JSON",
+      "JS",
+      "CSS",
+      "SVG",
+      "PNG",
+      "FONT",
+      "OTHER"
+    ],
+    "normalMaximumRows": 273,
+    "path": "only fixed document/API or valid built /assets basename; unknown null, never raw secret-bearing target",
+    "reducer": "runtimeErrors/consoleErrors/consoleWarnings/cspErrors/assetErrors/forbiddenRequests/captureErrors = corresponding ERROR rows; failedRequests = NET_FAIL count; reject any nonzero then compare exact driver.counters to recomputation; META fields/counts are checked, never authority",
+    "requestSafety": "sameOrigintrue; methodGET; queryPresent/fragmentPresent/userInfoPresent/authorizationPresent/cookiePresent/bodyPresent allfalse; safe allowlist path only else null and reject; no raw URL/ID/text",
+    "seq": "contiguous1..N global safe journal arrival order",
+    "status": "FROZEN_SAFE_OBSERVATION_JOURNAL_NOT_PACKET_ATTESTATION",
+    "tags": [
+      "REQUEST",
+      "HEADERS",
+      "FINISH",
+      "CAPTURE",
+      "NET_FAIL",
+      "ERROR",
+      "META"
+    ],
+    "trustBoundary": "safe CDP/driver event projections from trusted source-bound CI, not raw browser-internal attestations; no producer passed flag is authority"
+  },
+  "exactKeySchemas": {
+    "6PNG": "actual PNG bytes; no JSON keys; IHDR exactly checkpoint viewport; CRC/chunk/decompression validity; max4MiB each",
+    "build.json": [
+      "schema",
+      "sourceCommit",
+      "goVersion",
+      "nodeVersion",
+      "moduleMode",
+      "goDependencyDownloads",
+      "server",
+      "distFiles",
+      "manifestBase64",
+      "production",
+      "authorization"
+    ],
+    "captures.jsonl[]": [
+      "schema",
+      "ordinal",
+      "requestOrdinal",
+      "requestId",
+      "method",
+      "path",
+      "kind",
+      "status",
+      "authorizationPresent",
+      "requestPublic",
+      "responseBase64",
+      "responseSHA256",
+      "responseBytes",
+      "startedWallTimeUs",
+      "startTimeUs",
+      "headerTimeUs",
+      "endTimeUs",
+      "terminal"
+    ],
+    "certificates.json": [
+      "caPEM",
+      "leafPEM"
+    ],
+    "dom.jsonl[]": [
+      "schema",
+      "ordinal",
+      "step",
+      "captureCount",
+      "mutationCount",
+      "dom"
+    ],
+    "driver.json": [
+      "schema",
+      "sourceCommit",
+      "fixtureId",
+      "engine",
+      "scenario",
+      "profile",
+      "production",
+      "origin",
+      "scope",
+      "runtime",
+      "mockedResponses",
+      "injectedFetch",
+      "tlsBypass",
+      "browser",
+      "chrome",
+      "normalTrust",
+      "tls",
+      "certificateChain",
+      "counters",
+      "events",
+      "close",
+      "steps",
+      "captures",
+      "screenshots"
+    ],
+    "inputs.json": [
+      "schema",
+      "sourceCommit",
+      "fixtureId",
+      "engine",
+      "scenario",
+      "profile",
+      "production",
+      "copiedInputs",
+      "inputTrustScope"
+    ],
+    "isolation.json": [
+      "schema",
+      "sourceCommit",
+      "fixtureId",
+      "engine",
+      "scenario",
+      "profile",
+      "production",
+      "hostBefore",
+      "hostAfter",
+      "sourceFilesBefore",
+      "sourceFilesAfter",
+      "lab",
+      "authorization",
+      "deviceActionsExecuted",
+      "pythonBinaryProvenanceProven"
+    ],
+    "pin-consumption.json": [
+      "schema",
+      "sourceCommit",
+      "state",
+      "pinSHA256",
+      "sourceFilesVerified",
+      "mode",
+      "zip",
+      "expandedMemberCount",
+      "expandedBytes",
+      "expandedMembersSHA256",
+      "elf",
+      "pinEnforced",
+      "allMemberCRCsVerified",
+      "actualExpandedFileHashesVerified",
+      "browserExecuted",
+      "runtimeVersionProven",
+      "projectFixProven",
+      "publisherSignatureProven",
+      "production",
+      "limitations"
+    ],
+    "processes.json": [
+      "schema",
+      "sourceCommit",
+      "fixtureId",
+      "engine",
+      "scenario",
+      "profile",
+      "production",
+      "records",
+      "serverExitCode",
+      "controllerExitCode",
+      "noLiveOwnedProcesses",
+      "forcedSignals",
+      "processScope"
+    ],
+    "runtime-facts.json": [
+      "schema",
+      "sourceCommit",
+      "fixtureId",
+      "engine",
+      "scenario",
+      "profile",
+      "production",
+      "scope",
+      "serverIdentity",
+      "environment",
+      "identities",
+      "mihomo",
+      "observer",
+      "probe",
+      "subscription",
+      "writeGates",
+      "policyCatalog",
+      "upstreamListener",
+      "snapshotsProvider",
+      "trustBoundary"
+    ],
+    "storage-readback.json": [
+      "schema",
+      "sourceCommit",
+      "fixtureId",
+      "engine",
+      "scenario",
+      "profile",
+      "production",
+      "scope",
+      "subscriptionStore",
+      "observationStore",
+      "operationStore",
+      "evidenceStore",
+      "trustBoundary"
+    ]
+  },
+  "frozenRegistrySourceProjection": [
+    {
+      "domain": "control",
+      "id": "control_health",
+      "name": "控制面健康检查",
+      "readOnly": true,
+      "stateSource": "StateImplementedLocal"
+    },
+    {
+      "domain": "policy",
+      "id": "policy_validation",
+      "name": "策略草稿校验",
+      "readOnly": true,
+      "stateSource": "StateImplementedLocal"
+    },
+    {
+      "domain": "policy",
+      "id": "mihomo_compilation",
+      "name": "Mihomo 兼容片段编译",
+      "readOnly": true,
+      "stateSource": "StateImplementedLocal"
+    },
+    {
+      "domain": "configuration",
+      "id": "local_version_store",
+      "name": "本地策略版本库",
+      "readOnly": false,
+      "stateSource": "StateImplementedLocal"
+    },
+    {
+      "domain": "proxy",
+      "id": "proxy_interface_validation",
+      "name": "代理入口定义与安全校验",
+      "readOnly": true,
+      "stateSource": "StateImplementedLocal"
+    },
+    {
+      "domain": "kernel",
+      "id": "mihomo_runtime_readback",
+      "name": "Mihomo 运行态只读与策略读回",
+      "readOnly": true,
+      "stateSource": "mihomoState"
+    },
+    {
+      "domain": "audit",
+      "id": "local_evidence_chain",
+      "name": "单机追加式证据链",
+      "readOnly": false,
+      "stateSource": "evidenceState"
+    },
+    {
+      "domain": "security",
+      "id": "real_authentication",
+      "name": "本地身份认证与范围授权",
+      "readOnly": false,
+      "stateSource": "identityState"
+    },
+    {
+      "domain": "control",
+      "id": "durable_operation_control",
+      "name": "耐久 Shadow 操作控制面",
+      "readOnly": false,
+      "stateSource": "operationState"
+    },
+    {
+      "domain": "observability",
+      "id": "continuous_passive_observation",
+      "name": "Mihomo 持续只读观测",
+      "readOnly": true,
+      "stateSource": "observationState"
+    },
+    {
+      "domain": "observability",
+      "id": "probe_evidence_readback",
+      "name": "探测证据只读导入",
+      "readOnly": true,
+      "stateSource": "probeReadbackState"
+    },
+    {
+      "domain": "subscription",
+      "id": "subscription_local_admission",
+      "name": "本地订阅准入与受保护 API",
+      "readOnly": false,
+      "stateSource": "subscriptionState"
+    },
+    {
+      "domain": "configuration",
+      "evidence": [],
+      "id": "router_publish",
+      "limitations": [
+        "尚无设备写入、配置测试、灰度、热重载和自动回滚闭环"
+      ],
+      "name": "路由器配置写入与发布",
+      "readOnly": true,
+      "stateSource": "StateDesignOnly"
+    },
+    {
+      "domain": "subscription",
+      "evidence": [],
+      "id": "subscription_orchestration",
+      "limitations": [
+        "已有本地来源、格式识别、候选去重隔离、受控批准抓取、准入回退与回执底座；自动刷新调度、完整节点评估、数据面应用及生产验证尚未闭环"
+      ],
+      "name": "订阅识别与编排",
+      "readOnly": true,
+      "stateSource": "StateDesignOnly"
+    },
+    {
+      "domain": "dns",
+      "evidence": [],
+      "id": "dns_execution",
+      "limitations": [
+        "尚无 DNS 服务进程、解析链路接管、泄漏检测和故障切换执行器"
+      ],
+      "name": "DNS 执行与防泄漏",
+      "readOnly": true,
+      "stateSource": "StateDesignOnly"
+    },
+    {
+      "domain": "observability",
+      "evidence": [],
+      "id": "active_business_probes",
+      "limitations": [
+        "已有 standalone probe-agent 的有界 HTTP、TLS、DNS 探测与只读证据导入；尚无完整节点、地区、账号与企业业务评估及生产验证闭环"
+      ],
+      "name": "主动业务可用性探测",
+      "readOnly": true,
+      "stateSource": "StateDesignOnly"
+    },
+    {
+      "domain": "automation",
+      "evidence": [],
+      "id": "automatic_repair",
+      "limitations": [
+        "尚无故障决策、抑制、变更、验证和失败回滚执行闭环"
+      ],
+      "name": "自动诊断与修复",
+      "readOnly": true,
+      "stateSource": "StateDesignOnly"
+    },
+    {
+      "domain": "kernel",
+      "evidence": [],
+      "id": "multi_kernel_runtime",
+      "limitations": [
+        "当前仅有 Mihomo 领域描述和只读适配器，未运行或控制 sing-box、Xray 等内核"
+      ],
+      "name": "多内核运行与切换",
+      "readOnly": true,
+      "stateSource": "StateDesignOnly"
+    }
+  ],
+  "leafValues": {
+    "endpointClass": "ISOLATED_LOOPBACK_17892",
+    "mihomoEndpointWhenUnconfigured": null,
+    "snapshotsProvider": "seed_demo",
+    "trustBoundary": "SOURCE_BOUND_TRUSTED_CI_NOT_INDEPENDENT_PRIVATE_STORAGE_ATTESTATION",
+    "identitiesConfigured": {
+      "configured": true,
+      "regularFile": true,
+      "directoryMode": "0700",
+      "fileMode": "0600",
+      "symlinkComponents": false,
+      "ownershipVerified": true
+    },
+    "identitiesUnconfigured": {
+      "configured": false,
+      "regularFile": false,
+      "directoryMode": null,
+      "fileMode": null,
+      "symlinkComponents": false,
+      "ownershipVerified": false
+    },
+    "observerConfigured": { "configured": true, "interval": "30s", "ttl": "2m" },
+    "observerUnconfigured": { "configured": false, "interval": null, "ttl": null },
+    "upstreamListener": {
+      "endpointClass": "ISOLATED_LOOPBACK_17892",
+      "beforeListening": false,
+      "afterListening": false,
+      "reachabilityObserved": false
+    }
+  },
+  "manifestAlgorithm": {
+    "allowed": "Required graph plus reachable dynamicImports files/CSS/assets; actual captured assets unique and at most 64. Shared/trust-only entries are not mandatory.",
+    "bytes": "Decode canonical manifestBase64, max262144 bytes; exact SHA/bytes against distFiles .vite/manifest.json; no path traversal, URL, query, duplicate keys or missing import references.",
+    "entry": "index.html",
+    "keys": [
+      "src",
+      "file",
+      "css",
+      "assets",
+      "isEntry",
+      "name",
+      "names",
+      "isDynamicEntry",
+      "imports",
+      "dynamicImports"
+    ],
+    "legacyNames": "Vite8.3.4 still emits deprecated names for compatibility; accept bounded string array.",
+    "mainEntryRequired": true,
+    "required": "Entry file and transitive static imports files/CSS; all must be captured once.",
+    "sources": [
+      "https://raw.githubusercontent.com/vitejs/vite/v8.3.4/packages/vite/src/node/plugins/manifest.ts",
+      "https://vite.dev/guide/backend-integration"
+    ]
+  },
+  "nestedExactKeys": {
+    "build.server": [
+      "name",
+      "bytes",
+      "sha256"
+    ],
+    "byteRecord": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "capture.terminal": [
+      "event",
+      "encodedDataLength"
+    ],
+    "dom.apiFence": [
+      "snapshotCaptureOrdinal",
+      "capabilitiesCaptureOrdinals"
+    ],
+    "dom.browserStorage": [
+      "localEmpty",
+      "sessionEmpty",
+      "cookiesEmpty"
+    ],
+    "dom.capabilities": [
+      "heading",
+      "boundary",
+      "summary",
+      "meta",
+      "groups"
+    ],
+    "dom.capabilities.boundary": [
+      "title",
+      "text",
+      "writeEnabled"
+    ],
+    "dom.capabilities.groups[]": [
+      "domain",
+      "count",
+      "rows"
+    ],
+    "dom.capabilities.groups[].rows[]": [
+      "id",
+      "name",
+      "stateClass",
+      "stateLabel",
+      "readOnlyLabel",
+      "evidenceLabel",
+      "evidence",
+      "emptyEvidenceLabel",
+      "limitationsLabel",
+      "limitations"
+    ],
+    "dom.capabilities.meta": [
+      "overallState",
+      "generatedAtLabel",
+      "generatedAtText",
+      "capabilityCount",
+      "productionLabel"
+    ],
+    "dom.capabilities.summary[]": [
+      "stateClass",
+      "label",
+      "count",
+      "description"
+    ],
+    "dom.controls[]": [
+      "key",
+      "label",
+      "labelSource",
+      "present",
+      "visible",
+      "enabled",
+      "inViewport",
+      "unobstructed",
+      "rect"
+    ],
+    "dom.controls[].rect": [
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "dom.dom": [
+      "schema",
+      "page",
+      "pageMounted",
+      "pageVisible",
+      "https",
+      "viewport",
+      "environment",
+      "browserStorage",
+      "topbar",
+      "controls",
+      "apiFence",
+      "overview",
+      "kernels",
+      "capabilities"
+    ],
+    "dom.environment": [
+      "language",
+      "timeZone"
+    ],
+    "dom.kernels": [
+      "heading",
+      "description",
+      "rows",
+      "matrixHeading",
+      "matrixDescription",
+      "matrixRows",
+      "evidenceHeading",
+      "evidenceStatus",
+      "evidenceFields"
+    ],
+    "dom.kernels.evidenceFields[]": [
+      "label",
+      "value"
+    ],
+    "dom.kernels.matrixRows[]": [
+      "feature",
+      "cells"
+    ],
+    "dom.kernels.matrixRows[].cells[]": [
+      "text",
+      "className"
+    ],
+    "dom.kernels.rows[]": [
+      "name",
+      "versionEvidence",
+      "scope",
+      "instanceState",
+      "boundary",
+      "statusClass"
+    ],
+    "dom.overview": [
+      "status",
+      "mode",
+      "badge",
+      "boundaryText",
+      "demoAlertTitle",
+      "demoAlertText",
+      "evidenceStrip",
+      "boundaryRows",
+      "businessTablePresent",
+      "poolTablePresent",
+      "eventsTablePresent",
+      "metricCardsPresent",
+      "simulatedTopologyPresent",
+      "dnsHealthObservedPresent"
+    ],
+    "dom.overview.boundaryRows[]": [
+      "domain",
+      "evidence",
+      "handling"
+    ],
+    "dom.overview.evidenceStrip[]": [
+      "label",
+      "value",
+      "status",
+      "statusClass"
+    ],
+    "dom.topbar": [
+      "product",
+      "sourceLabel",
+      "mode",
+      "kernel"
+    ],
+    "dom.topbar.node": [
+      "text",
+      "visible",
+      "rect"
+    ],
+    "dom.viewport": [
+      "width",
+      "height",
+      "scrollX",
+      "scrollY",
+      "clientWidth",
+      "scrollWidth"
+    ],
+    "driver.browser": [
+      "product",
+      "revision",
+      "protocolVersion"
+    ],
+    "driver.captures": [
+      "path",
+      "bytes",
+      "sha256",
+      "records"
+    ],
+    "driver.chrome": [
+      "pid",
+      "startTicks",
+      "uid",
+      "profile",
+      "argvSHA256",
+      "exeSHA256",
+      "exeBytes"
+    ],
+    "driver.close": [
+      "normalCloseCommandCompleted",
+      "chromeExit",
+      "launcherExit",
+      "noLiveOwnedProcesses",
+      "processScope"
+    ],
+    "driver.close.chromeExit": [
+      "schema",
+      "engine",
+      "fixtureId",
+      "pid",
+      "startTicks",
+      "exitCode",
+      "joined",
+      "forced"
+    ],
+    "driver.close.launcherExitCDP": [
+      "code",
+      "signal"
+    ],
+    "driver.events.CAPTURE": [
+      "seq",
+      "type",
+      "requestId",
+      "captureOrdinal",
+      "responseBytes",
+      "responseSHA256"
+    ],
+    "driver.events.ERROR": [
+      "seq",
+      "type",
+      "requestId",
+      "code"
+    ],
+    "driver.events.FINISH": [
+      "seq",
+      "type",
+      "requestId",
+      "encodedDataLength"
+    ],
+    "driver.events.HEADERS": [
+      "seq",
+      "type",
+      "requestId",
+      "status",
+      "mimeClass",
+      "setCookiePresent",
+      "redirected",
+      "diskCache",
+      "serviceWorker"
+    ],
+    "driver.events.META": [
+      "seq",
+      "type",
+      "requests",
+      "headers",
+      "finished",
+      "failed",
+      "captured",
+      "pending",
+      "tasks",
+      "ignoredFavicon",
+      "mutations",
+      "overflow"
+    ],
+    "driver.events.NET_FAIL": [
+      "seq",
+      "type",
+      "requestId"
+    ],
+    "driver.events.REQUEST": [
+      "seq",
+      "type",
+      "requestId",
+      "requestOrdinal",
+      "kind",
+      "method",
+      "path",
+      "sameOrigin",
+      "queryPresent",
+      "fragmentPresent",
+      "userInfoPresent",
+      "authorizationPresent",
+      "cookiePresent",
+      "bodyPresent"
+    ],
+    "driver.normalTrust": [
+      "method",
+      "trustFlags",
+      "caSHA256",
+      "leafSHA256",
+      "homeEnvironmentAbsent",
+      "legacyDatabaseAbsent"
+    ],
+    "driver.scope": [
+      "tenantId",
+      "siteId",
+      "environment",
+      "objectType",
+      "objectId"
+    ],
+    "driver.screenshots[]": [
+      "path",
+      "step",
+      "bytes",
+      "sha256",
+      "viewport",
+      "scrollX",
+      "scrollY",
+      "capturedWallTimeUs"
+    ],
+    "driver.tls": [
+      "securityState",
+      "protocol",
+      "cipher",
+      "leafSHA256",
+      "caSHA256",
+      "serverChainLength",
+      "leafSignatureVerified",
+      "ipSANVerified"
+    ],
+    "isolation.hostBefore/After": [
+      "netNamespace",
+      "mountNamespace",
+      "pidNamespace",
+      "userNamespace",
+      "portStart",
+      "systemCASHA256",
+      "sourceSHA256"
+    ],
+    "isolation.lab": [
+      "namespaces",
+      "defaultIPv4Routes",
+      "defaultIPv6Routes",
+      "interfaces",
+      "sourceMount",
+      "bundleMount",
+      "tmpMount"
+    ],
+    "pin.elf": [
+      "path",
+      "bytes",
+      "sha256",
+      "class",
+      "byteOrder",
+      "type",
+      "machine",
+      "entryPoint",
+      "programHeaderCount",
+      "loadSegments"
+    ],
+    "pin.zip": [
+      "bytes",
+      "sha256",
+      "md5Base64"
+    ],
+    "processes.records[]": [
+      "pid",
+      "startTime",
+      "exeSHA256",
+      "argvSHA256",
+      "uid",
+      "gid",
+      "groups",
+      "capabilities",
+      "noNewPrivs",
+      "namespaces",
+      "limits",
+      "role",
+      "argv"
+    ],
+    "record.capabilities": [
+      "CapInh",
+      "CapPrm",
+      "CapEff",
+      "CapBnd",
+      "CapAmb"
+    ],
+    "record.limits": [
+      "cpuSeconds",
+      "fileBytes",
+      "openFiles",
+      "processes",
+      "coreBytes"
+    ],
+    "record.namespaces": [
+      "net",
+      "mnt",
+      "pid",
+      "user"
+    ],
+    "runtime.environment[]": [
+      "name",
+      "value"
+    ],
+    "runtime.identities": [
+      "configured",
+      "regularFile",
+      "directoryMode",
+      "fileMode",
+      "symlinkComponents",
+      "ownershipVerified"
+    ],
+    "runtime.mihomo": [
+      "configured",
+      "endpointClass"
+    ],
+    "runtime.observer": [
+      "configured",
+      "interval",
+      "ttl"
+    ],
+    "runtime.policyCatalog": [
+      "configured"
+    ],
+    "runtime.probe": [
+      "configured"
+    ],
+    "runtime.scope": [
+      "tenantId",
+      "siteId",
+      "environment",
+      "objectType",
+      "objectId"
+    ],
+    "runtime.serverIdentity": [
+      "pid",
+      "startTicks",
+      "exeSHA256",
+      "argvSHA256"
+    ],
+    "runtime.subscription": [
+      "configured",
+      "writesEnabled",
+      "policyConfigured"
+    ],
+    "runtime.upstreamListener": [
+      "endpointClass",
+      "beforeListening",
+      "afterListening",
+      "reachabilityObserved"
+    ],
+    "runtime.writeGates": [
+      "publish",
+      "operation",
+      "subscription"
+    ],
+    "storage.evidenceStore": [
+      "constructed"
+    ],
+    "storage.observationStore": [
+      "constructed"
+    ],
+    "storage.operationStore": [
+      "constructed",
+      "commandCount"
+    ],
+    "storage.subscriptionStore": [
+      "constructed",
+      "scope",
+      "sourceCount",
+      "candidateCount",
+      "requestCount",
+      "auditCount",
+      "commandCount",
+      "approvalCount",
+      "privateNodesCount"
+    ]
+  },
+  "origin": "https://127.0.0.1:17891",
+  "pngFileBytesMax": 4194304,
+  "privateBrowserInputExactKeys": [
+    "schema",
+    "scenario",
+    "profile",
+    "fixtureId",
+    "sourceCommit",
+    "engine",
+    "fenceCanary"
+  ],
+  "privateBrowserInputPolicy": "Exactly the seven named keys; schemaNames.input, fixed scenario/profile/engine, sourceCommit hex40, fixtureId hex32, independent scan-only fenceCanary hex64. Never carries a real identity token or hash. Filename capability-input.private.json.",
+  "privateInputFilename": "capability-input.private.json",
+  "profilePlacement": {
+    "binding": "All scene identity tuples equal CLI sourceCommit/engine/profile + fixture derived once; profile controls exact environment and selected API state branches. Certificates/pin/shared build connect through body/ELF/dist hashes and sourceCommit, not fake new identity fields",
+    "notAdded": [
+      "raw API DTO",
+      "capture record",
+      "DOM record",
+      "certificates.json",
+      "pin-consumption.json",
+      "shared build.json",
+      "PNG"
+    ],
+    "required": [
+      "driver.json",
+      "processes.json",
+      "isolation.json",
+      "inputs.json",
+      "runtime-facts.json",
+      "storage-readback.json",
+      "final independent report"
+    ]
+  },
+  "profilePolicies": {
+    "backend_configured": {
+      "conditionalStates": {
+        "durable_operation_control": "implemented_local iff actual fresh evidence status valid; otherwise blocked"
+      },
+      "env": {
+        "CHENGWANG_ADDR": "127.0.0.1:17891",
+        "CHENGWANG_ALLOW_PUBLISH": "false",
+        "CHENGWANG_DATA_DIR": "${PRIVATE_ROOT}/data",
+        "CHENGWANG_IDENTITIES_FILE": "${PRIVATE_ROOT}/identities.json",
+        "CHENGWANG_MANAGEMENT_OBJECT_ID": "local",
+        "CHENGWANG_MANAGEMENT_SITE_ID": "isolated",
+        "CHENGWANG_MANAGEMENT_TENANT_ID": "capability-truth-lab",
+        "CHENGWANG_MIHOMO_URL": "http://127.0.0.1:17892",
+        "CHENGWANG_MODE": "candidate",
+        "CHENGWANG_OBSERVATION_INTERVAL": "30s",
+        "CHENGWANG_OBSERVATION_TTL": "2m",
+        "CHENGWANG_OPERATION_WRITES_ENABLED": "false",
+        "CHENGWANG_SUBSCRIPTIONS_ENABLED": "true",
+        "CHENGWANG_SUBSCRIPTION_WRITES_ENABLED": "false",
+        "CHENGWANG_TLS_CERT_FILE": "${PRIVATE_ROOT}/api-leaf.pem",
+        "CHENGWANG_TLS_KEY_FILE": "${PRIVATE_ROOT}/api-leaf.key",
+        "CHENGWANG_WEB_DIR": "${READONLY_BUNDLE}/source/chengwang/web/dist",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "PATH": "/usr/bin:/bin",
+        "TMPDIR": "/var/tmp",
+        "TZ": "UTC"
+      },
+      "mustOmit": [
+        "CHENGWANG_ADMIN_TOKEN",
+        "CHENGWANG_MIHOMO_TOKEN",
+        "CHENGWANG_MIHOMO_ALLOWED_HOSTS",
+        "CHENGWANG_SUBSCRIPTION_POLICY_FILE",
+        "CHENGWANG_PROBE_READ_ENABLED",
+        "CHENGWANG_PROBE_CATALOG_FILE",
+        "CHENGWANG_PROBE_SPOOL_DIR"
+      ],
+      "privateIdentity": {
+        "formatSource": "internal/authn/store.go:78-91,319-383",
+        "posixDirectoryMode": "0700",
+        "posixFileMode": "0600",
+        "principal": {
+          "allowedScopes": [
+            {
+              "environment": "candidate",
+              "objectId": "local",
+              "objectType": "subscription-store",
+              "siteId": "isolated",
+              "tenantId": "capability-truth-lab"
+            }
+          ],
+          "breakGlassEligible": false,
+          "id": "viewer@capability-truth.lab",
+          "roles": [
+            "viewer"
+          ],
+          "tenantId": "capability-truth-lab"
+        },
+        "tokenHashRule": "lowercase sha256 of fresh secrets.token_hex(32); private only; no browser token or public digest",
+        "tokenId": "capability-viewer",
+        "version": 1
+      },
+      "selectedStates": {
+        "continuous_passive_observation": "live_readonly",
+        "mihomo_runtime_readback": "live_readonly",
+        "probe_evidence_readback": "blocked",
+        "real_authentication": "implemented_local",
+        "subscription_local_admission": "implemented_local"
+      },
+      "upstream": {
+        "browserOrAuxiliaryReadbackRequestAllowed": false,
+        "fixedLoopbackEndpoint": true,
+        "noListenerBeforeAndAfterRequired": true,
+        "upstreamReachabilityObserved": false
+      }
+    },
+    "default": {
+      "env": {
+        "CHENGWANG_ADDR": "127.0.0.1:17891",
+        "CHENGWANG_ALLOW_PUBLISH": "false",
+        "CHENGWANG_DATA_DIR": "${PRIVATE_ROOT}/data",
+        "CHENGWANG_MODE": "candidate",
+        "CHENGWANG_OPERATION_WRITES_ENABLED": "false",
+        "CHENGWANG_SUBSCRIPTIONS_ENABLED": "false",
+        "CHENGWANG_SUBSCRIPTION_WRITES_ENABLED": "false",
+        "CHENGWANG_TLS_CERT_FILE": "${PRIVATE_ROOT}/api-leaf.pem",
+        "CHENGWANG_TLS_KEY_FILE": "${PRIVATE_ROOT}/api-leaf.key",
+        "CHENGWANG_WEB_DIR": "${READONLY_BUNDLE}/source/chengwang/web/dist",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "PATH": "/usr/bin:/bin",
+        "TMPDIR": "/var/tmp",
+        "TZ": "UTC"
+      },
+      "mustOmit": [
+        "CHENGWANG_ADMIN_TOKEN",
+        "CHENGWANG_MIHOMO_TOKEN",
+        "CHENGWANG_MIHOMO_ALLOWED_HOSTS",
+        "CHENGWANG_SUBSCRIPTION_POLICY_FILE",
+        "CHENGWANG_PROBE_READ_ENABLED",
+        "CHENGWANG_PROBE_CATALOG_FILE",
+        "CHENGWANG_PROBE_SPOOL_DIR",
+        "CHENGWANG_IDENTITIES_FILE",
+        "CHENGWANG_MANAGEMENT_TENANT_ID",
+        "CHENGWANG_MANAGEMENT_SITE_ID",
+        "CHENGWANG_MANAGEMENT_OBJECT_ID",
+        "CHENGWANG_MIHOMO_URL",
+        "CHENGWANG_OBSERVATION_INTERVAL",
+        "CHENGWANG_OBSERVATION_TTL"
+      ],
+      "selectedStates": {
+        "continuous_passive_observation": "blocked",
+        "durable_operation_control": "blocked",
+        "mihomo_runtime_readback": "blocked",
+        "probe_evidence_readback": "blocked",
+        "real_authentication": "blocked",
+        "subscription_local_admission": "blocked"
+      }
+    }
+  },
+  "profiles": [
+    "default",
+    "backend_configured"
+  ],
+  "publicFiles": [
+    "driver.json",
+    "captures.jsonl",
+    "dom.jsonl",
+    "overview-desktop.png",
+    "capabilities-desktop.png",
+    "kernels-desktop.png",
+    "overview-mobile.png",
+    "capabilities-mobile.png",
+    "kernels-mobile.png",
+    "processes.json",
+    "isolation.json",
+    "inputs.json",
+    "certificates.json",
+    "pin-consumption.json",
+    "build.json",
+    "runtime-facts.json",
+    "storage-readback.json"
+  ],
+  "readyExactKeys": [
+    "schema",
+    "scenario",
+    "profile",
+    "fixtureId",
+    "engine",
+    "pid",
+    "chromePid"
+  ],
+  "reportExactKeys": [
+    "schema",
+    "sourceCommit",
+    "fixtureId",
+    "engine",
+    "scenario",
+    "profile",
+    "outcome",
+    "scope",
+    "actualBrowser",
+    "actualChromeELFSHA256",
+    "steps",
+    "screenshots",
+    "requests",
+    "mutations",
+    "sourceGitBlobs",
+    "normalTLSOfflineVerifiedAtCapture",
+    "pinConsumed",
+    "rawCapabilitiesMatchedDOM",
+    "normalRefreshObserved",
+    "demoSeedSuppressionObserved",
+    "productionControlProven",
+    "businessAvailabilityProven",
+    "liveOverviewProven",
+    "liveProviderProven",
+    "deadlineFaultFlowProven",
+    "rbacCurrentSubjectProven",
+    "privateDatabaseRawIndependentlyVerified",
+    "screenshotVisualReviewProven",
+    "independentReproducibleBuildProven",
+    "processTrustBoundary",
+    "storageTrustBoundary",
+    "counterTrustBoundary",
+    "remaining",
+    "evidenceSHA256",
+    "production",
+    "authorization"
+  ],
+  "reportLimits": "outcomePASS only after independent reconstruction; all proven production/live/deadline/RBAC/privateDB/reprobuild/visual flags false; mock CPU tests never produce real-browserPASS; existing old checker outcomes unaffected",
+  "retry": 0,
+  "reviewedBaselineCommit": "1cdeba4bc0e7c9b5cd25c9e7608cb4ac8f9e2ef8",
+  "runExactKeys": [
+    "schema",
+    "scenario",
+    "profile",
+    "fixtureId",
+    "engine"
+  ],
+  "runtimeScopeSemantics": {
+    "identityAllowedScopes": "private identity subscription-store allowance is configuration only, never management authorization/current browser subject proof",
+    "runtime.scope": "actual control-plane ManagementScope; default tenant/site empty, environment candidate, objectId local; configured capability-truth-lab/isolated/candidate/local",
+    "storage.subscriptionStore.scope": "null if constructedfalse; else subscription-store object tuple under configured exact same tenant/site/env/objectId"
+  },
+  "scenario": "capability_truth",
+  "schema": "chengwang.capability-truth-browser-contract/v1",
+  "schemaNames": {
+    "build": "chengwang.capability-truth-build/v1",
+    "capture": "chengwang.capability-truth-capture/v1",
+    "dom": "chengwang.capability-truth-dom/v1",
+    "domRow": "chengwang.capability-truth-dom-capture/v1",
+    "driver": "chengwang.capability-truth-driver/v1",
+    "input": "chengwang.capability-truth-input/v1",
+    "ready": "chengwang.capability-truth-driver-ready/v1",
+    "report": "chengwang.capability-truth-verification/v1",
+    "run": "chengwang.capability-truth-run/v1",
+    "runtime": "chengwang.capability-truth-runtime-facts/v1",
+    "storage": "chengwang.capability-truth-storage-readback/v1",
+    "supervisor": "chengwang.capability-truth-supervisor/v1"
+  },
+  "schemaReconstruction": {
+    "capabilities": "current18 frozen IDs/domain/name/readOnly and6design states; cap256; unique ASCII id; bounded text and arrays, reject unsafe bidi/control",
+    "capabilityItemExact": [
+      "id",
+      "domain",
+      "name",
+      "state",
+      "readOnly",
+      "evidence",
+      "limitations"
+    ],
+    "capabilityTopExact": [
+      "generatedAt",
+      "productionControlEnabled",
+      "overallState",
+      "capabilities"
+    ],
+    "generatedAt": "canonical valid UTC RFC3339 seconds; same-second refresh allowed",
+    "groups": "domain first appearance order in actual response; rows preserve order within domain; compare all18 rows and exact evidence/limitations text arrays/readOnly labels; no helper mapping from producer",
+    "overallState": "foundation",
+    "productionControlEnabled": false,
+    "snapshot": "real current Go snapshot schema; dataSource must demo, full required Go fields including nil slices; do not apply business draft validator; decoder-independent Python validation bounds mirror current viewer wire subset; no live provider proof",
+    "stateRules": "selected profile states from exact runtime config; operation/evidence rows are actual response truth and need not be constant green count",
+    "summary": "independently count raw actual states; zero counts remain genuine calculated zeros; 4summary order live_readonly/implemented_local/design_only/blocked"
+  },
+  "scopeFlags": {
+    "businessAvailabilityProven": false,
+    "deadlineFaultFlowProven": false,
+    "liveOverviewProven": false,
+    "liveProviderProven": false,
+    "production": false,
+    "productionControlProven": false
+  },
+  "statePresentation": {
+    "blocked": [
+      "受阻",
+      "缺少前置条件，当前无法完成验收"
+    ],
+    "design_only": [
+      "仅设计",
+      "已有设计边界，但还没有可执行实现"
+    ],
+    "implemented_local": [
+      "本地实现",
+      "已在控制面实现，尚未接管生产数据面"
+    ],
+    "live_readonly": [
+      "只读接入已配置",
+      "配置不代表连接成功、健康或生产验收；实际状态须独立读回"
+    ]
+  },
+  "status": "FROZEN_INTERFACE_NOT_RUNTIME_ACCEPTANCE",
+  "stepFences": [
+    [
+      "overview_desktop",
+      1440,
+      900,
+      1,
+      0,
+      "overview-desktop.png"
+    ],
+    [
+      "kernels_desktop",
+      1440,
+      900,
+      1,
+      0,
+      "kernels-desktop.png"
+    ],
+    [
+      "capabilities_desktop",
+      1440,
+      900,
+      1,
+      1,
+      "capabilities-desktop.png"
+    ],
+    [
+      "capabilities_refreshed",
+      1440,
+      900,
+      1,
+      2,
+      null
+    ],
+    [
+      "capabilities_mobile",
+      375,
+      900,
+      1,
+      2,
+      "capabilities-mobile.png"
+    ],
+    [
+      "kernels_mobile",
+      375,
+      900,
+      1,
+      2,
+      "kernels-mobile.png"
+    ],
+    [
+      "overview_mobile",
+      375,
+      900,
+      1,
+      2,
+      "overview-mobile.png"
+    ]
+  ]
+}

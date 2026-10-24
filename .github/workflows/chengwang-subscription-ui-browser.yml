@@ -8,6 +8,8 @@ on:
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
       - 'chengwang/deploy/subscription-ui-browser/**'
       - 'chengwang/deploy/browser-scene-supervisor/**'
+      - 'chengwang/deploy/capability-truth-browser/**'
+      - 'chengwang/tools/capability-truth-browser/**'
       - 'chengwang/tools/subscription-ui-browser/**'
       - 'chengwang/tools/subscription-browser/**'
       - 'chengwang/tools/browser-runtime-candidate/**'
@@ -28,6 +30,8 @@ on:
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
       - 'chengwang/deploy/subscription-ui-browser/**'
       - 'chengwang/deploy/browser-scene-supervisor/**'
+      - 'chengwang/deploy/capability-truth-browser/**'
+      - 'chengwang/tools/capability-truth-browser/**'
       - 'chengwang/tools/subscription-ui-browser/**'
       - 'chengwang/tools/subscription-browser/**'
       - 'chengwang/tools/browser-runtime-candidate/**'
@@ -52,7 +56,7 @@ concurrency:
 
 jobs:
   browser:
-    name: Real product ${{ matrix.scenario }} (${{ matrix.engine }})
+    name: Real product ${{ matrix.scenario }} (${{ matrix.engine }}) ${{ matrix.profile }}
     runs-on: ubuntu-24.04
     timeout-minutes: 22
     strategy:
@@ -60,6 +64,11 @@ jobs:
       matrix:
         engine: [chrome-cdp, playwright]
         scenario: [create_receipt, local_admission, remote_fetch, remote_handoff_negative]
+        include:
+          - { engine: chrome-cdp, scenario: capability_truth, profile: default }
+          - { engine: playwright, scenario: capability_truth, profile: default }
+          - { engine: chrome-cdp, scenario: capability_truth, profile: backend_configured }
+          - { engine: playwright, scenario: capability_truth, profile: backend_configured }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -172,8 +181,8 @@ jobs:
             --inh-caps=-all --ambient-caps=-all --no-new-privs env -i PATH=/usr/bin:/bin LANG=C \
             "$node_binary" node_modules/vite/bin/vite.js build
           SH
-          python3 -B - "$lab" "$GITHUB_SHA" <<'PY'
-          import hashlib,json,pathlib,sys
+          python3 -B - "$lab" "$GITHUB_SHA" '${{ matrix.scenario }}' <<'PY'
+          import base64,hashlib,json,pathlib,sys
           root=pathlib.Path(sys.argv[1]); dist=root/'web-build/dist'; records=[]
           digest=lambda raw:hashlib.sha256(raw).hexdigest()
           for path in sorted(dist.rglob('*')):
@@ -186,6 +195,11 @@ jobs:
           value=dict(schema='chengwang.subscription-ui-build/v1',sourceCommit=sys.argv[2],goVersion='go1.23.12',nodeVersion='v22.23.3',
               moduleMode='vendor',goDependencyDownloads=False,server=dict(name='server',bytes=len(binary),sha256=digest(binary)),
               distFiles=records,production=False,authorization='BLOCKED')
+          if sys.argv[3] == 'capability_truth':
+              manifest=(dist/'.vite/manifest.json').read_bytes()
+              if not 0 < len(manifest) <= 262144: raise SystemExit('manifest-budget-rejected')
+              value['schema']='chengwang.capability-truth-build/v1'
+              value['manifestBase64']=base64.b64encode(manifest).decode('ascii')
           with (root/'build.json').open('xb') as f:f.write((json.dumps(value,sort_keys=True,separators=(',',':'))+'\n').encode())
           PY
 
@@ -222,6 +236,28 @@ jobs:
           print('SCENE_LIFECYCLE_SYNTHETIC=PASS tests=19 skips=0 real_processes=false')
           PY
           )
+
+      - name: Preserve new capability helper events without claiming browser acceptance
+        if: matrix.scenario == 'capability_truth'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          (cd chengwang/deploy/browser-scene-supervisor && python3 -B -m unittest -v test_supervisor) \
+            2>&1 | tee "$reports/supervisor-unit.log"
+          (cd chengwang/deploy/capability-truth-browser && python3 -B -m unittest -v test_capability_truth_scene) \
+            2>&1 | tee "$reports/capability-scene-unit.log"
+          node --test --test-reporter=tap chengwang/tools/capability-truth-browser/test-ui-contract.mjs \
+            chengwang/tools/capability-truth-browser/test-ui-dom.mjs \
+            chengwang/tools/capability-truth-browser/test-ui-driver.mjs \
+            2>&1 | tee "$reports/capability-node.tap"
+          (cd chengwang/deploy/capability-truth-browser && python3 -B -m unittest -v test_check_capability_truth) \
+            2>&1 | tee "$reports/capability-checker-unit.log"
+          python3 -B chengwang/deploy/capability-truth-browser/check_capability_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --repo "$GITHUB_WORKSPACE" \
+            --report "$RUNNER_TEMP/subscription-ui/capability-synthetic.json"
+          test ! -e "$reports/capability-synthetic.json"
+          install -m 0600 "$RUNNER_TEMP/subscription-ui/capability-synthetic.json" "$reports/capability-synthetic.json"
 
       - name: Preserve actual synthetic test output separately from real UI acceptance
         shell: bash
@@ -342,6 +378,16 @@ jobs:
         run: |
           set -euo pipefail
           lab="$RUNNER_TEMP/subscription-ui"
+          if test '${{ matrix.scenario }}' = capability_truth; then
+            sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux \
+              /usr/bin/python3 -I -B chengwang/deploy/capability-truth-browser/run_capability_truth.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+              --profile '${{ matrix.profile }}' \
+              --consumption-root "$lab/consumption" --consumption-report "$lab/reports/consumption-independent.json" \
+              --node "$lab/bin/node" --server "$lab/bin/server" --dist "$lab/web-build/dist" --build-report "$lab/build.json" \
+              --output-dir "$lab/reports/originals" 2>&1 | tee "$lab/reports/supervisor-original.log"
+            exit 0
+          fi
           sudo --non-interactive env GITHUB_ACTIONS=true RUNNER_OS=Linux \
             /usr/bin/python3 -I -B chengwang/deploy/subscription-ui-browser/run_subscription_ui.py \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
@@ -352,7 +398,7 @@ jobs:
 
       - name: Independently decode bounded navigation failure observations without product acceptance
         # Keep the original schema restricted to its reviewed scenarios.
-        if: always() && matrix.scenario != 'remote_handoff_negative'
+        if: always() && matrix.scenario != 'remote_handoff_negative' && matrix.scenario != 'capability_truth'
         shell: bash
         run: |
           set -euo pipefail
@@ -379,6 +425,7 @@ jobs:
           fi
 
       - name: Independent original API DOM PNG audit persistence and lifecycle verification
+        if: matrix.scenario != 'capability_truth'
         shell: bash
         run: |
           set -euo pipefail
@@ -396,6 +443,19 @@ jobs:
             --evidence "$lab/reports/originals" --report "$lab/reports/independent.json" \
             2>&1 | tee "$lab/reports/independent-original.log"
           git diff --exit-code
+
+      - name: Independently reconstruct capability API DOM events and source-bound lifecycle
+        if: matrix.scenario == 'capability_truth'
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/subscription-ui"
+          sudo --non-interactive /usr/bin/python3 -I -B chengwang/deploy/capability-truth-browser/check_capability_truth.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --profile '${{ matrix.profile }}' --evidence "$lab/reports/originals" \
+            --report "$lab/independent.json" 2>&1 | tee "$lab/reports/independent-original.log"
+          test ! -e "$lab/reports/independent.json"
+          sudo --non-interactive install -m 0600 "$lab/independent.json" "$lab/reports/independent.json"
 
       - name: Independently verify real feedback observations after original business acceptance
         if: matrix.scenario == 'remote_handoff_negative'
@@ -419,16 +479,27 @@ jobs:
           sudo --non-interactive chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/subscription-ui/reports"
           chmod -R u+rX,go-rwx "$RUNNER_TEMP/subscription-ui/reports"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && matrix.scenario != 'capability_truth'
         with:
           name: subscription-ui-${{ matrix.scenario }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/subscription-ui/reports
           if-no-files-found: error
           retention-days: 14
 
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && matrix.scenario == 'capability_truth'
+        with:
+          name: capability-truth-${{ matrix.profile }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/subscription-ui/reports
+          if-no-files-found: error
+          retention-days: 14
+
   fresh:
-    name: Fresh original ${{ matrix.scenario }} replay (${{ matrix.engine }})
+    name: Fresh original ${{ matrix.scenario }} replay (${{ matrix.engine }}) ${{ matrix.profile }}
     needs: browser
+    # A failed scene must not suppress independent evidence for every other
+    # successful scene. Missing/failed inputs still reject their own replay.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -436,13 +507,24 @@ jobs:
       matrix:
         engine: [chrome-cdp, playwright]
         scenario: [create_receipt, local_admission, remote_fetch, remote_handoff_negative]
+        include:
+          - { engine: chrome-cdp, scenario: capability_truth, profile: default }
+          - { engine: playwright, scenario: capability_truth, profile: default }
+          - { engine: chrome-cdp, scenario: capability_truth, profile: backend_configured }
+          - { engine: playwright, scenario: capability_truth, profile: backend_configured }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: matrix.scenario != 'capability_truth'
         with:
           name: subscription-ui-${{ matrix.scenario }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/subscription-ui-input
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: matrix.scenario == 'capability_truth'
+        with:
+          name: capability-truth-${{ matrix.profile }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/subscription-ui-input
       - name: Recompute from original public files without any running product or browser
         shell: bash
@@ -456,6 +538,22 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/dependency-original.log"
           cmp "$RUNNER_TEMP/subscription-ui-input/dependency-verification.json" \
             "$RUNNER_TEMP/subscription-ui-fresh/dependency-verification.json"
+          if test '${{ matrix.scenario }}' = capability_truth; then
+            python3 -B chengwang/deploy/capability-truth-browser/check_capability_synthetic.py \
+              --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
+              --repo "$GITHUB_WORKSPACE" --report "$RUNNER_TEMP/subscription-ui-fresh/capability-synthetic.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/capability-synthetic-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/capability-synthetic.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/capability-synthetic.json"
+            python3 -B chengwang/deploy/capability-truth-browser/check_capability_truth.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+              --profile '${{ matrix.profile }}' --evidence "$RUNNER_TEMP/subscription-ui-input/originals" \
+              --report "$RUNNER_TEMP/subscription-ui-fresh/independent.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/independent-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/independent.json" "$RUNNER_TEMP/subscription-ui-fresh/independent.json"
+            git diff --exit-code
+            exit 0
+          fi
           checker=chengwang/deploy/subscription-ui-browser/check_subscription_ui.py
           if test '${{ matrix.scenario }}' = local_admission; then
             checker=chengwang/deploy/subscription-ui-browser/check_admission_ui.py
@@ -511,9 +609,16 @@ jobs:
           fi
           git diff --exit-code
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && matrix.scenario != 'capability_truth'
         with:
           name: subscription-ui-fresh-${{ matrix.scenario }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/subscription-ui-fresh
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && matrix.scenario == 'capability_truth'
+        with:
+          name: capability-truth-fresh-${{ matrix.profile }}-${{ matrix.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/subscription-ui-fresh
           if-no-files-found: error
           retention-days: 14

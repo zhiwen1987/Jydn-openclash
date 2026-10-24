@@ -2,7 +2,23 @@
 
 日常查看：[项目任务清单](LIVE-TASKS.md)（当前优先项、完整剩余功能、依赖与验收条件）。[实时执行动态](http://127.0.0.1:8765)复用本机现有监控台；其估算百分比不代表项目完成率。任务清单由实际结果驱动更新，不冒称每秒自动同步或生产已上线。
 
-## 最新集成：918bc36已取得实际CI；提示窄修正待新源码验收
+## 最新任务核对：2026-10-24 12:59（Asia/Shanghai）
+
+后续实际增量：新能力链路已由主代理组合执行172项CPU测试，零失败／跳过，源字节前后稳定；21个CI shell块与7份Node文件语法检查通过。根记录`D:/CodexData/workspace/capability-root-cpu-qpnnrzio/result.json`及`capability-root-preflight-h_898gvp/result.json`。首个根测试包装因过早替换subprocess.Popen阻止Windows asyncio类初始化而未开始测试，日志保留在`capability-root-cpu-g3ei2vvf`；先导入标准库再安装拒绝外部执行guard后实际172通过，不能把首个包装失败说成产品测试失败。
+
+本机看板已接入38项任务／7阶段快照，真实浏览器验证搜索DNS得4项、展开／焦点跨刷新保持、原实时任务视图仍连接，1280桌面和390移动无横向溢出、控制台零错误／警告。监控停止／重启操作被自动审批拒绝，原进程保留；运行中尚无新文件直读接口，因此界面明确“快照预览”及采集时间。不能把本机看板的实际浏览器检查移算为澄网产品capability_truth场景通过。
+
+[任务清单](LIVE-TASKS.md)已补当前阶段的七项交付、勾选状态、证据和下一退出条件，保留原NOW-01–08／SYS-01–30编号。本机实时看板12:57实际HTTP200且connected=true；其对话估算百分比和子代理数量不作为项目完成率或实际人员统计。
+
+1cdeba4的五条CI已取得成功状态；镜像原件前端306、Go普通／race各732、Registry普通／race各3已由原文本检查器独立复算，完整产品六条CLI尚未独立重放。根证据为`D:/CodexData/workspace/notice-image-independent-ncxxoiry/result.json`，SHA256 `d1dd35c10a116b40ab70f3aaa6b0a99a8330376a573691455843b8dfc0a2cc44`。此项后续证据更新此前限流时的“未知”，不改写旧失败记录。
+
+能力页真实浏览器新场景仍为本地候选：共享监管243项CPU通过、驱动79项CPU及7文件语法检查通过，独立检查器正在补验，CI接线尚未实际运行。未取得新场景的真实浏览器、视觉或生产验收；本地更新尚未另行提交推送，生产和main未动。
+
+## 历史集成：918bc36已取得实际CI；提示窄修正当时待验收
+
+11:58最终跟进：三文件提示修正已统一提交推送`1cdeba4bc0e7c9b5cd25c9e7608cb4ac8f9e2ef8`，远端引用确认一致；其CI索引再次403，remaining=0／reset=2026-10-24 04:37:16 UTC，停止请求，没有新句柄可确认CI状态。生产、main及用户三个scripts摘要保持。918订阅50原CLI已全部实际exit 0，34 fresh比较＋16 producer-only、16 ZIP／466成员／1011源码及50 journal独立复核完成；探针14原门也已收口。[验后机器跟进](evidence/p2-918bc36-acceptance-followup.json)明确不代证新1cdeba4，也不抵消918镜像305／306的原失败。
+
+历史探针只读源审还排除了一个未经证实的修复方向：摘要finally清active，未发现已完成摘要被下一poll／unmount经旧active再次abort的路径；details确有成功后保留ref的独立卫生问题，但不绑定旧n5摘要失败，不能据此宣称修复。旧n5同时有NET_FAIL和JSON EOF／FINALLY，aborted=false，无ABORT／CANCEL，真实原因仍未知。下一步先增加独立有界的实际signal／所有权释放旁证，再选择行为修正，原八零门不放宽；该旁证尚未实施。
 
 2026-10-24 11:48实际读回补充：配额重置后已核两个新源码run，旧“未确认”是此前时间状态。918镜像实际305／306通过、唯一旧未知来源提示断言失败；SnapshotTruth44／44、DemoModeTruth2／2已实测。49原公件及完整306名字集合独立核对通过，lint／Vite／Go与Registry后续未执行，整体仍失败。已做三文件固定格式错误提示分类及两旧文案断言显式迁移，306名字／其余断言／解码门不改，尚未获新CI。[实际失败和纠正](P2-SNAPSHOT-FEEDBACK-CORRECTION.md)。
 

@@ -1,0 +1,51 @@
+{
+  "schema": "chengwang.development-stage-evidence/v1",
+  "sourceCommit": "1cdeba4bc0e7c9b5cd25c9e7608cb4ac8f9e2ef8",
+  "recordedAt": "2026-10-24T13:03:00+08:00",
+  "scope": "ISOLATED_CI_AND_INDEPENDENT_ORIGINAL_TEXT_GATES_NOT_COMPLETE_PRODUCT_ACCEPTANCE",
+  "productionTouched": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "workflowStatusEvidence": {
+    "originalIndexPath": "D:/CodexData/workspace/notice-ci-refresh-x3ewpq04/runs-original.json",
+    "attempt": 1,
+    "runs": [
+      { "id": 40059993231, "name": "parent", "status": "completed", "conclusion": "success" },
+      { "id": 40059993230, "name": "subscription-readback", "status": "completed", "conclusion": "success" },
+      { "id": 40059993208, "name": "subscription-ui", "status": "completed", "conclusion": "success" },
+      { "id": 40059993242, "name": "probe-browser", "status": "completed", "conclusion": "success" },
+      { "id": 40059993206, "name": "image-binding", "status": "completed", "conclusion": "success" }
+    ],
+    "statusDoesNotProveIndependentFullReplay": true
+  },
+  "imageArtifactCustody": {
+    "artifactID": 12546728428,
+    "zipBytes": 6435930,
+    "zipSHA256": "6a0c8282b0ce8a30ee4d62d5e54b9f76050f50262f9bc32745e0a82e396af27b",
+    "safePublicMembers": 1470,
+    "apiSizeAndDigestVerified": true,
+    "zipCRCVerified": true,
+    "originalDirectory": "D:/CodexData/workspace/notice-ci-refresh-x3ewpq04/image-binding-40059993206-1"
+  },
+  "independentOriginalTextGates": {
+    "resultPath": "D:/CodexData/workspace/notice-image-independent-ncxxoiry/result.json",
+    "resultSHA256": "d1dd35c10a116b40ab70f3aaa6b0a99a8330376a573691455843b8dfc0a2cc44",
+    "frontend": { "tests": 306, "passed": 306, "files": 14, "failed": 0, "pending": 0, "originalExactNameGateExitCode": 0 },
+    "go": { "ordinaryTests": 732, "raceTests": 732, "packagesPerMode": 8, "originalEventGateExitCode": 0 },
+    "registry": { "ordinaryTests": 3, "raceTests": 3, "packagesPerMode": 1, "originalEventGateExitCode": 0 },
+    "rawLintLogBytes": 0,
+    "rawVetLogBytes": 0,
+    "localGoVitestLintBuildOrBrowserExecuted": false
+  },
+  "notCompleted": [
+    "Six complete image, Registry and lifecycle product CLIs have not been independently replayed for this commit.",
+    "Current-commit subscription UI, probe, parent and old subscription workflows have terminal metadata, not a new independent full replay in this record.",
+    "Earlier 918bc36 subscription 50-CLI and probe 14-CLI evidence is not transferred to this commit.",
+    "Uncommitted capability-truth browser implementation is not part of this source commit or its successful CI.",
+    "No new capability scene real-browser, screenshot, Internet business, production, canary or whole-system acceptance is established."
+  ],
+  "historicalFailuresRetained": [
+    "918bc36 image frontend had 305 of 306 passing; the remaining source-notice assertion failed.",
+    "5f17544 lint and probe CDP failure, plus the earlier Playwright failure, remain historical failures with their original scope."
+  ]
+}

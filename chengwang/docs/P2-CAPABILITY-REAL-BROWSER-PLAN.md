@@ -1,6 +1,23 @@
-# SYS-01／23：能力真值的真实浏览器验收前置
+# SYS-01／23：能力真值的真实浏览器验收
 
-状态：前置代码正在集成；完整capability_truth场景、驱动、独立checker及四组producer／fresh均未实现。不能把本页设计、源审查或纯CPU结果记为真实浏览器通过。基线为已推送的1d4b59d；本页所述后续代码在未取得新源码CI前均属候选。
+当前状态：`capability_truth`统一合同、完整共享监管、双配置入口、浏览器驱动和独立检查器已有本地代码；四组producer／fresh及新辅助测试门已写入CI。独立检查器和失败诊断正在补反例、交叉复核，尚未取得新源码真实CI。不能把代码存在、源审查、CPU检查或旧订阅浏览器通过记为本专项验收。
+
+最新已推送基线为`1cdeba4bc0e7c9b5cd25c9e7608cb4ac8f9e2ef8`，其实际306项前端与Go／Registry原文本门已核；本页新场景尚属其后的工作树候选。主代理统一集成，源码与精确测试名单冻结后才提交；生产和main未改。
+
+## 当前实现与证据
+
+- 统一合同：`deploy/capability-truth-browser/contract.json`，成功证据精确17文件，七个DOM检查点、六张截图；失败不得输出成功判定。
+- 共享监管：`deploy/browser-scene-supervisor/supervisor.py`，旧四订阅场景与新两配置复用prepare／supervise／export；固定注册表，原隔离、普通TLS、等待预算及正常退出要求保留。
+- 双配置入口：`deploy/capability-truth-browser/run_capability_truth.py`及`capability_truth_scene.py`；真实构造配置与私有存储观察，全部生产写门关闭，不从身份文件存在推导已授权或上游已连通。
+- 实际采集：`tools/capability-truth-browser/`，CDP／Playwright原生点击与刷新；匿名请求事件、manifest原字节及页面事实均保留，以独立检查代替自报通过。
+- 独立复算：`deploy/capability-truth-browser/check_capability_truth.py`，不导入生产者或前端解码器；核原始API、完整DOM、事件图、源blob、输入、TLS、进程与存储投影。
+- 新辅助事件门：`check_capability_synthetic.py`将原Python日志及Node TAP与冻结名字、实际源码绑定；producer与fresh分别复算并逐字节比较。CPU通过不证明真实浏览器运行。
+
+已经取得的本地CPU结果与最终新增反例以[任务清单](LIVE-TASKS.md)为准；新增源码尚未取得实际浏览器运行、截图视觉审核或生产读回。当前普通正常路径也不代证超时、迟到、取消、真实业务可用性或长期稳定性。
+
+## 前置阶段历史
+
+下列“尚未实现／尚未运行”保留各阶段当时状态；当前实现范围以上段和任务清单为准。
 
 后续实际结果：918bc36的2项DemoModeTruth已实际通过；306整体仍因旧快照错误提示断言失败，不能记为前端或镜像全绿。订阅八组真实producer与fresh成功、探针两引擎原件14CLI复算通过，均不能补算本专项能力页场景已经实现或可跑。下文设计和实施前“尚未运行”按各自时间保留；最新错误接线修正见[实际记录](P2-SNAPSHOT-FEEDBACK-CORRECTION.md)。
 
@@ -35,13 +52,13 @@
 
 每profile分别使用现有固定版本Chrome/CDP与Playwright，共四个producer；每份原件另由无运行服务fresh job独立重算并逐字节比较。复用正常TLS、既有隔离和固定依赖机制，不改原订阅／Probe成功门、八错误计数或等待预算。
 
-真实路径拟为总览桌面→内核桌面→能力首读→能力原生刷新→能力移动→内核移动→总览移动，七个DOM checkpoint及六张PNG。浏览器真实GET为一份snapshot、两份capabilities；若另有readiness请求，必须单独命名计数。不得注入响应、替换fetch、改React state或新增测试专用假API。
+已实现的待验路径为总览桌面→内核桌面→能力首读→能力原生刷新→能力移动→内核移动→总览移动，七个DOM checkpoint及六张PNG。浏览器预期GET为一份snapshot、两份capabilities；真实请求数仍须实际CI观察，不提前宣称达成。不得注入响应、替换fetch、改React state或新增测试专用假API。
 
 独立checker必须从原始capture自行解析schema，重算每个实际条目、domain顺序、状态映射、summary和证据／限制全文，并与DOM逐项对应；不得导入producer判定函数或相信passed=true。当前registry有18项源定义，但状态取真实配置和证据，不硬编码每profile成功总数。尤其operation能力还依赖evidence有效，不能从identity存在推导；local_evidence_chain也不能填造新鲜状态。
 
 ## 明确保留的未构造项
 
-当前server总是seedSnapshot且dataSource为demo。因此上述矩阵能验隐藏示例值，不能验live分支、真实设备库存、完整业务分流或DNS健康。正常API也不能可靠构造10秒截止、卸载中止、迟到响应或真实unknown／timeout；这些必须另做受控真实生命周期场景，不能用mock替代。尚缺完整公件exact-key schema、DOM投影及prepare／supervise／export接线，故合同候选没有被冒称为可执行场景。
+当前server总是seedSnapshot且dataSource为demo。因此上述矩阵以隐藏示例值为验收目标，不能验live分支、真实设备库存、完整业务分流或DNS健康。正常API也不能可靠构造10秒截止、卸载中止、迟到响应或真实unknown／timeout；这些必须另做受控真实生命周期场景，不能用mock替代。完整公件exact-key schema、DOM投影及prepare／supervise／export目前已有本地接线，实际可运行性仍须隔离CI证明。身份文件、环境、监听和私库投影是源码绑定的受信CI观察，不是浏览器内部、独立重建或私库原字节的远程证明。
 
 ## 已有订阅截图的补充
 
