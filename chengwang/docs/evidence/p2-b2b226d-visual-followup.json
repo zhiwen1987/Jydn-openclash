@@ -1,0 +1,283 @@
+{
+  "schema": "chengwang.browser-visual-followup/v1",
+  "sourceCommit": "b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe",
+  "runId": 40068275370,
+  "scope": "MANUAL_REVIEW_OF_16_EXISTING_CI_FIRST_VIEWPORT_PNGS_ONLY",
+  "imagesActuallyViewed": 16,
+  "uniqueImageSHA256": 14,
+  "images": [
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-create_receipt-chrome-cdp-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-create_receipt-chrome-cdp-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 251283,
+      "sha256": "6aae44bbc075443877dbaabbd0bc672ac66b8a7df90fbf480d454b17e62731fd",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-create_receipt-chrome-cdp-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-create_receipt-chrome-cdp-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 108664,
+      "sha256": "572a5df17c80946b51da5e0ec963be28f2f43432e51df2b2e30c1d98e6409a15",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-create_receipt-playwright-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-create_receipt-playwright-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 251546,
+      "sha256": "85b2bf1908c5a032a834f65d4371e6f312c125cf744ae36ec344f61967480e97",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-create_receipt-playwright-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-create_receipt-playwright-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 108055,
+      "sha256": "94a0cea0439b202e2da210b0fb110d7b34e01b86a2c8add83845dd63bc2d044d",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-local_admission-chrome-cdp-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-local_admission-chrome-cdp-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 263637,
+      "sha256": "3f40e377847bc570151f4de0c75a98ea81437e870660a2acf941213aa2a830bd",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-local_admission-chrome-cdp-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-local_admission-chrome-cdp-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 108674,
+      "sha256": "86ba6b28cf88acf606df308aad86739a14d3bd71b12a82c351a7e1425b7043d3",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-local_admission-playwright-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-local_admission-playwright-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 262392,
+      "sha256": "7a926ca6a5179fdf1b13a8b8fca4d704b1c729309fc8d7a94f52a4c4009d3a31",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-local_admission-playwright-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-local_admission-playwright-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 108055,
+      "sha256": "94a0cea0439b202e2da210b0fb110d7b34e01b86a2c8add83845dd63bc2d044d",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_fetch-chrome-cdp-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-remote_fetch-chrome-cdp-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 255390,
+      "sha256": "d0dc7872ab5e44acf10666304d50f2d161f9a2461aa6a50173d677183d884d27",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_fetch-chrome-cdp-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-remote_fetch-chrome-cdp-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 108685,
+      "sha256": "54ffa2b7ad0bf54fe647dedfed1e53ce037092ac9ee1486e3558d2c578d8c4f5",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_fetch-playwright-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-remote_fetch-playwright-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 255858,
+      "sha256": "6e82327415ba6095d82bbc623cf81d00dda85fc9e426994b2a591ec30973d2da",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_fetch-playwright-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-remote_fetch-playwright-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 108055,
+      "sha256": "94a0cea0439b202e2da210b0fb110d7b34e01b86a2c8add83845dd63bc2d044d",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_handoff_negative-chrome-cdp-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-remote_handoff_negative-chrome-cdp-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 254895,
+      "sha256": "10f4b0b2e8bf9f52e296636c6898d7fb200e5e1db40093e6f046e4dc038d395a",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_handoff_negative-chrome-cdp-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-remote_handoff_negative-chrome-cdp-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 107256,
+      "sha256": "ce6915e942ad3180be236bd6e44746b35c2a164e504a5a958fb1a6710fe0d83f",
+      "width": 375,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_handoff_negative-playwright-40068275370-1\\originals\\created-desktop.png",
+      "artifact": "subscription-ui-remote_handoff_negative-playwright-40068275370-1",
+      "name": "created-desktop.png",
+      "bytes": 253612,
+      "sha256": "e4839d3ed151bc17ab9e2abe94b8c085bc488f0b8045ca7b20a4a03f39888662",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\capability-ci-index-m5_gnx3f\\subscription-ui-remote_handoff_negative-playwright-40068275370-1\\originals\\created-mobile.png",
+      "artifact": "subscription-ui-remote_handoff_negative-playwright-40068275370-1",
+      "name": "created-mobile.png",
+      "bytes": 106687,
+      "sha256": "b9de4562e4af03aa02ee36268f030278f4326ab046f15019f7298fdcfa0085bf",
+      "width": 375,
+      "height": 900
+    }
+  ],
+  "screenshotStepMapping": [
+    {
+      "artifact": "subscription-ui-create_receipt-chrome-cdp-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "created_desktop"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "created_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-create_receipt-playwright-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "created_desktop"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "created_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-local_admission-chrome-cdp-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "final_desktop"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "final_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-local_admission-playwright-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "final_desktop"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "final_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-remote_fetch-chrome-cdp-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "final_desktop"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "final_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-remote_fetch-playwright-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "final_desktop"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "final_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-remote_handoff_negative-chrome-cdp-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "unknown_failed"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "final_mobile"
+        }
+      ]
+    },
+    {
+      "artifact": "subscription-ui-remote_handoff_negative-playwright-40068275370-1",
+      "screenshotSteps": [
+        {
+          "path": "created-desktop.png",
+          "step": "unknown_failed"
+        },
+        {
+          "path": "created-mobile.png",
+          "step": "final_mobile"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "severity": "remaining_coverage",
+      "description": "All eight mobile images cover the upper form and source heading; lower candidate actions, grant/fetch/admission buttons and full receipt remain outside screenshot coverage."
+    },
+    {
+      "severity": "wording_review",
+      "description": "Negative handoff desktop title is 操作未确认 while detail explicitly says version or approval changed and no automatic write retry; mobile represents later history receipt. These are different checkpoints, not interchangeable visual proof."
+    }
+  ],
+  "observedVisibleSurface": {
+    "chineseReadable": true,
+    "noObviousTextOverlapObserved": true,
+    "normalDesktop1440x900": true,
+    "normalMobile375x900": true,
+    "desktopExampleAndCandidateModeLabelsVisible": true
+  },
+  "fullPageVisualReviewProven": false,
+  "allMobileActionsVisuallyReviewed": false,
+  "newCapabilityTruthAccepted": false,
+  "newLiveOverviewAccepted": false,
+  "localBrowserStarted": false,
+  "production": false
+}

@@ -2,6 +2,8 @@
 
 2026-10-24。此记录说明已知失败及诊断改进，不把诊断增强记为业务故障已修复。
 
+后续15:49：78v2四份实际原件将首个拒绝收窄到DOCUMENT/r1/EVENT_FINISH_TIME。固定Chromium源码审查后形成[额外时间假设修正候选](P2-CAPABILITY-NETWORK-TIMING-CORRECTION.md)，188项辅助检查通过，尚待真实复测；下述b2和v2开发历史不覆盖。
+
 ## 已取得的实际结果
 
 源码 `b2b226d1d57e316ca8b8cc22eccd1f59be1dcffe` 的[浏览器运行40068275370](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40068275370)整体失败。旧订阅场景8个 producer 和8个 fresh 成功；新增能力场景4个 producer 和4个 fresh 失败。父门40068275506与订阅读回40068275429成功，不抵消能力页失败。

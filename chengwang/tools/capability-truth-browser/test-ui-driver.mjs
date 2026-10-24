@@ -72,12 +72,21 @@ test('request header and finish time rejection have separate operations',()=>{
   assert.equal(request.firstFailure.operation,'EVENT_REQUEST_TIME')
   const header=make();req(header);header.handle('Network.responseReceived',{requestId:'private.opaque/123',timestamp:0.5,response:{url:c.origin+'/',status:200,mimeType:'text/html',headers:{}}})
   assert.equal(header.firstFailure.operation,'EVENT_HEADERS_TIME')
-  const finished=make();req(finished);headers(finished);finish(finished,'private.opaque/123',{timestamp:1.05})
+  const finished=make();req(finished);headers(finished);finish(finished,'private.opaque/123',{timestamp:0.95})
   assert.equal(finished.firstFailure.operation,'EVENT_FINISH_TIME')
   const structural=make();req(structural);finish(structural);assert.equal(structural.firstFailure.operation,'EVENT_FINISH')
   const event=make(),emit=event.emit.bind(event);event.emit=(type,fields)=>{if(type==='FINISH')throw Error('PRIVATE_EVENT');return emit(type,fields)}
   req(event);headers(event);finish(event);assert.equal(event.firstFailure.operation,'EVENT_FINISH')
   for(const j of [request,header,finished,structural,event]){assert(j.failure);assert.equal(j.counters.captureErrors,1);assert(!JSON.stringify(failureObservation('NAVIGATE','SNAPSHOT_WAIT',j,false)).includes('PRIVATE_ID'))}
+  for(const timestamp of [undefined,null,'1.2',NaN,Infinity,-1,1e10]){const j=make();req(j);headers(j);finish(j,'private.opaque/123',{timestamp});assert(j.failure);assert.equal(j.firstFailure.operation,'EVENT_FINISH_TIME');assert.equal(j.rows.length,0);assert.equal(j.counters.captureErrors,1)}
+})
+
+test('same-session network completion may precede CDP response event observation time',async()=>{
+  const j=make();req(j);headers(j);finish(j,'private.opaque/123',{timestamp:1.05});await drain(j)
+  assert.equal(j.failure,false);assert.equal(j.firstFailure,null);assert.equal(j.rows.length,1)
+  const row=j.rows[0];assert(row.endTimeUs>=row.startTimeUs);assert(row.headerTimeUs>=row.startTimeUs);assert(row.endTimeUs<row.headerTimeUs)
+  assert.deepEqual(j.events.map(e=>e.type),['REQUEST','HEADERS','FINISH','CAPTURE']);assert(Object.values(j.counters).every(v=>v===0))
+  assert.equal(row.requestId,'r1');assert.equal(row.responseSHA256,sha(body));assert.equal(row.responseBytes,body.length)
 })
 
 test('capture failure operations distinguish read decode fence and build binding',async()=>{

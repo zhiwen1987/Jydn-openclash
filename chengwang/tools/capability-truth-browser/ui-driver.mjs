@@ -110,7 +110,11 @@ export class CapabilityJournal {
       }
       if (method === 'Network.loadingFinished') {
         operation = 'EVENT_FINISH'; item = this.requests.get(p.requestId); need(item && item.response && !item.terminal && integer(p.encodedDataLength, 0, this.b.decodedTotal))
-        item.terminal = true; operation = 'EVENT_FINISH_TIME'; item.endTimeUs = us(p.timestamp); need(item.endTimeUs >= item.headerTimeUs)
+        // Chromium stamps responseReceived at CDP notification time, while
+        // loadingFinished forwards network completion time. Keep the event graph
+        // and both request-start bounds without ordering finish vs response time.
+        // NetworkHandler/InspectorNetworkAgent at Chromium 41520584daa68d0040db7746ae562a0ff82187f6.
+        item.terminal = true; operation = 'EVENT_FINISH_TIME'; item.endTimeUs = us(p.timestamp); need(item.endTimeUs >= item.startTimeUs)
         operation = 'EVENT_FINISH'
         const ordinal = ++this.finished; this.emit('FINISH', { requestId: item.requestId, encodedDataLength: p.encodedDataLength })
         const task = this.capture(item, ordinal, p.encodedDataLength).finally(() => this.tasks.delete(task)); this.tasks.add(task)

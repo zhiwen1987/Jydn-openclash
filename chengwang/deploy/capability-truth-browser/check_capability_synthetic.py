@@ -19,8 +19,8 @@ PYTHON = {
     'capability-checker-unit.log': ('chengwang/deploy/capability-truth-browser/test_check_capability_truth.py', 'CapabilityCheckerContracts', 50,
         '2a364ac25ecc8528b3a913692d4860cb85dc6c73b2ecc1733f24a4c47c1fbf36'),
 }
-NODE_COUNT = 85
-NODE_PIN = 'c2cf855933c818665df5249bc611eaf5a4a9712c81732a97c963a0380371125f'
+NODE_COUNT = 86
+NODE_PIN = 'a3bb73077a17c6cbb049010d82656cce86cf43239950e12f17f01e721b69a731'
 SOURCES = [SELF, 'chengwang/deploy/capability-truth-browser/contract.json',
     'chengwang/deploy/capability-truth-browser/check_capability_truth.py',
     'chengwang/deploy/capability-truth-browser/capability_truth_scene.py',

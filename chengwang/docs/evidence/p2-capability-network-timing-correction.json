@@ -1,0 +1,62 @@
+{
+  "schema": "chengwang.capability-network-timing-correction/v1",
+  "baseCommit": "78ffc4ed2c99bc691eb48d95c07bc6845949022b",
+  "scope": "CORRECT_INVALID_EXTRA_CDP_TIME_ORDER_ASSUMPTION_REAL_BROWSER_RETEST_PENDING",
+  "actual78Run": 40072726996,
+  "allFourFirstFailures": "DOCUMENT_r1_EVENT_FINISH_TIME_capture_error",
+  "rawTimestampsExported": false,
+  "timestampConversionVersusComparisonDistinguished": false,
+  "officialSource": {
+    "chromeVersion": "157.0.8103.6",
+    "commit": "41520584daa68d0040db7746ae562a0ff82187f6",
+    "sourceFiles": 8,
+    "manifestDirectory": "D:/CodexData/workspace/chromium157-network-time-source-ae20b2091b8049cfbc49fec05d3fb828",
+    "manifestSHA256": "0846d5270f63ddeab91068bbe675abe01a569d260f8be2d2329c482f55a2220b",
+    "allFileSHA256IndependentlyRechecked": true,
+    "documentResponseSource": "BROWSER_NETWORK_HANDLER_RESPONSE_RECEIVED_USES_CURRENT_NOTIFICATION_TIME",
+    "documentFinishSource": "NETWORK_COMPLETION_TIME_PROPAGATED_TO_INSPECTOR_LOADING_FINISHED",
+    "rendererResponseBranchSkipsNavigation": true
+  },
+  "changedPredicate": {"before": "endTimeUs >= headerTimeUs", "after": "endTimeUs >= startTimeUs"},
+  "headerNotBeforeStartRetained": true,
+  "finiteAndBoundedTimeChecksRetained": true,
+  "sameSessionEventGraphAndByteHashChecksRetained": true,
+  "successfulPublicFilesUnchanged": 17,
+  "independentSuccessCheckerUnchanged": true,
+  "legacyProductAndDriverSourcesUnchanged": true,
+  "normalTLSAndCloseAndWaitBudgetsUnchanged": true,
+  "actualCPU": {
+    "tests": 188,
+    "supervisor": 16,
+    "scene": 36,
+    "checker": 50,
+    "node": 86,
+    "oldNodeNamesPreserved": 85,
+    "newNodeCases": 1,
+    "skipped": 0,
+    "directory": "D:/CodexData/workspace/capability-diagnostics-cpu-7bgup1tx",
+    "resultSHA256": "27c3d5c539e506c61491a0578bc8db2a598ad1974844efc7db2dd0b4a8c58565",
+    "sourceStable": true
+  },
+  "actualStatic": {
+    "directory": "D:/CodexData/workspace/capability-diagnostics-static-diq6ocp6",
+    "resultSHA256": "c0e0f18f5aa501c725ce1c6893e678a62bd51d0f570cf4edbb2f846f5f82151d",
+    "closedOperations": 41,
+    "shellSyntaxBlocks": 21,
+    "nodeSyntaxFiles": 7
+  },
+  "independentSourceReviewRemainingBlockingFindingObserved": false,
+  "independentSourceReview": {
+    "directory": "D:/CodexData/workspace/capability-78-time-fix-peer-b6f2ad2bfa4e",
+    "resultSHA256": "1dc4a9e88a40a0d82bafbf96f818eb4793bf5efa8bed3d91fcfb3d98dbb15f90",
+    "driverExecutableASTLeafChangeCount": 1,
+    "actual188OriginalCPUEventsIndependentlyRechecked": true
+  },
+  "realBrowserCorrectionAcceptanceProven": false,
+  "uniqueOriginalNumericalFailureCauseProven": false,
+  "localProductRuntimeExecuted": false,
+  "localGoExecuted": false,
+  "production": false,
+  "mainMerged": false,
+  "overallProjectComplete": false
+}

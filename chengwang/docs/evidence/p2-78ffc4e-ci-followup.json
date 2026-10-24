@@ -1,0 +1,64 @@
+{
+  "schema": "chengwang.capability-diagnostics-ci-followup/v1",
+  "sourceCommit": "78ffc4ed2c99bc691eb48d95c07bc6845949022b",
+  "pushed": true,
+  "remoteVerified": true,
+  "filesCommitted": 14,
+  "helperTests187": true,
+  "actualSourceBoundCLIs": {
+    "actualCLIExitCodes": [
+      0,
+      0
+    ],
+    "originalLogsStable": true,
+    "production": false,
+    "realBrowserExecuted": false,
+    "realProductServerExecuted": false,
+    "reportSHA256": "5c56b73ff5aad4ff425b6801a72b39d5ba12b1937df086f5218285af10999be3",
+    "reportsByteEqual": true,
+    "scope": "ACTUAL_COMMITTED_SOURCE_BOUND_CPU_TRANSCRIPT_CLIS_NOT_REAL_BROWSER",
+    "sourceCommit": "78ffc4ed2c99bc691eb48d95c07bc6845949022b",
+    "sourceFiles": 17,
+    "sourceStable": true,
+    "tests": 187
+  },
+  "ci": {
+    "state": "UNKNOWN_RATE_LIMITED",
+    "remaining": 0,
+    "resetUTC": "2026-10-24T07:37:18Z",
+    "originalDirectory": "D:/CodexData/workspace/chengwang-commit-ci-fs7xd1em",
+    "runHandlesObserved": []
+  },
+  "previousB2CapabilityFailuresRemain": true,
+  "ciReadAfterReset": {
+    "sourceCommit": "78ffc4ed2c99bc691eb48d95c07bc6845949022b",
+    "originalDirectory": "D:/CodexData/workspace/chengwang-commit-ci-8i20f13b",
+    "parent": {"runId": 40072726950, "conclusion": "success"},
+    "subscriptionReadback": {"runId": 40072726986, "conclusion": "success"},
+    "browser": {
+      "runId": 40072726996,
+      "conclusion": "failure",
+      "legacyProducerSuccess": 8,
+      "legacyFreshSuccess": 8,
+      "capabilityProducerFailure": 4,
+      "capabilityFreshFailure": 4,
+      "actualCapabilityProducerArtifactsMaterialized": 4,
+      "actualOriginalMembers": 144,
+      "allFourFirstFailures": {
+        "operation": "EVENT_FINISH_TIME",
+        "code": "capture_error",
+        "requestId": "r1",
+        "kind": "DOCUMENT"
+      },
+      "rawTimeValuesExported": false,
+      "specificTimestampConversionVersusOrderingPredicateNotDistinguished": true,
+      "independentPublicProjectionAudit": "D:/CodexData/workspace/capability-78-v2-public-review-xx1rpf6s/result.json",
+      "independentPublicProjectionAuditSHA256": "d51ef65f4a29ebad8bc934f1bedb29db6adf011678c8b58cb2b3315bf3e9f79c",
+      "privateSecretFenceReplayedLocally": false
+    }
+  },
+  "businessCauseEstablished": false,
+  "production": false,
+  "mainMerged": false,
+  "overallProjectComplete": false
+}
