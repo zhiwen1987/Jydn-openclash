@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { validateSessionOptions, validateChromeExit, TargetGuard, initializeCDPTargets, registerSessionEvents, nativeClickExpression, dispatchNativeClick, finishNativeSession, openNativeSession, SESSION_EVENTS, SESSION_FAULTS, NATIVE_OPEN_STAGES, projectInitialTargets, nativeOpenObservation } from './native-session.mjs'
+import { validateSessionOptions, validateChromeExit, TargetGuard, initializeCDPTargets, registerSessionEvents, nativeClickExpression, dispatchNativeClick, finishNativeSession, openNativeSession, SESSION_EVENTS, SESSION_FAULTS, NATIVE_OPEN_STAGES, projectInitialTargets, projectPostTargets, projectFirstTargetFault, nativeOpenObservation } from './native-session.mjs'
 import { OverviewJournal } from '../overview-ui-browser/overview-journal.mjs'
 
 const fixtureId = 'a'.repeat(32), sourceCommit = 'b'.repeat(40)
@@ -72,8 +72,39 @@ test('n31 closed event and fault lists contain no duplicate or arbitrary text ch
   assert(!JSON.stringify(safe).includes('PRIVATE'))
   for(const patch of [{shape:'ARRAY',total:true,pages:0,blankPages:0},{shape:'ARRAY',total:1,pages:2,blankPages:0},{...unseen,total:0},{...unseen,url:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_INITIAL_TARGETS',null,patch))
   assert.throws(()=>nativeOpenObservation('PRIVATE-STAGE',null,unseen)); assert.throws(()=>nativeOpenObservation('CDP_PORT_WAIT','PRIVATE-FAULT',unseen))
+  const postUnseen={shape:'UNOBSERVED',total:null,pages:null,blankPages:null,initialPresent:null,selectedPresent:null,selectedKind:null,extraProtectedCount:null}
+  const postInvalid={...postUnseen,shape:'INVALID'}, none={phase:null,kind:null}
+  assert.deepEqual(nativeOpenObservation('CDP_PORT_WAIT',null,unseen).postTargets,postUnseen)
+  const rows=[{targetId:'PRIVATE-INITIAL',type:'page',url:'about:blank'},{targetId:'PRIVATE-OWNED',type:'page',url:'about:blank'},{targetId:'PRIVATE-EXTRA',type:'service_worker',url:'PRIVATE-URL'}]
+  const post=projectPostTargets(rows,'PRIVATE-INITIAL','PRIVATE-OWNED')
+  assert.deepEqual(post,{shape:'ARRAY',total:3,pages:2,blankPages:2,initialPresent:true,selectedPresent:true,selectedKind:'page',extraProtectedCount:1})
+  assert.deepEqual(projectPostTargets([],'PRIVATE-INITIAL','PRIVATE-OWNED'),{...post,total:0,pages:0,blankPages:0,initialPresent:false,selectedPresent:false,selectedKind:'ABSENT',extraProtectedCount:0})
+  for(const kind of ['page','service_worker','shared_worker','tab','browser','worker']){
+    const r=projectPostTargets([{targetId:'PRIVATE-OWNED',type:kind,url:'about:blank'}],'PRIVATE-INITIAL','PRIVATE-OWNED')
+    assert.equal(r.selectedKind,kind==='worker'?'other':kind);assert.equal(r.initialPresent,false);assert.equal(r.selectedPresent,true);assert.equal(r.extraProtectedCount,0)
+  }
+  const hostileID={type:'page',url:'about:blank',get targetId(){getterCalls++;return 'PRIVATE-OWNED'}}
+  const hostileExtra={targetId:'PRIVATE-OWNED',type:'page',url:'about:blank',get title(){getterCalls++;return 'PRIVATE'}}
+  for(const r of [null,{},Array(65).fill(rows[0]),Array(1),[hostile],[hostileID],[hostileExtra],[rows[0],rows[0]],[{targetId:'PRIVATE-OWNED',type:'page'}]])assert.deepEqual(projectPostTargets(r,'PRIVATE-INITIAL','PRIVATE-OWNED'),postInvalid)
+  assert.equal(getterCalls,0)
+  const fault=projectFirstTargetFault('EXTRA_TARGET',{phase:'ARMED',targetKind:'service_worker'})
+  assert.deepEqual(fault,{phase:'ARMED',kind:'service_worker'})
+  for(const phase of ['BUFFERING','ARMED','CLOSING','CLOSED'])assert.deepEqual(projectFirstTargetFault('INVALID_TARGET_STATE',{phase,targetKind:null}),{phase,kind:null})
+  for(const [code,detail] of [['STARTUP_REJECTED',{phase:'ARMED',targetKind:'page'}],['EXTRA_TARGET',{phase:'OPEN',targetKind:'page'}],['EXTRA_TARGET',{phase:'ARMED',targetKind:'PRIVATE'}],['EXTRA_TARGET',{get phase(){getterCalls++;return 'ARMED'},targetKind:'page'}]])assert.deepEqual(projectFirstTargetFault(code,detail),none)
+  assert.equal(getterCalls,0)
+  const observation=nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,post,fault)
+  assert(!JSON.stringify(observation).includes('PRIVATE'));assert.deepEqual(observation.firstTargetFault,fault)
+  for(const change of [{total:true},{pages:4},{blankPages:3},{initialPresent:1},{selectedPresent:null},{selectedKind:'PRIVATE'},{selectedPresent:false},{extraProtectedCount:4},{privateID:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,{...post,...change},fault))
+  // Preserve accessors for this case rather than invoking them in a spread.
+  const accessorPost={...post};Object.defineProperty(accessorPost,'total',{get(){getterCalls++;return 3},enumerable:true})
+  assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,accessorPost,fault))
+  for(const bad of [{phase:true,kind:'page'},{phase:'PRIVATE',kind:'page'},{phase:null,kind:'page'},{phase:'ARMED',kind:'tab'},{phase:'ARMED',kind:'page',rawID:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,post,bad))
+  assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','STARTUP_REJECTED',unseen,post,fault))
+  assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS',null,unseen,{...postUnseen,total:0},none))
+  assert.equal(getterCalls,0)
   const source=readFileSync(new URL('./native-session.mjs',import.meta.url),'utf8')
-  assert(source.includes('await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets))'))
+  assert(source.includes('await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets, guard.postTargets, firstTargetFault))'))
+  assert(source.includes('if (firstFault === null) { firstFault = code; firstTargetFault = projectFirstTargetFault(code, detail) }'))
   assert(source.indexOf('await hooks.onDiagnostic(')<source.lastIndexOf('await dispose(); throw rejected()'))
 })
 
@@ -110,15 +141,23 @@ test('n35 actual CDP initializer freezes before create and installs selected lis
     calls.push(method)
     if (method === 'Target.getTargets') {
       if (!snapshots++) return { targetInfos: [{ targetId: 'initial', type: 'page', url: 'about:blank' }] }
-      assert.equal(installed, true); return { targetInfos: [{ targetId: 'initial', type: 'page' }, { targetId: 'owned', type: 'page' }] }
+      assert.equal(installed, true); return { targetInfos: [{ targetId: 'initial', type: 'page', url: 'about:blank' }, { targetId: 'owned', type: 'page', url: 'about:blank' }] }
     }
-    if (method === 'Target.createTarget') { assert.equal(g.initial, 'initial'); assert.deepEqual(params, { url: 'about:blank' }); return { targetId: 'owned' } }
+    if (method === 'Target.createTarget') { assert.equal(g.initial, 'initial'); assert.deepEqual(params, { url: 'about:blank', forTab: false }); return { targetId: 'owned' } }
     if (method === 'Target.attachToTarget') { assert.deepEqual(params, { targetId: 'owned', flatten: true }); return { sessionId: 'selected-session' } }
     assert.equal(method, 'Target.setDiscoverTargets'); assert.deepEqual(params, { discover: true }); return {}
   }
   const result = await initializeCDPTargets(send, g, id => { assert.equal(id, 'selected-session'); installed = true })
   assert.deepEqual(calls, ['Target.getTargets', 'Target.createTarget', 'Target.attachToTarget', 'Target.getTargets', 'Target.setDiscoverTargets'])
   assert.deepEqual(result, { targetId: 'owned', sessionId: 'selected-session' }); assert.equal(g.phase, 'ARMED')
+  assert.deepEqual(g.postTargets,{shape:'ARRAY',total:2,pages:2,blankPages:2,initialPresent:true,selectedPresent:true,selectedKind:'page',extraProtectedCount:0})
+  const {guard:stalled}=make();let reads=0
+  await assert.rejects(initializeCDPTargets(async method=>{
+    if(method==='Target.getTargets'){if(reads++)throw Error('PRIVATE-RPC');return{targetInfos:[{targetId:'initial',type:'page',url:'about:blank'}]}}
+    if(method==='Target.createTarget')return{targetId:'owned'}
+    return{sessionId:'selected-session'}
+  },stalled,()=>{}))
+  assert.equal(stalled.postTargets.shape,'UNOBSERVED');assert.equal(stalled.postTargets.total,null)
   const source = readFileSync(new URL('./native-session.mjs', import.meta.url), 'utf8')
   assert(source.includes('await initializeCDPTargets(bootstrapSend, guard, sessionId =>'))
   const wrapper = source.match(/const bootstrapSend = async \(method, params\) => \{([\s\S]*?)\n      \}/)?.[1]
@@ -133,12 +172,13 @@ test('n36 actual CDP initializer rejects snapshot promotion before discovery can
     const send = async method => {
       calls.push(method)
       if (method === 'Target.getTargets') return { targetInfos: !snapshots++ ? [{ targetId: 'initial', type: 'page', url: 'about:blank' }] :
-        [{ targetId: 'initial', type: 'page' }, { targetId: 'owned', type: 'page' }, { targetId: 'extra', type }] }
+        [{ targetId: 'initial', type: 'page', url: 'about:blank' }, { targetId: 'owned', type: 'page', url: 'about:blank' }, { targetId: 'extra', type, url: 'about:blank' }] }
       if (method === 'Target.createTarget') { g.observe('Target.targetCreated', created('extra', type)); return { targetId: 'owned' } }
       if (method === 'Target.attachToTarget') return { sessionId: 'selected-session' }
       throw Error('discovery must not run')
     }
     await assert.rejects(initializeCDPTargets(send, g, () => {})); assert.equal(calls.includes('Target.setDiscoverTargets'), false)
+    assert.equal(g.postTargets.extraProtectedCount,1);assert.equal(g.postTargets.selectedKind,'page');assert.equal(g.baseline,null)
   }
 })
 test('n37 actual PW registration forwards forbidden UDP observations to the real journal', () => {

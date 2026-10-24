@@ -76,11 +76,20 @@ test('d04 rows and screenshot records bind completed capture ordinals and publis
 })
 test('d05 default run rejects fake dependency options before any application I/O',async()=>{
   const m=model('evidence_disabled');await assert.rejects(runOverview({...m.o,openNativeSession:async()=>m.session}));assert.equal(m.calls.length,0)
-  const native={schema:'chengwang.native-open-failure/v1',stage:'CDP_INITIAL_TARGETS',firstFault:'STARTUP_REJECTED',initialTargets:{shape:'ARRAY',total:0,pages:0,blankPages:0}}
+  const native={schema:'chengwang.native-open-failure/v1',stage:'CDP_INITIAL_TARGETS',firstFault:'STARTUP_REJECTED',initialTargets:{shape:'ARRAY',total:0,pages:0,blankPages:0},postTargets:{shape:'UNOBSERVED',total:null,pages:null,blankPages:null,initialPresent:null,selectedPresent:null,selectedKind:null,extraProtectedCount:null},firstTargetFault:{phase:null,kind:null}}
   const d=overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,native,m.journal.counters)
   assert.deepEqual(d.native,native);assert.deepEqual(d.counters,m.journal.counters)
   assert.equal(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,native,null).counters,null)
   for(const count of [true,-1,513,1.5])assert.equal(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,native,{...m.journal.counters,failedRequests:count}).counters,null)
+  const post={shape:'ARRAY',total:3,pages:2,blankPages:1,initialPresent:true,selectedPresent:true,selectedKind:'page',extraProtectedCount:1}
+  const target={...native,stage:'OPEN_COMPLETE',firstFault:'EXTRA_TARGET',postTargets:post,firstTargetFault:{phase:'ARMED',kind:'shared_worker'}}
+  assert.deepEqual(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,target,null).native,target)
+  assert(Buffer.byteLength(JSON.stringify(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,target,m.journal.counters)))<=4096)
+  for(const change of [{initialPresent:1},{selectedPresent:null},{selectedKind:'PRIVATE-CANARY'},{extraProtectedCount:true},{rawID:'PRIVATE-CANARY'}])assert.throws(()=>overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,{...target,postTargets:{...post,...change}},null))
+  for(const change of [{phase:'OPEN',kind:'page'},{phase:'ARMED',kind:'PRIVATE-CANARY'},{phase:null,kind:'page'},{phase:'ARMED',kind:'page',url:'PRIVATE-CANARY'}])assert.throws(()=>overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,{...target,firstTargetFault:change},null))
+  let getters=0;const hostile={...target};Object.defineProperty(hostile,'postTargets',{get(){getters++;throw Error('PRIVATE-CANARY')},enumerable:true})
+  assert.throws(()=>overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,hostile,null));assert.equal(getters,0)
+  assert(!JSON.stringify(overviewFailureObservation(m.o,m.input.profile,c,'NATIVE_OPEN',null,null,target,null)).includes('PRIVATE'))
   for(const args of [['PRIVATE-PHASE',null,null,null],['NATIVE_OPEN',null,null,null],['DOM_READ','PRIVATE-STEP',null,null],['DOM_READ',null,'demo_desktop',null],['DOM_READ','demo_desktop','actual_mobile',null]])assert.throws(()=>overviewFailureObservation(m.o,m.input.profile,c,...args,m.journal.counters))
   assert.equal(new Set(OVERVIEW_FAILURE_PHASES).size,OVERVIEW_FAILURE_PHASES.length)
 })

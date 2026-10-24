@@ -27,8 +27,10 @@ export function overviewFailureObservation(o, profile, c, phase, attemptedCheckp
   need(lastCompletedCheckpoint === null || attemptedCheckpoint !== null && steps.indexOf(lastCompletedCheckpoint) <= steps.indexOf(attemptedCheckpoint))
   if (native !== null) {
     need(phase === 'NATIVE_OPEN' && attemptedCheckpoint === null && lastCompletedCheckpoint === null
-      && exact(native, ['schema', 'stage', 'firstFault', 'initialTargets']) && native.schema === 'chengwang.native-open-failure/v1')
-    native = nativeOpenObservation(native.stage, native.firstFault, native.initialTargets)
+      && exact(native, ['schema', 'stage', 'firstFault', 'initialTargets', 'postTargets', 'firstTargetFault']))
+    const fields = Object.getOwnPropertyDescriptors(native)
+    need(Object.values(fields).every(field => Object.hasOwn(field, 'value')) && fields.schema.value === 'chengwang.native-open-failure/v1')
+    native = nativeOpenObservation(fields.stage.value, fields.firstFault.value, fields.initialTargets.value, fields.postTargets.value, fields.firstTargetFault.value)
   } else need(phase !== 'NATIVE_OPEN')
   const keys = c.counterRules.rawKeys
   const rawCounters = exact(counters, keys) && keys.every(key => Number.isSafeInteger(counters[key]) && counters[key] >= 0 && counters[key] <= 512)

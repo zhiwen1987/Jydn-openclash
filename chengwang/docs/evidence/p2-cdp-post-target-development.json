@@ -1,0 +1,34 @@
+{
+  "actualRootCauseProven": false,
+  "baseline": "c8f20aa0d721f17b70936ca40cc8c1733f1234f5",
+  "changes": [
+    "source-owned post-Target safe summary and original first target fault projection",
+    "explicit forTab=false with unchanged RPC ordering and authorization",
+    "strict failure-only cross-language projection; unobserved remains null"
+  ],
+  "mainMerged": false,
+  "production": false,
+  "realBrowserExecutedForThisCandidate": false,
+  "schema": "chengwang.cdp-post-target-development/v1",
+  "scope": "FAILURE_DIAGNOSTICS_AND_CPU_ONLY_NOT_CDP_ROOT_CAUSE_FIX",
+  "sourceSHA256": {
+    "chengwang/deploy/overview-ui-browser/overview_ui_scene.py": "89b863267b012c69c9fa0c23131ef78105c6bc98870d2847fba5296d5a2254d9",
+    "chengwang/deploy/overview-ui-browser/test_overview_scene.py": "f80fb61fbef015f6d7346af08bef385c7222c5733f320f4e01173a8ae6b53be1",
+    "chengwang/tools/browser-scene-driver/native-session.mjs": "419d1b615aa0183d1075af900447d1e6cabe0c85e77a86225d466e4c2352593d",
+    "chengwang/tools/browser-scene-driver/test-native-session.mjs": "813bd18d94d8800113c0e5d919ba0721c5a9747692e76fe329b646d79ab30f77",
+    "chengwang/tools/overview-ui-browser/test-ui-driver.mjs": "2214241175ea48ccaafc0a7fa2b01741d9fb999c2054b39a1106c11e9dc50fd3",
+    "chengwang/tools/overview-ui-browser/ui-driver.mjs": "f0968e0ce8a292d70fce3d3b573f228a7613d5998dec0a1c716237eb17edaf5f"
+  },
+  "unresolved": [
+    "actual CDP startup cause",
+    "actual new browser verification",
+    "full lifecycle and production acceptance"
+  ],
+  "validation": {
+    "actualCombinedCPU": 236,
+    "independentResultPath": "D:\\CodexData\\workspace\\cdp-post-target-peer236-20261024-a\\result.json",
+    "independentResultSHA256": "2997135d2e0064cebe1287adb3af94f04af5ce0d15db6a441122627368de50d0",
+    "skipped": 0,
+    "sourceStable": true
+  }
+}

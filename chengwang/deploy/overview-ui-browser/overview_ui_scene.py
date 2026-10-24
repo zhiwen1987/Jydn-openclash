@@ -289,7 +289,7 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
         native = value['native']
         if native is not None:
             need(value['phase'] == 'NATIVE_OPEN' and attempted is None and completed is None
-                 and type(native) is dict and set(native) == {'schema', 'stage', 'firstFault', 'initialTargets'}
+                 and type(native) is dict and set(native) == {'schema', 'stage', 'firstFault', 'initialTargets', 'postTargets', 'firstTargetFault'}
                  and native['schema'] == 'chengwang.native-open-failure/v1'
                  and type(native['stage']) is str and native['stage'] in NATIVE_OPEN_STAGES
                  and (native['firstFault'] is None or type(native['firstFault']) is str and native['firstFault'] in NATIVE_FAULTS))
@@ -300,6 +300,30 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
                 need(all(type(target[name]) is int for name in ('total', 'pages', 'blankPages'))
                      and 0 <= target['blankPages'] <= target['pages'] <= target['total'] <= 64)
             else: need(all(target[name] is None for name in ('total', 'pages', 'blankPages')))
+            post = native['postTargets']
+            post_keys = {'shape', 'total', 'pages', 'blankPages', 'initialPresent', 'selectedPresent', 'selectedKind', 'extraProtectedCount'}
+            need(type(post) is dict and set(post) == post_keys
+                 and type(post['shape']) is str and post['shape'] in ('UNOBSERVED', 'INVALID', 'ARRAY'))
+            if post['shape'] == 'ARRAY':
+                need(all(type(post[name]) is int for name in ('total', 'pages', 'blankPages', 'extraProtectedCount'))
+                     and 0 <= post['blankPages'] <= post['pages'] <= post['total'] <= 64
+                     and 0 <= post['extraProtectedCount'] <= post['total']
+                     and type(post['initialPresent']) is bool and type(post['selectedPresent']) is bool
+                     and type(post['selectedKind']) is str
+                     and post['selectedKind'] in ('page', 'service_worker', 'shared_worker', 'tab', 'browser', 'other', 'ABSENT')
+                     and (post['selectedKind'] == 'ABSENT') == (not post['selectedPresent'])
+                     and (not post['initialPresent'] or post['total'] > 0)
+                     and (not post['selectedPresent'] or post['total'] > 0)
+                     and (post['selectedKind'] != 'page' or post['pages'] > 0))
+            else: need(all(post[name] is None for name in post_keys - {'shape'}))
+            target_fault = native['firstTargetFault']
+            need(type(target_fault) is dict and set(target_fault) == {'phase', 'kind'})
+            if target_fault['phase'] is None: need(target_fault['kind'] is None)
+            else:
+                need(native['firstFault'] in ('EXTRA_TARGET', 'INVALID_TARGET_STATE', 'SESSION_DETACHED')
+                     and type(target_fault['phase']) is str and target_fault['phase'] in ('BUFFERING', 'ARMED', 'CLOSING', 'CLOSED')
+                     and (target_fault['kind'] is None or type(target_fault['kind']) is str
+                          and target_fault['kind'] in ('page', 'service_worker', 'shared_worker')))
         else: need(value['phase'] != 'NATIVE_OPEN')
         counters = value['counters']
         need(counters is None or type(counters) is dict and set(counters) == set(c['counterRules']['rawKeys'])

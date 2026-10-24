@@ -179,7 +179,10 @@ class OverviewSceneContracts(unittest.TestCase):
             fixtureId=fixture, engine=options.engine, scenario='overview_ui', profile='evidence_disabled',
             phase='NATIVE_OPEN', attemptedCheckpoint=None, lastCompletedCheckpoint=None,
             native=dict(schema='chengwang.native-open-failure/v1', stage='CDP_INITIAL_TARGETS', firstFault='STARTUP_REJECTED',
-                initialTargets=dict(shape='ARRAY', total=0, pages=0, blankPages=0)), counters=None)
+                initialTargets=dict(shape='ARRAY', total=0, pages=0, blankPages=0),
+                postTargets=dict(shape='UNOBSERVED', total=None, pages=None, blankPages=None,
+                    initialPresent=None, selectedPresent=None, selectedKind=None, extraProtectedCount=None),
+                firstTargetFault=dict(phase=None, kind=None)), counters=None)
         raw = json.dumps(value).encode(); gid = 10001
         def read(path, maximum, owner, mode):
             reads.append((path, maximum, owner, mode)); return raw, types.SimpleNamespace(st_gid=gid)
@@ -200,6 +203,23 @@ class OverviewSceneContracts(unittest.TestCase):
                            dict(shape='ARRAY', total=2, pages=1, blankPages=0)]:
                 candidate = copy.deepcopy(value); candidate['native']['initialTargets'] = target
                 self.assertEqual(observed(candidate), candidate)
+            post = dict(shape='ARRAY', total=3, pages=2, blankPages=1, initialPresent=True,
+                selectedPresent=True, selectedKind='page', extraProtectedCount=1)
+            detailed = copy.deepcopy(value)
+            detailed['native'].update(stage='OPEN_COMPLETE', firstFault='EXTRA_TARGET', postTargets=post,
+                firstTargetFault=dict(phase='ARMED', kind='service_worker'))
+            self.assertEqual(observed(detailed), detailed)
+            self.assertLessEqual(len(raw), 4096)
+            for shape in ('UNOBSERVED', 'INVALID'):
+                candidate = copy.deepcopy(value); candidate['native']['postTargets']['shape'] = shape
+                self.assertEqual(observed(candidate), candidate)
+            for kind in ('page', 'service_worker', 'shared_worker', 'tab', 'browser', 'other', 'ABSENT'):
+                candidate = copy.deepcopy(detailed)
+                candidate['native']['postTargets'].update(selectedKind=kind, selectedPresent=kind != 'ABSENT')
+                self.assertEqual(observed(candidate), candidate)
+            for phase in ('BUFFERING', 'ARMED', 'CLOSING', 'CLOSED'):
+                candidate = copy.deepcopy(detailed); candidate['native']['firstTargetFault']['phase'] = phase
+                self.assertEqual(observed(candidate), candidate)
             variants = [dict(value, **patch) for patch in [dict(schema='v2'), dict(sourceCommit='c'*40),
                 dict(fixtureId='c'*32), dict(engine='playwright'), dict(profile='evidence_enabled_unknown'),
                 dict(scenario='other'), dict(phase='PRIVATE-RAW-PATH'), dict(extra='secret'),
@@ -211,6 +231,19 @@ class OverviewSceneContracts(unittest.TestCase):
                           dict(initialTargets=dict(shape='ARRAY', total=1, pages=2, blankPages=0)),
                           dict(initialTargets=dict(shape='UNOBSERVED', total=0, pages=None, blankPages=None))]:
                 candidate = copy.deepcopy(value); candidate['native'].update(patch); variants.append(candidate)
+            for patch in [dict(total=True), dict(total=65), dict(pages=4), dict(blankPages=3),
+                          dict(initialPresent=1), dict(selectedPresent=None), dict(selectedKind='PRIVATE-CANARY'),
+                          dict(selectedPresent=False), dict(extraProtectedCount=True), dict(extraProtectedCount=4),
+                          dict(rawID='PRIVATE-CANARY'), dict(shape='UNOBSERVED'), dict(shape='PRIVATE')]:
+                candidate = copy.deepcopy(detailed); candidate['native']['postTargets'].update(patch); variants.append(candidate)
+            for fault in [dict(phase=True, kind='page'), dict(phase='OPEN', kind='page'),
+                          dict(phase=None, kind='page'), dict(phase='ARMED', kind='tab'),
+                          dict(phase='ARMED', kind='PRIVATE-CANARY'), dict(phase='ARMED', kind='page', rawID='PRIVATE')]:
+                candidate = copy.deepcopy(detailed); candidate['native']['firstTargetFault'] = fault; variants.append(candidate)
+            candidate = copy.deepcopy(detailed); candidate['native']['firstFault'] = 'STARTUP_REJECTED'; variants.append(candidate)
+            candidate = copy.deepcopy(value); candidate['native']['postTargets']['total'] = 0; variants.append(candidate)
+            for missing in ('postTargets', 'firstTargetFault'):
+                candidate = copy.deepcopy(value); del candidate['native'][missing]; variants.append(candidate)
             variants += [dict(ui, **patch) for patch in [dict(attemptedCheckpoint='unknown'),
                 dict(attemptedCheckpoint=None), dict(lastCompletedCheckpoint='actual_mobile'), dict(phase='NATIVE_OPEN')]]
             for count in [-1, 513, 0.5]: variants.append(dict(ui, counters=dict(ui['counters'], captureErrors=count)))

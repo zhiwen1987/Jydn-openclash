@@ -64,14 +64,70 @@ export function projectInitialTargets(rows) {
     return { shape: 'ARRAY', total: rows.length, pages, blankPages }
   } catch { return invalid() }
 }
-export function nativeOpenObservation(stage, firstFault, initialTargets) {
+const postKeys = ['shape', 'total', 'pages', 'blankPages', 'initialPresent', 'selectedPresent', 'selectedKind', 'extraProtectedCount']
+const targetPhases = ['BUFFERING', 'ARMED', 'CLOSING', 'CLOSED']
+const targetFaults = ['EXTRA_TARGET', 'INVALID_TARGET_STATE', 'SESSION_DETACHED']
+const emptyPostTargets = shape => ({ shape, total: null, pages: null, blankPages: null, initialPresent: null, selectedPresent: null, selectedKind: null, extraProtectedCount: null })
+// Read own data descriptors only: a diagnostic must not invoke a getter or
+// expose the private identities used for the two membership comparisons.
+function dataRecord(value, keys = null) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const descriptors = Object.getOwnPropertyDescriptors(value), names = Object.keys(descriptors)
+  if (keys && (names.length !== keys.length || names.some(key => !keys.includes(key)))) return null
+  if (names.some(key => !Object.hasOwn(descriptors[key], 'value'))) return null
+  return Object.fromEntries(names.map(key => [key, descriptors[key].value]))
+}
+export function projectPostTargets(rows, initial, selected) {
+  try {
+    if (!Array.isArray(rows) || rows.length > 64 || !targetId(initial) || !targetId(selected)) return emptyPostTargets('INVALID')
+    const seen = new Set(); let pages = 0, blankPages = 0, initialPresent = false, selectedPresent = false, selectedKind = 'ABSENT', extraProtectedCount = 0
+    for (let i = 0; i < rows.length; i++) {
+      const slot = Object.getOwnPropertyDescriptor(rows, String(i))
+      if (!slot || !Object.hasOwn(slot, 'value')) return emptyPostTargets('INVALID')
+      const row = dataRecord(slot.value)
+      if (!row || !targetId(row.targetId) || !targetType(row.type) || seen.has(row.targetId)) return emptyPostTargets('INVALID')
+      seen.add(row.targetId)
+      if (row.type === 'page') {
+        if (typeof row.url !== 'string') return emptyPostTargets('INVALID')
+        pages++; if (row.url === 'about:blank') blankPages++
+      }
+      if (row.targetId === initial) initialPresent = true
+      if (row.targetId === selected) { selectedPresent = true; selectedKind = ['page', 'service_worker', 'shared_worker', 'tab', 'browser'].includes(row.type) ? row.type : 'other' }
+      if (protectedTypes.has(row.type) && row.targetId !== initial && row.targetId !== selected) extraProtectedCount++
+    }
+    return { shape: 'ARRAY', total: rows.length, pages, blankPages, initialPresent, selectedPresent, selectedKind, extraProtectedCount }
+  } catch { return emptyPostTargets('INVALID') }
+}
+export function projectFirstTargetFault(code, detail) {
+  try {
+    const value = dataRecord(detail, ['phase', 'targetKind'])
+    if (targetFaults.includes(code) && value && targetPhases.includes(value.phase)
+      && (value.targetKind === null || protectedTypes.has(value.targetKind))) return { phase: value.phase, kind: value.targetKind }
+  } catch { /* No safe observation. */ }
+  return { phase: null, kind: null }
+}
+export function nativeOpenObservation(stage, firstFault, initialTargets, postTargets = emptyPostTargets('UNOBSERVED'), firstTargetFault = { phase: null, kind: null }) {
   need(NATIVE_OPEN_STAGES.includes(stage) && (firstFault === null || SESSION_FAULTS.includes(firstFault)))
-  need(exact(initialTargets, ['shape', 'total', 'pages', 'blankPages']))
-  const { shape, total, pages, blankPages } = initialTargets
+  const initial = dataRecord(initialTargets, ['shape', 'total', 'pages', 'blankPages'])
+  need(initial)
+  const { shape, total, pages, blankPages } = initial
   need(['UNOBSERVED', 'INVALID', 'ARRAY'].includes(shape))
   if (shape === 'ARRAY') need(integer(total, 0, 64) && integer(pages, 0, total) && integer(blankPages, 0, pages))
   else need(total === null && pages === null && blankPages === null)
-  return { schema: 'chengwang.native-open-failure/v1', stage, firstFault, initialTargets: { shape, total, pages, blankPages } }
+  const post = dataRecord(postTargets, postKeys), targetFault = dataRecord(firstTargetFault, ['phase', 'kind'])
+  need(post && ['UNOBSERVED', 'INVALID', 'ARRAY'].includes(post.shape) && targetFault)
+  if (post.shape === 'ARRAY') {
+    need(integer(post.total, 0, 64) && integer(post.pages, 0, post.total) && integer(post.blankPages, 0, post.pages)
+      && typeof post.initialPresent === 'boolean' && typeof post.selectedPresent === 'boolean'
+      && ['page', 'service_worker', 'shared_worker', 'tab', 'browser', 'other', 'ABSENT'].includes(post.selectedKind)
+      && (post.selectedKind === 'ABSENT') === !post.selectedPresent
+      && integer(post.extraProtectedCount, 0, post.total)
+      && (!post.initialPresent || post.total > 0) && (!post.selectedPresent || post.total > 0)
+      && (post.selectedKind !== 'page' || post.pages > 0))
+  } else need(postKeys.slice(1).every(key => post[key] === null))
+  need(targetFault.phase === null ? targetFault.kind === null : targetFaults.includes(firstFault)
+    && targetPhases.includes(targetFault.phase) && (targetFault.kind === null || protectedTypes.has(targetFault.kind)))
+  return { schema: 'chengwang.native-open-failure/v1', stage, firstFault, initialTargets: { shape, total, pages, blankPages }, postTargets: post, firstTargetFault: targetFault }
 }
 
 // The real PW session and CPU protocol tests share this registration path.
@@ -104,6 +160,7 @@ export class TargetGuard {
     need(typeof onFault === 'function')
     this.onFault = onFault; this.phase = 'BUFFERING'; this.baseline = null
     this.queue = []; this.selected = null; this.failed = false; this.destroyed = new Set(); this.initial = null
+    this.postTargets = emptyPostTargets('UNOBSERVED')
   }
   reject(code, kind = null) {
     this.failed = true
@@ -170,10 +227,12 @@ export class TargetGuard {
 export async function initializeCDPTargets(send, guard, onAttached) {
   need(typeof send === 'function' && guard instanceof TargetGuard && typeof onAttached === 'function')
   const initial = await send('Target.getTargets'); guard.freezeInitial(initial?.targetInfos)
-  const target = await send('Target.createTarget', { url: 'about:blank' }); need(targetId(target?.targetId))
+  const target = await send('Target.createTarget', { url: 'about:blank', forTab: false }); need(targetId(target?.targetId))
   const attached = await send('Target.attachToTarget', { targetId: target.targetId, flatten: true }); need(targetId(attached?.sessionId))
   onAttached(attached.sessionId)
-  const targets = await send('Target.getTargets'); guard.setBaseline(targets?.targetInfos, target.targetId)
+  const targets = await send('Target.getTargets')
+  guard.postTargets = projectPostTargets(Object.getOwnPropertyDescriptor(targets ?? {}, 'targetInfos')?.value, guard.initial, target.targetId)
+  guard.setBaseline(targets?.targetInfos, target.targetId)
   await send('Target.setDiscoverTargets', { discover: true }); guard.arm()
   return { targetId: target.targetId, sessionId: attached.sessionId }
 }
@@ -231,9 +290,11 @@ export async function openNativeSession(o, hooks) {
     && (!Object.hasOwn(hooks, 'onDiagnostic') || typeof hooks.onDiagnostic === 'function'))
   let phase = 'STARTING', firstFault = null, context, page, transport, browserSendRaw, pageSendRaw, childResult = null, child
   let openStage = 'ENVIRONMENT', initialTargets = { shape: 'UNOBSERVED', total: null, pages: null, blankPages: null }
+  let firstTargetFault = { phase: null, kind: null }
   const fault = (code, detail = { phase, targetKind: null }) => {
-    need(SESSION_FAULTS.includes(code)); firstFault ??= code
-    try { hooks.onFault(code, detail) } catch { firstFault = 'HOOK_REJECTED' }
+    need(SESSION_FAULTS.includes(code))
+    if (firstFault === null) { firstFault = code; firstTargetFault = projectFirstTargetFault(code, detail) }
+    try { hooks.onFault(code, detail) } catch { firstFault = 'HOOK_REJECTED'; firstTargetFault = { phase: null, kind: null } }
   }
   const healthy = () => {
     if (transport?.closed && !['CLOSING', 'CLOSED', 'DISPOSED'].includes(phase) && firstFault === null) fault('TRANSPORT_CLOSED')
@@ -381,7 +442,7 @@ export async function openNativeSession(o, hooks) {
   } catch {
     fault('STARTUP_REJECTED')
     // A failed diagnostic sink cannot produce success or expose the exception.
-    try { if (hooks.onDiagnostic) await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets)) } catch { /* Observation unavailable. */ }
+    try { if (hooks.onDiagnostic) await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets, guard.postTargets, firstTargetFault)) } catch { /* Observation unavailable. */ }
     await dispose(); throw rejected()
   }
 }
