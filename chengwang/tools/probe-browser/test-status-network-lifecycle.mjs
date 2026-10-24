@@ -135,3 +135,129 @@ test('lifecycle finishing is idempotent and later events cannot modify evidence'
   const s = run(ready(setup())); s.finish(); const raw = s.lines.join(''); s.finish(); s.start(8)
   assert.equal(s.lines.join(''), raw); assert.ok(Buffer.byteLength(raw) < 131072)
 })
+
+const extraInfo = (s, n = 1, extra = {}, actualSession = session) => s.handle('Network.responseReceivedExtraInfo', {
+  requestId: 'PRIVATE_REQUEST_' + n, statusCode: 200, headers: { 'Content-Length': '455' }, ...extra,
+}, actualSession)
+
+test('lifecycle associates safe extra before request start only after seven real identity validations', () => {
+  const s = ready(setup())
+  for (let n = 1; n <= 7; n++) {
+    extraInfo(s, n); assert.equal(s.d.pendingExtras.size, 1)
+    s.start(n); assert.equal(s.d.pendingExtras.size, 0)
+    s.response(n, {}, { hasExtraInfo: true }); s.data(n); s.end(n)
+  }
+  s.finish(); assert.equal(requests(s).length, 7)
+  assert.ok(requests(s).every(r => r.extra.status === 200 && r.extra.framing.length === 455))
+  assert.equal(s.rows().at(-1).rejected, 0); assert.equal(s.rows().at(-1).overflow, false)
+  assert.ok(!s.lines.join('').includes('PRIVATE'))
+})
+
+test('lifecycle drops pre-start projections after identifying ordinary or protected non-status requests', () => {
+  for (const url of [origin + '/assets/synthetic.js', origin + '/api/v1/probes/details']) {
+    const s = ready(setup()); extraInfo(s); assert.equal(s.d.pendingExtras.size, 1)
+    s.start(1, { redirectResponse: { private: 'PRIVATE_REDIRECT' } }, { url, method: 'POST', headers: { Authorization: 'PRIVATE_TOKEN' } })
+    assert.equal(s.d.pendingExtras.size, 0); s.finish()
+    assert.equal(s.rows().at(-1).rejected, 0); assert.equal(s.rows().at(-1).overflow, false)
+    assert.equal(requests(s).length, 0); assert.ok(!s.lines.join('').includes('PRIVATE'))
+  }
+})
+
+test('lifecycle ignores extra after a known non-status start without inspecting its headers', () => {
+  let calls = 0; const s = ready(setup())
+  s.start(1, {}, { url: origin + '/api/v1/probes/details', headers: { Authorization: 'PRIVATE_TOKEN' } })
+  const p = { requestId: 'PRIVATE_REQUEST_1' }
+  Object.defineProperty(p, 'headers', { enumerable: true, get() { calls++; throw Error('PRIVATE_HEADERS') } })
+  Object.defineProperty(p, 'statusCode', { enumerable: true, get() { calls++; throw Error('PRIVATE_STATUS') } })
+  s.handle('Network.responseReceivedExtraInfo', p); s.finish()
+  assert.equal(calls, 0); assert.equal(s.d.pendingExtras.size, 0); assert.equal(s.rows().at(-1).rejected, 0)
+})
+
+test('lifecycle unassociated invalid or duplicate extras do not reject a later confirmed non-status redirect', () => {
+  for (const malformed of [true, false]) {
+    const s = ready(setup())
+    extraInfo(s, 1, malformed ? { statusCode: 999, headers: null } : {})
+    extraInfo(s, 1, { statusCode: 302, headers: { Location: 'PRIVATE_REDIRECT', 'Set-Cookie': 'PRIVATE_COOKIE' } })
+    assert.equal(s.d.rejected, 0)
+    s.start(1, { redirectResponse: { status: 302 } }, { url: origin + '/assets/redirected.js' })
+    s.finish(); assert.equal(s.rows().at(-1).rejected, 0); assert.equal(s.rows().at(-1).overflow, false)
+    assert.ok(!s.lines.join('').includes('PRIVATE'))
+  }
+})
+
+test('lifecycle rejects duplicate pre-start extras if their request becomes a verified status target', () => {
+  const s = ready(setup()); extraInfo(s); extraInfo(s, 1, { headers: { 'Content-Length': '470' } })
+  s.start(); s.response(1, {}, { hasExtraInfo: true }); s.data(); s.end(); s.finish()
+  assert.equal(requests(s)[0].extra, null); assert.equal(s.rows().at(-1).rejected, 1)
+})
+
+test('lifecycle never overwrites the first accepted extra with a duplicate after start', () => {
+  const s = ready(setup()); extraInfo(s); s.start(); extraInfo(s, 1, { headers: { 'Content-Length': '470' } })
+  s.response(1, {}, { hasExtraInfo: true }); s.data(); s.end(); s.finish()
+  assert.equal(requests(s)[0].extra.framing.length, 455); assert.equal(s.rows().at(-1).rejected, 1)
+})
+
+test('lifecycle never matches extras by identical framing time order or private ID from another session', () => {
+  const s = ready(setup()); extraInfo(s, 2); extraInfo(s, 1, {}, {})
+  s.start(); s.response(1, {}, { hasExtraInfo: true }); s.data(); s.end(); s.finish()
+  assert.equal(requests(s)[0].extra, null); assert.equal(s.rows().at(-1).rejected, 2)
+  assert.equal(s.d.pendingExtras.size, 0)
+})
+
+test('lifecycle leaves hasExtra YES missing observations missing without fallback from response headers', () => {
+  const s = ready(setup()); s.start(); s.response(1, { headers: { 'Content-Length': '455' } }, { hasExtraInfo: true })
+  s.data(); s.end(); s.finish(); const r = requests(s)[0]
+  assert.equal(r.hasExtra, 'YES'); assert.equal(r.response.framing.length, 455); assert.equal(r.extra, null)
+})
+
+test('lifecycle unclassified extras at finish are explicitly incomplete without an added wait', () => {
+  const s = run(ready(setup())); extraInfo(s, 42); assert.equal(s.d.rejected, 0)
+  s.finish(); assert.equal(s.rows().at(-1).rejected, 1); assert.equal(s.d.pendingExtras.size, 0)
+  const raw = s.lines.join(''); extraInfo(s, 43); assert.equal(s.lines.join(''), raw)
+})
+
+test('lifecycle bounds pending extras by maxRequests and keeps overflow visible after non-status cleanup', () => {
+  const s = ready(setup()); for (let n = 1; n <= 8; n++) extraInfo(s, n)
+  assert.equal(s.d.pendingExtras.size, 7); assert.equal(s.d.overflow, true)
+  for (let n = 1; n <= 7; n++) s.start(n, {}, { url: origin + '/assets/synthetic.js' })
+  s.finish(); assert.equal(s.d.pendingExtras.size, 0); assert.equal(s.rows().at(-1).overflow, true)
+})
+
+test('lifecycle bounds ignored non-status IDs by maxRows without retaining any request headers', () => {
+  const s = ready(setup())
+  for (let n = 1; n <= 129; n++) s.start(n, {}, { url: origin + '/assets/synthetic.js', headers: { Authorization: 'PRIVATE_TOKEN' } })
+  assert.equal(s.d.otherRequests.size, 128); s.finish()
+  assert.equal(s.rows().at(-1).overflow, true); assert.ok(!s.lines.join('').includes('PRIVATE_TOKEN'))
+})
+
+test('lifecycle defers malformed oversized or hostile header projections until target classification', () => {
+  const many = Object.fromEntries(Array.from({ length: 129 }, (_, n) => ['Private-' + n, 'PRIVATE_VALUE']))
+  const hostile = new Proxy({}, { ownKeys() { throw Error('PRIVATE_PROXY_EXCEPTION') } })
+  for (const headers of [null, many, hostile]) {
+    for (const target of [false, true]) {
+      const s = ready(setup()); extraInfo(s, 1, { headers }); assert.equal(s.d.rejected, 0)
+      s.start(1, {}, target ? {} : { url: origin + '/assets/synthetic.js' }); s.finish()
+      assert.equal(s.rows().at(-1).rejected, target ? 1 : 0); assert.ok(!s.lines.join('').includes('PRIVATE'))
+    }
+  }
+})
+
+test('lifecycle pending metadata owns only safe framing primitives and never invokes secret accessors', () => {
+  let calls = 0; const headers = { 'Content-Length': '455' }
+  Object.defineProperty(headers, 'Set-Cookie', { enumerable: true, get() { calls++; throw Error('PRIVATE_COOKIE') } })
+  Object.defineProperty(headers, 'Authorization', { enumerable: true, get() { calls++; throw Error('PRIVATE_TOKEN') } })
+  const s = ready(setup()); extraInfo(s, 1, { headers }); headers['Content-Length'] = '470'
+  s.start(); s.response(1, {}, { hasExtraInfo: true }); s.data(); s.end(); s.finish()
+  assert.equal(calls, 0); assert.equal(requests(s)[0].extra.framing.length, 455)
+  assert.equal(s.rows().at(-1).rejected, 0); assert.ok(!s.lines.join('').includes('PRIVATE'))
+})
+
+test('lifecycle cannot attach pending extra through rejected credentials frame or reused non-status ID', () => {
+  for (const fault of ['credentials', 'frame', 'nonstatus-reuse']) {
+    const s = ready(setup()); extraInfo(s)
+    if (fault === 'credentials') s.start(1, {}, { headers: { 'X-CW-Probe-Request': `v1.${nonce}.1.1`, Authorization: 'PRIVATE' } })
+    if (fault === 'frame') s.start(1, { frameId: 'PRIVATE_OTHER' })
+    if (fault === 'nonstatus-reuse') { s.start(1, {}, { url: origin + '/assets/synthetic.js' }); s.start() }
+    s.finish(); assert.equal(requests(s).length, 0); assert.ok(s.rows().at(-1).rejected > 0)
+  }
+})

@@ -124,7 +124,7 @@ describe('App', () => {
         name: 'readback', baseVersion: 'v1',
         pools: [{ id: 'chatgpt_pool', name: 'ChatGPT', members: ['美国-01'] }],
         businesses: [{ id: 'chatgpt', name: 'ChatGPT', domains: ['chatgpt.com'], strategy: 'chatgpt_pool', candidates: ['chatgpt_pool'], fallback: 'DIRECT', skipEmptyPools: true, failuresToSwitch: 3, probeIntervalSec: 30, sessionStickyMin: 30, switchCooldownSec: 300 }],
-        dns: { domesticResolvers: ['223.5.5.5'], overseasResolvers: ['https://1.1.1.1/dns-query'] },
+        dns: { domesticResolvers: ['223.5.5.5'], overseasResolvers: ['https://1.1.1.1/dns-query'], hijackPort53: false, leakProtection: false },
       },
     }
     const runtime = {
@@ -177,7 +177,7 @@ describe('App', () => {
       businesses: [], pools: [], interfaces: [], events: [],
       draft: {
         name: 'readback', baseVersion: 'v1', pools: [], businesses: [],
-        dns: { domesticResolvers: ['223.5.5.5'], overseasResolvers: ['https://1.1.1.1/dns-query'] },
+        dns: { domesticResolvers: ['223.5.5.5'], overseasResolvers: ['https://1.1.1.1/dns-query'], hijackPort53: false, leakProtection: false },
       },
     }
     const fetchMock = vi.fn((input: RequestInfo | URL) => {

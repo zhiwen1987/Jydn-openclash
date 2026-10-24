@@ -15,6 +15,21 @@ const id = v => typeof v === 'string' && v.length > 0 && v.length <= 256
 const us = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER / 1e6 ? Math.floor(v * 1e6) : null
 const tri = v => v === true ? 'YES' : v === false ? 'NO' : 'NOT_OBSERVED'
 const fail = () => { throw new Error('status network metadata rejected') }
+const INVALID_EXTRA = Symbol('invalid bounded extra projection')
+
+// Unassociated events may belong to assets/protected APIs or redirects. Retain
+// only closed metadata (or a private sentinel), and defer rejection until the
+// original request is identified as an anonymous status request. No raw header
+// object, URL, error or protocol ID is written to the public evidence stream.
+function safeExtraInfo(params, maximumFields) {
+  try {
+    const status = own(params, 'statusCode'), headers = own(params, 'headers')
+    if (!int(status, 100, 599) || !headers || typeof headers !== 'object' || Array.isArray(headers)
+      || Object.keys(headers).length > maximumFields) return INVALID_EXTRA
+    const projected = framing(headers)
+    return projected === null ? INVALID_EXTRA : { status, framing: projected }
+  } catch { return INVALID_EXTRA }
+}
 
 export function loadLifecycleContract() {
   const raw = readFileSync(new URL('../../deploy/probe-readback/status-network-lifecycle-contract.json', import.meta.url))
@@ -53,6 +68,9 @@ export class StatusNetworkLifecycle {
     if (!(id(session) || (session !== null && typeof session === 'object')) || typeof write !== 'function') fail()
     this.contract = loadLifecycleContract(); this.session = session; this.write = write
     this.requests = new Map(); this.keys = new Set(); this.connections = new Map(); this.contexts = new Map()
+    // Reuse the frozen limits: <=7 unassociated projections, <=128 ignored
+    // non-status IDs. These private slots are not additional accepted targets.
+    this.pendingExtras = new Map(); this.otherRequests = new Set()
     this.frame = null; this.phase = 'RUNNING'; this.sequence = 0; this.bytes = 0; this.contextEvents = 0
     this.rejected = 0; this.overflow = false; this.closed = false; this.sinkFailed = false
     this.emit('SESSION', {})
@@ -106,9 +124,19 @@ export class StatusNetworkLifecycle {
     }
     if (method === 'Network.requestWillBeSent') {
       const r = own(p, 'request')
-      if (own(r, 'url') !== STATUS) return
+      if (own(r, 'url') !== STATUS) {
+        const key = own(p, 'requestId')
+        if (!id(key) || typeof own(r, 'url') !== 'string') return
+        if (this.requests.has(key)) { this.reject(); return }
+        this.pendingExtras.delete(key)
+        if (!this.otherRequests.has(key)) {
+          if (this.otherRequests.size >= this.contract.maxRows) { this.overflow = true; return }
+          this.otherRequests.add(key)
+        }
+        return
+      }
       const headers = own(r, 'headers'), b = probeBindingHeader(headers), key = own(p, 'requestId'), x = us(own(p, 'timestamp'))
-      if (!b || own(r, 'method') !== 'GET' || !id(key) || this.requests.has(key) || x === null || this.frame === null
+      if (!b || own(r, 'method') !== 'GET' || !id(key) || this.requests.has(key) || this.otherRequests.has(key) || x === null || this.frame === null
         || own(p, 'frameId') !== this.frame || own(p, 'redirectResponse') !== undefined
         || Object.keys(headers).some(k => ['authorization', 'cookie', 'proxy-authorization', 'proxy-connection'].includes(k.toLowerCase()))) { this.reject(); return }
       const identity = `${b.doc}:${b.m}:${b.r}`
@@ -117,16 +145,33 @@ export class StatusNetworkLifecycle {
       this.keys.add(identity); this.requests.set(key, { n: this.requests.size + 1, m: b.m, r: b.r, startUs: x,
         responseUs: null, endUs: null, response: null, extra: null, chunks: null, dataBytes: null, encodedBytes: null,
         terminal: 'MISSING', canceled: null, error: null, blocked: null, cors: null, hasExtra: 'NOT_OBSERVED' })
+      if (this.pendingExtras.has(key)) {
+        const extra = this.pendingExtras.get(key); this.pendingExtras.delete(key)
+        if (extra === INVALID_EXTRA) this.reject()
+        else this.requests.get(key).extra = extra
+      }
+      return
+    }
+    if (method === 'Network.responseReceivedExtraInfo') {
+      const key = own(p, 'requestId')
+      if (!id(key)) { this.reject(); return }
+      if (this.otherRequests.has(key)) return
+      const request = this.requests.get(key)
+      if (request) {
+        if (request.extra !== null) { this.reject(); return }
+        const extra = safeExtraInfo(p, this.contract.maxRows)
+        if (extra === INVALID_EXTRA) this.reject()
+        else request.extra = extra
+      } else if (this.pendingExtras.has(key)) {
+        // An unknown duplicate may be a normal non-target redirect. Do not
+        // overwrite it or reject globally before its request is classified.
+        this.pendingExtras.set(key, INVALID_EXTRA)
+      } else if (this.pendingExtras.size >= this.contract.maxRequests) this.overflow = true
+      else this.pendingExtras.set(key, safeExtraInfo(p, this.contract.maxRows))
       return
     }
     const r = this.requests.get(own(p, 'requestId'))
     if (!r) return
-    if (method === 'Network.responseReceivedExtraInfo') {
-      if (r.extra !== null) { this.reject(); return }
-      const st = own(p, 'statusCode'), h = framing(own(p, 'headers'))
-      if (!int(st, 100, 599) || h === null) { this.reject(); return }
-      r.extra = { status: st, framing: h }; return
-    }
     if (!['Network.responseReceived', 'Network.dataReceived', 'Network.loadingFinished', 'Network.loadingFailed'].includes(method)) return
     const x = us(own(p, 'timestamp'))
     if (x === null || x < r.startUs || r.terminal !== 'MISSING') { this.reject(); return }
@@ -162,6 +207,10 @@ export class StatusNetworkLifecycle {
   }
   finish() {
     if (this.closed) return
+    // Unclassified or duplicate unknown events are not silently dropped as
+    // complete. No retry, drain command, timeout or active waiting is added.
+    for (let count = this.pendingExtras.size; count > 0; count--) this.reject()
+    this.pendingExtras.clear()
     for (const r of this.requests.values()) this.emit('REQUEST', r)
     this.emit('META', { requests: this.requests.size, contexts: this.contextEvents,
       rejected: this.rejected, overflow: this.overflow, sinkFailed: this.sinkFailed })

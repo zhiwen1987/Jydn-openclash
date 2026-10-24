@@ -150,7 +150,7 @@ function BusinessTable({ businesses }: { businesses: BusinessStatus[] }) {
 }
 
 function PoolTable({ pools }: { pools: Snapshot['pools'] }) {
-  return <section className="panel pool-panel"><div className="section-title"><h2>快照上报节点（未独立核验）</h2><button className="text-action" disabled>测试全部</button></div><table><thead><tr><th>节点池</th><th>上报延迟</th><th>上报丢包</th><th>上报可用</th></tr></thead><tbody>{pools.map(pool => <tr key={pool.name}><td><strong>{pool.name}</strong></td><td>{pool.latencyMs} ms</td><td>{pool.lossRate}%</td><td><Status value={`${pool.available}/${pool.total}`}/></td></tr>)}</tbody></table></section>
+  return <section className="panel pool-panel"><div className="section-title"><h2>快照上报节点（未独立核验）</h2><button className="text-action" disabled>测试全部</button></div><table><thead><tr><th>节点池</th><th>上报延迟</th><th>上报丢包</th><th>上报可用</th></tr></thead><tbody>{pools.map(pool => <tr key={JSON.stringify([pool.name, pool.region])}><td><strong>{pool.name}</strong><small> · {pool.region}</small></td><td>{pool.latencyMs} ms</td><td>{pool.lossRate}%</td><td><Status value={`${pool.available}/${pool.total}`}/></td></tr>)}</tbody></table></section>
 }
 
 function Events({ events }: { events: Snapshot['events'] }) {

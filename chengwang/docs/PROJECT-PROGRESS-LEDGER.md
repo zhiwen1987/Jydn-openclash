@@ -2,7 +2,24 @@
 
 日常查看：[项目任务清单](LIVE-TASKS.md)（当前优先项、完整剩余功能、依赖与验收条件）。[实时执行动态](http://127.0.0.1:8765)复用本机现有监控台；其估算百分比不代表项目完成率。任务清单由实际结果驱动更新，不冒称每秒自动同步或生产已上线。
 
-## 当前最新事实：e4156d6订阅切片收口；探针新候选尚待真实验收
+## 当前最新事实：5f17544已取得实际CI；分项成功，整体未通过
+
+截至2026-10-24 11:00（Asia/Shanghai），开发分支最新已推送源码仍为 `5f1754487507f6ec76d7b8872abf6e7cb89bdc07`。限流窗口结束后已取得其attempt 1实际终态；先前“未确认”仅是当时状态。以下是实际结果，不以辅助测试抵消失败：
+
+- [订阅UI40053151066](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40053151066)八producer＋八fresh成功。本机按同源码实际执行50条原CLI，全部exit 0；34份实际fresh逐字节一致，16份旧辅助报告仅producer。16 ZIP／458成员CRC、字节及SHA前后及独立审计一致。
+- [父门40053151047](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40053151047)普通／race各2670实际事件通过原检查器；依据连接器解码日志投影，不冒称原始下载日志字节保管。[旧订阅40053150974](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40053150974)CI成功，本轮完整产品CLI独立复算未补齐。
+- [镜像40053151084](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40053151084)实际260前端测试通过，随后capability-report.ts的no-control-regex lint失败，后续Vite／Go／Registry未执行。字符码等价修正仅在工作树，未获新CI。
+- [探针40053151058](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40053151058)PW原浏览器门通过，CDP仍failedRequests=1；两引擎被动诊断均EXPECTED_EXTRA拒绝，实际原CLI重放与CI同字节。提前ExtraInfo关联修正候选34项Node检查通过，但未证明5f缺失唯一原因，也未修复／豁免原CDP失败。
+
+本机证据：`D:/CodexData/workspace/5f-ui-replay-a2fd685935/result.json`、`D:/CodexData/workspace/5f-ui-journal-audit-8d70910532/audit.json`、`D:/CodexData/workspace/5f-parent-final-ltcck0_s/result.json`、`D:/CodexData/workspace/5f-sidecar-reject-3qv2l13j/facts.json`。这些是本机文件，不是已推送仓库附件。见[能力纠正](P2-CAPABILITY-TRUTH.md)、[诊断边界](P2-PASSIVE-DIAGNOSTICS.md)。
+
+前一候选e6cc的实际[探针40048820014](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40048820014)中，Playwright原完整EOF门已独立重放且与producer同字节；CDP仍failedRequests=1，应用没有CANCEL／ABORT，不能把原因继续归为冗余cancel。[订阅UI40048819951](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40048819951)7个producer成功，负交接CDP在NAVIGATE大阶段失败，fresh全部跳过。e6镜像实际240前端及Go／Registry转录原门通过，不能抵消两浏览器失败，也不能代替本次全部产品CLI独立复算。见[机器事实](evidence/p2-e6cc-partial-ci.json)。
+
+完整快照格式校验已有工作树候选：44个新增测试声明／AST已核，nil数组、omitempty、requireCapabilities及RFC3339Nano按真实Go合同处理；前端304仅是下一门要求，尚未真实运行。能力页／内核页独立真实双浏览器实施卡已完成但未实现，不能由旧订阅／探针浏览器成功替代。原完整功能基线、备份恢复、灰度、生产读回和运营闭环仍未完成；生产、main及正式Registry未改变。
+
+以下保留每阶段当时事实；“尚未运行／正在复核”等描述只对应各自时间，不是当前实时状态。
+
+## 前序e4156d6订阅切片收口与e6cc实施前记录
 
 根D 16 ZIP／446成员全部原件前后稳定，48原CLI均exit0／报告等producer，32份有fresh亦同，16旧84／76仅producer；独立代理另跑CDP反馈完整原CLI并四方同字节，48条耐久执行记录／16包再次核对。镜像1470安全成员、实际前端222及精确旧197＋新25名单、子模块各732／Registry各3、六个产品原门复算与CI同字节；16PNG已实际审看。原e415旧探针双引擎门仍failure，故整体回归不通过。[最终范围与失败](P2-SUBSCRIPTION-FEEDBACK-REPAIR.md)、[机器证据](evidence/p2-subscription-feedback-e4156d6.json)。API限流后不再live请求，最终摘要核对用已保存原API，不能称新实时刷新。
 

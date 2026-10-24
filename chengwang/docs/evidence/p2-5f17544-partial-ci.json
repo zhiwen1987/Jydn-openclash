@@ -1,0 +1,164 @@
+{
+  "apiOrNetworkRequestedByThisCloseout": false,
+  "attempt": 1,
+  "boundaries": [
+    "Success in one run does not cancel image or probe failures.",
+    "Only collected terminal metadata is summarized; no live API was re-queried.",
+    "Native probe backend success is metadata-only here; its original CLI evidence is not audited by this closeout.",
+    "No overall completion percentage, uptime SLA or production readiness is inferred."
+  ],
+  "collectedTerminalConclusions": {
+    "imageBinding": "failure",
+    "legacySubscriptionBackend": "success",
+    "nativeProbeBackend": "success",
+    "parentStatic": "success",
+    "probeBrowser": "failure",
+    "subscriptionUI": "success"
+  },
+  "evidenceAsOfUTC": "2026-10-24T03:07:47.423080+00:00",
+  "imageBinding": {
+    "artifact": {
+      "custodySHA256": "caa4b262be77cd8a99ae7f98b74b56586bd88f2e6ed7814d7cedd45817837d46",
+      "members": 50,
+      "zipSHA256": "a7a5cb64bc0b559c9dbd1e0ed5353a5318bc6ce2d7c5b63e0eed31b00f9eac01"
+    },
+    "frontendVitest": {
+      "evidenceLevel": "RAW_VITEST_JSON_AND_ORIGINAL_UNIT_LOG_NOT_COMPLETE_IMAGE_GATE",
+      "failed": 0,
+      "jsonSHA256": "fe30022c5b297316612b9d8cd78d8d23c19b3b4edcfbd8bb05bae60ae68ea78f",
+      "passed": 260,
+      "pending": 0,
+      "testFiles": 12,
+      "todo": 0,
+      "total": 260
+    },
+    "lint": {
+      "errors": 1,
+      "logSHA256": "4e609aad2d74a44fbba46bb50233feaf85e5ee5e476d87db9f301196ca5564e0",
+      "outcome": "FAILED",
+      "rule": "no-control-regex",
+      "warnings": 0
+    },
+    "pipelineOutcome": "FAILED",
+    "postLintFrozenFrontendNameChecker": "NOT_EXECUTED_IN_THIS_IMAGE_RUN",
+    "postLintViteBuildAndGoOrdinaryRaceVet": "NOT_EXECUTED_IN_THIS_IMAGE_RUN",
+    "registryBindingAndCompleteCandidateImageExecution": "SKIPPED_IN_THIS_IMAGE_RUN"
+  },
+  "legacySubscriptionBackend": {
+    "completeOriginalProductCLIIndependentReplay": "NOT_VERIFIED",
+    "freshJobSucceeded": true,
+    "producerJobSucceeded": true,
+    "rawArtifactByteCustody": "NOT_VERIFIED",
+    "scope": "COLLECTED_CI_SUCCESS_AND_CONNECTOR_DECODED_PASS_MARKERS_ONLY"
+  },
+  "localBuildBrowserOrServiceStartedByVerifier": false,
+  "notVerified": [
+    "PARENT_RAW_GITHUB_JOB_LOG_BYTE_CUSTODY",
+    "LEGACY_SUBSCRIPTION_COMPLETE_ORIGINAL_PRODUCT_CLI_REPLAY",
+    "CAPABILITY_TRUTH_REAL_BROWSER_SCENE",
+    "PRIOR_E6_NAVIGATE_UNIQUE_FAILURE_CAUSE",
+    "NEW_NEGATIVE_NAVIGATION_REAL_FAILURE_BRANCH",
+    "LATER_LOCAL_CANDIDATES_IN_NEW_REAL_CI",
+    "FORMAL_RELEASE_PRODUCTION_CUTOVER_AND_END_TO_END_BUSINESS_ACCEPTANCE"
+  ],
+  "overallRegression": "NOT_PASSED",
+  "parentStatic": {
+    "earlierLocalProjectionWrapperFailureRetained": true,
+    "finalProjectionGateResultSHA256": "cd456881ef6d9e99b31fc18870bf5b1c197d1d4ab83dfec4e3cd6ca81a82da4a",
+    "modes": {
+      "ordinary": {
+        "goJSONEvents": 10915,
+        "projectionSHA256": "d8ee1ec544fd81891c49a3e23ea768ffae48dec69f89b07046b3672093306ef4",
+        "semanticTestPasses": 2670,
+        "semanticTestRuns": 2670
+      },
+      "race": {
+        "goJSONEvents": 10915,
+        "projectionSHA256": "f750d145f13be0e16ecc117dafb578ac9b716c3670155fcc19c9fe2611c09c22",
+        "semanticTestPasses": 2670,
+        "semanticTestRuns": 2670
+      }
+    },
+    "originalGateActualExit": 0,
+    "originalGateLogSHA256": "daccbb6952d7957638ff02ebe65a9643e881ee6b8520f4596f5d9145b5c40c1b",
+    "rawGitHubJobLogByteCustody": "NOT_VERIFIED",
+    "scope": "CONNECTOR_DECODED_GO_JSON_EVENT_PROJECTION_NOT_RAW_GITHUB_LOG_BYTES",
+    "semanticCountRule": "Test-prefixed cases; not raw event count or sustained fuzz testing"
+  },
+  "probeBrowser": {
+    "engines": {
+      "chrome-cdp": {
+        "artifact": {
+          "custodySHA256": "d0a5a0dd460be853e8c67db36fca143349f310ffd4e0dd06b6f3849837d513d8",
+          "members": 93,
+          "zipSHA256": "1daf411143fc35f3448d7b3af9476c99631549ec553a528a85902364555f1afd"
+        },
+        "failedRequests": 1,
+        "incompleteReasons": [
+          "EXPECTED_EXTRA"
+        ],
+        "originalBrowserGate": "FAILED",
+        "sidecarHostHelpersMatchedSource": true,
+        "sidecarOriginalCLIExit": 1,
+        "sidecarOutcome": "DIAGNOSTIC_INCOMPLETE",
+        "sidecarReplayByteEqual": true,
+        "sidecarReportSHA256": "0b1c7bed5c3848408aaaf1212e1146b39895eddd5d2adc99a5d26adf55714c63",
+        "sidecarRequiredGitBlobsVerified": 16
+      },
+      "playwright": {
+        "artifact": {
+          "custodySHA256": "f024d6b36b142a08dd321f530cab9377bb5732f9f1f0059a28548f44dc319c12",
+          "members": 94,
+          "zipSHA256": "114c4d33ef0906dc8b7a37a56c95a3bfb6a79dfa9d277ba5907acda852e587d0"
+        },
+        "failedRequests": 0,
+        "incompleteReasons": [
+          "EXPECTED_EXTRA"
+        ],
+        "originalBrowserGate": "PASS",
+        "sidecarHostHelpersMatchedSource": true,
+        "sidecarOriginalCLIExit": 1,
+        "sidecarOutcome": "DIAGNOSTIC_INCOMPLETE",
+        "sidecarReplayByteEqual": true,
+        "sidecarReportSHA256": "7a646b511c25216b0c620482c4439e56bcabd84d541ab1882de3dfb2dbeb74ef",
+        "sidecarRequiredGitBlobsVerified": 16
+      }
+    },
+    "evidenceLevel": "ORIGINAL_ARTIFACTS_AND_AGENT_RECORDED_ORIGINAL_SIDECAR_CLI_REPLAYS",
+    "pipelineOutcome": "FAILED",
+    "scope": "ORIGINAL_BROWSER_GATE_AND_SEPARATE_PASSIVE_DIAGNOSTIC_GATE",
+    "sidecarReplayFactsSHA256": "e8d61dd5ca1b42d024653d28ecf86d727414f3cdac7674ec167801c69109d3b9",
+    "sidecarRootCauseOrPendingFixEffectProven": false
+  },
+  "productionTouched": false,
+  "runIds": {
+    "imageBinding": 40053151084,
+    "legacySubscriptionBackend": 40053150974,
+    "nativeProbeBackend": 40053151176,
+    "parentStatic": 40053151047,
+    "probeBrowser": 40053151058,
+    "subscriptionUI": 40053151066
+  },
+  "schema": "chengwang.development-ci-public-closeout/v1",
+  "sourceCommit": "5f1754487507f6ec76d7b8872abf6e7cb89bdc07",
+  "subscriptionUI": {
+    "actualOriginalCLIExitZero": 50,
+    "actualOriginalCLIsCompleted": 50,
+    "actualReplayResultSHA256": "fdd8167cc2ee3d11878b452038637361d32b144f67fa8bb50258c754eccbff12",
+    "allEightOriginalBrowserErrorCountersZero": true,
+    "custodySHA256": "8f4017bf1d87cb896509a1c7d205fce352b3fa5e80ddacdba916c9c911f67ca9",
+    "evidenceLevel": "ORIGINAL_ZIPS_AND_ACTUAL_ORIGINAL_OFFLINE_CLI_EXECUTIONS",
+    "freshJobsSucceeded": 8,
+    "fullSubscriptionE2EProven": false,
+    "independentJournalAuditSHA256": "dfad7fd59570dbff7c7c1444c528f30175cd7d075b407e823e450cd2a9eea60f",
+    "newNegativeNavigation57Scope": "CPU_CONTRACTS_WITH_PRODUCER_FRESH_BYTE_COMPARISON_NOT_REAL_FAILURE_BRANCH",
+    "normalLifecycleAndNoOwnedProcessesObserved": true,
+    "originalBytesAndCRCsStable": true,
+    "originalMembers": 458,
+    "originalZIPs": 16,
+    "producerJobsSucceeded": 8,
+    "producerOnlyLegacy84And76Reports": 16,
+    "realFreshByteComparisons": 34,
+    "scope": "FOUR_EXISTING_SUBSCRIPTION_UI_SCENARIOS_TWO_ENGINES_NOT_FULL_SYSTEM"
+  }
+}

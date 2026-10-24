@@ -213,10 +213,11 @@ report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 # its non-await, settlement, ordering and redaction assertions remain enforced.
 # Existing App capability-state/offline cases now reject unsupported claims;
 # twenty truthfulness/error/ownership/deadline cases extend the accepted 240 names.
+# Forty-four bounded snapshot wire/display cases extend the accepted 260 names.
 # These are mocked checks, not real agent/subscription/browser evidence.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 197 + 25 + 18 + 20 or report.get("numPassedTests") != report.get("numTotalTests"):
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 197 + 25 + 18 + 20 + 44 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
-required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx", "SubscriptionsFeedback.test.tsx", "ProbeEofCleanup.test.ts", "CapabilityTruth.test.tsx"}
+required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx", "SubscriptionsFeedback.test.tsx", "ProbeEofCleanup.test.ts", "CapabilityTruth.test.tsx", "SnapshotTruth.test.tsx"}
 results = report.get("testResults", [])
 if len(results) != len(required) or {pathlib.Path(result["name"]).name for result in results} != required:
     raise SystemExit("frontend required test file set changed")
@@ -270,6 +271,10 @@ for result in results:
     names = [case["fullName"] for case in result["assertionResults"]]
     if len(set(names)) != len(names):
         raise SystemExit("frontend duplicate test name")
+    if filename == "SnapshotTruth.test.tsx":
+        if len(names) != 44 or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != "f5d8cf23ab45fb50cde16918352285d85fb020a1b68639ca57fe015268f20c4f":
+            raise SystemExit("snapshot wire/display scenarios missing, renamed or substituted")
+        continue
     if filename == "CapabilityTruth.test.tsx":
         if len(names) != 20 or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != "3ac9c257aa0e795d80d25a45462c86ace708f693e4fb0d2dbd5bc6431a0e9dfc":
             raise SystemExit("capability truthfulness scenarios missing, renamed or substituted")
@@ -321,7 +326,7 @@ for result in results:
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=12 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 subscription_feedback=25 eof_cleanup=18 capability_truth=20 retained_names=240 prior_eof_case_migrated=true existing_app_state_copy_corrected=true skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=13 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 subscription_feedback=25 eof_cleanup=18 capability_truth=20 snapshot_truth=44 retained_names=260 prior_eof_case_migrated=true existing_app_state_copy_corrected=true existing_snapshot_fixtures_wire_corrected=3 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"

@@ -3,6 +3,7 @@ import type {
   ObservationStatus, OperationRisk, OperationStatus, PolicyDraft, ProxyInterface, Snapshot, ValidationResult,
 } from './types'
 import { decodeCapabilityReport } from './capability-report'
+import { decodeSnapshotReport, SNAPSHOT_FORMAT_ERROR } from './snapshot-report'
 
 export class APIError extends Error {
   constructor(message: string, readonly status: number, readonly code = 'request_failed') {
@@ -39,9 +40,20 @@ async function throwAPIError(response: Response, fallback: string): Promise<neve
 }
 
 export async function getSnapshot(signal?: AbortSignal): Promise<Snapshot> {
-  const response = await fetch('/api/v1/snapshot', { signal, headers: { Accept: 'application/json' } })
+  const response = await fetch('/api/v1/snapshot', { signal, headers: { Accept: 'application/json' } }).catch(() => {
+    if (signal?.aborted) throw new DOMException('快照读取已取消', 'AbortError')
+    throw new APIError('无法连接本地控制面，当前状态未核验', 0, 'transport')
+  })
+  if (signal?.aborted) throw new DOMException('快照读取已取消', 'AbortError')
   if (!response.ok) throw new Error(`读取系统状态失败 (${response.status})`)
-  return response.json() as Promise<Snapshot>
+  try {
+    const value = await response.json()
+    if (signal?.aborted) throw new DOMException('快照读取已取消', 'AbortError')
+    return decodeSnapshotReport(value)
+  } catch {
+    if (signal?.aborted) throw new DOMException('快照读取已取消', 'AbortError')
+    throw new Error(SNAPSHOT_FORMAT_ERROR)
+  }
 }
 
 export async function validateProxyInterfaces(items: ProxyInterface[]): Promise<ValidationResult> {

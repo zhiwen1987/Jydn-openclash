@@ -14,7 +14,13 @@ function exactKeys(value: Record<string, unknown>, expected: string[]) {
   requireShape(Object.keys(value).length === expected.length && expected.every(key => Object.hasOwn(value, key)))
 }
 function text(value: unknown, limit: number): value is string {
-  return typeof value === 'string' && value.length > 0 && value.length <= limit && !/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u.test(value)
+  if (typeof value !== 'string' || value.length === 0 || value.length > limit) return false
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index)
+    if (code <= 0x1f || (code >= 0x7f && code <= 0x9f) ||
+        (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) return false
+  }
+  return true
 }
 function lines(value: unknown): string[] {
   requireShape(Array.isArray(value) && value.length <= 32 && value.every(line => text(line, 2048)))

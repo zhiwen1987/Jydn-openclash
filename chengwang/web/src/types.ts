@@ -4,6 +4,7 @@ export type EventItem = { at: string; type: string; reason: string; result: stri
 export type BusinessPolicy = {
   id: string; name: string; domains: string[]; strategy: string; candidates: string[]; fallback: string
   skipEmptyPools: boolean; failuresToSwitch: number; probeIntervalSec: number; sessionStickyMin: number; switchCooldownSec: number
+  requireCapabilities?: string[]
 }
 export type NodePool = { id: string; name: string; members: string[]; capabilities?: string[] }
 export type DNSPolicy = {

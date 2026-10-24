@@ -23,7 +23,7 @@ function deferred<T>() {
 function fetchReport(value: unknown = report()) { vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(value)))) }
 function liveSnapshot(): Snapshot {
   return { product: 'Synthetic metadata', version: 'synthetic', mode: 'shadow', status: 'Synthetic control snapshot', dataSource: 'live', publishLocked: true,
-    businesses: [], pools: [], interfaces: [], events: [], draft: { name: 'Synthetic draft', baseVersion: '', businesses: [], pools: [], dns: {} } }
+    businesses: [], pools: [], interfaces: [], events: [], draft: { name: 'Synthetic draft', baseVersion: '', businesses: [], pools: [], dns: { domesticResolvers: [], overseasResolvers: [], hijackPort53: false, leakProtection: false } } }
 }
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
 

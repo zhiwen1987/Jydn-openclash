@@ -552,17 +552,18 @@ jobs:
           text = pathlib.Path(sys.argv[1]).read_text()
           node_names = re.findall(r'^# Subtest: (.+)$', text, re.M)
           passed = re.findall(r'^ok ([0-9]+) - (.+)$', text, re.M)
-          if (len(node_names) != len(set(node_names)) or len(node_names) != 20
-              or hashlib.sha256('\n'.join(sorted(node_names)).encode()).hexdigest() != '31376ae367a3c57229b3063b3ea729db0900307c98559615cb26272fe2b83581'
+          if (len(node_names) != len(set(node_names)) or len(node_names) != 34
+              or hashlib.sha256('\n'.join(sorted(node_names)).encode()).hexdigest() != '0efd1f07486964a15dc63a6a2c8f50db55157849d5c573da1f63e9a3946f87fa'
+              or hashlib.sha256('\n'.join(sorted(node_names[:20])).encode()).hexdigest() != '31376ae367a3c57229b3063b3ea729db0900307c98559615cb26272fe2b83581'
               or passed != [(str(i + 1), name) for i, name in enumerate(node_names)]
               or re.search(r'^\s*(?:not ok\b|Bail out!)|# (?:SKIP|TODO)\b', text, re.M)):
               raise SystemExit('status-network-node-events-rejected')
-          for key, value in dict(tests=20, suites=0, **{'pass': 20}, fail=0, cancelled=0, skipped=0, todo=0).items():
+          for key, value in dict(tests=34, suites=0, **{'pass': 34}, fail=0, cancelled=0, skipped=0, todo=0).items():
               if re.findall(r'^# ' + key + r' ([0-9]+)$', text, re.M) != [str(value)]:
                   raise SystemExit('status-network-node-summary-rejected')
-          if re.findall(r'^1\.\.([0-9]+)$', text, re.M) != ['20']:
+          if re.findall(r'^1\.\.([0-9]+)$', text, re.M) != ['34']:
               raise SystemExit('status-network-node-plan-rejected')
-          print('STATUS_NETWORK_SYNTHETIC=PASS tests=48 skips=0 browser_started=false')
+          print('STATUS_NETWORK_SYNTHETIC=PASS tests=62 skips=0 retained_node_names=20 browser_started=false')
           PY
           )
 
@@ -599,6 +600,7 @@ jobs:
               --chrome "$lab/chrome/chrome" --engine '${{ matrix.engine }}'
 
       - name: Independently verify original backend and bound browser evidence
+        id: original_browser_gate
         shell: bash
         run: |
           set -euo pipefail
@@ -624,6 +626,7 @@ jobs:
             --engine '${{ matrix.engine }}' --report "$evidence/status-diagnostic-verification.json"
 
       - name: Independently verify opt-in request identity observations without accepting browser failures
+        id: request_binding_gate
         if: always()
         shell: bash
         run: |
@@ -653,6 +656,7 @@ jobs:
           exit "$diagnostic_status"
 
       - name: Independently bind actual browser identity without inferring patch ancestry
+        id: browser_identity_gate
         if: always()
         shell: bash
         run: |
@@ -663,6 +667,10 @@ jobs:
             --engine '${{ matrix.engine }}' --report "$evidence/browser-identity-verification.json"
 
       - name: Independently verify normal JSON EOF cleanup after original browser acceptance
+        # Independent diagnostic failures must not hide this evidence. The
+        # original acceptance/identity gates must still pass; no failed step is
+        # tolerated and an earlier diagnostic failure keeps the job failed.
+        if: ${{ !cancelled() && steps.original_browser_gate.outcome == 'success' && steps.request_binding_gate.outcome == 'success' && steps.browser_identity_gate.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
