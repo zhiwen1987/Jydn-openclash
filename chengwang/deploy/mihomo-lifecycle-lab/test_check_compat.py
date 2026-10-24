@@ -63,7 +63,7 @@ def fixture():
             messages = ['Start initial configuration in progress', 'Geodata Loader mode: memconservative',
                 'Geosite Matcher implementation: succinct', 'Initial configuration complete, total time: 1ms']
             out = (''.join(timestamp + 'level=info msg="' + message + '"\n' for message in messages)
-                + 'configuration file /tmp/mihomo-compat-home/' + case + '/config.yaml test is successful\n').encode()
+                + 'configuration file config.yaml test is successful\n').encode()
         stdin = b'' if case == 'version' else C.MALFORMED if case == 'malformed' else ('SYNTHETIC_PRIVATE_CONFIG_' + case).encode()
         stdio = lambda data:dict(bytes=len(data), sha256=hashed(data), totalBytes=len(data), truncated=False)
         record = dict(schema='chengwang.mihomo-compat-exec/v1', sourceCommit=COMMIT, case=case, binarySHA256=elf['sha256'], binaryBytes=elf['bytes'],
@@ -198,7 +198,7 @@ class SyntheticCompatEvidenceModels(unittest.TestCase):
         self.reject_json('version.exec.json',lambda d:d.__setitem__('inputBytes',1))
 
     def test_real_worker_is_mandatory_source_and_publisher_pin_cannot_gain_approval(self):
-        self.assertEqual(len(C.FILES),29); self.assertIn(C.PREFIX+'compat_worker.py',C.FILES)
+        self.assertEqual(len(C.FILES),44); self.assertIn(C.PREFIX+'compat_worker.py',C.FILES)
         raw,sources=fixture();pin=json.loads(sources[C.CANDIDATE+'pin.json']);pin['productionApproved']=True;sources[C.CANDIDATE+'pin.json']=wire(pin)
         receipt=json.loads(raw['consumption.json']);receipt['source']['pinSHA256']=hashed(sources[C.CANDIDATE+'pin.json'])
         receipt['source']['sourceFiles'][0].update(bytes=len(sources[C.CANDIDATE+'pin.json']),sha256=hashed(sources[C.CANDIDATE+'pin.json']))
@@ -223,6 +223,18 @@ class SyntheticCompatEvidenceModels(unittest.TestCase):
         for case,data in [('version',b'Mihomo Meta v1.19.31 linux amd64 with go1.25.3 2026-10-20\n'),('base',b'configuration test failed\n')]:
             raw,sources=fixture();v=json.loads(raw[case+'.exec.json']);raw[case+'.stdout']=data;v['stdout'].update(bytes=len(data),totalBytes=len(data),sha256=hashed(data));raw[case+'.exec.json']=wire(v)
             with self.assertRaises(ValueError):C.verify_raw(raw,sources,COMMIT)
+        # Same five-line protocol as the actual 632 originals. The only allowed
+        # final line is relative config.yaml; rehashing a different path cannot
+        # turn it into safe output, including the formerly inferred absolute one.
+        for case in ('base','candidate'):
+            raw,sources=fixture()
+            self.assertEqual(raw[case+'.stdout'].splitlines()[-1],b'configuration file config.yaml test is successful')
+            C.safe_stdio(case,raw[case+'.stdout'],raw[case+'.stderr'])
+            for path in ('/tmp/mihomo-compat-home/'+case+'/config.yaml','/arbitrary/config.yaml','./config.yaml','other.yaml','config.yaml/../secret'):
+                changed=raw[case+'.stdout'].replace(b'configuration file config.yaml test is successful\n',('configuration file '+path+' test is successful\n').encode())
+                candidate=copy.deepcopy(raw);v=json.loads(candidate[case+'.exec.json']);candidate[case+'.stdout']=changed
+                v['stdout'].update(bytes=len(changed),totalBytes=len(changed),sha256=hashed(changed));candidate[case+'.exec.json']=wire(v)
+                with self.assertRaises(ValueError):C.verify_raw(candidate,sources,COMMIT)
 
     def test_go_missing_subtest_or_duplicate_test_rejects(self):
         for duplicate in (False,True):

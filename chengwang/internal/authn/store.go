@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"chengwang/internal/authz"
 )
@@ -106,65 +107,181 @@ type Store struct {
 // containing directory must be exactly 0700 and the regular file exactly
 // 0600. Symbolic links in any existing path component are rejected.
 func Open(path string) (*Store, error) {
+	snapshot, err := readCredentialSnapshot(path, false, nil)
+	if err != nil {
+		return nil, err
+	}
+	return snapshot.store, nil
+}
+
+type credentialOSState struct {
+	uid, gid, links uint64
+	ctimeSec, ctimeNsec int64
+}
+
+type credentialPathState struct {
+	path string
+	info os.FileInfo
+	os credentialOSState
+}
+
+type credentialSnapshot struct {
+	store *Store
+	digest [sha256.Size]byte
+}
+
+// The optional hook is private and only supports deterministic filesystem-race
+// tests. Product callers never supply callbacks. The digest stays in memory.
+func readCredentialSnapshot(path string, strict bool, afterRead func()) (credentialSnapshot, error) {
 	if strings.TrimSpace(path) == "" {
-		return nil, errors.New("credential file path is required")
+		return credentialSnapshot{}, errors.New("credential file path is required")
 	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("resolve credential file path: %w", err)
+		return credentialSnapshot{}, fmt.Errorf("resolve credential file path: %w", err)
 	}
-	if err := rejectSymlinkComponents(absPath); err != nil {
-		return nil, err
+	chain, err := credentialPathSnapshot(absPath, strict)
+	if err != nil {
+		return credentialSnapshot{}, err
 	}
 
 	dir := filepath.Dir(absPath)
 	dirInfo, err := os.Lstat(dir)
 	if err != nil {
-		return nil, fmt.Errorf("inspect credential directory: %w", err)
+		return credentialSnapshot{}, fmt.Errorf("inspect credential directory: %w", err)
 	}
 	if !dirInfo.IsDir() {
-		return nil, errors.New("credential directory is not a directory")
+		return credentialSnapshot{}, errors.New("credential directory is not a directory")
 	}
 	if err := requirePermissions("credential directory", dirInfo, 0o700); err != nil {
-		return nil, err
+		return credentialSnapshot{}, err
 	}
 
 	info, err := os.Lstat(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("inspect credential file: %w", err)
+		return credentialSnapshot{}, fmt.Errorf("inspect credential file: %w", err)
 	}
 	if !info.Mode().IsRegular() {
-		return nil, errors.New("credential file is not a regular file")
+		return credentialSnapshot{}, errors.New("credential file is not a regular file")
 	}
 	if err := requirePermissions("credential file", info, 0o600); err != nil {
-		return nil, err
+		return credentialSnapshot{}, err
 	}
-	if info.Size() > maxFileBytes {
-		return nil, fmt.Errorf("credential file exceeds %d bytes", maxFileBytes)
+	if info.Size() < 1 || info.Size() > maxFileBytes {
+		return credentialSnapshot{}, errors.New("credential file size is invalid")
+	}
+	beforeOS, err := credentialMetadata(info, strict, false)
+	if err != nil {
+		return credentialSnapshot{}, err
 	}
 
-	file, err := os.Open(absPath)
+	file, err := openCredentialFile(absPath, strict)
 	if err != nil {
-		return nil, fmt.Errorf("open credential file: %w", err)
+		return credentialSnapshot{}, fmt.Errorf("open credential file: %w", err)
 	}
 	defer file.Close()
 	openedInfo, err := file.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("inspect opened credential file: %w", err)
+		return credentialSnapshot{}, fmt.Errorf("inspect opened credential file: %w", err)
 	}
-	if !os.SameFile(info, openedInfo) || !openedInfo.Mode().IsRegular() {
-		return nil, errors.New("credential file changed while opening")
+	openedOS, err := credentialMetadata(openedInfo, strict, false)
+	if err != nil || !credentialFileStable(info, openedInfo, beforeOS, openedOS) {
+		return credentialSnapshot{}, errors.New("credential file changed while opening")
 	}
 	if err := requirePermissions("credential file", openedInfo, 0o600); err != nil {
-		return nil, err
+		return credentialSnapshot{}, err
 	}
 
 	payload, err := io.ReadAll(io.LimitReader(file, maxFileBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("read credential file: %w", err)
+		return credentialSnapshot{}, fmt.Errorf("read credential file: %w", err)
 	}
 	if len(payload) > maxFileBytes {
-		return nil, fmt.Errorf("credential file exceeds %d bytes", maxFileBytes)
+		return credentialSnapshot{}, fmt.Errorf("credential file exceeds %d bytes", maxFileBytes)
+	}
+	if afterRead != nil {
+		afterRead()
+	}
+	finalInfo, statErr := file.Stat()
+	if statErr != nil {
+		return credentialSnapshot{}, errors.New("credential file final inspection failed")
+	}
+	finalOS, metaErr := credentialMetadata(finalInfo, strict, false)
+	if metaErr != nil || !credentialFileStable(openedInfo, finalInfo, openedOS, finalOS) || int64(len(payload)) != finalInfo.Size() {
+		return credentialSnapshot{}, errors.New("credential file changed while reading")
+	}
+	if err := verifyCredentialPath(chain, absPath, finalInfo, finalOS, strict); err != nil {
+		return credentialSnapshot{}, err
+	}
+	if err := file.Close(); err != nil {
+		return credentialSnapshot{}, errors.New("credential file close failed")
+	}
+	store, err := parseCredentialPayload(payload)
+	if err != nil {
+		return credentialSnapshot{}, err
+	}
+	// Parsing is bounded CPU, but an atomic replacement during that interval
+	// still invalidates this sample. This remains a point-in-time observation.
+	if err := verifyCredentialPath(chain, absPath, finalInfo, finalOS, strict); err != nil {
+		return credentialSnapshot{}, err
+	}
+	return credentialSnapshot{store: store, digest: sha256.Sum256(payload)}, nil
+}
+
+func credentialFileStable(a, b os.FileInfo, x, y credentialOSState) bool {
+	return os.SameFile(a, b) && a.Mode() == b.Mode() && a.Size() == b.Size() && a.ModTime().Equal(b.ModTime()) && x == y
+}
+
+func credentialPathSnapshot(path string, strict bool) ([]credentialPathState, error) {
+	var reversed []string
+	for current := path; ; current = filepath.Dir(current) {
+		reversed = append(reversed, current)
+		if filepath.Dir(current) == current {
+			break
+		}
+	}
+	chain := make([]credentialPathState, 0, len(reversed))
+	for i := len(reversed)-1; i >= 0; i-- {
+		name := reversed[i]
+		info, err := os.Lstat(name)
+		if err != nil || info.Mode()&os.ModeSymlink != 0 || (i > 0 && !info.IsDir()) {
+			return nil, errors.New("credential path inspection failed")
+		}
+		meta, err := credentialMetadata(info, strict, i > 0)
+		if err != nil {
+			return nil, err
+		}
+		chain = append(chain, credentialPathState{path: name, info: info, os: meta})
+	}
+	return chain, nil
+}
+
+func verifyCredentialPath(chain []credentialPathState, path string, fileInfo os.FileInfo, fileOS credentialOSState, strict bool) error {
+	current, err := credentialPathSnapshot(path, strict)
+	if err != nil || len(current) != len(chain) {
+		return errors.New("credential path changed while reading")
+	}
+	for i, before := range chain {
+		after := current[i]
+		// Directory entry counts/mtime can change due to unrelated siblings.
+		// Bind their identity, owner and mode; bind ALL file metadata below.
+		if !os.SameFile(before.info, after.info) || before.info.Mode() != after.info.Mode() || before.os.uid != after.os.uid || before.os.gid != after.os.gid {
+			return errors.New("credential directory or file identity changed")
+		}
+	}
+	last := current[len(current)-1]
+	if !credentialFileStable(fileInfo, last.info, fileOS, last.os) {
+		return errors.New("credential file no longer matches its path")
+	}
+	return nil
+}
+
+func parseCredentialPayload(payload []byte) (*Store, error) {
+	if len(payload) < 1 || len(payload) > maxFileBytes || !utf8.Valid(payload) {
+		return nil, errors.New("credential payload is invalid")
+	}
+	if err := rejectCredentialDuplicateKeys(payload); err != nil {
+		return nil, err
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(payload)))
 	decoder.DisallowUnknownFields()
@@ -218,6 +335,60 @@ func Open(path string) (*Store, error) {
 		store.identities = append(store.identities, storedIdentity{record: identity, hash: digest})
 	}
 	return store, nil
+}
+
+func rejectCredentialDuplicateKeys(payload []byte) error {
+	canonicalKeys := map[string]bool{
+		"version": true, "identities": true, "tokenId": true, "tokenHash": true,
+		"principal": true, "disabled": true, "notBefore": true, "expiresAt": true,
+		"id": true, "tenantId": true, "roles": true, "allowedScopes": true,
+		"breakGlassEligible": true, "siteId": true, "environment": true,
+		"objectType": true, "objectId": true,
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(payload)))
+	decoder.UseNumber()
+	var value func(int) error
+	value = func(depth int) error {
+		if depth > 24 {
+			return errors.New("credential JSON nesting exceeds limit")
+		}
+		token, err := decoder.Token()
+		if err != nil {
+			return errors.New("credential JSON is invalid")
+		}
+		opening, ok := token.(json.Delim)
+		if !ok {
+			return nil
+		}
+		if opening != '{' && opening != '[' {
+			return errors.New("credential JSON is invalid")
+		}
+		seen := make(map[string]bool)
+		for decoder.More() {
+			if opening == '{' {
+				key, err := decoder.Token()
+				name, ok := key.(string)
+				// An exact tag allowlist rejects even a SINGLE noncanonical
+				// spelling. Nested placement/types remain the typed decoder's job.
+				if err != nil || !ok || !canonicalKeys[name] || seen[name] {
+					return errors.New("credential JSON contains duplicate or invalid keys")
+				}
+				seen[name] = true
+			}
+			if err := value(depth+1); err != nil {
+				return err
+			}
+		}
+		closing, err := decoder.Token()
+		if err != nil || (opening == '{' && closing != json.Delim('}')) || (opening == '[' && closing != json.Delim(']')) {
+			return errors.New("credential JSON is invalid")
+		}
+		return nil
+	}
+	if err := value(0); err != nil {
+		return err
+	}
+	return ensureJSONEOF(decoder)
 }
 
 // AuthenticateAuthorization authenticates exactly one strict Bearer value.
@@ -416,34 +587,6 @@ func ensureJSONEOF(decoder *json.Decoder) error {
 		return errors.New("multiple JSON values")
 	}
 	return err
-}
-
-func rejectSymlinkComponents(path string) error {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return err
-	}
-	volume := filepath.VolumeName(absPath)
-	remainder := strings.TrimPrefix(absPath, volume)
-	remainder = strings.TrimLeft(remainder, string(os.PathSeparator))
-	current := volume + string(os.PathSeparator)
-	if volume == "" {
-		current = string(os.PathSeparator)
-	}
-	for _, part := range strings.Split(remainder, string(os.PathSeparator)) {
-		if part == "" {
-			continue
-		}
-		current = filepath.Join(current, part)
-		info, err := os.Lstat(current)
-		if err != nil {
-			return fmt.Errorf("inspect credential path: %w", err)
-		}
-		if info.Mode()&os.ModeSymlink != 0 {
-			return errors.New("credential path must not contain symbolic links")
-		}
-	}
-	return nil
 }
 
 func requirePermissions(name string, info os.FileInfo, expected os.FileMode) error {

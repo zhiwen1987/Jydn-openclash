@@ -44,6 +44,10 @@ ADDITIONAL_MODEL_TESTS = {
     'artifact_linux_test.go': 'TestSyntheticArtifactLinux',
     'plan_test.go': 'TestSyntheticPlan',
     'prepare_test.go': 'TestSyntheticPrepare',
+    'lifecycle_test.go': 'TestSyntheticLifecycle',
+    'lifecycle_linux_test.go': 'TestSyntheticLifecycleLinux',
+    'snapshot_manager_test.go': 'TestSyntheticSnapshotManager',
+    'snapshot_manager_linux_test.go': 'TestSyntheticSnapshotLinux',
 }
 
 
@@ -67,8 +71,8 @@ class ContractEvidenceModels(unittest.TestCase):
             elif path.endswith('_test.go'):
                 name = ADDITIONAL_MODEL_TESTS.get(Path(path).name, 'TestSynthetic')
                 value = ('func ' + name + '(t *testing.T) {\n}\n').encode()
-                if name != 'TestSynthetic':
-                    self.required['chengwang/internal/mihomodeploy'].append(name)
+                if name != 'TestSynthetic' and path in dict(S.TEST_FILES):
+                    self.required[dict(S.TEST_FILES)[path]].append(name)
             target = self.repo / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(value)
@@ -118,7 +122,7 @@ class ContractEvidenceModels(unittest.TestCase):
 
     def test_synthetic_ordered_events_include_parallel_controls(self):
         result = S.events(transcript(event_rows()), REQUIRED)
-        self.assertEqual(result['allPassingSemanticTests'], 2)
+        self.assertEqual(result['allPassingSemanticTests'], len(S.PACKAGES))
         self.assertEqual(result['skips'], 0)
 
     def test_event_package_start_is_required(self):
@@ -153,6 +157,24 @@ class ContractEvidenceModels(unittest.TestCase):
 
     def test_missing_mandatory_test_is_rejected(self):
         self.reject_rows([row for row in event_rows() if row.get('Test') != 'TestSynthetic'])
+
+    def test_authentication_package_cannot_be_omitted_or_fabricated_as_package_pass(self):
+        rows = event_rows(self.required)
+        for altered in (
+            [row for row in rows if row['Package'] != 'chengwang/internal/authn'],
+            [row for row in rows if row['Package'] != 'chengwang/internal/authn' or 'Test' not in row],
+        ):
+            with self.assertRaises(ValueError):
+                S.events(transcript(altered), self.required)
+
+    def test_lifecycle_and_snapshot_source_tests_are_individually_mandatory(self):
+        required = S.required_names(self.sources)
+        self.assertEqual(required, self.required)
+        wanted = ('TestSyntheticLifecycle', 'TestSyntheticLifecycleLinux',
+                  'TestSyntheticSnapshotManager', 'TestSyntheticSnapshotLinux')
+        for missing in wanted:
+            with self.assertRaises(ValueError):
+                S.events(transcript([row for row in event_rows(required) if row.get('Test') != missing]), required)
 
     def test_elapsed_requires_finite_nonnegative_real_number(self):
         for value in (True, -1, float('inf'), float('nan'), '0'):

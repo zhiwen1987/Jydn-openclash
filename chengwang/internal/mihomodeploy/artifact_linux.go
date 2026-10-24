@@ -4,7 +4,6 @@ package mihomodeploy
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -345,78 +344,35 @@ func (d *artifactLinuxDisk) readObject(id string, limit int) ([]byte, error) {
 	return d.readNamed(d.objects, id, limit, false)
 }
 func (d *artifactLinuxDisk) replace(dir *os.File, name string, raw []byte, replacingIndex bool) (bool, error) {
-	if d.verify() != nil {
-		return false, ErrArtifactUnsafe
-	}
-	var nonce [16]byte
-	if _, err := rand.Read(nonce[:]); err != nil {
-		return false, ErrArtifactUnsafe
-	}
-	temp := ".tmp-" + hex.EncodeToString(nonce[:])
-	f, err := artifactOpen(dir, temp, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
-	if err != nil {
-		return false, ErrArtifactUnsafe
-	}
-	renamed := false
-	defer func() {
-		_ = f.Close()
-		if !renamed {
-			_ = syscall.Unlinkat(int(dir.Fd()), temp)
-		}
-	}()
-	if st, err := artifactStat(f); err != nil || !d.fileSafe(st) {
-		return false, ErrArtifactUnsafe
-	}
-	if _, err := io.Copy(f, bytes.NewReader(raw)); err != nil || f.Sync() != nil {
-		return false, ErrArtifactUnsafe
-	}
-	written, err := artifactStat(f)
-	if err != nil || !d.fileSafe(written) || written.Size != int64(len(raw)) || d.named(dir, temp, written, true) != nil {
-		return false, ErrArtifactUnsafe
-	}
-	// Exclusive process lock and private owned directory serialize all writers.
-	// Existing immutable names are never replaced; an external same-UID malicious
-	// writer is outside this store's owner trust boundary, not defeated by SHA.
-	if !replacingIndex {
-		existing, err := artifactOpen(dir, name, syscall.O_RDONLY, 0)
-		if err == nil {
-			_ = existing.Close()
-			return false, ErrArtifactUnsafe
-		}
-		if !errors.Is(err, syscall.ENOENT) {
-			return false, ErrArtifactUnsafe
-		}
-	} else if d.indexExists && d.named(d.directory(), "index.json", d.indexIdentity, true) != nil {
-		return false, ErrArtifactUnsafe
-	}
-	for i, c := range d.chain {
-		v, err := artifactStat(c.file)
-		if err != nil || !artifactSame(c.identity, v, false) || (i > 0 && d.named(d.chain[i-1].file, c.name, v, false) != nil) {
-			return false, ErrArtifactUnsafe
-		}
-	}
-	if d.named(d.directory(), "writer.lock", d.lockIdentity, true) != nil || d.named(d.directory(), "objects", d.objectsIdentity, false) != nil {
-		return false, ErrArtifactUnsafe
-	}
-	if syscall.Renameat(int(dir.Fd()), temp, int(dir.Fd()), name) != nil {
-		return false, ErrArtifactUnsafe
-	}
-	renamed = true
-	if d.syncDirectory(dir) != nil {
-		return true, ErrArtifactCommitUnknown
-	}
-	if replacingIndex {
-		st, err := artifactStat(f)
-		if err != nil {
-			return true, ErrArtifactCommitUnknown
-		}
-		d.indexIdentity = st
-		d.indexExists = true
-	}
-	if d.verify() != nil {
-		return true, ErrArtifactCommitUnknown
-	}
-	return false, nil
+	return privateAtomicReplace(dir, name, raw, privateAtomicPolicy{
+		kind: privateAtomicArtifact, unsafe: ErrArtifactUnsafe, unknown: ErrArtifactCommitUnknown,
+		verify: d.verify, safe: d.fileSafe,
+		named: func(dir *os.File, name string, st syscall.Stat_t) error { return d.named(dir, name, st, true) },
+		syncFile: func(f *os.File) error { return f.Sync() }, closeFile: func(f *os.File) error { return f.Close() },
+		rename: func(dir *os.File, from, to string) error { return syscall.Renameat(int(dir.Fd()), from, int(dir.Fd()), to) },
+		syncDirectory: d.syncDirectory,
+		beforeRename: func(_ string) error {
+			// Preserve the artifact policy while its one owned temp exists.
+			if !replacingIndex {
+				existing, err := artifactOpen(dir, name, syscall.O_RDONLY, 0)
+				if err == nil { _ = existing.Close(); return ErrArtifactUnsafe }
+				if !errors.Is(err, syscall.ENOENT) { return ErrArtifactUnsafe }
+			} else if d.indexExists && d.named(d.directory(), "index.json", d.indexIdentity, true) != nil { return ErrArtifactUnsafe }
+			for i, c := range d.chain {
+				v, err := artifactStat(c.file)
+				if err != nil || !artifactSame(c.identity, v, false) || (i > 0 && d.named(d.chain[i-1].file, c.name, v, false) != nil) { return ErrArtifactUnsafe }
+			}
+			if d.named(d.directory(), "writer.lock", d.lockIdentity, true) != nil || d.named(d.directory(), "objects", d.objectsIdentity, false) != nil { return ErrArtifactUnsafe }
+			return nil
+		},
+		afterRename: func(f *os.File) error {
+			if replacingIndex {
+				st, err := artifactStat(f); if err != nil { return ErrArtifactUnsafe }
+				d.indexIdentity, d.indexExists = st, true
+			}
+			return d.verify()
+		},
+	})
 }
 func (d *artifactLinuxDisk) putObject(raw []byte) (bool, error) {
 	if len(raw) == 0 || len(raw) > maxSourceSpecBytes || d.verify() != nil {

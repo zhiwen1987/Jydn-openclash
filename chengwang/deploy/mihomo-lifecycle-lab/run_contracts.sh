@@ -57,12 +57,18 @@ files=(internal/adapter/mihomo/write_client.go internal/adapter/mihomo/write_cli
 files+=(internal/mihomodeploy/artifact.go internal/mihomodeploy/artifact_linux.go internal/mihomodeploy/artifact_unsupported.go
   internal/mihomodeploy/artifact_test.go internal/mihomodeploy/artifact_linux_test.go internal/mihomodeploy/plan.go internal/mihomodeploy/plan_test.go)
 files+=(internal/mihomodeploy/prepare.go internal/mihomodeploy/prepare_test.go)
+files+=(internal/mihomodeploy/lifecycle_disk.go internal/mihomodeploy/lifecycle.go internal/mihomodeploy/lifecycle_test.go
+  internal/mihomodeploy/lifecycle_linux.go internal/mihomodeploy/lifecycle_linux_test.go
+  internal/mihomodeploy/lifecycle_unsupported.go internal/mihomodeploy/lifecycle_unsupported_test.go
+  internal/mihomodeploy/private_atomic_linux.go)
+files+=(internal/authn/store.go internal/authn/store_test.go internal/authn/snapshot_manager.go internal/authn/snapshot_manager_test.go
+  internal/authn/snapshot_manager_linux.go internal/authn/snapshot_manager_linux_test.go internal/authn/snapshot_manager_unsupported.go)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?
-"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy > "$out/ordinary.json" 2> "$out/ordinary.stderr"
+"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn > "$out/ordinary.json" 2> "$out/ordinary.stderr"
 ordinary_code=$?
-"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy > "$out/race.json" 2> "$out/race.stderr"
+"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn > "$out/race.json" 2> "$out/race.stderr"
 race_code=$?
 set -e
 printf '{"schema":"chengwang.mihomo-contract-execution/v1","formatExit":%d,"ordinaryExit":%d,"raceExit":%d,"realMihomoExecuted":false,"production":false}\n' "$format_code" "$ordinary_code" "$race_code" > "$out/execution.json"

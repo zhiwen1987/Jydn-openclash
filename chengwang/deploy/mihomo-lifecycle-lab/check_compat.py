@@ -17,6 +17,10 @@ FOUNDATION += ['chengwang/internal/adapter/mihomo/' + n for n in ('write_client.
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + n for n in ('config.go', 'config_test.go', 'artifact.go',
     'artifact_linux.go', 'artifact_unsupported.go', 'artifact_test.go', 'artifact_linux_test.go',
     'plan.go', 'plan_test.go', 'prepare.go', 'prepare_test.go')]
+FOUNDATION += ['chengwang/internal/mihomodeploy/' + n for n in ('lifecycle_disk.go', 'lifecycle.go', 'lifecycle_test.go',
+    'lifecycle_linux.go', 'lifecycle_linux_test.go', 'lifecycle_unsupported.go', 'lifecycle_unsupported_test.go', 'private_atomic_linux.go')]
+FOUNDATION += ['chengwang/internal/authn/' + n for n in ('store.go', 'store_test.go', 'snapshot_manager.go', 'snapshot_manager_test.go',
+    'snapshot_manager_linux.go', 'snapshot_manager_linux_test.go', 'snapshot_manager_unsupported.go')]
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -95,7 +99,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 29)
+    need(len(FILES) == len(set(FILES)) == 44)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw
@@ -181,7 +185,12 @@ def sandbox(raw, before_raw, after_raw, sources, commit, elf, receipt):
 
 
 def safe_stdio(case, out, err):
-    """Closed text from fixed upstream main.go/log.go/config.go; unknown text rejects."""
+    """Closed fixed-upstream CLI text, not a claim about a loaded config path.
+
+    Original run 40110160604 (63236a2) observes the literal config.yaml label
+    for stdin -t -f -; the old inferred absolute HOME/case path was incorrect.
+    Only that exact relative success line is accepted, never arbitrary paths.
+    """
     need(err == b'' and len(out) <= 65536 and b'\r' not in out and b'\x1b' not in out and out.endswith(b'\n'))
     text = out.decode('utf8'); need('\x00' not in text)
     if case == 'version':
@@ -192,7 +201,7 @@ def safe_stdio(case, out, err):
         return
     lines = text.splitlines(); need(1 <= len(lines) <= 8)
     if case in ('base', 'candidate'):
-        need(lines[-1] == 'configuration file /tmp/mihomo-compat-home/' + case + '/config.yaml test is successful')
+        need(lines[-1] == 'configuration file config.yaml test is successful')
         messages = [r'Start initial configuration in progress', r'Geodata Loader mode: (?:memconservative|standard)',
             r'Geosite Matcher implementation: (?:succinct|mph)', r'Initial configuration complete, total time: [0-9]{1,6}ms']
         need(len(lines) == 5)

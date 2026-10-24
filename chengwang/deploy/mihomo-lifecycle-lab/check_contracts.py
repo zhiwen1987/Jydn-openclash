@@ -18,10 +18,19 @@ FILES = [PREFIX + 'run_contracts.sh', PREFIX + 'check_contracts.py',
     'chengwang/internal/mihomodeploy/config.go', 'chengwang/internal/mihomodeploy/config_test.go', 'chengwang/go.mod',
     *['chengwang/internal/mihomodeploy/' + name for name in ('artifact.go', 'artifact_linux.go',
         'artifact_unsupported.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan.go', 'plan_test.go', 'prepare.go', 'prepare_test.go')]]
+LIFECYCLE_FILES = ('lifecycle_disk.go', 'lifecycle.go', 'lifecycle_test.go', 'lifecycle_linux.go',
+    'lifecycle_linux_test.go', 'lifecycle_unsupported.go', 'lifecycle_unsupported_test.go', 'private_atomic_linux.go')
+AUTHN_FILES = ('store.go', 'store_test.go', 'snapshot_manager.go', 'snapshot_manager_test.go',
+    'snapshot_manager_linux.go', 'snapshot_manager_linux_test.go', 'snapshot_manager_unsupported.go')
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in LIFECYCLE_FILES]
+FILES += ['chengwang/internal/authn/' + name for name in AUTHN_FILES]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
-      for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go')]]
-PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy'}
+      for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
+                   'lifecycle_test.go', 'lifecycle_linux_test.go')]]
+TEST_FILES += [('chengwang/internal/authn/' + name, 'chengwang/internal/authn')
+    for name in ('store_test.go', 'snapshot_manager_test.go', 'snapshot_manager_linux_test.go')]
+PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,
     'race.stderr': 1 << 20, 'gofmt.patch': 1 << 20, 'gofmt.stderr': 1 << 20,
     'execution.json': 4096, 'sandbox.json': 4096, 'go-version.txt': 4096,

@@ -8,6 +8,7 @@ on:
       - '.github/workflows/chengwang-mihomo-lifecycle.yml'
       - 'chengwang/internal/adapter/mihomo/**'
       - 'chengwang/internal/mihomodeploy/**'
+      - 'chengwang/internal/authn/**'
       - 'chengwang/deploy/mihomo-lifecycle-lab/**'
       - 'chengwang/tools/mihomo-runtime-candidate/**'
       - 'chengwang/go.mod'
@@ -57,7 +58,7 @@ jobs:
           import ast,hashlib,importlib.util,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
-          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',23,'4d3b1387d10de742f1f8bbc89703d5fc0d7ecb9f51aa1ebc583115ce96af6c37')]
+          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'e8c92e60d45a0922815116ab808d1d45ad840a0fa433a942af98fdd37a59f799')]
           for log,path,cls,count,pin in checks:
               text=(root/log).read_text(encoding='utf8').replace('\r\n','\n')
               tree=ast.parse(Path(path).read_text(encoding='utf8'))
@@ -67,14 +68,14 @@ jobs:
               assert sorted(a for a,_ in observed)==names and hashlib.sha256('\n'.join(names).encode()).hexdigest()==pin
               assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==[str(count)] and re.findall(r'^OK$',text,re.M)==['OK']
               assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
-          print('PYTHON_MODELS=PASS pin47 evidence23 not_go_or_kernel_execution=true')
+          print('PYTHON_MODELS=PASS pin47 evidence25 not_go_or_kernel_execution=true')
           checker=Path('chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py')
           spec=importlib.util.spec_from_file_location('declared_go_contracts',checker)
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
-          assert len(declared)==109 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='11ee8bf77f0543bf1c01a872f0f7a2e5b41156233367615e915231e27f9d7fbd'
-          print('GO_TEST_DECLARATIONS=109 execution_not_proven=true')
+          assert len(declared)==204 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='693c45bc9fbf6323c731e2ac469d6d593cef387179a930ce77f24a7a4e6bf2df'
+          print('GO_TEST_DECLARATIONS=204 execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |
