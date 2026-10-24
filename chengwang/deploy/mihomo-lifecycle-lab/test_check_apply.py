@@ -12,6 +12,7 @@ import unittest
 
 import check_apply as C
 import test_check_compat as Legacy
+import test_get_projection as CapturedModels
 
 
 COMMIT = '1' * 40
@@ -95,7 +96,7 @@ def model_journal(report, syntax, receipt_hash, c):
     for probe in report['readiness']:
         event('READINESS_PROBE', readinessProbe=probe)
     event('BASELINE_READ_BEGIN', ownedIdentity=report['ownedBefore'])
-    event('BASELINE_READ_RESULT', readback=report['readbacks']['baseline'])
+    event('BASELINE_READ_RESULT', readback=report['readbacks']['baseline'], getEvidence=report['getEvidence']['baseline'])
     event('BASELINE_ROUTE_RESULT', route=report['routes'][0])
     event('SYNTAX_BEGIN', candidateInput=report['candidateInput'])
     event('SYNTAX_RESULT', candidateInput=report['candidateInput'], kernelObservation=syntax['observation'])
@@ -103,7 +104,7 @@ def model_journal(report, syntax, receipt_hash, c):
     event('RELOAD_RESULT', reloadPayload=report['reloadPayload'], reloadResult=report['reloadResult'],
           clientReloadInvocations=report['clientReloadInvocations'])
     event('CANDIDATE_READ_BEGIN')
-    event('CANDIDATE_READ_RESULT', readback=report['readbacks']['candidate'])
+    event('CANDIDATE_READ_RESULT', readback=report['readbacks']['candidate'], getEvidence=report['getEvidence']['candidate'])
     event('CANDIDATE_ROUTE_RESULT', route=report['routes'][1])
     event('OWNED_FINAL_RESULT', ownedIdentity=report['ownedAfter'])
     event('KERNEL_STOP_RESULT', kernelObservation=report['kernelObservation'])
@@ -126,7 +127,7 @@ def refresh(raw, report=None, syntax=None):
 
 
 def fixture():
-    """Complete18 SYNTHETIC public originals, not a real Git/kernel run."""
+    """Complete36 SYNTHETIC public originals, not a real Git/kernel run."""
     legacy, sources = Legacy.fixture()
     sources = {name: sources.get(name, b'SYNTHETIC_SOURCE_NOT_ACTUAL_GIT_OR_EXECUTION\n') for name in C.FILES}
     c = json.loads((Path(__file__).parent / 'apply_contract.json').read_bytes())
@@ -185,6 +186,10 @@ def fixture():
         readiness=readiness, clientReloadInvocations=1, controllerReceivedCount=None,
         reloadPayload=candidate, reloadResult=dict(state='acknowledged', dispatched=True, statusCode=204),
         reloadErrorClass='NONE', routes=routes, fixtureCleanup=cleanup, flags=copy.deepcopy(c['flags']))
+    captured_raw, captured_report = CapturedModels.fixture()
+    raw.update(captured_raw)
+    report['readbacks'] = captured_report['readbacks']
+    report['getEvidence'] = captured_report['getEvidence']
     refresh(raw, report, syntax)
     return raw, sources
 
@@ -209,12 +214,15 @@ class SyntheticApplyEvidenceModels(unittest.TestCase):
         self.reject(raw, sources)
 
     def test_synthetic_complete18_model_is_not_actual_kernel_or_authorization(self):
+        # Preserve the historical test ID while checking the version2 set.
         raw, sources = fixture(); report = C.verify_raw(raw, sources, COMMIT)
-        self.assertEqual(len(raw), 18); self.assertEqual(len(sources), 61)
-        self.assertEqual(report['schema'], 'chengwang.mihomo-runtime-apply-verification/v1')
+        self.assertEqual(len(raw), 36); self.assertEqual(len(sources), 65)
+        self.assertEqual(report['schema'], 'chengwang.mihomo-runtime-apply-verification/v2')
         self.assertEqual(report['scope'], 'ACTUAL_LOCAL_APPLY_EXPERIMENT_NOT_FULL_PROJECT')
         self.assertIs(report['production'], False)
-        self.assertIs(report['independentProjectionRecomputeProven'], False)
+        self.assertIs(report['independentProjectionRecomputeProven'], True)
+        self.assertIs(report['expectedSourceIndependentlyProven'], False)
+        self.assertIs(report['privateDisclosureFenceIndependentlyProven'], False)
 
     def test_missing_extra_or_nonbytes_source_rejects(self):
         for kind in ('missing', 'extra', 'nonbytes', 'empty', 'changed_module'):
@@ -238,6 +246,11 @@ class SyntheticApplyEvidenceModels(unittest.TestCase):
             self.reject(raw,sources)
 
     def test_public_missing_extra_private_and_failure_summary_reject(self):
+        # Valid-JSON whitespace still changes the actual captured original.
+        # Keep its report/journal unchanged to catch a missing verifier call.
+        raw,sources=fixture()
+        raw['baseline-get-01.body'] += b' '
+        self.reject(raw,sources)
         for kind in ('missing','extra','private','summary'):
             raw,sources=fixture()
             if kind=='missing':del raw['kernel.stderr']
@@ -266,7 +279,8 @@ class SyntheticApplyEvidenceModels(unittest.TestCase):
     def test_all_false_scope_flags_are_strict_booleans(self):
         raw,_=fixture();keys=json.loads(raw['apply-report.json'])['flags']
         for key in keys:
-            for value in (True,0,1,None,'false'):
+            wrong_bool = False if key == 'perGetRawEvidenceAvailable' else True
+            for value in (wrong_bool,0,1,None,'false'):
                 self.reject_report(lambda d,k=key,v=value:d['flags'].__setitem__(k,v))
 
     def test_fail_outcome_or_failure_code_cannot_be_accepted(self):

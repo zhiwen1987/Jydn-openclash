@@ -44,14 +44,33 @@ def _independent_compat():
 
 
 C = _independent_compat()
+def _independent_projection():
+    path = Path(__file__).absolute().with_name('get_projection.py')
+    for part in (*reversed(path.parents), path):
+        info = part.lstat()
+        need(not stat.S_ISLNK(info.st_mode) and not getattr(info, 'st_file_attributes', 0) & 1024)
+    info = path.lstat()
+    need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 < info.st_size <= 1 << 20)
+    spec = importlib.util.spec_from_file_location('_apply_independent_projection', path)
+    need(spec is not None and spec.loader is not None)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+G = _independent_projection()
 FILES = tuple(C.FILES) + tuple(PREFIX + name for name in (
-    'apply_contract.json', 'apply_worker.py', 'run_apply.sh', 'check_apply.py', 'test_check_apply.py')) + (RUNTIME,)
+    'apply_contract.json', 'apply_worker.py', 'run_apply.sh', 'check_apply.py', 'test_check_apply.py',
+    'get_projection.py', 'test_get_projection.py')) + (RUNTIME,)
 TOP = 'TestMihomoApplyReloadReadbackAndLocalProxy'
 PACKAGE = 'chengwang/internal/mihomodeploy'
 SCOPE = 'ACTUAL_FIXED_KERNEL_LOCAL_APPLY_EXPERIMENT_NOT_API_AUTHORIZATION_HEAD_OR_PRODUCTION'
 REPORT_SCOPE = 'ACTUAL_LOCAL_APPLY_EXPERIMENT_NOT_FULL_PROJECT'
 TEST_PUBLIC = ('apply-observations.jsonl', 'apply-report.json', 'kernel.stdout', 'kernel.stderr',
                'syntax.exec.json', 'syntax.stdout', 'syntax.stderr')
+CAPTURE_PUBLIC = tuple(name for phase in ('baseline', 'candidate')
+    for name in (phase + '-get-evidence.json', *[phase + '-get-' + str(i).zfill(2) + '.body' for i in range(1, 9)]))
+TEST_PUBLIC += CAPTURE_PUBLIC
 WORKER_PUBLIC = ('sandbox.json', 'execution.json', 'go-version.txt', 'gofmt.patch', 'gofmt.stderr', 'apply.json', 'apply.stderr')
 PREEXISTING = ('host-before.json', 'host-after.json', 'consumption.json', 'consumption-independent.json')
 PUBLIC = TEST_PUBLIC + WORKER_PUBLIC + PREEXISTING
@@ -72,10 +91,10 @@ COUNTER_KEYS = ('role', 'connectIngress', 'tunnelRequests', 'forwardInvocations'
 CLEANUP_KEYS = ('role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass')
 PROBE_KEYS = ('role', 'statusCode', 'body', 'errorClass')
 REPORT_KEYS = ('schema', 'scope', 'sourceCommit', 'outcome', 'failureCode', 'baseInput', 'candidateInput', 'syntaxSHA256',
-               'kernelObservation', 'ownedBefore', 'ownedAfter', 'readbacks', 'readiness', 'clientReloadInvocations',
+               'kernelObservation', 'ownedBefore', 'ownedAfter', 'readbacks', 'getEvidence', 'readiness', 'clientReloadInvocations',
                'controllerReceivedCount', 'reloadPayload', 'reloadResult', 'reloadErrorClass', 'routes', 'fixtureCleanup', 'flags')
 FACT_KEYS = ('code', 'baseInput', 'candidateInput', 'receiptSHA256', 'kernelObservation', 'ownedIdentity', 'readinessProbe',
-             'readback', 'reloadPayload', 'reloadResult', 'clientReloadInvocations', 'route', 'fixtureCleanup')
+             'readback', 'getEvidence', 'reloadPayload', 'reloadResult', 'clientReloadInvocations', 'route', 'fixtureCleanup')
 JOURNAL_KEYS = ('schema', 'seq', 'stage', 'observedAtUTC', 'facts')
 SYNTAX_KEYS = ('schema', 'sourceCommit', 'binary', 'receiptSHA256', 'input', 'argvClass', 'observation')
 EXECUTION_KEYS = ('schema', 'sourceCommit', 'formatExit', 'goExit', 'realMihomoExecutionObserved', 'production')
@@ -168,32 +187,333 @@ def timestamp(value):
 
 def contract(sources):
     c = decode(sources[PREFIX + 'apply_contract.json'])
-    expected = dict(
-        schema='chengwang.mihomo-runtime-apply-contract/v1', scope=SCOPE, tag='chengwang_mihomo_apply',
-        goPackage='./internal/mihomodeploy', topTests=[TOP], goTimeoutSeconds=90, sessionTimeoutSeconds=60,
-        paths=dict(module='/tmp/mihomo-apply-source', goRoot='/tmp/mihomo-apply-go', kernelDirectory='/tmp/mihomo-apply-kernel',
-                   kernel='/tmp/mihomo-apply-kernel/mihomo', receipt='/tmp/mihomo-apply-kernel/consumption.json',
-                   serviceHome='/tmp/mihomo-apply-home', buildHome='/tmp/mihomo-apply-build', privateOutput='/tmp/mihomo-apply-private',
-                   exportAlias='/tmp/mihomo-apply-export'),
-        ports=dict(mixed=28411, controller=28412, proxyA=28413, proxyB=28414, origin=28415),
-        publicTestFiles=list(TEST_PUBLIC), privateExtraFiles=['.secrets.private.json', 'base.config.private.yaml', 'candidate.config.private.yaml'],
-        secretsSchema='chengwang.mihomo-apply-private-secrets/v1', secretsKeys=['schema', 'controller', 'routeA', 'routeB'],
-        bindingKeys=list(BINDING_KEYS), bodyKeys=list(BODY_KEYS), streamKeys=list(STREAM_KEYS),
-        reportSchema='chengwang.mihomo-runtime-apply-report/v1', reportKeys=list(REPORT_KEYS), readbackKeys=list(READBACK_KEYS),
-        readinessKeys=list(PROBE_KEYS), routeKeys=list(ROUTE_KEYS), counterKeys=list(COUNTER_KEYS), fixtureCleanupKeys=list(CLEANUP_KEYS),
-        flags={key: False for key in FLAGS}, syntaxSchema='chengwang.mihomo-apply-syntax-exec/v1', syntaxKeys=list(SYNTAX_KEYS),
-        journalSchema='chengwang.mihomo-apply-observation/v1', journalKeys=list(JOURNAL_KEYS), journalFactKeys=list(FACT_KEYS),
-        journalStages=list(STAGES), maxJournalLines=128, controllerReceivedCount=None,
-        knownGaps=['per-GET original response evidence and independent projection recomputation',
-                   'actual API authentication and independent approval', 'real durable head bootstrap and advancement',
-                   'lost response, timeout, crash and UNKNOWN recovery matrix', 'internet business acceptance and production rollout'],
-        production=False, workerPublicFiles=list(WORKER_PUBLIC), preexistingPublicFiles=list(PREEXISTING), publicFiles=list(PUBLIC),
-        sandboxSchema='chengwang.mihomo-apply-sandbox/v1', sandboxKeys=list(SANDBOX_KEYS),
-        executionSchema='chengwang.mihomo-apply-execution/v1', executionKeys=list(EXECUTION_KEYS), environmentKeys=list(ENV),
-        maxPublicLogBytes=8 << 20, failureFiles=['worker-failure.json'],
-        workerFailureSchema='chengwang.mihomo-apply-worker-failure/v1',
-        workerFailureKeys=['schema', 'sourceCommit', 'failureCode', 'rawOutputSuppressed'])
+    expected = {'schema': 'chengwang.mihomo-runtime-apply-contract/v2',
+     'scope': 'ACTUAL_FIXED_KERNEL_LOCAL_APPLY_EXPERIMENT_NOT_API_AUTHORIZATION_HEAD_OR_PRODUCTION',
+     'tag': 'chengwang_mihomo_apply',
+     'goPackage': './internal/mihomodeploy',
+     'topTests': ['TestMihomoApplyReloadReadbackAndLocalProxy'],
+     'goTimeoutSeconds': 90,
+     'sessionTimeoutSeconds': 60,
+     'paths': {'module': '/tmp/mihomo-apply-source',
+               'goRoot': '/tmp/mihomo-apply-go',
+               'kernelDirectory': '/tmp/mihomo-apply-kernel',
+               'kernel': '/tmp/mihomo-apply-kernel/mihomo',
+               'receipt': '/tmp/mihomo-apply-kernel/consumption.json',
+               'serviceHome': '/tmp/mihomo-apply-home',
+               'buildHome': '/tmp/mihomo-apply-build',
+               'privateOutput': '/tmp/mihomo-apply-private',
+               'exportAlias': '/tmp/mihomo-apply-export'},
+     'ports': {'mixed': 28411, 'controller': 28412, 'proxyA': 28413, 'proxyB': 28414, 'origin': 28415},
+     'publicTestFiles': ['apply-observations.jsonl',
+                         'apply-report.json',
+                         'kernel.stdout',
+                         'kernel.stderr',
+                         'syntax.exec.json',
+                         'syntax.stdout',
+                         'syntax.stderr',
+                         'baseline-get-evidence.json',
+                         'baseline-get-01.body',
+                         'baseline-get-02.body',
+                         'baseline-get-03.body',
+                         'baseline-get-04.body',
+                         'baseline-get-05.body',
+                         'baseline-get-06.body',
+                         'baseline-get-07.body',
+                         'baseline-get-08.body',
+                         'candidate-get-evidence.json',
+                         'candidate-get-01.body',
+                         'candidate-get-02.body',
+                         'candidate-get-03.body',
+                         'candidate-get-04.body',
+                         'candidate-get-05.body',
+                         'candidate-get-06.body',
+                         'candidate-get-07.body',
+                         'candidate-get-08.body'],
+     'privateExtraFiles': ['.secrets.private.json', 'base.config.private.yaml', 'candidate.config.private.yaml'],
+     'secretsSchema': 'chengwang.mihomo-apply-private-secrets/v1',
+     'secretsKeys': ['schema', 'controller', 'routeA', 'routeB'],
+     'bindingKeys': ['sha256', 'bytes'],
+     'bodyKeys': ['sha256', 'bytes', 'complete'],
+     'streamKeys': ['bytes', 'totalBytes', 'sha256', 'truncated', 'complete'],
+     'reportSchema': 'chengwang.mihomo-runtime-apply-report/v2',
+     'reportKeys': ['schema',
+                    'scope',
+                    'sourceCommit',
+                    'outcome',
+                    'failureCode',
+                    'baseInput',
+                    'candidateInput',
+                    'syntaxSHA256',
+                    'kernelObservation',
+                    'ownedBefore',
+                    'ownedAfter',
+                    'readbacks',
+                    'getEvidence',
+                    'readiness',
+                    'clientReloadInvocations',
+                    'controllerReceivedCount',
+                    'reloadPayload',
+                    'reloadResult',
+                    'reloadErrorClass',
+                    'routes',
+                    'fixtureCleanup',
+                    'flags'],
+     'readbackKeys': ['conclusion',
+                      'sampleCount',
+                      'requestsObserved',
+                      'previousProjectionSHA256',
+                      'candidateProjectionSHA256',
+                      'observedProjectionSHA256',
+                      'dataplaneProven',
+                      'fullPayloadProven',
+                      'authorizationProven',
+                      'production'],
+     'readinessKeys': ['role', 'statusCode', 'body', 'errorClass'],
+     'routeKeys': ['phase',
+                   'nonceSHA256',
+                   'clientResponse',
+                   'proxyResponse',
+                   'originResponse',
+                   'countersBefore',
+                   'countersAfter',
+                   'matched'],
+     'counterKeys': ['role',
+                     'connectIngress',
+                     'tunnelRequests',
+                     'forwardInvocations',
+                     'originRequests',
+                     'rejected'],
+     'fixtureCleanupKeys': ['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
+     'flags': {'apiExercised': False,
+               'authorizationExercised': False,
+               'authorizationProven': False,
+               'fullPayloadProven': False,
+               'headAdvanced': False,
+               'production': False,
+               'perGetRawEvidenceAvailable': True,
+               'independentProjectionRecomputeProven': False,
+               'internetBusinessProven': False},
+     'syntaxSchema': 'chengwang.mihomo-apply-syntax-exec/v1',
+     'syntaxKeys': ['schema', 'sourceCommit', 'binary', 'receiptSHA256', 'input', 'argvClass', 'observation'],
+     'journalSchema': 'chengwang.mihomo-apply-observation/v1',
+     'journalKeys': ['schema', 'seq', 'stage', 'observedAtUTC', 'facts'],
+     'journalFactKeys': ['code',
+                         'baseInput',
+                         'candidateInput',
+                         'receiptSHA256',
+                         'kernelObservation',
+                         'ownedIdentity',
+                         'readinessProbe',
+                         'readback',
+                         'getEvidence',
+                         'reloadPayload',
+                         'reloadResult',
+                         'clientReloadInvocations',
+                         'route',
+                         'fixtureCleanup'],
+     'journalStages': ['INPUT_OPENED',
+                       'ARTIFACTS_BOUND',
+                       'FIXTURES_LISTENING',
+                       'KERNEL_START_BEGIN',
+                       'KERNEL_START_RESULT',
+                       'READINESS_PROBE',
+                       'BASELINE_READ_BEGIN',
+                       'BASELINE_READ_RESULT',
+                       'BASELINE_ROUTE_RESULT',
+                       'SYNTAX_BEGIN',
+                       'SYNTAX_RESULT',
+                       'RELOAD_BEGIN',
+                       'RELOAD_RESULT',
+                       'CANDIDATE_READ_BEGIN',
+                       'CANDIDATE_READ_RESULT',
+                       'CANDIDATE_ROUTE_RESULT',
+                       'OWNED_FINAL_RESULT',
+                       'KERNEL_STOP_RESULT',
+                       'FIXTURE_STOP_RESULT',
+                       'FINAL_RESULT'],
+     'maxJournalLines': 128,
+     'controllerReceivedCount': None,
+     'knownGaps': ['expected projection source from private complete YAML remains source-bound, not '
+                   'independently proven by public originals',
+                   'private disclosure fence remains source-bound, not independently repeatable from public '
+                   'originals',
+                   'actual API authentication and independent approval',
+                   'real durable head bootstrap and advancement',
+                   'lost response, timeout, crash and UNKNOWN recovery matrix',
+                   'internet business acceptance and production rollout'],
+     'production': False,
+     'workerPublicFiles': ['sandbox.json',
+                           'execution.json',
+                           'go-version.txt',
+                           'gofmt.patch',
+                           'gofmt.stderr',
+                           'apply.json',
+                           'apply.stderr'],
+     'preexistingPublicFiles': ['host-before.json',
+                                'host-after.json',
+                                'consumption.json',
+                                'consumption-independent.json'],
+     'publicFiles': ['apply-observations.jsonl',
+                     'apply-report.json',
+                     'kernel.stdout',
+                     'kernel.stderr',
+                     'syntax.exec.json',
+                     'syntax.stdout',
+                     'syntax.stderr',
+                     'baseline-get-evidence.json',
+                     'baseline-get-01.body',
+                     'baseline-get-02.body',
+                     'baseline-get-03.body',
+                     'baseline-get-04.body',
+                     'baseline-get-05.body',
+                     'baseline-get-06.body',
+                     'baseline-get-07.body',
+                     'baseline-get-08.body',
+                     'candidate-get-evidence.json',
+                     'candidate-get-01.body',
+                     'candidate-get-02.body',
+                     'candidate-get-03.body',
+                     'candidate-get-04.body',
+                     'candidate-get-05.body',
+                     'candidate-get-06.body',
+                     'candidate-get-07.body',
+                     'candidate-get-08.body',
+                     'sandbox.json',
+                     'execution.json',
+                     'go-version.txt',
+                     'gofmt.patch',
+                     'gofmt.stderr',
+                     'apply.json',
+                     'apply.stderr',
+                     'host-before.json',
+                     'host-after.json',
+                     'consumption.json',
+                     'consumption-independent.json'],
+     'sandboxSchema': 'chengwang.mihomo-apply-sandbox/v1',
+     'sandboxKeys': ['schema',
+                     'sourceCommit',
+                     'uid',
+                     'gid',
+                     'effectiveCaps',
+                     'noNewPrivileges',
+                     'networkNamespace',
+                     'mountNamespace',
+                     'pidNamespace',
+                     'environmentKeys',
+                     'interfaceNames',
+                     'defaultV4Routes',
+                     'defaultV6Routes',
+                     'sourceModuleSHA256',
+                     'sourceReadOnly',
+                     'goReadOnly',
+                     'kernelCopy',
+                     'inputCustody'],
+     'executionSchema': 'chengwang.mihomo-apply-execution/v1',
+     'executionKeys': ['schema',
+                       'sourceCommit',
+                       'formatExit',
+                       'goExit',
+                       'realMihomoExecutionObserved',
+                       'production'],
+     'environmentKeys': ['CGO_ENABLED',
+                         'CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT',
+                         'GOCACHE',
+                         'GOENV',
+                         'GOFLAGS',
+                         'GOMODCACHE',
+                         'GOPROXY',
+                         'GOROOT',
+                         'GOSUMDB',
+                         'GOTOOLCHAIN',
+                         'HOME',
+                         'LANG',
+                         'LC_ALL',
+                         'PATH',
+                         'TMPDIR',
+                         'TZ'],
+     'maxPublicLogBytes': 8388608,
+     'failureFiles': ['worker-failure.json'],
+     'workerFailureSchema': 'chengwang.mihomo-apply-worker-failure/v1',
+     'workerFailureKeys': ['schema', 'sourceCommit', 'failureCode', 'rawOutputSuppressed'],
+     'capturePublicFiles': ['baseline-get-evidence.json',
+                            'baseline-get-01.body',
+                            'baseline-get-02.body',
+                            'baseline-get-03.body',
+                            'baseline-get-04.body',
+                            'baseline-get-05.body',
+                            'baseline-get-06.body',
+                            'baseline-get-07.body',
+                            'baseline-get-08.body',
+                            'candidate-get-evidence.json',
+                            'candidate-get-01.body',
+                            'candidate-get-02.body',
+                            'candidate-get-03.body',
+                            'candidate-get-04.body',
+                            'candidate-get-05.body',
+                            'candidate-get-06.body',
+                            'candidate-get-07.body',
+                            'candidate-get-08.body'],
+     'getEvidenceSchema': 'chengwang.mihomo-lab-get-evidence/v1',
+     'getEvidenceScope': 'PRIVATE_HTTP_ENTITY_RESPONSE_EVIDENCE_NOT_AUTHORIZATION_OR_PAYLOAD_PROOF',
+     'getEvidenceTopKeys': ['schema',
+                            'scope',
+                            'expectedSchedule',
+                            'records',
+                            'slotsEntered',
+                            'doInvocations',
+                            'responsesObserved',
+                            'readAttempts',
+                            'completedBodies',
+                            'retainedBytes',
+                            'outcome',
+                            'failureClass',
+                            'limitReached',
+                            'contextState'],
+     'getEvidenceRecordKeys': ['ordinal',
+                               'round',
+                               'endpointKind',
+                               'requestBuilt',
+                               'doInvoked',
+                               'responseObserved',
+                               'statusCode',
+                               'headers',
+                               'contentLength',
+                               'uncompressed',
+                               'readAttempted',
+                               'retainedBytes',
+                               'retainedSHA256',
+                               'naturalEOF',
+                               'readErrorClass',
+                               'limitReached',
+                               'closeAttempted',
+                               'closeErrorClass',
+                               'contextState',
+                               'parseState',
+                               'terminalClass'],
+     'getEvidenceHeaderKeys': ['contentTypeValuesB64',
+                               'contentEncodingValuesB64',
+                               'transferEncodingValuesB64',
+                               'setCookieCount'],
+     'getEvidenceSchedule': [{'ordinal': 1, 'round': 1, 'endpointKind': 'VERSION'},
+                             {'ordinal': 2, 'round': 1, 'endpointKind': 'CONFIGS'},
+                             {'ordinal': 3, 'round': 1, 'endpointKind': 'PROXIES'},
+                             {'ordinal': 4, 'round': 1, 'endpointKind': 'RULES'},
+                             {'ordinal': 5, 'round': 2, 'endpointKind': 'VERSION'},
+                             {'ordinal': 6, 'round': 2, 'endpointKind': 'CONFIGS'},
+                             {'ordinal': 7, 'round': 2, 'endpointKind': 'PROXIES'},
+                             {'ordinal': 8, 'round': 2, 'endpointKind': 'RULES'}],
+     'captureLimits': {'acceptedBodyBytes': 8388608,
+                       'probeBodyBytes': 8388609,
+                       'rawArchiveBytes': 67108872,
+                       'transcriptBytes': 1048576,
+                       'selectedHeaderBytes': 16384,
+                       'scheduleTimeoutMilliseconds': 5000},
+     'proofBoundaries': {'producerIndependentProjectionRecomputeProven': False,
+                         'expectedSourceIndependentlyProven': False,
+                         'privateDisclosureFenceIndependentlyProven': False},
+     'projectionCodecUnicodeVersion': '15.0.0'}
     same(c, expected)
+    need(tuple(G.CAPTURE_FILES) == CAPTURE_PUBLIC)
     source = sources[RUNTIME].decode('utf-8')
     need(source.startswith('//go:build linux && chengwang_mihomo_apply\n'))
     need(re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{', source, re.M) == [TOP])
@@ -450,13 +770,13 @@ def journal(raw, report, syntax, receipt):
         elif stage == 'READINESS_PROBE':
             fact['readinessProbe'] = report['readiness'][ready_i]; ready_i += 1
         elif stage == 'BASELINE_READ_BEGIN': fact['ownedIdentity'] = report['ownedBefore']
-        elif stage == 'BASELINE_READ_RESULT': fact['readback'] = report['readbacks']['baseline']
+        elif stage == 'BASELINE_READ_RESULT': fact.update(readback=report['readbacks']['baseline'], getEvidence=report['getEvidence']['baseline'])
         elif stage == 'BASELINE_ROUTE_RESULT': fact['route'] = report['routes'][0]
         elif stage == 'SYNTAX_BEGIN': fact['candidateInput'] = report['candidateInput']
         elif stage == 'SYNTAX_RESULT': fact.update(candidateInput=report['candidateInput'], kernelObservation=syntax['observation'])
         elif stage == 'RELOAD_BEGIN': fact['reloadPayload'] = report['candidateInput']
         elif stage == 'RELOAD_RESULT': fact.update(reloadPayload=report['reloadPayload'], reloadResult=report['reloadResult'], clientReloadInvocations=1)
-        elif stage == 'CANDIDATE_READ_RESULT': fact['readback'] = report['readbacks']['candidate']
+        elif stage == 'CANDIDATE_READ_RESULT': fact.update(readback=report['readbacks']['candidate'], getEvidence=report['getEvidence']['candidate'])
         elif stage == 'CANDIDATE_ROUTE_RESULT': fact['route'] = report['routes'][1]
         elif stage == 'OWNED_FINAL_RESULT': fact['ownedIdentity'] = report['ownedAfter']
         elif stage == 'KERNEL_STOP_RESULT': fact['kernelObservation'] = report['kernelObservation']
@@ -476,7 +796,7 @@ def _kernel_stdio(out, err):
 
 def verify_raw(raw, sources, commit):
     need(type(raw) is dict and set(raw) == set(PUBLIC) and type(sources) is dict and set(sources) == set(FILES))
-    need(len(FILES) == len(set(FILES)) == 61 and type(commit) is str and COMMIT.fullmatch(commit) is not None)
+    need(len(FILES) == len(set(FILES)) == 65 and type(commit) is str and COMMIT.fullmatch(commit) is not None)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     need(all(type(v) is bytes and len(v) <= 8 << 20 for v in raw.values()))
     contract(sources)
@@ -491,9 +811,11 @@ def verify_raw(raw, sources, commit):
     environment = sandbox(raw, sources, commit, elf, receipt)
     tests = go_events(raw['apply.json'])
     report = exact(decode(raw['apply-report.json']), REPORT_KEYS)
-    need(report['schema'] == 'chengwang.mihomo-runtime-apply-report/v1' and report['scope'] == SCOPE and report['sourceCommit'] == commit)
+    need(report['schema'] == 'chengwang.mihomo-runtime-apply-report/v2' and report['scope'] == SCOPE and report['sourceCommit'] == commit)
     need(report['outcome'] == 'PASS' and report['failureCode'] is None)
-    exact(report['flags'], FLAGS); need(all(v is False for v in report['flags'].values()))
+    exact(report['flags'], FLAGS)
+    need(report['flags']['perGetRawEvidenceAvailable'] is True and
+         all(v is False for k, v in report['flags'].items() if k != 'perGetRawEvidenceAvailable'))
     base, candidate = binding(report['baseInput']), binding(report['candidateInput'])
     need(base['sha256'] != candidate['sha256'])
     same(report['reloadPayload'], candidate)
@@ -515,15 +837,18 @@ def verify_raw(raw, sources, commit):
     need(syntax['observation']['pid'] != owned['pid'])
     C.safe_stdio('candidate', raw['syntax.stdout'], raw['syntax.stderr'])
     readbacks(report['readbacks']); readiness(report['readiness']); routes(report['routes'])
+    captured = G.verify_captured(raw, report)
     cleanup(report['fixtureCleanup'], report['routes'])
     # Private helper inputs are local only; they are not additional wire keys.
     checked = dict(report, _kernelOut=raw['kernel.stdout'], _kernelErr=raw['kernel.stderr'])
     timeline = journal(raw['apply-observations.jsonl'], checked, syntax, receipt)
-    return dict(schema='chengwang.mihomo-runtime-apply-verification/v1', sourceCommit=commit, outcome='PASS', scope=REPORT_SCOPE,
+    return dict(schema='chengwang.mihomo-runtime-apply-verification/v2', sourceCommit=commit, outcome='PASS', scope=REPORT_SCOPE,
                 sourceSHA256={p: sha(sources[p]) for p in FILES}, inputSHA256={p: sha(raw[p]) for p in PUBLIC}, tests=tests,
                 journal=timeline, clientReloadInvocations=1, controllerReceivedCount=None,
-                sourceBoundLocalRouteEvidenceValidated=True, perGetRawEvidenceAvailable=False,
-                independentProjectionRecomputeProven=False, fullPayloadProven=False, authorizationProven=False,
+                sourceBoundLocalRouteEvidenceValidated=True, perGetRawEvidenceAvailable=True,
+                independentProjectionRecomputeProven=True, capturedProjection=captured,
+                expectedSourceIndependentlyProven=False, privateDisclosureFenceIndependentlyProven=False,
+                fullPayloadProven=False, authorizationProven=False,
                 headAdvanced=False, internetBusinessProven=False, production=False,
                 trustBoundary='TRUSTED_CI_OBSERVATIONS_NOT_EXTERNAL_ATTESTATION',
                 disclosureBoundary='PRIVATE_WITNESSES_FENCED_BY_SOURCE_BOUND_WORKER_NOT_REPLAYABLE_FROM_PUBLIC_ARTIFACT')
@@ -541,13 +866,14 @@ def source_bindings(repo, commit):
 
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit)
     need(Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 61)
+    need(len(FILES) == len(set(FILES)) == 65)
     sources = {}
     for path in FILES:
         value = C.read(repo / path, 1 << 20, False)
         need(value == git('show', commit + ':' + path)); sources[path] = value
     need(C.read(Path(__file__).absolute(), 1 << 20, False) == sources[PREFIX + 'check_apply.py'])
     need(C.read(Path(C.__file__).absolute(), 1 << 20, False) == sources[PREFIX + 'check_compat.py'])
+    need(C.read(Path(G.__file__).absolute(), 1 << 20, False) == sources[PREFIX + 'get_projection.py'])
     return sources
 
 

@@ -1,0 +1,135 @@
+{
+  "actualValidation": {
+    "actualNewGoOrKernelOrNamespaceExecuted": false,
+    "applyBoundSources": 65,
+    "applyPublicFiles": 36,
+    "compatBoundSources": 57,
+    "foundationBoundSources": 46,
+    "goDeclarations": 306,
+    "initialAll139Passed": true,
+    "inlinePythonAST": 11,
+    "modelSkips": 0,
+    "newGoDeclarations": 22,
+    "old284NamesAndWholeTestSourcesPreserved": true,
+    "receipts": [
+      {
+        "path": "D:\\CodexData\\workspace\\mihomo-capture-v2-static-wiannsbw\\result.json",
+        "sha256": "ab19d1d544bb3d554493e0a367b348f80632e6f49a30f10513f85444c4a4847b"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-captured-models-vwhqgf8t/result.json",
+        "sha256": "15a7e4e27e7f79faea6170bd84cd6a33f6797163adbd5c193022ec6cccb6daf7"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-captured-models-qo0eybx5/result.json",
+        "sha256": "6531f6a9d3a9ba6be809d139bb7f889a1fbce20e135959b0a59ffb179d4282ce"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-4815-independent-audit-20261025-a/run-20261024T194627176022Z/result.json",
+        "sha256": "2e3d5775bb69becc896442cab035fb4b08d793821e9e9751428e5fa9e825bbaa"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-get-capture-source-20261025-a/HANDOFF.md",
+        "sha256": "291ecf977447d7c3e1db5d9e83c95ae02e44cab2db1e599677e84437485607e0"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-get-capture-peer-20261025-c/result-final.json",
+        "sha256": "207d3be134c2841784ea844237e2a0780497bcc125b36fd2435a222393b11e38"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-get-export-static-20261025-c/result-final.json",
+        "sha256": "90c545cc3fa4b06f960c81522b2da5327faa280dc9eff76f5fc8025f3f0ef33d"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-get-export-peer-20261025-a/REVIEW.md",
+        "sha256": "d7741f179b42f8d5d8bd1674d5172c310f532205aed469c508577e7d261dae9f"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-get-projection-static-20261025-b/result-final.json",
+        "sha256": "f7ccda04239f3bcd5a4d2646df3de25becc35a4d590efb82d424f8a2ab79afc2"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-get-projection-peer-20261025-c/result-final.json",
+        "sha256": "8bfb1eafecef34889165cb6b0baddf404348728cdf64301603cd0fc3e0fd1281"
+      },
+      {
+        "path": "D:/CodexData/workspace/mihomo-apply-v2-wiring-peer-20261025-c/result-final.json",
+        "sha256": "941b5db6b54f2e559d68c9d55f8a3c9ebb57108b69a08a269664f06f512968ec"
+      }
+    ],
+    "shellBlocks": 20,
+    "syntheticModelsPassed": 139,
+    "targetedUpdated47Passed": true,
+    "workflowJobs": 9
+  },
+  "baseline": "4815ecfa1b9b7bf607e8862cfd9f9b3f4e28c1bc",
+  "boundaries": {
+    "apiExercised": false,
+    "authorizationProven": false,
+    "controllerReceivedCount": null,
+    "expectedSourceIndependentlyProven": false,
+    "fullPayloadProven": false,
+    "headAdvanced": false,
+    "internetBusinessProven": false,
+    "newV2RuntimeObserved": false,
+    "perGetActual16BodiesObserved": false,
+    "privateDisclosureFenceIndependentlyProven": false,
+    "production": false
+  },
+  "implemented": [
+    "same-response retained entity capture with no extra GET and opaque shared-release backing",
+    "bounded actual failure-prefix, natural EOF, read/Close/context and endpoint-shape observations",
+    "private actual baseline/candidate staging with decoded-header disclosure fence",
+    "v2 report/journal bindings, closed 36 public originals and independent observed projection/UUID reconstruction",
+    "65 source binding, 306 required Go declarations, 139 synthetic model names, strict isolated producer/fresh workflow"
+  ],
+  "mainMerged": false,
+  "notCompleted": [
+    "new source Linux formatting/compilation/ordinary/race/apply and independent fresh originals",
+    "actual sixteen response bodies and cross-language independent reconstruction from CI originals",
+    "private expected projection source and independent disclosure-fence proof",
+    "real owned-head bootstrap, current trusted identity and independent approval API integration",
+    "final once-only WAL dispatch, lawful head advancement and UNKNOWN reconciliation/recovery",
+    "whole product business/DNS/other cores/UI/fault/long-soak and operational acceptance",
+    "production rollout, main merge and Registry publication"
+  ],
+  "parentActualAcceptance": {
+    "allNineJobs": "success",
+    "commit": "4815ecfa1b9b7bf607e8862cfd9f9b3f4e28c1bc",
+    "fullLocalLinuxCLIReexecuted": false,
+    "historicalIdentityFailureNowPassesBoth": true,
+    "mandatoryTopLevelsPerSuite": 284,
+    "ordinarySemanticPasses": 378,
+    "producerFreshIdenticalPairs": 4,
+    "raceSemanticPasses": 378,
+    "run": 40123345295,
+    "skips": 0,
+    "topLevelPerSuite": 291,
+    "totalCustodyFiles": 83,
+    "workflowConclusion": "success",
+    "zipMembers": 65
+  },
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-get-capture-v2-development/v1",
+  "scope": "SOURCE_AND_SYNTHETIC_SAME_RESPONSE_CAPTURE_RECONSTRUCTION_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "9c8e4e25e1d6aa4b845f13804d2ddd70bd1000abd27431ffa79dd05d029613b3",
+    "chengwang/deploy/mihomo-lifecycle-lab/apply_contract.json": "dedf4dc6347675c28249ba7025f64fe0a03d104de058bdeea5e8fcc9455765d7",
+    "chengwang/deploy/mihomo-lifecycle-lab/apply_worker.py": "66aea0171cc0458c01dd30e6212906b8ec102f96b806614a5344afcf3487aa2b",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py": "82b5b0e2c85f83697b831980b88f69f465d93c73e72c5280883b3f2ce8857535",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "fe32afa4992159ec827c0932a53306dc31640b168fc2ab1a78ffb4abca435bac",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "b5f9db394eedecaa1191500ab49f56815d4772efa7ca2e533b35ebb1f61ea6a8",
+    "chengwang/deploy/mihomo-lifecycle-lab/get_projection.py": "360c42ceda39bbf201dc649764bc1186b06d0df8a2d16d28ff44bb760f13cb48",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "59fd05ea805da0bf7d6812eba9a340754e8ee0365d69fdd4715eefaa350c41e5",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py": "e3684a58caa6e33a1e0b2ae6056ed1b841cf05609e2a993f5db33d470bdd6dec",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "e45d96eaf681e54d8a213070fe7501eb14112a74f9fbd49c2a9840be7eb67b81",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "1038c4e720bde0b5dba8f173005ce3ec55825c18f175b5ea227fb8b0dd353b73",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_get_projection.py": "56b56699b80c11aae0abe66c9103c75991692516b96ffed9b17c2c71e9b2584a",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "8fcff3117c5e8fe393b5457831b0aa8e863005c6de41f39f0fe9b8b2ea39ac46",
+    "chengwang/internal/adapter/mihomo/lab_evidence.go": "d0a904e784eae8b5b07b747c8b5585dc78f83ef4076a9cc6ac4fdf20d06c2e98",
+    "chengwang/internal/adapter/mihomo/lab_evidence_test.go": "c1960e5e4de41b5040e18e0e0e495a22c0b445b74817bb6be728143517601484",
+    "chengwang/internal/adapter/mihomo/lab_readback.go": "f25a0bc3d17c02651a1c7ffa9907d6959690639ad333c329dd039a4af7b748a4",
+    "chengwang/internal/mihomodeploy/runtime_apply_linux_test.go": "be280d0892245c203fb501344f62f850ecda8e59955edf093c11d9122b207380"
+  }
+}

@@ -24,7 +24,7 @@ AUTHN_FILES = ('store.go', 'store_test.go', 'snapshot_manager.go', 'snapshot_man
     'snapshot_manager_linux.go', 'snapshot_manager_linux_test.go', 'snapshot_manager_unsupported.go')
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LIFECYCLE_FILES]
 FILES += ['chengwang/internal/authn/' + name for name in AUTHN_FILES]
-LAB_READER_FILES = ('lab_readback.go', 'lab_readback_test.go')
+LAB_READER_FILES = ('lab_readback.go', 'lab_readback_test.go', 'lab_evidence.go', 'lab_evidence_test.go')
 LAB_RUNTIME_FILES = ('lab_authority.go', 'lab_authority_test.go', 'lab_expectation.go', 'lab_expectation_test.go',
     'lab_kernel.go', 'lab_kernel_linux.go', 'lab_kernel_linux_test.go',
     'lab_kernel_unsupported.go', 'lab_kernel_unsupported_test.go')
@@ -37,6 +37,7 @@ TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengw
 TEST_FILES += [('chengwang/internal/authn/' + name, 'chengwang/internal/authn')
     for name in ('store_test.go', 'snapshot_manager_test.go', 'snapshot_manager_linux_test.go')]
 TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_readback_test.go', 'chengwang/internal/adapter/mihomo')]
+TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_evidence_test.go', 'chengwang/internal/adapter/mihomo')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
     for name in ('lab_authority_test.go', 'lab_expectation_test.go', 'lab_kernel_linux_test.go')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn'}

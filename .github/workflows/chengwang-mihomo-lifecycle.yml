@@ -74,8 +74,8 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
-          assert len(declared)==284 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b4c6592db87588990ba44d44032fa31f84a198feebd370ec9b80aca407ec68d9'
-          print('GO_TEST_DECLARATIONS=284 execution_not_proven=true')
+          assert len(declared)==306 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='618c12a131895b9b505eebda4c8ebcc7e7640c3946cbf5c518c7dbf6a70adf2a'
+          print('GO_TEST_DECLARATIONS=306 execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |
@@ -313,6 +313,11 @@ jobs:
           root="$RUNNER_TEMP/mihomo-apply-models"
           test ! -e "$root"
           install -d -m 0700 "$root"
+          python3 - <<'PY'
+          import unicodedata
+          assert unicodedata.unidata_version == '15.0.0'
+          print('CAPTURE_CODEC_UNICODE=15.0.0 actual_runtime_observed=true')
+          PY
           (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_apply) 2>&1 | tee "$root/models.log"
           python3 - "$root/models.log" <<'PY'
           import ast,hashlib,re,sys
@@ -327,6 +332,21 @@ jobs:
           assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==['47'] and re.findall(r'^OK$',text,re.M)==['OK']
           assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
           print('APPLY_MODELS=PASS actual_synthetic_models=47 actual_kernel_execution=false')
+          PY
+          (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_get_projection) 2>&1 | tee "$root/projection-models.log"
+          python3 - "$root/projection-models.log" <<'PY'
+          import ast,hashlib,re,sys
+          from pathlib import Path
+          text=Path(sys.argv[1]).read_text(encoding='utf8').replace('\r\n','\n')
+          tree=ast.parse(Path('chengwang/deploy/mihomo-lifecycle-lab/test_get_projection.py').read_text(encoding='utf8'))
+          cls='SyntheticGetProjectionModels'
+          names=sorted(n.name for c in tree.body if isinstance(c,ast.ClassDef) and c.name==cls for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+          observed=re.findall(r'^(test_[A-Za-z0-9_]+) \(test_get_projection\.'+cls+r'\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',text,re.M)
+          assert len(names)==len(set(names))==len(observed)==33 and all(a==b for a,b in observed)
+          assert sorted(a for a,_ in observed)==names and hashlib.sha256('\n'.join(names).encode()).hexdigest()=='45ff4a550223e7aa8793c0735717a46dd8fe1e972aebd8b817152de58dec5314'
+          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==['33'] and re.findall(r'^OK$',text,re.M)==['OK']
+          assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
+          print('PROJECTION_MODELS=PASS actual_synthetic_models=33 actual_kernel_execution=false')
           PY
       - name: Acquire and independently check the fixed candidate before execution
         run: |

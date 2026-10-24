@@ -27,9 +27,14 @@ PATHS = dict(module='/tmp/mihomo-apply-source', goRoot='/tmp/mihomo-apply-go',
              kernelDirectory='/tmp/mihomo-apply-kernel',
              kernel='/tmp/mihomo-apply-kernel/mihomo',
              receipt='/tmp/mihomo-apply-kernel/consumption.json')
-PUBLIC_CASE_FILES = ('apply-observations.jsonl', 'apply-report.json',
+LEGACY_CASE_FILES = ('apply-observations.jsonl', 'apply-report.json',
                      'kernel.stdout', 'kernel.stderr', 'syntax.exec.json',
                      'syntax.stdout', 'syntax.stderr')
+GET_PHASES = ('baseline', 'candidate')
+GET_FILES = tuple(name for phase in GET_PHASES for name in
+                  (phase + '-get-evidence.json',
+                   *(f'{phase}-get-{n:02d}.body' for n in range(1, 9))))
+PUBLIC_CASE_FILES = LEGACY_CASE_FILES + GET_FILES
 PRIVATE_FENCE_FILES = ('.secrets.private.json', 'base.config.private.yaml',
                        'candidate.config.private.yaml')
 FIXED_TOP = 'TestMihomoApplyReloadReadbackAndLocalProxy'
@@ -328,7 +333,7 @@ def contract():
     paths = dict(PATHS)
     paths['serviceHome'] = paths.pop('home')
     paths['exportAlias'] = str(EXPORT_ALIAS)
-    need(type(c) is dict and c['schema'] == 'chengwang.mihomo-runtime-apply-contract/v1' and
+    need(type(c) is dict and c['schema'] == 'chengwang.mihomo-runtime-apply-contract/v2' and
          c['scope'] == 'ACTUAL_FIXED_KERNEL_LOCAL_APPLY_EXPERIMENT_NOT_API_AUTHORIZATION_HEAD_OR_PRODUCTION' and
          c['production'] is False and c['paths'] == paths and
          c['tag'] == FIXED_TAG and c['goPackage'] == './internal/mihomodeploy' and
@@ -338,18 +343,26 @@ def contract():
          c['publicTestFiles'] == list(PUBLIC_CASE_FILES) and
          c['privateExtraFiles'] == list(PRIVATE_FENCE_FILES) and
          c['controllerReceivedCount'] is None)
+    need(c['capturePublicFiles'] == list(GET_FILES) and
+         c['getEvidenceSchema'] == 'chengwang.mihomo-lab-get-evidence/v1' and
+         c['getEvidenceScope'] == 'PRIVATE_HTTP_ENTITY_RESPONSE_EVIDENCE_NOT_AUTHORIZATION_OR_PAYLOAD_PROOF' and
+         w.canonical(c['captureLimits']) == w.canonical(dict(acceptedBodyBytes=8388608,
+             probeBodyBytes=8388609, rawArchiveBytes=67108872, transcriptBytes=1048576,
+             selectedHeaderBytes=16384, scheduleTimeoutMilliseconds=5000)))
     need(c['ports'] == dict(mixed=28411, controller=28412, proxyA=28413,
                             proxyB=28414, origin=28415))
     need(type(c['flags']) is dict and set(c['flags']) == {
         'apiExercised', 'authorizationExercised', 'authorizationProven',
         'fullPayloadProven', 'headAdvanced', 'production',
         'perGetRawEvidenceAvailable', 'independentProjectionRecomputeProven',
-        'internetBusinessProven'} and all(value is False for value in c['flags'].values()))
+        'internetBusinessProven'} and
+         all(type(value) is bool and value is (key == 'perGetRawEvidenceAvailable')
+             for key, value in c['flags'].items()))
     need(c['workerPublicFiles'] == ['sandbox.json', 'execution.json', 'go-version.txt',
          'gofmt.patch', 'gofmt.stderr', 'apply.json', 'apply.stderr'] and
          c['preexistingPublicFiles'] == ['host-before.json', 'host-after.json',
          'consumption.json', 'consumption-independent.json'] and
-         len(c['publicFiles']) == len(set(c['publicFiles'])) == 18 and
+         len(c['publicFiles']) == len(set(c['publicFiles'])) == 36 and
          set(c['publicFiles']) == set(c['publicTestFiles'] + c['workerPublicFiles'] + c['preexistingPublicFiles']) and
          c['environmentKeys'] == sorted(environment('0' * 40)) and
          type(c['maxPublicLogBytes']) is int and c['maxPublicLogBytes'] == MAX_LOG)
@@ -400,6 +413,94 @@ def safe_variants(secrets, bodies):
     return values
 
 
+def get_outputs(c, outputs, report, forbidden):
+    """Validate actual staged entity-response bytes, not projection semantics.
+
+    This gate does not infer expected configuration from private YAML. The
+    independent projection checker is a different source-owned implementation.
+    Decoded selected header bytes participate in the same private-data fence.
+    """
+    w = shared()
+    phase_bindings = exact(report['getEvidence'], GET_PHASES)
+    need(set(GET_FILES) <= set(outputs))
+    top_keys = ('schema', 'scope', 'expectedSchedule', 'records', 'slotsEntered',
+                'doInvocations', 'responsesObserved', 'readAttempts', 'completedBodies',
+                'retainedBytes', 'outcome', 'failureClass', 'limitReached', 'contextState')
+    record_keys = ('ordinal', 'round', 'endpointKind', 'requestBuilt', 'doInvoked',
+                   'responseObserved', 'statusCode', 'headers', 'contentLength',
+                   'uncompressed', 'readAttempted', 'retainedBytes', 'retainedSHA256',
+                   'naturalEOF', 'readErrorClass', 'limitReached', 'closeAttempted',
+                   'closeErrorClass', 'contextState', 'parseState', 'terminalClass')
+    header_keys = ('contentTypeValuesB64', 'contentEncodingValuesB64',
+                   'transferEncodingValuesB64', 'setCookieCount')
+    endpoints = ('VERSION', 'CONFIGS', 'PROXIES', 'RULES') * 2
+    need(c['getEvidenceTopKeys'] == list(top_keys) and
+         c['getEvidenceRecordKeys'] == list(record_keys) and
+         c['getEvidenceHeaderKeys'] == list(header_keys))
+    def integer(token):
+        need(token != '-0' and re.fullmatch(r'-?(?:0|[1-9][0-9]{0,18})', token))
+        return int(token)
+    def reject_number(_):
+        need(False)
+    def unique(items):
+        result = {}
+        for key, value in items:
+            need(key not in result)
+            result[key] = value
+        return result
+    for phase in GET_PHASES:
+        transcript_raw = outputs[phase + '-get-evidence.json']
+        check_binding(c, phase_bindings[phase], transcript_raw)
+        transcript = exact(json.loads(transcript_raw.decode('utf-8', errors='strict'),
+                           object_pairs_hook=unique, parse_int=integer,
+                           parse_float=reject_number, parse_constant=reject_number), top_keys)
+        need(transcript['schema'] == 'chengwang.mihomo-lab-get-evidence/v1' and
+             transcript['scope'] == 'PRIVATE_HTTP_ENTITY_RESPONSE_EVIDENCE_NOT_AUTHORIZATION_OR_PAYLOAD_PROOF' and
+             transcript['outcome'] == 'COMPLETE' and transcript['failureClass'] is None and
+             transcript['limitReached'] is False and transcript['contextState'] == 'ACTIVE')
+        for key in ('slotsEntered', 'doInvocations', 'responsesObserved', 'readAttempts', 'completedBodies'):
+            need(type(transcript[key]) is int and transcript[key] == 8)
+        need(type(transcript['retainedBytes']) is int and
+             type(transcript['expectedSchedule']) is list and len(transcript['expectedSchedule']) == 8 and
+             type(transcript['records']) is list and len(transcript['records']) == 8)
+        total = 0
+        for ordinal, endpoint in enumerate(endpoints, 1):
+            schedule = exact(transcript['expectedSchedule'][ordinal - 1], ('ordinal', 'round', 'endpointKind'))
+            record = exact(transcript['records'][ordinal - 1], record_keys)
+            for row in (schedule, record):
+                need(type(row['ordinal']) is int and row['ordinal'] == ordinal and
+                     type(row['round']) is int and row['round'] == (1 if ordinal <= 4 else 2) and
+                     row['endpointKind'] == endpoint)
+            for key in ('requestBuilt', 'doInvoked', 'responseObserved', 'readAttempted', 'naturalEOF', 'closeAttempted'):
+                need(record[key] is True)
+            need(type(record['statusCode']) is int and record['statusCode'] == 200 and
+                 type(record['contentLength']) is int and -1 <= record['contentLength'] <= 8 << 20 and
+                 record['uncompressed'] is False and record['limitReached'] is False and
+                 record['readErrorClass'] == 'NONE' and record['closeErrorClass'] == 'NONE' and
+                 record['contextState'] == 'ACTIVE' and record['parseState'] == 'SHAPE_ACCEPTED' and
+                 record['terminalClass'] == 'NONE')
+            raw = outputs[f'{phase}-get-{ordinal:02d}.body']
+            need(len(raw) <= 8 << 20 and type(record['retainedBytes']) is int and
+                 record['retainedBytes'] == len(raw) and record['retainedSHA256'] == w.sha(raw))
+            need(record['contentLength'] == -1 or record['contentLength'] == len(raw))
+            total += len(raw)
+            headers = exact(record['headers'], header_keys)
+            need(type(headers['setCookieCount']) is int and headers['setCookieCount'] == 0)
+            selected_bytes = 0
+            for key in header_keys[:-1]:
+                values = headers[key]
+                need(type(values) is list and len(values) <= 16384)
+                for encoded in values:
+                    need(type(encoded) is str and len(encoded) <= 21848)
+                    decoded = base64.b64decode(encoded, validate=True)
+                    need(base64.b64encode(decoded).decode('ascii') == encoded)
+                    selected_bytes += len(decoded)
+                    need(selected_bytes <= 16384 and not any(value in decoded for value in forbidden))
+            need(len(headers['contentTypeValuesB64']) == 1 and
+                 len(headers['contentEncodingValuesB64']) <= 1)
+        need(transcript['retainedBytes'] == total)
+
+
 def private_outputs(c, state):
     """Validate all candidate bytes before making any public copy.
 
@@ -429,15 +530,28 @@ def private_outputs(c, state):
     outputs = {}
     for name in PUBLIC_CASE_FILES:
         if name in names:
-            limit = MAX_LOG if name.endswith(('.stdout', '.stderr')) else 2 << 20
+            limit = ((8 << 20) + 1 if name.endswith('.body') else
+                     1 << 20 if name.endswith('-get-evidence.json') else
+                     MAX_LOG if name.endswith(('.stdout', '.stderr')) else 2 << 20)
             outputs[name] = private_file(root, name, limit,
-                                         empty=name.endswith(('.stdout', '.stderr')))
+                                         empty=name.endswith(('.stdout', '.stderr', '.body')))
     need('apply-report.json' in outputs)
     report = exact(w.decode(outputs['apply-report.json']), c['reportKeys'])
     need(report['schema'] == c['reportSchema'] and report['scope'] == c['scope'] and
          report['sourceCommit'] == state['commit'] and report['outcome'] in ('PASS', 'FAIL') and
-         report['controllerReceivedCount'] is None and report['flags'] == c['flags'] and
-         all(value is False for value in exact(report['flags'], c['flags']).values()))
+         report['controllerReceivedCount'] is None)
+    flags = exact(report['flags'], c['flags'])
+    need(all(type(value) is bool and (key == 'perGetRawEvidenceAvailable' or value is False)
+             for key, value in flags.items()))
+    phase_bindings = exact(report['getEvidence'], GET_PHASES)
+    for phase in GET_PHASES:
+        if phase_bindings[phase] is not None:
+            name = phase + '-get-evidence.json'
+            need(name in outputs)
+            check_binding(c, phase_bindings[phase], outputs[name])
+    if report['outcome'] == 'PASS' or flags['perGetRawEvidenceAvailable']:
+        need(flags['perGetRawEvidenceAvailable'] is True)
+        get_outputs(c, outputs, report, forbidden)
     check_binding(c, report['baseInput'], bodies[0])
     check_binding(c, report['candidateInput'], bodies[1])
     if report['reloadPayload'] is not None:
@@ -487,8 +601,22 @@ def private_outputs(c, state):
                  row['seq'] == seq and row['stage'] in c['journalStages'] and
                  type(row['observedAtUTC']) is str and 0 < len(row['observedAtUTC']) <= 64)
             exact(row['facts'], c['journalFactKeys'])
+            phase = {'BASELINE_READ_RESULT': 'baseline', 'CANDIDATE_READ_RESULT': 'candidate'}.get(row['stage'])
+            if phase is None:
+                need(row['facts']['getEvidence'] is None)
+            else:
+                phase_binding = report['getEvidence'][phase]
+                need(phase_binding is not None and
+                     w.canonical(row['facts']['getEvidence']) == w.canonical(phase_binding))
+                if report['outcome'] == 'PASS':
+                    check_binding(c, row['facts']['getEvidence'], outputs[phase + '-get-evidence.json'])
     for raw in outputs.values():
         need(not any(value in raw for value in forbidden))
+    if report['outcome'] != 'PASS':
+        # Actual private partials stay private, including empty bodies only if
+        # they were really read. Never publish a failed or unknown transcript.
+        for name in GET_FILES:
+            outputs.pop(name, None)
     need({path.name for path in root.iterdir()} == names)
     # Commit metadata is not a substitute for raw originals or semantic
     # verification. In particular this does not infer server receipt of PUT.

@@ -64,6 +64,7 @@ files+=(internal/mihomodeploy/lifecycle_disk.go internal/mihomodeploy/lifecycle.
 files+=(internal/authn/store.go internal/authn/store_test.go internal/authn/snapshot_manager.go internal/authn/snapshot_manager_test.go
   internal/authn/snapshot_manager_linux.go internal/authn/snapshot_manager_linux_test.go internal/authn/snapshot_manager_unsupported.go)
 files+=(internal/adapter/mihomo/lab_readback.go internal/adapter/mihomo/lab_readback_test.go
+  internal/adapter/mihomo/lab_evidence.go internal/adapter/mihomo/lab_evidence_test.go
   internal/mihomodeploy/lab_authority.go internal/mihomodeploy/lab_authority_test.go
   internal/mihomodeploy/lab_expectation.go internal/mihomodeploy/lab_expectation_test.go
   internal/mihomodeploy/lab_kernel.go internal/mihomodeploy/lab_kernel_linux.go internal/mihomodeploy/lab_kernel_linux_test.go

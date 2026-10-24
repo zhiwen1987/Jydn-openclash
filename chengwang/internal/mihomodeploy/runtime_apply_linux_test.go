@@ -107,6 +107,10 @@ type applyReport struct {
 		Baseline  *mihomo.LabReadbackReport `json:"baseline"`
 		Candidate *mihomo.LabReadbackReport `json:"candidate"`
 	} `json:"readbacks"`
+	GetEvidence       struct {
+		Baseline  *applyBinding `json:"baseline"`
+		Candidate *applyBinding `json:"candidate"`
+	} `json:"getEvidence"`
 	Readiness               []applyProbe          `json:"readiness"`
 	ClientReloadInvocations int                   `json:"clientReloadInvocations"`
 	ControllerReceivedCount *int                  `json:"controllerReceivedCount"`
@@ -126,6 +130,7 @@ type applyFacts struct {
 	OwnedIdentity           *labKernelIdentity         `json:"ownedIdentity"`
 	ReadinessProbe          *applyProbe                `json:"readinessProbe"`
 	Readback                *mihomo.LabReadbackReport  `json:"readback"`
+	GetEvidence             *applyBinding              `json:"getEvidence"`
 	ReloadPayload           *applyBinding              `json:"reloadPayload"`
 	ReloadResult            *mihomo.ReloadResult       `json:"reloadResult"`
 	ClientReloadInvocations *int                       `json:"clientReloadInvocations"`
@@ -179,6 +184,12 @@ func applyOpenOutput() (*applyOutput, error) {
 }
 func (o *applyOutput) create(name string) (*os.File, error) {
 	allowed := map[string]bool{"apply-observations.jsonl": true, "apply-report.json": true, "kernel.stdout": true, "kernel.stderr": true, "syntax.exec.json": true, "syntax.stdout": true, "syntax.stderr": true, ".secrets.private.json": true, "base.config.private.yaml": true, "candidate.config.private.yaml": true}
+	for _, phase := range []string{"baseline", "candidate"} {
+		allowed[phase+"-get-evidence.json"] = true
+		for ordinal := 1; ordinal <= 8; ordinal++ {
+			allowed[phase+"-get-0"+strconv.Itoa(ordinal)+".body"] = true
+		}
+	}
 	if o == nil || o.directory == nil || !allowed[name] {
 		return nil, errLabKernelInput
 	}
@@ -251,6 +262,50 @@ func applyBind(raw []byte) *applyBinding {
 }
 func applyObserved(raw []byte) *applyBody {
 	return &applyBody{SHA256: labConfigHash(raw), Bytes: len(raw), Complete: true}
+}
+
+// Export the original entity-response evidence from the same eight GETs.
+// The capture lease is released before the next phase. On failure only real
+// available prefixes are staged; no unavailable body is replaced by empty bytes.
+func (o *applyOutput) capture(phase string, evidence *mihomo.LabReadbackEvidence) (bound *applyBinding, failure error) {
+	defer func() {
+		if evidence.Release() != nil {
+			failure = errLabKernelInput
+		}
+	}()
+	if phase != "baseline" && phase != "candidate" {
+		return nil, errLabKernelInput
+	}
+	descriptor, e := evidence.Descriptor()
+	if e != nil {
+		return nil, errLabKernelInput
+	}
+	transcript, e := evidence.PrivateTranscript()
+	if e != nil || int64(len(transcript)) != descriptor.TranscriptBytes || labConfigHash(transcript) != descriptor.TranscriptSHA256 {
+		return nil, errLabKernelInput
+	}
+	available := 0
+	for ordinal := uint8(1); ordinal <= 8; ordinal++ {
+		body, bodyErr := evidence.PrivateBody(ordinal)
+		if bodyErr != nil {
+			if descriptor.Outcome == "COMPLETE" {
+				return nil, errLabKernelInput
+			}
+			continue
+		}
+		if body == nil || len(body) > (8<<20)+1 || o.write(phase+"-get-0"+strconv.Itoa(int(ordinal))+".body", body) != nil {
+			return nil, errLabKernelInput
+		}
+		available++
+	}
+	if o.write(phase+"-get-evidence.json", transcript) != nil {
+		return nil, errLabKernelInput
+	}
+	bound = applyBind(transcript)
+	if descriptor.Outcome != "COMPLETE" || available != 8 || descriptor.SlotsEntered != 8 || descriptor.DoInvocations != 8 || descriptor.ResponsesObserved != 8 || descriptor.ReadAttempts != 8 || descriptor.CompletedBodies != 8 || descriptor.LimitReached {
+		return bound, errLabKernelInput
+	}
+	return bound, nil
 }
 
 type applyOriginRecord struct{ proxy, origin *applyBody }
@@ -887,16 +942,20 @@ func (x *applyExperiment) run(ctx context.Context) string {
 	if !x.event("BASELINE_READ_BEGIN", applyFacts{OwnedIdentity: &identity}) {
 		return "EVIDENCE_IO"
 	}
-	samples, e := reader.ReadStable(ctx)
-	if e != nil {
+	samples, baselineEvidence, readErr := reader.ReadStableCaptured(ctx)
+	x.report.GetEvidence.Baseline, e = x.out.capture("baseline", &baselineEvidence)
+	if readErr != nil {
 		return "BASELINE_READBACK"
+	}
+	if e != nil {
+		return "EVIDENCE_IO"
 	}
 	baseline, e := mihomo.CompareLabReadback(samples, oldExpected, newExpected)
 	if e != nil {
 		return "BASELINE_COMPARE"
 	}
 	x.report.Readbacks.Baseline = &baseline
-	if !x.event("BASELINE_READ_RESULT", applyFacts{Readback: &baseline}) {
+	if !x.event("BASELINE_READ_RESULT", applyFacts{Readback: &baseline, GetEvidence: x.report.GetEvidence.Baseline}) {
 		return "EVIDENCE_IO"
 	}
 	if baseline.Conclusion != mihomo.LabStableOldProjection || baseline.RequestsObserved != 8 || baseline.FullPayloadProven || baseline.AuthorizationProven || baseline.DataplaneProven || baseline.Production {
@@ -963,16 +1022,21 @@ func (x *applyExperiment) run(ctx context.Context) string {
 	if !x.event("CANDIDATE_READ_BEGIN", applyFacts{}) {
 		return "EVIDENCE_IO"
 	}
-	samples, e = reader.ReadStable(ctx)
-	if e != nil {
+	samples, candidateEvidence, readErr := reader.ReadStableCaptured(ctx)
+	x.report.GetEvidence.Candidate, e = x.out.capture("candidate", &candidateEvidence)
+	if readErr != nil {
 		return "CANDIDATE_READBACK"
 	}
+	if e != nil {
+		return "EVIDENCE_IO"
+	}
+	x.report.Flags.PerGET = x.report.GetEvidence.Baseline != nil && x.report.GetEvidence.Candidate != nil
 	afterRead, e := mihomo.CompareLabReadback(samples, oldExpected, newExpected)
 	if e != nil {
 		return "CANDIDATE_COMPARE"
 	}
 	x.report.Readbacks.Candidate = &afterRead
-	if !x.event("CANDIDATE_READ_RESULT", applyFacts{Readback: &afterRead}) {
+	if !x.event("CANDIDATE_READ_RESULT", applyFacts{Readback: &afterRead, GetEvidence: x.report.GetEvidence.Candidate}) {
 		return "EVIDENCE_IO"
 	}
 	if afterRead.Conclusion != mihomo.LabStableNewProjection || afterRead.RequestsObserved != 8 || afterRead.FullPayloadProven || afterRead.AuthorizationProven || afterRead.DataplaneProven || afterRead.Production {
@@ -1041,7 +1105,7 @@ func TestMihomoApplyReloadReadbackAndLocalProxy(t *testing.T) {
 	if value := os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"); labKernelCommit.MatchString(value) {
 		commit = value
 	}
-	x := &applyExperiment{out: out, report: applyReport{Schema: "chengwang.mihomo-runtime-apply-report/v1", Scope: applyScope, SourceCommit: commit, Outcome: "FAIL", Readiness: []applyProbe{}, Routes: []applyRoute{}, FixtureCleanup: []applyFixtureCleanup{}}}
+	x := &applyExperiment{out: out, report: applyReport{Schema: "chengwang.mihomo-runtime-apply-report/v2", Scope: applyScope, SourceCommit: commit, Outcome: "FAIL", Readiness: []applyProbe{}, Routes: []applyRoute{}, FixtureCleanup: []applyFixtureCleanup{}}}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	// All terminal paths, including panic/t.Fatal in the future, retain cleanup

@@ -1,5 +1,5 @@
 {
-  "schema": "chengwang.mihomo-runtime-apply-contract/v1",
+  "schema": "chengwang.mihomo-runtime-apply-contract/v2",
   "scope": "ACTUAL_FIXED_KERNEL_LOCAL_APPLY_EXPERIMENT_NOT_API_AUTHORIZATION_HEAD_OR_PRODUCTION",
   "tag": "chengwang_mihomo_apply",
   "goPackage": "./internal/mihomodeploy",
@@ -33,7 +33,25 @@
     "kernel.stderr",
     "syntax.exec.json",
     "syntax.stdout",
-    "syntax.stderr"
+    "syntax.stderr",
+    "baseline-get-evidence.json",
+    "baseline-get-01.body",
+    "baseline-get-02.body",
+    "baseline-get-03.body",
+    "baseline-get-04.body",
+    "baseline-get-05.body",
+    "baseline-get-06.body",
+    "baseline-get-07.body",
+    "baseline-get-08.body",
+    "candidate-get-evidence.json",
+    "candidate-get-01.body",
+    "candidate-get-02.body",
+    "candidate-get-03.body",
+    "candidate-get-04.body",
+    "candidate-get-05.body",
+    "candidate-get-06.body",
+    "candidate-get-07.body",
+    "candidate-get-08.body"
   ],
   "privateExtraFiles": [
     ".secrets.private.json",
@@ -63,7 +81,7 @@
     "truncated",
     "complete"
   ],
-  "reportSchema": "chengwang.mihomo-runtime-apply-report/v1",
+  "reportSchema": "chengwang.mihomo-runtime-apply-report/v2",
   "reportKeys": [
     "schema",
     "scope",
@@ -77,6 +95,7 @@
     "ownedBefore",
     "ownedAfter",
     "readbacks",
+    "getEvidence",
     "readiness",
     "clientReloadInvocations",
     "controllerReceivedCount",
@@ -137,7 +156,7 @@
     "fullPayloadProven": false,
     "headAdvanced": false,
     "production": false,
-    "perGetRawEvidenceAvailable": false,
+    "perGetRawEvidenceAvailable": true,
     "independentProjectionRecomputeProven": false,
     "internetBusinessProven": false
   },
@@ -168,6 +187,7 @@
     "ownedIdentity",
     "readinessProbe",
     "readback",
+    "getEvidence",
     "reloadPayload",
     "reloadResult",
     "clientReloadInvocations",
@@ -199,7 +219,8 @@
   "maxJournalLines": 128,
   "controllerReceivedCount": null,
   "knownGaps": [
-    "per-GET original response evidence and independent projection recomputation",
+    "expected projection source from private complete YAML remains source-bound, not independently proven by public originals",
+    "private disclosure fence remains source-bound, not independently repeatable from public originals",
     "actual API authentication and independent approval",
     "real durable head bootstrap and advancement",
     "lost response, timeout, crash and UNKNOWN recovery matrix",
@@ -229,6 +250,24 @@
     "syntax.exec.json",
     "syntax.stdout",
     "syntax.stderr",
+    "baseline-get-evidence.json",
+    "baseline-get-01.body",
+    "baseline-get-02.body",
+    "baseline-get-03.body",
+    "baseline-get-04.body",
+    "baseline-get-05.body",
+    "baseline-get-06.body",
+    "baseline-get-07.body",
+    "baseline-get-08.body",
+    "candidate-get-evidence.json",
+    "candidate-get-01.body",
+    "candidate-get-02.body",
+    "candidate-get-03.body",
+    "candidate-get-04.body",
+    "candidate-get-05.body",
+    "candidate-get-06.body",
+    "candidate-get-07.body",
+    "candidate-get-08.body",
     "sandbox.json",
     "execution.json",
     "go-version.txt",
@@ -299,5 +338,128 @@
     "sourceCommit",
     "failureCode",
     "rawOutputSuppressed"
-  ]
+  ],
+  "capturePublicFiles": [
+    "baseline-get-evidence.json",
+    "baseline-get-01.body",
+    "baseline-get-02.body",
+    "baseline-get-03.body",
+    "baseline-get-04.body",
+    "baseline-get-05.body",
+    "baseline-get-06.body",
+    "baseline-get-07.body",
+    "baseline-get-08.body",
+    "candidate-get-evidence.json",
+    "candidate-get-01.body",
+    "candidate-get-02.body",
+    "candidate-get-03.body",
+    "candidate-get-04.body",
+    "candidate-get-05.body",
+    "candidate-get-06.body",
+    "candidate-get-07.body",
+    "candidate-get-08.body"
+  ],
+  "getEvidenceSchema": "chengwang.mihomo-lab-get-evidence/v1",
+  "getEvidenceScope": "PRIVATE_HTTP_ENTITY_RESPONSE_EVIDENCE_NOT_AUTHORIZATION_OR_PAYLOAD_PROOF",
+  "getEvidenceTopKeys": [
+    "schema",
+    "scope",
+    "expectedSchedule",
+    "records",
+    "slotsEntered",
+    "doInvocations",
+    "responsesObserved",
+    "readAttempts",
+    "completedBodies",
+    "retainedBytes",
+    "outcome",
+    "failureClass",
+    "limitReached",
+    "contextState"
+  ],
+  "getEvidenceRecordKeys": [
+    "ordinal",
+    "round",
+    "endpointKind",
+    "requestBuilt",
+    "doInvoked",
+    "responseObserved",
+    "statusCode",
+    "headers",
+    "contentLength",
+    "uncompressed",
+    "readAttempted",
+    "retainedBytes",
+    "retainedSHA256",
+    "naturalEOF",
+    "readErrorClass",
+    "limitReached",
+    "closeAttempted",
+    "closeErrorClass",
+    "contextState",
+    "parseState",
+    "terminalClass"
+  ],
+  "getEvidenceHeaderKeys": [
+    "contentTypeValuesB64",
+    "contentEncodingValuesB64",
+    "transferEncodingValuesB64",
+    "setCookieCount"
+  ],
+  "getEvidenceSchedule": [
+    {
+      "ordinal": 1,
+      "round": 1,
+      "endpointKind": "VERSION"
+    },
+    {
+      "ordinal": 2,
+      "round": 1,
+      "endpointKind": "CONFIGS"
+    },
+    {
+      "ordinal": 3,
+      "round": 1,
+      "endpointKind": "PROXIES"
+    },
+    {
+      "ordinal": 4,
+      "round": 1,
+      "endpointKind": "RULES"
+    },
+    {
+      "ordinal": 5,
+      "round": 2,
+      "endpointKind": "VERSION"
+    },
+    {
+      "ordinal": 6,
+      "round": 2,
+      "endpointKind": "CONFIGS"
+    },
+    {
+      "ordinal": 7,
+      "round": 2,
+      "endpointKind": "PROXIES"
+    },
+    {
+      "ordinal": 8,
+      "round": 2,
+      "endpointKind": "RULES"
+    }
+  ],
+  "captureLimits": {
+    "acceptedBodyBytes": 8388608,
+    "probeBodyBytes": 8388609,
+    "rawArchiveBytes": 67108872,
+    "transcriptBytes": 1048576,
+    "selectedHeaderBytes": 16384,
+    "scheduleTimeoutMilliseconds": 5000
+  },
+  "proofBoundaries": {
+    "producerIndependentProjectionRecomputeProven": false,
+    "expectedSourceIndependentlyProven": false,
+    "privateDisclosureFenceIndependentlyProven": false
+  },
+  "projectionCodecUnicodeVersion": "15.0.0"
 }

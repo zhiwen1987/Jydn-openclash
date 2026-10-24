@@ -4,6 +4,20 @@
 
 ## 本次已有代码
 
+### 2026-10-25 逐次GET原件与独立投影：源码及合成检查完成，真实新版待验
+
+上一修复提交4815ecfa1b9b7bf607e8862cfd9f9b3f4e28c1bc的真实CI 40123345295已读到终态success，9个任务全部成功，包含contracts、compat、apply及各自fresh。8份ZIP已按API摘要、CRC和成员摘要保管在D:/CodexData/workspace/mihomo-ci-observed-4815-20261025。独立原件复核D:/CodexData/workspace/mihomo-4815-independent-audit-20261025-a/run-20261024T194627176022Z/result.json确认普通／race各378项语义通过（291顶层＋87子项），原284项强制用例逐名run／pass、零跳过，先前失败身份用例两套均通过；foundation／compat／apply／candidate共4对生产者与fresh报告逐字节相同。65个ZIP成员、8ZIP、8custody及2元数据索引共83份文件前后摘要稳定，83不是ZIP成员数。本机只读解析与字节核对不冒充正式Linux CLI重跑。该结果属于旧v1实验，不证明下述新v2采集代码通过，也不证明产品API、批准、head推进或生产上线。
+
+当前开发候选保持旧ReadStable接口和原28项读回测试完整字节，新增ReadStableCaptured与22项Go采集测试声明。采集沿用同一次HTTP响应和同一解码正文，不额外请求；每阶段两轮4端点，共旧新16份正文与2份逐槽记录。失败时保留实际私有前缀及错误，不补造未读取正文。证据句柄为私有共享引用，复制Getter结果，Release使别名共同失效并释放单次占用；不声称安全擦除、硬实时或进程RSS上限。
+
+单次采集整体时限取调用方、配置和5秒的最小值；选定头16KiB，正文接受8MiB及单一超限探针，归档容量8×(8MiB+1)，元数据1MiB。CompletedBodies仅统计真实自然EOF、读取无错且长度未超限的物理正文，之后关闭或JSON深度失败不抹掉已观察事实；COMPLETE还要求关闭、头、形状与所有资源门通过。旧新阶段分别导出、释放，失败原件仅私有保留。
+
+独立Python模块从实际公开逐槽记录与正文重新验证长度、摘要、顺序、EOF、关闭、头及形状，重建两轮受支持General／代理／规则投影与UUID见证，不依赖生产者摘要作为输入事实。Go1.23的字段顺序、映射排序、UTF8／HTML转义、null与数组区别单列实现，实际运行要求Unicode15.0.0；源码与向量有固定官方依据，跨语言实际一致性仍须新版Linux CI证明。
+
+apply合同、报告和独立报告升级v2，成功公件由18增至36，绑定源由61增至65。生产者只可在16正文实际落盘后把perGetRawEvidenceAvailable置真，不能宣称Python已经复算；独立检查器只有重建通过后才置independentProjectionRecomputeProven为真。expectedSourceIndependentlyProven和privateDisclosureFenceIndependentlyProven始终为false：公开原件不独立证明私有YAML来源，也不重复持密围栏。服务端接收次数仍null，完整payload、批准、API、head、互联网业务及生产旗标仍false。worker同时检查原件与解码后头值的私密围栏，失败默认不发布新18件，不能用脱敏替换字节。
+
+主集成者首次实际运行25项基础证据、34项兼容、47项应用和33项独立投影合成模型，共139项，全部退出0且零跳过；D:/CodexData/workspace/mihomo-captured-models-vwhqgf8t/result.json保留实际PID、原stdout／stderr、退出与源码前后摘要。交叉复核随后指出应用模型缺少直接破坏新正文的接线反例，已在原同名模型内增加仅修改baseline-get-01.body、保留报告及记录不变的拒绝检查；只重跑受影响47项，实际全通过，D:/CodexData/workspace/mihomo-captured-models-qo0eybx5/result.json保留新执行，另25／34／33源码未变，不重复运行或增加测试数量。它们是Python合成检查，不是Go、内核或生产验收。基础门保留旧284项声明并新增22项，共306项；本机未运行Go、gofmt、worker、内核、namespace或产品服务。新候选尚未提交／取得真实36公件，SYS-06仍未完成。
+
 ### 2026-10-25 实际应用场景已运行，整体验收仍失败
 
 已读取6231584的实际运行40118290564及9cc8162的40121289102，两次整体均failure，兼容性与对应fresh均success。基础ordinary／race各377项语义通过、290项顶层通过、1项顶层失败、零跳过；唯一失败为TestLabKernelInitialUnobservedIdentityNeverCreatesCapability。初始化身份没有建立时，旧identity仍用零bound.PID调用observer，覆盖了测试保留的实际已启动PID；修正应在任何新观察／验证I/O前要求完整源绑定的初始身份，保留原Start、错误持有者、stop／Wait及进程消失断言，不能仅修改模型Store来掩盖问题。
