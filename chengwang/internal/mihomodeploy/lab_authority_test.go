@@ -695,20 +695,37 @@ func TestLabAuthorityZeroNilAndForgedCheckCannotGrantAnything(t *testing.T) {
 	}
 }
 
-func TestLabAuthorityReadChecksFreshHeadersWithoutIssuedWriteSession(t *testing.T){
-	f:=labAuthorityTestFixture(t)
-	if f.authority.authorizeRead(f.headers["viewer"],f.now)!=nil{t.Fatal("real viewer rejected")}
-	if f.authority.authorizeRead(f.headers["outsider"],f.now)==nil{t.Fatal("outside scope read")}
-	f.edit(t,"viewer",func(i *authn.Identity){i.Disabled=true})
-	if f.authority.authorizeRead(f.headers["viewer"],f.now)==nil{t.Fatal("disabled reader accepted cached authorization")}
+func TestLabAuthorityReadChecksFreshHeadersWithoutIssuedWriteSession(t *testing.T) {
+	f := labAuthorityTestFixture(t)
+	if f.authority.authorizeRead(f.headers["viewer"], f.now) != nil {
+		t.Fatal("real viewer rejected")
+	}
+	if f.authority.authorizeRead(f.headers["outsider"], f.now) == nil {
+		t.Fatal("outside scope read")
+	}
+	f.edit(t, "viewer", func(i *authn.Identity) { i.Disabled = true })
+	if f.authority.authorizeRead(f.headers["viewer"], f.now) == nil {
+		t.Fatal("disabled reader accepted cached authorization")
+	}
 }
-func TestLabAuthorityExecutionPreparationDoesNotRelaxFinalDispatchPhase(t *testing.T){
-	f:=labAuthorityTestFixture(t);m:=labAuthorityTestModel(t,f)
-	if f.authority.authorizeExecutionStart(f.headers["executor"],m.session,f.now)==nil{t.Fatal("unapproved preparation")}
+func TestLabAuthorityExecutionPreparationDoesNotRelaxFinalDispatchPhase(t *testing.T) {
+	f := labAuthorityTestFixture(t)
+	m := labAuthorityTestModel(t, f)
+	if f.authority.authorizeExecutionStart(f.headers["executor"], m.session, f.now) == nil {
+		t.Fatal("unapproved preparation")
+	}
 	m.approve(t)
-	if f.authority.authorizeExecutionStart(f.headers["viewer"],m.session,f.now)==nil{t.Fatal("viewer started critical execution")}
-	if f.authority.authorizeExecutionStart(f.headers["executor"],m.session,f.now)!=nil{t.Fatal("approved current identities rejected")}
-	if _,e:=f.authority.authorizeDispatch(f.headers["executor"],m.session,f.now);e==nil{t.Fatal("APPROVED granted final Do permission")}
-	f.edit(t,"executor",func(i *authn.Identity){i.Disabled=true})
-	if f.authority.authorizeExecutionStart(f.headers["executor"],m.session,f.now)==nil{t.Fatal("changed current credential started preparation")}
+	if f.authority.authorizeExecutionStart(f.headers["viewer"], m.session, f.now) == nil {
+		t.Fatal("viewer started critical execution")
+	}
+	if f.authority.authorizeExecutionStart(f.headers["executor"], m.session, f.now) != nil {
+		t.Fatal("approved current identities rejected")
+	}
+	if _, e := f.authority.authorizeDispatch(f.headers["executor"], m.session, f.now); e == nil {
+		t.Fatal("APPROVED granted final Do permission")
+	}
+	f.edit(t, "executor", func(i *authn.Identity) { i.Disabled = true })
+	if f.authority.authorizeExecutionStart(f.headers["executor"], m.session, f.now) == nil {
+		t.Fatal("changed current credential started preparation")
+	}
 }

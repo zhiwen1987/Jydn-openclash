@@ -3,17 +3,17 @@ package mihomodeploy
 // Source-owned loopback-only diagnostic services adapted from the actual local
 // apply experiment. These are runtime helpers, not a general proxy/relay.
 import (
- "bufio"
- "bytes"
- "context"
- "errors"
- "io"
- "net"
- "net/http"
- "net/url"
- "strconv"
- "sync"
- "time"
+	"bufio"
+	"bytes"
+	"context"
+	"errors"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"strconv"
+	"sync"
+	"time"
 )
 
 const labLocalOrigin = "127.0.0.1:28415"
@@ -21,8 +21,9 @@ const labLocalMixed = "127.0.0.1:28411"
 const labLocalRouteHeader = "X-Chengwang-Apply-Route"
 
 func labLocalObserved(raw []byte) *labLocalBody {
- return &labLocalBody{SHA256:labConfigHash(raw),Bytes:len(raw),Complete:true}
+	return &labLocalBody{SHA256: labConfigHash(raw), Bytes: len(raw), Complete: true}
 }
+
 type labLocalBody struct {
 	SHA256   string `json:"sha256"`
 	Bytes    int    `json:"bytes"`
@@ -37,14 +38,14 @@ type labLocalCounter struct {
 	Rejected           int    `json:"rejected"`
 }
 type labLocalRoute struct {
-	Phase          string         `json:"phase"`
-	NonceSHA256    string         `json:"nonceSHA256"`
+	Phase          string            `json:"phase"`
+	NonceSHA256    string            `json:"nonceSHA256"`
 	ClientResponse *labLocalBody     `json:"clientResponse"`
 	ProxyResponse  *labLocalBody     `json:"proxyResponse"`
 	OriginResponse *labLocalBody     `json:"originResponse"`
 	CountersBefore []labLocalCounter `json:"countersBefore"`
 	CountersAfter  []labLocalCounter `json:"countersAfter"`
-	Matched        bool           `json:"matched"`
+	Matched        bool              `json:"matched"`
 }
 type labLocalFixtureCleanup struct {
 	Role                    string `json:"role"`

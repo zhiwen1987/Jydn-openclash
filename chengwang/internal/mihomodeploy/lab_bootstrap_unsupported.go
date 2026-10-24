@@ -2,4 +2,4 @@
 
 package mihomodeploy
 
-func openLabRuntimeDisk() (labRuntimeDisk,bool,error) { return nil,false,errLifecycleUnsupported }
+func openLabRuntimeDisk() (labRuntimeDisk, bool, error) { return nil, false, errLifecycleUnsupported }

@@ -51,7 +51,7 @@ type ReloadResult struct {
 // two independent counters are not a transactional dispatch ledger.
 type ReloadCounters struct {
 	ReloadInvocations uint64 `json:"reloadInvocations"`
-	DoInvocations uint64 `json:"doInvocations"`
+	DoInvocations     uint64 `json:"doInvocations"`
 }
 
 var reloadInvocations atomic.Uint64

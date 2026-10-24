@@ -162,15 +162,24 @@ func labActorReference(scope authz.ResourceScope, id string) string {
 func (c *labAuthorityCore) authenticate(headers []string, now time.Time) (authz.Principal, authn.SnapshotRef, error) {
 	principal, ref, err := c.manager.AuthenticateAuthorizationValues(headers, now)
 	if err != nil {
-		if failure:=labAuthoritySnapshotFailure(err);failure!=nil{return authz.Principal{},authn.SnapshotRef{},failure}
+		if failure := labAuthoritySnapshotFailure(err); failure != nil {
+			return authz.Principal{}, authn.SnapshotRef{}, failure
+		}
 		return authz.Principal{}, authn.SnapshotRef{}, labAuthorityFailure("authentication_rejected")
 	}
 	return principal, ref, nil
 }
-func labAuthoritySnapshotFailure(err error)error{
-	if errors.Is(err,authn.ErrSnapshotClock){return labAuthorityFailure("clock_invalid")}
-	if errors.Is(err,authn.ErrSnapshotClosed){return labAuthorityFailure("authority_closed")}
-	if errors.Is(err,authn.ErrSnapshotUnavailable)||errors.Is(err,authn.ErrSnapshotUnsupported){return labAuthorityFailure("authority_unavailable")};return nil
+func labAuthoritySnapshotFailure(err error) error {
+	if errors.Is(err, authn.ErrSnapshotClock) {
+		return labAuthorityFailure("clock_invalid")
+	}
+	if errors.Is(err, authn.ErrSnapshotClosed) {
+		return labAuthorityFailure("authority_closed")
+	}
+	if errors.Is(err, authn.ErrSnapshotUnavailable) || errors.Is(err, authn.ErrSnapshotUnsupported) {
+		return labAuthorityFailure("authority_unavailable")
+	}
+	return nil
 }
 func (c *labAuthorityCore) evaluate(p authz.Principal, action authz.Action, initiator, approver string, now time.Time) error {
 	decision := authz.Evaluate(authz.Request{Principal: p, Action: action, Resource: c.scope,
@@ -182,7 +191,11 @@ func (c *labAuthorityCore) evaluate(p authz.Principal, action authz.Action, init
 }
 func (c *labAuthorityCore) current(ref authn.SnapshotRef, id string, action authz.Action, initiator, approver string, now time.Time) error {
 	p, err := c.manager.CurrentPrincipal(ref, id, now)
-	if err!=nil{if failure:=labAuthoritySnapshotFailure(err);failure!=nil{return failure}}
+	if err != nil {
+		if failure := labAuthoritySnapshotFailure(err); failure != nil {
+			return failure
+		}
+	}
 	if err != nil || p.ID != id {
 		return labAuthorityFailure("snapshot_stale")
 	}
@@ -192,22 +205,52 @@ func (c *labAuthorityCore) current(ref authn.SnapshotRef, id string, action auth
 // Read authentication is independent of issued write sessions. It neither
 // restores approval from JSON nor grants a dispatch capability.
 func (a *labAuthority) authorizeRead(headers []string, now time.Time) error {
-	c,now,err:=a.lock(now);if err!=nil{return err};defer c.mu.Unlock()
-	p,_,err:=c.authenticate(headers,now);if err!=nil{return err}
-	return c.evaluate(p,authz.ActionReadResource,"","",now)
+	c, now, err := a.lock(now)
+	if err != nil {
+		return err
+	}
+	defer c.mu.Unlock()
+	p, _, err := c.authenticate(headers, now)
+	if err != nil {
+		return err
+	}
+	return c.evaluate(p, authz.ActionReadResource, "", "", now)
 }
 
 // Starting preparation requires the same current real identities as dispatch,
 // but is not the later PREPARED/ARMED permission check and grants no PUT.
-func (a *labAuthority) authorizeExecutionStart(headers []string,h *labSession,now time.Time) error {
-	c,now,err:=a.lock(now);if err!=nil{return err};defer c.mu.Unlock()
-	s,err:=c.session(h);if err!=nil{return err}
-	if err:=labAuthorityLockStore(s.store,s.owner,true,now);err!=nil{return err};defer s.store.mu.Unlock()
-	active,err:=c.binding(s,now,true);if err!=nil{return err};if active.Phase!="APPROVED"||active.Attempt!=0||active.Intent!=nil{return labAuthorityFailure("dispatch_phase_invalid")}
-	p,_,err:=c.authenticate(headers,now);if err!=nil{return err}
-	if err:=c.current(s.initiatorRef,s.initiatorID,authz.ActionCreateOperation,"","",now);err!=nil{return err}
-	if err:=c.current(s.approverRef,s.approverID,authz.ActionApproveOperation,s.initiatorID,"",now);err!=nil{return err}
-	return c.evaluate(p,authz.ActionExecuteOperation,s.initiatorID,s.approverID,now)
+func (a *labAuthority) authorizeExecutionStart(headers []string, h *labSession, now time.Time) error {
+	c, now, err := a.lock(now)
+	if err != nil {
+		return err
+	}
+	defer c.mu.Unlock()
+	s, err := c.session(h)
+	if err != nil {
+		return err
+	}
+	if err := labAuthorityLockStore(s.store, s.owner, true, now); err != nil {
+		return err
+	}
+	defer s.store.mu.Unlock()
+	active, err := c.binding(s, now, true)
+	if err != nil {
+		return err
+	}
+	if active.Phase != "APPROVED" || active.Attempt != 0 || active.Intent != nil {
+		return labAuthorityFailure("dispatch_phase_invalid")
+	}
+	p, _, err := c.authenticate(headers, now)
+	if err != nil {
+		return err
+	}
+	if err := c.current(s.initiatorRef, s.initiatorID, authz.ActionCreateOperation, "", "", now); err != nil {
+		return err
+	}
+	if err := c.current(s.approverRef, s.approverID, authz.ActionApproveOperation, s.initiatorID, "", now); err != nil {
+		return err
+	}
+	return c.evaluate(p, authz.ActionExecuteOperation, s.initiatorID, s.approverID, now)
 }
 
 func (a *labAuthority) authenticateInitiator(headers []string, now time.Time) (*labInitiator, error) {

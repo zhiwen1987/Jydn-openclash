@@ -23,7 +23,9 @@ var errMihomoLabRuntime = errors.New("isolated Mihomo lifecycle runtime unavaila
 var mihomoLabScopePart = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 
 func mihomoLabContextPresent(ctx context.Context) bool {
-	if ctx == nil { return false }
+	if ctx == nil {
+		return false
+	}
 	v := reflect.ValueOf(ctx)
 	switch v.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
@@ -60,18 +62,18 @@ func validateMihomoLabConfig(c Config) error {
 
 type MihomoLabRuntime struct{ core *mihomoLabRuntimeCore }
 type mihomoLabRuntimeCore struct {
-	mu      sync.Mutex
-	closeMu sync.Mutex
-	manager *authn.SnapshotManager
-	service *mihomodeploy.LabService
-	ready   bool
+	mu       sync.Mutex
+	closeMu  sync.Mutex
+	manager  *authn.SnapshotManager
+	service  *mihomodeploy.LabService
+	ready    bool
 	writable bool
-	closing bool
-	closed  bool
+	closing  bool
+	closed   bool
 }
 
-func (MihomoLabRuntime) String() string { return mihomoLabRuntimeDebug }
-func (MihomoLabRuntime) GoString() string { return mihomoLabRuntimeDebug }
+func (MihomoLabRuntime) String() string             { return mihomoLabRuntimeDebug }
+func (MihomoLabRuntime) GoString() string           { return mihomoLabRuntimeDebug }
 func (MihomoLabRuntime) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, mihomoLabRuntimeDebug) }
 func (MihomoLabRuntime) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"ISOLATED_LAB_RUNTIME_NOT_AUTHORIZATION"}`), nil
