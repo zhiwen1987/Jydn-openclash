@@ -40,7 +40,7 @@
 
 ## 新增源码候选：单记录耐久状态与认证快照
 
-以下为本次未提交、未编译的源码候选，不是已经运行的设备能力。生命周期依然不提供公开Arm／Execute／Bootstrap入口；结构材料和内存owner都不能授予设备权限。
+以下为开发提交db99f1327dcd07b3872c9a9408a4e16137a0829b中的源码，尚未取得新范围的实际编译与运行验收，不是已经运行的设备能力。生命周期依然不提供公开Arm／Execute／Bootstrap入口；结构材料和内存owner都不能授予设备权限。
 
 - 私有单一control.json同时记录revision、已声明head、owner／fence、计划、结构批准、撤销、唯一意图、原始请求结果与不可删除的tombstones。CAS要求原记录和精确字节不变，提交后再次完整重读；未知提交使实例失效。重开ARMED／ACK记录转UNKNOWN，不恢复发送能力。只有未发送的三种前置状态在旧owner过期后可取得新fence，保留原计划；任何已发／未知状态不能靠TTL重发。时间回退使当前实例失效。
 - Linux后端持固定host全局锁与目录锁，使用dirfd、命名身份、mount身份和私有权限核对；原artifact与新WAL复用一个封闭原子写入器。WAL必须完整写入、fsync、关闭、rename、目录fsync、安全重新打开并逐字节读回才报告COMMITTED；rename之后的任何不确定均封闭。仅有安全既存control时才清理严格归属的崩溃前临时文件，缺control／异常文件保留拒绝。它是同host合作写者保护，不是分布式fencing或防任意同UID恶意操作。

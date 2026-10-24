@@ -1,0 +1,15 @@
+{
+  "actualNewGoOrRuntimeAcceptance": false,
+  "baseline": "db99f1327dcd07b3872c9a9408a4e16137a0829b",
+  "ciMetadataRead": "RATE_LIMITED_NO_RUN_HANDLE",
+  "codeCommit": "db99f1327dcd07b3872c9a9408a4e16137a0829b",
+  "codeIntegration": "D:/CodexData/workspace/mihomo-durable-lifecycle-integrate-g60v_qfa/result.json",
+  "mainMerged": false,
+  "production": false,
+  "rateResetUTC": "2026-10-24T17:39:01Z",
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-lifecycle-source-status-followup/v1",
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "5d0e086c1f0e4f38ea7c7eab8f653297b085f7695bf4e1f15e308204f9e11494"
+  }
+}
