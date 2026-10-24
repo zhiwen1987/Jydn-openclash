@@ -118,11 +118,13 @@ describe('P1 probe read-only transport', () => {
     for (const outcome of ['RESOLVED', 'REJECTED']) {
       let resolve!: () => void, reject!: (error: Error) => void
       const pending = new Promise<void>((yes, no) => { resolve = yes; reject = no })
-      const reader = { read: vi.fn().mockResolvedValueOnce({ done: false, value: new TextEncoder().encode(JSON.stringify(probeStatus())) }).mockResolvedValueOnce({ done: true }), cancel: vi.fn(() => pending), releaseLock: vi.fn() }
+      // This legacy cancellation-settlement case now exercises JSON rejection
+      // after EOF; successful EOF no longer performs redundant cancellation.
+      const reader = { read: vi.fn().mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('{') }).mockResolvedValueOnce({ done: true }), cancel: vi.fn(() => pending), releaseLock: vi.fn() }
       const response = probeResponse(probeStatus()); vi.spyOn(response.body!, 'getReader').mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>)
       vi.stubGlobal('fetch', vi.fn(async () => response))
       const before = rows().filter(row => row.e === 'CANCEL_RESULT').length
-      await expect(getProbeStatus(bound())).resolves.toMatchObject({ state: 'ready' })
+      await expect(getProbeStatus(bound())).rejects.toMatchObject({ kind: 'format' })
       expect(reader.cancel).toHaveBeenCalledOnce(); expect(reader.releaseLock).toHaveBeenCalledOnce()
       expect(rows().filter(row => row.e === 'CANCEL_RESULT')).toHaveLength(before)
       if (outcome === 'RESOLVED') resolve(); else reject(Error('PRIVATE_CANCEL_ERROR'))

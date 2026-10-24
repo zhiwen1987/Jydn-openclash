@@ -1,6 +1,35 @@
 # P2：订阅操作反馈修复与补充验收
 
-更新：2026-10-24。状态：首轮真实浏览器通过，但前端回归失败，本阶段整体未验收通过；下一修正尚待新源码 CI。仅开发分支，不授权生产变更。
+更新：2026-10-24。状态：e4156d6 的订阅反馈切片已完成 D 副本原件复算及独立复核；父门、旧订阅及镜像亦有分层验收。旧探针双引擎门仍失败，整体回归未通过。仅开发分支，不授权生产变更。
+
+## 最终有限收口：不等于完整系统或整轮回归通过
+
+根新D副本16 ZIP／446成员、源码exact-LF副本及全部48份执行记录已齐全：48次原CLI均实际exit0，报告与producer逐字一致，其中32份有真实fresh亦逐字一致；旧84／76共16份仅比较producer，不虚构fresh。10份先前实测exit0按固定摘要保留，38份新独占执行；中断的旧分析日志不覆盖，每条最终执行结果均独立落盘并fsync。输入原件与报告／日志在末次复核时摘要稳定。`root-originals.json` SHA256 `ea44f0444f63d00f05b17c066d1a1cadb66431332730199f6e7e37be69c257a4`。
+
+独立代理另行重放CDP反馈完整原CLI，实际exit0、50.531秒，报告与producer／fresh／根逐字相同，SHA256 `58797f9c2900225eb33c940691fdbb1f64796e28e848b7332845af625c98ba80`；同时复核48 journal的exit/source/report/log摘要和16 ZIP的CRC／保存API／成员字节。独立最终事实77544字节，SHA256 `d2f09b7eebbfabce960f3406f2d588a65b47a5f3f2628b22eb31f0b59a0b2996`，已归档[机器证据](evidence/p2-subscription-feedback-e4156d6.json)。
+
+镜像新原件1470个安全成员完成前后SHA复核；前端实际222/222、旧197＋新25精确名单、零skip，CI内tsc／ESLint／Vite通过，子模块ordinary/race各732、Registry各3。前端门／Go事件门与六个产品Registry／生命周期／崩溃／状态／来源／TLS原门实际重放通过，六报告与CI逐字一致。此为隔离候选镜像，不是正式Registry发行或生产镜像上线。主审计10083字节，SHA256 `2ededc222475c404f364f5dc7c667c3a3bc9428b02a66a9150e21eac351aa3a7`。
+
+16张真实原PNG已由独立代理逐张审看；根此前实际审看新负例两引擎的桌面／手机首屏。明确409后的桌面不再残留WAITING，手机截图是后续历史回执阶段，不能冒充同一409或完整移动流程。49反馈阶段是来源绑定的可信CI枚举观测，不是原文独立公证；真实unknown／timeout、键盘／读屏、完整B01–B23及生产均未完成。
+
+API后续刷新遇403限流，已停止重复请求，不换凭据或接口绕过；最终保管复核采用先前保存且摘要一致的原API元数据，**不是新的实时GitHub刷新**。C副本字节变化、OOM和本机包装错误均保留，不推断硬件原因。下一探针[EOF清理候选](P2-PROBE-EOF-CLEANUP.md)另算尚待真实CI的增量，不能借本e415切片收口声称新清理已验。
+
+## 当前源码的实际结果与验收中断记录
+
+源码 `e4156d64341f5f92eeca9bfa7c8b09066cf69c64`，均原 attempt1：
+
+- [订阅 UI 40042582508](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042582508)：八 producer＋八 fresh success。两个反馈报告各 49 阶段，仍只覆盖明确拒绝／历史回执，不证明真实 unknown／timeout。
+- [镜像 40042582526](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042582526)：终态 success；实际前端名单／JSON、Go 子模块、Registry 和候选镜像证据正在独立复核，不把终态当全部逐项通过。
+- [父门 40042582510](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042582510)及[旧订阅 40042582543](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042582543)：success。已分层复核父 ordinary/race 各 2644 Test（各 10811 事件，另有各 4 Fuzz 顶层＋8 seed，非持续 fuzz）、旧订阅 80 项／20 输入／926 Git 与两 Linux 报告字节一致。Windows 原 POSIX reader 仍拒绝，不冒称本机完整旧 CLI 通过。
+- [旧探针 40042582518](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40042582518)：failure，两引擎真实运行步骤 success、原独立门 exit1。新 D 副本原 CLI 与只读 trace 均定位原 `validate_driver` 的八计数须全零条件；两个原 driver 均 `failedRequests=1`、其余七计数零。具体哪个请求及原因仍在查，不能借订阅成功抵消此失败，也不放宽原门。
+
+**本机证据副本异常，不归因产品或系统硬件：** 原 C:/Temp 解包后的 JSON/log/PNG 在初次摘要校验之后出现字节变化，个别不再是 JSON；根及独立子代理均复现。原 ZIP 仍与 GitHub API digest／长度及 ZIP CRC／原成员摘要相同。原异常文件不覆盖，历史“验后稳定”只代表当时采样，不能当作当前稳定保管结论。根旧 fbdd 本地重放最终稳定性断言失败，不记全通过；代理 C 的一次本地离线 Python preinitialization Out of memory 亦保留为本机分析失败，不记 CI 失败。原因尚未证实，没有运行磁盘修复、系统设置修改或生产操作。
+
+当前从仍 API 摘要一致的原 ZIP，在独立 D 盘目录以 O_EXCL／flush／fsync／写后逐 byte／全成员前后摘要重建。根 `D:/CodexData/workspace/cfr-_b6cmgfu/`：16 ZIP／446 成员已重建校验，原 48 CLI 复算进行中。父／旧订阅已锚原件另保管于 `D:/CodexData/workspace/cw-e4156d6-original-a-c89dc74ba5f14166904035773934e477/e415-parent-oldsub/`，42 份文件及前后字节已核，D manifest SHA256 `4361e808a10366422b9c62159f3b059f2049c24ce5d272ef2ce272acfadfb90a`。D 副本本次采样稳定也不等于未来耐久或本机根因已修。
+
+目标续轮后旧本地分析句柄已不存在，且 Win32_Process 未见对应进程；未据“等待超时”重复启动。根保留已在上一工具输出观察到 exit0 且 SHA 固定的十份 D 报告，只补缺少的 38 份；旧中断日志保留，不是重跑或取消 CI。全局最多两条重型 Git 原件复算，其余子代理先核保管、截图和原始诊断，避免盲目增加并发。
+
+另已按实际 lock 的 Testing Library 10.4.2 核官方 [单对象查询实现](https://github.com/testing-library/dom-testing-library/blob/6049cc0bc7cf2201625c476c95fa6299d0e2fa8b/src/query-helpers.ts)及[文本查询实现](https://github.com/testing-library/dom-testing-library/blob/6049cc0bc7cf2201625c476c95fa6299d0e2fa8b/src/queries/text.ts)，确认多匹配拒绝及默认精确字符串语义。GitHub tag 实际解析到提交 `6049cc0bc7cf2201625c476c95fa6299d0e2fa8b`；本次只参考定位行为，没有引入新依赖或复制上游实现。
 
 ## 首轮真实 CI 失败记录，不回填成功
 
@@ -27,7 +56,7 @@ A 独立原件目录 `C:/Users/Administrator/AppData/Local/Temp/cw-fbddae3-origi
 
 未修改 API、回执 owner 校验、写锁、意图归属、重试或会话存储语义；没有增加自动重提、轮询或 React effect。
 
-## 分层证据与退出条件
+## 首次提交前的分层证据与退出条件（历史状态）
 
 | 层级 | 当前事实 | 不能据此声称 |
 | --- | --- | --- |
@@ -54,4 +83,4 @@ A 独立原件目录 `C:/Users/Administrator/AppData/Local/Temp/cw-fbddae3-origi
 
 ## 下一步
 
-交叉复核后由唯一集成者提交开发分支，核对原 attempt1 的 UI、父门、旧订阅、镜像绑定及旧探针回归。任何失败保留原件，先查源码和实际错误；方案不明确时查官方 GitHub 源码、文档、Issue 和测试，不猜测修复。取得真实原件后补充逐字复算、截图与实际完成／未完成记录。本记录当前不宣告修复验收成功。
+继续实施并隔离验收[EOF清理增量](P2-PROBE-EOF-CLEANUP.md)，不放宽旧零错误门；随后推进完整订阅和整套系统功能。任何失败保留原件，先查源码和实际错误；方案不明确时查官方 GitHub 源码、文档、Issue 和测试，不猜测修复。由唯一集成者更新台账；不以部分成功宣告整套系统验收完成、正式发布或上线。下方早期“进行中／待执行”等描述均是对应时点历史，由本节最终证据更新，不回填旧失败。

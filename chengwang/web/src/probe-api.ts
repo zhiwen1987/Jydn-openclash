@@ -129,7 +129,7 @@ async function read(path: string, signal: AbortSignal, token?: string): Promise<
   }
   const reader = response.body.getReader()
   let size = 0, body = ''
-  let eof = false
+  let eof = false, readComplete = false
   let phase: 'READ_ERROR' | 'UTF8_REJECT' | 'SIZE_REJECT' | 'JSON_REJECT' = 'READ_ERROR'
   const decoder = new TextDecoder('utf-8', { fatal: true })
   try {
@@ -152,6 +152,7 @@ async function read(path: string, signal: AbortSignal, token?: string): Promise<
     body += decoder.decode()
     phase = 'JSON_REJECT'
     const parsed: unknown = JSON.parse(body)
+    readComplete = true // Stream/UTF-8/JSON completion only, not DTO or business validity.
     observeProbeStatus(signal, { e: 'READ_END', k: 'EOF_OK', n: Math.min(size, limit + 1), f: eof })
     return parsed
   } catch (error) {
@@ -159,12 +160,15 @@ async function read(path: string, signal: AbortSignal, token?: string): Promise<
     if (signal.aborted || error instanceof ProbeReadError) throw error
     throw new ProbeReadError(0, 'format')
   } finally {
-    // A hostile cancellation promise must not keep rejection/loading pending.
-    observeProbeStatus(signal, { e: 'CANCEL', p: 'BEFORE', n: Math.min(size, limit + 1), f: eof })
-    if (!requestBinding.cancel(signal, () => reader.cancel())) {
-      try { void reader.cancel().catch(() => {}) } catch { /* no raw errors */ }
+    // A successfully parsed EOF needs only lock release. Rejection paths still
+    // cancel without awaiting a potentially hostile cancellation promise.
+    if (!readComplete) {
+      observeProbeStatus(signal, { e: 'CANCEL', p: 'BEFORE', n: Math.min(size, limit + 1), f: eof })
+      if (!requestBinding.cancel(signal, () => reader.cancel())) {
+        try { void reader.cancel().catch(() => {}) } catch { /* no raw errors */ }
+      }
+      observeProbeStatus(signal, { e: 'CANCEL', p: 'AFTER', n: Math.min(size, limit + 1), f: eof })
     }
-    observeProbeStatus(signal, { e: 'CANCEL', p: 'AFTER', n: Math.min(size, limit + 1), f: eof })
     reader.releaseLock()
   }
 }

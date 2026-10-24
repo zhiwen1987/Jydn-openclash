@@ -481,6 +481,42 @@ jobs:
               raise SystemExit('browser-unit-plan-rejected')
           PY
 
+      - name: Freeze new EOF cleanup helper cases without claiming browser acceptance
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          (
+            cd chengwang/deploy/probe-readback
+            python3 -B - <<'PY' 2>&1 | tee "$lab/evidence/eof-cleanup-unit.log"
+          import ast, hashlib, importlib, pathlib, unittest
+          module_name = 'test_check_eof_cleanup'
+          class_name = 'EOFCleanupVerifierContracts'
+          expected = 'd8221a96161f7d586432a12043473d9542a6af64f93c6d90167f0ba3848d4060'
+          tree = ast.parse(pathlib.Path(module_name + '.py').read_bytes())
+          names = sorted(module_name + '.' + node.name + '.' + method.name
+              for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name
+              for method in node.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_'))
+          if len(names) != 26 or len(set(names)) != 26 or hashlib.sha256('\n'.join(names).encode()).hexdigest() != expected:
+              raise SystemExit('eof-cleanup-unit-names-rejected')
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args); self.runs = []; self.passes = []
+              def startTest(self, test):
+                  self.runs.append(test.id()); super().startTest(test)
+              def addSuccess(self, test):
+                  self.passes.append(test.id()); super().addSuccess(test)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(
+              unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(module_name)))
+          if (not result.wasSuccessful() or result.testsRun != 26 or result.skipped
+              or result.expectedFailures or result.unexpectedSuccesses
+              or sorted(result.runs) != names or sorted(result.passes) != names):
+              raise SystemExit('eof-cleanup-unit-events-rejected')
+          print('PROBE_EOF_SYNTHETIC=PASS tests=26 skips=0 original_cli_execution=mocked browser_started=false')
+          PY
+          )
+
       - name: Exercise real browser against real agent spool and product API
         shell: bash
         run: |
@@ -558,6 +594,19 @@ jobs:
           python3 -B chengwang/deploy/probe-readback/probe_browser_identity.py \
             --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
             --engine '${{ matrix.engine }}' --report "$evidence/browser-identity-verification.json"
+
+      - name: Independently verify normal JSON EOF cleanup after original browser acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          report="$RUNNER_TEMP/probe-eof-cleanup-verification.json"
+          python3 -B chengwang/deploy/probe-readback/check_eof_cleanup.py \
+            --evidence-root "$evidence" --source-commit "$GITHUB_SHA" \
+            --engine '${{ matrix.engine }}' --repo "$GITHUB_WORKSPACE" --report "$report" \
+            2>&1 | tee "$evidence/eof-cleanup-original.log"
+          test ! -e "$evidence/eof-cleanup-verification.json"
+          install -m 0644 "$report" "$evidence/eof-cleanup-verification.json"
 
       - name: Verify exact source bytes and worktree remained unchanged
         if: always()

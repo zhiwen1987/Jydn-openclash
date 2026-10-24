@@ -1,0 +1,1809 @@
+{
+  "ZIPCount": 16,
+  "actualFreshByteComparisons": 32,
+  "all48ProducerByteEqual": true,
+  "allTrackedInputsEqualBeforeAfter": true,
+  "allZIPCRCAndAPISavedMetadataAndMemberSHA256Rechecked": true,
+  "apiMetadataFreshness": "PREVIOUS_SAVED_PUBLIC_TERMINAL_METADATA_RECHECK_ONLY_API_RATE_LIMIT_HONORED",
+  "apiRefreshPerformed": false,
+  "archives": [
+    {
+      "bytes": 8877,
+      "members": 12,
+      "name": "subscription-ui-fresh-remote_handoff_negative-chrome-cdp-40042582508-1",
+      "sha256": "f001e883c2dd3ad883bb8d408d31c20ff8f856b1e2797be4a30597f014b8abfd"
+    },
+    {
+      "bytes": 4379,
+      "members": 6,
+      "name": "subscription-ui-fresh-local_admission-chrome-cdp-40042582508-1",
+      "sha256": "7d26a4c60187bea8f13ccbdafd12ad2a52c7d59a5895c26916be77a0e08fe939"
+    },
+    {
+      "bytes": 717096,
+      "members": 40,
+      "name": "subscription-ui-create_receipt-chrome-cdp-40042582508-1",
+      "sha256": "ceadc3990ed38ea550a33fce16e29921255fd48b90e99b514f61d4f984bc6e53"
+    },
+    {
+      "bytes": 4229,
+      "members": 6,
+      "name": "subscription-ui-fresh-create_receipt-playwright-40042582508-1",
+      "sha256": "1da0cfc69dad1eeebf4fb8d5c8548734feb25a373b91d35f1a893c0d1d5342a0"
+    },
+    {
+      "bytes": 757908,
+      "members": 59,
+      "name": "subscription-ui-remote_handoff_negative-playwright-40042582508-1",
+      "sha256": "174e24942b58425c206af454e5ed28ddb38ee6992d05fdde8a2236dc00c0fc93"
+    },
+    {
+      "bytes": 758096,
+      "members": 59,
+      "name": "subscription-ui-remote_handoff_negative-chrome-cdp-40042582508-1",
+      "sha256": "fe9dae66060c1713bc720a1f12a2566978231391d0c1ad888c6b3410c5a98736"
+    },
+    {
+      "bytes": 717229,
+      "members": 40,
+      "name": "subscription-ui-create_receipt-playwright-40042582508-1",
+      "sha256": "13ea94a4b72a0db0b1f7ba6908bd0c2ce1a4fafaf30e2f333e251240847e2e53"
+    },
+    {
+      "bytes": 740411,
+      "members": 52,
+      "name": "subscription-ui-remote_fetch-playwright-40042582508-1",
+      "sha256": "b51ffd9fb261e24ff932ec6d9e708c97195f3bd8c4b4c14214e66c09cc6bf1fb"
+    },
+    {
+      "bytes": 740409,
+      "members": 52,
+      "name": "subscription-ui-remote_fetch-chrome-cdp-40042582508-1",
+      "sha256": "79909c1e73480c87e2431f91efccf24414f3805c6deb3919b76e2c5c9e057b74"
+    },
+    {
+      "bytes": 749313,
+      "members": 40,
+      "name": "subscription-ui-local_admission-chrome-cdp-40042582508-1",
+      "sha256": "168bf0294be3ff4e96885c3838d755083f0d0b96d12122a62c7e1e1c33145650"
+    },
+    {
+      "bytes": 5748,
+      "members": 8,
+      "name": "subscription-ui-fresh-remote_fetch-playwright-40042582508-1",
+      "sha256": "f44b507ff3d68169ec016a549b8a05c45c97dc7edafb1fbd3662c472b093f766"
+    },
+    {
+      "bytes": 4385,
+      "members": 6,
+      "name": "subscription-ui-fresh-local_admission-playwright-40042582508-1",
+      "sha256": "34eb43e36349c9dcf9b592ce5748b618da9df1aaccb88edcf357f45da7c3c6e9"
+    },
+    {
+      "bytes": 5748,
+      "members": 8,
+      "name": "subscription-ui-fresh-remote_fetch-chrome-cdp-40042582508-1",
+      "sha256": "210393bccece46f3303bb0c83b9071287677a853d5e010bae6146eeb502a2e99"
+    },
+    {
+      "bytes": 4226,
+      "members": 6,
+      "name": "subscription-ui-fresh-create_receipt-chrome-cdp-40042582508-1",
+      "sha256": "4de9f05f43fbbb066168e97b46c1004d9ff03358a086c1d3d5f0a20856cb3a8c"
+    },
+    {
+      "bytes": 748999,
+      "members": 40,
+      "name": "subscription-ui-local_admission-playwright-40042582508-1",
+      "sha256": "32a92c6d5215f0482f2cd77bdf830d759bfc060c704f947fc2c4c746bb74f1a1"
+    },
+    {
+      "bytes": 8878,
+      "members": 12,
+      "name": "subscription-ui-fresh-remote_handoff_negative-playwright-40042582508-1",
+      "sha256": "13dca27dca5d91d672a7d821e465376707b11cd53e42bb6d7f3c8732e6d150b8"
+    }
+  ],
+  "authorization": "BLOCKED",
+  "completeUXClosureProven": false,
+  "fullSubscriptionE2EProven": false,
+  "imageAndParentAndOldsubEvidence": {
+    "all9PriorLogsSHA256Rechecked": true,
+    "audit": {
+      "bytes": 10083,
+      "path": "D:\\CodexData\\workspace\\cw-e4156d6-original-a-c89dc74ba5f14166904035773934e477\\image-actual-audit-e415.json",
+      "sha256": "2ededc222475c404f364f5dc7c667c3a3bc9428b02a66a9150e21eac351aa3a7"
+    },
+    "bounds": {
+      "browserImagesIndependentlyViewedThisAudit": false,
+      "compiledOrImageExecutedLocally": false,
+      "formalReleaseAuthorized": false,
+      "fullSubscriptionE2EProven": false,
+      "futureDurabilityProven": false,
+      "localGoOrNpmExecuted": false,
+      "oldFbddFailureRewritten": false,
+      "privateRuntimeELFChromeFontsDownloaded": false,
+      "productionTouched": false,
+      "registryGraphBytesDownloadedByReviewer": false,
+      "sourceCommitLocalImageIDAndRegistryManifestDistinct": true
+    },
+    "frontend": {
+      "actualPassed": 222,
+      "eslint": "CI_SUCCESS_EMPTY_LOG",
+      "files": {
+        "App.test.tsx": {
+          "cases": 10,
+          "sha256SortedFullNamesNoTail": "0967a6b60f1101258f42a2a0bd0a6d9dc921af6950a3952f5deee76cad0bf0a6"
+        },
+        "ImageTrustConsole.test.tsx": {
+          "cases": 21,
+          "sha256SortedFullNamesNoTail": "39d7c98703a268fc2e6810e36720df7738970a914d9e2a27170ae507859b4986"
+        },
+        "OperationCenter.test.tsx": {
+          "cases": 8,
+          "sha256SortedFullNamesNoTail": "8e0a8700ad2d1d3d58b87c7f215798e12a1f4658e65a41b0557aea5d37b0992f"
+        },
+        "ProbeReadback.test.tsx": {
+          "cases": 19,
+          "sha256SortedFullNamesNoTail": "5f0bc545408372db9110639d743c8375937645dac2fffe7942642bf4f10a6313"
+        },
+        "Subscriptions.test.tsx": {
+          "cases": 35,
+          "sha256SortedFullNamesNoTail": "98752b4912285685197f89f7918138050769b3d06fa8a3b69d315c1d472a9ef3"
+        },
+        "SubscriptionsFeedback.test.tsx": {
+          "cases": 25,
+          "sha256SortedFullNamesNoTail": "9320b1e792e6e1b9c5a6d4c7b45a070f4b187b76e5e51fd5381d2373dd898860"
+        },
+        "api.test.ts": {
+          "cases": 3,
+          "sha256SortedFullNamesNoTail": "af87cc03df0bb1d89d064461dd8ad45e7accbb7811ca06d12ee37b5de3f9c670"
+        },
+        "image-trust-api.test.ts": {
+          "cases": 36,
+          "sha256SortedFullNamesNoTail": "a2febdcfd345b9464200ab7c4a1255ec4a8b0550364ed129b364639d61c111bb"
+        },
+        "probe-api.test.ts": {
+          "cases": 25,
+          "sha256SortedFullNamesNoTail": "978d9720d5b102cb6b87e29bffb26a32f7d62c1a6d498aac0806471e589c9c29"
+        },
+        "subscription-api.test.ts": {
+          "cases": 40,
+          "sha256SortedFullNamesNoTail": "de4c10feb1681a8cc53b4678b094831943404ee59ceb8fbf6be3680a3a3569b6"
+        }
+      },
+      "mockedUnitTestsOnly": true,
+      "newFeedback25": true,
+      "old197RetainedByOriginalExactNameGate": true,
+      "skips": 0,
+      "typecheckBothAppAndNode": "CI_LINEAR_SET_E_GATE_COMPLETED_NOT_LOCAL_COMPILATION",
+      "viteBuild": "CI_SUCCESS_1941_MODULES"
+    },
+    "goActual": {
+      "go-race.json": {
+        "events": 2978,
+        "failedEvents": 0,
+        "namedPairsSHA256": "c5c7f74fd1498e0ddb16a5adca5f7ed90c079a3075869e5b1b040c920a41d4f5",
+        "passedNamedPairs": 732,
+        "skips": 0
+      },
+      "go-test.json": {
+        "events": 2978,
+        "failedEvents": 0,
+        "namedPairsSHA256": "c5c7f74fd1498e0ddb16a5adca5f7ed90c079a3075869e5b1b040c920a41d4f5",
+        "passedNamedPairs": 732,
+        "skips": 0
+      },
+      "registry-ordinary.json": {
+        "events": 20,
+        "failedEvents": 0,
+        "namedPairsSHA256": "7c557fa51c6dd6534d2b13092a11430e0b7526fa1155fe062715130ccb20cb5d",
+        "passedNamedPairs": 3,
+        "skips": 0
+      },
+      "registry-race.json": {
+        "events": 20,
+        "failedEvents": 0,
+        "namedPairsSHA256": "7c557fa51c6dd6534d2b13092a11430e0b7526fa1155fe062715130ccb20cb5d",
+        "passedNamedPairs": 3,
+        "skips": 0
+      }
+    },
+    "imageOutcome": {
+      "authorization": "BLOCKED",
+      "browserChecks": 45,
+      "browserHTTPSNormalVerification": true,
+      "defaultEntrypoint": true,
+      "gracefulStops": 5,
+      "imagePublished": false,
+      "localImageID": "sha256:bcfc1c28b49ad827b008f1d0e5d90bec04c8f8441127b9c2ddbf9c40f584e258",
+      "negativeStartupCases": 4,
+      "outcome": "PASS",
+      "productImageExecuted": true,
+      "production": false,
+      "registryManifestDigestVerified": false,
+      "sameImageRestartReadback": true,
+      "schema": "chengwang.product-image-gate/v1",
+      "serverNegativeHTTPCountObserved": false,
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64",
+      "stateReopenedAfterStops": true
+    },
+    "manifest": {
+      "bytes": 336761,
+      "path": "D:\\CodexData\\workspace\\cw-e4156d6-original-a-c89dc74ba5f14166904035773934e477\\image-d-original-manifest.json",
+      "sha256": "416365d3b9c651a485f337a492d556dff3117a3e4d76ece1a6740693391c3fbd"
+    },
+    "offlineCLIsExecutedByThisReviewer": 0,
+    "priorAuditReportedOfflineCLIReplays": 9,
+    "registry": {
+      "actualProductAPIRegistryReads": 2,
+      "approvedConsumptions": 2,
+      "authority": "EPHEMERAL_TEST_ONLY",
+      "authorization": "BLOCKED",
+      "cleanupVerified": true,
+      "deviceActionsExecuted": false,
+      "finalReopen": {
+        "auditEntries": 20,
+        "generation": 2,
+        "journalEntries": 10,
+        "ledgerEntries": 3,
+        "sequence": 44
+      },
+      "firstReopen": {
+        "auditEntries": 8,
+        "generation": 1,
+        "journalEntries": 4,
+        "ledgerEntries": 2,
+        "sequence": 19
+      },
+      "formalSLSAProvenance": false,
+      "gracefulStops": 4,
+      "graphBytesOrigin": "NORMAL_TLS_REGISTRY_READBACK_MATCHED_UPLOAD",
+      "identityRoles": "SOURCE_COMMIT_LOCAL_CONFIG_ID_REGISTRY_MANIFEST_DISTINCT",
+      "localGraphBytesGatePassed": true,
+      "localImageID": "sha256:bcfc1c28b49ad827b008f1d0e5d90bec04c8f8441127b9c2ddbf9c40f584e258",
+      "normalTLSAndFixedSPKIExercised": true,
+      "outcome": "PASS",
+      "perCaseZeroRequestWindows": 18,
+      "privateGraphDownloadedByReviewer": false,
+      "productImagePublishedOutsideIsolatedRegistry": false,
+      "production": false,
+      "registryCounterSnapshots": 44,
+      "registryManifestDigest": "sha256:a7e40cb27e965eeb855ebbdac1235bf0e1bfb6e2f758a9049d1ee4b42c80f24c",
+      "releaseAuthorized": false,
+      "sameContainerRestart": true,
+      "schema": "chengwang.product-registry-gate/v1",
+      "signatureKinds": [
+        "message-signature",
+        "dsse"
+      ],
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64",
+      "trustedBuilderAttestation": false
+    },
+    "safe1470MembersRechecked": true
+  },
+  "independentChildOriginalCLI": {
+    "actualReportFields": {
+      "authorization": "BLOCKED",
+      "businessReportSHA256": "2f408ce15ccdedaac98e2777314c1b6b22f496d6f104ebedcf9a6c3492386183",
+      "completeUXClosureProven": false,
+      "crossOwner403FeedbackStages": 1,
+      "engine": "chrome-cdp",
+      "exactDOMJSONLSHA256": "2af53c9c96f6a576783e39ae10990781790b9c4a4c7903e7751195dbfe9dd3c8",
+      "feedbackContractSHA256": "784958f766756a768990d560684697981b30aef6bebd42fe427cfb50ff25bd70",
+      "feedbackRowsSHA256": "71dd325296660013948c936edf5f4e3d1d4d4310a3391962a3c6c5a7938d2beb",
+      "fixtureId": "491fb6ab88cc4d56ac3f7b191d46adbe",
+      "fullSubscriptionE2EProven": false,
+      "knownHandoff409FeedbackStages": 4,
+      "normalBusinessEvidenceIndependentlyReplayed": true,
+      "observationTrust": "SOURCE_BOUND_TRUSTED_CI_SAME_TASK_RENDERED_DOM_ENUM_NOT_INDEPENDENT_BROWSER_ATTESTATION",
+      "observations": 49,
+      "originalBusinessVerifierModified": false,
+      "outcome": "PASS",
+      "ownFailedReceiptFeedbackStages": 5,
+      "packetEvidenceProven": false,
+      "perHTTPFeedbackCausalityProven": false,
+      "production": false,
+      "publicSupervisorTranscriptSHA256": "a5a93a81e6f944f9c32afdbbd0641822a2afb1db75e8c1a1534fe71ca2af97fc",
+      "rawNoticeTextIndependentlyVerified": false,
+      "remaining": [
+        "Real unknown result and timeout feedback without mock",
+        "Keyboard screen-reader and offscreen UX acceptance",
+        "Remaining B01-B23 and production rollback acceptance"
+      ],
+      "scenario": "remote_handoff_negative",
+      "schema": "chengwang.handoff-feedback-verification/v1",
+      "scope": "REAL_RENDERED_NOTICE_ENUM_AND_DOM_ROW_BINDING_ONLY_NOT_INDEPENDENT_BROWSER_ATTESTATION",
+      "screenshotVisualReviewProven": false,
+      "sourceBindings": [
+        {
+          "bytes": 9495,
+          "path": "chengwang/deploy/subscription-ui-browser/check_handoff_feedback.py",
+          "sha256": "a0de4454c14e1c0f9ddecfb3c612d866cca31cf2cc8b37aa644c268db66d2b24"
+        },
+        {
+          "bytes": 9863,
+          "path": "chengwang/tools/subscription-ui-browser/handoff-feedback-contract.json",
+          "sha256": "784958f766756a768990d560684697981b30aef6bebd42fe427cfb50ff25bd70"
+        },
+        {
+          "bytes": 3344,
+          "path": "chengwang/tools/subscription-ui-browser/handoff-feedback-contract.mjs",
+          "sha256": "eb4ffad76ea6905014c4436ad137a6e61867d668b4b4fb19ad32e83231ba3cfb"
+        },
+        {
+          "bytes": 2753,
+          "path": "chengwang/tools/subscription-ui-browser/handoff-feedback-observer.mjs",
+          "sha256": "1061dafe2b12bfe5f5f3a6bf7b5c133621bca9dec7e9b33eadf4124e4a5386c4"
+        },
+        {
+          "bytes": 26200,
+          "path": "chengwang/tools/subscription-ui-browser/handoff-negative-driver.mjs",
+          "sha256": "a3380bd20b2cd056bd87c690801e4987db230fe9f619ad9f018358d3779def35"
+        },
+        {
+          "bytes": 36266,
+          "path": "chengwang/deploy/subscription-ui-browser/run_subscription_ui.py",
+          "sha256": "dd23139df6c9c9a7d27d2c18841fa0fedbba0833f355148f47d0910ac99995fd"
+        },
+        {
+          "bytes": 47551,
+          "path": "chengwang/web/src/Subscriptions.tsx",
+          "sha256": "1a90345ee8d518f93c5572f4484316a722667238ab23edb4c26faa6221a31b3e"
+        },
+        {
+          "bytes": 21628,
+          "path": "chengwang/tools/subscription-browser/collect-subscription-dom.mjs",
+          "sha256": "4961c1aac583cdc5b5f201b51416a8677a07d55a86252e48afd3ecd0eb68cc74"
+        },
+        {
+          "bytes": 3643,
+          "path": "chengwang/deploy/subscription-ui-browser/feedback_projection.py",
+          "sha256": "de53ba1f90fac9f9a0c9a20b400cf97cfb864861432590b057a8febf703888c3"
+        }
+      ],
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64",
+      "sourceGitBlobs": 937,
+      "timeoutRealBrowserProven": false,
+      "unknownResultRealBrowserProven": false
+    },
+    "argv": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-B",
+      "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\r\\chengwang\\deploy\\subscription-ui-browser\\check_handoff_feedback.py",
+      "--evidence",
+      "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\subscription-ui-remote_handoff_negative-chrome-cdp-40042582508-1",
+      "--repo",
+      "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\r",
+      "--source-commit",
+      "e4156d64341f5f92eeca9bfa7c8b09066cf69c64",
+      "--engine",
+      "chrome-cdp",
+      "--report",
+      "D:\\CodexData\\workspace\\feedback-closeout-79c5a2\\cdp-feedback-independent-child.json"
+    ],
+    "existingOpenSSLPathOnlyInSubprocess": true,
+    "exitCode": 0,
+    "finishUTC": "2026-10-24T01:04:24.772473+00:00",
+    "freshByteEqual": true,
+    "log": {
+      "bytes": 109,
+      "path": "D:\\CodexData\\workspace\\feedback-closeout-79c5a2\\cdp-feedback-independent-child.log",
+      "sha256": "ed1668580be613dc71ec28f03c4a32001510fecf3337d04fb0f056f566e2663e"
+    },
+    "producerByteEqual": true,
+    "report": {
+      "bytes": 3144,
+      "path": "D:\\CodexData\\workspace\\feedback-closeout-79c5a2\\cdp-feedback-independent-child.json",
+      "sha256": "58797f9c2900225eb33c940691fdbb1f64796e28e848b7332845af625c98ba80"
+    },
+    "rootByteEqual": true,
+    "startUTC": "2026-10-24T01:03:34.251188+00:00",
+    "timedOut": false,
+    "wallSeconds": 50.531
+  },
+  "mainMergePerformedByThisReviewer": false,
+  "observedAtUTC": "2026-10-24T01:04:24.961484+00:00",
+  "old84And76FreshInvented": false,
+  "old84And76ProducerOnlyComparisons": 16,
+  "oldProbeRegressionPassed": false,
+  "oldsub": {
+    "actualGitBlobCount": 926,
+    "actualUnitRows": 80,
+    "audit": {
+      "bytes": 4416,
+      "path": "D:\\CodexData\\workspace\\cw-e4156d6-original-a-c89dc74ba5f14166904035773934e477\\e415-parent-oldsub\\oldsub-actual-audit.json",
+      "sha256": "a7d1d4c45a17a97cced0345b30304ffd7037976e3df5c9f9d4f8d58791eeca9e"
+    },
+    "fullWindowsPosixCliProven": false,
+    "producerFreshBytesEqual": true
+  },
+  "originalCLIsExecutedByThisReviewer": 1,
+  "parent": {
+    "actualGo": [
+      {
+        "events": 10811,
+        "fuzzPass": 12,
+        "fuzzRun": 12,
+        "fuzzSeeds": 8,
+        "fuzzTopLevel": 4,
+        "kind": "ordinary",
+        "namesSHA256": "c6c9617757bfa72321738f76d60650be6b047a4ca133e3bd3ade891f05b074fb",
+        "packageSkips": [
+          "chengwang/internal/domain"
+        ],
+        "testPass": 2644,
+        "testRun": 2644
+      },
+      {
+        "events": 10811,
+        "fuzzPass": 12,
+        "fuzzRun": 12,
+        "fuzzSeeds": 8,
+        "fuzzTopLevel": 4,
+        "kind": "race",
+        "namesSHA256": "c6c9617757bfa72321738f76d60650be6b047a4ca133e3bd3ade891f05b074fb",
+        "packageSkips": [
+          "chengwang/internal/domain"
+        ],
+        "testPass": 2644,
+        "testRun": 2644
+      }
+    ],
+    "audit": {
+      "bytes": 3346,
+      "path": "D:\\CodexData\\workspace\\cw-e4156d6-original-a-c89dc74ba5f14166904035773934e477\\e415-parent-oldsub\\parent-final-audit.json",
+      "sha256": "c2074a4edf5331c8c134e3201a5d6c91174dfa1612e8c06ae9de187a432cf2f5"
+    },
+    "conclusion": "success",
+    "derivedTranscriptGateExit": 0
+  },
+  "priorSnapshot": {
+    "bytes": 42783,
+    "path": "D:\\CodexData\\workspace\\feedback-closeout-79c5a2\\facts.json",
+    "sha256": "f999ccd791995185264a44c1593984ec2e48964be95136e25718f0cb976e1ba0"
+  },
+  "probe": {
+    "actualCauseProven": false,
+    "all176OriginalsRechecked": true,
+    "bindingReports": [
+      {
+        "cliExit": 0,
+        "engine": "chrome-cdp",
+        "reportByteEqualCI": true,
+        "reportSHA256": "416d6ab6b2094a3a197666f35bca31c3274284e4681fbe6530398a4aada4698f"
+      },
+      {
+        "cliExit": 0,
+        "engine": "playwright",
+        "reportByteEqualCI": true,
+        "reportSHA256": "8376340332812a29c1cf8d8b9f28fc23f792d4b35d7791271d232a85bc5089a0"
+      }
+    ],
+    "custody": {
+      "bytes": 38291,
+      "path": "D:\\CodexData\\probe-diag-e415-7c7789e3b6\\custody-after.json",
+      "sha256": "1daa411cdcda721a8b8d4afd746cc65c1d3f4cc6fb2ff6fcb59ccb396e60d774"
+    },
+    "diagnosis": {
+      "bytes": 4510,
+      "path": "D:\\CodexData\\probe-diag-e415-7c7789e3b6\\diagnosis.md",
+      "sha256": "9f043b39cd984793ddce9bc07f19e6f40317854e271081ce2737a107e3651bbe"
+    },
+    "originalBrowserGatePassed": false,
+    "priorBindingCLIsExitZero": 2,
+    "priorOriginalCLIsExitOne": 2,
+    "summary": "Both engines failedRequests=1, sole r5 HTTP200 then NET_FAIL ABORTED; same request EOF_OK and CANCEL_RESULT RESOLVED; ordering does not prove cause."
+  },
+  "production": false,
+  "publicMembers": 446,
+  "remaining": [
+    "Probe original two-engine rejection and causal isolated comparison",
+    "Real unknown-result and timeout browser coverage",
+    "Full B01-B23, enterprise features, backup/recovery, canary, production readback and long-term observation"
+  ],
+  "remainingRootExecutionsRecorded": 38,
+  "retainedFailures": {
+    "cOOM": {
+      "bytes": 206,
+      "causeBeyondOriginalTextProven": false,
+      "classification": "LOCAL_PYTHON_PREINITIALIZED_OOM_NOT_A_CI_OR_PRODUCT_RUNTIME_FAILURE",
+      "existingReportAbsent": true,
+      "originalPath": "D:\\CodexData\\workspace\\c-custody-d687c816\\e415\\c-remote_fetch-chrome-cdp-product.log",
+      "path": "D:\\CodexData\\workspace\\uid-xfsp8uao\\preserved-c-preinitialized-oom.original.log",
+      "sha256": "96a8816f299c3343d321383f1a34ad4887e9a03aa6b2196883403bd794b51063"
+    },
+    "hardwareOrStorageCauseProven": false,
+    "imageCollector500MemberLimitRejected": true,
+    "imageWrongIsolatedImportInvocation": "PRESERVED_IN_PRIOR_IMAGE_AUDIT_NOT_A_CI_FAILURE",
+    "oldBAnomalyRecord": {
+      "anomalies": 12,
+      "bytes": 8743,
+      "filesPreserved": true,
+      "path": "D:\\CodexData\\home\\worktrees\\cd03\\clash\\.codex-runtime\\e415-ui-custody-b-e21d5fba\\custody-reconstruction.json",
+      "sha256": "1c9046cc6feb6b6fad6f454d77406774cc201878a7496d218961afe2f88df180"
+    },
+    "oldCAnomalyRecord": {
+      "bytes": 9960,
+      "filesPreserved": true,
+      "path": "D:\\CodexData\\workspace\\c-custody-d687c816\\custody-initial.json",
+      "runs": [
+        {
+          "changedCFiles": 12,
+          "label": "fbdd",
+          "runId": 40042077078
+        },
+        {
+          "changedCFiles": 8,
+          "label": "e415",
+          "runId": 40042582508
+        }
+      ],
+      "sha256": "05351e26a20981b541db6d86ae5e55fbe70536adaf794ecf60981c7457cf6f6c"
+    },
+    "oldFbddFailedGateRewritten": false,
+    "rootOldCFinalStableAssertionFailure": "PARENT_OBSERVED_RETAINED_NOT_REEXECUTED_BY_THIS_REVIEW"
+  },
+  "retainedPriorObservedExitZero": 10,
+  "rootActualExitZeroAndSourceAndReportAndLogSHA256Rechecked": 48,
+  "rootExecutionJournals": [
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 606,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-dependencies.execution.json",
+        "sha256": "6763de1b3228012eaef48f63dee941347428ae708d54595709755b26b4eae407"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-dependencies-root.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-dependencies-root.json",
+        "sha256": "15d7144d4ea92d1ac23ab0d46ec55131c8e5c7ff8233d4a773838c6878ad04e8"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 580,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-synthetic.execution.json",
+        "sha256": "de86fe7eda7f331685524788fc46f5f0bf5bbe602f50478852de716b8b298297"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-synthetic-root.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-synthetic-root.json",
+        "sha256": "8eab299b8c2eca889e15e8fcef5d52494657a9ec2ea828f37553dccfcec69a33"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 610,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-admission-synthetic.execution.json",
+        "sha256": "4e7634355df8dcf44be11b7fac2842988ab25176628b2ca53eec217da378172a"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-admission-synthetic-root.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-admission-synthetic-root.json",
+        "sha256": "f3d4747fe79ac4aa8d82276268d1ac1009f5f5ae3bcb304d5d28be7478b165cb"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 630,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-navigation-synthetic.execution.json",
+        "sha256": "d67e7b6e38d901eb314bff2a3939485fedd73818680009ffe95a1a400bdd4c6b"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-navigation-synthetic-root.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\create_receipt-chrome-cdp-navigation-synthetic-root.json",
+        "sha256": "f20495c44d46b416878a3033efbc05a2cf443a99c46a1e11362837a22afad0f7"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1246,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-product.execution.json",
+        "sha256": "42253269a864b27c85bdeebbdf31ccdc9ead2bdfb72dd212ffa0272c5f8cb8be"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-product-929vp0ax\\original.log",
+        "sha256": "3a3ea3e858214e2367205b78a1345b8c4bb2736744114f01b71a3fbb7ea95cf3"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 2671,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-chrome-cdp-product-929vp0ax\\report.json",
+        "sha256": "6ee6a6c4d0e9aea843b0698e54eea2126740e7c51cf2ad5e85f9626b6c275b69"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 633,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-dependencies.execution.json",
+        "sha256": "57ec32d8d43a14ff422804228689f0be2139b114e134e0202233a05461c977c8"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-dependencies-root.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-dependencies-root.json",
+        "sha256": "e80f1812af0ce2397046168ce6be2b472e97ec1f772ef0815c965f6727bb387c"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 607,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-synthetic.execution.json",
+        "sha256": "ab12ffa6e3dc1ff5fa0316247548fbdc5ac4a6cd62e12309d69f1bc4dc8242eb"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-synthetic-root.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-synthetic-root.json",
+        "sha256": "8281cc664e5d88a6f2b498deea53d077eac819b540efc7cc4d64d8c4d42a63c3"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 637,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-admission-synthetic.execution.json",
+        "sha256": "e13e92171baf5d8efb06cf75dc9c21c6ae5e54e8cad3399b54ac3671c6386fe4"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-admission-synthetic-root.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-admission-synthetic-root.json",
+        "sha256": "be0e151c46c0caa948dfbf2f9351fda925c50c05fd373c4ec2652fa56d33844e"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 657,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-navigation-synthetic.execution.json",
+        "sha256": "22f796e82980e9737e6c3de4b003e67e45fa7c79d60d6571353609ee3911b79e"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-navigation-synthetic-root.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-navigation-synthetic-root.json",
+        "sha256": "4202c2da6073f6227138c5e9f3f5bd5a08cd161d8b72ab0ad48a6b0369378f72"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 648,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-handoff-synthetic.execution.json",
+        "sha256": "eaf718c3d5be17bed2a1eac50023a8e313314b0ae15e2f3d877c19423ce65d16"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "handoff-synthetic",
+      "log": {
+        "bytes": 114,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-handoff-synthetic-root.log",
+        "sha256": "aa0dbef12340b875870030c7d7a0090c487bc8dcc5273d05eaa21047e4fd82ba"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1354,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-handoff-synthetic-root.json",
+        "sha256": "7f46c7c9a0fc94af5afceea831bef313142b1f45edce14111269797b5230255c"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 651,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-feedback-synthetic.execution.json",
+        "sha256": "bb26a56fcfe8bf8c5de0f5d8d418bed7631e07392486ce5ca0b887eedb55bcc2"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "feedback-synthetic",
+      "log": {
+        "bytes": 72,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-feedback-synthetic-root.log",
+        "sha256": "447bee3c60ff756782be7ca61ffc73ba0e005d90517eac15c13bb0179d01899e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1028,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\remote_handoff_negative-playwright-feedback-synthetic-root.json",
+        "sha256": "0167bfe96bb7ada7e6cea1d068e2816af40e97faa047d82dd397c5280531da64"
+      },
+      "retainedPriorObservedExitZero": true,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1295,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-product.execution.json",
+        "sha256": "2364966d77123dafe433a58414213c46cd7506707350fcd6ea1bbbf56e4c6597"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 90,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-product-9e9al_9t\\original.log",
+        "sha256": "fc15f8d984539bbb0321328b8b9c8c2bb35720d7c07d61466afad28b59778957"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 4102,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-product-9e9al_9t\\report.json",
+        "sha256": "a61fcd26c86a175f23b9a19fa606f0770581f3161330e4760b8b63ee2477e82c"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1284,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-feedback.execution.json",
+        "sha256": "631229ac7ea6a96819b30d69277beb0906bfd3646f2c293a9b490c9b09875914"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "feedback",
+      "log": {
+        "bytes": 109,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-feedback-7lf8il8k\\original.log",
+        "sha256": "ed1668580be613dc71ec28f03c4a32001510fecf3337d04fb0f056f566e2663e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 3144,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-playwright-feedback-7lf8il8k\\report.json",
+        "sha256": "f706fb6878c191e3c34fa326f0f9d689626f71d552b2bb914fcb132204650888"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1288,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-dependencies.execution.json",
+        "sha256": "1fb8094dd7b040c76c7cb0c383879ad5196544d95b18520ecc355d6bb18c1ad5"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-dependencies-dlx0ils7\\original.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-dependencies-dlx0ils7\\report.json",
+        "sha256": "3b2a68c15a4588309b1306b3d9c6774d73bb7c6dbe7112af49d44cc3263e5ea8"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1189,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-synthetic.execution.json",
+        "sha256": "8f7e73fc33d841550a720aa607f02a7a7488687421617993ab8e05f32933bfdd"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-synthetic-73_j60lj\\original.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-synthetic-73_j60lj\\report.json",
+        "sha256": "23c62fbd95daa211a4555ab118756f627c5aafe2e4ea80232558ba63ec6dd7c2"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1236,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-admission-synthetic.execution.json",
+        "sha256": "a8f39d5fdbd349db1994ec9b9559ec61d9a3355afd1f974b0741d3c7d12a191c"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-admission-synthetic-1qgyl8ve\\original.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-admission-synthetic-1qgyl8ve\\report.json",
+        "sha256": "ede92eb9c4539e0eb8945a801d54e5dbe409cb5d7f9c5a2c0735e8a5b4578045"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1258,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-navigation-synthetic.execution.json",
+        "sha256": "2ba92db595272392f4686c6c1a77a218819a0325d1779c7d61aa119e797d0dc6"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-navigation-synthetic-hotw6yg0\\original.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-navigation-synthetic-hotw6yg0\\report.json",
+        "sha256": "bc71b95e271b1d64975b132904b60fffa20c86a8f5c3c5ce2b67754330682d42"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1252,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-handoff-synthetic.execution.json",
+        "sha256": "d60e5355b4a77ec8f0a3108e8ffe17f2931f937ff2d6c19504ac4808c257b742"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "handoff-synthetic",
+      "log": {
+        "bytes": 114,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-handoff-synthetic-tnvl8_lw\\original.log",
+        "sha256": "aa0dbef12340b875870030c7d7a0090c487bc8dcc5273d05eaa21047e4fd82ba"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1354,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-handoff-synthetic-tnvl8_lw\\report.json",
+        "sha256": "8f983034f33cc970501a3f7fd796ae0ff2c0531effdd75f3f96facb817a93ab7"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1248,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-feedback-synthetic.execution.json",
+        "sha256": "172114f592ce6a689594c26455dea01e937e69673a56dbaf2ae2a0e12bf46c6e"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "feedback-synthetic",
+      "log": {
+        "bytes": 72,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-feedback-synthetic-66bp611l\\original.log",
+        "sha256": "447bee3c60ff756782be7ca61ffc73ba0e005d90517eac15c13bb0179d01899e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1028,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-feedback-synthetic-66bp611l\\report.json",
+        "sha256": "3c4b4d1ccfd35ac2fc32687b37ef122a8d1d4a4731f8e4260ae40355b23b0d7b"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1294,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-product.execution.json",
+        "sha256": "50b650effa49365193a42486585846435db4eed8030f119484fd768899f3ab5f"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 90,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-product-xd4udn02\\original.log",
+        "sha256": "fc15f8d984539bbb0321328b8b9c8c2bb35720d7c07d61466afad28b59778957"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 4102,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-product-xd4udn02\\report.json",
+        "sha256": "2f408ce15ccdedaac98e2777314c1b6b22f496d6f104ebedcf9a6c3492386183"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1284,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-feedback.execution.json",
+        "sha256": "76ed37fe9ed39dd107596efe68602b2f257282b849ea269b5c3998f072f4ae71"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "feedback",
+      "log": {
+        "bytes": 109,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-feedback-wmnh2_u8\\original.log",
+        "sha256": "ed1668580be613dc71ec28f03c4a32001510fecf3337d04fb0f056f566e2663e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 3144,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_handoff_negative-chrome-cdp-feedback-wmnh2_u8\\report.json",
+        "sha256": "58797f9c2900225eb33c940691fdbb1f64796e28e848b7332845af625c98ba80"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_handoff_negative",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1243,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-dependencies.execution.json",
+        "sha256": "2e2289b00396304b9fc6b5946fdb427c42e4ed6a21e440c1c0872309ed2425cc"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-dependencies-79s6l3gm\\original.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-dependencies-79s6l3gm\\report.json",
+        "sha256": "5c9b3efbd004dcc1cf21453370c09aaa6c41f18cd4e009a6fd7ec8370aca8311"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1144,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-synthetic.execution.json",
+        "sha256": "8f6062d61897ddf34cecdb340b8b79aef7b17cefb74721b9d03831c5c97b9b10"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-synthetic-mkdml_oa\\original.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-synthetic-mkdml_oa\\report.json",
+        "sha256": "d3888a5876756a5ba97d686e78ba1e793436d13f84b2e51bbde4f1d8547005f7"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1191,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-admission-synthetic.execution.json",
+        "sha256": "5f678835a8cf260b123851f754231abcd41c2fe1daab8156c29dee24f66b57f0"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-admission-synthetic-w0f0zzm4\\original.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-admission-synthetic-w0f0zzm4\\report.json",
+        "sha256": "75805ccc4b56d2de7d91c9decaec18eedfc684bad6724a8ddca4dc7b3d4d3e32"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1213,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-navigation-synthetic.execution.json",
+        "sha256": "952a5502ff4546e5c736ffb0db4d65b5733c7c39d427860aaea4180425475b92"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-navigation-synthetic-b4x8d58g\\original.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-navigation-synthetic-b4x8d58g\\report.json",
+        "sha256": "19ab45d2a8b8df7f63b52901fcbc7695ab721e46bf0bbb97c02e4b7a947ea62e"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1245,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-product.execution.json",
+        "sha256": "76d406ccf3b31ca157e5fcfa00a1dd75cdaa28871e10ed1897354089c437b6d6"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-product-6gt7n45i\\original.log",
+        "sha256": "3a3ea3e858214e2367205b78a1345b8c4bb2736744114f01b71a3fbb7ea95cf3"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 2671,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\create_receipt-playwright-product-6gt7n45i\\report.json",
+        "sha256": "0504b004119a9d72e0d074b93a22f445815b845d9860e34001342e6054251933"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "create_receipt",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1233,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-dependencies.execution.json",
+        "sha256": "51409a25cd1fbfc0698e9fa79f5348660c474b5c140cdccd7666a54543a913f2"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-dependencies-f49kruwr\\original.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-dependencies-f49kruwr\\report.json",
+        "sha256": "6df22b955d9b55190339c007aa5e3d6a89492e79d671084e34efff5df6b893c1"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1134,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-synthetic.execution.json",
+        "sha256": "82db396092238ed61f40fc4dc2e23dba7cc67d4c0e98e9629dc5b418a7804cc4"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-synthetic-7jyfc8_2\\original.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-synthetic-7jyfc8_2\\report.json",
+        "sha256": "4abd0a2bfcb45838eb760ce0f2babeff20c5d3fa9b81f305df14026492602dc6"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1181,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-admission-synthetic.execution.json",
+        "sha256": "0473e9bd06795abe2020542d22a2957f8fefc2d3aa761fdfb1b3c7eed10d9538"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-admission-synthetic-yo9rvjo6\\original.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-admission-synthetic-yo9rvjo6\\report.json",
+        "sha256": "dd4d0e37bedff4a002571a67e3381ca771990f5501e9c14aca75cf514fe75c23"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1203,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-navigation-synthetic.execution.json",
+        "sha256": "e4b307a3b45b665ce14dcf3033da2ea88a6adeccefd849f6fa9728af67847d64"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-navigation-synthetic-y3u8rzty\\original.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-navigation-synthetic-y3u8rzty\\report.json",
+        "sha256": "f823f1dd2978c5fa1e364b5d4b1d53e364e3fd89bc1c1e594d11091818554422"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1183,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-remote-synthetic.execution.json",
+        "sha256": "cf8ac4f62b18434fbf3905d9b4c964b4f99790e6ff30e202933a7c6e924814ee"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "remote-synthetic",
+      "log": {
+        "bytes": 87,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-remote-synthetic-bvqyl0g7\\original.log",
+        "sha256": "b19ce2419820636d62cf5c15b0484cd0b128a0994b937f6b8cde4cfd24e27793"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1222,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-remote-synthetic-bvqyl0g7\\report.json",
+        "sha256": "7695e82932daf0d9933be84e78215cc242aa2ba4dc575130bbed2c81811558de"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1235,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-product.execution.json",
+        "sha256": "9b5631bd3f10ca33908bfb25fe5f8b767dc4d66769ce155c3028b87e905ff922"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-product-btnvcosa\\original.log",
+        "sha256": "e531a5f12b56a835c2f9faf5ae0076ae00acb40ba000112388634e00c2115332"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 3689,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-playwright-product-btnvcosa\\report.json",
+        "sha256": "888a2fe1cc8bb3d757dfb38eb3794c052faab6a6abb585152564e6f249da05d7"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1233,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-dependencies.execution.json",
+        "sha256": "27a01cd2004baacca6c913e3ae5e0b3ad5c21264f59212ac54c04ed41a14c920"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-dependencies-z93u4fab\\original.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-dependencies-z93u4fab\\report.json",
+        "sha256": "5f41eaf9ed9aab53f1c329e6ac9bec33d8552a82bfaa28e4fc77226dba118ae4"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1134,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-synthetic.execution.json",
+        "sha256": "459bff91858ba97925d72d810d37ca78f0dff753d06270a06884c1a74e30bd20"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-synthetic-ovyi6_ss\\original.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-synthetic-ovyi6_ss\\report.json",
+        "sha256": "fdc7e208e84a37da11d419bb3b54bb2c1d26efb1eb8ecf5127c319719650507a"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1181,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-admission-synthetic.execution.json",
+        "sha256": "d165a72a662df16de670dd8ebd7f4de0b3c64432896f369806e63cb37c2d6558"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-admission-synthetic-sbt_oup9\\original.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-admission-synthetic-sbt_oup9\\report.json",
+        "sha256": "a718eb0de2e392501cc279b202aa6afc39b555251825297204090134c02be92d"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1203,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-navigation-synthetic.execution.json",
+        "sha256": "fd464715e87ebfcc5476fa9378d747d8f005ce75070ae10d924edbbdffc77c85"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-navigation-synthetic-ttj49te9\\original.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-navigation-synthetic-ttj49te9\\report.json",
+        "sha256": "74cae2f41570319c3d1fc9556cd4b9b22a609ab1dd0009d2f9db0bb86dd5e969"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1183,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-remote-synthetic.execution.json",
+        "sha256": "7e295879f8f35d91c046ed5098ad165d29147cba5292f7c421f806f9d465bfaa"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "remote-synthetic",
+      "log": {
+        "bytes": 87,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-remote-synthetic-jcp6v261\\original.log",
+        "sha256": "b19ce2419820636d62cf5c15b0484cd0b128a0994b937f6b8cde4cfd24e27793"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1222,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-remote-synthetic-jcp6v261\\report.json",
+        "sha256": "38474a645c7514a9fbc84ae002a2566659e21b525f828d1f9ae7a49d4b475389"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1235,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-product.execution.json",
+        "sha256": "f370bf7e63befa5a168d32d79b1198743ce74f92c645739eb7fccdb7ef2b3c78"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-product-mx8reabc\\original.log",
+        "sha256": "e531a5f12b56a835c2f9faf5ae0076ae00acb40ba000112388634e00c2115332"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 3689,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\remote_fetch-chrome-cdp-product-mx8reabc\\report.json",
+        "sha256": "c758a0dd9c957c4083288e38eafa9a77dcecfb96b38fbb79030db5439406d013"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "remote_fetch",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1248,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-dependencies.execution.json",
+        "sha256": "601270cc6d94dcb01bab4e87e20a3778df09c1fdd70eec94b19a563220e04551"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-dependencies-4n_2pdvx\\original.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-dependencies-4n_2pdvx\\report.json",
+        "sha256": "90f30888f56632c1ee04c956bbcb768e90df0227fb25651c96cb44ad311934bd"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1149,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-synthetic.execution.json",
+        "sha256": "70b184e25cfa7bd2adeff0cced259ad2474518d616ae4f53d5d910c1cc33e3ad"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-synthetic-ugrzsxw9\\original.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-synthetic-ugrzsxw9\\report.json",
+        "sha256": "8ed7ba4e182e60c59f0e0363293efed0152002b39a6b212c2560f78141ea92e6"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1196,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-admission-synthetic.execution.json",
+        "sha256": "855ba7a32aac1aa715a52a55f00f8fe2f22eb144c6d8811cb56bd08188bd9773"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-admission-synthetic-q4dqrz2t\\original.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-admission-synthetic-q4dqrz2t\\report.json",
+        "sha256": "a75baad489c8799a6f2cfc563f86bc33f6e3a6ae39fa50b4deba8920ede8bcce"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1218,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-navigation-synthetic.execution.json",
+        "sha256": "d7fc90e267548d4660aad6a15d2bca7ba46375516a648175d4302d4e64b48628"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-navigation-synthetic-f_11y123\\original.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-navigation-synthetic-f_11y123\\report.json",
+        "sha256": "7b28258341c9d2d9db2d9ba0eed59e9f6b79c5ee1b142ef05e002b9624cd3a5c"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "chrome-cdp",
+      "executionJournal": {
+        "bytes": 1247,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-product.execution.json",
+        "sha256": "f71e8dbe47e50f0607cdedfc80e5e1b2f2a51cf4920d240c83407dedd632a362"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 83,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-product-7hal127a\\original.log",
+        "sha256": "14a6e33eb2009981f3ecc17c866fba8dfb4033578102a750863136edbb8d03e4"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 3022,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-chrome-cdp-product-7hal127a\\report.json",
+        "sha256": "0e97585c5d9a6bb1ba0c8f3eac96c9dfd05a0e10b432d29ce9212617d3068812"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1248,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-dependencies.execution.json",
+        "sha256": "7521c57a7f5cf4f910cc210d4709a2681e9e9f23c582f2864095d65cfbd8df56"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "dependencies",
+      "log": {
+        "bytes": 86,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-dependencies-ex61eixe\\original.log",
+        "sha256": "56e5239e65305e7c95228059e4a9cb7eb1e55ed0624162e612f10bef2393c700"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1601,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-dependencies-ex61eixe\\report.json",
+        "sha256": "4f72943dca3bf393dee9223cd1136d85509771fb6e6e0a744bdf74163829da29"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1149,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-synthetic.execution.json",
+        "sha256": "fc15611867b06d07d9ad127bf181cc3f968b5d51eab0a32606516fc0c09b6a8d"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "synthetic",
+      "log": {
+        "bytes": 80,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-synthetic-gw3ffdpr\\original.log",
+        "sha256": "e46564a98358c2e6406f70b1ce49730945d94c559a983b6558806c599daf5ffe"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 895,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-synthetic-gw3ffdpr\\report.json",
+        "sha256": "8fc6930c7c8e5e316de6b5a604da2385522333a3906529a70a524568a6e4098e"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1196,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-admission-synthetic.execution.json",
+        "sha256": "36d9f1b6fa4d4a471136f75ccff843743e7278efb378014f2bcd4c7bf83ac04e"
+      },
+      "exitCode": 0,
+      "freshByteEqual": null,
+      "freshPresent": false,
+      "kind": "admission-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-admission-synthetic-d7sg2vd9\\original.log",
+        "sha256": "aa5a76115fcba50a5eb2dc4990b96af142e32989e0d426f1ae5f9ad6ab350fdf"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 963,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-admission-synthetic-d7sg2vd9\\report.json",
+        "sha256": "da29e390f2f41f9046809cc292a968faf9d46d3cd32dff312bf73a6d35b9d028"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1218,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-navigation-synthetic.execution.json",
+        "sha256": "fabe1633b6376b9fa8ca6198bedcf24f47e6738f4e7a2502531679df92762d8f"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "navigation-synthetic",
+      "log": {
+        "bytes": 77,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-navigation-synthetic-3ty4zz49\\original.log",
+        "sha256": "2703574b04c5a03d3e56f23076f8e3e3b31d951c35ab74dd1e658f260ca2cf1e"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 1033,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-navigation-synthetic-3ty4zz49\\report.json",
+        "sha256": "99affa21b4b87eb63f11bda74f220a61063a89272037152ac40de1825f06eaf1"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    },
+    {
+      "engine": "playwright",
+      "executionJournal": {
+        "bytes": 1247,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-product.execution.json",
+        "sha256": "cb8f68114a892119483512581c0f8c45445ed38792f7568bb36d2886923b0ca1"
+      },
+      "exitCode": 0,
+      "freshByteEqual": true,
+      "freshPresent": true,
+      "kind": "product",
+      "log": {
+        "bytes": 83,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-product-r0oexjc7\\original.log",
+        "sha256": "14a6e33eb2009981f3ecc17c866fba8dfb4033578102a750863136edbb8d03e4"
+      },
+      "producerByteEqual": true,
+      "report": {
+        "bytes": 3022,
+        "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\resume-journal-v2\\local_admission-playwright-product-r0oexjc7\\report.json",
+        "sha256": "3ca6643a0be9573b0d936f065c890ae855709c954b8c323e210356f6a2b696ee"
+      },
+      "retainedPriorObservedExitZero": false,
+      "scenario": "local_admission",
+      "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64"
+    }
+  ],
+  "rootFinalEvidence": {
+    "bytes": 121562,
+    "path": "D:\\CodexData\\workspace\\cfr-_b6cmgfu\\root-originals.json",
+    "sha256": "ea44f0444f63d00f05b17c066d1a1cadb66431332730199f6e7e37be69c257a4"
+  },
+  "schema": "chengwang.feedback-final-closeout-review/v1",
+  "scope": "BOUNDED_SUBSCRIPTION_FEEDBACK_EVIDENCE_CLOSEOUT_NOT_COMPLETE_SYSTEM_OR_RELEASE",
+  "sourceCommit": "e4156d64341f5f92eeca9bfa7c8b09066cf69c64",
+  "timeoutRealBrowserProven": false,
+  "unknownResultRealBrowserProven": false
+}
