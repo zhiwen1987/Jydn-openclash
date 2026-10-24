@@ -2,6 +2,7 @@ import type {
   CapabilityReport, MihomoReadbackReport, MihomoRuntimeSnapshot, OperationEnvelope, OperationResource,
   ObservationStatus, OperationRisk, OperationStatus, PolicyDraft, ProxyInterface, Snapshot, ValidationResult,
 } from './types'
+import { decodeCapabilityReport } from './capability-report'
 
 export class APIError extends Error {
   constructor(message: string, readonly status: number, readonly code = 'request_failed') {
@@ -75,7 +76,7 @@ export async function readbackMihomo(draft: PolicyDraft, token: string, signal?:
 export async function getCapabilities(signal?: AbortSignal): Promise<CapabilityReport> {
   const response = await fetch('/api/v1/capabilities', { signal, headers: { Accept: 'application/json' } })
   if (!response.ok) return throwAPIError(response, `读取系统闭环状态失败 (${response.status})`)
-  return response.json() as Promise<CapabilityReport>
+  return decodeCapabilityReport(await response.json())
 }
 
 export async function getObservationStatus(signal?: AbortSignal): Promise<ObservationStatus> {

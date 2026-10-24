@@ -1,0 +1,15 @@
+{
+  "schema": "chengwang.status-network-lifecycle-contract/v1",
+  "publicSchema": "chengwang.status-network-lifecycle/v1",
+  "scope": "PASSIVE_ANONYMOUS_STATUS_NETWORK_METADATA_NOT_BROWSER_ACCEPTANCE",
+  "referenceChromiumRevision": "3ff7ac5a9224be9156d7f8703a06e22890aafd34",
+  "maxRequests": 7,
+  "maxContexts": 16,
+  "maxRows": 128,
+  "maxLineBytes": 4096,
+  "maxBytes": 131072,
+  "maxBodyBytes": 1048576,
+  "protocols": ["http/1.0", "http/1.1", "h2", "h3", "UNKNOWN"],
+  "blockedReasons": ["other", "csp", "mixed-content", "origin", "inspector", "subresource-filter", "content-type", "coep-frame-resource-needs-coep-header", "coop-sandboxed-iframe-cannot-navigate-to-coop-page", "corp-not-same-origin", "corp-not-same-origin-after-defaulted-to-same-origin-by-coep", "corp-not-same-origin-after-defaulted-to-same-origin-by-dip", "corp-not-same-origin-after-defaulted-to-same-origin-by-coep-and-dip", "corp-not-same-site", "sri-message-signature-mismatch", "UNKNOWN"],
+  "corsReasons": ["DisallowedByMode", "InvalidResponse", "WildcardOriginNotAllowed", "MissingAllowOriginHeader", "MultipleAllowOriginValues", "InvalidAllowOriginValue", "AllowOriginMismatch", "InvalidAllowCredentials", "CorsDisabledScheme", "PreflightInvalidStatus", "PreflightDisallowedRedirect", "PreflightWildcardOriginNotAllowed", "PreflightMissingAllowOriginHeader", "PreflightMultipleAllowOriginValues", "PreflightInvalidAllowOriginValue", "PreflightAllowOriginMismatch", "PreflightInvalidAllowCredentials", "PreflightMissingAllowExternal", "PreflightInvalidAllowExternal", "InvalidAllowMethodsPreflightResponse", "InvalidAllowHeadersPreflightResponse", "MethodDisallowedByPreflightResponse", "HeaderDisallowedByPreflightResponse", "RedirectContainsCredentials", "InsecureLocalNetwork", "InvalidLocalNetworkAccess", "NoCorsRedirectModeNotFollow", "PreflightMissingPrivateNetworkAccessId", "PreflightMissingPrivateNetworkAccessName", "PrivateNetworkAccessPermissionUnavailable", "PrivateNetworkAccessPermissionDenied", "LocalNetworkAccessPermissionDenied", "UNKNOWN"]
+}

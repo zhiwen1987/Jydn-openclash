@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import {
   Activity, AlertCircle, Bell, Bot, Cable, ChevronDown, CircleDollarSign, CloudCog, Database, Gauge,
-  ClipboardList, FileDiff, GitBranch, Globe2, History, Home, Laptop, LockKeyhole, MonitorDot,
+  ClipboardList, FileDiff, GitBranch, Globe2, History, Home, LockKeyhole, MonitorDot,
   KeyRound, Network, Plus, RefreshCw, Route, Search, Server, Settings, ShieldCheck, SlidersHorizontal,
   Sparkles, Users, Wrench, X,
 } from 'lucide-react'
@@ -42,11 +42,6 @@ const demoSnapshot: Snapshot = {
   events: [], draft: { name: '精准分流草稿', baseVersion: '', businesses: [], pools: [], dns: {} },
 }
 
-const fallbackEvents = [
-  { at: '2026-01-01T00:00:00Z', type: '系统自检', reason: '本地演示数据已加载', result: '未执行生产操作' },
-  { at: '2026-01-01T00:05:00Z', type: '规则校验', reason: '草稿结构检查', result: '等待控制面连接' },
-]
-
 function App() {
   const [page, setPage] = useState('运行总览')
   const [snapshot, setSnapshot] = useState<Snapshot>(demoSnapshot)
@@ -55,8 +50,16 @@ function App() {
   useEffect(() => {
     const controller = new AbortController()
     getSnapshot(controller.signal)
-      .then(data => { setSnapshot(data); setNotice(data.dataSource === 'demo' ? '演示总览：实际状态请查看设备读回' : data.mode === 'shadow' ? '影子模式：不会改变生产网络' : '') })
-      .catch(() => setNotice('演示模式：本地控制面尚未启动'))
+      .then(data => {
+        if (controller.signal.aborted) return
+        if (!data || !['demo', 'live'].includes(data.dataSource)) {
+          setNotice('演示模式：控制面数据源不受支持，尚未核验')
+          return
+        }
+        setSnapshot(data)
+        setNotice(data.dataSource === 'demo' ? '演示总览：实际状态请查看设备读回' : '控制面快照；实际运行与生产状态须独立核验')
+      })
+      .catch(() => { if (!controller.signal.aborted) setNotice('演示模式：无法读取本地控制面') })
     return () => controller.abort()
   }, [])
 
@@ -85,10 +88,10 @@ function TopBar({ snapshot }: { snapshot: Snapshot }) {
   const demo = snapshot.dataSource === 'demo'
   return <header className="topbar">
     <div className="brand"><div className="brand-mark"><Network size={23}/></div><strong>{snapshot.product}</strong></div>
-    <div className="version">方案 <b>{demo ? '演示草稿' : '家庭主网'}</b><span>内核</span><b>{demo ? '只读接入' : 'Mihomo'}</b><span>模式</span><b>{demo ? '影子' : '规则'}</b></div>
-    <label className="command"><Search size={17}/><input aria-label="全局搜索" placeholder="搜索节点、域名、策略，或输入命令"/><kbd>Ctrl K</kbd></label>
-    <button className="freeze"><LockKeyhole size={16}/>安全冻结<ChevronDown size={15}/></button>
-    <button className="icon-button" aria-label="通知"><Bell size={19}/></button>
+    <div className="version">来源 <b>{demo ? '演示草稿' : '控制面快照'}</b><span>内核</span><b>未核验</b><span>控制面模式</span><b>{snapshot.mode}</b></div>
+    <label className="command"><Search size={17}/><input aria-label="全局搜索" placeholder="全局搜索尚未接入" disabled/><kbd>Ctrl K</kbd></label>
+    <button className="freeze" disabled title="冻结执行器尚未接入"><LockKeyhole size={16}/>安全冻结<ChevronDown size={15}/></button>
+    <button className="icon-button" aria-label="通知" disabled title="通知中心尚未接入"><Bell size={19}/></button>
     <div className="avatar">管</div>
   </header>
 }
@@ -96,35 +99,20 @@ function TopBar({ snapshot }: { snapshot: Snapshot }) {
 function Overview({ snapshot }: { snapshot: Snapshot }) {
   if (snapshot.dataSource === 'demo') return <DemoOverview snapshot={snapshot}/>
   return <>
-    <div className="page-heading"><div><h1>运行总览</h1><p><span className="healthy-dot"/>{snapshot.status}<span>影子模式下只观察，不改变现网</span></p></div><button className="secondary"><RefreshCw size={16}/>刷新</button></div>
+    <div className="page-heading"><div><h1>运行总览</h1><p><span className="unknown-dot"/>{snapshot.status}<span>控制面上报字段，尚无独立运行态观测时间</span></p></div><button className="secondary" disabled title="运行态刷新尚未接入"><RefreshCw size={16}/>刷新</button></div>
     <div className="core-strip">
-      <div><Gauge/><span>当前内核</span><strong>Mihomo</strong><Status value="运行中"/></div>
-      <div><Route/><span>流量路由</span><strong>规则模式</strong><Status value="策略生效"/></div>
-      <div><Globe2/><span>DNS 状态</span><strong>国内外隔离</strong><Status value="正常"/></div>
-      <div><CloudCog/><span>订阅与节点</span><strong>3 个订阅源</strong><Status value="可用"/></div>
+      <div><Gauge/><span>当前内核</span><strong>未核验</strong><Status value="未知"/></div>
+      <div><Route/><span>流量路由</span><strong>未核验</strong><Status value="未知"/></div>
+      <div><Globe2/><span>DNS 状态</span><strong>未核验</strong><Status value="未知"/></div>
+      <div><CloudCog/><span>订阅运行状态</span><strong>未核验</strong><Status value="未知"/></div>
     </div>
     <section className="panel topology-panel">
-      <div className="section-title"><div><h2>实时流量路径</h2><p>解释每一条业务流量当前为什么这样走</p></div><button className="text-action">查看拓扑详情</button></div>
-      <div className="topology">
-        <TopologyBox title="局域网设备" icon={<Laptop/>} lines={['在线 12 台', '192.168.1.0/24']} />
-        <PathLine label="规则匹配" />
-        <TopologyBox title="透明代理 / 入站" icon={<GitBranch/>} lines={['TUN · 已启用', 'TProxy · 已启用', 'Mixed · 待命']} accent />
-        <PathLine label="统一入口" />
-        <TopologyBox title="策略引擎" icon={<Route/>} lines={['自定义业务优先', '国内精确规则', '区域与最终兜底']} accent />
-        <div className="fork"><PathLine label="代理路径"/><PathLine label="直连路径" direct/></div>
-        <div className="route-targets">
-          <TopologyBox title="代理节点池" icon={<Database/>} lines={['美国池 · 8/8 可用', '新加坡池 · 6/6 可用']} />
-          <TopologyBox title="DIRECT 直连" icon={<Sparkles/>} lines={['中国大陆 · 本地网络']} direct />
-        </div>
-        <PathLine label="出口" />
-        <TopologyBox title="互联网 WAN" icon={<Globe2/>} lines={['海外网络 · 代理出口', '国内网络 · 直连出口']} />
-        <div className="dns-rail"><Globe2 size={18}/><strong>DNS 解析（并行）</strong><span>国内外解析隔离 · 泄漏保护</span><i>正常</i></div>
-      </div>
+      <div className="section-title"><div><h2>流量拓扑尚未接入</h2><p>当前快照不含设备、入站、DNS 或出口的实际观测；不生成模拟流量路径。</p></div><button className="text-action" disabled>查看拓扑详情</button></div>
     </section>
     <div className="overview-grid">
       <BusinessTable businesses={snapshot.businesses}/>
       <PoolTable pools={snapshot.pools}/>
-      <DNSPanel/>
+      <section className="panel dns-panel"><div className="section-title"><h2>DNS 健康未核验</h2></div><p>缺少独立解析与泄漏观测，不显示示例延迟或正常结论。</p></section>
     </div>
     <Events events={snapshot.events}/>
   </>
@@ -139,7 +127,7 @@ function DemoOverview({ snapshot }: { snapshot: Snapshot }) {
     ['自动化与拓扑', '当前仅有产品设计', '不冒充已执行动作或实时流量路径'],
   ]
   return <>
-    <div className="page-heading"><div><h1>运行总览</h1><p><span className="unknown-dot"/>{snapshot.status}<span>影子模式下只观察，不改变现网</span></p></div><button className="secondary"><RefreshCw size={16}/>刷新</button></div>
+    <div className="page-heading"><div><h1>运行总览</h1><p><span className="unknown-dot"/>{snapshot.status}<span>影子模式下只观察，不改变现网</span></p></div><button className="secondary" disabled title="运行态刷新尚未接入"><RefreshCw size={16}/>刷新</button></div>
     <div className="demo-source-alert" role="alert"><AlertCircle size={19}/><div><strong>当前总览没有接入真实运行数据</strong><span>为防止把界面示例误认为生产状态，本页已隐藏设备数量、订阅数量、业务健康、节点延迟、DNS 延迟和自动化事件等演示值。</span></div></div>
     <div className="core-strip evidence-strip">
       <div><ShieldCheck/><span>控制面模式</span><strong>Shadow</strong><Status value="只读"/></div>
@@ -154,34 +142,19 @@ function DemoOverview({ snapshot }: { snapshot: Snapshot }) {
   </>
 }
 
-function TopologyBox({ title, icon, lines, accent, direct }: { title: string; icon: ReactNode; lines: string[]; accent?: boolean; direct?: boolean }) {
-  return <div className={`topology-box ${accent ? 'accent' : ''} ${direct ? 'direct' : ''}`}><div className="box-title">{icon}<strong>{title}</strong></div>{lines.map(x => <span key={x}>{x}</span>)}</div>
-}
-
-function PathLine({ label, direct }: { label: string; direct?: boolean }) {
-  return <div className={`path-line ${direct ? 'direct' : ''}`}><span>{label}</span><i/></div>
-}
-
 function BusinessTable({ businesses }: { businesses: BusinessStatus[] }) {
   const icons = [Bot, Sparkles, Globe2, CircleDollarSign]
-  return <section className="panel business-panel"><div className="section-title"><h2>业务状态</h2><button className="text-action">全部业务</button></div>
+  return <section className="panel business-panel"><div className="section-title"><h2>快照上报业务（未独立核验）</h2><button className="text-action" disabled>全部业务</button></div>
     <table><thead><tr><th>业务 / 应用</th><th>分流策略</th><th>使用节点 / 出口</th><th>状态</th></tr></thead><tbody>{businesses.map((item, index) => { const Icon = icons[index] ?? Activity; return <tr key={item.id}><td><Icon size={18}/><strong>{item.name}</strong></td><td>{item.strategy}</td><td>{item.activeRoute}</td><td><Status value={item.status}/></td></tr> })}</tbody></table>
   </section>
 }
 
 function PoolTable({ pools }: { pools: Snapshot['pools'] }) {
-  return <section className="panel pool-panel"><div className="section-title"><h2>节点能力</h2><button className="text-action">测试全部</button></div><table><thead><tr><th>节点池</th><th>延迟</th><th>丢包</th><th>可用</th></tr></thead><tbody>{pools.map(pool => <tr key={pool.name}><td><strong>{pool.name}</strong></td><td>{pool.latencyMs} ms</td><td>{pool.lossRate}%</td><td><Status value={`${pool.available}/${pool.total}`}/></td></tr>)}</tbody></table></section>
-}
-
-function DNSPanel() {
-  return <section className="panel dns-panel"><div className="section-title"><h2>DNS 健康</h2><button className="text-action">配置</button></div>{[
-    ['阿里 DNS（国内）','28 ms'], ['腾讯 DNS（国内）','31 ms'], ['Cloudflare DoH','42 ms'], ['Quad9 DoT','71 ms'],
-  ].map(([name, latency]) => <div className="dns-row" key={name}><span>{name}</span><b>{latency}</b><Status value="正常"/></div>)}</section>
+  return <section className="panel pool-panel"><div className="section-title"><h2>快照上报节点（未独立核验）</h2><button className="text-action" disabled>测试全部</button></div><table><thead><tr><th>节点池</th><th>上报延迟</th><th>上报丢包</th><th>上报可用</th></tr></thead><tbody>{pools.map(pool => <tr key={pool.name}><td><strong>{pool.name}</strong></td><td>{pool.latencyMs} ms</td><td>{pool.lossRate}%</td><td><Status value={`${pool.available}/${pool.total}`}/></td></tr>)}</tbody></table></section>
 }
 
 function Events({ events }: { events: Snapshot['events'] }) {
-  const rows = events.length ? events : fallbackEvents
-  return <section className="panel event-panel"><div className="section-title"><h2>自动化记录</h2><button className="text-action">全部事件</button></div><table><thead><tr><th>时间</th><th>事件</th><th>原因与详情</th><th>处理结果</th></tr></thead><tbody>{rows.map((event, i) => <tr key={`${event.at}-${i}`}><td>{new Date(event.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</td><td><strong>{event.type}</strong></td><td>{event.reason}</td><td><Status value={event.result}/></td></tr>)}</tbody></table></section>
+  return <section className="panel event-panel"><div className="section-title"><h2>控制面上报事件</h2><button className="text-action" disabled>全部事件</button></div>{events.length === 0 ? <p>暂无已读取事件</p> : <table><thead><tr><th>时间</th><th>事件</th><th>原因与详情</th><th>处理结果</th></tr></thead><tbody>{events.map((event, i) => <tr key={`${event.at}-${i}`}><td>{new Date(event.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</td><td><strong>{event.type}</strong></td><td>{event.reason}</td><td><Status value={event.result}/></td></tr>)}</tbody></table>}</section>
 }
 
 const routingRows = [
@@ -341,20 +314,20 @@ const capabilityRows = [
 
 function Kernels() {
   const kernels = [
-    ['Mihomo','待检测','默认内核','运行中','代理与策略执行'],
-    ['sing-box','待检测','备用内核','就绪','现代多协议与独立 DNS'],
-    ['Xray','待检测','备用内核','就绪','VMess / VLESS / Reality'],
-    ['Hysteria','待检测','扩展内核','未运行','Hysteria2 / QUIC'],
+    ['Mihomo','未核验','只读适配','未核验','实际状态请显式进入设备读回'],
+    ['sing-box','未核验','适配目标','尚未实现','现代多协议与独立 DNS（规划）'],
+    ['Xray','未核验','适配目标','尚未实现','VMess / VLESS / Reality（规划）'],
+    ['Hysteria','未核验','适配目标','尚未实现','Hysteria2 / QUIC（规划）'],
   ]
-  return <div className="kernel-page"><div className="page-heading"><div><h1>内核与协议</h1><p>统一管理多个数据面内核，同时保留各内核的专有能力</p></div><div className="actions"><button className="secondary">检查更新</button><button className="secondary">导入内核</button><button className="primary">新增运行实例</button></div></div>
-    <section className="panel kernel-table"><div className="section-title"><h2>已安装的内核</h2><button className="text-action">管理版本</button></div><table><thead><tr><th>内核</th><th>版本</th><th>角色</th><th>实例状态</th><th>能力摘要</th></tr></thead><tbody>{kernels.map((row,index)=><tr className={index===0?'selected':''} key={row[0]}>{row.map((cell,i)=><td key={cell}>{i===0?<strong>{cell}</strong>:i===3?<Status value={cell}/>:cell}</td>)}</tr>)}</tbody></table></section>
-    <div className="kernel-grid"><section className="panel capability"><div className="section-title"><div><h2>能力矩阵</h2><p>原生、适配和不支持严格区分</p></div><button className="text-action">对比所选内核</button></div><table><thead><tr><th>功能</th><th>Mihomo</th><th>sing-box</th><th>Xray</th></tr></thead><tbody>{capabilityRows.map(row=><tr key={row[0]}>{row.map((cell,i)=><td key={cell+i}>{i===0?<strong>{cell}</strong>:<span className={`support ${cell==='不支持'?'no':cell==='适配'?'adapted':''}`}><i/>{cell}</span>}</td>)}</tr>)}</tbody></table></section>
-      <aside className="panel instance"><div className="section-title"><h2>Mihomo 实例详情</h2><Status value="运行中"/></div><dl><dt>可执行文件</dt><dd>等待设备适配器发现</dd><dt>完整性校验</dt><dd>尚未执行</dd><dt>配置绑定</dt><dd>影子配置</dd><dt>监听接口</dt><dd>仅本机演示</dd><dt>重启策略</dt><dd>限次重启 + 自动回滚</dd><dt>健康检查</dt><dd>分层业务探测</dd></dl><div className="instance-actions"><button className="secondary">启动并行实例</button><button className="primary" disabled>切换默认内核</button></div></aside>
-    </div><section className="panel lifecycle"><div className="section-title"><h2>适配器生命周期</h2></div><div>{['发现内核','能力协商','隔离编译','语法检查','沙箱冒烟','灰度验证','正式启用','回滚预案'].map((item,index)=><span key={item}><b>{index+1}</b>{item}</span>)}</div></section>
+  return <div className="kernel-page"><div className="page-heading"><div><h1>内核与协议</h1><p>适配规划；尚无主机安装库存或实例运行证据。下列操作未接执行器，保持禁用。</p></div><div className="actions"><button className="secondary" disabled>检查更新</button><button className="secondary" disabled>导入内核</button><button className="primary" disabled>新增运行实例</button></div></div>
+    <section className="panel kernel-table"><div className="section-title"><h2>内核适配目标</h2><button className="text-action" disabled>管理版本</button></div><table><thead><tr><th>内核</th><th>版本证据</th><th>实现范围</th><th>实例状态</th><th>当前边界</th></tr></thead><tbody>{kernels.map((row,index)=><tr className={index===0?'selected':''} key={row[0]}>{row.map((cell,i)=><td key={`${i}-${cell}`}>{i===0?<strong>{cell}</strong>:i===3?<Status value={cell}/>:cell}</td>)}</tr>)}</tbody></table></section>
+    <div className="kernel-grid"><section className="panel capability"><div className="section-title"><div><h2>能力矩阵</h2><p>参考规划，目标版本尚未逐项实测；不表示已安装或当前可用。</p></div><button className="text-action" disabled>对比所选内核</button></div><table><thead><tr><th>功能</th><th>Mihomo</th><th>sing-box</th><th>Xray</th></tr></thead><tbody>{capabilityRows.map(row=><tr key={row[0]}>{row.map((cell,i)=><td key={cell+i}>{i===0?<strong>{cell}</strong>:<span className="support pending"><i/>待核验（参考：{cell}）</span>}</td>)}</tr>)}</tbody></table></section>
+      <aside className="panel instance"><div className="section-title"><h2>Mihomo 实例证据</h2><Status value="未核验"/></div><dl><dt>可执行文件</dt><dd>未核验，发现适配器尚未接入</dd><dt>完整性校验</dt><dd>尚未执行</dd><dt>配置绑定</dt><dd>未接入</dd><dt>监听接口</dt><dd>未核验</dd><dt>重启与回滚</dt><dd>执行器尚未实现</dd><dt>业务健康</dt><dd>需独立业务探测，不由控制器配置推导</dd></dl><div className="instance-actions"><button className="secondary" disabled>启动并行实例</button><button className="primary" disabled>切换默认内核</button></div></aside>
+    </div><section className="panel lifecycle"><div className="section-title"><h2>适配器生命周期（设计目标，尚未执行）</h2></div><div>{['发现内核','能力协商','隔离编译','语法检查','沙箱冒烟','灰度验证','正式启用','回滚预案'].map((item,index)=><span key={item}><b>{index+1}</b>{item}</span>)}</div></section>
   </div>
 }
 
-function Status({ value }: { value: string }) { return <span className={value.includes('锁') ? 'status locked' : 'status'}><i/>{value}</span> }
+function Status({ value }: { value: string }) { return <span className={value.includes('锁') ? 'status locked' : 'status neutral'}><i/>{value}</span> }
 
 function EmptyPage({ page }: { page: string }) { return <div className="empty-page"><Gauge size={40}/><h1>{page}</h1><p>该模块将在独立适配器阶段接入。当前不会读取或修改生产环境。</p></div> }
 

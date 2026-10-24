@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, CheckCircle2, CircleDashed, FileCheck2, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react'
 import { getCapabilities } from './api'
 import type { CapabilityReport, CapabilityState, SystemCapability } from './types'
 
 const statePresentation: Record<CapabilityState, { label: string; description: string }> = {
-  live_readonly: { label: '生产只读', description: '已连接真实运行环境，仅允许读取证据' },
+  live_readonly: { label: '只读接入已配置', description: '配置不代表连接成功、健康或生产验收；实际状态须独立读回' },
   implemented_local: { label: '本地实现', description: '已在控制面实现，尚未接管生产数据面' },
   design_only: { label: '仅设计', description: '已有设计边界，但还没有可执行实现' },
   blocked: { label: '受阻', description: '缺少前置条件，当前无法完成验收' },
@@ -30,10 +30,10 @@ function CapabilityRow({ capability }: { capability: SystemCapability }) {
       <small>{capability.readOnly ? '只读' : '包含写入能力'}</small>
     </div>
     <div className="capability-evidence">
-      <strong>可核验证据</strong>
+      <strong>可核验入口与实现依据</strong>
       {capability.evidence.length > 0
         ? <ul>{capability.evidence.map(item => <li key={item}>{item}</li>)}</ul>
-        : <span className="readiness-empty">暂无可核验证据</span>}
+        : <span className="readiness-empty">暂无可核验入口</span>}
     </div>
     <div className="capability-limitations">
       <strong>当前限制</strong>
@@ -49,20 +49,30 @@ export function SystemReadiness() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [requestID, setRequestID] = useState(0)
+  const activeRequest = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
+    activeRequest.current = controller
+    const deadline = window.setTimeout(() => {
+      if (controller.signal.aborted) return
+      controller.abort()
+      setReport(null)
+      setError('读取能力清单超时，当前状态未核验；可以重新核验')
+      setLoading(false)
+    }, 10000)
     getCapabilities(controller.signal)
-      .then(setReport)
+      .then(value => { if (!controller.signal.aborted) setReport(value) })
       .catch(reason => {
-        if (reason instanceof DOMException && reason.name === 'AbortError') return
+        if (controller.signal.aborted) return
         setReport(null)
         setError(reason instanceof Error ? reason.message : '无法连接本地控制面')
       })
       .finally(() => {
+        window.clearTimeout(deadline)
         if (!controller.signal.aborted) setLoading(false)
       })
-    return () => controller.abort()
+    return () => { controller.abort(); window.clearTimeout(deadline); if (activeRequest.current === controller) activeRequest.current = null }
   }, [requestID])
 
   const groups = useMemo(() => {
@@ -82,6 +92,10 @@ export function SystemReadiness() {
   }, [report])
 
   function retry() {
+    // Invalidate immediately, before React schedules the next effect. A stale
+    // transport that ignores AbortSignal must not restore the old inventory.
+    activeRequest.current?.abort()
+    setReport(null)
     setLoading(true)
     setError('')
     setRequestID(value => value + 1)
@@ -114,14 +128,14 @@ export function SystemReadiness() {
 
       <section className="panel readiness-meta">
         <div><span>整体阶段</span><strong>{report.overallState}</strong></div>
-        <div><span>证据生成时间</span><strong>{formatObservedAt(report.generatedAt)}</strong></div>
+        <div><span>清单生成时间</span><strong>{formatObservedAt(report.generatedAt)}</strong></div>
         <div><span>能力条目</span><strong>{report.capabilities.length}</strong></div>
         <div><span>生产控制</span><strong>{report.productionControlEnabled ? '已启用' : '未启用'}</strong></div>
       </section>
 
       {groups.length > 0 ? <div className="readiness-groups">{groups.map(([domain, capabilities]) => <section className="panel readiness-group" key={domain}>
         <div className="section-title"><div><h2>{domain}</h2><p>{capabilities.length} 项能力，每项分别展示证据与限制</p></div></div>
-        <div className="readiness-capability-head" aria-hidden="true"><span>能力</span><span>状态与边界</span><span>可核验证据</span><span>当前限制</span></div>
+        <div className="readiness-capability-head" aria-hidden="true"><span>能力</span><span>状态与边界</span><span>可核验入口与实现依据</span><span>当前限制</span></div>
         {capabilities.map(capability => <CapabilityRow capability={capability} key={capability.id}/>)}</section>)}</div>
         : <section className="panel readiness-loading"><FileCheck2 size={24}/><strong>控制面尚未登记任何能力</strong><span>空清单不等于全部完成；需要先建立证据条目。</span></section>}
     </> : null}

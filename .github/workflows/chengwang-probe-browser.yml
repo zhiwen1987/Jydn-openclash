@@ -517,6 +517,55 @@ jobs:
           PY
           )
 
+      - name: Freeze passive status network diagnostic helper events
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/chengwang-probe-browser-runtime"
+          node --test --test-reporter=tap chengwang/tools/probe-browser/test-status-network-lifecycle.mjs \
+            2>&1 | tee "$lab/evidence/status-network-node.tap"
+          (
+            cd chengwang/deploy/probe-readback
+            python3 -B - "$lab/evidence/status-network-node.tap" <<'PY' 2>&1 | tee "$lab/evidence/status-network-unit.log"
+          import ast, hashlib, importlib, pathlib, re, sys, unittest
+          module_name = 'test_status_network_lifecycle'
+          tree = ast.parse(pathlib.Path(module_name + '.py').read_bytes())
+          names = sorted(module_name + '.' + node.name + '.' + method.name
+              for node in tree.body if isinstance(node, ast.ClassDef)
+              for method in node.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_'))
+          if len(names) != 28 or len(set(names)) != 28 or hashlib.sha256('\n'.join(names).encode()).hexdigest() != '1eac936d47080e07e867ec9e1b85baa0955300bde6c5b9f67ca8cb5dfda97e51':
+              raise SystemExit('status-network-unit-names-rejected')
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args); self.runs = []; self.passes = []
+              def startTest(self, test):
+                  self.runs.append(test.id()); super().startTest(test)
+              def addSuccess(self, test):
+                  self.passes.append(test.id()); super().addSuccess(test)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(
+              unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(module_name)))
+          if (not result.wasSuccessful() or result.testsRun != 28 or result.skipped
+              or result.expectedFailures or result.unexpectedSuccesses
+              or sorted(result.runs) != names or sorted(result.passes) != names):
+              raise SystemExit('status-network-unit-events-rejected')
+          text = pathlib.Path(sys.argv[1]).read_text()
+          node_names = re.findall(r'^# Subtest: (.+)$', text, re.M)
+          passed = re.findall(r'^ok ([0-9]+) - (.+)$', text, re.M)
+          if (len(node_names) != len(set(node_names)) or len(node_names) != 20
+              or hashlib.sha256('\n'.join(sorted(node_names)).encode()).hexdigest() != '31376ae367a3c57229b3063b3ea729db0900307c98559615cb26272fe2b83581'
+              or passed != [(str(i + 1), name) for i, name in enumerate(node_names)]
+              or re.search(r'^\s*(?:not ok\b|Bail out!)|# (?:SKIP|TODO)\b', text, re.M)):
+              raise SystemExit('status-network-node-events-rejected')
+          for key, value in dict(tests=20, suites=0, **{'pass': 20}, fail=0, cancelled=0, skipped=0, todo=0).items():
+              if re.findall(r'^# ' + key + r' ([0-9]+)$', text, re.M) != [str(value)]:
+                  raise SystemExit('status-network-node-summary-rejected')
+          if re.findall(r'^1\.\.([0-9]+)$', text, re.M) != ['20']:
+              raise SystemExit('status-network-node-plan-rejected')
+          print('STATUS_NETWORK_SYNTHETIC=PASS tests=48 skips=0 browser_started=false')
+          PY
+          )
+
       - name: Exercise real browser against real agent spool and product API
         shell: bash
         run: |
@@ -584,6 +633,24 @@ jobs:
             --evidence-root "$evidence/lab" --source-commit "$GITHUB_SHA" \
             --engine '${{ matrix.engine }}' --repo "$GITHUB_WORKSPACE" \
             --report "$evidence/request-binding-verification.json"
+
+      - name: Independently bind passive status network lifecycle without browser acceptance
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/chengwang-probe-browser-runtime/evidence"
+          report="$RUNNER_TEMP/status-network-lifecycle-verification.json"
+          diagnostic_status=0
+          python3 -B chengwang/deploy/probe-readback/check_status_network_lifecycle.py \
+            --evidence-root "$evidence" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+            --repo "$GITHUB_WORKSPACE" --report "$report" \
+            2>&1 | tee "$evidence/status-network-lifecycle-original.log" || diagnostic_status=$?
+          if test -f "$report"; then
+            test ! -e "$evidence/status-network-lifecycle-verification.json"
+            install -m 0644 "$report" "$evidence/status-network-lifecycle-verification.json"
+          fi
+          exit "$diagnostic_status"
 
       - name: Independently bind actual browser identity without inferring patch ancestry
         if: always()

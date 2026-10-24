@@ -38,6 +38,7 @@ type RuntimeFacts struct {
 	OperationControlConfigured bool
 	ObservationConfigured      bool
 	ProbeReadbackConfigured    bool
+	SubscriptionConfigured     bool
 }
 
 // Build returns the truthful capability inventory for the current foundation.
@@ -73,6 +74,7 @@ func BuildWithRuntime(now time.Time, facts RuntimeFacts) Report {
 		mihomoLimitations = []string{
 			"仅通过 Controller API 读取运行态并对期望策略执行差异检查",
 			"不修改 Mihomo 配置、不重载内核、不写入路由器",
+			"只读适配器已配置不代表连接成功、证据新鲜、健康或生产验收通过",
 		}
 	}
 
@@ -81,7 +83,7 @@ func BuildWithRuntime(now time.Time, facts RuntimeFacts) Report {
 	evidenceLimitations := []string{
 		"未配置或未通过完整性验证，单机追加式证据链不可用",
 		"不是 WORM 存储且没有独立副本，管理员仍可同时替换日志与本地检查点",
-		"尚无真实用户身份，也未对全部 HTTP 请求形成审计事件",
+		"本地静态身份机制不等于企业身份体系，尚未对全部 HTTP 请求形成审计事件",
 	}
 	if facts.EvidenceConfigured {
 		evidencePaths = []string{"GET /api/v1/evidence/integrity"}
@@ -126,6 +128,7 @@ func BuildWithRuntime(now time.Time, facts RuntimeFacts) Report {
 			"当前只周期读取 Mihomo Controller 并保留有界摘要历史",
 			"不主动测试节点、互联网、DNS 或具体业务；这些层保持 unknown",
 			"不切换节点、不重载配置、不执行自动修复",
+			"只读观测器已配置不代表连接成功、证据新鲜、健康或生产验收通过",
 		}
 	}
 
@@ -141,6 +144,39 @@ func BuildWithRuntime(now time.Time, facts RuntimeFacts) Report {
 		probeReadbackState = StateImplementedLocal
 		probeReadbackEvidence = []string{"GET /api/v1/probes/status", "GET /api/v1/probes/details"}
 		probeReadbackLimitations[0] = "仅表示已配置只读导入，不表示证据新鲜、完整、健康或生产验收通过；details 仍受身份与范围授权保护"
+	}
+
+	subscriptionState := StateBlocked
+	subscriptionEvidence := []string{}
+	subscriptionLimitations := []string{
+		"未配置合法范围的本地订阅后端，受保护的订阅 API 不可用",
+		"仅保存本地来源、格式识别、候选去重隔离、接纳拒绝与回退记录，命令回执支持只读对账",
+		"写入仍需服务端与 API 两层独立订阅写门、身份与范围授权；本清单不表示写门已开启",
+		"批准与抓取入口已实现，但后端已配置不代表策略目录就绪或来源已批准；仍须核验引用、批准及策略和来源版本",
+		"没有自动订阅刷新调度、完整节点能力评估或企业订阅编排闭环",
+		"不执行设备发布、内核重载、节点切换或生产流量接管",
+		"配置事实不代表当前主体获准操作、业务健康或生产验收通过",
+	}
+	if facts.SubscriptionConfigured {
+		subscriptionLimitations[0] = "本地订阅后端已配置，但未配置本地身份，受保护的订阅 API 不可用"
+		if facts.IdentityConfigured {
+			subscriptionState = StateImplementedLocal
+			subscriptionLimitations[0] = "仅表示本地订阅后端与身份已配置，不证明接口健康、写入授权或生产可用"
+			subscriptionEvidence = []string{
+				"GET /api/v1/subscriptions/access",
+				"GET /api/v1/subscriptions/sources",
+				"POST /api/v1/subscriptions/sources",
+				"GET /api/v1/subscriptions/sources/{sourceId}/access",
+				"GET /api/v1/subscriptions/sources/{sourceId}/candidates",
+				"POST /api/v1/subscriptions/sources/{sourceId}/candidates",
+				"GET /api/v1/subscriptions/sources/{sourceId}/candidates/{candidateId}/nodes",
+				"POST /api/v1/subscriptions/sources/{sourceId}/approvals",
+				"POST /api/v1/subscriptions/sources/{sourceId}/fetches",
+				"POST /api/v1/subscriptions/sources/{sourceId}/decisions",
+				"POST /api/v1/subscriptions/sources/{sourceId}/rollbacks",
+				"GET /api/v1/subscriptions/commands/{commandId}",
+			}
+		}
 	}
 
 	return Report{
@@ -209,8 +245,13 @@ func BuildWithRuntime(now time.Time, facts RuntimeFacts) Report {
 				State: probeReadbackState, ReadOnly: true,
 				Evidence: probeReadbackEvidence, Limitations: probeReadbackLimitations,
 			},
+			{
+				ID: "subscription_local_admission", Domain: "subscription", Name: "本地订阅准入与受保护 API",
+				State: subscriptionState, ReadOnly: false,
+				Evidence: subscriptionEvidence, Limitations: subscriptionLimitations,
+			},
 			designOnly("router_publish", "configuration", "路由器配置写入与发布", "尚无设备写入、配置测试、灰度、热重载和自动回滚闭环"),
-			designOnly("subscription_orchestration", "subscription", "订阅识别与编排", "尚无订阅拉取、去重、隔离、转换、健康检查和回退执行链"),
+			designOnly("subscription_orchestration", "subscription", "订阅识别与编排", "已有本地来源、格式识别、候选去重隔离、受控批准抓取、准入回退与回执底座；自动刷新调度、完整节点评估、数据面应用及生产验证尚未闭环"),
 			designOnly("dns_execution", "dns", "DNS 执行与防泄漏", "尚无 DNS 服务进程、解析链路接管、泄漏检测和故障切换执行器"),
 			designOnly("active_business_probes", "observability", "主动业务可用性探测", "已有 standalone probe-agent 的有界 HTTP、TLS、DNS 探测与只读证据导入；尚无完整节点、地区、账号与企业业务评估及生产验证闭环"),
 			designOnly("automatic_repair", "automation", "自动诊断与修复", "尚无故障决策、抑制、变更、验证和失败回滚执行闭环"),

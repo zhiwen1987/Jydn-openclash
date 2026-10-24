@@ -1,0 +1,166 @@
+{
+  "schema": "chengwang.handoff-negative-navigation-diagnostics-contract/v1",
+  "observationSchema": "chengwang.handoff-negative-navigation-diagnostics/v1",
+  "scope": "FAILURE_ONLY_PRE_CLEANUP_INSTANT_NOT_ACCEPTANCE",
+  "privateFile": "driver-handoff-navigation.private.json",
+  "maxBytes": 8192,
+  "uid": 10001,
+  "mode": 384,
+  "scenarios": [
+    "remote_handoff_negative"
+  ],
+  "observationKeys": [
+    "schema",
+    "sourceCommit",
+    "fixtureId",
+    "engine",
+    "scenario",
+    "scope",
+    "phases",
+    "cause",
+    "input",
+    "journal"
+  ],
+  "phaseKeys": [
+    "phase",
+    "entered",
+    "completed"
+  ],
+  "phasesByEngine": {
+    "chrome-cdp": [
+      "VIEWPORT",
+      "NAVIGATE_RETURN",
+      "READY",
+      "NAV_TARGET_FOUND",
+      "NAV_TARGET_ACTIONABLE",
+      "INPUT_DISPATCHED",
+      "ANON_DOM",
+      "API_CERT",
+      "TLS_VERIFIED"
+    ],
+    "playwright": [
+      "VIEWPORT",
+      "NAVIGATE_RETURN",
+      "READY",
+      "NAV_TARGET_FOUND",
+      "INPUT_DISPATCHED",
+      "ANON_DOM",
+      "API_CERT",
+      "TLS_VERIFIED"
+    ]
+  },
+  "causesByPhase": {
+    "VIEWPORT": [
+      "VIEWPORT_REJECTED"
+    ],
+    "NAVIGATE_RETURN": [
+      "NAVIGATE_CALL_REJECTED",
+      "NAVIGATE_ERROR_PRESENT"
+    ],
+    "READY": [
+      "READY_WAIT_REJECTED"
+    ],
+    "NAV_TARGET_FOUND": [
+      "NAV_TARGET_QUERY_REJECTED",
+      "NAV_TARGET_ZERO",
+      "NAV_TARGET_MULTIPLE"
+    ],
+    "NAV_TARGET_ACTIONABLE": [
+      "NAV_TARGET_DISABLED",
+      "NAV_TARGET_RECT_EMPTY",
+      "NAV_TARGET_OUTSIDE_VIEWPORT",
+      "NAV_TARGET_HIT_MISMATCH"
+    ],
+    "INPUT_DISPATCHED": [
+      "INPUT_MOVE_REJECTED",
+      "INPUT_PRESS_REJECTED",
+      "INPUT_RELEASE_REJECTED",
+      "PW_CLICK_REJECTED"
+    ],
+    "ANON_DOM": [
+      "ANON_DOM_WAIT_REJECTED",
+      "ANON_IDENTITY_REJECTED",
+      "ANON_SHAPE_REJECTED",
+      "ANON_STEP_REJECTED",
+      "ANON_CONTENT_FENCE_REJECTED",
+      "ANON_JOURNAL_WAIT_REJECTED",
+      "ANON_WIRE_FENCE_REJECTED",
+      "ANON_SAMPLER_FENCE_REJECTED",
+      "ANON_FEEDBACK_REJECTED"
+    ],
+    "API_CERT": [
+      "API_CERT_REJECTED"
+    ],
+    "TLS_VERIFIED": [
+      "TLS_PROOF_REJECTED"
+    ]
+  },
+  "completedCause": "UNCLASSIFIED",
+  "inputKinds": [
+    "CDP_ACK_MASK",
+    "PW_CLICK_RETURN"
+  ],
+  "cdpAcknowledgementMasks": [
+    0,
+    1,
+    3,
+    7
+  ],
+  "journalAvailableKeys": [
+    "available",
+    "failure",
+    "counters",
+    "requests",
+    "terminal",
+    "pending",
+    "captures",
+    "tasks",
+    "mutations"
+  ],
+  "journalUnavailableKeys": [
+    "available"
+  ],
+  "counterNames": [
+    "runtimeErrors",
+    "consoleErrors",
+    "consoleWarnings",
+    "cspErrors",
+    "assetErrors",
+    "forbiddenRequests",
+    "failedRequests",
+    "captureErrors"
+  ],
+  "maxCounter": 2147483647,
+  "maxRequestsByScenario": {
+    "remote_handoff_negative": 256
+  },
+  "maxMutationsByScenario": {
+    "remote_handoff_negative": 10
+  },
+  "publicProjection": {
+    "unavailableKeys": [
+      "available"
+    ],
+    "availableKeys": [
+      "available",
+      "observation"
+    ]
+  },
+  "invariants": [
+    "phases are the exact entered prefix for the bound engine; entered is always true; only the last phase may be incomplete",
+    "cause belongs to the incomplete last phase; UNCLASSIFIED is allowed only for no entered phase or an entirely completed prefix",
+    "input is null before INPUT_DISPATCHED and engine-specific afterwards; completed input requires mask 7 or returned true",
+    "an incomplete input phase requires CDP cause MOVE/PRESS/RELEASE with mask 0/1/3 respectively, or PW_CLICK_REJECTED with returned false",
+    "a completed NAV_TARGET_FOUND proves only the existing query returned exactly one target; PW internal actionability is not observed",
+    "journal unavailable never supplies fabricated counters; an available snapshot uses the exact eight original counters before cleanup, not lifecycle totals",
+    "terminal plus pending equals requests; captures never exceeds terminal; mutations never exceeds requests",
+    "sourceCommit fixtureId engine and scenario bind to the supervisor and original source; no arbitrary paths are accepted",
+    "the private observation is failure-only and is projected only into existing failure.json; successful PUBLIC files and acceptance schemas remain unchanged",
+    "no exception object message stack headers token DOM text input value certificate body new probing retry or extra write is part of diagnostics",
+    "diagnostic availability is never product acceptance; original errors and exit behavior remain authoritative",
+    "Independent negative-handoff schema: existing create_receipt/remote_fetch contract is not widened.",
+    "All phases describe failure-only instantaneous observations, never successful UI acceptance."
+  ],
+  "production": false,
+  "authorization": "BLOCKED"
+}

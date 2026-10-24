@@ -12,6 +12,7 @@ import { parseProbePublicJSON } from './probe-browser-contract.mjs'
 import { ProbeStatusDiagnostics } from './probe-status-diagnostics.mjs'
 import { ProbeRequestBindingDiagnostics, createBindingDiagnosticSink, probeBindingHeader } from './probe-request-binding.mjs'
 import { emitBrowserIdentity } from './browser-identity.mjs'
+import { StatusNetworkLifecycle, createLifecycleSink, LIFECYCLE_EVENTS } from './status-network-lifecycle.mjs'
 
 const execute = promisify(execFile)
 const { dirname, isAbsolute, join, normalize } = posix
@@ -438,8 +439,9 @@ async function launchImplementation(input) {
   } catch { reject() }
 
   let transport, context, page, launcherChild, childResult, pageSend, browserSend, record, closeEvidence = null
-  let proof = null, chain = [], product = '', journal, screenshotCount = 0, closed = false, bindingDiagnostics
+  let proof = null, chain = [], product = '', journal, screenshotCount = 0, closed = false, bindingDiagnostics, networkLifecycle
   const bindingSink = createBindingDiagnosticSink()
+  const lifecycleSink = createLifecycleSink()
   let launchStderr = Buffer.alloc(0), launchStderrOverflow = false, launchDiagnosticPrinted = false, spawnError
   const launchDiagnostic = error => {
     if (launchDiagnosticPrinted) return
@@ -489,6 +491,8 @@ async function launchImplementation(input) {
       transport.listeners.push(message => { if (message.sessionId === session) journal?.handle(message.method, message.params ?? {}) })
       bindingDiagnostics = new ProbeRequestBindingDiagnostics(session, bindingSink)
       transport.listeners.push(message => { if (message.sessionId === session) bindingDiagnostics.handle(message.method, message.params ?? {}, message.sessionId) })
+      networkLifecycle = new StatusNetworkLifecycle(session, lifecycleSink)
+      transport.listeners.push(message => { if (message.sessionId === session && LIFECYCLE_EVENTS.includes(message.method)) networkLifecycle.handle(message.method, message.params ?? {}, message.sessionId) })
     } else {
       const module = await import(pathToFileURL(join(options.sourceRoot, 'chengwang/tools/probe-browser/node_modules/playwright-core/index.mjs')).href)
       need(typeof module.chromium?.launchPersistentContext === 'function')
@@ -507,6 +511,8 @@ async function launchImplementation(input) {
       for (const method of ['Network.requestWillBeSent', 'Network.responseReceived', 'Network.loadingFinished', 'Network.loadingFailed',
         'Runtime.executionContextCreated', 'Runtime.executionContextDestroyed', 'Runtime.executionContextsCleared',
         'Runtime.consoleAPICalled', 'Page.frameNavigated']) session.on(method, params => bindingDiagnostics.handle(method, params, session))
+      networkLifecycle = new StatusNetworkLifecycle(session, lifecycleSink)
+      for (const method of LIFECYCLE_EVENTS) session.on(method, params => networkLifecycle.handle(method, params, session))
     }
     checkpoint('IDENTITY')
     const version = await browserSend('Browser.getVersion')
@@ -624,6 +630,7 @@ async function launchImplementation(input) {
         checkpoint('CLOSE_DRAIN')
         await journal.flush(); need(journal.active.size === 0)
         journal.lifePhase = 'CLOSING'
+        networkLifecycle?.beginClosing()
         checkpoint('CLOSE_COMMAND')
         if (context) await context.close()
         else await browserSend('Browser.close')
@@ -652,8 +659,10 @@ async function launchImplementation(input) {
         return copy(closeEvidence)
         } catch { reject() }
         finally {
-          try { bindingDiagnostics?.finish() }
-          finally { journal.diagnostics.finish() }
+          try {
+            try { bindingDiagnostics?.finish() }
+            finally { journal.diagnostics.finish() }
+          } finally { networkLifecycle?.finish() }
         }
       },
     }
@@ -661,6 +670,7 @@ async function launchImplementation(input) {
   } catch (error) {
     bindingDiagnostics?.finish()
     journal?.diagnostics.finish()
+    networkLifecycle?.finish()
     launchDiagnostic(spawnError ?? error)
     // An incomplete launch is never declared a normal close. The independent
     // namespace supervisor remains responsible for emergency cleanup.

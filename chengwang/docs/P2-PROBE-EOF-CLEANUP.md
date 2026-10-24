@@ -1,6 +1,10 @@
 # P2：正常 EOF 清理优化与独立观测
 
-状态：候选实现及CI接线已完成，584项辅助纯CPU检查通过；新18项前端仅AST／名单已核，尚无新源码真实CI／240项Vitest结果。本阶段只允许开发与隔离验收，不授权生产变更。
+状态：`e6cc0ff`真实前端240项及Playwright EOF门已分层复核；Chrome/CDP原浏览器门仍失败，因此本阶段未通过完整回归。584项辅助检查只是前序本机纯CPU结果，不替代实际浏览器。本阶段只允许开发与隔离验收，不授权生产变更。
+
+2026-10-24补充：[探针40048820014](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40048820014) attempt1，Playwright原门与新辅助门成功，根实际运行新原CLI（内部再运行原browser/binding两CLI）exit0，报告与producer逐字相同，SHA256 `7a823bc32b0d152b605ab946f12d591533d2614def2be4ed9c34631a7715b557`。同源码[镜像40048819946](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40048819946)中的240项／11文件、旧222名单、新18及Go／Registry普通race转录原门通过；不冒称本次六个产品镜像CLI全已独立重放。
+
+CDP仍为failedRequests=1，其余七计数0；本次绑定n4/m1/r4/POLL，HTTP200及JSON EOF_OK/FINALLY同时有浏览器NET_FAIL ABORTED。全局应用CANCEL、ABORT、DEADLINE和UNMOUNT均0。正常成功不再cancel的改动已生效，却不足以解决这个失败。根因仍未证明，不改原计数或把失败过滤掉。新EOF门按原门失败正确跳过。[完整分层机器证据](evidence/p2-e6cc-partial-ci.json)。下一候选仅补独立被动网络生命周期原件，不能据此宣称根因已修。
 
 ## 为什么做
 

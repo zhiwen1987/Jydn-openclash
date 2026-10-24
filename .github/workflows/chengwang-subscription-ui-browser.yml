@@ -273,6 +273,21 @@ jobs:
           python3 -B chengwang/deploy/subscription-ui-browser/check_navigation_synthetic.py \
             --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/navigation-synthetic.json"
 
+      - name: Freeze independent negative-handoff navigation diagnostic unit events
+        if: matrix.scenario == 'remote_handoff_negative'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          node --test --test-reporter=tap chengwang/tools/subscription-ui-browser/test-handoff-navigation-diagnostics.mjs \
+            2>&1 | tee "$reports/handoff-navigation-node.tap"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_handoff_navigation_diagnostics) \
+            2>&1 | tee "$reports/handoff-navigation-reader.log"
+          (cd chengwang/deploy/subscription-ui-browser && python3 -B -m unittest -v test_check_handoff_navigation_diagnostics) \
+            2>&1 | tee "$reports/handoff-navigation-checker.log"
+          python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_navigation_synthetic.py \
+            --evidence "$reports" --source-commit "$GITHUB_SHA" --report "$reports/handoff-navigation-synthetic.json"
+
       - name: Enforce reviewed browser pin and independently read actual expansion
         shell: bash
         run: |
@@ -300,8 +315,7 @@ jobs:
             --output-dir "$lab/reports/originals" 2>&1 | tee "$lab/reports/supervisor-original.log"
 
       - name: Independently decode bounded navigation failure observations without product acceptance
-        # The new handoff scenario has no navigation-diagnostics schema yet.
-        # Preserve its generic failure originals; do not impersonate an old scenario.
+        # Keep the original schema restricted to its reviewed scenarios.
         if: always() && matrix.scenario != 'remote_handoff_negative'
         shell: bash
         run: |
@@ -313,6 +327,19 @@ jobs:
               --engine '${{ matrix.engine }}' --scenario '${{ matrix.scenario }}' \
               --evidence "$reports/originals" --report "$reports/navigation-diagnostic.json" \
               2>&1 | tee "$reports/navigation-diagnostic-original.log"
+          fi
+
+      - name: Independently decode negative-handoff navigation failure observations
+        if: always() && matrix.scenario == 'remote_handoff_negative'
+        shell: bash
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/subscription-ui/reports"
+          if sudo --non-interactive test -f "$reports/originals/failure.json"; then
+            sudo --non-interactive /usr/bin/python3 -I -B chengwang/deploy/subscription-ui-browser/check_handoff_navigation_diagnostics.py \
+              --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
+              --evidence "$reports/originals" --report "$reports/handoff-navigation-diagnostic.json" \
+              2>&1 | tee "$reports/handoff-navigation-diagnostic-original.log"
           fi
 
       - name: Independent original API DOM PNG audit persistence and lifecycle verification
@@ -433,6 +460,12 @@ jobs:
               2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/feedback-synthetic-original.log"
             cmp "$RUNNER_TEMP/subscription-ui-input/feedback-synthetic.json" \
               "$RUNNER_TEMP/subscription-ui-fresh/feedback-synthetic.json"
+            python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_navigation_synthetic.py \
+              --evidence "$RUNNER_TEMP/subscription-ui-input" --source-commit "$GITHUB_SHA" \
+              --report "$RUNNER_TEMP/subscription-ui-fresh/handoff-navigation-synthetic.json" \
+              2>&1 | tee "$RUNNER_TEMP/subscription-ui-fresh/handoff-navigation-synthetic-original.log"
+            cmp "$RUNNER_TEMP/subscription-ui-input/handoff-navigation-synthetic.json" \
+              "$RUNNER_TEMP/subscription-ui-fresh/handoff-navigation-synthetic.json"
             python3 -B chengwang/deploy/subscription-ui-browser/check_handoff_feedback.py \
               --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --engine '${{ matrix.engine }}' \
               --evidence "$RUNNER_TEMP/subscription-ui-input" --report "$RUNNER_TEMP/subscription-ui-fresh/feedback-independent.json" \

@@ -1,0 +1,87 @@
+{
+  "schema": "chengwang.e6cc-partial-ci-evidence/v1",
+  "sourceCommit": "e6cc0ff3eb1e999c1f947d69d3945d854d29ea05",
+  "observedAt": "2026-10-24T01:54:22Z",
+  "scope": "TERMINAL_CI_METADATA_AND_SELECTED_ORIGINALS_NOT_FULL_ACCEPTANCE",
+  "attempt": 1,
+  "runs": [
+    {"id": 40048819951, "kind": "subscription_ui", "conclusion": "failure", "producerSucceeded": 7, "producerFailed": 1, "freshReplay": "skipped", "failedJobId": 120736608256, "failedScenario": "remote_handoff_negative", "failedEngine": "chrome-cdp"},
+    {"id": 40048820014, "kind": "probe_browser", "conclusion": "failure", "playwright": "success", "chromeCdp": "failure", "failedJobId": 120736659322},
+    {"id": 40048819946, "kind": "image_binding", "conclusion": "success", "fullIndependentProductCLIReplay": false},
+    {"id": 40048820034, "kind": "parent", "conclusion": "success", "newIndependentTranscriptAudit": false},
+    {"id": 40048819949, "kind": "subscription_backend", "conclusion": "success", "newIndependentTranscriptAudit": false},
+    {"id": 40048819947, "kind": "native_probe", "conclusion": "success", "newIndependentTranscriptAudit": false}
+  ],
+  "originalArtifactCustody": [
+    {"artifactId": 12542482252, "zipSHA256": "e24a9ec6874e31c2952f30af9a35b09e44d75497a018c292d662e60cde7db021", "members": 40, "custodySHA256": "c5b9dfa42f884f9518f7cb718ae614839f22c56155b454dd891f8190f3370da2"},
+    {"artifactId": 12542078209, "zipSHA256": "ff1d648efc69500d94cef78314989b9031964819a712be186fca6d7503527b87", "members": 88, "custodySHA256": "f511f27321779606dba955f2b30d56133c0072a7b9d633ce7bd3ae8d66fc2128"},
+    {"artifactId": 12542737220, "zipSHA256": "cad46d92f8f8b0178e8ac62d5219504cdea2438ff7797a43f37c3ac071270271", "members": 91, "custodySHA256": "0624ad254e526cc51ce2fb20eec544e32263a3747867d773fc747950121a2b85"},
+    {"artifactId": 12542972796, "zipSHA256": "3c9789492cf4cd2a76853dcccfe4447a6cd9a6058e393281eeb398bf85cf3044", "members": 1470, "custodySHA256": "70658675b6bf56b6e506231312568cfdeffbdec960db61816e56bf386cca6fc1"}
+  ],
+  "imageTranscriptAudit": {
+    "actualOriginalTranscriptCLIs": 3,
+    "allExitZero": true,
+    "frontendPassed": 240,
+    "frontendFiles": 11,
+    "old222NamesRetained": true,
+    "new18NamesSHA256": "de7d15a53dbddd3d52558f12b6de317b13ed297cc269f9a171ff706ebdec798f",
+    "ordinaryGoTests": 732,
+    "raceGoTests": 732,
+    "ordinaryRegistryTests": 3,
+    "raceRegistryTests": 3,
+    "reportSHA256": "f285b5e22a5434c6f3164c7ec40a1c094203feadf76f0850c29e53f72d9c7e63"
+  },
+  "playwrightEOFOriginalReplay": {
+    "actualCLIExitCode": 0,
+    "actuallyReplayedOriginalBrowserAndBindingCLIs": true,
+    "producerByteEqual": true,
+    "reportSHA256": "7a823bc32b0d152b605ab946f12d591533d2614def2be4ed9c34631a7715b557",
+    "normalJSONEOFs": 7,
+    "networkFinishes": 7,
+    "cancelRecords": 0,
+    "networkFailures": 0,
+    "requiredGitBlobs": 16
+  },
+  "chromeCdpFailure": {
+    "failedRequests": 1,
+    "otherSevenDriverErrorCounters": 0,
+    "boundRequest": "m1/r4/POLL",
+    "networkAlias": "n4",
+    "responseStatus": 200,
+    "networkOutcome": "ABORTED_CANCELED_YES",
+    "sameRequestApplicationOutcome": "JSON_EOF_OK_FINALLY",
+    "allApplicationCancelRecords": 0,
+    "allApplicationAbortRecords": 0,
+    "causeProven": false,
+    "originalBrowserGate": "REJECTED",
+    "newEOFGate": "SKIPPED_BY_OLD_GATE_FAILURE",
+    "diagnosticFactsSHA256": "284a581ad87700529be35e0b2da865497d12d115ad86c658f338ab6b562cd179"
+  },
+  "handoffFailure": {
+    "stage": "UI_RUN",
+    "lastBroadCheckpoint": "NAVIGATE",
+    "capturedGETResponses": 6,
+    "capturedPOSTResponses": 0,
+    "allCapturedResponseStatus": 200,
+    "finerNavigationDiagnosticsAvailable": false,
+    "causeProven": false,
+    "historicalDiagnosticsCannotBeReconstructed": true,
+    "diagnosisSHA256": "f40747c0141cf50fda78a9b4dc8daae001697e35fc940d57f534b6b252fd4559"
+  },
+  "localToolLimitations": [
+    "Initial gh artifact download failed; only failure hashes were journaled, so its exact response cannot be reconstructed or attributed to quota.",
+    "A separate rate-limit read showed core remaining 43. The available GitHub connector supplied ZIP handles whose original bytes matched API artifact sizes and digests.",
+    "Initial strict extractor rejected built static JS/CSS/HTML/SVG; the next reader allowed only those bounded UTF-8 assets under lab/browser/web. No downloaded asset was executed locally.",
+    "Connector job logs are decoded text projections, not independently retained raw GitHub log bytes.",
+    "New capability and diagnostic source changes are not covered by this e6cc evidence."
+  ],
+  "fullBrowserRegressionPassed": false,
+  "fullSubscriptionAcceptance": false,
+  "systemAcceptance": false,
+  "historicalCancellationRootCauseProven": false,
+  "localBuildStarted": false,
+  "localBusinessServerStarted": false,
+  "ciRerun": false,
+  "productionChanged": false,
+  "mainMerged": false
+}

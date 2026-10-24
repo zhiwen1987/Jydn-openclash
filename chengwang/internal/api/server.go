@@ -147,16 +147,18 @@ func New(options Options) http.Handler {
 
 func (s *server) capabilities(w http.ResponseWriter, _ *http.Request) {
 	_, evidenceValid := s.verifyEvidence()
+	identityConfigured := !nilSubscriptionInterface(s.options.Authn)
 	writeJSON(w, http.StatusOK, capability.BuildWithRuntime(time.Now(), capability.RuntimeFacts{
 		MihomoConfigured:           s.options.Mihomo != nil,
 		EvidenceConfigured:         s.options.Evidence != nil,
 		EvidenceValid:              evidenceValid,
-		IdentityConfigured:         s.options.Authn != nil,
-		OperationControlConfigured: s.options.Authn != nil && s.options.Operations != nil && s.options.Control != nil && evidenceValid,
+		IdentityConfigured:         identityConfigured,
+		OperationControlConfigured: identityConfigured && s.options.Operations != nil && s.options.Control != nil && evidenceValid,
 		ObservationConfigured:      s.options.Observation != nil,
 		// Configuration is not a liveness or business-health assertion. The
 		// anonymous inventory must not scan storage or read protected details.
 		ProbeReadbackConfigured: s.options.Probes != nil,
+		SubscriptionConfigured:  s.options.Subscriptions != nil && subscriptionScopeValid(s.subscriptionScope),
 	}))
 }
 

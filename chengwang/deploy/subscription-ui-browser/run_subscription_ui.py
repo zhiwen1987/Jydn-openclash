@@ -36,7 +36,8 @@ REMOTE_SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/remote_fetch_fi
     'chengwang/deploy/subscription-readback/wire_fixture.py', 'chengwang/deploy/subscription-readback/lab_contract.py']
 HANDOFF_SOURCE_FILES = [*REMOTE_SOURCE_FILES,
     'chengwang/deploy/subscription-ui-browser/handoff_negative_fixture.py',
-    'chengwang/deploy/subscription-ui-browser/feedback_projection.py']
+    'chengwang/deploy/subscription-ui-browser/feedback_projection.py',
+    'chengwang/deploy/subscription-ui-browser/handoff_navigation_diagnostics.py']
 SOURCE_FILES = ['chengwang/deploy/subscription-ui-browser/run_subscription_ui.py',
     'chengwang/deploy/subscription-ui-browser/ui_chrome_launcher.py',
     'chengwang/deploy/subscription-ui-browser/contract.json',
@@ -121,6 +122,10 @@ def feedback_projection():
 
 def navigation_diagnostics():
     return load_module(pathlib.Path(__file__).with_name('navigation_diagnostics.py'), 'subscription_ui_navigation_diagnostics')
+
+
+def handoff_navigation_diagnostics():
+    return load_module(pathlib.Path(__file__).with_name('handoff_navigation_diagnostics.py'), 'subscription_ui_handoff_navigation_diagnostics')
 
 
 def selected_scenario(options):
@@ -467,8 +472,9 @@ def inner(options, repo, root, bundle, fixture, N, M):
             N.exclusive(options.output_dir / 'failure.json', N.canonical(dict(schema=SCHEMA,
                 sourceCommit=options.source_commit, fixtureId=fixture, engine=options.engine, stage=stage,
                 driverCheckpoints=checkpoints,
-                driverDiagnostics=navigation_diagnostics().read(root, fixture, options.engine, scenario,
-                    options.source_commit, N),
+                driverDiagnostics=(handoff_navigation_diagnostics().read(root, fixture, options.engine, scenario,
+                    options.source_commit, N) if scenario == 'remote_handoff_negative' else
+                    navigation_diagnostics().read(root, fixture, options.engine, scenario, options.source_commit, N)),
                 serverExitCode=None if server is None else server.poll(), controllerExitCode=None if node is None else node.poll(),
                 records=records, forcedSignals=forced, noLiveOwnedProcesses=no_owned, capturedOriginals=exported,
                 acceptance='REJECTED_DIAGNOSTIC_ONLY', production=False, **failure_extra)) + b'\n')
