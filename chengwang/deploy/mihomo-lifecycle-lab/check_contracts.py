@@ -15,7 +15,7 @@ FILES = [PREFIX + 'run_contracts.sh', PREFIX + 'check_contracts.py',
     '.github/workflows/chengwang-mihomo-lifecycle.yml',
     'chengwang/internal/adapter/mihomo/write_client.go',
     'chengwang/internal/adapter/mihomo/write_client_test.go',
-    'chengwang/internal/mihomodeploy/config.go', 'chengwang/internal/mihomodeploy/config_test.go']
+    'chengwang/internal/mihomodeploy/config.go', 'chengwang/internal/mihomodeploy/config_test.go', 'chengwang/go.mod']
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,
     'race.stderr': 1 << 20, 'gofmt.patch': 1 << 20, 'gofmt.stderr': 1 << 20,
@@ -110,9 +110,11 @@ def verify(evidence, repo, commit):
     need(execution.get('realMihomoExecuted') is False and execution.get('production') is False)
     need(execution == dict(schema='chengwang.mihomo-contract-execution/v1', formatExit=0, ordinaryExit=0, raceExit=0, realMihomoExecuted=False, production=False))
     sandbox = decode(raw['sandbox.json'])
-    need(type(sandbox) is dict and set(sandbox) == {'uid', 'gid', 'effectiveCaps', 'noNewPrivileges', 'networkNamespace', 'mountNamespace', 'pidNamespace', 'environmentKeys'})
+    need(type(sandbox) is dict and set(sandbox) == {'uid', 'gid', 'effectiveCaps', 'noNewPrivileges', 'networkNamespace', 'mountNamespace', 'pidNamespace', 'environmentKeys', 'sourceModuleSHA256', 'sourceAliasReadOnly', 'temporaryRootPrivate'})
     need(sandbox['uid'] == sandbox['gid'] == 10001 and type(sandbox['uid']) is type(sandbox['gid']) is int and sandbox['effectiveCaps'] == '0000000000000000' and sandbox['noNewPrivileges'] is True)
-    need(sandbox['environmentKeys'] == sorted(['PATH', 'GOROOT', 'HOME', 'GOCACHE', 'GOMODCACHE', 'GOPROXY', 'GOSUMDB', 'GOENV', 'GOTOOLCHAIN', 'GOFLAGS', 'CGO_ENABLED', 'LANG', 'LC_ALL', 'TZ']))
+    need(sandbox['environmentKeys'] == sorted(['PATH', 'GOROOT', 'HOME', 'TMPDIR', 'GOCACHE', 'GOMODCACHE', 'GOPROXY', 'GOSUMDB', 'GOENV', 'GOTOOLCHAIN', 'GOFLAGS', 'CGO_ENABLED', 'LANG', 'LC_ALL', 'TZ']))
+    need(sandbox['sourceModuleSHA256'] == sha(sources['chengwang/go.mod'])
+         and sandbox['sourceAliasReadOnly'] is True and sandbox['temporaryRootPrivate'] is True)
     before, after = decode(raw['host-before.json']), decode(raw['host-after.json'])
     need(type(before) is dict and set(before) == {'networkNamespace', 'mountNamespace', 'pidNamespace', 'resolvSHA256'} and before == after)
     need(type(before['resolvSHA256']) is str and re.fullmatch('[a-f0-9]{64}', before['resolvSHA256']))

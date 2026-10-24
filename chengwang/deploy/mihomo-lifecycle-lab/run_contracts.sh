@@ -21,13 +21,37 @@ mount --bind "$repo" "$repo"
 mount -o remount,bind,ro "$repo"
 mount -t tmpfs -o nosuid,nodev,mode=755 tmpfs /tmp
 install -d -m 0700 -o 10001 -g 10001 /tmp/contracts-home /tmp/contracts-cache /tmp/contracts-mod
+# Hosted checkout ancestors may be inaccessible to UID10001. Give exact
+# source bytes a read-only alias on this private mount, never chmod the host.
+install -d -m 0755 /tmp/contracts-source
+mount --bind "$repo/chengwang" /tmp/contracts-source
+mount -o remount,bind,ro,nosuid,nodev,noexec /tmp/contracts-source
+module_sha="$(sha256sum "$repo/chengwang/go.mod")"
+module_sha="${module_sha%% *}"
 chmod 0755 "$out"
-cd "$repo/chengwang"
+cd /tmp/contracts-source
 common=(setpriv --reuid=10001 --regid=10001 --clear-groups --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all
-  env -i "PATH=$goroot/bin:/usr/bin:/bin" "GOROOT=$goroot" HOME=/tmp/contracts-home
+  env -i "PATH=$goroot/bin:/usr/bin:/bin" "GOROOT=$goroot" HOME=/tmp/contracts-home TMPDIR=/tmp/contracts-home
   GOCACHE=/tmp/contracts-cache GOMODCACHE=/tmp/contracts-mod GOPROXY=off GOSUMDB=off
   GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor CGO_ENABLED=1 LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC)
-"${common[@]}" python3 -B -c 'import json,os; s=dict(line.split(":",1) for line in open("/proc/self/status") if ":" in line); assert os.getuid()==os.getgid()==10001 and int(s["CapEff"].strip(),16)==0 and s["NoNewPrivs"].strip()=="1"; print(json.dumps(dict(uid=os.getuid(),gid=os.getgid(),effectiveCaps=s["CapEff"].strip(),noNewPrivileges=True,networkNamespace=os.readlink("/proc/self/ns/net"),mountNamespace=os.readlink("/proc/self/ns/mnt"),pidNamespace=os.readlink("/proc/self/ns/pid"),environmentKeys=sorted(os.environ))))' > "$out/sandbox.json"
+"${common[@]}" python3 -B - "$module_sha" > "$out/sandbox.json" <<'PY'
+import hashlib,json,os,stat,sys
+from pathlib import Path
+s=dict(line.split(':',1) for line in open('/proc/self/status') if ':' in line)
+assert os.getuid()==os.getgid()==10001 and int(s['CapEff'].strip(),16)==0 and s['NoNewPrivs'].strip()=='1'
+assert Path.cwd()==Path('/tmp/contracts-source')
+module=Path('/tmp/contracts-source/go.mod').read_bytes()
+module_sha=hashlib.sha256(module).hexdigest()
+assert module==Path('go.mod').read_bytes() and module_sha==sys.argv[1]
+readonly=bool(os.statvfs('/tmp/contracts-source').f_flag & os.ST_RDONLY)
+tmp=Path('/tmp/contracts-home');info=tmp.lstat()
+private=stat.S_ISDIR(info.st_mode) and info.st_uid==info.st_gid==10001 and stat.S_IMODE(info.st_mode)==0o700
+assert readonly and private and os.environ['TMPDIR']==os.environ['HOME']==str(tmp)
+print(json.dumps(dict(uid=os.getuid(),gid=os.getgid(),effectiveCaps=s['CapEff'].strip(),noNewPrivileges=True,
+    networkNamespace=os.readlink('/proc/self/ns/net'),mountNamespace=os.readlink('/proc/self/ns/mnt'),
+    pidNamespace=os.readlink('/proc/self/ns/pid'),environmentKeys=sorted(os.environ),
+    sourceModuleSHA256=module_sha,sourceAliasReadOnly=readonly,temporaryRootPrivate=private)))
+PY
 "${common[@]}" "$goroot/bin/go" version > "$out/go-version.txt"
 files=(internal/adapter/mihomo/write_client.go internal/adapter/mihomo/write_client_test.go internal/mihomodeploy/config.go internal/mihomodeploy/config_test.go)
 set +e

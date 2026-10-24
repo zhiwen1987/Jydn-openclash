@@ -70,8 +70,9 @@ class ContractEvidenceModels(unittest.TestCase):
         self.set_json('sandbox.json', dict(
             uid=10001, gid=10001, effectiveCaps='0000000000000000',
             noNewPrivileges=True, networkNamespace='net:[21]', mountNamespace='mnt:[22]',
-            pidNamespace='pid:[23]', environmentKeys=sorted([
-                'PATH', 'GOROOT', 'HOME', 'GOCACHE', 'GOMODCACHE', 'GOPROXY',
+            pidNamespace='pid:[23]', sourceModuleSHA256=S.sha(self.sources['chengwang/go.mod']),
+            sourceAliasReadOnly=True, temporaryRootPrivate=True, environmentKeys=sorted([
+                'PATH', 'GOROOT', 'HOME', 'TMPDIR', 'GOCACHE', 'GOMODCACHE', 'GOPROXY',
                 'GOSUMDB', 'GOENV', 'GOTOOLCHAIN', 'GOFLAGS', 'CGO_ENABLED',
                 'LANG', 'LC_ALL', 'TZ'])))
         host = dict(networkNamespace='net:[11]', mountNamespace='mnt:[12]',
@@ -216,6 +217,17 @@ class ContractEvidenceModels(unittest.TestCase):
             self.verify_model()
 
     def test_host_child_namespace_and_host_stability_are_checked(self):
+        initial = json.loads(self.payloads['sandbox.json'])
+        for field, invalid in [('sourceModuleSHA256', '0' * 64),
+                               ('sourceAliasReadOnly', False), ('sourceAliasReadOnly', 1),
+                               ('temporaryRootPrivate', False), ('temporaryRootPrivate', 1),
+                               ('environmentKeys', [key for key in initial['environmentKeys'] if key != 'TMPDIR'])]:
+            with self.subTest(field=field, invalid=invalid):
+                self.mutate_json('sandbox.json', **{field: invalid})
+                with self.assertRaises(ValueError):
+                    self.verify_model()
+                self.set_json('sandbox.json', initial)
+                self.flush()
         for field in ('networkNamespace', 'mountNamespace', 'pidNamespace'):
             with self.subTest(field=field):
                 original = json.loads(self.payloads['sandbox.json'])

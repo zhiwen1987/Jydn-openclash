@@ -1,0 +1,70 @@
+{
+  "actualCandidateConsumption": {
+    "archive": {
+      "bytes": 22877868,
+      "name": "mihomo-linux-amd64-v1-v1.19.32.gz",
+      "pinBasis": "PUBLISHED_RELEASE_ASSET_SHA256_NOT_SIGNATURE_APPROVAL",
+      "sha256": "306f81e723e60ce6b828899a6fe83e1d00e9ecefb2dc8d4d849312a5bc00efdc"
+    },
+    "elf": {
+      "byteOrder": "little",
+      "bytes": 62054526,
+      "elfClass": "ELF64",
+      "entryPoint": 4795680,
+      "executableEntryMapped": true,
+      "loadSegments": 3,
+      "machine": "AMD64",
+      "programHeaderCount": 5,
+      "sectionHeaderCount": 14,
+      "sha256": "6de241191ca39f9ac1cd6e3194fc9303c19055d3549c8bdb4ff1349c89173819",
+      "type": "EXEC"
+    },
+    "producerIndependentFreshBytesEqual": true,
+    "productionApproved": false,
+    "publisherSignatureProven": false,
+    "receiptSHA256": "daaa8c83c4a3b5d68e609b395ad4cbf3c13b2e0e39efd52c1fcd23de48274d05",
+    "runtimeExecuted": false
+  },
+  "baseline": "dfdd48d8cd103b10fad6d6762b19006ce5099075",
+  "firstActualRun": {
+    "conclusion": "failure",
+    "id": 40097491560,
+    "moduleLookupFailure": true,
+    "ordinaryTestsPassed": 0,
+    "originalEvidenceRoot": "D:\\CodexData\\workspace\\mihomo-ci-observed-dfdd-20261024",
+    "raceTestsPassed": 0,
+    "uniqueCauseProven": false
+  },
+  "localGoExecuted": false,
+  "mainMerged": false,
+  "nextActualCIRun": "UNREAD_NOT_INFERRED_FROM_PUSH",
+  "production": false,
+  "realMihomoExecuted": false,
+  "repair": [
+    "private read-only module alias without host chmod",
+    "private owned TMPDIR with strict 15-key environment",
+    "source module hash/read-only/private-temporary-root actual probes and strict checker",
+    "actual Linux CI gofmt patch transferred for config source and tests"
+  ],
+  "schema": "chengwang.mihomo-runner-repair-development/v1",
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "073e2122e213b48ba712247350d9e6f095c4d8ce4fd9b8a29e65b30f2bf0c772",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "21b7b60630097ab736d6aeca820daea191276325dd865f1765ccd9c6cc94cac8",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "9dd632cb9db4f963de7924332ffbdd1410e9537187637cb9a5e6edd77f0beeab",
+    "chengwang/internal/mihomodeploy/config.go": "f7e19280e1614dfaaebca3af7a22d2384e17c61429c27a872309e9e12ee767ba",
+    "chengwang/internal/mihomodeploy/config_test.go": "da82a9c770e5f4ebced19ba78cbfb578c8dd4d64da6dfb13b8252cb89abaca4f"
+  },
+  "unresolved": [
+    "actual Go compile and ordinary/race results for repaired candidate",
+    "durable artifact and approved lifecycle integration",
+    "actual core and business readback",
+    "production authorization and acceptance"
+  ],
+  "validation": {
+    "actualPythonModels": 23,
+    "bashSyntax": true,
+    "peerResultSHA256": "0281bdacea0c0f82f3616ebb73dcae82daf5e0b50e08176e050c2fd978256268",
+    "skipped": 0,
+    "sourceStable": true
+  }
+}
