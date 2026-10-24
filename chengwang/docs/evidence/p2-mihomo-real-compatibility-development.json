@@ -1,0 +1,70 @@
+{
+  "baseline": "71fbcb83a26458f8b9ca9c3d23b1cfbb7a14a92f",
+  "formatTransfer": {
+    "actualCIBytes": 34265,
+    "files": [
+      "prepare.go",
+      "prepare_test.go"
+    ],
+    "localGoFormatterExecuted": false
+  },
+  "implemented": [
+    "opt-in Linux tagged fixed kernel version and actual generated stdin configuration tests",
+    "source-owned private namespace executor with preserved input custody and private-body fencing",
+    "independent closed original-evidence CLI and fresh replay workflow"
+  ],
+  "mainMerged": false,
+  "nextActualCIStatus": "NOT_INFERRED_FROM_PUSH",
+  "notImplemented": [
+    "trusted lifecycle approval and RBAC binding",
+    "durable single-record lease and dispatch WAL",
+    "actual authenticated reload and full independent runtime and local proxy business checks",
+    "bounded approved automatic recovery and full product API/UI",
+    "production acceptance"
+  ],
+  "parentActualCI": {
+    "actualKernelExecuted": false,
+    "commit": "71fbcb83a26458f8b9ca9c3d23b1cfbb7a14a92f",
+    "ordinary": {
+      "mandatoryNewTopLevelTests": 109,
+      "passingSemanticTests": 150,
+      "skips": 0
+    },
+    "race": {
+      "mandatoryNewTopLevelTests": 109,
+      "passingSemanticTests": 150,
+      "skips": 0
+    },
+    "remainingFailure": "NONEMPTY_GOFMT_PATCH",
+    "run": 40104973466,
+    "source": "D:/CodexData/workspace/mihomo-71fb-go-and-format-68wsqp9k/actual-go-subgates.json",
+    "wholeGatePassed": false
+  },
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-real-compatibility-development/v1",
+  "scope": "SOURCE_AND_SYNTHETIC_ONLY_NEW_REAL_COMPATIBILITY_NOT_YET_EXECUTED",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "0e4dbb2030a96baa210352bc5b913dabb23e69a898699d15c3d563b0adaa5d84",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "709c26553899eb24d63ba44bfb2d9c00b557e79a496f2ac61b71d35e0973e37e",
+    "chengwang/deploy/mihomo-lifecycle-lab/compat_contract.json": "f6e1a8ef64d062433f3ddfd1929506d1b6cdb92b13ae4b773891b819311f6f6e",
+    "chengwang/deploy/mihomo-lifecycle-lab/compat_worker.py": "bc9f254d77c8be0bd26490b0f280738eb992d98c0945a2320acfc4c9797f0326",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_compat.sh": "4921e00959f19837aa29e1cb255a6fb6528017c1aa9430167712b3ebc1d04430",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "c31216128587973147819e1b8dad09732715d1d27fd5cb4e09c15b909ad7638b",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "c37ee94dee1bc9701715ed0620fdccf8dc3b16ef5f08c8446157379d1f350c0f",
+    "chengwang/internal/mihomodeploy/prepare.go": "191c0c1ab23f7c1228a7099d06f2763ca92940a6154433972a9b9eccea93aee8",
+    "chengwang/internal/mihomodeploy/prepare_test.go": "d62d164188816088252edcf66225195148f3b42c1dcd04e22427f487760b0158",
+    "chengwang/internal/mihomodeploy/runtime_compat_linux_test.go": "5c177a7429e393703b331924c418143d26758f863efc34be705f2f7620c495ab"
+  },
+  "validation": {
+    "checkerSyntheticModels": 34,
+    "checkerTypeRegressionReceipt": "D:/CodexData/workspace/mihomo-compat-equalnumber-fix-20261025-c/result.json",
+    "checkerTypeRegressionReceiptSHA256": "dc1d03036457266ca6bf22f8aaa78740ee9e95ca4b961c6f4f728244b1f40526",
+    "executorPeerBeforeCheckerTypeFix": "D:\\CodexData\\workspace\\mihomo-compat-executor-peer-20261024-c\\final-result.json",
+    "executorPeerSHA256": "9f355e6479d9c74f888e51a97e19327895cc7cbfbae88968fc7e767df7e009a8",
+    "newGoOrKernelExecuted": false,
+    "staticReceipt": "D:\\CodexData\\workspace\\mihomo-compat-integration-final-static-427vl_ze\\result.json",
+    "staticSHA256": "89d8c3bf8630e8c21bc9fad6697543b2a6adcf3eb1bb75c6e699efa9e769e9e8",
+    "workerCPUModels": 19
+  }
+}

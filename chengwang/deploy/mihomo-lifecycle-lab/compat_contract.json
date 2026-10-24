@@ -1,0 +1,192 @@
+{
+  "schema": "chengwang.mihomo-compat-contract/v1",
+  "status": "FROZEN_SOURCE_ONLY_NOT_RUNTIME_RESULT",
+  "buildTag": "linux && chengwang_mihomo_compat",
+  "testPackage": "chengwang/internal/mihomodeploy",
+  "topLevelTests": [
+    "TestMihomoCompatVersion",
+    "TestMihomoCompatGeneratedConfigs",
+    "TestMihomoCompatMalformedYAML"
+  ],
+  "subtests": [
+    "TestMihomoCompatGeneratedConfigs/base",
+    "TestMihomoCompatGeneratedConfigs/candidate"
+  ],
+  "cases": [
+    "version",
+    "base",
+    "candidate",
+    "malformed"
+  ],
+  "publicFiles": [
+    "compat.json",
+    "compat.stderr",
+    "execution.json",
+    "sandbox.json",
+    "go-version.txt",
+    "host-before.json",
+    "host-after.json",
+    "consumption.json",
+    "consumption-independent.json",
+    "gofmt.patch",
+    "gofmt.stderr",
+    "version.exec.json",
+    "version.stdout",
+    "version.stderr",
+    "base.exec.json",
+    "base.stdout",
+    "base.stderr",
+    "candidate.exec.json",
+    "candidate.stdout",
+    "candidate.stderr",
+    "malformed.exec.json",
+    "malformed.stdout",
+    "malformed.stderr"
+  ],
+  "privateExtraFiles": [
+    ".secrets.private.json",
+    "base.config.private.yaml",
+    "candidate.config.private.yaml"
+  ],
+  "privateSecretsSchema": "chengwang.mihomo-compat-private-secrets/v1",
+  "privateSecretsKeys": [
+    "schema",
+    "base",
+    "candidate"
+  ],
+  "environmentKeys": [
+    "CGO_ENABLED",
+    "CHENGWANG_MIHOMO_COMPAT_ELF",
+    "CHENGWANG_MIHOMO_COMPAT_OUT",
+    "CHENGWANG_MIHOMO_COMPAT_RECEIPT",
+    "CHENGWANG_MIHOMO_COMPAT_SOURCE_COMMIT",
+    "GOCACHE",
+    "GOENV",
+    "GOFLAGS",
+    "GOMODCACHE",
+    "GOPROXY",
+    "GOROOT",
+    "GOSUMDB",
+    "GOTOOLCHAIN",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "TMPDIR",
+    "TZ"
+  ],
+  "paths": {
+    "module": "/tmp/mihomo-compat-source",
+    "goRoot": "/tmp/mihomo-compat-go",
+    "home": "/tmp/mihomo-compat-home",
+    "privateOutput": "/tmp/mihomo-compat-private",
+    "kernelDirectory": "/tmp/mihomo-compat-kernel",
+    "kernel": "/tmp/mihomo-compat-kernel/mihomo",
+    "receipt": "/tmp/mihomo-compat-kernel/consumption.json"
+  },
+  "execSchema": "chengwang.mihomo-compat-exec/v1",
+  "execKeys": [
+    "schema",
+    "sourceCommit",
+    "case",
+    "binarySHA256",
+    "binaryBytes",
+    "consumptionSHA256",
+    "argvClass",
+    "inputSHA256",
+    "inputBytes",
+    "started",
+    "pid",
+    "procStartTicks",
+    "procObservationState",
+    "waitReturned",
+    "waitErrorClass",
+    "exitCode",
+    "signal",
+    "timedOut",
+    "killSent",
+    "processGroupAbsent",
+    "stdout",
+    "stderr"
+  ],
+  "stdioKeys": [
+    "bytes",
+    "sha256",
+    "totalBytes",
+    "truncated"
+  ],
+  "stdioMaxBytes": 65536,
+  "caseTimeoutSeconds": 10,
+  "waitDelaySeconds": 2,
+  "goTimeoutSeconds": 120,
+  "argvClass": {
+    "version": "VERSION",
+    "base": "STDIN_TEST",
+    "candidate": "STDIN_TEST",
+    "malformed": "STDIN_TEST"
+  },
+  "waitErrorClasses": [
+    "NOT_WAITED",
+    "NONE",
+    "EXIT_STATUS",
+    "WAIT_ERROR"
+  ],
+  "procObservationStates": [
+    "OBSERVED",
+    "NOT_OBSERVED"
+  ],
+  "executionSchema": "chengwang.mihomo-compat-execution/v1",
+  "executionKeys": [
+    "schema",
+    "sourceCommit",
+    "formatExit",
+    "goExit",
+    "realMihomoExecutionObserved",
+    "production"
+  ],
+  "sandboxSchema": "chengwang.mihomo-compat-sandbox/v1",
+  "sandboxKeys": [
+    "schema",
+    "sourceCommit",
+    "uid",
+    "gid",
+    "effectiveCaps",
+    "noNewPrivileges",
+    "networkNamespace",
+    "mountNamespace",
+    "pidNamespace",
+    "environmentKeys",
+    "interfaceNames",
+    "defaultV4Routes",
+    "defaultV6Routes",
+    "sourceModuleSHA256",
+    "sourceReadOnly",
+    "goReadOnly",
+    "kernelCopy",
+    "inputCustody"
+  ],
+  "kernelCopyKeys": [
+    "sha256",
+    "bytes",
+    "mode",
+    "readOnly",
+    "executable"
+  ],
+  "inputCustodyKeys": [
+    "before",
+    "after"
+  ],
+  "inputObjects": [
+    "elf",
+    "receipt"
+  ],
+  "inputObjectKeys": [
+    "sha256",
+    "bytes",
+    "mode",
+    "uid",
+    "gid"
+  ],
+  "scope": "ACTUAL_FIXED_KERNEL_VERSION_AND_SYNTAX_ONLY_NOT_SERVICE_DATAPLANE_BUSINESS_SIGNATURE_OR_PRODUCTION",
+  "production": false
+}
