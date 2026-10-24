@@ -26,6 +26,7 @@ import (
 	"chengwang/internal/imagetrust"
 	"chengwang/internal/observation"
 	"chengwang/internal/operation"
+	"chengwang/internal/overview"
 	"chengwang/internal/probe"
 	"chengwang/internal/probeview"
 	"chengwang/internal/store"
@@ -41,6 +42,7 @@ type Config struct {
 	TenantID, SiteID, ManagementObjectID            string
 	Mode, WebDir                                    string
 	AllowPublish, OperationWritesEnabled            bool
+	LiveOverviewEnabled                             bool
 	MihomoURL, MihomoToken                          string
 	MihomoAllowedHosts                              []string
 	ObservationInterval, ObservationTTL             time.Duration
@@ -100,6 +102,9 @@ func ConfigFromEnvironment() (Config, error) {
 		return Config{}, err
 	}
 	if err := subscriptionConfigFromEnvironment(&c); err != nil {
+		return Config{}, err
+	}
+	if err := overviewConfigFromEnvironment(&c); err != nil {
 		return Config{}, err
 	}
 	return c, nil
@@ -295,7 +300,14 @@ func RunWith(options Options) (result error) {
 	if probes != nil {
 		probeReader = probes // Do not put a typed nil pointer in the API interface.
 	}
-	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled, Subscriptions: subscriptions, SubscriptionWritesEnabled: c.SubscriptionWritesEnabled})
+	var actualOverview overview.SnapshotProvider
+	if c.LiveOverviewEnabled {
+		actualOverview, err = overview.New(overview.Config{Mode: c.Mode, Observation: observer, Probes: probeReader, SubscriptionConfigured: c.SubscriptionsEnabled})
+		if err != nil {
+			return errors.New("initialize actual overview failed")
+		}
+	}
+	var handler http.Handler = api.New(api.Options{Mode: c.Mode, AdminToken: c.AdminToken, AllowPublish: c.AllowPublish, Versions: versions, Mihomo: reader, Evidence: audit, Authn: OptionalAuthenticator(identity), Operations: ops, Control: controller, OperationWritesEnabled: c.OperationWritesEnabled, ManagementScope: management, EvidenceMaxAge: 2 * time.Minute, Observation: observer, Overview: actualOverview, Probes: probeReader, ImageTrust: trust.Backend, ImageTrustWritesEnabled: trust.WritesEnabled, Subscriptions: subscriptions, SubscriptionWritesEnabled: c.SubscriptionWritesEnabled})
 	if options.WebFactory != nil {
 		handler, err = options.WebFactory(handler)
 	} else if c.WebDir != "" {

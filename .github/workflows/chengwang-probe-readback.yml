@@ -13,6 +13,7 @@ on:
       - "chengwang/internal/probereadbacklab/**"
       - "chengwang/internal/serverruntime/**"
       - "chengwang/internal/api/**"
+      - "chengwang/internal/overview/**"
       - "chengwang/internal/authn/**"
       - "chengwang/internal/authz/**"
       - "chengwang/deploy/probe-readback/**"
@@ -20,7 +21,7 @@ on:
       - "chengwang/go.sum"
       - "chengwang/vendor/**"
   push:
-    branches: [main, codex/chengwang-security-hardening]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
     paths:
       - ".github/workflows/chengwang-probe-readback.yml"
       - "chengwang/cmd/probe-agent/**"
@@ -30,6 +31,7 @@ on:
       - "chengwang/internal/probereadbacklab/**"
       - "chengwang/internal/serverruntime/**"
       - "chengwang/internal/api/**"
+      - "chengwang/internal/overview/**"
       - "chengwang/internal/authn/**"
       - "chengwang/internal/authz/**"
       - "chengwang/deploy/probe-readback/**"

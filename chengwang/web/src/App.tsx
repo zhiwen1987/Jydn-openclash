@@ -15,6 +15,8 @@ import { OperationCenter } from './OperationCenter'
 import { ObservationStatus } from './ObservationStatus'
 import ImageTrustConsole from './ImageTrustConsole'
 import { Subscriptions } from './Subscriptions'
+import { EvidenceOverview } from './EvidenceOverview'
+import type { OverviewDisplayState } from './overview-types'
 
 const nav = [
   { group: '流量控制', items: [['运行总览', Home], ['配置方案', SlidersHorizontal], ['代理节点', Database], ['代理接口', Cable], ['策略路由', Route], ['DNS', Globe2], ['连接与流量', Activity]] },
@@ -47,6 +49,20 @@ function App() {
   const [page, setPage] = useState('运行总览')
   const [snapshot, setSnapshot] = useState<Snapshot>(demoSnapshot)
   const [notice, setNotice] = useState('正在连接本地控制面…')
+  const [overviewSource, setOverviewSource] = useState<'demo' | 'evidence'>('demo')
+  const [overviewDisplay, setOverviewDisplay] = useState<OverviewDisplayState>({ state: 'pending', mode: null })
+
+  const navigate = (nextPage: string) => {
+    if (nextPage === page) return
+    setOverviewDisplay({ state: 'pending', mode: null })
+    setPage(nextPage)
+  }
+  const selectOverviewSource = (source: 'demo' | 'evidence') => {
+    if (source === overviewSource) return
+    setOverviewDisplay({ state: 'pending', mode: null })
+    setOverviewSource(source)
+  }
+  const actualOverview = page === '运行总览' && overviewSource === 'evidence'
 
   useEffect(() => {
     const controller = new AbortController()
@@ -71,17 +87,23 @@ function App() {
 
   return (
     <div className="app-shell">
-      <TopBar snapshot={snapshot} />
+      <TopBar snapshot={snapshot} actualOverview={actualOverview ? overviewDisplay : undefined} />
       <aside className="sidebar" aria-label="主导航">
         <nav>{nav.map(section => <div className="nav-group" key={section.group}><span className="nav-group-title">{section.group}</span>{section.items.map(([label, Icon]) => (
-          <button key={label} aria-label={label} title={label} className={page === label ? 'nav-item active' : 'nav-item'} onClick={() => setPage(label)}>
+          <button key={label} aria-label={label} title={label} className={page === label ? 'nav-item active' : 'nav-item'} onClick={() => navigate(label)}>
             <Icon size={18} /><span>{label}</span>
           </button>
         ))}</div>)}</nav>
-        <div className="mode-note"><ShieldCheck size={18}/><div><strong>安全运行</strong><span>{notice}</span></div></div>
+        <div className="mode-note"><ShieldCheck size={18}/><div><strong>安全运行</strong><span>{actualOverview ? '实际证据汇总仅展示已有观测，生产状态仍须独立核验' : notice}</span></div></div>
       </aside>
       <main className="main-content">
-        {page === '运行总览' ? <Overview snapshot={snapshot} /> : page === '代理节点' ? <ObservationStatus /> : page === '代理接口' ? <ProxyInterfaces snapshot={snapshot} /> : page === '策略路由' ? <Policies snapshot={snapshot} /> : page === '内核与协议' ? <Kernels /> : page === '设备读回' ? <MihomoReadback snapshot={snapshot} /> : page === '操作中心' ? <OperationCenter /> : page === '可信策略' ? <ImageTrustConsole /> : page === '系统闭环' ? <SystemReadiness /> : page === '订阅与提供者' ? null : <EmptyPage page={page} />}
+        {page === '运行总览' ? <>
+          <div className="overview-source-switch" role="group" aria-label="总览数据源">
+            <button type="button" className="secondary" aria-pressed={overviewSource === 'demo'} onClick={() => selectOverviewSource('demo')}>演示总览</button>
+            <button type="button" className="secondary" aria-pressed={overviewSource === 'evidence'} onClick={() => selectOverviewSource('evidence')}>实际证据</button>
+          </div>
+          {actualOverview ? <EvidenceOverview onStateChange={setOverviewDisplay} onNavigate={navigate} /> : <Overview snapshot={snapshot} />}
+        </> : page === '代理节点' ? <ObservationStatus /> : page === '代理接口' ? <ProxyInterfaces snapshot={snapshot} /> : page === '策略路由' ? <Policies snapshot={snapshot} /> : page === '内核与协议' ? <Kernels /> : page === '设备读回' ? <MihomoReadback snapshot={snapshot} /> : page === '操作中心' ? <OperationCenter /> : page === '可信策略' ? <ImageTrustConsole /> : page === '系统闭环' ? <SystemReadiness /> : page === '订阅与提供者' ? null : <EmptyPage page={page} />}
         {/* Keep uncertain command receipts in this memory session across navigation.
             The signed-out component does not make requests or retain a token. */}
         <div hidden={page !== '订阅与提供者'}><Subscriptions /></div>
@@ -90,11 +112,13 @@ function App() {
   )
 }
 
-function TopBar({ snapshot }: { snapshot: Snapshot }) {
+function TopBar({ snapshot, actualOverview }: { snapshot: Snapshot; actualOverview?: OverviewDisplayState }) {
   const demo = snapshot.dataSource === 'demo'
+  const source = actualOverview ? (actualOverview.state === 'ready' ? '实际证据汇总' : '实际证据 · 未核验') : (demo ? '演示草稿' : '控制面快照')
+  const mode = actualOverview ? (actualOverview.state === 'ready' ? actualOverview.mode ?? '未核验' : '未核验') : snapshot.mode
   return <header className="topbar">
     <div className="brand"><div className="brand-mark"><Network size={23}/></div><strong>{snapshot.product}</strong></div>
-    <div className="version">来源 <b>{demo ? '演示草稿' : '控制面快照'}</b><span>内核</span><b>未核验</b><span>控制面模式</span><b>{snapshot.mode}</b></div>
+    <div className="version">来源 <b>{source}</b><span>内核</span><b>未核验</b><span>控制面模式</span><b>{mode}</b></div>
     <label className="command"><Search size={17}/><input aria-label="全局搜索" placeholder="全局搜索尚未接入" disabled/><kbd>Ctrl K</kbd></label>
     <button className="freeze" disabled title="冻结执行器尚未接入"><LockKeyhole size={16}/>安全冻结<ChevronDown size={15}/></button>
     <button className="icon-button" aria-label="通知" disabled title="通知中心尚未接入"><Bell size={19}/></button>

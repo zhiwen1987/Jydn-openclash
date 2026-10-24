@@ -1,0 +1,43 @@
+.evidence-overview-page { min-width: 0; }
+.overview-source-switch { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.overview-source-switch button { min-height: 44px; }
+.overview-source-switch button[aria-pressed="true"] { border-color: var(--blue); color: #20559b; background: var(--blue-50); }
+.evidence-overview-page button:disabled { cursor: not-allowed; opacity: .65; }
+.evidence-overview-page .page-heading { gap: 16px; align-items: flex-start; }
+.evidence-overview-page .page-heading p { color: var(--muted); line-height: 1.6; }
+.evidence-overview-page button { min-height: 44px; }
+.eo-boundary, .eo-pending, .eo-error { display: flex; gap: 12px; align-items: flex-start; padding: 16px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 9px; line-height: 1.6; }
+.eo-boundary { background: var(--blue-50); }
+.eo-boundary > svg, .eo-pending > svg, .eo-error > svg { flex: 0 0 auto; margin-top: 3px; }
+.eo-boundary > div, .eo-pending > div, .eo-error > div { min-width: 0; display: grid; gap: 4px; }
+.eo-boundary strong, .eo-pending strong, .eo-error strong { font-size: 14px; }
+.eo-boundary span, .eo-pending span, .eo-error span { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.eo-error { border-color: var(--red); background: #fff5f3; }
+.eo-error strong { color: #823735; }
+.eo-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6; }
+.eo-summary time { overflow-wrap: anywhere; }
+.eo-source-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.eo-source-card { padding: 16px; min-width: 0; }
+.eo-card-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+.eo-card-heading h2 { font-size: 16px; margin: 0; }
+.eo-state { display: inline-flex; padding: 3px 8px; border-radius: 5px; background: #f2f5f9; color: #45546a; font-size: 12px; line-height: 1.5; }
+.eo-state.current { background: var(--blue-50); color: #20559b; }
+.eo-source-card p { margin: 8px 0 12px; font-size: 13px; line-height: 1.65; color: #45546a; overflow-wrap: anywhere; }
+.eo-facts { display: grid; grid-template-columns: minmax(88px, .8fr) minmax(0, 1.3fr); margin: 0 0 12px; font-size: 12px; line-height: 1.7; }
+.eo-facts dt, .eo-facts dd { margin: 0; padding: 7px 0; border-bottom: 1px solid #edf0f4; overflow-wrap: anywhere; }
+.eo-facts dt { color: var(--muted); padding-right: 10px; }
+.eo-facts dd { color: #344057; }
+.eo-source-card .secondary { max-width: 100%; height: auto; }
+.eo-unsupported { margin-top: 16px; padding: 16px; }
+.eo-unsupported h2 { margin: 0 0 8px; font-size: 16px; }
+.eo-unsupported p, .eo-unsupported li { font-size: 13px; line-height: 1.7; color: #45546a; }
+.eo-unsupported ul { display: flex; flex-wrap: wrap; gap: 6px 24px; padding-left: 20px; margin: 10px 0 0; }
+.eo-source-footnote { margin: 14px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+@media (max-width: 1100px) { .eo-source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .evidence-overview-page .page-heading { flex-direction: column; }
+  .evidence-overview-page .page-heading > button { align-self: stretch; justify-content: center; }
+  .eo-source-grid { grid-template-columns: minmax(0, 1fr); }
+  .eo-source-card, .eo-unsupported, .eo-boundary, .eo-pending, .eo-error { padding: 13px; }
+  .eo-source-card .secondary { width: 100%; justify-content: center; }
+}

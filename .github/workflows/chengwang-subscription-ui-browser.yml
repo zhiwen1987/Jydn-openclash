@@ -3,7 +3,7 @@ name: Chengwang Real Subscription UI Browser
 on:
   workflow_dispatch:
   push:
-    branches: [codex/chengwang-security-hardening]
+    branches: [codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
     paths:
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
       - 'chengwang/deploy/subscription-ui-browser/**'

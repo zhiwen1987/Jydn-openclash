@@ -11,6 +11,7 @@ on:
       - "chengwang/web/**"
       - "chengwang/internal/restoreimage/**"
       - "chengwang/internal/api/**"
+      - "chengwang/internal/overview/**"
       - "chengwang/internal/authn/**"
       - "chengwang/internal/authz/**"
       - "chengwang/internal/evidence/**"
@@ -21,7 +22,7 @@ on:
       - "chengwang/go.mod"
       - "chengwang/go.sum"
   push:
-    branches: [main, codex/chengwang-security-hardening]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
     paths:
       - ".github/workflows/chengwang-image-binding.yml"
       - "chengwang/tools/image-binding/**"
@@ -29,6 +30,7 @@ on:
       - "chengwang/web/**"
       - "chengwang/internal/restoreimage/**"
       - "chengwang/internal/api/**"
+      - "chengwang/internal/overview/**"
       - "chengwang/internal/authn/**"
       - "chengwang/internal/authz/**"
       - "chengwang/internal/evidence/**"

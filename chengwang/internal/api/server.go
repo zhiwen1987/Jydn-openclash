@@ -21,6 +21,7 @@ import (
 	"chengwang/internal/imagetrust"
 	"chengwang/internal/observation"
 	"chengwang/internal/operation"
+	"chengwang/internal/overview"
 	"chengwang/internal/policy"
 	"chengwang/internal/proxyiface"
 	"chengwang/internal/store"
@@ -41,6 +42,7 @@ type Options struct {
 	ManagementScope           authz.ResourceScope
 	EvidenceMaxAge            time.Duration
 	Observation               ObservationReader
+	Overview                  overview.SnapshotProvider
 	Probes                    ProbeReader
 	ImageTrust                imagetrust.Backend
 	ImageTrustWritesEnabled   bool
@@ -112,6 +114,7 @@ func New(options Options) http.Handler {
 	mux.HandleFunc("/api/v1/probes/details", s.probeDetails)
 	mux.HandleFunc("GET /api/v1/evidence/integrity", s.evidenceIntegrity)
 	mux.HandleFunc("GET /api/v1/snapshot", s.snapshot)
+	mux.HandleFunc("/api/v1/overview", s.overview)
 	mux.HandleFunc("GET /api/v1/versions", s.versions)
 	mux.HandleFunc("GET /api/v1/proxy/interfaces", s.proxyInterfaces)
 	mux.HandleFunc("POST /api/v1/proxy/interfaces/validate", s.validateProxyInterfaces)

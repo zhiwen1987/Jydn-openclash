@@ -16,7 +16,7 @@ on:
       - "chengwang/go.sum"
       - "chengwang/vendor/**"
   push:
-    branches: [main, codex/chengwang-security-hardening]
+    branches: [main, codex/chengwang-security-hardening, codex/chengwang-live-overview-20261024]
     paths:
       - ".github/workflows/chengwang-probe-browser.yml"
       - "chengwang/tools/probe-browser/**"

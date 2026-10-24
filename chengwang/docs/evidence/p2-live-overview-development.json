@@ -1,0 +1,93 @@
+{
+  "schema": "chengwang.live-overview-development/v1",
+  "sourceBase": "8e612b46c118187d2254bfef066960a615263bb2",
+  "featureBranch": "codex/chengwang-live-overview-20261024",
+  "scope": "SOURCE_IMPLEMENTATION_AND_CPU_ACCEPTANCE_HELPERS_NOT_PRODUCT_RUNTIME_ACCEPTANCE",
+  "implementation": {
+    "defaultEnabled": false,
+    "readOnlyEndpoint": "GET /api/v1/overview",
+    "cachedStatusOnly": true,
+    "protectedInventoryEnumerated": false,
+    "unsupportedBusinessDNSDeviceTrafficDataMarkedUnknown": true,
+    "exampleAndEvidenceSourcesExplicit": true,
+    "exampleSnapshotEditorsPreserved": true,
+    "cooperativeAssemblyBudgetMs": 500,
+    "hardLockInterruptionProven": false,
+    "responseBytesMax": 65536,
+    "clientDeadlineMs": 5000
+  },
+  "productTestDeclarationsNotExecuted": {
+    "goTopLevel": 36,
+    "goNested": 3,
+    "goNewRequiredEvents": 39,
+    "goFullExpectedEvents": 2709,
+    "goExpectedPassingPackages": 42,
+    "frontendNewTests": 39,
+    "frontendFullExpectedTests": 345,
+    "frontendExpectedFiles": 18,
+    "actualNewGoTestsExecuted": false,
+    "actualNewFrontendTestsExecuted": false
+  },
+  "actualCPUHelpers": {
+    "distinctTestsPassed": 117,
+    "newHelpers": 55,
+    "oldGuardRegression": 62,
+    "skipped": 0,
+    "frontendTranscriptMutations": {"tests": 20, "directory": "D:/CodexData/workspace/overview-frontend-gate-cpu-d8vc923p", "resultSHA256": "2c3beff0d375f9d9176ffe13746beee30eb67f1284c799b8665c050022f7e257", "newPassedStatusesSynthetic": true},
+    "goEventGateMutations": {"tests": 21, "directory": "D:/CodexData/workspace/overview_extension_checks-cpu-4mcea6mb", "resultSHA256": "fd501c99fcbdad609c756e61dad21e33fc4ae633fa753f8f7369e6b4e3c7a9f9"},
+    "mockFormatterContracts": {"tests": 14, "directory": "D:/CodexData/workspace/overview_format_checks-cpu-15_rtbk1", "resultSHA256": "324d87eed81d618ba7fe1ef976aa3c3e83635ad814aa89948b28af8d50fd994c", "actualFormatterExecuted": false},
+    "oldParentGate": {"tests": 28, "directory": "D:/CodexData/workspace/test_run_static_gate-cpu-ki05vv8j", "resultSHA256": "6a69f8157755e42cc0dd602e007b6ffb109161c214f14ef71501e833a3ea9e15"},
+    "oldProbeIncrement": {"tests": 16, "directory": "D:/CodexData/workspace/test_probe_test_extension-cpu-u4vmvskf", "resultSHA256": "feb1a22fb8bc0ea9349746ccf15bbb2a21b5988078fe2198b6eb1ca9f050c1e0"},
+    "oldCapabilityIncrement": {"tests": 18, "directory": "D:/CodexData/workspace/test_capability_truth_extension-cpu-p4nz23p3", "resultSHA256": "e6bf1dfb0446df7d86043e36defae2465f1857d2851ba9f70934936ad66e1b54"},
+    "exactCIInlineReplayIncludedSubset": 35
+  },
+  "staticIntegration": {
+    "directory": "D:/CodexData/workspace/overview-ci-integration-0hv2f7mh",
+    "resultSHA256": "d1150a564f408acfa33961ce64426c0102652a4a76a33c0f6d5c49fdd64d587c",
+    "sourceFilesAtCheck": 36,
+    "sourceStable": true,
+    "shellSyntaxBlocks": 68,
+    "frontendASTFiles": 10,
+    "typecheckProven": false,
+    "exactFeatureBranchTriggers": 6
+  },
+  "failedAttemptsRetained": [
+    {"directory": "D:/CodexData/workspace/overview-frontend-gate-cpu-0462y299", "actualChildTestsPassed": 20, "rootWrapperRejected": true, "correction": "ROOT_LOG_PARSER_NORMALIZES_CRLF_BEFORE_EXACT_EVENT_MATCHING"},
+    {"directory": "D:/CodexData/workspace/overview_extension_checks-cpu-g8p9vxq6", "passed": 20, "failed": 1, "rejection": "CUSTODY_BEFORE_EXPECTED_LEGACY_VALIDATOR_PROPAGATION", "deletedTemporaryFileMetadataNotRetrospectivelyProven": true},
+    {"directory": "D:/CodexData/workspace/overview_format_checks-cpu-btmj2zig", "passed": 11, "failed": 1, "errors": 2, "rejection": "POSITIVE_FIXTURE_READ_IDENTITY_BEFORE_MOCK_FORMATTER", "deletedTemporaryFileMetadataNotRetrospectivelyProven": true},
+    {"directory": "D:/CodexData/workspace/overview-ci-integration-j5qtigx_", "rejection": "ROOT_FILE_BASED_REPLAY_DID_NOT_EMULATE_STDIN_IMPORT_PATH"},
+    {"directory": "D:/CodexData/workspace/overview-ci-integration-730rvcia", "rejection": "CPU_DECLARATION_PIN_USED_MODULE_CLASS_NAME_WHILE_OBSERVER_USED_CLASS_NAME", "correction": "EXPLICIT_CLASS_METHOD_FRAMING_NO_TEST_IDENTITY_OR_GO_EVENT_PIN_CHANGE"}
+  ],
+  "newHelperPortabilityCorrection": {
+    "windowsCrossChannelCtimeDifferenceIndependentlyReproduced": true,
+    "observations": ["D:/CodexData/workspace/overview-custody-metadata-e85b50c3ae144b8a8a00bd4a9287c435/result.json", "D:/CodexData/workspace/overview-format-ctime-80jle9g5/result.json"],
+    "posixOriginalIdentityFieldsPreserved": true,
+    "windowsOtherIdentityFieldsCrossCompared": true,
+    "windowsEachChannelCtimeBeforeAfterMustRemainStable": true,
+    "oldValidatorsChanged": false,
+    "old448RejectionOverwritten": false
+  },
+  "remoteFormatAdmission": "NOT_RUN_REQUIRES_ACTUAL_FORMATTER_AND_NEEDS_FORMATTING_FALSE",
+  "independentIntegrationReview": {
+    "directory": "D:/CodexData/workspace/overview-final-readonly-audit-mlxwhj7f",
+    "resultSHA256": "6a844f2f8a5e71eeaa7d86cf6f3b281dead7f2582c7426de257968894b411240",
+    "source36AndExactCIHelperLogsIndependentlyRechecked": true,
+    "remainingBlockingSourceFindingObserved": false,
+    "runtimeAcceptanceProven": false
+  },
+  "triggerPathAddendum": {
+    "directory": "D:/CodexData/workspace/overview-ci-path-addendum-p5j7rer_",
+    "resultSHA256": "14ae6c1d5370f9129a8f9e28ab8a95157f34a5ae6ae076b00666585b5006c46c",
+    "changes": "ADD_INTERNAL_OVERVIEW_PATH_TO_IMAGE_AND_NATIVE_PROBE_PUSH_AND_PR_FILTERS",
+    "exactlyTwoWorkflowPathsAddedPerFile": true,
+    "otherSourceAndAll68ShellBlocksUnchanged": true
+  },
+  "newOverviewBrowserAcceptance": "NOT_IMPLEMENTED_OR_RUN",
+  "localGoOrGofmtExecuted": false,
+  "localBuildExecuted": false,
+  "localProductRuntimeExecuted": false,
+  "production": false,
+  "mainMerged": false,
+  "formalRegistryPublished": false,
+  "overallProjectComplete": false
+}

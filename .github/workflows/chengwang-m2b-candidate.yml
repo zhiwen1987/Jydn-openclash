@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - codex/chengwang-security-hardening
+      - codex/chengwang-live-overview-20261024
     paths:
       - ".github/workflows/chengwang-m2b-candidate.yml"
       - "chengwang/**"
@@ -47,6 +48,23 @@ jobs:
         with:
           go-version: 1.23.12
           cache: false
+
+      - name: Collect read-only formatting evidence for the actual overview sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -B chengwang/deploy/m2b-candidate/tests/overview_format.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/chengwang-overview-format"
+
+      - name: Preserve overview formatting evidence even when later checks fail
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: overview-format-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chengwang-overview-format
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Pull immutable Python test image before repository execution
         shell: bash
@@ -835,10 +853,51 @@ jobs:
           /usr/bin/python3 -B deploy/m2b-candidate/tests/subscription_application_extension.py
           /usr/bin/python3 -B deploy/m2b-candidate/tests/subscription_test_extension.py
           /usr/bin/python3 -B deploy/m2b-candidate/tests/probe_test_extension.py
+          (
+            cd deploy/m2b-candidate/tests
+            /usr/bin/python3 -B - <<'PY' 2>&1 | /usr/bin/tee "$RUNNER_TEMP/chengwang-overview-helper-cpu.log"
+          import hashlib
+          import unittest
+          contracts = {
+              'overview_extension_checks': (21, '89502b3dc2084f1405c361a13928e604e85290a3185af7232f477205b78466b7'),
+              'overview_format_checks': (14, '000d6d358a3737b003c888c0dd6f6c31fd63fdd669a5a52ee525669fe778d871'),
+          }
+          class Recorded(unittest.TextTestResult):
+              def __init__(self, *args):
+                  super().__init__(*args)
+                  self.started = []
+                  self.passed = []
+              def startTest(self, test):
+                  self.started.append(test.id().split('.', 1)[1])
+                  super().startTest(test)
+              def addSuccess(self, test):
+                  self.passed.append(test.id().split('.', 1)[1])
+                  super().addSuccess(test)
+          def names_in(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from names_in(item)
+                  else:
+                      yield item.id().split('.', 1)[1]
+          for module, (count, pin) in contracts.items():
+              suite = unittest.defaultTestLoader.loadTestsFromName(module)
+              names = sorted(names_in(suite))
+              if (len(names) != len(set(names)) or len(names) != count
+                  or hashlib.sha256('\n'.join(names).encode()).hexdigest() != pin):
+                  raise SystemExit('OVERVIEW_HELPER_CPU=REJECTED declaration set')
+              result = unittest.TextTestRunner(verbosity=2, resultclass=Recorded).run(suite)
+              if (not result.wasSuccessful() or result.testsRun != count or result.skipped
+                  or result.expectedFailures or result.unexpectedSuccesses
+                  or sorted(result.started) != names or sorted(result.passed) != names):
+                  raise SystemExit('OVERVIEW_HELPER_CPU=REJECTED actual execution')
+          print('OVERVIEW_HELPER_CPU=PASS tests=35 skipped=0 runtime_proven=false')
+          PY
+          )
           /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -count=1 ./... | /usr/bin/tee "$RUNNER_TEMP/chengwang-go-test.json"
           /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -race -count=1 ./... | /usr/bin/tee "$RUNNER_TEMP/chengwang-go-race.json"
           /opt/hostedtoolcache/go/1.23.12/x64/bin/go vet ./...
           /usr/bin/python3 -B deploy/m2b-candidate/tests/run_static_gate.py \
+            --overview-extension \
             --go-json "$RUNNER_TEMP/chengwang-go-test.json" \
             --go-json "$RUNNER_TEMP/chengwang-go-race.json"
 
@@ -855,3 +914,33 @@ jobs:
           /usr/bin/git diff --check
           test -z "$(/usr/bin/git status --porcelain --untracked-files=all)"
           ISOLATED_GATE
+
+      - name: Require formatted overview sources after recording the actual test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 - "$RUNNER_TEMP/chengwang-overview-format/report.json" "$GITHUB_SHA" <<'PY'
+          import json
+          import pathlib
+          import sys
+          value = json.loads(pathlib.Path(sys.argv[1]).read_bytes())
+          if (value.get('schema') != 'chengwang.overview-format-evidence/v1'
+              or value.get('sourceCommit') != sys.argv[2]
+              or value.get('sourceUnchanged') is not True
+              or value.get('needsFormatting') is not False):
+              raise SystemExit('OVERVIEW_FORMAT=REJECTED inspect immutable formatting artifact')
+          print('OVERVIEW_FORMAT=PASS format_only_not_compile_or_runtime_proof')
+          PY
+
+      - name: Preserve actual parent Go and overview helper transcripts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: overview-parent-transcripts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/chengwang-go-test.json
+            ${{ runner.temp }}/chengwang-go-race.json
+            ${{ runner.temp }}/chengwang-overview-helper-cpu.log
+          if-no-files-found: error
+          retention-days: 7

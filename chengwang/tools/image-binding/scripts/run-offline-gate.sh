@@ -216,15 +216,47 @@ report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 # Forty-four bounded snapshot wire/display cases extend the accepted 260 names.
 # Two overview-mode cases extend that 304-case requirement without substituting
 # demo origin or a read-only page for the actual control mode/authorization.
+# Thirty-nine actual-overview unit cases extend the accepted 306 names. Their
+# reporter fullName joins ancestor titles and the case title with one space;
+# all name pins use sorted UTF-8 names joined by LF, without a final LF.
 # These are mocked checks, not real agent/subscription/browser evidence.
-if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests", 0) != 0 or report.get("numPassedTests") != 197 + 25 + 18 + 20 + 44 + 2 or report.get("numPassedTests") != report.get("numTotalTests"):
+counter_keys = ("numTotalTests", "numPassedTests", "numFailedTests", "numPendingTests", "numTodoTests",
+                "numTotalTestSuites", "numPassedTestSuites", "numFailedTestSuites", "numPendingTestSuites")
+if not isinstance(report, dict) or any(type(report.get(key)) is not int or report[key] < 0 for key in counter_keys):
+    raise SystemExit("frontend unit transcript counters missing or invalid")
+if report.get("success") is not True or report.get("numFailedTests") != 0 or report.get("numPendingTests") != 0 or report.get("numTodoTests") != 0 or report.get("numPassedTests") != 197 + 25 + 18 + 20 + 44 + 2 + 39 or report.get("numPassedTests") != report.get("numTotalTests"):
     raise SystemExit("frontend unit transcript failed, skipped or incomplete")
+if report["numFailedTestSuites"] != 0 or report["numPendingTestSuites"] != 0 or report["numPassedTestSuites"] != report["numTotalTestSuites"] or report["numTotalTestSuites"] == 0:
+    raise SystemExit("frontend suite transcript failed, skipped or incomplete")
 required = {"App.test.tsx", "OperationCenter.test.tsx", "api.test.ts", "ImageTrustConsole.test.tsx", "image-trust-api.test.ts", "probe-api.test.ts", "ProbeReadback.test.tsx", "subscription-api.test.ts", "Subscriptions.test.tsx", "SubscriptionsFeedback.test.tsx", "ProbeEofCleanup.test.ts", "CapabilityTruth.test.tsx", "SnapshotTruth.test.tsx", "DemoModeTruth.test.tsx"}
+overview_increment = {
+    "OverviewReport.test.ts": (14, "a7b22e821a86117a4852061e89e84ad8e2aadbc8b89f46a6c1ac73e718f66dad"),
+    "OverviewTransport.test.ts": (11, "07c5f5646aca6af4bb212b2eb2c5c5226a0a1c30a8677b2ade655fd8766ae2e6"),
+    "EvidenceOverview.test.tsx": (8, "c4a360a36b1d05234e5a0c20e85ad0990fa5ce1876e888d9e523370cddca81af"),
+    "OverviewRouting.test.tsx": (6, "babb60d7400b69ebf84ce551d820aa579c6481376bbcb97b55f2da11bb6a10e9"),
+}
+required |= set(overview_increment)
 results = report.get("testResults", [])
+if not isinstance(results, list) or any(not isinstance(result, dict) or not isinstance(result.get("name"), str) or not result["name"] for result in results):
+    raise SystemExit("frontend test file observations invalid")
 if len(results) != len(required) or {pathlib.Path(result["name"]).name for result in results} != required:
     raise SystemExit("frontend required test file set changed")
-if any(result.get("status") != "passed" or not result.get("assertionResults") or any(case.get("status") != "passed" for case in result["assertionResults"]) for result in results):
-    raise SystemExit("frontend test file has missing or non-passing cases")
+actual_names = []
+for result in results:
+    cases = result.get("assertionResults")
+    if result.get("status") != "passed" or not isinstance(cases, list) or not cases:
+        raise SystemExit("frontend test file has missing or non-passing cases")
+    for case in cases:
+        if (not isinstance(case, dict) or case.get("status") != "passed" or case.get("failureMessages") != []
+            or not isinstance(case.get("fullName"), str) or not case["fullName"]
+            or not isinstance(case.get("title"), str) or not case["title"]
+            or not isinstance(case.get("ancestorTitles"), list)
+            or any(not isinstance(title, str) or not title for title in case["ancestorTitles"])
+            or case["fullName"] != " ".join(case["ancestorTitles"] + [case["title"]])):
+            raise SystemExit("frontend case failed, skipped, missing or malformed")
+        actual_names.append(case["fullName"])
+if len(actual_names) != report["numTotalTests"] or len(set(actual_names)) != len(actual_names):
+    raise SystemExit("frontend actual case count or uniqueness changed")
 # Retain all 69 actually accepted names from db1f018 run 39776115304.
 baseline = {
     "App.test.tsx": (9, "ede9f83603b68390c1c61bfcdd8c2de171cc69e805cf318437dafdfcd4d3b94a"),
@@ -273,6 +305,11 @@ for result in results:
     names = [case["fullName"] for case in result["assertionResults"]]
     if len(set(names)) != len(names):
         raise SystemExit("frontend duplicate test name")
+    if filename in overview_increment:
+        count, digest = overview_increment[filename]
+        if len(names) != count or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != digest:
+            raise SystemExit("actual-overview unit scenarios missing, renamed or substituted")
+        continue
     if filename == "DemoModeTruth.test.tsx":
         if len(names) != 2 or hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest() != "b3438ab865c53ffdf53d9d104f8fb31860d471c613f479d8f7ff88d46ae43df1":
             raise SystemExit("overview mode truthfulness scenarios missing, renamed or substituted")
@@ -332,7 +369,7 @@ for result in results:
     count, digest = baseline[filename]
     if len(old) != count or hashlib.sha256("\n".join(old).encode()).hexdigest() != digest:
         raise SystemExit("accepted 69 frontend scenario baseline changed")
-print("D8_FRONTEND_UNIT_GATE=PASS files=14 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 subscription_feedback=25 eof_cleanup=18 capability_truth=20 snapshot_truth=44 overview_mode_truth=2 retained_names=304 prior_eof_case_migrated=true existing_app_state_copy_corrected=true existing_snapshot_fixtures_wire_corrected=3 skips=0 mocks=unit_tests_only")
+print("D8_FRONTEND_UNIT_GATE=PASS files=18 tests=" + str(report["numPassedTests"]) + " retained=117 request_binding=4 subscription_transport=40 subscription_component=32 subscription_decision_eligibility=3 subscription_app=1 subscription_feedback=25 eof_cleanup=18 capability_truth=20 snapshot_truth=44 overview_mode_truth=2 retained_names=306 live_overview_unit=39 prior_eof_case_migrated=true existing_app_state_copy_corrected=true existing_snapshot_fixtures_wire_corrected=3 skips=0 mocks=unit_tests_only")
 PY
 test -f "$RUN_ROOT/web-dist/trust.html"
 test -f "$RUN_ROOT/web-dist/.vite/manifest.json"

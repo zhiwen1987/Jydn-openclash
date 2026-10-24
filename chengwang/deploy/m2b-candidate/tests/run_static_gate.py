@@ -926,7 +926,11 @@ def _validate_p0d9_go_baseline(passed_tests: dict[str, set[str]]) -> None:
             raise RuntimeError(f"complete P0-d9 Go package fingerprint mismatch: {package}")
 
 
-def validate_go_json(paths: list[pathlib.Path], *, probe_extension: bool = False) -> int:
+def validate_go_json(paths: list[pathlib.Path], *, probe_extension: bool = False, overview_extension: bool = False) -> int:
+    if overview_extension and not probe_extension:
+        raise RuntimeError("overview increment requires the complete parent extension chain")
+    if overview_extension and not paths:
+        raise RuntimeError("overview increment requires actual Go JSON transcripts")
     total_run_events = 0
     total_packages = set()
     for source in paths:
@@ -986,7 +990,12 @@ def validate_go_json(paths: list[pathlib.Path], *, probe_extension: bool = False
         # same 2320-name/package fingerprints are evaluated.
         if probe_extension:
             from capability_truth_extension import split_extension as split_capability, validate_transcript
-            validate_transcript(source)
+            if overview_extension:
+                from overview_extension import split_extension as split_overview, validate_transcript as validate_overview
+                validate_overview(source)
+                passed_tests = split_overview(passed_tests, terminal_package_passes)
+            else:
+                validate_transcript(source)
             passed_tests = split_capability(passed_tests, terminal_package_passes)
             from subscription_access_extension import split_extension as split_access
             passed_tests = split_access(passed_tests, terminal_package_passes)
@@ -1038,6 +1047,8 @@ def validate_go_json(paths: list[pathlib.Path], *, probe_extension: bool = False
         _validate_p0d8_go_baseline(passed_tests)
         _validate_p0d9_go_baseline(passed_tests)
         total_run_events += sum(run_events.values())
+    if overview_extension:
+        print(f"OVERVIEW_GO_INCREMENT_GATE=PASS files={len(paths)} testsPerFile=2709 addedPairs=39 passingPackagesPerFile=42 production=false")
     print(SCHEMA_METASCHEMA_PASS)
     print(
         "GO_JSON_GATE=PASS "
@@ -1082,6 +1093,8 @@ def main() -> int:
         help="absolute or relative m2b-candidate directory (defaults beside this runner)",
     )
     parser.add_argument("--quiet", action="store_true", help="reduce unittest output")
+    parser.add_argument("--overview-extension", action="store_true",
+        help="require the exact additional 39 overview test identities before the unchanged parent gates")
     parser.add_argument(
         "--go-json",
         action="append",
@@ -1092,7 +1105,9 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.go_json:
-            return validate_go_json(args.go_json, probe_extension=True)
+            return validate_go_json(args.go_json, probe_extension=True, overview_extension=args.overview_extension)
+        if args.overview_extension:
+            raise RuntimeError("overview increment requires actual Go JSON transcripts")
         return run(args.candidate_root, verbosity=1 if args.quiet else 2)
     except (OSError, RuntimeError, ValueError) as error:
         print(f"STATIC_GATE=FAIL reason={error}", file=sys.stderr)
