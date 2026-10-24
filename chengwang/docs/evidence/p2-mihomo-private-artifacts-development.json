@@ -1,0 +1,51 @@
+{
+  "actualGoTestsExecuted": false,
+  "actualLinuxFilesystemTestsExecuted": false,
+  "actualMihomoExecuted": false,
+  "actualNewCIStatus": "UNREAD_NOT_INFERRED_FROM_PUSH",
+  "actualValidation": {
+    "modelReceiptPath": "D:\\CodexData\\workspace\\mihomo-artifact-evidence-models-snw1piux\\result.json",
+    "modelReceiptSHA256": "db77ff101fe64f2e1e47a81c7dfde22b7b7bf23b88e3f8b12013694e6f9e1a39",
+    "pythonModels": 23,
+    "skipped": 0,
+    "staticPeerPath": "D:\\CodexData\\workspace\\mihomo-artifact-final-static-peer-20261024-a\\result-final.json",
+    "staticPeerSHA256": "7827c985a3589df294311d1b0fa47ee980917a48341a29f02dfd73dd8a48f7b2"
+  },
+  "baseline": "b0679db0bcf9339777097e825e433480f11e81d6",
+  "capabilityBoundary": "PRIVATE_ARTIFACT_AND_STRUCTURAL_LAB_PLAN_NOT_DEVICE_BACKUP_OR_DEPLOYMENT_AUTHORITY",
+  "declaredGoTopLevelTests": 92,
+  "implemented": [
+    "private full compilation-input and YAML content-addressed store with durable index",
+    "exact prior artifact backup bound to operation and complete declared target",
+    "missing index with nonempty objects rejected before cleanup",
+    "known integrity failure permanently poisons store handle",
+    "immutable plan and structurally independent approval material without authority",
+    "16-source 92-top-level-test contracts and independent Linux report replay wiring"
+  ],
+  "mainMerged": false,
+  "notImplemented": [
+    "trusted RBAC approval issuance",
+    "target lease and write-ahead operation journal",
+    "unknown-result read-only reconcile",
+    "dual real core canary/apply/readback/rollback/restart",
+    "protected product execution API and UI",
+    "complete policy semantics and enterprise production acceptance"
+  ],
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-private-artifacts-development/v1",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "a35d645d028cecae2c5ae029d54c99cabd950dfc5cd90e4667f0e01d21d8cda3",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "5f8ab211f7122e6b8ab4320c9d8ddb8b2e393779fb49466d463b293188ccdca6",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "7290ff61a223f3af0645bbd9373c855750ed920972468266170a9c0e9f9cdf69",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "150d731265bc152c23d650683039f0d73b7549f97403e32278a641bb41261a67",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "fdd17ce09974ca08b0a5fa8063a04ecee73d29603576cb5a4effbe51a28b4cb1",
+    "chengwang/internal/mihomodeploy/artifact.go": "6a96c5bfdadc76ac4afb92f033fc26fa391d86a0edcaf2e91f5404f6330c66a9",
+    "chengwang/internal/mihomodeploy/artifact_linux.go": "f0c8eea94f30e2f9e7d968ef5830cbc2b8a219c09ca54a36315cca4e85178b5c",
+    "chengwang/internal/mihomodeploy/artifact_linux_test.go": "79c907b5af7d216e7d76d83e4db65584c2cff5609f9dc0bcb95987a658cbca0d",
+    "chengwang/internal/mihomodeploy/artifact_test.go": "a2284921bb291ae7e547378c2f2b6d5225848ec7dafd8d389520e5179331b143",
+    "chengwang/internal/mihomodeploy/artifact_unsupported.go": "7865a83ae24c35e93cce5f3b34f0a9b10a41bf77e5225ea16ad189619094a480",
+    "chengwang/internal/mihomodeploy/plan.go": "f1ef76d28abc341cf881125d78ef7fe293c7afddd36c2d2b46cac383aab96d28",
+    "chengwang/internal/mihomodeploy/plan_test.go": "d6ae6f48d61dc9da0d5681782fbdef184626f73b9f463b1ba9a4af2f7215b01b"
+  }
+}

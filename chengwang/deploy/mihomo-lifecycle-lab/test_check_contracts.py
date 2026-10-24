@@ -17,18 +17,20 @@ def encoded(value):
     return json.dumps(value, separators=(',', ':')).encode()
 
 
-def event_rows():
+def event_rows(required=None):
+    required = REQUIRED if required is None else required
     rows = []
     for package in sorted(S.PACKAGES):
-        rows.extend([
-            dict(Action='start', Package=package),
-            dict(Action='run', Package=package, Test='TestSynthetic'),
-            dict(Action='output', Package=package, Test='TestSynthetic', Output='synthetic\n'),
-            dict(Action='pause', Package=package, Test='TestSynthetic'),
-            dict(Action='cont', Package=package, Test='TestSynthetic'),
-            dict(Action='pass', Package=package, Test='TestSynthetic', Elapsed=0.001),
-            dict(Action='pass', Package=package, Elapsed=0.002),
-        ])
+        rows.append(dict(Action='start', Package=package))
+        for name in required[package]:
+            rows.extend([
+                dict(Action='run', Package=package, Test=name),
+                dict(Action='output', Package=package, Test=name, Output='synthetic\n'),
+                dict(Action='pause', Package=package, Test=name),
+                dict(Action='cont', Package=package, Test=name),
+                dict(Action='pass', Package=package, Test=name, Elapsed=0.001),
+            ])
+        rows.append(dict(Action='pass', Package=package, Elapsed=0.002))
     return rows
 
 
@@ -37,6 +39,11 @@ def transcript(rows):
 
 
 REQUIRED = {package: ['TestSynthetic'] for package in S.PACKAGES}
+ADDITIONAL_MODEL_TESTS = {
+    'artifact_test.go': 'TestSyntheticArtifact',
+    'artifact_linux_test.go': 'TestSyntheticArtifactLinux',
+    'plan_test.go': 'TestSyntheticPlan',
+}
 
 
 class ContractEvidenceModels(unittest.TestCase):
@@ -51,19 +58,23 @@ class ContractEvidenceModels(unittest.TestCase):
         self.repo.mkdir()
         self.evidence.mkdir()
         self.sources = {}
+        self.required = {package: list(names) for package, names in REQUIRED.items()}
         for path in S.FILES:
             value = b'synthetic source\n'
             if path.endswith('check_contracts.py'):
                 value = Path(S.__file__).read_bytes()
             elif path.endswith('_test.go'):
-                value = b'func TestSynthetic(t *testing.T) {\n}\n'
+                name = ADDITIONAL_MODEL_TESTS.get(Path(path).name, 'TestSynthetic')
+                value = ('func ' + name + '(t *testing.T) {\n}\n').encode()
+                if name != 'TestSynthetic':
+                    self.required['chengwang/internal/mihomodeploy'].append(name)
             target = self.repo / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(value)
             self.sources[path] = value
         self.payloads = {name: b'' for name in S.INPUTS}
         for name in ('ordinary.json', 'race.json'):
-            self.payloads[name] = transcript(event_rows())
+            self.payloads[name] = transcript(event_rows(self.required))
         self.set_json('execution.json', dict(
             schema='chengwang.mihomo-contract-execution/v1', formatExit=0,
             ordinaryExit=0, raceExit=0, realMihomoExecuted=False, production=False))
@@ -161,7 +172,18 @@ class ContractEvidenceModels(unittest.TestCase):
                     S.events(raw, REQUIRED)
 
     def test_new_required_names_come_from_both_source_test_files(self):
-        self.assertEqual(S.required_names(self.sources), REQUIRED)
+        self.assertEqual(S.required_names(self.sources), self.required)
+        for name in ADDITIONAL_MODEL_TESTS.values():
+            with self.subTest(missing=name):
+                self.payloads['ordinary.json'] = transcript([
+                    row for row in event_rows(self.required) if row.get('Test') != name])
+                self.flush()
+                with self.assertRaises(ValueError):
+                    self.verify_model()
+        duplicates = dict(self.sources)
+        duplicates['chengwang/internal/mihomodeploy/artifact_test.go'] = b'func TestSynthetic(t *testing.T) {\n}\n'
+        with self.assertRaises(ValueError):
+            S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
         result = self.verify_model()

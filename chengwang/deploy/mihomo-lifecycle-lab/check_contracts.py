@@ -15,7 +15,12 @@ FILES = [PREFIX + 'run_contracts.sh', PREFIX + 'check_contracts.py',
     '.github/workflows/chengwang-mihomo-lifecycle.yml',
     'chengwang/internal/adapter/mihomo/write_client.go',
     'chengwang/internal/adapter/mihomo/write_client_test.go',
-    'chengwang/internal/mihomodeploy/config.go', 'chengwang/internal/mihomodeploy/config_test.go', 'chengwang/go.mod']
+    'chengwang/internal/mihomodeploy/config.go', 'chengwang/internal/mihomodeploy/config_test.go', 'chengwang/go.mod',
+    *['chengwang/internal/mihomodeploy/' + name for name in ('artifact.go', 'artifact_linux.go',
+        'artifact_unsupported.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan.go', 'plan_test.go')]]
+TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
+    *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
+      for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go')]]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,
     'race.stderr': 1 << 20, 'gofmt.patch': 1 << 20, 'gofmt.stderr': 1 << 20,
@@ -62,10 +67,12 @@ def source(repo, commit, path):
 
 def required_names(sources):
     result = {}
-    for path, package in [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'), ('chengwang/internal/mihomodeploy/config_test.go', 'chengwang/internal/mihomodeploy')]:
+    for path, package in TEST_FILES:
         text = sources[path].decode('utf8')
         names = re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{', text, re.M)
-        need(names and len(names) == len(set(names))); result[package] = names
+        need(names and len(names) == len(set(names)))
+        combined = result.setdefault(package, [])
+        need(not set(combined).intersection(names)); combined.extend(names)
     return result
 
 def events(raw, required):

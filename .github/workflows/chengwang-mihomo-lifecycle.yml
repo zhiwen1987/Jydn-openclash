@@ -54,7 +54,7 @@ jobs:
           (cd chengwang/tools/mihomo-runtime-candidate && python3 -B -m unittest -v test_consume_pin) 2>&1 | tee "$root/pin-models.log"
           (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_contracts) 2>&1 | tee "$root/go-evidence-models.log"
           python3 - "$root" <<'PY'
-          import ast,hashlib,re,sys
+          import ast,hashlib,importlib.util,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
           checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',23,'4d3b1387d10de742f1f8bbc89703d5fc0d7ecb9f51aa1ebc583115ce96af6c37')]
@@ -68,6 +68,13 @@ jobs:
               assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==[str(count)] and re.findall(r'^OK$',text,re.M)==['OK']
               assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
           print('PYTHON_MODELS=PASS pin47 evidence23 not_go_or_kernel_execution=true')
+          checker=Path('chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py')
+          spec=importlib.util.spec_from_file_location('declared_go_contracts',checker)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
+          declared=sorted(package+'::'+name for package,names in required.items() for name in names)
+          assert len(declared)==92 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='45f322db6c2d266390abddfa330c68c0d311cc25756f60f50925ad6f9f9f0043'
+          print('GO_TEST_DECLARATIONS=92 execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |
@@ -120,6 +127,38 @@ jobs:
             ${{ runner.temp }}/mihomo-contract-verification.json
           retention-days: 14
           if-no-files-found: error
+
+  contracts-fresh:
+    needs: [development-only, contracts]
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-foundation-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-contracts-original
+      - name: Recompute actual Go evidence in a fresh Linux job without rerunning Go
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/mihomo-contracts-original/mihomo-foundation-contracts" \
+            --report "$RUNNER_TEMP/mihomo-contracts-fresh.json"
+          cmp "$RUNNER_TEMP/mihomo-contracts-original/mihomo-contract-verification.json" \
+            "$RUNNER_TEMP/mihomo-contracts-fresh.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-contracts-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-contracts-fresh.json
+          if-no-files-found: error
+          retention-days: 14
 
   acquisition:
     needs: development-only
