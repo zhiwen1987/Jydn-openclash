@@ -1,0 +1,34 @@
+{
+  "schema": "chengwang.eof-context-repair-development/v1",
+  "phase": "SOURCE_AND_CPU_REPAIR_REAL_CI_PENDING",
+  "originalCommits": [
+    "1f5c2efe852211f0defdd46e8bb489c66dc0d0a5",
+    "f824f7bcd0c8f67151629354402b20c1354751eb"
+  ],
+  "fact": "Four unchanged original EOF CLIs rejected browser-build source manifest lists at default1024 before Git identity checks; actual list counts1065 and1046.",
+  "change": "Only exact browser-build decode now opts into existing source_manifest2000 budget; other lists, depth, byte bounds, source binding, EOF and normal close remain unchanged.",
+  "sourceSHA256": {
+    "chengwang/deploy/probe-readback/check_eof_cleanup.py": "0d400e860a52894866575075443239a9d51639bab6c3fca849b6add694a153f0",
+    "chengwang/deploy/probe-readback/test_check_eof_cleanup.py": "4d7cd9f64fddbd60f93ad88bded0251795d285adecbe074801219fca5be470c3"
+  },
+  "verification": {
+    "unitMethods": 26,
+    "skipped": 0,
+    "namesAndContractUnchanged": true,
+    "checkerASTOnlyOneApprovedKeywordChanged": true,
+    "originalArtifactFilesVerified": 388,
+    "historicalOriginalCLIRejections": 4,
+    "candidateHistoricalCLIRejectionsDueToSourceIdentity": 4,
+    "candidateHistoricalCLIHasNoPassClaim": true
+  },
+  "receipt": {
+    "path": "D:/CodexData/workspace/eof-context-diagnosis-20261024/final-result.json",
+    "sha256": "641a272c59e60338519c694f872860e94900ef7aef03ab092f328b46499ae312"
+  },
+  "unexecuted": [
+    "New same-commit complete EOF CLI and real CI",
+    "Production or release promotion"
+  ],
+  "production": false,
+  "mainMerged": false
+}
