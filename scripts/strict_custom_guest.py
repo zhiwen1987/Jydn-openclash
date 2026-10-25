@@ -83,6 +83,7 @@ elif ARGS['phase']=='activate_server':
  import fcntl,importlib.util
  b=Path(ARGS['server']);stage=b/'stage';m=json.loads((b/'manifest.json').read_text());assert json.loads((b/'lab.json').read_text())['passed']
  build=json.loads((b/'build.json').read_text());assert json.loads(run(['docker','image','inspect',m['candidate_tag']]))[0]['Id']==build['image_id']
+ assert hashlib.sha256((b/'route_quality.py').read_bytes()).hexdigest()==hashlib.sha256((stage/'tests/fixtures/route_quality.py').read_bytes()).hexdigest(),'Compatibility fixture differs from deployed baseline; no activation performed'
  assert hashlib.sha256((P/'docker-compose.yml').read_bytes()).hexdigest()==m['files']['docker-compose.yml'],'Compose changed during preparation'
  spec=importlib.util.spec_from_file_location('strict_recovery',stage/'server_recovery.py');recovery=importlib.util.module_from_spec(spec);spec.loader.exec_module(recovery)
  fd=os.open('/var/lock/jydn-strict-rollout.lock',os.O_CREAT|os.O_RDWR,0o600);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
