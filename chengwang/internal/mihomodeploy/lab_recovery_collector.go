@@ -64,14 +64,18 @@ type labRecoveryObservedValue struct {
 	TranscriptSHA256   string                         `json:"transcriptSHA256"`
 	BodySHA256s        [8]string                      `json:"bodySHA256s"`
 	VerificationSHA256 string                         `json:"verificationSHA256"`
+	LocalPath          *labRecoveryLocalMarkerValue   `json:"localPath"`
+	LocalMarkerSHA256  string                         `json:"localMarkerSHA256"`
 }
 
 type labRecoveryCollector struct {
-	artifacts   *ArtifactStore
-	diagnostics *labServiceDiagnostics
-	authority   *labRecoveryAuthority
-	session     *labRecoverySession
-	kernel      *ownedLabKernel
+	artifacts      *ArtifactStore
+	diagnostics    *labServiceDiagnostics
+	authority      *labRecoveryAuthority
+	session        *labRecoverySession
+	kernel         *ownedLabKernel
+	service        *LabService
+	fixtureCustody *labServiceFixtureCustody
 }
 
 type labRecoveryObservedEvidence struct {
@@ -115,11 +119,18 @@ func (e *labRecoveryObservedEvidence) UnmarshalJSON([]byte) error {
 	return errLabRecoveryCollector
 }
 
-func newLabRecoveryCollector(artifacts *ArtifactStore, diagnostics *labServiceDiagnostics, authority *labRecoveryAuthority, session *labRecoverySession, kernel *ownedLabKernel) (*labRecoveryCollector, error) {
-	if artifacts == nil || diagnostics == nil || diagnostics.core == nil || authority == nil || session == nil || session.core == nil || kernel == nil || kernel.ownedLabKernelCore == nil {
+func newLabRecoveryCollector(service *LabService, authority *labRecoveryAuthority, session *labRecoverySession, kernel *ownedLabKernel) (*labRecoveryCollector, error) {
+	if service == nil || service.core == nil || authority == nil || session == nil || session.core == nil || kernel == nil || kernel.ownedLabKernelCore == nil {
 		return nil, errLabRecoveryCollector
 	}
-	return &labRecoveryCollector{artifacts, diagnostics, authority, session, kernel}, nil
+	s := service.core
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.fixtureCustody == nil || !s.fixtureCustody.currentLocked(s, authority) || s.artifacts == nil || s.diagnostics == nil || s.diagnostics.core == nil {
+		return nil, errLabRecoveryCollector
+	}
+	return &labRecoveryCollector{artifacts: s.artifacts, diagnostics: s.diagnostics, authority: authority, session: session, kernel: kernel,
+		service: service, fixtureCustody: s.fixtureCustody}, nil
 }
 
 func labRecoveryObservationDeadline(c *labRecoveryStartedCustody, entry time.Time, ctx context.Context) (time.Time, bool) {
@@ -175,7 +186,7 @@ func labRecoveryObservationWindow(times [2]mihomo.LabSampleTimes, entry, observe
 }
 
 func (c *labRecoveryCollector) currentKernel(source *labRecoveryStartedCustody) bool {
-	if c == nil || source == nil || source.started == nil || source.started.fact.Observation.StartupIdentity == nil || c.kernel == nil || source.started.owner == nil ||
+	if c == nil || c.fixtureCustody == nil || !c.fixtureCustody.current(c.service, c.authority) || source == nil || source.started == nil || source.started.fact.Observation.StartupIdentity == nil || c.kernel == nil || source.started.owner == nil ||
 		c.kernel.ownedLabKernelCore != source.started.owner.ownedLabKernelCore {
 		return false
 	}
@@ -183,16 +194,40 @@ func (c *labRecoveryCollector) currentKernel(source *labRecoveryStartedCustody) 
 	return labRecoveryStartedOwnerMatches(c.kernel, source.started.seal, id) && labRecoveryStartedOwnerCurrent(c.kernel, id)
 }
 
+// Cancellation joins the actual service lifetime and caller without extending
+// either context's deadline or the already established source window. It does
+// not make synchronous proc/fsync IO forcibly interruptible.
+func labRecoveryPhaseContext(caller, owner context.Context, deadline time.Time) (context.Context, context.CancelFunc, error) {
+	if artifactContext(caller) != nil || artifactContext(owner) != nil {
+		return nil, nil, errLabRecoveryCollector
+	}
+	if bound, ok := owner.Deadline(); ok && bound.Before(deadline) {
+		deadline = bound
+	}
+	phase, cancel := context.WithDeadline(caller, deadline)
+	stop := context.AfterFunc(owner, cancel)
+	if artifactContext(owner) != nil || artifactContext(phase) != nil {
+		stop()
+		cancel()
+		return nil, nil, errLabRecoveryCollector
+	}
+	return phase, func() {
+		stop()
+		cancel()
+	}, nil
+}
+
 func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*labRecoveryObservedEvidence, error) {
 	if c == nil || artifactContext(ctx) != nil {
 		return nil, errLabRecoveryCollector
 	}
 	entry := time.Now().UTC()
-	guard, err := c.authority.authorizeVerify(headers, c.session, nil, entry)
+	guard, err := c.authorizeLocal(headers, nil, entry)
 	if err != nil {
 		return nil, err
 	}
 	source := guard.custody
+	ownerCtx := guard.service.ctx
 	i := &processLabRecoveryObservationIssuer
 	i.mu.Lock()
 	if i.claimed[source] || len(i.claimed) >= labRecoveryObservationLimit {
@@ -207,7 +242,10 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	if !ok || !c.currentKernel(source) {
 		return nil, errLabRecoveryCollector
 	}
-	phase, cancel := context.WithDeadline(ctx, deadline)
+	phase, cancel, err := labRecoveryPhaseContext(ctx, ownerCtx, deadline)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 	fact := source.started.fact
 	target := fact.Binding.TargetArtifact
@@ -250,16 +288,34 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	if err != nil || artifactContext(phase) != nil || !labRecoveryObservationWindow(times, entry, observed, deadline) || !c.currentKernel(source) {
 		return nil, errLabRecoveryCollector
 	}
+	role, err := labCollectorRole(config)
+	if err != nil {
+		return nil, errLabRecoveryCollector
+	}
+	local, localErr := c.fixtureCustody.fixture.recoveryRoute(phase, role)
+	if local.Schema != "chengwang.mihomo-recovery-local-marker/v1" {
+		// No source observation exists: keep the eight original GET captures,
+		// but do not manufacture an empty local-marker original.
+		return nil, errLabRecoveryCollector
+	}
+	localRaw, encodeErr := json.Marshal(local)
+	localSHA, captureLocalErr := c.diagnostics.localMarker(localRaw)
+	markerObserved := time.Now().UTC()
+	if localErr != nil || encodeErr != nil || captureLocalErr != nil || local.ExpectedRole != role ||
+		!labRecoveryMarkerWindow(local, observed, markerObserved, deadline) || artifactContext(phase) != nil || !c.currentKernel(source) {
+		return nil, errLabRecoveryCollector
+	}
 	// Do not hold the source/authority mutex over private fsync or proc/HTTP IO.
 	r, err := decodeLifecycleV3Record([]byte(source.canonical))
 	if err != nil {
 		return nil, errLabRecoveryCollector
 	}
 	a := r.core.Recovery
-	v := labRecoveryObservedValue{Schema: "chengwang.mihomo-recovery-control-observation/v1", RecoveryID: a.Plan.RecoveryID, PlanSHA256: a.Plan.PlanSHA256,
+	v := labRecoveryObservedValue{Schema: "chengwang.mihomo-recovery-control-observation/v2", RecoveryID: a.Plan.RecoveryID, PlanSHA256: a.Plan.PlanSHA256,
 		StartIntentSHA256: a.StartIntent.IntentSHA256, StartedSHA256: fact.StartedSHA256, SourceRevision: r.core.Revision, SourceRecordSHA256: r.core.RecordSHA256,
 		OwnerFence: r.core.RecoveryOwner.Fence, Artifact: cloneArtifactDescriptor(target), StartupIdentity: *fact.Observation.StartupIdentity,
-		EntryAt: entry, Deadline: deadline, ObservedAt: observed, Readback: report, TranscriptSHA256: labConfigHash(transcript), BodySHA256s: hashes}
+		EntryAt: entry, Deadline: deadline, ObservedAt: observed, Readback: report, TranscriptSHA256: labConfigHash(transcript), BodySHA256s: hashes,
+		LocalPath: &local, LocalMarkerSHA256: localSHA}
 	for n, sample := range times {
 		v.SampleTimes[n] = labRecoverySampleWindow{sample.StartedAt, sample.CompletedAt}
 	}
@@ -272,10 +328,10 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 		return nil, errLabRecoveryCollector
 	}
 	finalNow := time.Now().UTC()
-	if !labRecoveryObservationWindow(times, entry, finalNow, deadline) || !c.currentKernel(source) {
+	if !labRecoveryObservationWindow(times, entry, finalNow, deadline) || !labRecoveryMarkerWindow(local, observed, finalNow, deadline) || !c.currentKernel(source) {
 		return nil, errLabRecoveryCollector
 	}
-	guard, err = c.authority.authorizeVerify(headers, c.session, source, finalNow)
+	guard, err = c.authorizeLocal(headers, source, finalNow)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +352,8 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	admittedAt := time.Now().UTC()
-	if artifactContext(phase) != nil || admittedAt.Before(finalNow) || !labRecoveryObservationWindow(times, entry, admittedAt, deadline) ||
+	if artifactContext(phase) != nil || artifactContext(guard.service.ctx) != nil || admittedAt.Before(finalNow) || !labRecoveryObservationWindow(times, entry, admittedAt, deadline) ||
+		!labRecoveryMarkerWindow(local, observed, admittedAt, deadline) ||
 		guard.store.trustedNow(admittedAt) != nil || len(i.issued) >= labRecoveryObservationLimit || !i.claimed[source] {
 		return nil, errLabRecoveryCollector
 	}
@@ -319,22 +376,25 @@ func (c *labRecoveryCollector) consume(ctx context.Context, headers []string, ev
 		return zero, errLabRecoveryCollector
 	}
 	now := time.Now().UTC()
-	if now.Before(e.value.ObservedAt) || !now.Before(e.value.Deadline) {
+	if e.value.LocalPath == nil || !labRecoveryMarkerWindow(*e.value.LocalPath, e.value.ObservedAt, now, e.value.Deadline) {
 		return zero, errLabRecoveryCollector
 	}
-	guard, err := c.authority.authorizeVerify(headers, c.session, e.custody, now)
+	guard, err := c.authorizeLocal(headers, e.custody, now)
 	if err != nil {
 		return zero, err
 	}
 	defer guard.release()
 	value := e.value
+	marker := labRecoveryCloneMarker(*value.LocalPath)
+	value.LocalPath = &marker
 	value.Artifact = cloneArtifactDescriptor(value.Artifact)
 	if value.Readback.ObservedProjectionSHA256 != nil {
 		digest := *value.Readback.ObservedProjectionSHA256
 		value.Readback.ObservedProjectionSHA256 = &digest
 	}
 	returnedAt := time.Now().UTC()
-	if artifactContext(ctx) != nil || returnedAt.Before(now) || !returnedAt.Before(value.Deadline) || guard.store.trustedNow(returnedAt) != nil {
+	if artifactContext(ctx) != nil || artifactContext(guard.service.ctx) != nil || returnedAt.Before(now) ||
+		!labRecoveryMarkerWindow(marker, value.ObservedAt, returnedAt, value.Deadline) || guard.store.trustedNow(returnedAt) != nil {
 		return zero, errLabRecoveryCollector
 	}
 	return value, nil

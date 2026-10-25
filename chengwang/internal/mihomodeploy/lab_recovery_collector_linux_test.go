@@ -123,7 +123,7 @@ func TestLabRecoveryCollectorModelS1CannotMintNativeCustody(t *testing.T) {
 }
 
 func TestLabRecoveryCollectorEntryAndSerializedEvidenceReject(t *testing.T) {
-	if _, err := newLabRecoveryCollector(nil, nil, nil, nil, nil); err == nil {
+	if _, err := newLabRecoveryCollector(nil, nil, nil, nil); err == nil {
 		t.Fatal("nil custody inputs admitted")
 	}
 	var collector *labRecoveryCollector

@@ -35,6 +35,7 @@ type labServiceCore struct {
 	input                                                             *labKernelInput
 	kernel                                                            *ownedLabKernel
 	fixture                                                           *labLocalFixture
+	fixtureCustody                                                    *labServiceFixtureCustody
 	collector                                                         *labCollector
 	diagnostics                                                       *labServiceDiagnostics
 	owner                                                             *lifecycleOwnerToken
@@ -293,6 +294,26 @@ func OpenIsolatedLabService(ctx context.Context, manager *authn.SnapshotManager,
 		c.ready = false
 		return s, labServiceError(LabBackendUnavailable, true)
 	}
+	// Only this successful source-owned bootstrap issues the borrowed fixture
+	// identity. A copied core/seal or replacement fixture cannot reissue it.
+	fixture, artifacts, diagnostics, baseAuthority := c.fixture, c.artifacts, c.diagnostics, c.authority
+	originalRuntimeCore := r.core
+	seal := &labServiceFixtureCustody{service: c, fixture: fixture}
+	seal.binding = func(candidate *labServiceFixtureCustody, service *labServiceCore) bool {
+		return candidate == seal && service == c && candidate.service == c && candidate.fixture == fixture &&
+			c.fixture == fixture && c.artifacts == artifacts && c.diagnostics == diagnostics && c.authority == baseAuthority &&
+			c.runtime == r && originalRuntimeCore != nil && r.core == originalRuntimeCore && c.ctx == ownedCtx
+	}
+	issuer := &processLabServiceFixtureIssuer
+	issuer.mu.Lock()
+	if len(issuer.issued) >= labRecoveryObservationLimit {
+		issuer.mu.Unlock()
+		c.ready = false
+		return s, labServiceError(LabBackendUnavailable, true)
+	}
+	issuer.issued[seal] = c
+	issuer.mu.Unlock()
+	c.fixtureCustody = seal
 	return s, nil
 }
 func (s *LabService) Scope() authz.ResourceScope {
@@ -950,6 +971,7 @@ func (s *LabService) Close(ctx context.Context) error {
 		return labServiceError(LabBackendUnavailable, true)
 	}
 	c.closing = true
+	c.revokeFixtureCustodyLocked()
 	c.ready = false
 	if c.cancel != nil {
 		c.cancel()
@@ -1041,6 +1063,7 @@ func (s *LabService) Close(ctx context.Context) error {
 func (c *labServiceCore) markCloseUncertain() error {
 	c.mu.Lock()
 	c.closeUncertain = true
+	c.revokeFixtureCustodyLocked()
 	c.ready = false
 	c.mu.Unlock()
 	return labServiceError(LabBackendUnavailable, true)

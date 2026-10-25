@@ -1,7 +1,7 @@
 """Independent public native-Started data reader; no producer/worker imports.
 
-This source candidate is incomplete until its producer-v2 public contract and
-fixed source manifest are closed. Component validators never execute native I/O.
+Fixed source-owned originals are checked independently of the producer.
+Component validators never execute native I/O or infer Internet capability.
 """
 import argparse
 import datetime
@@ -53,7 +53,7 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lab_recovery_start_linux.go', 'lab_syntax_linux.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go',
     'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go'))
-RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json')
+RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json', 'local-marker.json')
 RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 PUBLIC = ('host-before.json', 'host-after.json', 'consumption.json', 'consumption-independent.json',
           'native-report.json', 'wal-readback-index.json', 'old-kernel.stdout', 'old-kernel.stderr',
@@ -69,6 +69,7 @@ REPORT_KEYS = ('schema', 'scope', 'sourceCommit', 'outcome', 'failureCode', 'ori
                'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp', 'controlPlane', 'controlEvents',
                'controlBeforeSHA256', 'controlAfterSHA256', 'controlProofReplayRejected', 'controlRecollectRejected',
                'controlCopiedStartedRejected', 'controlCopiedProofRejected',
+               'localCopiedFixtureRejected',
                'httpRecoveryProven', 'completionProven', 'fullPrivateWALIndependentlyProven',
                'syntaxRawStreamsIndependentlyProven', 'internetBusinessProven', 'production')
 HEX = re.compile(r'[a-f0-9]{64}')
@@ -380,7 +381,7 @@ def event_checkpoints(checkpoints, rows, positions, old_core, new_core):
 
 def contract(sources):
     value = decode(sources[PREFIX + 'native_recovery_contract.json'])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v3', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v4', scope=SCOPE,
                     tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
                     goTimeoutSeconds=75, outerGoTimeoutSeconds=90,
                     privateRoot='/tmp/chengwang-mihomo-recovery-private',
@@ -398,7 +399,11 @@ def contract(sources):
                     fixtureCleanupKeys=['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
                     recoveryCaptureStage='recovery-s2', recoveryCaptureFiles=list(RECOVERY_CAPTURE),
                     recoveryCaptureMaxBytes=2 << 20, recoveryCaptureBodyBytes=256 << 10, recoveryVerificationBytes=64 << 10,
-                    recoveryControlOnly=True,
+                    recoveryControlOnly=False, recoveryLocalMarkerOnly=True, recoveryLocalMarkerBytes=64 << 10,
+                    recoveryLocalMarkerSchema='chengwang.mihomo-recovery-local-marker/v1',
+                    recoveryLocalMarkerPhase='RECOVERY_NEW_EPOCH_MARKER',
+                    recoveryLocalMarkerScope='ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION',
+                    localMarkerBodyIndependentlyProven=False,
                     processEventLimit=64, maxPublicBytes=16 << 20, production=False,
                     httpRecoveryProven=False, completionProven=False,
                     syntaxRawStreamsIndependentlyProven=False)
@@ -768,11 +773,66 @@ def recovery_capture(raw, observation, projection):
             'controllerReceivedCount': None}
 
 
+def recovery_local_marker(raw, observation, projection):
+    original = raw['recovery-s2-local-marker.json']
+    need(0 < len(original) <= 64 << 10)
+    keys = ('schema', 'scope', 'expectedRole', 'expectedMarkerSHA256', 'expectedMarkerBytes',
+            'startedAt', 'returnedAt', 'handlerCompleted', 'clientNaturalEOF', 'proxyNaturalEOF',
+            'originWriteComplete', 'localProxyMarkerProven', 'route')
+    marker = exact(decode(original), keys)
+    need(list(marker) == list(keys) and recovery_go_bytes(marker, projection) == original)
+    digest(observation['localMarkerSHA256'])
+    need(observation['localMarkerSHA256'] == sha(original))
+    same(marker, observation['localPath'])
+    need(marker['schema'] == 'chengwang.mihomo-recovery-local-marker/v1' and
+         marker['scope'] == 'ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION' and
+         marker['expectedRole'] == 'B')
+    # This fixed native program targets service-b. Only the nonce hash is
+    # disclosed: matching the source's expected hash does not independently
+    # reconstruct the private nonce or any of the three original bodies.
+    expected = digest(marker['expectedMarkerSHA256'])
+    size = len(b'chengwang-local-service-marker/v1:B:' + b'0' * 64 + b'\n')
+    integer(marker['expectedMarkerBytes'], size, size)
+    for key in ('handlerCompleted', 'clientNaturalEOF', 'proxyNaturalEOF',
+                'originWriteComplete', 'localProxyMarkerProven'):
+        need(marker[key] is True)
+    begin, end = timestamp(marker['startedAt']), timestamp(marker['returnedAt'])
+    need(timestamp(observation['observedAt']) <= begin <= end < timestamp(observation['deadline']))
+    route = exact(marker['route'], ('phase', 'nonceSHA256', 'clientResponse', 'proxyResponse',
+                                  'originResponse', 'countersBefore', 'countersAfter', 'matched'))
+    need(list(route) == ['phase', 'nonceSHA256', 'clientResponse', 'proxyResponse',
+                        'originResponse', 'countersBefore', 'countersAfter', 'matched'])
+    need(route['phase'] == 'RECOVERY_NEW_EPOCH_MARKER' and route['matched'] is True)
+    digest(route['nonceSHA256'])
+    for name in ('clientResponse', 'proxyResponse', 'originResponse'):
+        body = exact(route[name], ('sha256', 'bytes', 'complete'))
+        need(list(body) == ['sha256', 'bytes', 'complete'])
+        digest(body['sha256']); need(body['sha256'] == expected and body['complete'] is True)
+        integer(body['bytes'], size, size)
+    before, after = route['countersBefore'], route['countersAfter']
+    need(type(before) is list and type(after) is list and len(before) == len(after) == 3)
+    counter_keys = ('role', 'connectIngress', 'tunnelRequests', 'forwardInvocations', 'originRequests', 'rejected')
+    for role, old, new in zip(('A', 'B', 'origin'), before, after):
+        exact(old, counter_keys); exact(new, counter_keys)
+        need(list(old) == list(new) == list(counter_keys))
+        need(old['role'] == new['role'] == role)
+        for field in counter_keys[1:]:
+            low, high = integer(old[field], 0, (1 << 63) - 1), integer(new[field], 0, (1 << 63) - 1)
+            wanted = int(role == 'B' and field != 'rejected' or role == 'origin' and field == 'originRequests')
+            need(high - low == wanted)
+    return {'scope': marker['scope'], 'phase': route['phase'], 'expectedRole': marker['expectedRole'],
+            'matchedSourceResponseDescriptors': 3, 'actualSourceCounterRows': 3,
+            'privateOriginalSHA256': sha(original), 'sourceLocalMarkerObserved': True,
+            'markerBodyIndependentlyProven': False, 'privateNonceIndependentlyProven': False,
+            'internetBusinessProven': False, 'completionProven': False}
+
+
 def recovery_control(raw, report, source_commit, elf, netns):
     projection = recovery_projection_reader()
     keys = ('schema', 'recoveryId', 'planSHA256', 'startIntentSHA256', 'startedSHA256', 'sourceRevision',
             'sourceRecordSHA256', 'ownerFence', 'artifact', 'startupIdentity', 'entryAt', 'deadline',
-            'sampleTimes', 'observedAt', 'readback', 'transcriptSHA256', 'bodySHA256s', 'verificationSHA256')
+            'sampleTimes', 'observedAt', 'readback', 'transcriptSHA256', 'bodySHA256s', 'verificationSHA256',
+            'localPath', 'localMarkerSHA256')
     verification = raw['recovery-s2-verification.json']
     need(0 < len(verification) <= 64 << 10)
     observed = exact(decode(verification), keys)
@@ -781,7 +841,7 @@ def recovery_control(raw, report, source_commit, elf, netns):
     digest(public['verificationSHA256']); need(public['verificationSHA256'] == sha(verification))
     comparison = dict(public); comparison['verificationSHA256'] = ''
     same(comparison, observed)
-    need(observed['schema'] == 'chengwang.mihomo-recovery-control-observation/v1')
+    need(observed['schema'] == 'chengwang.mihomo-recovery-control-observation/v2')
     need(type(observed['recoveryId']) is str and re.fullmatch(r'labrec_[a-f0-9]{32}', observed['recoveryId']) is not None)
     for key in ('planSHA256', 'startIntentSHA256', 'startedSHA256', 'sourceRecordSHA256', 'transcriptSHA256'):
         digest(observed[key])
@@ -812,7 +872,8 @@ def recovery_control(raw, report, source_commit, elf, netns):
     for key in ('dataplaneProven', 'fullPayloadProven', 'authorizationProven', 'production'):
         need(readback[key] is False)
     digest(readback['targetProjectionSHA256']); digest(readback['observedProjectionSHA256'])
-    for key in ('controlProofReplayRejected', 'controlRecollectRejected', 'controlCopiedStartedRejected', 'controlCopiedProofRejected'):
+    for key in ('controlProofReplayRejected', 'controlRecollectRejected', 'controlCopiedStartedRejected', 'controlCopiedProofRejected',
+                'localCopiedFixtureRejected'):
         need(report[key] is True)
     need(report['controlBeforeSHA256'] == report['controlAfterSHA256'] == latest['controlSHA256'])
     checkpoints = report['controlEvents']; need(type(checkpoints) is list and len(checkpoints) == 2)
@@ -826,7 +887,9 @@ def recovery_control(raw, report, source_commit, elf, netns):
     calls = report['nativeCalls']
     need(timestamp(calls[checkpoints[0]['count']-1]['at']) <= entry <= at <= timestamp(calls[checkpoints[1]['count']]['at']))
     capture = recovery_capture(raw, observed, projection)
-    return {'capture': capture, 'sampleWindows': 2, 'sourceRevision': observed['sourceRevision'],
+    marker = recovery_local_marker(raw, observed, projection)
+    need(timestamp(observed['localPath']['returnedAt']) <= timestamp(calls[checkpoints[1]['count']]['at']))
+    return {'capture': capture, 'localMarker': marker, 'sampleWindows': 2, 'sourceRevision': observed['sourceRevision'],
             'sameS1WALBeforeAfter': True, 'physicalCallsAdded': 0,
             'oneUseAndCopyRejectionsObservedBySource': True,
             'authorizationIndependentlyProven': False, 'completionProven': False, 'dataplaneProven': False}
@@ -855,7 +918,7 @@ def endpoint_cleanup(value):
 
 def native_report(raw, source_commit, elf, sandbox_value, go_result):
     value = exact(decode(raw['native-report.json']), REPORT_KEYS)
-    need(value['schema'] == 'chengwang.mihomo-native-recovery-experiment/v3' and value['scope'] == SCOPE and value['sourceCommit'] == source_commit)
+    need(value['schema'] == 'chengwang.mihomo-native-recovery-experiment/v4' and value['scope'] == SCOPE and value['sourceCommit'] == source_commit)
     need(value['outcome'] == 'PASS' and value['failureCode'] == 'NONE')
     for key in ('replayRejected', 'recoverySelfApprovalDenied', 'dualOwnerCloseRejectedTwice', 'countersBounded',
                 'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp'):
@@ -1099,11 +1162,14 @@ FILES = (
     'chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py',
 )
 FILES = tuple(sorted((*FILES, '.github/workflows/chengwang-mihomo-native-recovery.yml',
-                      PREFIX + 'run_native_recovery.sh')))
+                      PREFIX + 'run_native_recovery.sh',
+                      'chengwang/internal/mihomodeploy/lab_recovery_marker.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_marker_test.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_marker_bounds_test.go')))
 
 
 def make_source_manifest(sources, source_commit):
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 163)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 166)
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     return {'schema': 'chengwang.mihomo-native-source-manifest/v1',
             'scope': 'FIXED_GIT_SOURCE_BYTES_NOT_NATIVE_EXECUTION',
@@ -1129,9 +1195,9 @@ def source_manifests(raw, sources, source_commit):
 
 def verify_raw(raw, sources, source_commit):
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
-    need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 31)
+    need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 32)
     need(all(type(v) is bytes and len(v) <= 16 << 20 for v in raw.values()) and sum(map(len, raw.values())) <= 16 << 20)
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 163)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 166)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     for path in FILES:
         source_path(path)

@@ -94,6 +94,8 @@ LAB_SAMPLE_TIMES_FILES = ('lab_sample_times.go', 'lab_sample_times_test.go')
 FOUNDATION += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_SAMPLE_TIMES_FILES]
 LAB_RECOVERY_COLLECTOR_FILES = ('lab_recovery_collector.go', 'lab_recovery_collector_linux_test.go')
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_COLLECTOR_FILES]
+LAB_RECOVERY_MARKER_FILES = ('lab_recovery_marker.go', 'lab_recovery_marker_test.go', 'lab_recovery_marker_bounds_test.go')
+FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_MARKER_FILES]
 LAB_NATIVE_RECOVERY_FILES = ('lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go')
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_NATIVE_RECOVERY_FILES]
@@ -175,7 +177,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 136)
+    need(len(FILES) == len(set(FILES)) == 139)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw

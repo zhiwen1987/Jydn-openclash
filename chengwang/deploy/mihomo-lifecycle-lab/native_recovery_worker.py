@@ -19,7 +19,7 @@ ROOT = Path('/tmp/chengwang-mihomo-recovery-private')
 TAGS = ('chengwang_mihomo_service', 'chengwang_mihomo_faults', 'chengwang_mihomo_recovery_native')
 TOP = 'TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup'
 STAGES = ('planned', 'approved', 'stop-armed', 'quiesced', 'start-armed', 'started')
-RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json')
+RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json', 'local-marker.json')
 RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 FMT = tuple('internal/mihomodeploy/'+name for name in (
     'lab_bootstrap.go', 'lab_kernel_linux.go', 'lab_quiescence_linux.go',
@@ -67,7 +67,7 @@ def adapter():
 def contract():
     s = adapter(); w = s.adapter().shared()
     value = w.decode(w.file_bytes(Path(__file__).absolute().with_name('native_recovery_contract.json'), 64 << 10)[0])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v3', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v4', scope=SCOPE,
         tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
         goTimeoutSeconds=75, outerGoTimeoutSeconds=90, privateRoot=str(ROOT),
         identityRoot=str(s.IDENTITIES), servicePrivateRoot=str(s.ROOT), stateRoot=str(s.STATE),
@@ -77,7 +77,11 @@ def contract():
         fixtureCleanupKeys=['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
         recoveryCaptureStage='recovery-s2', recoveryCaptureFiles=list(RECOVERY_CAPTURE),
         recoveryCaptureMaxBytes=2 << 20, recoveryCaptureBodyBytes=256 << 10, recoveryVerificationBytes=64 << 10,
-        recoveryControlOnly=True,
+        recoveryControlOnly=False, recoveryLocalMarkerOnly=True, recoveryLocalMarkerBytes=64 << 10,
+        recoveryLocalMarkerSchema='chengwang.mihomo-recovery-local-marker/v1',
+        recoveryLocalMarkerPhase='RECOVERY_NEW_EPOCH_MARKER',
+        recoveryLocalMarkerScope='ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION',
+        localMarkerBodyIndependentlyProven=False,
         eventCheckpoints=list(CHECKPOINTS), eventCheckpointKeys=['stage', 'count', 'lastSequence', 'eventsSHA256'],
         eventPrefixEncoding='Go-json.Marshal([]labNativeRecoveryCall)-sequence-kind-core-at-no-newline',
         commandReceiptSchema='chengwang.mihomo-native-command-receipt/v1', commandReceiptKeys=list(COMMAND_KEYS),
@@ -195,7 +199,7 @@ def private_outputs(commit):
     s = adapter(); w = s.adapter().shared(); forbidden = disclosure_inputs()
     raw = s.private_file(ROOT/'native-report.private.json', 1 << 20)
     report = w.decode(raw)
-    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v3' and
+    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v4' and
          report['scope'] == SCOPE and report['sourceCommit'] == commit and
          report['outcome'] in ('PASS', 'FAIL') and type(report['nativeCalls']) is list and len(report['nativeCalls']) <= 256)
     # Public evidence does not include owner nonce/raw WAL. The Go test's
@@ -240,7 +244,7 @@ def private_outputs(commit):
         if not path.exists():
             need(report['outcome'] == 'FAIL')
             continue
-        limit = 64 << 10 if name == 'verification.json' else 256 << 10 if name.startswith('body-') else 2 << 20
+        limit = 64 << 10 if name in ('verification.json', 'local-marker.json') else 256 << 10 if name.startswith('body-') else 2 << 20
         data = s.private_file(path, limit)
         capture_bytes += len(data)
         need(capture_bytes <= 2 << 20)

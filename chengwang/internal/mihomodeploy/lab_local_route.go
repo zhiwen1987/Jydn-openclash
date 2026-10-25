@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -56,16 +57,19 @@ type labLocalFixtureCleanup struct {
 }
 type labLocalOriginRecord struct{ proxy, origin *labLocalBody }
 type labLocalFixture struct {
-	mu          sync.Mutex
-	markers     map[string]string
-	expected    map[string]string
-	consumed    map[string]bool
-	finished    map[string]chan struct{}
-	records     map[string]labLocalOriginRecord
-	counters    map[string]labLocalCounter
-	connections map[net.Conn]string
-	servers     []*labLocalHTTPServer
-	handlers    sync.WaitGroup
+	mu               sync.Mutex
+	markers          map[string]string
+	expected         map[string]string
+	consumed         map[string]bool
+	finished         map[string]chan struct{}
+	records          map[string]labLocalOriginRecord
+	counters         map[string]labLocalCounter
+	connections      map[net.Conn]string
+	servers          []*labLocalHTTPServer
+	recoveryReceipts map[string]*labRecoveryMarkerReceipt
+	recoveryCount    int
+	recoveryClosed   bool
+	handlers         sync.WaitGroup
 }
 type labLocalHTTPServer struct {
 	role   string
@@ -245,6 +249,7 @@ func (f *labLocalFixture) proxy(role string, w http.ResponseWriter, r *http.Requ
 	}
 }
 func (f *labLocalFixture) route(ctx context.Context, phase, role string) labLocalRoute {
+	startedAt := time.Now().UTC()
 	nonce, e := labServiceRandom()
 	result := labLocalRoute{Phase: phase, CountersBefore: f.snapshot()}
 	if e != nil {
@@ -308,9 +313,46 @@ func (f *labLocalFixture) route(ctx context.Context, phase, role string) labLoca
 		}
 	}
 	result.Matched = matched
+	if phase == labRecoveryLocalPhase {
+		// This value is built inside the actual nonce/HTTP/record observation,
+		// never from a caller's Matched DTO or a route callback.
+		marker := labLocalMarker(role, nonce)
+		v := labRecoveryLocalMarkerValue{Schema: "chengwang.mihomo-recovery-local-marker/v1", Scope: labRecoveryLocalScope,
+			ExpectedRole: role, ExpectedMarkerSHA256: labConfigHash(marker), ExpectedMarkerBytes: len(marker),
+			StartedAt: startedAt, ReturnedAt: time.Now().UTC(), HandlerCompleted: completed,
+			ClientNaturalEOF: result.ClientResponse != nil && result.ClientResponse.Complete,
+			ProxyNaturalEOF: result.ProxyResponse != nil && result.ProxyResponse.Complete,
+			OriginWriteComplete: result.OriginResponse != nil && result.OriginResponse.Complete,
+			LocalProxyMarkerProven: matched, Route: labRecoveryCloneRoute(result)}
+		f.mu.Lock()
+		if !f.recoveryClosed && f.recoveryCount < labRecoveryObservationLimit {
+			if f.recoveryReceipts == nil {
+				f.recoveryReceipts = map[string]*labRecoveryMarkerReceipt{}
+			}
+			receipt := &labRecoveryMarkerReceipt{owner: f, value: v}
+			sealed, encodeErr := json.Marshal(v)
+			if encodeErr == nil {
+				image := string(sealed)
+				receipt.binding = func(candidate *labRecoveryMarkerReceipt, owner *labLocalFixture) bool {
+					if candidate != receipt || owner != f || candidate.owner != f {
+						return false
+					}
+					actual, err := json.Marshal(candidate.value)
+					return err == nil && string(actual) == image
+				}
+				f.recoveryReceipts[result.NonceSHA256] = receipt
+				f.recoveryCount++
+			}
+		}
+		f.mu.Unlock()
+	}
 	return result
 }
 func (f *labLocalFixture) stop() []labLocalFixtureCleanup {
+	f.mu.Lock()
+	f.recoveryClosed = true
+	f.recoveryReceipts = nil
+	f.mu.Unlock()
 	out := make([]labLocalFixtureCleanup, 0, len(f.servers))
 	for _, s := range f.servers {
 		v := labLocalFixtureCleanup{Role: s.role, ErrorClass: "NONE"}

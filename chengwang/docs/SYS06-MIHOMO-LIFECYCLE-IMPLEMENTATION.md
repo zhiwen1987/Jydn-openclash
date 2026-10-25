@@ -1,8 +1,24 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：785同提交的S2控制面原生、完整诊断619及普通／race事件619全部已有实际证据，但普通入口119源格式检查因25177B差异失败，原完整检查器／fresh仍未通过，正在按真实CI格式补丁修订。产品恢复接口及完整发布恢复闭环未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：007同提交三套CI及独立原件收口，S2真实新内核控制面观察切片接受，普通／race619及119源格式0、完整诊断及原生原reader／producer-fresh一致均已核。本轮本地代理marker及627项必需声明已统一源码集成，新的Go、格式和native运行验收尚待Linux CI；完整S2、产品恢复接口及发布恢复闭环未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 本轮源码集成：恢复后本地代理marker，真实Linux验收待运行
+
+源码增加原服务fixture来源封条及原指针有界登记、实际本地代理路径的一用receipt、三份完整正文／现场摘要和A、B、origin有序计数交叉检查；未签发、复制、跨fixture、关闭、取消及重放均须拒绝。采集同时绑定调用方和原服务生命周期，沿用最早截止时间，操作前后复核授权；这不是可硬中断所有系统IO或无撤销竞态的证明。13字段marker只证明隔离回环路径，origin记录完整Write结果，不能称origin EOF；原八GET、S1磁盘状态、物理事件前缀、五口清理和重开约束仍保留。
+
+普通源码128／必需测试源47／格式输入122，必执行顶层声明627，名单SHA256为3bd65c00bb45bbef41763cadf7b8b98c6c0ce2fbc8ec93b3bb8dfa6dd0880543，旧619和全部历史名单保持精确子集。native绑定166来源、32公件，诊断仍为120秒／60秒原上限。本轮187项检查器CPU模型通过，native两个受影响模型及35个marker否定子例和实际工作流声明脚本的11个破坏反例已作有限CPU核验；这些均不代替新Go、race、gofmt或原生运行结果。
+
+Control readback的DataplaneProven继续false，localProxyMarkerProven不能升格为互联网或业务可用。完整故障矩阵、持久恢复回执、Completion、新head、产品恢复API、后续普通写与第二次恢复仍未完成；持久Execution／Current／head不扩张，生产、main及Registry未动。
+
+### 007三套同提交实际接受：S2真实新内核控制面观察切片收口，完整产品未完成
+
+00759ce2f24335036c0dcfd264b15ccde2c424a0的normal40186217123实际13success，原件closeout0e5d2b64核12ZIP208成员／1322Gitblob／125来源／45必需测试源／119格式输入，普通和race各1538语义／619必需及原全部历史子集全过，format0。原C.verify实际返回PASS的16790B报告d50e84f5与producer／fresh逐字同；原Windows main仍在POSIXwriter自然exit1，明确不是本机LinuxCLI接受，没有修改函数／输入／Path／平台。
+
+diag40186217124实际5success，独立f650eccd核4ZIP42成员、125／45／74及619全部通过；full120.230643829秒TIMER，single53.844585481秒M_RUN_RETURNED，后者未采满60秒不能冒称满窗。容量65.52／包128.832秒仅本次观测，原pprof符号warning及数值非独立归因边界保留。native40186217126实际4success，独立9e76ab34核3ZIP52成员／163来源／31公件，Go9.91及native9源格式0；原strict reader完整核新core两轮8GET原文及UUID／投影／时间窗、S1rev17／当前源、复制Started／proof和一用消费／重放／重采拒绝、S1字节与物理事件前缀不变，原5口／3fixture／WAL8／reopen18／10checkpoint齐。26045B producer／fresh逐字同SHA5ee3c259433ccf1006362b6e70784339ef90f06fb7687693de0c5a58353cebbe。
+
+其他service／apply／compat／candidate／UNKNOWN原函数亦按本提交独立通过，总收据b8fe17da，副本sourceGit标志比较和原pure false分列，不改原报告。三套共19ZIP302成员，接受档[evidence/sys06-007-s2-control-observation-acceptance-20261025.json](evidence/sys06-007-s2-control-observation-acceptance-20261025.json)随本轮真实源码统一归档，不为文档单独重跑。这里只接受当前来源绑定、时效和一用证明下的控制面观察；完整真实故障矩阵、恢复数据面／持久receipt／completion／新head／产品恢复API／后续普通写／第二恢复与整套系统和生产均未完成，旧UNKNOWN及所有失败保持。
 
 ### 785实际619普通／race和两套限定运行接受，119源格式差异仍使normal失败
 

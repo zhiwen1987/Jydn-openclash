@@ -1,5 +1,5 @@
 {
-  "schema": "chengwang.mihomo-native-recovery-contract/v3",
+  "schema": "chengwang.mihomo-native-recovery-contract/v4",
   "scope": "ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_HTTP_COMPLETION_OR_PRODUCTION",
   "tags": [
     "chengwang_mihomo_service",
@@ -31,11 +31,17 @@
   "cleanupProbeKeys": ["port", "attempted", "result"],
   "fixtureCleanupKeys": ["role", "shutdownReturned", "serveReturned", "forcedConnectionsClosed", "errorClass"],
   "recoveryCaptureStage": "recovery-s2",
-  "recoveryCaptureFiles": ["transcript.json", "body-1.json", "body-2.json", "body-3.json", "body-4.json", "body-5.json", "body-6.json", "body-7.json", "body-8.json", "verification.json"],
+  "recoveryCaptureFiles": ["transcript.json", "body-1.json", "body-2.json", "body-3.json", "body-4.json", "body-5.json", "body-6.json", "body-7.json", "body-8.json", "verification.json", "local-marker.json"],
   "recoveryCaptureMaxBytes": 2097152,
   "recoveryCaptureBodyBytes": 262144,
   "recoveryVerificationBytes": 65536,
-  "recoveryControlOnly": true,
+  "recoveryControlOnly": false,
+  "recoveryLocalMarkerOnly": true,
+  "recoveryLocalMarkerBytes": 65536,
+  "recoveryLocalMarkerSchema": "chengwang.mihomo-recovery-local-marker/v1",
+  "recoveryLocalMarkerPhase": "RECOVERY_NEW_EPOCH_MARKER",
+  "recoveryLocalMarkerScope": "ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION",
+  "localMarkerBodyIndependentlyProven": false,
   "eventCheckpoints": [
     "before-permit-cap-replay",
     "after-permit-cap-replay",

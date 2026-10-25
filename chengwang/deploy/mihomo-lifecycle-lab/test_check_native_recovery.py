@@ -164,7 +164,28 @@ def recovery_fixture(raw, report, index, hashed):
     readback = dict(schema='chengwang.mihomo-selected-target-readback/v1', conclusion='TARGET_PROJECTION_MATCHED',
                     sampleCount=2, requestsObserved=8, targetProjectionSHA256=target, observedProjectionSHA256=target,
                     dataplaneProven=False, fullPayloadProven=False, authorizationProven=False, production=False)
-    observed = dict(schema='chengwang.mihomo-recovery-control-observation/v1', recoveryId='labrec_'+'3'*32,
+    # These are inert descriptors for protocol models, not route observations
+    # or a reconstructed private fixture/receipt. No HTTP is run here.
+    nonce = 'c' * 64
+    marker_body = ('chengwang-local-service-marker/v1:B:' + nonce + '\n').encode('ascii')
+    marker_hash = C.sha(marker_body)
+    before = [dict(role=role, connectIngress=0, tunnelRequests=0, forwardInvocations=0, originRequests=0, rejected=0)
+              for role in ('A', 'B', 'origin')]
+    after = copy.deepcopy(before)
+    after[1].update(connectIngress=1, tunnelRequests=1, forwardInvocations=1, originRequests=1)
+    after[2]['originRequests'] = 1
+    body_meta = dict(sha256=marker_hash, bytes=len(marker_body), complete=True)
+    local = dict(schema='chengwang.mihomo-recovery-local-marker/v1',
+                 scope='ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION',
+                 expectedRole='B', expectedMarkerSHA256=marker_hash, expectedMarkerBytes=len(marker_body),
+                 startedAt='2026-10-25T00:00:14.81Z', returnedAt='2026-10-25T00:00:14.9Z',
+                 handlerCompleted=True, clientNaturalEOF=True, proxyNaturalEOF=True,
+                 originWriteComplete=True, localProxyMarkerProven=True,
+                 route=dict(phase='RECOVERY_NEW_EPOCH_MARKER', nonceSHA256=C.sha(nonce.encode('ascii')),
+                            clientResponse=copy.deepcopy(body_meta), proxyResponse=copy.deepcopy(body_meta),
+                            originResponse=copy.deepcopy(body_meta), countersBefore=before, countersAfter=after, matched=True))
+    raw['recovery-s2-local-marker.json'] = C.recovery_go_bytes(local, GET.G)
+    observed = dict(schema='chengwang.mihomo-recovery-control-observation/v2', recoveryId='labrec_'+'3'*32,
                     planSHA256=hashed('recovery plan'), startIntentSHA256=hashed('start intent'), startedSHA256=report['startedSHA256'],
                     sourceRevision=report['stages'][-1]['revision'], sourceRecordSHA256=report['stages'][-1]['recordSHA256'],
                     ownerFence=1, artifact=artifact, startupIdentity=copy.deepcopy(report['newIdentity']),
@@ -172,7 +193,8 @@ def recovery_fixture(raw, report, index, hashed):
                     sampleTimes=[dict(startedAt='2026-10-25T00:00:14.6Z', completedAt='2026-10-25T00:00:14.65Z'),
                                  dict(startedAt='2026-10-25T00:00:14.7Z', completedAt='2026-10-25T00:00:14.75Z')],
                     observedAt='2026-10-25T00:00:14.8Z', readback=readback,
-                    transcriptSHA256=C.sha(raw['recovery-s2-transcript.json']), bodySHA256s=bodies, verificationSHA256='')
+                    transcriptSHA256=C.sha(raw['recovery-s2-transcript.json']), bodySHA256s=bodies, verificationSHA256='',
+                    localPath=local, localMarkerSHA256=C.sha(raw['recovery-s2-local-marker.json']))
     verification = C.recovery_go_bytes(observed, GET.G)
     raw['recovery-s2-verification.json'] = verification
     report['controlPlane'] = copy.deepcopy(observed)
@@ -180,6 +202,7 @@ def recovery_fixture(raw, report, index, hashed):
     report['controlBeforeSHA256'] = report['controlAfterSHA256'] = report['stages'][-1]['controlSHA256']
     report['controlProofReplayRejected'] = report['controlRecollectRejected'] = True
     report['controlCopiedStartedRejected'] = report['controlCopiedProofRejected'] = True
+    report['localCopiedFixtureRejected'] = True
     report['controlEvents'] = [dict(stage=stage, count=14, lastSequence=14, eventsSHA256=C.event_prefix_sha(report['nativeCalls'],14))
                                for stage in ('before-control-plane','after-control-plane')]
 
@@ -192,6 +215,17 @@ def edit_recovery_value(raw, change):
     report['controlPlane'] = copy.deepcopy(value)
     report['controlPlane']['verificationSHA256'] = C.sha(raw['recovery-s2-verification.json'])
     raw['native-report.json'] = C.canonical(report)
+
+
+def edit_marker_value(raw, change):
+    marker = C.decode(raw['recovery-s2-local-marker.json'])
+    change(marker)
+    original = C.recovery_go_bytes(marker, GET.G)
+    raw['recovery-s2-local-marker.json'] = original
+    def rebind(value):
+        value['localPath'] = marker
+        value['localMarkerSHA256'] = C.sha(original)
+    edit_recovery_value(raw, rebind)
 
 
 def closed_fixture():
@@ -282,7 +316,7 @@ def closed_fixture():
     fixtures = [dict(role=role, shutdownReturned=True, serveReturned=True,
                      forcedConnectionsClosed=0, errorClass='NONE') for role in ('origin', 'A', 'B')]
     probes = [dict(port=port, attempted=True, result='CONNECTION_REFUSED') for port in (28411, 28412, 28413, 28414, 28415)]
-    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v3', scope=C.SCOPE, sourceCommit=commit,
+    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v4', scope=C.SCOPE, sourceCommit=commit,
                   outcome='PASS', failureCode='NONE', originalUnknown=unknown,
                   fault=dict(schema='chengwang.mihomo-reload-response-loss-observation/v1', state='INJECTED', claimed=True,
                              underlyingRoundTrips=1, statusCode=204, bodyBytes=0, eofObserved=True, closeSucceeded=True,
@@ -420,6 +454,22 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
                     'privateDisclosureFenceIndependentlyProven', 'completeKernelSyscallTracingProven', 'completionProven', 'production'):
             self.assertIs(value[key], False)
         self.assertIsNone(value['controllerReceivedCount'])
+        marker = value['nativeObservations']['recoveryControlObservation']['localMarker']
+        self.assertEqual(marker['matchedSourceResponseDescriptors'], 3)
+        self.assertTrue(marker['sourceLocalMarkerObserved'])
+        for key in ('markerBodyIndependentlyProven', 'privateNonceIndependentlyProven', 'internetBusinessProven', 'completionProven'):
+            self.assertIs(marker[key], False)
+        # Real bootstrap and earlier reads may have nonzero totals. Only the
+        # actual marker's deltas are fixed; historical counters need not zero.
+        changed = dict(raw)
+        def historical_totals(v):
+            for side in ('countersBefore', 'countersAfter'):
+                for row in v['route'][side]:
+                    for field in ('connectIngress', 'tunnelRequests', 'forwardInvocations', 'originRequests', 'rejected'):
+                        if row['role'] != 'origin' or field in ('originRequests', 'rejected'):
+                            row[field] += 42
+        edit_marker_value(changed, historical_totals)
+        self.assertEqual(C.verify_raw(changed, sources, commit)['outcome'], 'PASS')
 
     def test_closed_public_set_commit_and_execution_failures_do_not_pass(self):
         raw, sources, commit = closed_fixture()
@@ -606,6 +656,7 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
                     v.update(entryAt='2026-10-25T00:00:44.1Z',deadline='2026-10-25T00:00:44.95Z',observedAt='2026-10-25T00:00:44.6Z')
                     v['sampleTimes'] = [dict(startedAt='2026-10-25T00:00:44.2Z',completedAt='2026-10-25T00:00:44.3Z'),
                                         dict(startedAt='2026-10-25T00:00:44.4Z',completedAt='2026-10-25T00:00:44.5Z')]
+                edit_marker_value(bad, lambda v: v.update(startedAt='2026-10-25T00:00:44.7Z', returnedAt='2026-10-25T00:00:44.8Z'))
                 edit_recovery_value(bad, late_value)
             elif kind in ('two_round_drift', 'non_eof', 'close_error'):
                 transcript = C.decode(bad['recovery-s2-transcript.json'])
@@ -626,6 +677,54 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
                 edit_recovery_value(bad, rebind)
             else: edit_json(bad, 'native-report.json', lambda v: v.update(schema='chengwang.mihomo-native-recovery-experiment/v2'))
             with self.subTest(recovery=kind), self.assertRaises(ValueError):
+                C.verify_raw(bad, sources, commit)
+        # Bind all changed originals and summary digests before testing the
+        # marker's semantic checks; an outer digest mismatch is insufficient.
+        mutations = {
+            'phase': lambda v: v['route'].update(phase='BASELINE'),
+            'role': lambda v: v.update(expectedRole='A'),
+            'nonce_zero': lambda v: v['route'].update(nonceSHA256='0'*64),
+            'expected_hash': lambda v: v.update(expectedMarkerSHA256='a'*64),
+            'expected_bytes': lambda v: v.update(expectedMarkerBytes=v['expectedMarkerBytes']+1),
+            'matched_false': lambda v: v['route'].update(matched=False),
+            'handler_pending': lambda v: v.update(handlerCompleted=False),
+            'client_non_eof': lambda v: v.update(clientNaturalEOF=False),
+            'proxy_non_eof': lambda v: v.update(proxyNaturalEOF=False),
+            'origin_incomplete': lambda v: v.update(originWriteComplete=False),
+            'local_claim_false': lambda v: v.update(localProxyMarkerProven=False),
+            'body_partial': lambda v: v['route']['originResponse'].update(complete=False),
+            'body_hash': lambda v: v['route']['proxyResponse'].update(sha256='b'*64),
+            'body_bytes_bool': lambda v: v['route']['clientResponse'].update(bytes=True),
+            'body_field_order': lambda v: v['route'].update(clientResponse=dict(reversed(list(v['route']['clientResponse'].items())))),
+            'counter_missing': lambda v: v['route']['countersAfter'].pop(),
+            'counter_reordered': lambda v: v['route']['countersAfter'].reverse(),
+            'counter_field_order': lambda v: v['route']['countersAfter'].__setitem__(1, dict(reversed(list(v['route']['countersAfter'][1].items())))),
+            'counter_bool': lambda v: v['route']['countersBefore'][0].update(rejected=False),
+            'counter_rejected': lambda v: v['route']['countersAfter'][1].update(rejected=1),
+            'other_role_changed': lambda v: v['route']['countersAfter'][0].update(connectIngress=1),
+            'origin_not_observed': lambda v: v['route']['countersAfter'][2].update(originRequests=0),
+            'double_tunnel': lambda v: v['route']['countersAfter'][1].update(tunnelRequests=2),
+            'counter_negative': lambda v: v['route']['countersBefore'][1].update(originRequests=-1),
+            'before_get': lambda v: v.update(startedAt='2026-10-25T00:00:14.79Z'),
+            'reversed_time': lambda v: v.update(returnedAt='2026-10-25T00:00:14.8Z'),
+            'deadline_equal': lambda v: v.update(returnedAt='2026-10-25T00:00:14.95Z'),
+            'future_scope': lambda v: v.update(scope='INTERNET_BUSINESS_PROVEN'),
+            'extra_claim': lambda v: v.update(internetBusinessProven=True),
+        }
+        for name, mutation in mutations.items():
+            bad = dict(raw)
+            edit_marker_value(bad, mutation)
+            with self.subTest(marker=name), self.assertRaises(ValueError):
+                C.verify_raw(bad, sources, commit)
+        for name in ('missing', 'raw_tamper', 'legacy_control_schema', 'summary_marker_hash', 'summary_marker_payload', 'copied_fixture'):
+            bad = dict(raw)
+            if name == 'missing': del bad['recovery-s2-local-marker.json']
+            elif name == 'raw_tamper': bad['recovery-s2-local-marker.json'] += b' '
+            elif name == 'legacy_control_schema': edit_recovery_value(bad, lambda v: v.update(schema='chengwang.mihomo-recovery-control-observation/v1'))
+            elif name == 'summary_marker_hash': edit_recovery_value(bad, lambda v: v.update(localMarkerSHA256='d'*64))
+            elif name == 'copied_fixture': edit_json(bad, 'native-report.json', lambda v: v.update(localCopiedFixtureRejected=False))
+            else: edit_recovery_value(bad, lambda v: v['localPath'].update(localProxyMarkerProven=False))
+            with self.subTest(marker=name), self.assertRaises(ValueError):
                 C.verify_raw(bad, sources, commit)
 
 

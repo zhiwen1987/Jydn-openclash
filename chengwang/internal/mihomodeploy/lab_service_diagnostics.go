@@ -44,7 +44,7 @@ func labDiagnosticName(name string) bool {
 	}
 	parts := strings.Split(name, "/")
 	if len(parts) == 2 && parts[0] == "recovery-s2" {
-		return labCaptureBase(parts[1])
+		return labCaptureBase(parts[1]) || parts[1] == "local-marker.json"
 	}
 	if len(parts) == 2 && parts[0] == "bootstrap" {
 		return labCaptureBase(parts[1])

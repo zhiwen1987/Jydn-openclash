@@ -64,6 +64,7 @@ type labNativeRecoveryReport struct {
 	ControlRecollectRejected            bool                               `json:"controlRecollectRejected"`
 	ControlCopiedStartedRejected        bool                               `json:"controlCopiedStartedRejected"`
 	ControlCopiedProofRejected          bool                               `json:"controlCopiedProofRejected"`
+	LocalCopiedFixtureRejected          bool                               `json:"localCopiedFixtureRejected"`
 	HTTPRecoveryProven                  bool                               `json:"httpRecoveryProven"`
 	CompletionProven                    bool                               `json:"completionProven"`
 	FullPrivateWALIndependentlyProven   bool                               `json:"fullPrivateWALIndependentlyProven"`
@@ -125,7 +126,7 @@ func labNativeRecoveryCount(events []labNativeRecoveryCall, kind string, core ui
 }
 
 func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T) {
-	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v3",
+	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v4",
 		Scope: labNativeRecoveryScope, SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"),
 		Outcome: "FAIL", FailureCode: "NOT_COMPLETED", Stages: []labNativeRecoveryCheckpoint{}, Syntax: []labKernelStartObservation{},
 		NativeCalls: []labNativeRecoveryCall{}, EventCheckpoints: []labNativeRecoveryEventCheckpoint{}, ClosedPorts: []uint16{},
@@ -386,7 +387,27 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 	report.ControlEvents = append(report.ControlEvents, labNativeRecoveryEventCheckpoint{
 		Stage: "before-control-plane", Count: len(controlCallsBefore), LastSequence: controlCallsBefore[len(controlCallsBefore)-1].Sequence, EventsSHA256: labConfigHash(controlRawBefore)})
 	report.ControlBeforeSHA256 = labConfigHash(controlBefore)
-	collector, err := newLabRecoveryCollector(service.core.artifacts, service.core.diagnostics, runner.authority, runner.session, runner.next)
+	// Copy the actually issued fixture seal, not an invented fixture or a
+	// synthetic issuer entry. Restore its exact source pointer before using
+	// the genuine service; no network call or registry mutation is made here.
+	service.core.mu.Lock()
+	fixtureSeal := service.core.fixtureCustody
+	if fixtureSeal == nil {
+		service.core.mu.Unlock()
+		t.Fatal("successful service lost its retained actual fixture seal")
+	}
+	copiedFixtureSeal := *fixtureSeal
+	service.core.fixtureCustody = &copiedFixtureSeal
+	service.core.mu.Unlock()
+	copiedFixtureCollector, copyFixtureErr := newLabRecoveryCollector(service, runner.authority, runner.session, runner.next)
+	service.core.mu.Lock()
+	service.core.fixtureCustody = fixtureSeal
+	service.core.mu.Unlock()
+	if copyFixtureErr == nil || copiedFixtureCollector != nil {
+		t.Fatal("copied actual fixture seal became source ownership")
+	}
+	report.LocalCopiedFixtureRejected = true
+	collector, err := newLabRecoveryCollector(service, runner.authority, runner.session, runner.next)
 	if err != nil {
 		report.FailureCode = "CONTROL_COLLECTOR"
 		t.Fatal("actual recovery collector could not bind retained objects")
@@ -396,7 +417,7 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 	observed, err := collector.collect(controlCtx, headers["initiator"])
 	if err != nil || observed == nil || observed.core == nil {
 		report.FailureCode = "CONTROL_CAPTURE"
-		t.Fatal("actual post-S1 eight-GET control observation failed")
+		t.Fatal("actual post-S1 eight-GET and owned local marker observation failed")
 	}
 	copiedObservedCore := *observed.core
 	if _, err := collector.consume(controlCtx, headers["initiator"], &labRecoveryObservedEvidence{core: &copiedObservedCore}); err == nil {
@@ -408,16 +429,29 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		controlValue.StartedSHA256 != report.StartedSHA256 || controlValue.StartupIdentity != runner.newIdentity ||
 		!reflect.DeepEqual(controlValue.Artifact, execution.Started.Binding.TargetArtifact) || controlValue.VerificationSHA256 == "" ||
 		controlValue.Readback.Conclusion != mihomo.LabTargetProjectionMatched || controlValue.Readback.SampleCount != 2 || controlValue.Readback.RequestsObserved != 8 ||
-		controlValue.Readback.DataplaneProven || controlValue.Readback.FullPayloadProven || controlValue.Readback.AuthorizationProven || controlValue.Readback.Production {
+		controlValue.Readback.DataplaneProven || controlValue.Readback.FullPayloadProven || controlValue.Readback.AuthorizationProven || controlValue.Readback.Production ||
+		controlValue.Schema != "chengwang.mihomo-recovery-control-observation/v2" || controlValue.LocalPath == nil ||
+		!labRecoveryMarkerValueValid(*controlValue.LocalPath) || controlValue.LocalPath.ExpectedRole != "B" ||
+		controlValue.LocalPath.StartedAt.Before(controlValue.ObservedAt) || !controlValue.LocalPath.ReturnedAt.Before(controlValue.Deadline) ||
+		controlValue.LocalMarkerSHA256 == "" {
 		report.FailureCode = "CONTROL_CONSUME"
 		t.Fatal("actual one-use observation did not bind current S1 and selected target")
 	}
+	// The marker is an actual retained three-endpoint loopback observation,
+	// separate from selected-target control-plane evidence. It does not make
+	// the generic readback a data-plane or Internet business proof.
+	markerRaw, err := json.Marshal(controlValue.LocalPath)
+	if err != nil || labConfigHash(markerRaw) != controlValue.LocalMarkerSHA256 ||
+		!reflect.DeepEqual(service.core.fixture.snapshot(), controlValue.LocalPath.Route.CountersAfter) {
+		t.Fatal("actual marker bodies, private original or retained fixture counters differ")
+	}
+	markerCounters := service.core.fixture.snapshot()
 	report.ControlPlane = &controlValue
 	if _, err := collector.consume(controlCtx, headers["initiator"], observed); err == nil {
 		t.Fatal("spent actual S2 observation proof replayed")
 	}
 	report.ControlProofReplayRejected = true
-	anotherCollector, err := newLabRecoveryCollector(service.core.artifacts, service.core.diagnostics, runner.authority, runner.session, runner.next)
+	anotherCollector, err := newLabRecoveryCollector(service, runner.authority, runner.session, runner.next)
 	if err != nil {
 		t.Fatal("same retained S2 objects could not be reopened for replay rejection")
 	}
@@ -425,6 +459,9 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		t.Fatal("a second collector reset the actual custody attempt")
 	}
 	report.ControlRecollectRejected = true
+	if !reflect.DeepEqual(markerCounters, service.core.fixture.snapshot()) {
+		t.Fatal("spent proof or collector replay repeated an actual marker route")
+	}
 	runner.store.core.mu.Lock()
 	controlAfter := bytes.Clone(runner.store.core.raw)
 	retainedAfterControl := runner.store.core.retainedStarted
