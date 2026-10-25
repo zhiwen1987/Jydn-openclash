@@ -2,7 +2,6 @@ package mihomodeploy
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -45,7 +44,7 @@ func (labServiceFixtureCustody) Format(s fmt.State, _ rune) {
 	_, _ = io.WriteString(s, "private service fixture custody")
 }
 func (labServiceFixtureCustody) MarshalJSON() ([]byte, error) { return nil, errLabRecoveryCollector }
-func (*labServiceFixtureCustody) UnmarshalJSON([]byte) error { return errLabRecoveryCollector }
+func (*labServiceFixtureCustody) UnmarshalJSON([]byte) error  { return errLabRecoveryCollector }
 
 func (s *labServiceFixtureCustody) current(service *LabService, authority *labRecoveryAuthority) bool {
 	if s == nil || service == nil || service.core == nil || authority == nil || authority.core == nil {
@@ -89,7 +88,7 @@ func (labRecoveryMarkerReceipt) Format(s fmt.State, _ rune) {
 	_, _ = io.WriteString(s, "private actual route receipt")
 }
 func (labRecoveryMarkerReceipt) MarshalJSON() ([]byte, error) { return nil, errLabRecoveryCollector }
-func (*labRecoveryMarkerReceipt) UnmarshalJSON([]byte) error { return errLabRecoveryCollector }
+func (*labRecoveryMarkerReceipt) UnmarshalJSON([]byte) error  { return errLabRecoveryCollector }
 
 func labRecoveryCloneRoute(v labLocalRoute) labLocalRoute {
 	copyBody := func(p *labLocalBody) *labLocalBody {

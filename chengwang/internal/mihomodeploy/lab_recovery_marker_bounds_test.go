@@ -262,21 +262,25 @@ func TestLabRecoveryMarkerBoundsSelectedAndUnselectedDeltasStayExact(t *testing.
 func TestLabRecoveryMarkerBoundsTimesRolesFlagsAndNonnegativeCountersFailClosed(t *testing.T) {
 	original := labRecoveryMarkerBoundsModel(t, "A")
 	for name, mutate := range map[string]func(*labRecoveryLocalMarkerValue){
-		"schema":         func(v *labRecoveryLocalMarkerValue) { v.Schema += "-unknown" },
-		"scope":          func(v *labRecoveryLocalMarkerValue) { v.Scope = "INTERNET_BUSINESS" },
-		"phase":          func(v *labRecoveryLocalMarkerValue) { v.Route.Phase = "SERVICE_NEW" },
-		"origin-role":    func(v *labRecoveryLocalMarkerValue) { v.ExpectedRole = "origin" },
-		"unknown-role":   func(v *labRecoveryLocalMarkerValue) { v.ExpectedRole = "C" },
-		"zero-start":     func(v *labRecoveryLocalMarkerValue) { v.StartedAt = time.Time{} },
-		"zero-return":    func(v *labRecoveryLocalMarkerValue) { v.ReturnedAt = time.Time{} },
-		"reversed-time":  func(v *labRecoveryLocalMarkerValue) { v.ReturnedAt = v.StartedAt.Add(-time.Nanosecond) },
-		"non-utc-start":  func(v *labRecoveryLocalMarkerValue) { v.StartedAt = v.StartedAt.In(time.FixedZone("model-offset", 3600)) },
-		"non-utc-return": func(v *labRecoveryLocalMarkerValue) { v.ReturnedAt = v.ReturnedAt.In(time.FixedZone("model-offset", 3600)) },
-		"handler":        func(v *labRecoveryLocalMarkerValue) { v.HandlerCompleted = false },
-		"client-eof":     func(v *labRecoveryLocalMarkerValue) { v.ClientNaturalEOF = false },
-		"proxy-eof":      func(v *labRecoveryLocalMarkerValue) { v.ProxyNaturalEOF = false },
-		"origin-write":   func(v *labRecoveryLocalMarkerValue) { v.OriginWriteComplete = false },
-		"local-proven":   func(v *labRecoveryLocalMarkerValue) { v.LocalProxyMarkerProven = false },
+		"schema":        func(v *labRecoveryLocalMarkerValue) { v.Schema += "-unknown" },
+		"scope":         func(v *labRecoveryLocalMarkerValue) { v.Scope = "INTERNET_BUSINESS" },
+		"phase":         func(v *labRecoveryLocalMarkerValue) { v.Route.Phase = "SERVICE_NEW" },
+		"origin-role":   func(v *labRecoveryLocalMarkerValue) { v.ExpectedRole = "origin" },
+		"unknown-role":  func(v *labRecoveryLocalMarkerValue) { v.ExpectedRole = "C" },
+		"zero-start":    func(v *labRecoveryLocalMarkerValue) { v.StartedAt = time.Time{} },
+		"zero-return":   func(v *labRecoveryLocalMarkerValue) { v.ReturnedAt = time.Time{} },
+		"reversed-time": func(v *labRecoveryLocalMarkerValue) { v.ReturnedAt = v.StartedAt.Add(-time.Nanosecond) },
+		"non-utc-start": func(v *labRecoveryLocalMarkerValue) {
+			v.StartedAt = v.StartedAt.In(time.FixedZone("model-offset", 3600))
+		},
+		"non-utc-return": func(v *labRecoveryLocalMarkerValue) {
+			v.ReturnedAt = v.ReturnedAt.In(time.FixedZone("model-offset", 3600))
+		},
+		"handler":      func(v *labRecoveryLocalMarkerValue) { v.HandlerCompleted = false },
+		"client-eof":   func(v *labRecoveryLocalMarkerValue) { v.ClientNaturalEOF = false },
+		"proxy-eof":    func(v *labRecoveryLocalMarkerValue) { v.ProxyNaturalEOF = false },
+		"origin-write": func(v *labRecoveryLocalMarkerValue) { v.OriginWriteComplete = false },
+		"local-proven": func(v *labRecoveryLocalMarkerValue) { v.LocalProxyMarkerProven = false },
 	} {
 		t.Run(name, func(t *testing.T) { labRecoveryMarkerBoundsReject(t, original, mutate) })
 	}

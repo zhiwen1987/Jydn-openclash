@@ -320,9 +320,9 @@ func (f *labLocalFixture) route(ctx context.Context, phase, role string) labLoca
 		v := labRecoveryLocalMarkerValue{Schema: "chengwang.mihomo-recovery-local-marker/v1", Scope: labRecoveryLocalScope,
 			ExpectedRole: role, ExpectedMarkerSHA256: labConfigHash(marker), ExpectedMarkerBytes: len(marker),
 			StartedAt: startedAt, ReturnedAt: time.Now().UTC(), HandlerCompleted: completed,
-			ClientNaturalEOF: result.ClientResponse != nil && result.ClientResponse.Complete,
-			ProxyNaturalEOF: result.ProxyResponse != nil && result.ProxyResponse.Complete,
-			OriginWriteComplete: result.OriginResponse != nil && result.OriginResponse.Complete,
+			ClientNaturalEOF:       result.ClientResponse != nil && result.ClientResponse.Complete,
+			ProxyNaturalEOF:        result.ProxyResponse != nil && result.ProxyResponse.Complete,
+			OriginWriteComplete:    result.OriginResponse != nil && result.OriginResponse.Complete,
 			LocalProxyMarkerProven: matched, Route: labRecoveryCloneRoute(result)}
 		f.mu.Lock()
 		if !f.recoveryClosed && f.recoveryCount < labRecoveryObservationLimit {

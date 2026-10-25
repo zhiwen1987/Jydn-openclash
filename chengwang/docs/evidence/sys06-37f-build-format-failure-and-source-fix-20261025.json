@@ -1,0 +1,84 @@
+{
+  "actualFailedRunIDs": {
+    "diagnostic": 40189516609,
+    "native": 40189516618,
+    "normal": 40189516666
+  },
+  "actualFormatFiles": 4,
+  "actualFormatHunks": 5,
+  "actualNewRuntimeAcceptance": false,
+  "baseline": "37f4aa5e3b5834b6de671a297561e5734bea99f2",
+  "checkerWorkflowTimeoutAndPermissionChanges": false,
+  "compilerError": "lab_recovery_marker.go:5:2: encoding/json imported and not used",
+  "completeSystem": false,
+  "completionProven": false,
+  "failureReceipts": [
+    {
+      "label": "normalFailure",
+      "path": "D:/CodexData/workspace/mihomo-37f4aa5-foundation-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "9d5f5a518c33f24e70e2f899ff0445e48011e43b28cd8c59b166a9f46b94742e"
+    },
+    {
+      "label": "diagnosticFailure",
+      "path": "D:/CodexData/workspace/mihomo-37f4aa5-full-profile-audit-20261025-agent/failure-cpu/closeout.json",
+      "sha256": "28300563e55c8766d403120866d6b782532228d96ab4131730d3543a979460ee"
+    },
+    {
+      "label": "nativeFailure",
+      "path": "D:/CodexData/workspace/mihomo-37f4aa5-native-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "8b640a6f5b37ca66e68bdfa2ed7b70ae35fd952b50d11a4db2cedc008d4f47bb"
+    },
+    {
+      "label": "actualFormatTransfer",
+      "path": "D:\\CodexData\\workspace\\mihomo-37f4aa5-actual-format-transfer-20261025-agent\\result.json",
+      "sha256": "352ec5315fa5500e321fe4758aaed22960a959e6672ea82ed29981a7e2df66ac"
+    },
+    {
+      "label": "independentFormatRebuild",
+      "path": "D:/CodexData/workspace/mihomo-37f4aa5-format-independent-peer-20261025-agent/evidence-v2/result.json",
+      "sha256": "717c75e4be89e1a8a493662efa4f2632b550426146cf1de114208e8b8b590f4f"
+    },
+    {
+      "label": "independentFinalAfterPeer",
+      "path": "D:/CodexData/workspace/mihomo-37f4aa5-format-independent-peer-20261025-agent/final-peer/result.json",
+      "sha256": "f3a77c81e1aa631722695a9cfb0eba9f9e23119a50d544cc39bca44c5516a435"
+    },
+    {
+      "label": "tokenDefinitionClarification",
+      "path": "D:\\CodexData\\workspace\\mihomo-37f4aa5-actual-format-transfer-20261025-agent\\token-definition-clarification\\result.json",
+      "sha256": "2a82670a0ed71fe389ddbab8b521126b750b4c037eb842cb4a7458e6d22c3a83"
+    }
+  ],
+  "failureSourceBlobs": 1327,
+  "failureSourceCommit": "37f4aa5e3b5834b6de671a297561e5734bea99f2",
+  "formatGuard": "PREVIOUS_FINITE_GO123_SEMICOLON_LEXICAL_GUARD_NOT_GO_AST_OR_GENERAL_SEMANTICS",
+  "formattedAfterEqualsIndependentRebuild": true,
+  "goExecutedLocally": false,
+  "gofmtExecutedLocally": false,
+  "mainMerged": false,
+  "nativeExecutedLocally": false,
+  "newMarkerTestsRan": false,
+  "normalRequiredNotStarted": 474,
+  "normalRequiredPassed": 153,
+  "oldFailurePreserved": true,
+  "onlyAdditionalLogicEdit": "REMOVE_ONE_UNUSED_ENCODING_JSON_IMPORT_FROM_FORMATTED_MARKER",
+  "originalFormatPatchBytes": 6994,
+  "originalFormatPatchSHA256": "9be179f2fa695a36e0f80245d58076c5226a2c2ebc4ab629f0b11c91ad73e748",
+  "originalMemberCount": 117,
+  "originalZipCount": 11,
+  "production": false,
+  "rawFullGoTokenEqualityNotClaimed": true,
+  "rawRegexDoesNotEmitImplicitSemicolons": true,
+  "registryPublished": false,
+  "requiredTests": 627,
+  "schema": "chengwang.actual-build-format-failure-and-bounded-fix/v1",
+  "scope": "ACTUAL_37F_FAILURE_ARCHIVE_AND_SOURCE_FIX_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "34bfe09ba306a3f21515231601da67c71b97d3698d789fa6c04dddfeeb756872",
+    "chengwang/internal/mihomodeploy/lab_local_route.go": "f29318d4320ca56ab3f80e6a8f46cece59bd4abbe5fc985863cfe054f2060485",
+    "chengwang/internal/mihomodeploy/lab_recovery_marker.go": "b7b0de467071fe0ff95365ce157a5f001e3cb9f2e1f3e975cbfa1518ae8bafcf",
+    "chengwang/internal/mihomodeploy/lab_recovery_marker_bounds_test.go": "559bb30a5958ceb17b3f89753fae306d225697e30285c2bff3259bf24abc81af",
+    "chengwang/internal/mihomodeploy/lab_recovery_marker_test.go": "204d1db98d3fa28adf4b7f0c86b7ac6aa5b59d1b0d317b81c457482fec375d0c"
+  },
+  "stderrSHA256": "2788975128e8bf925da9032ea8bc44d3166ad6594d85536d78d70e2f7ddd4c84"
+}

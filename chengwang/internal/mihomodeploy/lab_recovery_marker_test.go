@@ -78,10 +78,10 @@ func TestLabRecoveryMarkerClosedDiagnosticNamesAndDetachedProjection(t *testing.
 	}
 	v := labRecoveryLocalMarkerValue{Route: labLocalRoute{Phase: labRecoveryLocalPhase,
 		ClientResponse: &labLocalBody{SHA256: "MODEL", Bytes: 1, Complete: true},
-		ProxyResponse: &labLocalBody{SHA256: "MODEL", Bytes: 1, Complete: true},
+		ProxyResponse:  &labLocalBody{SHA256: "MODEL", Bytes: 1, Complete: true},
 		OriginResponse: &labLocalBody{SHA256: "MODEL", Bytes: 1, Complete: true},
 		CountersBefore: []labLocalCounter{{Role: "A"}, {Role: "B"}, {Role: "origin"}},
-		CountersAfter: []labLocalCounter{{Role: "A"}, {Role: "B"}, {Role: "origin"}}}}
+		CountersAfter:  []labLocalCounter{{Role: "A"}, {Role: "B"}, {Role: "origin"}}}}
 	copy := labRecoveryCloneMarker(v)
 	copy.Route.ClientResponse.Bytes++
 	copy.Route.ProxyResponse.Bytes++
