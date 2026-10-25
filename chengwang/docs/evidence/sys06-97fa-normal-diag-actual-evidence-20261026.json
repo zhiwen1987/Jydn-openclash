@@ -1,0 +1,163 @@
+{
+  "diagnosticFull": {
+    "allUnfinishedNames": [
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal/source-clock"
+    ],
+    "artifactBytes": 543700,
+    "artifactID": 12616652724,
+    "artifactSHA256": "453035fd02758e6700df7a4fe3a279aa864e19e2bace0115c41d6dbf5db7d52f",
+    "capacityAction": "pass",
+    "capacityElapsedSeconds": 85.88,
+    "capacityJSONSHA256": "66b80c38105c2a9d0271c2b1cbf9be6bf8ad6adcad66c1910b84a44f4e943d4c",
+    "crcReadFailures": 0,
+    "duplicateEntries": 0,
+    "formatClean": false,
+    "goExit": 1,
+    "jobConclusion": "failure",
+    "jobID": 121310045135,
+    "mihomodeployPackageAction": "fail",
+    "mihomodeployPackageElapsedSeconds": 180.053,
+    "n4ExactSubtestAction": "pass",
+    "n4ExactSubtestElapsedSeconds": 0.23,
+    "n4TopAction": "pass",
+    "n4TopElapsedSeconds": 0.66,
+    "requiredCounts": {
+      "failed": 0,
+      "notStarted": 100,
+      "passed": 587,
+      "skipped": 0,
+      "unfinished": 1
+    },
+    "runID": 40240155407,
+    "scope": "FULL_SIX_PACKAGE_RACE_DIAGNOSIS_NOT_NORMAL_ACCEPTANCE",
+    "unfinishedRequiredTop": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal",
+    "unsafeEntries": 0,
+    "verificationSHA256": "e8b906d92f2ba8203bd4c176bc25dbde611154e39405d74cfec69c421acfa729",
+    "zipEntries": 21
+  },
+  "diagnosticProfile": {
+    "artifactBytes": 300167,
+    "artifactID": 12616111980,
+    "artifactSHA256": "9070bddf00c0d86ff507a5280ced8e831cb8e3c9f6bf216516d3a5a978771cd5",
+    "capacityAction": "pass",
+    "capacityElapsedSeconds": 85.91,
+    "crcReadFailures": 0,
+    "duplicateEntries": 0,
+    "formatClean": true,
+    "goExit": 0,
+    "jobConclusion": "success",
+    "jobID": 121310045105,
+    "mihomodeployPackageElapsedSeconds": 86.943,
+    "runID": 40240155407,
+    "scope": "SINGLE_CAPACITY_DIAGNOSTIC_NOT_NORMAL_ACCEPTANCE",
+    "unsafeEntries": 0,
+    "zipEntries": 19
+  },
+  "formatPatch": {
+    "allWorkingBlobEqualsHeadBlob": true,
+    "bytes": 19882,
+    "lines": 414,
+    "sha256": "b6d343c40fe40d25c16d2edf70e69502da7fbfbbbfeb5433cbbfe7216255d0b5",
+    "targets": [
+      {
+        "gitBlob": "31f559672148d032e2b0313acf96b92786cbbd0f",
+        "path": "chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go",
+        "sourceBytes": 12848,
+        "sourceSHA256": "2f1834982c4b3f9ced0c6b5a079a883c9d25be087247e586e0f9a3d5d3be723c"
+      },
+      {
+        "gitBlob": "09b3d03c571d8c26e9f42edaf58a1bee2abbeddf",
+        "path": "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go",
+        "sourceBytes": 15939,
+        "sourceSHA256": "aae9d09f35f148c8633728f96185ab9e9997ecd780b48cd882f6fbfadbea1b2f"
+      },
+      {
+        "gitBlob": "ea7daa5b7efe3f173a21aeb05e429c158a64b4c4",
+        "path": "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go",
+        "sourceBytes": 30684,
+        "sourceSHA256": "544f065b8b61c9ed1801318f04030625cd00f1f83625ec0f0d44114922395f43"
+      }
+    ]
+  },
+  "interpretation": {
+    "diagnosticFullAccepted": false,
+    "n4ActualLinuxGoProven": true,
+    "normalRace180BudgetActuallyPassedThisRun": true,
+    "normalRequired688ActuallyPassed": true,
+    "normalWorkflowAccepted": false,
+    "reason": "Normal and diagnostic measurements differ materially at the same commit; these are single samples under different modes. The normal workflow remains rejected solely by its nonempty formatter patch even though both Go commands passed.",
+    "stablePerformanceImprovementProven": false
+  },
+  "normal": {
+    "artifactBytes": 272337,
+    "artifactID": 12617056504,
+    "artifactName": "mihomo-foundation-contracts-40240155567-1",
+    "artifactSHA256": "64f94e74f6a57ad04c333ac3073bbb5db15685f649071fba503bffbb259118cb",
+    "crcReadFailures": 0,
+    "duplicateEntries": 0,
+    "execution": {
+      "formatExit": 0,
+      "ordinaryExit": 0,
+      "raceExit": 0
+    },
+    "goVersion": "go version go1.23.12 linux/amd64",
+    "jobConclusion": "failure",
+    "jobID": 121310041175,
+    "ordinary": {
+      "allPassingSemanticTests": 1992,
+      "capacityElapsedSeconds": 4.56,
+      "mandatoryTopLevelPassed": 688,
+      "mihomodeployPackageAction": "pass",
+      "mihomodeployPackageElapsedSeconds": 17.175,
+      "n4ExactSubtestAction": "pass",
+      "n4ExactSubtestElapsedSeconds": 0.01,
+      "n4TopAction": "pass",
+      "n4TopElapsedSeconds": 0.04,
+      "skips": 0
+    },
+    "ordinaryJSONSHA256": "b024ed949a28f06b4ec83dbcf47154629cc68ae8a8d43f182caef03378578a11",
+    "race": {
+      "allPassingSemanticTests": 1992,
+      "capacityElapsedSeconds": 56.05,
+      "mandatoryTopLevelPassed": 688,
+      "mihomodeployPackageAction": "pass",
+      "mihomodeployPackageElapsedSeconds": 128.838,
+      "n4ExactSubtestAction": "pass",
+      "n4ExactSubtestElapsedSeconds": 0.15,
+      "n4TopAction": "pass",
+      "n4TopElapsedSeconds": 0.46,
+      "skips": 0
+    },
+    "raceJSONSHA256": "cf34d109b30003ab0903acf119f9852b1ec7d133b1f143d9d28cca58e6ae236e",
+    "requiredTopLevelByPackage": {
+      "chengwang/internal/adapter/mihomo": 79,
+      "chengwang/internal/api": 32,
+      "chengwang/internal/authn": 37,
+      "chengwang/internal/authz": 37,
+      "chengwang/internal/mihomodeploy": 495,
+      "chengwang/internal/serverruntime": 8
+    },
+    "runID": 40240155567,
+    "unsafeEntries": 0,
+    "workflowReject": "NONEMPTY_GOFMT_PATCH",
+    "zipEntries": 13
+  },
+  "restrictions": {
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "productionChanged": false,
+    "repositoryChanged": false,
+    "signedURLPersistedOrPrinted": false,
+    "workflowRestarted": false
+  },
+  "schema": "chengwang.mihomo-97fa785-normal-diag-evidence/v1",
+  "source": {
+    "clean": true,
+    "commit": "97fa78582faf0e582781e050d8cccd8c3f43ea43",
+    "diagSourceManifestSHA256": "23a424b94ce1ac1232a167bb81d88db3312a05a6709997adbc73249acf44ea89",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-97fa785-acceptance-q98qczkg/repo",
+    "trackedPaths": 1403
+  },
+  "status": "NORMAL_GO_PASS_WORKFLOW_REJECT_FORMAT_DIAG_FULL_TIMEOUT"
+}

@@ -1,0 +1,96 @@
+{
+  "artifacts": [
+    {
+      "artifactId": 12617095945,
+      "commandClasses": [
+        "SANDBOX",
+        "GO_VERSION",
+        "GOFMT",
+        "GO_TEST"
+      ],
+      "commandExitCodes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "emptyFormatInMemoryReaderOutcome": "PASS",
+      "goElapsedSeconds": 9.16,
+      "goPackageElapsedSeconds": 9.166,
+      "goStderrBytes": 0,
+      "goTerminal": "PASS",
+      "goTop": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+      "members": 45,
+      "name": "mihomo-native-recovery-originals-40240155411-1",
+      "originalReaderExit": 1,
+      "originalReaderMessage": "MIHOMO_NATIVE_RECOVERY=REJECTED raw_input_suppressed=true",
+      "runId": 40240155411,
+      "zipBytes": 72976,
+      "zipSHA256": "b883b0af6eb447547d77b73847f4c77122dcc5836977fbe7f2cc61e1888a36e8"
+    },
+    {
+      "artifactId": 12616866784,
+      "commandClasses": [
+        "SANDBOX",
+        "GO_VERSION",
+        "GOFMT",
+        "GO_TEST"
+      ],
+      "commandExitCodes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "emptyFormatInMemoryReaderOutcome": "NATIVE_FIRST_COMPLETION_ACCEPTED",
+      "goElapsedSeconds": 10.73,
+      "goPackageElapsedSeconds": 10.739,
+      "goStderrBytes": 0,
+      "goTerminal": "PASS",
+      "goTop": "TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup",
+      "members": 39,
+      "name": "mihomo-native-completion-positive-originals-40240155492-1",
+      "originalReaderExit": 1,
+      "originalReaderMessage": "ValueError: native first-Completion evidence rejected",
+      "runId": 40240155492,
+      "zipBytes": 30992,
+      "zipSHA256": "e4a70299fbae8512d4086af381236c10421e501fc599b13a258894e7e5d32e52"
+    }
+  ],
+  "boundaries": {
+    "continuousRecoveryAPIGoExecuted": false,
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "onlyPositiveModesAudited": true,
+    "otherSixModeArtifactsAudited": false,
+    "production": false
+  },
+  "commit": "97fa78582faf0e582781e050d8cccd8c3f43ea43",
+  "custody": {
+    "authenticatedConnectorDownload": true,
+    "genericMaterializerFailurePreserved": "D:/CodexData/workspace/mihomo-97fa-native-two-positive-originals-20261026-agent56h/curl-safe-stage-failure.json",
+    "genericMaterializerFailureReason": "its older suffix policy rejected the current artifact after transport validation",
+    "offlineAuditReceipt": "D:/CodexData/workspace/mihomo-97fa-native-two-positive-originals-20261026-agent56h/OFFLINE-CUSTODY-RECEIPT.json",
+    "offlineAuditReceiptSHA256": "e160852aa8421cf4677456c826cc618c30b1fa700adbe1fab4e5bb54b41d6cf3",
+    "privateConfigsRemoved": true,
+    "signedURLsPersisted": false,
+    "totalMembers": 84,
+    "transportTLSVerificationDisabled": false,
+    "zipCRCAndPathFencingPassed": true
+  },
+  "schema": "chengwang.97fa-native-two-positive-findings/v1",
+  "sharedFormatFailure": {
+    "byteIdenticalToNormalAndDiagnosticPatch": true,
+    "conclusion": "For these two positive originals, the nonempty Linux gofmt patch is the sole reader rejection after genuine Go and command success.",
+    "gofmtPatchBytes": 19882,
+    "gofmtPatchLines": 414,
+    "gofmtPatchSHA256": "b6d343c40fe40d25c16d2edf70e69502da7fbfbbbfeb5433cbbfe7216255d0b5",
+    "gofmtStderrBytes": 0,
+    "readerAcceptanceAfterOnlyInMemoryGofmtPatchReplacementWithEmptyBytes": true,
+    "targets": [
+      "chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go",
+      "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ]
+  }
+}

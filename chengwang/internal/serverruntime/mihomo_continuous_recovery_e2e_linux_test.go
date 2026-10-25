@@ -32,56 +32,56 @@ import (
 const continuousRecoveryReportPath = labServiceE2EPrivate + "/continuous-recovery-report.private.json"
 
 type continuousRecoveryHTTPOriginal struct {
-	Sequence           int             `json:"sequence"`
-	Case               string          `json:"case"`
-	Role               string          `json:"role"`
-	Method             string          `json:"method"`
-	Path               string          `json:"path"`
-	RequestBodySHA256  string          `json:"requestBodySHA256"`
-	StatusCode         *int            `json:"statusCode"`
-	ResponseBodySHA256 string          `json:"responseBodySHA256"`
-	ResponseBodyB64    []byte          `json:"responseBodyB64"`
-	ErrorClass         string          `json:"errorClass"`
+	Sequence           int    `json:"sequence"`
+	Case               string `json:"case"`
+	Role               string `json:"role"`
+	Method             string `json:"method"`
+	Path               string `json:"path"`
+	RequestBodySHA256  string `json:"requestBodySHA256"`
+	StatusCode         *int   `json:"statusCode"`
+	ResponseBodySHA256 string `json:"responseBodySHA256"`
+	ResponseBodyB64    []byte `json:"responseBodyB64"`
+	ErrorClass         string `json:"errorClass"`
 }
 
 type continuousRecoveryHeadState struct {
-	Stage string                      `json:"stage"`
-	View  mihomodeploy.LabHeadView    `json:"view"`
+	Stage string                   `json:"stage"`
+	View  mihomodeploy.LabHeadView `json:"view"`
 }
 
 type continuousRecoveryOperationState struct {
-	Stage string                           `json:"stage"`
-	View  mihomodeploy.LabDeploymentView  `json:"view"`
+	Stage string                         `json:"stage"`
+	View  mihomodeploy.LabDeploymentView `json:"view"`
 }
 
 type continuousRecoveryRecoveryState struct {
-	Stage string                         `json:"stage"`
-	View  mihomodeploy.LabRecoveryView   `json:"view"`
+	Stage string                       `json:"stage"`
+	View  mihomodeploy.LabRecoveryView `json:"view"`
 }
 
 type continuousRecoveryReport struct {
-	Schema                 string                                           `json:"schema"`
-	Scope                  string                                           `json:"scope"`
-	SourceCommit           string                                           `json:"sourceCommit"`
-	Outcome                string                                           `json:"outcome"`
-	FailureCode            string                                           `json:"failureCode"`
-	HTTP                   []continuousRecoveryHTTPOriginal                 `json:"http"`
-	Initial                *mihomodeploy.LabAcceptanceState                 `json:"initial"`
-	Heads                  []continuousRecoveryHeadState                    `json:"heads"`
-	Operations             []continuousRecoveryOperationState               `json:"operations"`
-	Recoveries             []continuousRecoveryRecoveryState                `json:"recoveries"`
-	CallsBefore            mihomo.ReloadCounters                            `json:"callsBefore"`
-	CallsAfter             mihomo.ReloadCounters                            `json:"callsAfter"`
-	FaultBeforeCleanup     *mihomodeploy.LabContinuousRecoveryFaultObservation `json:"faultBeforeCleanup"`
-	FaultAfterCleanup      *mihomodeploy.LabContinuousRecoveryFaultObservation `json:"faultAfterCleanup"`
-	FaultClosed            *mihomodeploy.LabContinuousRecoveryFaultObservation `json:"faultClosed"`
-	ClosedPorts            []serviceClosedPort                              `json:"closedPorts"`
-	RuntimeReturned        bool                                             `json:"runtimeReturned"`
-	RuntimeErrorClass      string                                           `json:"runtimeErrorClass"`
-	PrivateWALDecodedByTest bool                                            `json:"privateWALDecodedByTest"`
-	Production             bool                                             `json:"production"`
-	FullPayloadProven      bool                                             `json:"fullPayloadProven"`
-	InternetBusinessProven bool                                             `json:"internetBusinessProven"`
+	Schema                  string                                              `json:"schema"`
+	Scope                   string                                              `json:"scope"`
+	SourceCommit            string                                              `json:"sourceCommit"`
+	Outcome                 string                                              `json:"outcome"`
+	FailureCode             string                                              `json:"failureCode"`
+	HTTP                    []continuousRecoveryHTTPOriginal                    `json:"http"`
+	Initial                 *mihomodeploy.LabAcceptanceState                    `json:"initial"`
+	Heads                   []continuousRecoveryHeadState                       `json:"heads"`
+	Operations              []continuousRecoveryOperationState                  `json:"operations"`
+	Recoveries              []continuousRecoveryRecoveryState                   `json:"recoveries"`
+	CallsBefore             mihomo.ReloadCounters                               `json:"callsBefore"`
+	CallsAfter              mihomo.ReloadCounters                               `json:"callsAfter"`
+	FaultBeforeCleanup      *mihomodeploy.LabContinuousRecoveryFaultObservation `json:"faultBeforeCleanup"`
+	FaultAfterCleanup       *mihomodeploy.LabContinuousRecoveryFaultObservation `json:"faultAfterCleanup"`
+	FaultClosed             *mihomodeploy.LabContinuousRecoveryFaultObservation `json:"faultClosed"`
+	ClosedPorts             []serviceClosedPort                                 `json:"closedPorts"`
+	RuntimeReturned         bool                                                `json:"runtimeReturned"`
+	RuntimeErrorClass       string                                              `json:"runtimeErrorClass"`
+	PrivateWALDecodedByTest bool                                                `json:"privateWALDecodedByTest"`
+	Production              bool                                                `json:"production"`
+	FullPayloadProven       bool                                                `json:"fullPayloadProven"`
+	InternetBusinessProven  bool                                                `json:"internetBusinessProven"`
 }
 
 type continuousRecoveryHTTPS struct {
@@ -364,7 +364,7 @@ func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool
 
 func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testing.T) {
 	report := continuousRecoveryReport{Schema: "chengwang.mihomo-continuous-recovery-http-experiment/v1",
-		Scope: "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION",
+		Scope:        "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION",
 		SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"), Outcome: "FAIL", FailureCode: "NOT_COMPLETED",
 		HTTP: []continuousRecoveryHTTPOriginal{}, Heads: []continuousRecoveryHeadState{},
 		Operations: []continuousRecoveryOperationState{}, Recoveries: []continuousRecoveryRecoveryState{},
@@ -375,8 +375,8 @@ func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testi
 		if fault != nil {
 			if report.FaultAfterCleanup == nil {
 				if observed, err := fault.Observe(); err == nil {
-				report.FaultAfterCleanup = &observed
-			}
+					report.FaultAfterCleanup = &observed
+				}
 			}
 			if !faultClosed {
 				if err := fault.Close(); err != nil {

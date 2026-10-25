@@ -10,6 +10,15 @@ import unittest
 from unittest import mock
 
 HERE=Path(__file__).resolve().parent
+_REAL_FSTAT=os.fstat
+
+class StatView:
+    def __init__(self,value,uid,gid): self.value=value; self.st_uid=uid; self.st_gid=gid
+    def __getattr__(self,name): return getattr(self.value,name)
+
+def root_fstat(fd): return StatView(_REAL_FSTAT(fd),0,0)
+def nonroot_fstat(fd): return StatView(_REAL_FSTAT(fd),10001,10001)
+
 def load(name,file):
     spec=importlib.util.spec_from_file_location(name,HERE/file); module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module); return module
 
@@ -69,7 +78,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
     def test_capture_dispatch_positive_and_rejects_closed_tuple(self):
         with tempfile.TemporaryDirectory() as td:
             adapter=Adapter(td); state=self.state(); argv=('python3','model')
-            with mock.patch.object(self.worker,'adapter',return_value=adapter), mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True), mock.patch.object(self.worker.os,'fchmod',return_value=None,create=True), \
+            with mock.patch.object(self.worker,'adapter',return_value=adapter), mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True), mock.patch.object(self.worker.os,'fchmod',return_value=None,create=True), mock.patch.object(self.worker.os,'fstat',side_effect=root_fstat), \
                  mock.patch.object(self.worker,'command_argv',return_value=argv), \
                  mock.patch.object(self.worker.subprocess,'Popen',return_value=Process()), \
                  mock.patch.object(self.worker.os,'pidfd_open',return_value=os.open(os.devnull,os.O_RDONLY),create=True):
@@ -81,17 +90,25 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                          (argv,'continuous-sandbox.private.json','continuous-sandbox.private.stderr',30,'GO_TEST')):
                 with self.subTest(args=args),mock.patch.object(self.worker,'adapter',return_value=adapter),mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True):
                     with self.assertRaises(ValueError): self.worker.capture(self.state(),*args)
+            source=(HERE/'continuous_recovery_api_worker.py').read_text(encoding='utf8')
+            self.assertIn('info.st_uid==info.st_gid==0',source)
+            path=adapter.ROOT_PRIVATE/'nonroot-model.jsonl'
+            row={'schema':'model','sequence':1}
+            nonroot_state=self.state()
+            with mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True),mock.patch.object(self.worker.os,'fstat',side_effect=nonroot_fstat):
+                with self.assertRaises(ValueError): self.worker.append_jsonl(path,row,nonroot_state,'eventSequence')
+            self.assertEqual(nonroot_state['eventSequence'],0); self.assertEqual(path.read_bytes(),b'')
 
     def test_capture_pidfd_failure_and_timeout_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
             adapter=Adapter(td); argv=('python3','model'); state=self.state()
-            with mock.patch.object(self.worker,'adapter',return_value=adapter),mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True),mock.patch.object(self.worker.os,'fchmod',return_value=None,create=True),mock.patch.object(self.worker,'command_argv',return_value=argv), \
+            with mock.patch.object(self.worker,'adapter',return_value=adapter),mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True),mock.patch.object(self.worker.os,'fchmod',return_value=None,create=True),mock.patch.object(self.worker.os,'fstat',side_effect=root_fstat),mock.patch.object(self.worker,'command_argv',return_value=argv), \
                  mock.patch.object(self.worker.subprocess,'Popen',return_value=Process()),mock.patch.object(self.worker.os,'pidfd_open',side_effect=OSError('model'),create=True):
                 with self.assertRaises(OSError): self.worker.capture(state,argv,'continuous-sandbox.private.json','continuous-sandbox.private.stderr',30,'SANDBOX')
             self.assertEqual(state['commandSequence'],1); self.assertEqual(len(state['pending']),1)
         with tempfile.TemporaryDirectory() as td:
             adapter=Adapter(td); state=self.state(); process=Process(timeout=True); sent=[]; fd=os.open(os.devnull,os.O_RDONLY)
-            with mock.patch.object(self.worker,'adapter',return_value=adapter),mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True),mock.patch.object(self.worker.os,'fchmod',return_value=None,create=True),mock.patch.object(self.worker,'command_argv',return_value=argv), \
+            with mock.patch.object(self.worker,'adapter',return_value=adapter),mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True),mock.patch.object(self.worker.os,'fchmod',return_value=None,create=True),mock.patch.object(self.worker.os,'fstat',side_effect=root_fstat),mock.patch.object(self.worker,'command_argv',return_value=argv), \
                  mock.patch.object(self.worker.subprocess,'Popen',return_value=process),mock.patch.object(self.worker.os,'pidfd_open',return_value=fd,create=True), \
                  mock.patch.object(self.worker.signal,'SIGKILL',9,create=True), \
                  mock.patch.object(self.worker.signal,'pidfd_send_signal',side_effect=lambda f,s:sent.append((f,s)),create=True):

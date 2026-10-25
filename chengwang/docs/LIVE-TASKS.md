@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+最新97fa原件核对（2026-10-26）：normal普通／race的原事件检查器子门均688必需、1992语义通过、零skip；race包128.838秒，新增owner对照子例真实通过。原完整基础门仍因19882字节非空官方格式补丁失败；同提交diag full又在180.053秒超时（587通过／1运行中／100未起），不宣称稳定性能收益。continuous首轮在Go前的两个CPU模型因未模拟root文件归属而错误，实际Go／HTTP未进入。当前仅精确移入实际Linux Go1.23.12格式补丁的3源／15hunk，并修MODEL fstat仿真一源；生产worker UID/GID0、nlink、size及路径门逐字节保持，非root负例仍拒绝。旧S2与首次Completion只核两份positive：真实Go均通过，原reader均拒绝相同格式差异；内存替空格式的检查仅为诊断投影，不是原件接受，其他6个模式不外推。修订后仍需同提交Linux CI；产品API／连续恢复与整套系统未验收，生产、main和Registry未改。
+
 本次源码集成（基3c6d456，尚未Linux验收）：按冻结清单合入连续HTTPS链与兼容闭集37路径，并只修复N3对照MODEL缺RecoveryOwner前置的一份测试源；源审通过不代表Go／HTTP已运行。计划链为真实UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复，共31次产品HTTPS调用；目前仍为待运行计划。基础源码158／必需测试源58／完整格式源152，688必需名称摘要保持；完整包测试源91→去连续标签3项为88→去上一阶段4项为历史84；旧native来源196／格式28，Completion格式25。新默认hook互补闭合，实验不能从HTTP或环境启用，old+new故障双标签明确不支持。保持180秒、256次真实循环、2MiB、原publisher／validator及全部历史失败；未改生产、main或Registry。
 
 最新回归核对（2026-10-26）：开发提交`3c6d45633afcf92923340d7dbc04bddb6e9e526b`已推送。ordinary 687／688通过，唯一新增对照MODEL漏RecoveryOwner前置；normal race 586通过／1失败／1运行时超时／100未启动，包180.047秒；独立full诊断687通过／1失败，147.671秒且未超时。原件与root计数复算均已封存，正在只修MODEL前置；不改产品validator，不把单项70.24秒通过当完整回归通过。旧S2与首次Completion新CI状态成功，尚未重做新提交全9 ZIP原件验收。下方9ad记录保留为已接受的限定基线；连续HTTPS候选仍待集成及真实Linux运行，整套系统与生产仍未完成。

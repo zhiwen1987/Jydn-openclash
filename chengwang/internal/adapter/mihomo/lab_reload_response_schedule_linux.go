@@ -34,12 +34,12 @@ type LabReloadResponseLossStepObservation struct {
 }
 
 type LabReloadResponseLossScheduleObservation struct {
-	Schema               string                                         `json:"schema"`
-	State                string                                         `json:"state"`
-	BoundChildren        int                                            `json:"boundChildren"`
-	UnderlyingRoundTrips int                                            `json:"underlyingRoundTrips"`
-	Injected             int                                            `json:"injected"`
-	Steps                []LabReloadResponseLossStepObservation         `json:"steps"`
+	Schema               string                                 `json:"schema"`
+	State                string                                 `json:"state"`
+	BoundChildren        int                                    `json:"boundChildren"`
+	UnderlyingRoundTrips int                                    `json:"underlyingRoundTrips"`
+	Injected             int                                    `json:"injected"`
+	Steps                []LabReloadResponseLossStepObservation `json:"steps"`
 }
 
 type labReloadResponseScheduleIssuer struct {
@@ -49,19 +49,21 @@ type labReloadResponseScheduleIssuer struct {
 }
 
 type labReloadResponseScheduleCore struct {
-	issuer        *labReloadResponseScheduleIssuer
-	identity      *labReloadResponseScheduleCore
-	nonce         [32]byte
-	bound         map[*writeClientCore]*labReloadResponseChildCore
-	children      [3]*labReloadResponseChildCore
-	boundCount    int
-	roundTrips    int
-	injected      int
-	closed        bool
-	poisoned      bool
+	issuer     *labReloadResponseScheduleIssuer
+	identity   *labReloadResponseScheduleCore
+	nonce      [32]byte
+	bound      map[*writeClientCore]*labReloadResponseChildCore
+	children   [3]*labReloadResponseChildCore
+	boundCount int
+	roundTrips int
+	injected   int
+	closed     bool
+	poisoned   bool
 }
 
-type LabReloadResponseLossSchedule struct{ core *labReloadResponseScheduleCore }
+type LabReloadResponseLossSchedule struct {
+	core *labReloadResponseScheduleCore
+}
 
 type labReloadResponseChildCore struct {
 	root       *labReloadResponseScheduleCore
@@ -93,7 +95,9 @@ func (LabReloadResponseLossSchedule) Format(state fmt.State, _ rune) {
 func (LabReloadResponseLossSchedule) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"fixed_loss_pass_loss"}`), nil
 }
-func (*LabReloadResponseLossSchedule) UnmarshalJSON([]byte) error { return errLabReloadResponseSchedule }
+func (*LabReloadResponseLossSchedule) UnmarshalJSON([]byte) error {
+	return errLabReloadResponseSchedule
+}
 
 func (LabReloadResponseLossChild) String() string   { return labReloadResponseChildDebug }
 func (LabReloadResponseLossChild) GoString() string { return labReloadResponseChildDebug }
@@ -184,11 +188,26 @@ func (h *LabReloadResponseLossSchedule) Close() error {
 func labReloadResponseCloneStep(core *labReloadResponseChildCore) LabReloadResponseLossStepObservation {
 	v := LabReloadResponseLossStepObservation{Sequence: core.sequence, Action: core.action, State: core.state,
 		UnderlyingRoundTrips: core.underlying, Injected: core.injected}
-	if core.status != nil { n := *core.status; v.StatusCode = &n }
-	if core.bodyBytes != nil { n := *core.bodyBytes; v.BodyBytes = &n }
-	if core.eof != nil { b := *core.eof; v.EOFObserved = &b }
-	if core.closed != nil { b := *core.closed; v.CloseSucceeded = &b }
-	if core.failure != nil { s := *core.failure; v.FailureCode = &s }
+	if core.status != nil {
+		n := *core.status
+		v.StatusCode = &n
+	}
+	if core.bodyBytes != nil {
+		n := *core.bodyBytes
+		v.BodyBytes = &n
+	}
+	if core.eof != nil {
+		b := *core.eof
+		v.EOFObserved = &b
+	}
+	if core.closed != nil {
+		b := *core.closed
+		v.CloseSucceeded = &b
+	}
+	if core.failure != nil {
+		s := *core.failure
+		v.FailureCode = &s
+	}
 	return v
 }
 
@@ -205,7 +224,13 @@ func (h *LabReloadResponseLossSchedule) Observe() (LabReloadResponseLossSchedule
 	}
 	root := h.core
 	state := "ACTIVE"
-	if root.poisoned { state = "POISONED" } else if root.closed { state = "CLOSED" } else if root.roundTrips == len(root.children) { state = "TERMINAL" }
+	if root.poisoned {
+		state = "POISONED"
+	} else if root.closed {
+		state = "CLOSED"
+	} else if root.roundTrips == len(root.children) {
+		state = "TERMINAL"
+	}
 	v := LabReloadResponseLossScheduleObservation{Schema: labReloadResponseScheduleSchema, State: state,
 		BoundChildren: root.boundCount, UnderlyingRoundTrips: root.roundTrips, Injected: root.injected,
 		Steps: []LabReloadResponseLossStepObservation{}}
@@ -253,7 +278,10 @@ func labReloadResponseScheduleFraming(response *http.Response) bool {
 func (t *labReloadResponseScheduledTransport) failLocked(code string) {
 	t.child.state = "FAILED"
 	t.child.root.poisoned = true
-	if code != "" { v := code; t.child.failure = &v }
+	if code != "" {
+		v := code
+		t.child.failure = &v
+	}
 }
 
 func (t *labReloadResponseScheduledTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -277,25 +305,60 @@ func (t *labReloadResponseScheduledTransport) RoundTrip(request *http.Request) (
 	response, err := t.inner.RoundTrip(request)
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	if response != nil { status := response.StatusCode; c.status = &status }
+	if response != nil {
+		status := response.StatusCode
+		c.status = &status
+	}
 	if c.action == "PASS" {
 		c.state = "PASSTHROUGH"
-		if err != nil { t.failLocked("UNDERLYING_ERROR") } else if response == nil { t.failLocked("NO_RESPONSE") }
+		if err != nil {
+			t.failLocked("UNDERLYING_ERROR")
+		} else if response == nil {
+			t.failLocked("NO_RESPONSE")
+		}
 		return response, err
 	}
-	if err != nil { t.failLocked("UNDERLYING_ERROR"); return response, err }
-	if response == nil { t.failLocked("NO_RESPONSE"); return nil, nil }
+	if err != nil {
+		t.failLocked("UNDERLYING_ERROR")
+		return response, err
+	}
+	if response == nil {
+		t.failLocked("NO_RESPONSE")
+		return nil, nil
+	}
 	code := ""
-	if response.StatusCode != http.StatusNoContent { code = "STATUS_NOT_204" } else if response.Body == nil { code = "BODY_UNAVAILABLE" } else if !labReloadResponseScheduleFraming(response) { code = "FRAMING_REJECTED" } else if request.Context().Err() != nil { code = "CONTEXT_REJECTED" }
-	if code != "" { t.failLocked(code); return response, nil }
+	if response.StatusCode != http.StatusNoContent {
+		code = "STATUS_NOT_204"
+	} else if response.Body == nil {
+		code = "BODY_UNAVAILABLE"
+	} else if !labReloadResponseScheduleFraming(response) {
+		code = "FRAMING_REJECTED"
+	} else if request.Context().Err() != nil {
+		code = "CONTEXT_REJECTED"
+	}
+	if code != "" {
+		t.failLocked(code)
+		return response, nil
+	}
 	body, readErr := io.ReadAll(io.LimitReader(response.Body, maxReloadResponseBytes+1))
 	size := len(body)
 	eof := readErr == nil && size < maxReloadResponseBytes+1
 	closeErr := response.Body.Close()
 	closed := closeErr == nil
 	c.bodyBytes, c.eof, c.closed = &size, &eof, &closed
-	if readErr != nil { code = "READ_REJECTED" } else if size != 0 { code = "BODY_NOT_EMPTY" } else if closeErr != nil { code = "CLOSE_REJECTED" } else if request.Context().Err() != nil { code = "CONTEXT_REJECTED" }
-	if code != "" { t.failLocked(code); return nil, errLabScheduledResponseLost }
+	if readErr != nil {
+		code = "READ_REJECTED"
+	} else if size != 0 {
+		code = "BODY_NOT_EMPTY"
+	} else if closeErr != nil {
+		code = "CLOSE_REJECTED"
+	} else if request.Context().Err() != nil {
+		code = "CONTEXT_REJECTED"
+	}
+	if code != "" {
+		t.failLocked(code)
+		return nil, errLabScheduledResponseLost
+	}
 	c.state, c.injected = "INJECTED", true
 	root.injected++
 	return nil, errLabScheduledResponseLost

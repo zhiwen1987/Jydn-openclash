@@ -1,0 +1,101 @@
+{
+  "artifactMetadata": [
+    {
+      "bytes": 3140,
+      "headSHA": "97fa78582faf0e582781e050d8cccd8c3f43ea43",
+      "id": 12617066047,
+      "name": "mihomo-continuous-recovery-candidate-40240155447-1",
+      "sha256": "3b78e817b1ed7c63eca4eea4116b362a1c03e780982c6e83d50c5a8d9cf97ab5"
+    }
+  ],
+  "decodedJobLog": {
+    "bytes": 21432,
+    "encoding": "UTF-8 with BOM",
+    "origin": "authenticated GitHub connector decoded job log",
+    "path": "D:/CodexData/workspace/mihomo-97fa-continuous-first-failure-peer-20261026-agent56h/source-models-job-121310040125.decoded.log",
+    "sha256": "d277ec18a49ddf9dfd5c7283234febff9a7e308b7f5b2a159d1aecedf8dbdeca"
+  },
+  "executionBoundary": {
+    "freshFailureIsIndependentEvidence": false,
+    "goCompileEntered": false,
+    "goSetupEntered": false,
+    "goTestEntered": false,
+    "gofmtEntered": false,
+    "producerArtifactsCreated": false,
+    "tlsHttpEntered": false
+  },
+  "firstFailure": {
+    "actualCause": "The ordinary Linux source-model process creates its TemporaryDirectory files with the runner uid and gid, while the MODEL calls the production capture writer whose private JSONL contract correctly requires uid 0 and gid 0.",
+    "condition": "stat.S_ISREG(info.st_mode) and info.st_uid==info.st_gid==0 and info.st_nlink==1 and info.st_size+len(raw)<=128<<10",
+    "elapsedSeconds": 0.286,
+    "erroredTests": [
+      "test_capture_dispatch_positive_and_rejects_closed_tuple",
+      "test_capture_pidfd_failure_and_timeout_are_fail_closed"
+    ],
+    "jobId": 121310040125,
+    "line": 246,
+    "notCause": "The six-model count and model-name selection were correct; all six tests executed.",
+    "secondaryError": "capture finally attempts the command receipt through the same append_jsonl root-custody gate and is rejected again.",
+    "source": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+    "stage": "PRE_GO_SOURCE_MODEL",
+    "step": "Run bounded producer and independent-reader models only",
+    "testsErrored": 2,
+    "testsPassed": 4,
+    "testsRun": 6
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 121310024592,
+      "name": "development-only"
+    },
+    {
+      "conclusion": "failure",
+      "id": 121310040125,
+      "name": "source-models"
+    },
+    {
+      "conclusion": "success",
+      "id": 121310040163,
+      "name": "acquisition"
+    },
+    {
+      "cause": "secondary missing producer artifact",
+      "conclusion": "failure",
+      "id": 121310073792,
+      "name": "continuous-recovery-fresh"
+    },
+    {
+      "conclusion": "skipped",
+      "id": 121310074408,
+      "name": "continuous-recovery-api"
+    }
+  ],
+  "localExecution": {
+    "go": false,
+    "gofmt": false,
+    "native": false,
+    "production": false
+  },
+  "repairContract": {
+    "forbidden": [
+      "Run the whole source-model suite under sudo.",
+      "Relax production append_jsonl to accept the runner uid or arbitrary ownership.",
+      "Treat the skipped Go job or secondary fresh job as runtime evidence."
+    ],
+    "required": [
+      "Model the actual root-owned private-file stat view while preserving real mode, nlink, and size.",
+      "Keep the production uid-zero, gid-zero, mode, nlink, size, O_NOFOLLOW, fsync, and exclusive-create gates byte-identical.",
+      "Retain a finite negative proving a non-root custody stat remains rejected.",
+      "Exercise the real capture dispatcher with only Popen, pidfd, signal, and bounded OS metadata seams mocked."
+    ],
+    "scope": "MODEL_ONLY"
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-actual-first-failure/v1",
+  "source": {
+    "commit": "97fa78582faf0e582781e050d8cccd8c3f43ea43",
+    "repository": "zhiwen1987/Jydn-openclash",
+    "runConclusion": "failure",
+    "runId": 40240155447
+  }
+}

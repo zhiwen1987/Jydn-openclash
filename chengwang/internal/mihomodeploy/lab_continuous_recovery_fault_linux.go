@@ -24,15 +24,15 @@ type LabContinuousRecoveryNativeCall struct {
 }
 
 type LabContinuousRecoveryFaultObservation struct {
-	Schema              string                                          `json:"schema"`
-	State               string                                          `json:"state"`
-	BoundOperations     int                                             `json:"boundOperations"`
-	ObservedResults     int                                             `json:"observedResults"`
-	InitialCore         uint64                                          `json:"initialCore"`
-	RecoveredCore       *uint64                                         `json:"recoveredCore"`
-	NativeCallsBounded  bool                                            `json:"nativeCallsBounded"`
-	NativeCalls         []LabContinuousRecoveryNativeCall               `json:"nativeCalls"`
-	Transport           mihomo.LabReloadResponseLossScheduleObservation `json:"transport"`
+	Schema             string                                          `json:"schema"`
+	State              string                                          `json:"state"`
+	BoundOperations    int                                             `json:"boundOperations"`
+	ObservedResults    int                                             `json:"observedResults"`
+	InitialCore        uint64                                          `json:"initialCore"`
+	RecoveredCore      *uint64                                         `json:"recoveredCore"`
+	NativeCallsBounded bool                                            `json:"nativeCallsBounded"`
+	NativeCalls        []LabContinuousRecoveryNativeCall               `json:"nativeCalls"`
+	Transport          mihomo.LabReloadResponseLossScheduleObservation `json:"transport"`
 }
 
 type labContinuousRecoveryFaultIssuer struct {
@@ -42,20 +42,20 @@ type labContinuousRecoveryFaultIssuer struct {
 }
 
 type labContinuousRecoveryFaultCore struct {
-	issuer          *labContinuousRecoveryFaultIssuer
-	identity        *labContinuousRecoveryFaultCore
-	service         *labServiceCore
-	runtime         *labLifecycleRuntimeCore
-	initialStore    *lifecycleStore
-	initialOwner    *lifecycleOwnerToken
-	initialKernel   *ownedLabKernel
-	initialCore     uint64
-	recoveredCore   *uint64
-	nativePrefix    int
-	nativeLast      int
-	transport       *mihomo.LabReloadResponseLossSchedule
-	claims          [3]*labContinuousRecoveryFaultClaim
-	bound           int
+	issuer           *labContinuousRecoveryFaultIssuer
+	identity         *labContinuousRecoveryFaultCore
+	service          *labServiceCore
+	runtime          *labLifecycleRuntimeCore
+	initialStore     *lifecycleStore
+	initialOwner     *lifecycleOwnerToken
+	initialKernel    *ownedLabKernel
+	initialCore      uint64
+	recoveredCore    *uint64
+	nativePrefix     int
+	nativeLast       int
+	transport        *mihomo.LabReloadResponseLossSchedule
+	claims           [3]*labContinuousRecoveryFaultClaim
+	bound            int
 	observed         int
 	firstOperation   string
 	firstPlan        string
@@ -66,7 +66,9 @@ type labContinuousRecoveryFaultCore struct {
 	operations       map[string]bool
 }
 
-type LabContinuousRecoveryFaultHandle struct{ core *labContinuousRecoveryFaultCore }
+type LabContinuousRecoveryFaultHandle struct {
+	core *labContinuousRecoveryFaultCore
+}
 
 type labContinuousRecoveryFaultClaim struct {
 	root         *labContinuousRecoveryFaultCore
@@ -213,9 +215,18 @@ func (h *LabContinuousRecoveryFaultHandle) Observe() (LabContinuousRecoveryFault
 		calls = append(calls, LabContinuousRecoveryNativeCall{Sequence: event.Sequence, Kind: event.Kind, Core: event.Core, At: event.At})
 	}
 	state := "ACTIVE"
-	if core.poisoned { state = "POISONED" } else if core.closed { state = "CLOSED" } else if core.observed == len(core.claims) { state = "TERMINAL" }
+	if core.poisoned {
+		state = "POISONED"
+	} else if core.closed {
+		state = "CLOSED"
+	} else if core.observed == len(core.claims) {
+		state = "TERMINAL"
+	}
 	var recovered *uint64
-	if core.recoveredCore != nil { value := *core.recoveredCore; recovered = &value }
+	if core.recoveredCore != nil {
+		value := *core.recoveredCore
+		recovered = &value
+	}
 	return LabContinuousRecoveryFaultObservation{Schema: labContinuousRecoveryFaultSchema, State: state,
 		BoundOperations: core.bound, ObservedResults: core.observed, InitialCore: core.initialCore, RecoveredCore: recovered,
 		NativeCallsBounded: bounded, NativeCalls: calls, Transport: transport}, nil
