@@ -1272,10 +1272,21 @@ FILES = tuple(sorted((*FILES,
                       'chengwang/internal/mihomodeploy/lifecycle_current_epoch_test.go',
                       'chengwang/internal/mihomodeploy/lab_current_epoch_runtime.go',
                       'chengwang/internal/mihomodeploy/lab_current_epoch_runtime_test.go')))
+FILES = tuple(sorted((*FILES,
+                      'chengwang/internal/api/mihomo_recovery.go',
+                      'chengwang/internal/api/mihomo_recovery_test.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_backend.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_backend_test.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_cleanup_bridge.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_coordinator_linux.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_coordinator_unsupported.go',
+                      'chengwang/internal/mihomodeploy/lab_recovery_unstarted_cleanup_linux_test.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile_test.go')))
 
 
 def make_source_manifest(sources, source_commit):
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 178)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 188)
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     return {'schema': 'chengwang.mihomo-native-source-manifest/v1',
             'scope': 'FIXED_GIT_SOURCE_BYTES_NOT_NATIVE_EXECUTION',
@@ -1304,7 +1315,7 @@ def verify_raw(raw, sources, source_commit, variant='positive'):
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 33)
     need(all(type(v) is bytes and len(v) <= 16 << 20 for v in raw.values()) and sum(map(len, raw.values())) <= 16 << 20)
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 178)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 188)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     for path in FILES:
         source_path(path)

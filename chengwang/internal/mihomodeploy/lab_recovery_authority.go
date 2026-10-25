@@ -359,7 +359,7 @@ func (a *labRecoveryAuthority) authorizeStep(headers []string, h *labRecoverySes
 		return zero, err
 	}
 	defer b.mu.Unlock()
-	if step != "STOP" && step != "START" {
+	if step != "STOP" && step != "START" && step != "ABSENT_PREPARE" {
 		return zero, labAuthorityFailure("dispatch_phase_invalid")
 	}
 	s, err := c.session(h)
@@ -380,17 +380,34 @@ func (a *labRecoveryAuthority) authorizeStep(headers []string, h *labRecoverySes
 			return zero, labAuthorityFailure("dispatch_phase_invalid")
 		}
 		intent = active.StopIntent.IntentSHA256
-	} else {
+	} else if step == "START" {
 		x := s.store.core
-		permit := x.permit
-		if active.Phase != "START_ARMED" || active.StopIntent == nil || active.StopBinding == nil || active.Quiescence == nil || active.StartIntent == nil || permit == nil || permit.store != x || permit.fence != s.fence ||
-			permit.fact.RecoveryID != s.plan.RecoveryID || permit.fact.RecoveryPlanSHA256 != s.plan.PlanSHA256 || permit.fact.StartIntentSHA256 != active.StartIntent.IntentSHA256 ||
-			permit.fact.Revision != x.record.core.Revision || permit.fact.RecordSHA256 != x.record.core.RecordSHA256 || permit.fact.QuiescenceSHA256 != active.Quiescence.QuiescenceSHA256 ||
-			!reflect.DeepEqual(permit.fact.TargetArtifact, s.plan.TargetArtifact) || !permit.fact.ArmedAt.Equal(active.StartIntent.ArmedAt) || !permit.fact.ExpiresAt.Equal(s.plan.ExpiresAt) ||
-			now.Before(permit.fact.ArmedAt) || now.Sub(permit.fact.ArmedAt) > 30*time.Second || !labQuiescenceFactValid(*active.Quiescence, *active.StopBinding, now) {
-			return zero, labAuthorityFailure("dispatch_phase_invalid")
+		absent := active.Plan.Schema == labRecoveryPlanSchemaV3 && active.Plan.StartMode == labRecoveryStartModeOldEpochAbsent
+		if absent {
+			permit := x.absentStartPermit
+			if active.Phase != "START_ARMED" || active.StopIntent != nil || active.StopBinding != nil || active.Quiescence != nil || active.StartIntent == nil ||
+				permit == nil || permit.store != x || permit.absence == nil || permit.absence != x.absenceCustody || permit.absence.binding == nil || !permit.absence.binding(permit.absence) ||
+				permit.recoveryID != s.plan.RecoveryID || permit.planSHA256 != s.plan.PlanSHA256 || permit.intentSHA256 != active.StartIntent.IntentSHA256 ||
+				permit.revision != x.record.core.Revision || permit.recordSHA256 != x.record.core.RecordSHA256 || permit.fence != s.fence ||
+				!permit.deadline.Equal(s.plan.ExpiresAt) || now.Before(active.StartIntent.ArmedAt) || now.Sub(active.StartIntent.ArmedAt) > 30*time.Second {
+				return zero, labAuthorityFailure("dispatch_phase_invalid")
+			}
+		} else {
+			permit := x.permit
+			if active.Phase != "START_ARMED" || active.StopIntent == nil || active.StopBinding == nil || active.Quiescence == nil || active.StartIntent == nil || permit == nil || permit.store != x || permit.fence != s.fence ||
+				permit.fact.RecoveryID != s.plan.RecoveryID || permit.fact.RecoveryPlanSHA256 != s.plan.PlanSHA256 || permit.fact.StartIntentSHA256 != active.StartIntent.IntentSHA256 ||
+				permit.fact.Revision != x.record.core.Revision || permit.fact.RecordSHA256 != x.record.core.RecordSHA256 || permit.fact.QuiescenceSHA256 != active.Quiescence.QuiescenceSHA256 ||
+				!reflect.DeepEqual(permit.fact.TargetArtifact, s.plan.TargetArtifact) || !permit.fact.ArmedAt.Equal(active.StartIntent.ArmedAt) || !permit.fact.ExpiresAt.Equal(s.plan.ExpiresAt) ||
+				now.Before(permit.fact.ArmedAt) || now.Sub(permit.fact.ArmedAt) > 30*time.Second || !labQuiescenceFactValid(*active.Quiescence, *active.StopBinding, now) {
+				return zero, labAuthorityFailure("dispatch_phase_invalid")
+			}
 		}
 		intent = active.StartIntent.IntentSHA256
+	} else {
+		if active.Phase != "APPROVED" || active.Approval == nil || active.StopIntent != nil || active.Quiescence != nil || active.StartIntent != nil {
+			return zero, labAuthorityFailure("dispatch_phase_invalid")
+		}
+		intent = active.Approval.ApprovalSHA256
 	}
 	p, executorRef, err := b.authenticate(headers, now)
 	if err != nil {
@@ -413,6 +430,56 @@ func (a *labRecoveryAuthority) authorizeStep(headers []string, h *labRecoverySes
 	}
 	s.boundRevision = s.store.core.record.core.Revision
 	return labRecoveryMakeCheck(b, s, p, "RECOVERY_"+step+"_AUTHORIZATION_CHECK", intent), nil
+}
+
+// authorizeReconcile rechecks the retained Prepare authority for the exact
+// durable UNKNOWN transaction and authenticates the current request. Approval
+// and Execute are not reused to grant another dispatch. An expired operation
+// lease/plan is admitted only for terminal reconciliation; this cannot renew
+// the old owner.
+func (a *labRecoveryAuthority) authorizeReconcile(headers []string, h *labRecoverySession, now time.Time) (labRecoveryCheck, error) {
+	var zero labRecoveryCheck
+	c, b, now, err := a.lock(now)
+	if err != nil {
+		return zero, err
+	}
+	defer b.mu.Unlock()
+	s, err := c.session(h)
+	if err != nil {
+		return zero, err
+	}
+	if err := labRecoveryAuthorityLockStore(s.store, s.owner, false, now); err != nil {
+		return zero, err
+	}
+	defer s.store.core.mu.Unlock()
+	w := s.store.core.record.core
+	if w == nil || w.RecoveryOwner == nil || w.RecoveryOwner.Fence != s.fence || w.Revision < s.boundRevision ||
+		w.Current.Head.Scope != b.scope || w.Current.Head.DeviceRef != b.scope.ObjectID || w.Recovery == nil ||
+		w.Recovery.Phase != "RECOVERY_UNKNOWN" || w.Recovery.Failure == nil || w.Recovery.Revocation != nil ||
+		!reflect.DeepEqual(w.Recovery.Plan, s.plan) || w.Recovery.Plan.DeclaredInitiatorRef != s.initiatorActor ||
+		s.material == nil || w.Recovery.Approval == nil || !reflect.DeepEqual(*w.Recovery.Approval, *s.material) {
+		return zero, labAuthorityFailure("binding_invalid")
+	}
+	p, ref, err := b.authenticate(headers, now)
+	if err != nil {
+		return zero, err
+	}
+	actorRef := labActorReference(b.scope, p.ID)
+	if p.ID != s.initiatorID || ref != s.initiatorRef || actorRef != s.initiatorActor ||
+		actorRef != w.Recovery.Plan.DeclaredInitiatorRef {
+		return zero, labAuthorityFailure("binding_invalid")
+	}
+	if err := b.evaluate(p, authz.ActionPrepareLabRecovery, "", "", now); err != nil {
+		return zero, err
+	}
+	if err := b.current(ref, p.ID, authz.ActionPrepareLabRecovery, "", "", now); err != nil {
+		return zero, err
+	}
+	if err := s.store.core.verify(); err != nil {
+		return zero, labAuthorityFailure("wal_unavailable")
+	}
+	s.boundRevision = w.Revision
+	return labRecoveryMakeCheck(b, s, p, "RECOVERY_RECONCILE_AUTHORIZATION_CHECK", w.Recovery.Failure.Code), nil
 }
 
 // A short source gate, never held over process/artifact/HTTP/diagnostic IO.
@@ -459,8 +526,11 @@ func (a *labRecoveryAuthority) authorizeVerify(headers []string, h *labRecoveryS
 	}
 	x := s.store.core
 	q := x.retainedStarted
-	if active.Phase != "START_ARMED" || active.Execution == nil || active.Completion != nil || active.Failure != nil ||
-		active.StartIntent == nil || active.Quiescence == nil || active.StopBinding == nil || q == nil || !q.matches(x) || (expected != nil && expected != q) ||
+	absent := active.Plan.Schema == labRecoveryPlanSchemaV3 && active.Plan.StartMode == labRecoveryStartModeOldEpochAbsent
+	if active.Phase != "START_ARMED" || active.Execution == nil || active.Completion != nil || active.Failure != nil || active.StartIntent == nil ||
+		(absent && (active.Quiescence != nil || active.StopBinding != nil || active.StopIntent != nil)) ||
+		(!absent && (active.Quiescence == nil || active.StopBinding == nil || active.StopIntent == nil)) ||
+		q == nil || !q.matches(x) || (expected != nil && expected != q) ||
 		now.Before(active.Execution.RecordedAt) || now.Before(active.Execution.Started.ObservedAt) || now.Sub(active.Execution.Started.ObservedAt) > 30*time.Second {
 		return fail()
 	}

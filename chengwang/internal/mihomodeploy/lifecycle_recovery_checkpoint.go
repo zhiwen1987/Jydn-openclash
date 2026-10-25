@@ -12,6 +12,7 @@ const (
 	lifecycleRecoveryCheckpointNone        = "NONE"
 	lifecycleRecoveryCheckpointHistoryTail = "HISTORY_TAIL"
 	lifecycleRecoveryCheckpointVerified    = "ACTIVE_VERIFIED"
+	lifecycleRecoveryCheckpointUnknown     = "RECOVERY_UNKNOWN_ORIGINAL"
 )
 
 // A checkpoint names an exact earlier V3 root without embedding that root.
@@ -70,12 +71,16 @@ func lifecycleRecoveryCheckpoint(w *lifecycleV3Wire, kind string) (lifecycleReco
 		}
 	case lifecycleRecoveryCheckpointHistoryTail:
 		if w.Recovery == nil || len(w.RecoveryHistory) == 0 || !reflect.DeepEqual(*w.Recovery, w.RecoveryHistory[len(w.RecoveryHistory)-1]) ||
-			(w.Recovery.Phase != "COMPLETED" && w.Recovery.Phase != "REVOKED_UNSTARTED") {
+			(w.Recovery.Phase != "COMPLETED" && w.Recovery.Phase != "REVOKED_UNSTARTED" && w.Recovery.Phase != "FAILED_RECONCILED") {
 			return zero, errLifecycleUnsafe
 		}
 	case lifecycleRecoveryCheckpointVerified:
 		if w.Recovery == nil || w.Recovery.Phase != "START_ARMED" || w.Recovery.Completion != nil || w.Recovery.Failure != nil || w.Recovery.Revocation != nil ||
-			w.Recovery.Execution == nil || w.Recovery.Execution.Schema != lifecycleRecoveryVerifiedExecutionSchema || w.Recovery.Execution.Verification == nil || w.Recovery.Execution.CompletionSource != nil {
+			w.Recovery.Execution == nil || !lifecycleRecoveryExecutionVerifiedSchema(w.Recovery.Execution.Schema) || w.Recovery.Execution.Verification == nil || w.Recovery.Execution.CompletionSource != nil {
+			return zero, errLifecycleUnsafe
+		}
+	case lifecycleRecoveryCheckpointUnknown:
+		if w.Recovery == nil || w.Recovery.Phase != "RECOVERY_UNKNOWN" || w.Recovery.Failure == nil || w.Recovery.Reconciliation != nil {
 			return zero, errLifecycleUnsafe
 		}
 	default:
@@ -124,6 +129,8 @@ func lifecycleRecoveryCheckpointValid(c lifecycleRecoveryRootCheckpoint) bool {
 		return c.RecoveryHistoryPrefixCount > 0
 	case lifecycleRecoveryCheckpointVerified:
 		return true
+	case lifecycleRecoveryCheckpointUnknown:
+		return true
 	default:
 		return false
 	}
@@ -131,7 +138,7 @@ func lifecycleRecoveryCheckpointValid(c lifecycleRecoveryRootCheckpoint) bool {
 
 func lifecycleRecoveryVerifiedFromCompleted(a lifecycleRecoveryTxn) (*lifecycleRecoveryTxn, error) {
 	if a.Phase != "COMPLETED" || a.Completion == nil || a.Failure != nil || a.Revocation != nil || a.Execution == nil ||
-		a.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema || a.Execution.Verification == nil || a.Execution.CompletionSource == nil {
+		!lifecycleRecoveryExecutionCompletedSchema(a.Execution.Schema) || a.Execution.Verification == nil || a.Execution.CompletionSource == nil {
 		return nil, errLifecycleUnsafe
 	}
 	raw, err := json.Marshal(a)
@@ -145,8 +152,31 @@ func lifecycleRecoveryVerifiedFromCompleted(a lifecycleRecoveryTxn) (*lifecycleR
 	source.Phase = "START_ARMED"
 	source.Completion = nil
 	source.UpdatedAt = source.Execution.CompletionSource.Root.LastTrustedAt
-	source.Execution.Schema = lifecycleRecoveryVerifiedExecutionSchema
+	verifiedSchema, ok := lifecycleRecoveryCompletedToVerifiedSchema(source.Execution.Schema)
+	if !ok {
+		return nil, errLifecycleUnsafe
+	}
+	source.Execution.Schema = verifiedSchema
 	source.Execution.CompletionSource = nil
+	return &source, nil
+}
+
+func lifecycleRecoveryUnknownFromReconciled(a lifecycleRecoveryTxn) (*lifecycleRecoveryTxn, error) {
+	r := a.Reconciliation
+	if a.Phase != "FAILED_RECONCILED" || r == nil || a.Failure == nil || a.Completion != nil || !lifecycleTime(r.OriginalTxnUpdatedAt) {
+		return nil, errLifecycleUnsafe
+	}
+	raw, err := json.Marshal(a)
+	if err != nil {
+		return nil, errLifecycleUnsafe
+	}
+	var source lifecycleRecoveryTxn
+	if json.Unmarshal(raw, &source) != nil {
+		return nil, errLifecycleUnsafe
+	}
+	source.Phase = "RECOVERY_UNKNOWN"
+	source.UpdatedAt = r.OriginalTxnUpdatedAt
+	source.Reconciliation = nil
 	return &source, nil
 }
 
@@ -201,6 +231,14 @@ func lifecycleRecoveryCheckpointPreimageScoped(w *lifecycleV3Wire, c lifecycleRe
 			return nil, errLifecycleUnsafe
 		}
 		recovery, err = lifecycleRecoveryVerifiedFromCompleted(*completed)
+		if err != nil {
+			return nil, errLifecycleUnsafe
+		}
+	case lifecycleRecoveryCheckpointUnknown:
+		if completed == nil {
+			return nil, errLifecycleUnsafe
+		}
+		recovery, err = lifecycleRecoveryUnknownFromReconciled(*completed)
 		if err != nil {
 			return nil, errLifecycleUnsafe
 		}

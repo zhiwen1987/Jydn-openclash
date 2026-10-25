@@ -1,10 +1,28 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：c1f9同提交三套CI及25ZIP／442成员已独立复核，普通／race各1937语义／661必需、完整格式0，旧S2真实内核四模式及各自producer／fresh一致均已核。普通race包176.367秒，距原180秒仅余3.633秒；这是一次限定通过，不证明容量余量充分或稳定提速。37f／3dc／2b80／779f／944a等实际失败保持。Completion模型已实际编译／运行，但真实Completion、新head与普通epoch接续、产品恢复接口、第二恢复及完整系统／生产仍未验收，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：`4bbbe70` 的首次真实 Completion 四模式已限定隔离验收通过；9 ZIP／167 成员、1364 跟踪路径，四模式原 checker main 直接复演通过，四组 producer／fresh 一致。其余三条 CI 状态成功，本轮没有重复审计全部旧门原件。先前 c1f9 的旧 S2 与 1937／661 普通及 race 限定基线保留；race 176.367 秒距 180 秒仅余 3.633 秒，不证明稳定容量余量。产品 service 换绑、新 head 后普通发布、产品恢复 API、第二恢复及完整系统／生产仍未验收。所有历史失败保留，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
 
-### 已核c1f9限定基线；a988真实Completion Go已进入，独立门仍失败
+### 下一阶段源码：恢复协调器、reconciliation 与产品 API 已合入，Linux 验收待执行
+
+在已接受 `4bbbe70` 的隔离开发工作区，主集成者按冻结清单逐文件合入 37 路径，并保留此前四份任务文档及首次 Completion 接受记录。来源补丁 SHA256 `529e80f52fbc7dec6867bbbe9466c4d1fa39e95bfd30db41148e0bee04cd43f7`；重基独审收据 SHA256 `d0cd138ee1bf3a7404c7a7691284210b803ebee86f4f59aeb5fce0227ef1fbb5`。36 后像保持前一 v4 候选，唯一 checker 重叠只更新来源闭集及旧 native-v5 摘要，保留正式 alias、11 模型与 Go 格式后像。这里的合入不代表 Go 编译、运行通过或上线。
+
+源码新增真实 recovery backend／Linux coordinator 和 API 接线、暖进程失败后的有界 reconciliation、明确未启动 owned wrapper 清理、source-owned current epoch 接续。fresh 授权先于状态响应与重试预算，重锁后复核 exact operation／custody／WAL；完成提交继续使用独占 Completion publication 和 opaque handoff。CI 声明闭集变为 150 源／58 必需测试源／688 顶层／88 六包测试源／144 格式 Go 文件／188 native 来源；新 27 个顶层只是声明，尚未实际运行。
+
+新增结构的 `lifecycleCloneSchemaSHA256` 暂为空且 fail closed，不用旧 `6b46` 摘要或推算结构数。现有 `TestLifecycleRecoveryCompletionActualCloneShapeDiagnostic` 会直接输出实际 Go reflection digest、structs、fields、mutableSlots、pointers、slices；下一 Linux CI 必须从同提交原始 JSONL 的唯一 output 及实际 pass 取得，再单独冻结 pin 和属性门。若编译失败则没有这条实际证据，须先修编译。首轮诊断或其他测试因空 pin 失败不能记作验收通过。
+
+真实连续 API 验收仍缺。旧 fault-tag 胶囊消费一次后拒绝后续匹配 PUT，即使下一 ordinary Execute 新建 WriteClient 也仍绑定同一进程 issuer；因此连续实验连第一次恢复后的普通 ACK 都不能用旧胶囊代证。默认无 fault-tag transport 不受此实验限制。新连续实验必须另设 operation／epoch 绑定、总两次注入且普通 ACK 放行的独立测试合同，不能 reset 旧 issuer、更不能改旧 native 合同来伪造连续性。完整 API／普通发布／第二恢复、UI、冷重启与生产仍未验收。
+
+### 4bbbe70：首次真实 Completion 四模式限定隔离验收通过
+
+精确源码 `4bbbe70b1f13e53fa07201e32129366cf254ccee` 的新运行 `40226840814` 共 11 任务全部 success。固定 9 原件 ZIP／167 成员按认证 API 摘要、CRC、安全路径与原字节独立核对；四种模式均直接复演原检查器 main，无平台适配或诊断副本。root 另行独立重数真实 Go、四类命令、模式计数／revision／adopt／poison、格式和输出一致性；[聚合收据](evidence/sys06-4bbbe70-first-completion-acceptance-20261026.json) SHA256 `ea936d1bfd27c36f725afae251d81dca23a2ed8a58ce6268c32f0012eaebe8b5`，详见[完整独立审计](evidence/sys06-4bbbe70-first-completion-independent-audit-20261026.json)。
+
+positive 在 Completion 点实际 replace／forward／read／injected 为 1／1／1／0，内存与磁盘 revision19，opaque runtime 首次 adopt；NotCommitted 为 1／0／0／0，内存与盘 revision18，冷开按正式 opener 转 UNKNOWN；Unknown 为 1／1／0／0、坏读回为 1／1／1／1，内存18／盘19，二者均 poison 且不 adopt。实际 cap 一次消耗／重放拒绝、19 native 事件（Completion 前缀14）、4 WAL 索引／10 fsync 回执、五端口拒绝和 fixture／runtime／disk 关闭均核。四种格式差异均为0。
+
+此结论只覆盖固定隔离内核的首次 Completion 与 positive 首次 opaque runtime adopt。完整私有 WAL 未供独立读取，仅 producer 重验及公开索引／fsync 绑定；serviceRebindProven、apiRouteProven、ordinaryPublishProven、secondRecoveryProven、production 全为 false。其他三条同提交 CI 终态成功只作状态观察，本轮不再用未变旧门的重复下载扩大新结论。`fdc2587` 与 `a9882e4` 失败均保留。下一外部 v4 协调器／API 候选已完成授权顺序修订、独立源码审查与重基，仍须真实 Linux 编译、图 pin、格式及端到端验收。
+
+### 历史：a988真实Completion Go已进入，独立门仍失败
 
 当前工作区已接入独立的首次真实Completion隔离CI源码入口。`a9882e4` 的 positive 真实 Go 顶层已运行并 PASS，但独立 reader 及格式门仍失败，完整四模式仍未验收。新标签要求实际S2 collector签发cap、一次性Completion耐久提交、positive opaque runtime交接；另在Completion提交点注入NotCommitted／Unknown／坏readback。旧S2的75／90秒及4core门不变，新场景单独使用105秒Go／120秒外层上限。完整六包测试源显式83→84，新四标签harness不冒充普通661项必需测试。
 

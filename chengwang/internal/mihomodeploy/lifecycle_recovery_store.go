@@ -40,6 +40,10 @@ type lifecycleRecoveryStoreCore struct {
 	retainedVerified   *labRecoveryVerifiedCustody
 	currentLive        *lifecycleRecoveryCurrentOwnerCore
 	currentPublication *lifecycleCurrentEpochPublication
+	reconcilePermit    *labRecoveryReconcilePermitCore
+	terminalReentry    *labRecoveryTerminalReentryPermitCore
+	absenceCustody     *labRecoveryAbsenceCustodyCore
+	absentStartPermit  *labRecoveryAbsentStartPermitCore
 	// Issuance identities only, scoped to one locked operation. They are
 	// released on every exit and are never a cross-operation validation cache.
 	activeBase     *lifecycleVerifiedBaseCore
@@ -280,7 +284,7 @@ func openLifecycleRecoveryStore(d lifecycleDisk, now time.Time) (*lifecycleRecov
 	// Reopening never restores an owner, consumed-q provenance or StartPermit.
 	// Any armed physical action is uncertain; even a durable fact is not a new
 	// permission to replay it. Preserve every original action/fact verbatim.
-	if a := r.core.Recovery; a != nil && a.Phase != "PLANNED" && a.Phase != "APPROVED" && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "RECOVERY_UNKNOWN" {
+	if a := r.core.Recovery; a != nil && a.Phase != "PLANNED" && a.Phase != "APPROVED" && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "RECOVERY_UNKNOWN" && a.Phase != "FAILED_RECONCILED" {
 		next, err := decodeLifecycleV3Record(raw)
 		if err != nil {
 			return nil, err
@@ -313,6 +317,10 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 			x.retainedVerified = nil
 			x.currentLive = nil
 			x.currentPublication = nil
+			x.reconcilePermit = nil
+			x.terminalReentry = nil
+			x.absenceCustody = nil
+			x.absentStartPermit = nil
 		}
 		return errLifecycleUnsafe
 	}
@@ -614,7 +622,7 @@ func (s *lifecycleRecoveryStore) acquireRecoveryOwner(now, expires time.Time) (*
 	if !lifecycleTime(expires) || !expires.After(now) || expires.Sub(now) > 5*time.Minute || w.LastRecoveryFence == ^uint64(0) || (w.RecoveryOwner != nil && now.Before(w.RecoveryOwner.ExpiresAt)) {
 		return nil, errLifecycleUnsafe
 	}
-	if a := w.Recovery; a != nil && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "PLANNED" && a.Phase != "APPROVED" {
+	if a := w.Recovery; a != nil && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "FAILED_RECONCILED" && a.Phase != "PLANNED" && a.Phase != "APPROVED" {
 		return nil, errLifecycleUnsafe
 	}
 	var nonce [32]byte
@@ -653,6 +661,10 @@ func (s *lifecycleRecoveryStore) close() error {
 	x.retainedVerified = nil
 	x.currentLive = nil
 	x.currentPublication = nil
+	x.reconcilePermit = nil
+	x.terminalReentry = nil
+	x.absenceCustody = nil
+	x.absentStartPermit = nil
 	x.quiescenceSHA = ""
 	x.activeBase = nil
 	x.activePrepared = nil
@@ -706,13 +718,16 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 		return false
 	}
 	if a.Recovery.Plan.PlanSHA256 != b.Recovery.Plan.PlanSHA256 {
-		return (a.Recovery.Phase == "REVOKED_UNSTARTED" || a.Recovery.Phase == "COMPLETED") && len(b.RecoveryHistory) == len(a.RecoveryHistory) && b.Recovery.Phase == "PLANNED"
+		return (a.Recovery.Phase == "REVOKED_UNSTARTED" || a.Recovery.Phase == "COMPLETED" || a.Recovery.Phase == "FAILED_RECONCILED") && len(b.RecoveryHistory) == len(a.RecoveryHistory) && b.Recovery.Phase == "PLANNED"
 	}
 	x, y := a.Recovery, b.Recovery
-	if !reflect.DeepEqual(x.Plan, y.Plan) || !lifecycleRecoveryPhaseTransition(x.Phase, y.Phase) || (x.Approval != nil && !reflect.DeepEqual(x.Approval, y.Approval)) || (x.Revocation != nil && !reflect.DeepEqual(x.Revocation, y.Revocation)) || (x.StopIntent != nil && !reflect.DeepEqual(x.StopIntent, y.StopIntent)) || (x.StopBinding != nil && !reflect.DeepEqual(x.StopBinding, y.StopBinding)) || (x.Quiescence != nil && !reflect.DeepEqual(x.Quiescence, y.Quiescence)) || (x.StartIntent != nil && !reflect.DeepEqual(x.StartIntent, y.StartIntent)) || (x.Failure != nil && !reflect.DeepEqual(x.Failure, y.Failure)) || (x.Completion != nil && !reflect.DeepEqual(x.Completion, y.Completion)) || len(y.FailedQuiescence) < len(x.FailedQuiescence) || !reflect.DeepEqual(y.FailedQuiescence[:len(x.FailedQuiescence)], x.FailedQuiescence) || y.UpdatedAt.Before(x.UpdatedAt) {
+	if !reflect.DeepEqual(x.Plan, y.Plan) || !lifecycleRecoveryPhaseTransition(x.Phase, y.Phase) || (x.Approval != nil && !reflect.DeepEqual(x.Approval, y.Approval)) || (x.Revocation != nil && !reflect.DeepEqual(x.Revocation, y.Revocation)) || (x.StopIntent != nil && !reflect.DeepEqual(x.StopIntent, y.StopIntent)) || (x.StopBinding != nil && !reflect.DeepEqual(x.StopBinding, y.StopBinding)) || (x.Quiescence != nil && !reflect.DeepEqual(x.Quiescence, y.Quiescence)) || (x.StartIntent != nil && !reflect.DeepEqual(x.StartIntent, y.StartIntent)) || (x.Failure != nil && !reflect.DeepEqual(x.Failure, y.Failure)) || (x.Completion != nil && !reflect.DeepEqual(x.Completion, y.Completion)) || (x.Reconciliation != nil && !reflect.DeepEqual(x.Reconciliation, y.Reconciliation)) || len(y.FailedQuiescence) < len(x.FailedQuiescence) || !reflect.DeepEqual(y.FailedQuiescence[:len(x.FailedQuiescence)], x.FailedQuiescence) || y.UpdatedAt.Before(x.UpdatedAt) {
 		return false
 	}
 	if y.Phase == "REVOKED_UNSTARTED" && x.Phase != "REVOKED_UNSTARTED" {
+		return len(b.RecoveryHistory) == len(a.RecoveryHistory)+1 && reflect.DeepEqual(b.RecoveryHistory[len(a.RecoveryHistory)], *y)
+	}
+	if y.Phase == "FAILED_RECONCILED" && x.Phase == "RECOVERY_UNKNOWN" {
 		return len(b.RecoveryHistory) == len(a.RecoveryHistory)+1 && reflect.DeepEqual(b.RecoveryHistory[len(a.RecoveryHistory)], *y)
 	}
 	return len(b.RecoveryHistory) == len(a.RecoveryHistory)
@@ -723,7 +738,10 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 // fully validated candidate. Unknown fields/codecs fail closed before copying.
 // Every local struct is written as a complete positional literal: adding a
 // field requires an explicit copy update rather than a silent shallow alias.
-const lifecycleCloneSchemaSHA256 = "6b46cd85d6dca689a7f40c08756671030e36722f185649540eaed875d9d07bd3"
+// Intentionally fail closed until the existing Linux reflection diagnostic
+// reports the exact expanded graph. A source-only candidate must not guess
+// this authority pin or silently retain the pre-reconciliation digest.
+const lifecycleCloneSchemaSHA256 = ""
 
 var errLifecycleCloneRepresentation = errors.New("trusted record copy requires original JSON representation")
 
@@ -1020,7 +1038,7 @@ func (c *lifecycleCloneState) recoveryPlan(v labRecoveryPlanDescriptor) labRecov
 		DeclaredInitiatorRef: c.text(v.DeclaredInitiatorRef), ExpectedRevision: v.ExpectedRevision, ExpectedRecordSHA256: c.text(v.ExpectedRecordSHA256),
 		PreviousHeadSHA256: c.text(v.PreviousHeadSHA256), PreviousHeadGeneration: v.PreviousHeadGeneration, Provisioning: c.provisioning(v.Provisioning),
 		OldEpochSHA256: c.text(v.OldEpochSHA256), TargetArtifact: c.artifact(v.TargetArtifact), Budgets: c.budgets(v.Budgets), CreatedAt: c.timestamp(v.CreatedAt),
-		ExpiresAt: c.timestamp(v.ExpiresAt), Source: lifecycleClonePointer(v.Source, c.recoveryPlanSource), PlanSHA256: c.text(v.PlanSHA256)}
+		ExpiresAt: c.timestamp(v.ExpiresAt), Source: lifecycleClonePointer(v.Source, c.recoveryPlanSource), StartMode: c.text(v.StartMode), PlanSHA256: c.text(v.PlanSHA256)}
 }
 
 func (c *lifecycleCloneState) recoveryCheckpoint(v lifecycleRecoveryRootCheckpoint) lifecycleRecoveryRootCheckpoint {
@@ -1044,6 +1062,24 @@ func (c *lifecycleCloneState) action(v lifecycleRecoveryActionIntent) lifecycleR
 
 func (c *lifecycleCloneState) failure(v lifecycleRecoveryFailure) lifecycleRecoveryFailure {
 	return lifecycleRecoveryFailure{c.text(v.Code), c.timestamp(v.At)}
+}
+
+func (c *lifecycleCloneState) cleanupProbe(v lifecycleRecoveryCleanupProbe) lifecycleRecoveryCleanupProbe {
+	return lifecycleRecoveryCleanupProbe{c.text(v.Role), c.probe(v.Probe), c.timestamp(v.ObservedAt)}
+}
+
+func (c *lifecycleCloneState) cleanedKernel(v lifecycleRecoveryCleanedKernel) lifecycleRecoveryCleanedKernel {
+	return lifecycleRecoveryCleanedKernel{c.identity(v.Identity), c.exit(v.Exit)}
+}
+
+func (c *lifecycleCloneState) cleanup(v lifecycleRecoveryCleanupFact) lifecycleRecoveryCleanupFact {
+	return lifecycleRecoveryCleanupFact{c.text(v.Schema), c.text(v.RecoveryID), c.text(v.FailureCode), c.cleanedKernel(v.Old),
+		lifecycleClonePointer(v.New, c.cleanedKernel), lifecycleClonePointer(v.Attempt, c.startObservation), lifecycleCloneSlice(v.Probes, c.cleanupProbe), c.text(v.SourceReceiptSHA256), c.timestamp(v.ObservedAt), c.text(v.CleanupSHA256)}
+}
+
+func (c *lifecycleCloneState) reconciliation(v lifecycleRecoveryReconciliation) lifecycleRecoveryReconciliation {
+	return lifecycleRecoveryReconciliation{c.text(v.Schema), c.recoveryCheckpoint(v.OriginalUnknownRoot), c.timestamp(v.OriginalTxnUpdatedAt),
+		c.cleanup(v.Cleanup), v.CommitRevision, c.timestamp(v.ReconciledAt)}
 }
 
 func (c *lifecycleCloneState) recoveryCompletion(v lifecycleRecoveryCompletion) lifecycleRecoveryCompletion {
@@ -1087,7 +1123,10 @@ func (c *lifecycleCloneState) startObservation(v labRecoveryStartObservation) la
 }
 
 func (c *lifecycleCloneState) startedBinding(v labRecoveryStartedBinding) labRecoveryStartedBinding {
-	return labRecoveryStartedBinding{c.text(v.RecoveryID), c.text(v.RecoveryPlanSHA256), c.text(v.StartIntentSHA256), v.Revision, c.text(v.RecordSHA256), c.artifact(v.TargetArtifact), c.text(v.QuiescenceSHA256), c.timestamp(v.ArmedAt), c.timestamp(v.ExpiresAt), c.identity(v.ExpectedOldIdentity), v.StartMillis}
+	return labRecoveryStartedBinding{RecoveryID: c.text(v.RecoveryID), RecoveryPlanSHA256: c.text(v.RecoveryPlanSHA256), StartIntentSHA256: c.text(v.StartIntentSHA256),
+		Revision: v.Revision, RecordSHA256: c.text(v.RecordSHA256), TargetArtifact: c.artifact(v.TargetArtifact), QuiescenceSHA256: c.text(v.QuiescenceSHA256),
+		ArmedAt: c.timestamp(v.ArmedAt), ExpiresAt: c.timestamp(v.ExpiresAt), ExpectedOldIdentity: c.identity(v.ExpectedOldIdentity), StartMillis: v.StartMillis,
+		StartMode: c.text(v.StartMode), AbsenceCleanupSHA256: c.text(v.AbsenceCleanupSHA256)}
 }
 
 func (c *lifecycleCloneState) startedFact(v labRecoveryStartedFact) labRecoveryStartedFact {
@@ -1139,7 +1178,7 @@ func (c *lifecycleCloneState) verification(v lifecycleRecoveryVerification) life
 }
 
 func (c *lifecycleCloneState) recovery(v lifecycleRecoveryTxn) lifecycleRecoveryTxn {
-	return lifecycleRecoveryTxn{c.recoveryPlan(v.Plan), c.text(v.Phase), lifecycleClonePointer(v.Approval, c.recoveryApproval), lifecycleClonePointer(v.Revocation, c.revocation), lifecycleClonePointer(v.StopIntent, c.action), lifecycleClonePointer(v.StopBinding, c.binding), lifecycleClonePointer(v.Quiescence, c.fact), lifecycleCloneSlice(v.FailedQuiescence, c.quiescenceObservation), lifecycleClonePointer(v.StartIntent, c.action), lifecycleClonePointer(v.Completion, c.recoveryCompletion), lifecycleClonePointer(v.Failure, c.failure), c.timestamp(v.UpdatedAt), lifecycleClonePointer(v.Execution, c.execution)}
+	return lifecycleRecoveryTxn{c.recoveryPlan(v.Plan), c.text(v.Phase), lifecycleClonePointer(v.Approval, c.recoveryApproval), lifecycleClonePointer(v.Revocation, c.revocation), lifecycleClonePointer(v.StopIntent, c.action), lifecycleClonePointer(v.StopBinding, c.binding), lifecycleClonePointer(v.Quiescence, c.fact), lifecycleCloneSlice(v.FailedQuiescence, c.quiescenceObservation), lifecycleClonePointer(v.StartIntent, c.action), lifecycleClonePointer(v.Completion, c.recoveryCompletion), lifecycleClonePointer(v.Failure, c.failure), c.timestamp(v.UpdatedAt), lifecycleClonePointer(v.Execution, c.execution), lifecycleClonePointer(v.Reconciliation, c.reconciliation)}
 }
 
 func (c *lifecycleCloneState) wire(v lifecycleV3Wire) lifecycleV3Wire {

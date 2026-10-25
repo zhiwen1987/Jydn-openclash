@@ -121,12 +121,28 @@ func (r *MihomoLabRuntime) Backend() mihomodeploy.LabBackend {
 	return c.service
 }
 
+func (r *MihomoLabRuntime) RecoveryBackend() mihomodeploy.LabRecoveryBackend {
+	if r == nil || r.core == nil {
+		return nil
+	}
+	c := r.core
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.ready || c.closing || c.closed || c.service == nil {
+		return nil
+	}
+	return c.service.RecoveryBackend()
+}
+
 func (r *MihomoLabRuntime) ApplyAPIOptions(options api.Options) api.Options {
 	options.MihomoLab = r.Backend()
+	options.MihomoRecoveries = r.RecoveryBackend()
 	options.MihomoLabWritesEnabled = false
+	options.MihomoRecoveryWritesEnabled = false
 	if r != nil && r.core != nil {
 		r.core.mu.Lock()
 		options.MihomoLabWritesEnabled = options.MihomoLab != nil && r.core.ready && r.core.writable && !r.core.closing && !r.core.closed
+		options.MihomoRecoveryWritesEnabled = options.MihomoRecoveries != nil && r.core.ready && r.core.writable && !r.core.closing && !r.core.closed
 		r.core.mu.Unlock()
 	}
 	return options

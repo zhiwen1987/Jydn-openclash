@@ -37,6 +37,7 @@ type labServiceCore struct {
 	fixture                                                           *labLocalFixture
 	fixtureCustody                                                    *labServiceFixtureCustody
 	collector                                                         *labCollector
+	recovery                                                          *labRecoveryCoordinator
 	diagnostics                                                       *labServiceDiagnostics
 	owner                                                             *lifecycleOwnerToken
 	base, candidate                                                   ArtifactDescriptor
@@ -314,6 +315,11 @@ func OpenIsolatedLabService(ctx context.Context, manager *authn.SnapshotManager,
 	issuer.issued[seal] = c
 	issuer.mu.Unlock()
 	c.fixtureCustody = seal
+	c.recovery, err = newLabRecoveryCoordinator(s)
+	if err != nil {
+		c.ready = false
+		return s, labServiceError(LabBackendUnavailable, true)
+	}
 	return s, nil
 }
 func (s *LabService) Scope() authz.ResourceScope {
@@ -1047,6 +1053,14 @@ func (s *LabService) Close(ctx context.Context) error {
 	}
 	if c.collector != nil {
 		c.collector.close()
+	}
+	if c.recovery != nil {
+		c.mu.Lock()
+		recoveryErr := c.recovery.close()
+		c.mu.Unlock()
+		if recoveryErr != nil {
+			return c.markCloseUncertain()
+		}
 	}
 	if c.authority != nil {
 		if c.authority.close() != nil {

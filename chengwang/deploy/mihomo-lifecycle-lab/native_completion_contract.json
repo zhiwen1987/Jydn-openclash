@@ -58,9 +58,9 @@
     "oldTwentyOneSourceManifestAccepted": false
   },
   "completePackageTestSources": {
-    "previousCount": 83,
-    "candidateCount": 84,
-    "ordinaryMandatoryTopLevelCount": 661,
+    "previousCount": 84,
+    "candidateCount": 88,
+    "ordinaryMandatoryTopLevelCount": 688,
     "completionHarnessExcludedFromOrdinaryMandatoryNames": true
   },
   "coldReopen": {

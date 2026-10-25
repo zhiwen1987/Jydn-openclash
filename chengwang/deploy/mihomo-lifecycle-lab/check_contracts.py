@@ -116,6 +116,18 @@ RECOVERY_COMPLETION_CURRENT_FILES = (
     'lab_current_epoch_runtime_test.go',
 )
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in RECOVERY_COMPLETION_CURRENT_FILES]
+RECOVERY_SERVICE_COORDINATOR_FILES = (
+    'lab_recovery_backend.go',
+    'lab_recovery_backend_test.go',
+    'lab_recovery_cleanup_bridge.go',
+    'lab_recovery_coordinator_linux.go',
+    'lab_recovery_coordinator_unsupported.go',
+    'lab_recovery_unstarted_cleanup_linux_test.go',
+    'lifecycle_recovery_reconcile.go',
+    'lifecycle_recovery_reconcile_test.go',
+)
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in RECOVERY_SERVICE_COORDINATOR_FILES]
+FILES += ['chengwang/internal/api/mihomo_recovery.go', 'chengwang/internal/api/mihomo_recovery_test.go']
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
@@ -147,6 +159,10 @@ TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/m
                  'lifecycle_v3_decode_scope_test.go',
                  'lifecycle_current_epoch_test.go',
                  'lab_current_epoch_runtime_test.go')]
+TEST_FILES += [('chengwang/internal/api/mihomo_recovery_test.go', 'chengwang/internal/api')]
+TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
+    for name in ('lab_recovery_backend_test.go', 'lab_recovery_unstarted_cleanup_linux_test.go',
+                 'lifecycle_recovery_reconcile_test.go')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
     'chengwang/internal/api', 'chengwang/internal/serverruntime', 'chengwang/internal/authz'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,

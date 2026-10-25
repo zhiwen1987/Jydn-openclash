@@ -84,6 +84,39 @@ type lifecycleRecoveryFailure struct {
 	At   time.Time `json:"at"`
 }
 
+// Reconciliation is durable evidence of source-owned cleanup, never a cleanup
+// request or an authority transferable through JSON. Optional placement keeps
+// every pre-extension transaction byte-identical when this field is absent.
+type lifecycleRecoveryCleanupProbe struct {
+	Role       string             `json:"role"`
+	Probe      labQuiescenceProbe `json:"probe"`
+	ObservedAt time.Time          `json:"observedAt"`
+}
+type lifecycleRecoveryCleanedKernel struct {
+	Identity labKernelIdentity `json:"identity"`
+	Exit     labKernelExit     `json:"exit"`
+}
+type lifecycleRecoveryCleanupFact struct {
+	Schema             string                           `json:"schema"`
+	RecoveryID         string                           `json:"recoveryId"`
+	FailureCode        string                           `json:"failureCode"`
+	Old                lifecycleRecoveryCleanedKernel   `json:"old"`
+	New                *lifecycleRecoveryCleanedKernel  `json:"new,omitempty"`
+	Attempt            *labRecoveryStartObservation     `json:"attempt,omitempty"`
+	Probes             []lifecycleRecoveryCleanupProbe  `json:"probes"`
+	SourceReceiptSHA256 string                           `json:"sourceReceiptSHA256"`
+	ObservedAt          time.Time                        `json:"observedAt"`
+	CleanupSHA256       string                           `json:"cleanupSHA256"`
+}
+type lifecycleRecoveryReconciliation struct {
+	Schema                string                          `json:"schema"`
+	OriginalUnknownRoot   lifecycleRecoveryRootCheckpoint `json:"originalUnknownRoot"`
+	OriginalTxnUpdatedAt  time.Time                       `json:"originalTxnUpdatedAt"`
+	Cleanup               lifecycleRecoveryCleanupFact   `json:"cleanup"`
+	CommitRevision        uint64                          `json:"commitRevision"`
+	ReconciledAt          time.Time                       `json:"reconciledAt"`
+}
+
 // This typed terminal shape is structural data only. This first extension has
 // no method accepting a DTO to create it or a new head. Actual startup and
 // collector capabilities must be connected before that transition exists.
@@ -108,6 +141,7 @@ type lifecycleRecoveryTxn struct {
 	Failure          *lifecycleRecoveryFailure      `json:"failure"`
 	UpdatedAt        time.Time                      `json:"updatedAt"`
 	Execution        *lifecycleRecoveryExecution    `json:"execution,omitempty"`
+	Reconciliation   *lifecycleRecoveryReconciliation `json:"reconciliation,omitempty"`
 }
 
 func (lifecycleV3Record) String() string   { return lifecycleRecoveryDebug }
@@ -542,8 +576,10 @@ func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3Dec
 	for _, a := range w.RecoveryHistory {
 		entryContext, contextErr := planContext(a.Plan)
 		if recoveryIDs[a.Plan.RecoveryID] || contextErr != nil || validateLifecycleRecoveryTxn(a, entryContext, w.LastTrustedAt, w.Revision) != nil ||
-			(a.Execution != nil && (a.Phase != "COMPLETED" || a.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema || validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil)) ||
-			(a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED") || a.UpdatedAt.Before(histAt) {
+			(a.Execution != nil && a.Phase != "COMPLETED" && a.Phase != "FAILED_RECONCILED") ||
+			(a.Execution != nil && a.Phase == "COMPLETED" && validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil) ||
+			(a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "FAILED_RECONCILED") ||
+			(a.Phase == "FAILED_RECONCILED" && validateLifecycleRecoveryReconciliationScoped(w, a, scope) != nil) || a.UpdatedAt.Before(histAt) {
 			return errLifecycleUnsafe
 		}
 		recoveryIDs[a.Plan.RecoveryID] = true
@@ -555,17 +591,20 @@ func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3Dec
 		if contextErr != nil || validateLifecycleRecoveryTxn(a, entryContext, w.LastTrustedAt, w.Revision) != nil {
 			return errLifecycleUnsafe
 		}
-		if validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil {
+		if a.Phase != "FAILED_RECONCILED" && validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil {
 			return errLifecycleUnsafe
 		}
 		if recoveryIDs[a.Plan.RecoveryID] {
 			if len(w.RecoveryHistory) == 0 || !reflect.DeepEqual(a, w.RecoveryHistory[len(w.RecoveryHistory)-1]) {
 				return errLifecycleUnsafe
 			}
-		} else if a.Phase == "COMPLETED" || a.Phase == "REVOKED_UNSTARTED" {
+		} else if a.Phase == "COMPLETED" || a.Phase == "REVOKED_UNSTARTED" || a.Phase == "FAILED_RECONCILED" {
 			return errLifecycleUnsafe
 		}
-		if a.StopIntent != nil && a.Phase != "COMPLETED" && a.StopIntent.OwnerFence != w.LastRecoveryFence {
+		if a.Phase == "FAILED_RECONCILED" && validateLifecycleRecoveryReconciliationScoped(w, a, scope) != nil {
+			return errLifecycleUnsafe
+		}
+		if a.StopIntent != nil && a.Phase != "COMPLETED" && a.Phase != "FAILED_RECONCILED" && a.StopIntent.OwnerFence != w.LastRecoveryFence {
 			return errLifecycleUnsafe
 		}
 	}

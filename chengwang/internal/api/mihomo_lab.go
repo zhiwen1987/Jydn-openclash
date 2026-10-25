@@ -250,6 +250,10 @@ func validMihomoLabCandidates(v mihomodeploy.LabCandidateListView) bool {
 // Unrelated routes still receive their original mux and middleware behavior.
 func (s *server) mihomoLabRoutes(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == mihomoRecoveryPrefix || strings.HasPrefix(r.URL.Path, mihomoRecoveryPrefix+"/") {
+			s.mihomoRecovery(w, r)
+			return
+		}
 		if r.URL.Path != mihomoLabPrefix && !strings.HasPrefix(r.URL.Path, mihomoLabPrefix+"/") {
 			next.ServeHTTP(w, r)
 			return

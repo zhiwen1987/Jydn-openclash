@@ -23,7 +23,7 @@ WALS = ('completion-s1.private.json','completion-s2.private.json',
 OLD_V5 = {
  'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_contract.json':'74b29fb4c8c7bbc77439872ba10d56e9d8e1ba3e77d51c5c3b0cd1172510bb61',
  'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py':'b8dd29389ea5313cb0282bd4981cfcdea8b17fb290643e6d08df2d984ad75485',
- 'chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py':'2ea4cb2be33efa6dfa529e67cfd35b09afa426cb84b6d048cc4540a1ced52272',
+ 'chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py':'73ed74917b6db99e793e95aecdf8c6d969dcdcd150e70c3ca1c4a48d0239da62',
  'chengwang/internal/mihomodeploy/lab_native_recovery_linux.go':'d211a41b9f6f22065a1315968d893c7a9ac2ffa0fc192693965d9543c42734e4',
  'chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go':'04c7eaa88ac7b5172042982e7ad376f1332ed7830123dc43688daf5274650791'}
 EXPECTED = {'positive':(1,1,1,0,True,False,True),
@@ -331,8 +331,8 @@ def source_check(repo):
              'trackedSet':'ALL_GIT_HEAD_BLOBS','deliveryCount':len(DELIVERY_PATHS),
              'gitCommitRequired':True,'gitTreeRequired':True,'gitIndexMustMatchCommitTree':True,
              'workingBytesMustMatchGitBlobs':True,'oldTwentyOneSourceManifestAccepted':False})
-    exact_same(contract['completePackageTestSources'],{'previousCount':83,'candidateCount':84,
-             'ordinaryMandatoryTopLevelCount':661,'completionHarnessExcludedFromOrdinaryMandatoryNames':True})
+    exact_same(contract['completePackageTestSources'],{'previousCount':84,'candidateCount':88,
+             'ordinaryMandatoryTopLevelCount':688,'completionHarnessExcludedFromOrdinaryMandatoryNames':True})
     exact_same(contract['coldReopen'],{
         'coldReopenMatchedDiskMeaning':'POST_OPEN_DISK_EQUALS_REOPENED_STORE_RAW',
         'positive':'COMPLETED_UNCHANGED','not-committed':'START_ARMED_TO_RECOVERY_UNKNOWN',
@@ -363,8 +363,8 @@ def source_check(repo):
     need("'-run=^'+TOP+'$'" in worker and "'-timeout=105s'" in worker and
          'reconstruct_s1(s2)' in worker and 'reconstruct_s2(attempted)' in worker)
     profile = source_file(repo/'chengwang/deploy/mihomo-capacity-profile/check_profile.py',512 << 10).decode()
-    need("len(suite_test_sources)==84" in profile and "len(previous83)==83" in profile and
-         "len(names)==661" in profile and "completionHarnessExcludedFromOrdinaryMandatoryNames':True" in profile)
+    need("len(suite_test_sources)==88" in profile and "len(previous84)==84" in profile and
+         "len(names)==688" in profile and "completionHarnessExcludedFromOrdinaryMandatoryNames':True" in profile)
     for name, digest in OLD_V5.items():
         need(sha(source_file(repo/name)) == digest)
     return contract

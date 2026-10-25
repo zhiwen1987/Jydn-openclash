@@ -51,13 +51,15 @@ func lifecycleRecoveryPhaseTransition(a, b string) bool {
 	case "PLANNED":
 		return b == "APPROVED" || b == "REVOKED_UNSTARTED"
 	case "APPROVED":
-		return b == "STOP_ARMED" || b == "REVOKED_UNSTARTED"
+		return b == "STOP_ARMED" || b == "START_ARMED" || b == "REVOKED_UNSTARTED"
 	case "STOP_ARMED":
 		return b == "OLD_EPOCH_QUIESCED" || b == "RECOVERY_UNKNOWN"
 	case "OLD_EPOCH_QUIESCED":
 		return b == "START_ARMED" || b == "RECOVERY_UNKNOWN"
 	case "START_ARMED", "NEW_EPOCH_STARTED", "NEW_EPOCH_VERIFIED":
 		return b == "RECOVERY_UNKNOWN"
+	case "RECOVERY_UNKNOWN":
+		return b == "FAILED_RECONCILED"
 	default:
 		return false
 	}
@@ -160,13 +162,14 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 			return errLifecycleUnsafe
 		}
 	}
+	absent := a.Plan.Schema == labRecoveryPlanSchemaV3 && a.Plan.StartMode == labRecoveryStartModeOldEpochAbsent
 	if a.StopIntent != nil {
 		b := a.StopBinding
 		if a.Approval == nil || !lifecycleRecoveryIntentValid(a.StopIntent, a, "STOP", a.UpdatedAt) || a.StopIntent.ArmedAt.Before(a.Approval.IssuedAt) || !a.StopIntent.ArmedAt.Before(a.Approval.ExpiresAt) || b == nil ||
 			b.RecoveryID != a.Plan.RecoveryID || b.RecoveryPlanSHA256 != a.Plan.PlanSHA256 || b.StopIntentSHA256 != a.StopIntent.IntentSHA256 || b.OldEpochSHA256 != a.Plan.OldEpochSHA256 || !b.ArmedAt.Equal(a.StopIntent.ArmedAt) || !b.ExpiresAt.Equal(a.Plan.ExpiresAt) || !lifecycleRecoveryIdentityMatches(b.ExpectedOldIdentity, sourceHead) {
 			return errLifecycleUnsafe
 		}
-	} else if a.StopBinding != nil || a.Quiescence != nil || a.StartIntent != nil || a.Completion != nil || len(a.FailedQuiescence) != 0 {
+	} else if a.StopBinding != nil || a.Quiescence != nil || (!absent && a.StartIntent != nil) || a.Completion != nil || len(a.FailedQuiescence) != 0 {
 		return errLifecycleUnsafe
 	}
 	if q := a.Quiescence; q != nil {
@@ -175,7 +178,9 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 		}
 	}
 	if a.StartIntent != nil {
-		if a.Quiescence == nil || !lifecycleRecoveryIntentValid(a.StartIntent, a, "START", a.UpdatedAt) || a.StartIntent.OwnerFence != a.StopIntent.OwnerFence || a.StartIntent.ArmedAt.Before(a.Quiescence.ObservedAt) || !a.StartIntent.ArmedAt.Before(a.Approval.ExpiresAt) {
+		if a.Approval == nil || !lifecycleRecoveryIntentValid(a.StartIntent, a, "START", a.UpdatedAt) || !a.StartIntent.ArmedAt.Before(a.Approval.ExpiresAt) ||
+			(absent && (a.Quiescence != nil || a.StopIntent != nil)) ||
+			(!absent && (a.Quiescence == nil || a.StopIntent == nil || a.StartIntent.OwnerFence != a.StopIntent.OwnerFence || a.StartIntent.ArmedAt.Before(a.Quiescence.ObservedAt))) {
 			return errLifecycleUnsafe
 		}
 	}
@@ -211,11 +216,17 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 			return errLifecycleUnsafe
 		}
 	case "START_ARMED":
-		if a.StartIntent == nil || a.Revocation != nil || a.Failure != nil || a.Completion != nil {
+		if a.StartIntent == nil || a.Revocation != nil || a.Failure != nil || a.Completion != nil || (absent && (a.StopIntent != nil || a.Quiescence != nil)) {
 			return errLifecycleUnsafe
 		}
 	case "RECOVERY_UNKNOWN":
-		if a.StopIntent == nil || a.Failure == nil || a.Completion != nil {
+		if (!absent && a.StopIntent == nil) || (absent && (a.StartIntent == nil || a.StopIntent != nil || a.StopBinding != nil || a.Quiescence != nil)) ||
+			a.Failure == nil || a.Completion != nil || a.Reconciliation != nil {
+			return errLifecycleUnsafe
+		}
+	case "FAILED_RECONCILED":
+		if (!absent && a.StopIntent == nil) || (absent && (a.StartIntent == nil || a.StopIntent != nil || a.StopBinding != nil || a.Quiescence != nil)) ||
+			a.Failure == nil || a.Completion != nil || a.Reconciliation == nil || !a.UpdatedAt.Equal(a.Reconciliation.ReconciledAt) {
 			return errLifecycleUnsafe
 		}
 	case "COMPLETED":
@@ -231,6 +242,9 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 			return errLifecycleUnsafe
 		}
 	default:
+		return errLifecycleUnsafe
+	}
+	if a.Phase != "FAILED_RECONCILED" && a.Reconciliation != nil {
 		return errLifecycleUnsafe
 	}
 	return nil
@@ -256,7 +270,9 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	}
 	d := p.descriptor()
 	if d.Schema == labRecoveryPlanSchema && len(x.record.core.RetiredEpochs) != 0 ||
-		d.Schema == labRecoveryPlanSchemaV2 && (len(x.record.core.RetiredEpochs) == 0 || x.currentLive == nil) {
+		d.Schema == labRecoveryPlanSchemaV2 && (len(x.record.core.RetiredEpochs) == 0 || x.currentLive == nil) && !lifecycleRecoveryPlanReentryValid(x, p, false) ||
+		d.Schema == labRecoveryPlanSchemaV3 && (d.StartMode != labRecoveryStartModeOldEpochAbsent || p.core.store != x || p.core.reentry == nil ||
+			!lifecycleRecoveryPlanReentryValid(x, p, true)) {
 		return errLifecycleUnsafe
 	}
 	context, err := lifecycleRecoveryPlanContext(x.record.core, d)
@@ -273,7 +289,7 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 			return errLifecycleUnsafe
 		}
 	}
-	if a := x.record.core.Recovery; a != nil && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" {
+	if a := x.record.core.Recovery; a != nil && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "FAILED_RECONCILED" {
 		return errLifecycleUnsafe
 	}
 	next, err := base.copyRecord()
@@ -284,8 +300,17 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	if err := x.commitWithBase(base, next, now); err != nil {
 		return err
 	}
-	if d.Schema == labRecoveryPlanSchemaV2 {
+	if d.Schema == labRecoveryPlanSchemaV3 && lifecycleRecoveryBindAbsenceToPlan(x, p, t) != nil {
+		x.poisoned = true
+		x.absenceCustody = nil
+		x.terminalReentry = nil
+		return errLifecycleUnsafe
+	}
+	if d.Schema == labRecoveryPlanSchemaV2 || d.Schema == labRecoveryPlanSchemaV3 {
 		x.currentLive = nil
+	}
+	if p.core.reentry != nil {
+		x.terminalReentry = nil
 	}
 	return nil
 }
@@ -356,6 +381,7 @@ func (s *lifecycleRecoveryStore) revokeRecovery(t *lifecycleRecoveryOwnerToken, 
 		return err
 	}
 	x.permit = nil
+	x.absentStartPermit = nil
 	x.quiescenceSHA = ""
 	return nil
 }
@@ -395,7 +421,11 @@ func lifecycleRecoveryReserve(w *lifecycleV3Wire) error {
 	// observation are included; no later successful Start can enlarge this WAL
 	// budget. This is a size-only envelope, never a serialized physical fact.
 	a.Execution = lifecycleRecoveryStartedReserve(a)
-	a.Execution.Schema = lifecycleRecoveryVerifiedExecutionSchema
+	verifiedSchema, ok := lifecycleRecoveryStartedToVerifiedSchema(a.Execution.Schema)
+	if !ok {
+		return errLifecycleUnsafe
+	}
+	a.Execution.Schema = verifiedSchema
 	a.Execution.Verification = lifecycleRecoveryVerificationReserve(a)
 	if a.StopIntent == nil {
 		i := lifecycleRecoveryNewIntent(a, "STOP", ^uint64(0), a.Plan.ExpiresAt)
@@ -524,7 +554,9 @@ func (s *lifecycleRecoveryStore) recordRecoveryFailure(t *lifecycleRecoveryOwner
 		return err
 	}
 	a := x.record.core.Recovery
-	if a == nil || a.StopIntent == nil || a.Phase == "COMPLETED" || a.Phase == "REVOKED_UNSTARTED" || (a.Failure != nil && (observed == nil || len(a.FailedQuiescence) != 0)) {
+	absent := a != nil && a.Plan.Schema == labRecoveryPlanSchemaV3 && a.Plan.StartMode == labRecoveryStartModeOldEpochAbsent
+	if a == nil || (!absent && a.StopIntent == nil) || (absent && (a.StartIntent == nil || a.StopIntent != nil || a.StopBinding != nil || a.Quiescence != nil)) ||
+		a.Phase == "COMPLETED" || a.Phase == "REVOKED_UNSTARTED" || (a.Failure != nil && (observed == nil || len(a.FailedQuiescence) != 0)) {
 		return errLifecycleUnsafe
 	}
 	if code != "QUIESCENCE_REJECTED" && code != "SERVICE_CONTEXT_CANCELLED" && code != "AUTHORITY_CHANGED" && code != "EXPLICIT_REVOKED" && code != "EXPIRED" && code != "START_UNCERTAIN" {
@@ -547,6 +579,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryFailure(t *lifecycleRecoveryOwner
 		return err
 	}
 	x.permit = nil
+	x.absentStartPermit = nil
 	x.quiescenceSHA = ""
 	return nil
 }

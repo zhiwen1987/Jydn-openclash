@@ -1,0 +1,137 @@
+{
+  "schema": "chengwang.mihomo-native-first-completion-closed-audit/v1",
+  "outcome": "PASS_ISOLATED_FIRST_COMPLETION_FOUR_MODE_CLOSED_SET",
+  "firstReject": null,
+  "run": {
+    "id": 40226840814,
+    "name": "Chengwang Isolated Native First Completion",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "headSHA": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+    "jobs": 11,
+    "terminalSuccessJobs": 11
+  },
+  "immutableSnapshot": {
+    "path": "D:/CodexData/workspace/mihomo-4bbbe70-acceptance-3ye5h0r8/repo",
+    "headVerified": true,
+    "clean": true,
+    "trackedPathEntries": 1364,
+    "sourceTree": "bbeab59671f3caa01ad0828de73e1f20b9cae3da",
+    "indexTree": "bbeab59671f3caa01ad0828de73e1f20b9cae3da",
+    "sourceManifestSHA256": "f457f8f0992bc925bc7d0b98ce7a12ee8d492a93f602d3d7c7f7645f84a98839",
+    "sourceSetSHA256": "c569f171fe664fe1aa2333421ed22d6a64a51068ca977422076e950077fc6249",
+    "deliverySetSHA256": "ae25af062392af816228c736affd9ccf7c4afcebea3481c30c235b18eb44cfdb",
+    "policySHA256": "fd9682a24a31d4087f72490771d9a7c00b648d8a7925f4805effc49a7b3a1385",
+    "deliveryCount": 9,
+    "allTrackedWorkingBytesMatchedGitBlobs": true
+  },
+  "transport": {
+    "authenticatedGitHubMCPOnly": true,
+    "signedURLsPrintedOrPersisted": false,
+    "ghOrAnonymousRESTRetryUsed": false,
+    "allArtifactWorkflowHeadsExact": true,
+    "allArtifactsExpired": false
+  },
+  "artifacts": [
+    {"id":12611084321,"name":"candidate","bytes":3142,"sha256":"a226f9b631033469c4f98b0c97b158d79d8fee3c64e6aa90fac41a91452990fe","members":7,"expandedBytes":4192,"memberManifestSHA256":"3c41f06fe58a29244a440b9db0e05b5d7cd7ef385b2b01aa16e8b46c3d66fe3e"},
+    {"id":12611209186,"name":"positive-originals","bytes":26899,"sha256":"0805d55c9cf966f89f666155bc574a7567f2f9f544da2aed72dc2ab1bf4a520b","members":39,"expandedBytes":57396,"memberManifestSHA256":"bd2a7bbb7d521cf8d0e882e7610e7d584783b58404116cf45c210c6103e2613a"},
+    {"id":12611308855,"name":"positive-fresh","bytes":315,"sha256":"b5ec0e8fce12077d1178d2c7c88367de2c9ffe8b586e62625caacb9bfd87c388","members":1,"expandedBytes":138,"memberManifestSHA256":"883fdaa35eff4d7320f11e46c0dc4f231c20393c98f17ae68592a110796b7b8c"},
+    {"id":12611024446,"name":"not-committed-originals","bytes":27269,"sha256":"b80b6ece6132777d7b294f5ded8435134d4ffd4903e64228b9659bafab1a0007","members":39,"expandedBytes":57350,"memberManifestSHA256":"5134717515bb75e90ef176fd88ce01f64a049ebc72ff7b846d31937745bc89bd"},
+    {"id":12611239171,"name":"not-committed-fresh","bytes":329,"sha256":"4da5124418012aff77f47d4f1b95dc51b6a08eb9a4c3540b290e049288e8fa03","members":1,"expandedBytes":143,"memberManifestSHA256":"02b457b5ded4a989ed0dc6bdfcd969829f5c1cf4b099cc1681861aed9f33143b"},
+    {"id":12611433627,"name":"unknown-originals","bytes":26827,"sha256":"50e6047d712430948609a5a188601b61b90c8f7aebc1d968f8041fd5c73972ae","members":39,"expandedBytes":57389,"memberManifestSHA256":"b767c9eaaeeb347b4b259625c6d940df08a0b51ce46a29787eb31aea5b22f267"},
+    {"id":12611880576,"name":"unknown-fresh","bytes":312,"sha256":"5a3b41a61e04e74f210960a16f7a4c27725a478186b9da980dcec1c2eabc2aef","members":1,"expandedBytes":137,"memberManifestSHA256":"af72e9400433315bfebc409af584f51eab8ad54cee08ddc3b9fecd1bb21a981c"},
+    {"id":12611303967,"name":"readback-originals","bytes":26904,"sha256":"a659172ea4b37a9617da33097f620d48d8fbcc8eabc936b56906f4b1d9712878","members":39,"expandedBytes":57391,"memberManifestSHA256":"a22944107ae5964748c9e29bfe3a07de17a2d26e5666d7a0276ded732a0895b8"},
+    {"id":12611039571,"name":"readback-fresh","bytes":314,"sha256":"854e214a18dd091e59eb5f5ae3e63b8e79135a75cc3e9a5c9772f3a0a0de2d2e","members":1,"expandedBytes":138,"memberManifestSHA256":"3d22af628c1380050bc064f71df3cbc603357746438a2f693ff0eae8a89e939f"}
+  ],
+  "zipAudit": {
+    "artifacts": 9,
+    "members": 167,
+    "allMemberManifestSHA256": "ab8556b10416be6a1590e61fa545aa43d44f797655ee30580fa463f90c7d96de",
+    "fullReadAndCRC32Passed": true,
+    "duplicateOrEmptyNames": 0,
+    "absoluteParentBackslashOrDotPaths": 0,
+    "symlinks": 0,
+    "encryptedMembers": 0,
+    "overwriteDuringExtraction": false
+  },
+  "checkerReplay": {
+    "checker": "chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py",
+    "mainFunctionDirectlyReplayed": true,
+    "platformAdapterUsed": false,
+    "diagnosticCopyUsed": false,
+    "modesAccepted": ["positive","not-committed","unknown","readback"],
+    "sourceBindingRecomputed": true,
+    "privateManifestRecomputed": true,
+    "sourceContractRechecked": true,
+    "reportCheckReplayed": true,
+    "walEvidenceReplayed": true,
+    "goTerminalReplayed": true,
+    "commandReceiptsReplayed": true,
+    "sandboxAndExecutionExactnessReplayed": true,
+    "emptyStreamGatesReplayed": true
+  },
+  "sharedCrossChecks": {
+    "candidateAcquisitionEqualsAllFourModeCopies": true,
+    "producerVerificationEqualsFreshForAllModes": true,
+    "sandboxUID": 10001,
+    "sandboxGID": 10001,
+    "effectiveCaps": "0000000000000000",
+    "noNewPrivileges": true,
+    "interfaces": ["lo"],
+    "sourceReadOnly": true,
+    "goReadOnly": true,
+    "commandClasses": ["SANDBOX","GO_VERSION","GOFMT","GO_TEST"],
+    "commandTimeoutSeconds": [30,15,30,120],
+    "commandCwd": "/tmp/mihomo-apply-source",
+    "processEventsPerMode": 16,
+    "processEventShape": ["START_INTENT","STARTED","REFERENCE_ACQUIRED","WAIT_RETURNED"],
+    "pidfdAcquiredBeforeWaitForAllCommands": true,
+    "allCommandExitCodesZero": true,
+    "formatPatchBytesPerMode": 0,
+    "formatStderrBytesPerMode": 0,
+    "completionStderrBytesPerMode": 0,
+    "nativeCallsPerMode": 19,
+    "nativePrefixCountPerMode": 14,
+    "walIndexEntriesPerMode": 4,
+    "fsyncEntriesPerMode": 10,
+    "directoryFsyncObserved": true,
+    "closedPorts": [28411,28412,28413,28414,28415],
+    "cleanupProbeResults": "ALL_CONNECTION_REFUSED",
+    "fixtureCleanupRoles": ["origin","A","B"],
+    "runtimeClosed": true,
+    "diskOwnerClosed": true
+  },
+  "modes": {
+    "positive": {
+      "goTestOutcome":"PASS","goTestElapsedSeconds":10.77,"originalFreshSHA256":"a5b63f612751137a1f22cae91b88e63c9757dca78cee8b25eeed7c6b0800fc76",
+      "replaceAttempts":1,"forwardedWrites":1,"postWriteReads":1,"injectedReads":0,"underlyingCommitted":true,"recordReturnedError":false,"runtimeAdopted":true,"handoffReturned":true,"storePoisoned":false,"diskPhase":"COMPLETED","reopenTransition":"COMPLETED_UNCHANGED","retiredEpochCount":1,"recoveryHistoryCount":1,"newHeadPresent":true
+    },
+    "not-committed": {
+      "goTestOutcome":"PASS","goTestElapsedSeconds":10.91,"originalFreshSHA256":"589822b89518454e313f5b841c68fd3a4b837f1386bdf64aa38884d35dcfaea6",
+      "replaceAttempts":1,"forwardedWrites":0,"postWriteReads":0,"injectedReads":0,"underlyingCommitted":false,"recordReturnedError":true,"runtimeAdopted":false,"handoffReturned":false,"storePoisoned":true,"diskPhase":"START_ARMED","reopenTransition":"START_ARMED_TO_RECOVERY_UNKNOWN","retiredEpochCount":0,"recoveryHistoryCount":0,"newHeadPresent":false
+    },
+    "unknown": {
+      "goTestOutcome":"PASS","goTestElapsedSeconds":10.92,"originalFreshSHA256":"5d90be22fa95a159bd9d40698ac17bf9edca0f545e72bfeee73855b8c4366fb0",
+      "replaceAttempts":1,"forwardedWrites":1,"postWriteReads":0,"injectedReads":0,"underlyingCommitted":true,"recordReturnedError":true,"runtimeAdopted":false,"handoffReturned":false,"storePoisoned":true,"diskPhase":"COMPLETED","reopenTransition":"COMPLETED_UNCHANGED","retiredEpochCount":1,"recoveryHistoryCount":1,"newHeadPresent":true
+    },
+    "readback": {
+      "goTestOutcome":"PASS","goTestElapsedSeconds":7.76,"originalFreshSHA256":"860fb666a976864579b80a3d2bb12d37488291a2dcd1d342ef045f5b6604eb19",
+      "replaceAttempts":1,"forwardedWrites":1,"postWriteReads":1,"injectedReads":1,"underlyingCommitted":true,"recordReturnedError":true,"runtimeAdopted":false,"handoffReturned":false,"storePoisoned":true,"diskPhase":"COMPLETED","reopenTransition":"COMPLETED_UNCHANGED","retiredEpochCount":1,"recoveryHistoryCount":1,"newHeadPresent":true
+    }
+  },
+  "scopeBoundaries": {
+    "isolatedActualFirstCompletionFourModeAccepted": true,
+    "realMihomoOldAndNewKernelProcessesObserved": true,
+    "fullPrivateWALIndependentlyProven": false,
+    "privateWALRecheckedInProducerAndBoundByIndexAndFsyncReceipts": true,
+    "serviceRebindProven": false,
+    "apiRouteProven": false,
+    "ordinaryPublishProven": false,
+    "secondRecoveryProven": false,
+    "wholeCIProvenByTheseNineArtifacts": false,
+    "production": false,
+    "mainChanged": false,
+    "localGoNativeOrGofmtExecutedByAuditor": false
+  }
+}

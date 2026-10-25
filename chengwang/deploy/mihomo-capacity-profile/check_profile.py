@@ -31,7 +31,37 @@ FULL_FMT=[*CAPACITY_FMT,
     'internal/mihomodeploy/lifecycle_current_epoch_test.go',
     'internal/mihomodeploy/lab_current_epoch_runtime.go',
     'internal/mihomodeploy/lab_current_epoch_runtime_test.go']
-FULL_REQUIRED_PIN='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
+FULL_REQUIRED_PIN='b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280'
+FULL_PREVIOUS_661_PIN='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
+FULL_CORE_D_ADDED=frozenset({
+    'chengwang/internal/api::TestMihomoRecoveryAPIInspectExposesOnlyBoundedFailureExitMODEL',
+    'chengwang/internal/api::TestMihomoRecoveryAPIInspectExposesReconciledFreshCreateExitMODEL',
+    'chengwang/internal/api::TestMihomoRecoveryAPIInspectRemainsReadOnlyAndFailureStatusIsStrictMODEL',
+    'chengwang/internal/api::TestMihomoRecoveryAPIMutatingSuccessAndReplayAlwaysReportChangedMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryCaptureNamespaceIsDistinctAndSourceDerivedMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryCleanupCustodyCannotSerializeOrSurviveMutationMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryCleanupIssuerDiscardIsExactAtomicAndReleasesGraphMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryOwnerExpiryReplacementRejectsOldTokenAndPreservesHistoryMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryPhysicalFailureStagesExposeBoundedInspectExitMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryReconcileAuthenticatesBeforeBusyOrExecutingConflictMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryReconciliationRetryRetainsCustodyOnceAndThenLocksMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryRecordContextCoversRecordAndCancelsAfterReturnMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryRevokedFirstPlanBeginsFreshV1WithoutFacadeMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryStaleAuthorizedCheckCannotSpendAttemptMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryTerminalPrePermitFailureAndCloseDiscardUnclaimedCustodyMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryUnstartedCleanupConsumesActualLinuxStartFailureOnce',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryUnstartedCleanupCustodyIsAtomicOneUseForNormalAndAbsentMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryUnstartedCleanupRejectsProcessUnknownAndUnjoinedMODEL',
+    'chengwang/internal/mihomodeploy::TestLabRecoveryWithoutFacadeNeverDowngradesOrBypassesV2CurrentOwnerMODEL',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryAbsentCleanupRequiresPersistedSourceIdentity',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryAbsentExecutionSchemaPairsAreClosed',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileCompatibilityAndAuthorityNegatives',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveRejectsFullHistoryBeforeAction',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconciledStrictlyRestoresOriginalUnknown',
+})
 FULL_OLD_660_PIN='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
 FULL_PREVIOUS_647_PIN='1e7db484a7eb5485b06037bd3ee1fb443201ab46799c17fefba9bcba9b0cca94'
 FULL_PREVIOUS_635_PIN='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
@@ -254,7 +284,7 @@ def load_normal_checker(sources=None):
     if sources is not None:need(type(sources)is dict and sources.get(NORMAL_CHECKER)==code)
     module=types.ModuleType('_actual_bound_normal_contract_checker');module.__file__=str(path)
     exec(compile(code,str(path),'exec'),module.__dict__)
-    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==140 and len(module.TEST_FILES)==54)
+    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==150 and len(module.TEST_FILES)==58)
     return module
 
 def full_source_contract(sources,manifest):
@@ -264,12 +294,15 @@ def full_source_contract(sources,manifest):
     need(all(path in files and files[path]['sha256']==sha(raw) and files[path]['bytes']==len(raw)for path,raw in sources.items()))
     required=checker.required_names(sources)
     names=sorted(package+'::'+name for package,items in required.items()for name in items)
-    need(set(required)==checker.PACKAGES and len(names)==661 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
-    need(len(FULL_LOCK_ORDER_ADDED)==1 and FULL_LOCK_ORDER_ADDED.issubset(names))
-    previous660=sorted(set(names)-FULL_LOCK_ORDER_ADDED)
+    need(set(required)==checker.PACKAGES and len(names)==688 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
+    need(len(FULL_CORE_D_ADDED)==27 and FULL_CORE_D_ADDED.issubset(names))
+    previous661=sorted(set(names)-FULL_CORE_D_ADDED)
+    need(len(previous661)==661 and sha('\n'.join(previous661).encode())==FULL_PREVIOUS_661_PIN)
+    need(len(FULL_LOCK_ORDER_ADDED)==1 and FULL_LOCK_ORDER_ADDED.issubset(previous661))
+    previous660=sorted(set(previous661)-FULL_LOCK_ORDER_ADDED)
     need(len(previous660)==660 and sha('\n'.join(previous660).encode())==FULL_OLD_660_PIN)
     need(len(FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED)==14 and FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED.issubset(names))
-    previous647=sorted(set(names)-FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED)
+    previous647=sorted(set(previous661)-FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED)
     need(len(previous647)==647 and sha('\n'.join(previous647).encode())==FULL_PREVIOUS_647_PIN)
     need(FULL_RECOVERY_COMPLETION_CURRENT_ADDED.issubset(names))
     need(not FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED.intersection(FULL_RECOVERY_COMPLETION_CURRENT_ADDED))
@@ -312,28 +345,35 @@ def full_source_contract(sources,manifest):
         need(re.search(r'\bfunc\s+(?:Example|Fuzz)\w*\s*\(',masked)is None)
         suite_test_sources[path]=sha(data)
     completion_source='chengwang/internal/mihomodeploy/lab_native_completion_linux_test.go'
-    need(completion_source in suite_test_sources and len(suite_test_sources)==84 and
+    core_d_test_sources={
+        'chengwang/internal/api/mihomo_recovery_test.go',
+        'chengwang/internal/mihomodeploy/lab_recovery_backend_test.go',
+        'chengwang/internal/mihomodeploy/lab_recovery_unstarted_cleanup_linux_test.go',
+        'chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile_test.go',
+    }
+    need(completion_source in suite_test_sources and len(suite_test_sources)==88 and
+         core_d_test_sources.issubset(suite_test_sources) and completion_source not in dict(checker.TEST_FILES) and
          all(any(p.rsplit('/',1)[0]==directory for p in suite_test_sources)for directory in package_dirs))
-    # Preserve the previously accepted complete 83-source set explicitly.  The
+    # Preserve the previously accepted complete 84-source set explicitly.  The
     # four-tag Completion harness is source-bound but intentionally excluded
-    # from the unchanged ordinary six-package mandatory-name set below.
-    previous83={path:digest for path,digest in suite_test_sources.items()if path!=completion_source}
-    need(len(previous83)==83)
+    # from ordinary mandatory names, while the four core+D sources are new.
+    previous84={path:digest for path,digest in suite_test_sources.items()if path not in core_d_test_sources}
+    need(len(previous84)==84 and completion_source in previous84)
     # Bind the diagnosis's six-package command to the unchanged normal race
     # command, allowing only the fixed diagnostic tag and test filter.
     normal='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)+' > "$out/race.json" 2> "$out/race.stderr"'
     need(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh'].decode().splitlines().count(normal)==1)
-    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':661,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
+    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':688,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,
-        'previousCompletePackageTestSourceCount':len(previous83),'previousCompletePackageTestSourceSHA256':previous83,
+        'previousCompletePackageTestSourceCount':len(previous84),'previousCompletePackageTestSourceSHA256':previous84,
         'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
         'noExampleOrFuzzDeclarationInBoundSixPackageTestSources':True}
 
 def full_events(raw,required,checker,go_exit,stderr=b''):
     # Diagnostic partial-reader: accept coherent failed/unfinished originals,
     # never translate them into C.events acceptance. Extra legitimate top or
-    # subtests are allowed just as in the original checker; 661 is a subset.
+    # subtests are allowed just as in the original checker; 688 is a subset.
     need(type(raw)is bytes and 0<len(raw)<=64<<20 and type(stderr)is bytes and integer(go_exit,-128,255))
     packages=checker.PACKAGES;begun=set();terminals={};states={};outputs={p:[]for p in packages}
     for line in raw.splitlines():
@@ -364,12 +404,12 @@ def full_events(raw,required,checker,go_exit,stderr=b''):
         for name in items:
             state=states.get((package,name));bucket={'pass':'passed','fail':'failed','skip':'skipped','run':'unfinished','pause':'unfinished',None:'notStarted'}[state]
             required_sets[bucket].append(package+'::'+name)
-    need(sum(map(len,required_sets.values()))==661)
+    need(sum(map(len,required_sets.values()))==688)
     for items in required_sets.values():items.sort()
     unfinished=sorted(p+'::'+n for (p,n),state in states.items()if state in ('run','pause'));need(len(unfinished)<=4096)
     failed=sorted(p+'::'+n for (p,n),state in states.items()if state=='fail');need(len(failed)<=4096)
     skipped=sorted(p+'::'+n for (p,n),state in states.items()if state=='skip');need(len(skipped)<=4096)
-    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==661
+    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==688
     strict=None
     if structurally_complete:strict=checker.events(raw,required) # actual original strict gate, no exception-to-pass adapter
     if go_exit==0:need(begun==packages and set(terminals)==packages and all(v in ('pass','skip')for v in terminals.values()) and all(v in ('pass','skip')for v in states.values()))

@@ -39,7 +39,7 @@ type labRecoveryVerifiedCustody struct {
 func (c *labRecoveryVerifiedCustody) matches(x *lifecycleRecoveryStoreCore) bool {
 	if c == nil || x == nil || c.binding == nil || !c.binding(c, x) || x.retainedVerified != c || x.closed || x.poisoned || x.live != c.owner ||
 		!lifecycleRecoverySameDisk(x.disk, c.disk) || string(x.raw) != c.canonical || x.record.core == nil || x.record.core.Recovery == nil ||
-		x.record.core.Recovery.Execution == nil || x.record.core.Recovery.Execution.Schema != lifecycleRecoveryVerifiedExecutionSchema ||
+		x.record.core.Recovery.Execution == nil || !lifecycleRecoveryExecutionVerifiedSchema(x.record.core.Recovery.Execution.Schema) ||
 		x.record.core.Recovery.Execution.Verification == nil || x.record.core.Recovery.Execution.CompletionSource != nil {
 		return false
 	}
@@ -140,7 +140,7 @@ func (a *labRecoveryAuthority) authorizeComplete(headers []string, h *labRecover
 	x := s.store.core
 	q := x.retainedVerified
 	if active.Phase != "START_ARMED" || active.Completion != nil || active.Failure != nil || active.Revocation != nil || active.Execution == nil ||
-		active.Execution.Schema != lifecycleRecoveryVerifiedExecutionSchema || active.Execution.Verification == nil || active.Execution.CompletionSource != nil ||
+		!lifecycleRecoveryExecutionVerifiedSchema(active.Execution.Schema) || active.Execution.Verification == nil || active.Execution.CompletionSource != nil ||
 		q == nil || !q.matches(x) || expected != nil && expected != q || now.Before(active.Execution.Verification.RecordedAt) ||
 		!now.Before(active.Execution.Verification.Observation.Deadline) {
 		return fail()
@@ -241,7 +241,7 @@ func (c *labRecoveryCollector) completionCap(ctx context.Context, headers []stri
 }
 
 func lifecycleRecoveryCompletionSourceValid(a lifecycleRecoveryTxn, at time.Time, revision uint64) bool {
-	if a.Execution == nil || a.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema || a.Execution.Verification == nil || a.Execution.CompletionSource == nil || a.Completion == nil {
+	if a.Execution == nil || !lifecycleRecoveryExecutionCompletedSchema(a.Execution.Schema) || a.Execution.Verification == nil || a.Execution.CompletionSource == nil || a.Completion == nil {
 		return false
 	}
 	s := a.Execution.CompletionSource
@@ -331,7 +331,8 @@ func (x *lifecycleRecoveryStoreCore) completionRecordTransition(base *lifecycleV
 		return false
 	}
 	p.transitionAttempted = true
-	if next.core.Recovery.Phase != "COMPLETED" || next.core.Recovery.Execution == nil || next.core.Recovery.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema {
+	if next.core.Recovery.Phase != "COMPLETED" || next.core.Recovery.Execution == nil ||
+		!lifecycleRecoveryExecutionCompletedSchema(next.core.Recovery.Execution.Schema) {
 		return false
 	}
 	preimage, err := x.completionPublicationPreimage(base, next)
@@ -485,7 +486,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryCompletion(t *lifecycleRecoveryOw
 	}
 	a := source.core.Recovery
 	if a.Phase != "START_ARMED" || a.Completion != nil || a.Failure != nil || a.Revocation != nil || a.Execution == nil ||
-		a.Execution.Schema != lifecycleRecoveryVerifiedExecutionSchema || a.Execution.Verification == nil || a.Execution.CompletionSource != nil ||
+		!lifecycleRecoveryExecutionVerifiedSchema(a.Execution.Schema) || a.Execution.Verification == nil || a.Execution.CompletionSource != nil ||
 		now.Before(a.Execution.Verification.RecordedAt) {
 		return nil, errLifecycleUnsafe
 	}
@@ -499,7 +500,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryCompletion(t *lifecycleRecoveryOw
 		return nil, errLifecycleUnsafe
 	}
 	b := next.core.Recovery
-	b.Execution.Schema = lifecycleRecoveryCompletedExecutionSchema
+	completedSchema, ok := lifecycleRecoveryVerifiedToCompletedSchema(b.Execution.Schema)
+	if !ok {
+		return nil, errLifecycleUnsafe
+	}
+	b.Execution.Schema = completedSchema
 	b.Execution.CompletionSource = &lifecycleRecoveryCompletionSource{Schema: lifecycleRecoveryCompletionSourceSchema, Root: checkpoint, CommitDeadline: core.deadline}
 	previous := next.core.Current.Head
 	observation := b.Execution.Verification.Observation

@@ -421,6 +421,64 @@ func TestLabRecoveryAuthorityLateFactsNeverAuthorizeStart(t *testing.T) {
 	}
 }
 
+func TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		headers string
+		allow   bool
+	}{
+		{"exact-initiator", "initiator", true},
+		{"same-scope-admin-not-owner", "executor", false},
+		{"wrong-role", "viewer", false},
+		{"foreign-scope-admin", "outsider", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := labRecoveryAuthorityTestModel(t)
+			m.approve(t)
+			if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
+				t.Fatal("MODEL durable UNKNOWN")
+			}
+			before := m.disk.writes
+			check, err := m.a.authorizeReconcile(m.f.headers[tc.headers], m.session, m.f.now)
+			if tc.allow {
+				if err != nil || check.core == nil || check.core.actorRef != m.plan.descriptor().DeclaredInitiatorRef ||
+					check.core.intentSHA256 != "START_UNCERTAIN" {
+					t.Fatal("fresh exact initiator Prepare authorization rejected")
+				}
+			} else if err == nil || check.core != nil {
+				t.Fatal("foreign or unauthorized reconciliation caller accepted")
+			}
+			if m.disk.writes != before {
+				t.Fatal("reconciliation authorization wrote WAL or spent a capability")
+			}
+		})
+	}
+
+	t.Run("copied-session", func(t *testing.T) {
+		m := labRecoveryAuthorityTestModel(t)
+		m.approve(t)
+		if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
+			t.Fatal("MODEL durable UNKNOWN")
+		}
+		copied := *m.session
+		if check, err := m.a.authorizeReconcile(m.f.headers["initiator"], &copied, m.f.now); err == nil || check.core != nil {
+			t.Fatal("copied recovery session authorized reconciliation")
+		}
+	})
+
+	t.Run("revoked-initiator-snapshot", func(t *testing.T) {
+		m := labRecoveryAuthorityTestModel(t)
+		m.approve(t)
+		if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
+			t.Fatal("MODEL durable UNKNOWN")
+		}
+		m.f.edit(t, "initiator", func(i *authn.Identity) { i.Principal.Roles = []authz.Role{authz.RoleViewer} })
+		if check, err := m.a.authorizeReconcile(m.f.headers["initiator"], m.session, m.f.now); err == nil || check.core != nil {
+			t.Fatal("revoked initiator snapshot authorized reconciliation")
+		}
+	})
+}
+
 func TestLabRecoveryAuthorityExpiredOrRevokedApprovalCannotAuthorizeStep(t *testing.T) {
 	for _, kind := range []string{"expired", "revoked"} {
 		m := labRecoveryAuthorityTestModel(t)

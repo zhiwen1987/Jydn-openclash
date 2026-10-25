@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const labDiagnosticsPath = "/tmp/chengwang-mihomo-service-private"
@@ -43,7 +44,7 @@ func labDiagnosticName(name string) bool {
 		return true
 	}
 	parts := strings.Split(name, "/")
-	if len(parts) == 2 && parts[0] == "recovery-s2" {
+	if len(parts) == 2 && (parts[0] == labRecoveryCaptureStage || labRecoveryCaptureNamespaceValid(parts[0])) {
 		return labCaptureBase(parts[1]) || parts[1] == "local-marker.json"
 	}
 	if len(parts) == 2 && parts[0] == "bootstrap" {
@@ -61,8 +62,34 @@ func labDiagnosticName(name string) bool {
 	}
 	return (parts[1] == "create" || parts[1] == "pre-dispatch" || parts[1] == "post-dispatch") && labCaptureBase(parts[2])
 }
+
+func labRecoveryCaptureNamespaceValid(stage string) bool {
+	const prefix = "recovery-s2-"
+	if len(stage) != len(prefix)+32 || !strings.HasPrefix(stage, prefix) {
+		return false
+	}
+	for _, r := range stage[len(prefix):] {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+func labRecoveryCaptureNamespace(recoveryID string) (string, error) {
+	if !labRecoveryID.MatchString(recoveryID) {
+		return "", errLabDiagnostics
+	}
+	stage := "recovery-s2-" + recoveryID[len("labrec_"):]
+	if !labRecoveryCaptureNamespaceValid(stage) {
+		return "", errLabDiagnostics
+	}
+	return stage, nil
+}
 func labCaptureBase(s string) bool {
-	if s == "transcript.json" || s == "verification.json" {
+	if s == "transcript.json" || s == "verification.json" || s == "failure-cleanup.json" ||
+		s == "failure-old.stdout" || s == "failure-old.stderr" ||
+		s == "failure-new.stdout" || s == "failure-new.stderr" {
 		return true
 	}
 	for i := 1; i <= 8; i++ {
@@ -71,6 +98,139 @@ func labCaptureBase(s string) bool {
 		}
 	}
 	return false
+}
+
+// recoveryCleanup preserves the actual stop observation and exact bounded
+// stream bytes under this recovery's source-derived namespace. The returned
+// digest identifies those canonical receipt bytes; it is status evidence, not
+// permission to reconcile a WAL transaction or start another kernel.
+func (d *labServiceDiagnostics) recoveryCleanup(stage, recoveryID, code string, observedAt time.Time,
+	oldIdentity labKernelIdentity, oldExit labKernelExit, oldStdout, oldStderr []byte,
+	newIdentity *labKernelIdentity, newExit *labKernelExit, newStdout, newStderr []byte,
+	unstarted *labRecoveryUnstartedCleanupReceipt, probes [4]labRecoveryCleanupProbe, settled bool) (string, []byte, error) {
+	if d == nil || d.core == nil || !labRecoveryCaptureNamespaceValid(stage) ||
+		!labRecoveryID.MatchString(recoveryID) || stage != "recovery-s2-"+recoveryID[len("labrec_"):] ||
+		!lifecycleTime(observedAt) || !labQuiescenceIdentityValid(oldIdentity) ||
+		!labRecoveryCleanupStreamSnapshotMatches(oldExit.Stdout, oldStdout) || !labRecoveryCleanupStreamSnapshotMatches(oldExit.Stderr, oldStderr) ||
+		(code != "QUIESCENCE_REJECTED" && code != "SERVICE_CONTEXT_CANCELLED" && code != "AUTHORITY_CHANGED" && code != "START_UNCERTAIN") {
+		return "", nil, errLabDiagnostics
+	}
+	if settled && !labQuiescenceExitDrained(oldExit) {
+		return "", nil, errLabDiagnostics
+	}
+	if newExit == nil {
+		if newIdentity != nil {
+			return "", nil, errLabDiagnostics
+		}
+		if unstarted == nil && (len(newStdout) != 0 || len(newStderr) != 0) {
+			return "", nil, errLabDiagnostics
+		}
+		if unstarted != nil && (!labRecoveryUnstartedCleanupReceiptValid(*unstarted) ||
+			!labRecoveryCleanupStreamSnapshotMatches(unstarted.Stdout, newStdout) ||
+			!labRecoveryCleanupStreamSnapshotMatches(unstarted.Stderr, newStderr)) {
+			return "", nil, errLabDiagnostics
+		}
+	} else if unstarted != nil || (newIdentity != nil && !labQuiescenceIdentityValid(*newIdentity)) ||
+		!labRecoveryCleanupStreamSnapshotMatches(newExit.Stdout, newStdout) || !labRecoveryCleanupStreamSnapshotMatches(newExit.Stderr, newStderr) ||
+		(settled && !labQuiescenceExitDrained(*newExit)) {
+		return "", nil, errLabDiagnostics
+	}
+	roles := [4]string{"OLD_CONTROLLER", "OLD_MIXED", "NEW_CONTROLLER", "NEW_MIXED"}
+	ports := [4]uint16{oldIdentity.ControllerPort, oldIdentity.MixedPort, oldIdentity.ControllerPort, oldIdentity.MixedPort}
+	last := time.Time{}
+	for i := range probes {
+		p := probes[i]
+		if p.Role != roles[i] || !lifecycleTime(p.ObservedAt) || p.ObservedAt.After(observedAt) ||
+			(!last.IsZero() && p.ObservedAt.Before(last)) || p.Probe.Port != ports[i] || !p.Probe.Attempted ||
+			!labRecoveryCleanupProbeResult(p.Probe.Result) || (settled && p.Probe.Result != "CONNECTION_REFUSED") {
+			return "", nil, errLabDiagnostics
+		}
+		last = p.ObservedAt
+	}
+	type cleanupReceipt struct {
+		Schema      string                    `json:"schema"`
+		RecoveryID  string                    `json:"recoveryId"`
+		FailureCode string                    `json:"failureCode"`
+		OldIdentity labKernelIdentity         `json:"oldIdentity"`
+		OldExit     labKernelExit             `json:"oldExit"`
+		NewIdentity *labKernelIdentity        `json:"newIdentity,omitempty"`
+		NewExit     *labKernelExit            `json:"newExit,omitempty"`
+		UnstartedNew *labRecoveryUnstartedCleanupReceipt `json:"unstartedNew,omitempty"`
+		Probes      [4]labRecoveryCleanupProbe `json:"probes"`
+		OldStdoutRetainedSHA256 string          `json:"oldStdoutRetainedSHA256"`
+		OldStderrRetainedSHA256 string          `json:"oldStderrRetainedSHA256"`
+		NewStdoutRetainedSHA256 string          `json:"newStdoutRetainedSHA256,omitempty"`
+		NewStderrRetainedSHA256 string          `json:"newStderrRetainedSHA256,omitempty"`
+		Settled     bool                      `json:"settled"`
+		ObservedAt  time.Time                 `json:"observedAt"`
+	}
+	newStdoutRetainedSHA256, newStderrRetainedSHA256 := "", ""
+	if newExit != nil || unstarted != nil {
+		newStdoutRetainedSHA256, newStderrRetainedSHA256 = labConfigHash(newStdout), labConfigHash(newStderr)
+	}
+	schema := "chengwang.mihomo-recovery-kernel-cleanup/v2"
+	if unstarted != nil {
+		schema = "chengwang.mihomo-recovery-kernel-cleanup/v3"
+	}
+	receipt := cleanupReceipt{Schema: schema, RecoveryID: recoveryID, FailureCode: code,
+		OldIdentity: oldIdentity, OldExit: labQuiescenceCloneExit(oldExit), NewIdentity: newIdentity, NewExit: newExit, UnstartedNew: unstarted, Probes: probes,
+		OldStdoutRetainedSHA256: labConfigHash(oldStdout), OldStderrRetainedSHA256: labConfigHash(oldStderr),
+		NewStdoutRetainedSHA256: newStdoutRetainedSHA256, NewStderrRetainedSHA256: newStderrRetainedSHA256,
+		Settled: settled, ObservedAt: observedAt}
+	raw, err := json.Marshal(receipt)
+	if err != nil {
+		return "", nil, errLabDiagnostics
+	}
+	digest := labConfigHash(raw)
+	if d.write(stage+"/failure-old.stdout", oldStdout) != nil ||
+		d.write(stage+"/failure-old.stderr", oldStderr) != nil {
+		return digest, raw, errLabDiagnostics
+	}
+	if (newExit != nil || unstarted != nil) && (d.write(stage+"/failure-new.stdout", newStdout) != nil ||
+		d.write(stage+"/failure-new.stderr", newStderr) != nil) {
+		return digest, raw, errLabDiagnostics
+	}
+	if d.write(stage+"/failure-cleanup.json", raw) != nil {
+		return digest, raw, errLabDiagnostics
+	}
+	return digest, raw, nil
+}
+
+func labRecoveryUnstartedCleanupReceiptValid(v labRecoveryUnstartedCleanupReceipt) bool {
+	o := v.Observation
+	return v.Schema == labRecoveryUnstartedCleanupSchema && lifecycleTime(v.ObservedAt) &&
+		o.Started != nil && !*o.Started && o.PID == nil && o.StartTicks == nil &&
+		o.WaitReturned != nil && !*o.WaitReturned && o.WaitErrorClass == "NOT_WAITED" &&
+		o.ExitCode == nil && o.Signal == nil && o.TermSent == nil && o.KillSent == nil && o.GroupAbsent == nil &&
+		(o.Stdout == nil) == (o.Stderr == nil) &&
+		(o.Stdout == nil || (*o.Stdout == v.Stdout && *o.Stderr == v.Stderr))
+}
+
+func labRecoveryCleanupStreamMatches(stream labKernelStream, raw []byte) bool {
+	if len(raw) > 64<<10 || stream.Bytes != len(raw) || !lifecycleNonzeroHash(stream.SHA256) {
+		return false
+	}
+	if stream.Truncated {
+		// SHA256 is over the completely drained stream, whereas raw is its fixed
+		// retained prefix. Exact prefix bytes are independently hashed in the
+		// source receipt; the owned writer supplied both values in one snapshot.
+		return len(raw) == 64<<10 && stream.TotalBytes > int64(len(raw))
+	}
+	return stream.TotalBytes == int64(len(raw)) && labConfigHash(raw) == stream.SHA256
+}
+
+func labRecoveryCleanupStreamSnapshotMatches(stream labKernelStream, raw []byte) bool {
+	if len(raw) > 64<<10 || stream.Bytes != len(raw) || !lifecycleNonzeroHash(stream.SHA256) {
+		return false
+	}
+	if stream.Truncated {
+		return len(raw) == 64<<10 && stream.TotalBytes > int64(len(raw))
+	}
+	return stream.TotalBytes == int64(len(raw)) && labConfigHash(raw) == stream.SHA256
+}
+
+func labRecoveryCleanupProbeResult(result string) bool {
+	return result == "CONNECTION_REFUSED" || result == "CONNECTION_ACCEPTED" || result == "CONTEXT_REJECTED" || result == "TIMEOUT" || result == "OTHER"
 }
 func openLabServiceDiagnostics() (*labServiceDiagnostics, error) {
 	p, err := openLabDiagnosticsPlatform()

@@ -51,6 +51,8 @@ type Options struct {
 	SubscriptionWritesEnabled bool
 	MihomoLab                 mihomodeploy.LabBackend
 	MihomoLabWritesEnabled    bool
+	MihomoRecoveries          mihomodeploy.LabRecoveryBackend
+	MihomoRecoveryWritesEnabled bool
 }
 
 type MihomoReader interface {
@@ -90,6 +92,7 @@ type server struct {
 	imageTrustScope   authz.ResourceScope
 	subscriptionScope authz.ResourceScope
 	mihomoLabScope    authz.ResourceScope
+	mihomoRecoveryScope authz.ResourceScope
 }
 
 func New(options Options) http.Handler {
@@ -112,6 +115,11 @@ func New(options Options) http.Handler {
 		s.mihomoLabScope = options.MihomoLab.Scope()
 	} else {
 		s.options.MihomoLab = nil
+	}
+	if !nilSubscriptionInterface(options.MihomoRecoveries) {
+		s.mihomoRecoveryScope = options.MihomoRecoveries.Scope()
+	} else {
+		s.options.MihomoRecoveries = nil
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", s.health)

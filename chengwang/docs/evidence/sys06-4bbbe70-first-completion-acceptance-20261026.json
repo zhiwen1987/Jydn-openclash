@@ -1,0 +1,247 @@
+{
+  "acceptedCommit": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+  "allElevenJobsSuccessful": true,
+  "apiRouteProven": false,
+  "artifacts": [
+    {
+      "bytes": 3142,
+      "expandedBytes": 4192,
+      "id": 12611084321,
+      "memberManifestSHA256": "3c41f06fe58a29244a440b9db0e05b5d7cd7ef385b2b01aa16e8b46c3d66fe3e",
+      "members": 7,
+      "name": "candidate",
+      "sha256": "a226f9b631033469c4f98b0c97b158d79d8fee3c64e6aa90fac41a91452990fe"
+    },
+    {
+      "bytes": 26899,
+      "expandedBytes": 57396,
+      "id": 12611209186,
+      "memberManifestSHA256": "bd2a7bbb7d521cf8d0e882e7610e7d584783b58404116cf45c210c6103e2613a",
+      "members": 39,
+      "name": "positive-originals",
+      "sha256": "0805d55c9cf966f89f666155bc574a7567f2f9f544da2aed72dc2ab1bf4a520b"
+    },
+    {
+      "bytes": 315,
+      "expandedBytes": 138,
+      "id": 12611308855,
+      "memberManifestSHA256": "883fdaa35eff4d7320f11e46c0dc4f231c20393c98f17ae68592a110796b7b8c",
+      "members": 1,
+      "name": "positive-fresh",
+      "sha256": "b5ec0e8fce12077d1178d2c7c88367de2c9ffe8b586e62625caacb9bfd87c388"
+    },
+    {
+      "bytes": 27269,
+      "expandedBytes": 57350,
+      "id": 12611024446,
+      "memberManifestSHA256": "5134717515bb75e90ef176fd88ce01f64a049ebc72ff7b846d31937745bc89bd",
+      "members": 39,
+      "name": "not-committed-originals",
+      "sha256": "b80b6ece6132777d7b294f5ded8435134d4ffd4903e64228b9659bafab1a0007"
+    },
+    {
+      "bytes": 329,
+      "expandedBytes": 143,
+      "id": 12611239171,
+      "memberManifestSHA256": "02b457b5ded4a989ed0dc6bdfcd969829f5c1cf4b099cc1681861aed9f33143b",
+      "members": 1,
+      "name": "not-committed-fresh",
+      "sha256": "4da5124418012aff77f47d4f1b95dc51b6a08eb9a4c3540b290e049288e8fa03"
+    },
+    {
+      "bytes": 26827,
+      "expandedBytes": 57389,
+      "id": 12611433627,
+      "memberManifestSHA256": "b767c9eaaeeb347b4b259625c6d940df08a0b51ce46a29787eb31aea5b22f267",
+      "members": 39,
+      "name": "unknown-originals",
+      "sha256": "50e6047d712430948609a5a188601b61b90c8f7aebc1d968f8041fd5c73972ae"
+    },
+    {
+      "bytes": 312,
+      "expandedBytes": 137,
+      "id": 12611880576,
+      "memberManifestSHA256": "af72e9400433315bfebc409af584f51eab8ad54cee08ddc3b9fecd1bb21a981c",
+      "members": 1,
+      "name": "unknown-fresh",
+      "sha256": "5a3b41a61e04e74f210960a16f7a4c27725a478186b9da980dcec1c2eabc2aef"
+    },
+    {
+      "bytes": 26904,
+      "expandedBytes": 57391,
+      "id": 12611303967,
+      "memberManifestSHA256": "a22944107ae5964748c9e29bfe3a07de17a2d26e5666d7a0276ded732a0895b8",
+      "members": 39,
+      "name": "readback-originals",
+      "sha256": "a659172ea4b37a9617da33097f620d48d8fbcc8eabc936b56906f4b1d9712878"
+    },
+    {
+      "bytes": 314,
+      "expandedBytes": 138,
+      "id": 12611039571,
+      "memberManifestSHA256": "3d22af628c1380050bc064f71df3cbc603357746438a2f693ff0eae8a89e939f",
+      "members": 1,
+      "name": "readback-fresh",
+      "sha256": "854e214a18dd091e59eb5f5ae3e63b8e79135a75cc3e9a5c9772f3a0a0de2d2e"
+    }
+  ],
+  "checkerPlatformAdapterUsed": false,
+  "fullCheckerMainDirectlyReplayedAllFourModes": true,
+  "fullProjectComplete": false,
+  "isolatedFirstCompletionFourModeAccepted": true,
+  "localGoOrNativeOrGofmtExecuted": false,
+  "mainMerged": false,
+  "modes": {
+    "not-committed": {
+      "diskPhase": "START_ARMED",
+      "forwardedWrites": 0,
+      "goTestElapsedSeconds": 10.91,
+      "goTestOutcome": "PASS",
+      "handoffReturned": false,
+      "injectedReads": 0,
+      "newHeadPresent": false,
+      "originalFreshSHA256": "589822b89518454e313f5b841c68fd3a4b837f1386bdf64aa38884d35dcfaea6",
+      "postWriteReads": 0,
+      "recordReturnedError": true,
+      "recoveryHistoryCount": 0,
+      "reopenTransition": "START_ARMED_TO_RECOVERY_UNKNOWN",
+      "replaceAttempts": 1,
+      "retiredEpochCount": 0,
+      "runtimeAdopted": false,
+      "storePoisoned": true,
+      "underlyingCommitted": false
+    },
+    "positive": {
+      "diskPhase": "COMPLETED",
+      "forwardedWrites": 1,
+      "goTestElapsedSeconds": 10.77,
+      "goTestOutcome": "PASS",
+      "handoffReturned": true,
+      "injectedReads": 0,
+      "newHeadPresent": true,
+      "originalFreshSHA256": "a5b63f612751137a1f22cae91b88e63c9757dca78cee8b25eeed7c6b0800fc76",
+      "postWriteReads": 1,
+      "recordReturnedError": false,
+      "recoveryHistoryCount": 1,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceAttempts": 1,
+      "retiredEpochCount": 1,
+      "runtimeAdopted": true,
+      "storePoisoned": false,
+      "underlyingCommitted": true
+    },
+    "readback": {
+      "diskPhase": "COMPLETED",
+      "forwardedWrites": 1,
+      "goTestElapsedSeconds": 7.76,
+      "goTestOutcome": "PASS",
+      "handoffReturned": false,
+      "injectedReads": 1,
+      "newHeadPresent": true,
+      "originalFreshSHA256": "860fb666a976864579b80a3d2bb12d37488291a2dcd1d342ef045f5b6604eb19",
+      "postWriteReads": 1,
+      "recordReturnedError": true,
+      "recoveryHistoryCount": 1,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceAttempts": 1,
+      "retiredEpochCount": 1,
+      "runtimeAdopted": false,
+      "storePoisoned": true,
+      "underlyingCommitted": true
+    },
+    "unknown": {
+      "diskPhase": "COMPLETED",
+      "forwardedWrites": 1,
+      "goTestElapsedSeconds": 10.92,
+      "goTestOutcome": "PASS",
+      "handoffReturned": false,
+      "injectedReads": 0,
+      "newHeadPresent": true,
+      "originalFreshSHA256": "5d90be22fa95a159bd9d40698ac17bf9edca0f545e72bfeee73855b8c4366fb0",
+      "postWriteReads": 0,
+      "recordReturnedError": true,
+      "recoveryHistoryCount": 1,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceAttempts": 1,
+      "retiredEpochCount": 1,
+      "runtimeAdopted": false,
+      "storePoisoned": true,
+      "underlyingCommitted": true
+    }
+  },
+  "ordinaryPublishProven": false,
+  "otherThreeWorkflowStatusOnlyNotRawReauditedThisTurn": true,
+  "priorFailedRunsPreserved": [
+    40223175606,
+    40225294759
+  ],
+  "privateWALIndependentProof": false,
+  "privateWALProducerAndIndexFsyncBindingOnly": true,
+  "producerAndFreshTextByteEqualAllFourModes": true,
+  "productionChanged": false,
+  "productionReady": false,
+  "receipts": [
+    {
+      "path": "D:/CodexData/workspace/mihomo-4bbbe70-native-completion9-originals-20261026-agent56h-v1/AUDIT-RECEIPT-FINAL.json",
+      "role": "independent-full-checker-audit",
+      "sha256": "6583e2404e96274559daf97eddef89c1666344e0a787af9ed6b8935cd15ba3df"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-4bbbe70-completion-root-recount-w0jqo5dx/receipt.json",
+      "role": "root-raw-recount",
+      "sha256": "796e6dc7accb6e9e68f02e804c89ff9976166dff36ed5f0a29b3ebdf140ffcb4"
+    }
+  ],
+  "registryPublished": false,
+  "rootIndependentlyRecountedRawGoCommandsCountersAndCleanup": true,
+  "run": 40226840814,
+  "runtimeAdoptionFirstPositiveObserved": true,
+  "schema": "chengwang.first-native-completion-isolated-acceptance/v1",
+  "scope": "FIRST_COMPLETION_FOUR_MODES_ONLY_NOT_PRODUCT_API_OR_PRODUCTION",
+  "secondRecoveryProven": false,
+  "serviceRebindProven": false,
+  "sourceBinding": {
+    "deliveryCount": 9,
+    "deliverySetSHA256": "ae25af062392af816228c736affd9ccf7c4afcebea3481c30c235b18eb44cfdb",
+    "indexTree": "bbeab59671f3caa01ad0828de73e1f20b9cae3da",
+    "policySHA256": "fd9682a24a31d4087f72490771d9a7c00b648d8a7925f4805effc49a7b3a1385",
+    "schema": "chengwang.mihomo-native-completion-source-binding/v2",
+    "sourceCommit": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+    "sourceCount": 1364,
+    "sourceManifestSHA256": "f457f8f0992bc925bc7d0b98ce7a12ee8d492a93f602d3d7c7f7645f84a98839",
+    "sourceSetSHA256": "c569f171fe664fe1aa2333421ed22d6a64a51068ca977422076e950077fc6249",
+    "sourceTree": "bbeab59671f3caa01ad0828de73e1f20b9cae3da"
+  },
+  "sourceTrackedPathEntries": 1364,
+  "workflowStatusObservations": [
+    {
+      "conclusion": "success",
+      "head": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+      "id": 40226840772,
+      "name": "Chengwang Isolated Native Recovery Started Record",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "head": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+      "id": 40226840814,
+      "name": "Chengwang Isolated Native First Completion",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "head": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+      "id": 40226840793,
+      "name": "Chengwang Isolated Capacity CPU Diagnosis",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "head": "4bbbe70b1f13e53fa07201e32129366cf254ccee",
+      "id": 40226840817,
+      "name": "Chengwang Mihomo Lifecycle Foundations",
+      "status": "completed"
+    }
+  ],
+  "zipMembers": 167
+}

@@ -214,10 +214,10 @@ func lifecycleRecoveryObservedValid(v lifecycleRecoveryObservedFact, a lifecycle
 func lifecycleRecoveryVerificationFieldsValid(a lifecycleRecoveryTxn, at time.Time, revision uint64) bool {
 	e := a.Execution
 	if e == nil || e.Verification == nil {
-		return e == nil || e.Schema == lifecycleRecoveryExecutionSchema && e.CompletionSource == nil
+		return e == nil || lifecycleRecoveryExecutionStartedSchema(e.Schema) && e.CompletionSource == nil
 	}
 	v := e.Verification
-	versioned := e.Schema == lifecycleRecoveryVerifiedExecutionSchema && e.CompletionSource == nil || e.Schema == lifecycleRecoveryCompletedExecutionSchema && e.CompletionSource != nil
+	versioned := lifecycleRecoveryExecutionVerifiedSchema(e.Schema) && e.CompletionSource == nil || lifecycleRecoveryExecutionCompletedSchema(e.Schema) && e.CompletionSource != nil
 	digest, err := lifecycleRecoveryObservationHash(v.Observation)
 	return versioned && v.Schema == lifecycleRecoveryVerificationSchema && err == nil && digest == v.ObservationSHA256 &&
 		lifecycleNonzeroHash(digest) && lifecycleRecoveryObservedValid(v.Observation, a, v.SourceOwner) &&
@@ -255,14 +255,25 @@ func lifecycleRecoveryVerificationPreimageScoped(w *lifecycleV3Wire, a lifecycle
 	source.Recovery.Revocation, source.Recovery.Failure = nil, nil
 	source.Recovery.UpdatedAt = v.SourceRecoveryUpdatedAt
 	source.Recovery.FailedQuiescence = source.Recovery.Execution.Verification.SourceFailedQuiescence
-	source.Recovery.Execution.Schema = lifecycleRecoveryExecutionSchema
+	startedSchema, ok := lifecycleRecoveryVerifiedToStartedSchema(source.Recovery.Execution.Schema)
+	if !ok {
+		completedVerified, completed := lifecycleRecoveryCompletedToVerifiedSchema(source.Recovery.Execution.Schema)
+		if !completed {
+			return nil, errLifecycleUnsafe
+		}
+		startedSchema, ok = lifecycleRecoveryVerifiedToStartedSchema(completedVerified)
+		if !ok {
+			return nil, errLifecycleUnsafe
+		}
+	}
+	source.Recovery.Execution.Schema = startedSchema
 	source.Recovery.Execution.Verification = nil
 	raw, err = json.Marshal(&source)
 	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
 	decoded, err := decodeLifecycleV3RecordScoped(raw, scope)
-	if err != nil || decoded.core.Recovery == nil || decoded.core.Recovery.Execution == nil || decoded.core.Recovery.Execution.Schema != lifecycleRecoveryExecutionSchema || decoded.core.Revision != decoded.core.Recovery.Execution.StartedCommitRevision {
+	if err != nil || decoded.core.Recovery == nil || decoded.core.Recovery.Execution == nil || !lifecycleRecoveryExecutionStartedSchema(decoded.core.Recovery.Execution.Schema) || decoded.core.Revision != decoded.core.Recovery.Execution.StartedCommitRevision {
 		return nil, errLifecycleUnsafe
 	}
 	return raw, nil
@@ -276,9 +287,13 @@ type lifecycleVerificationPublication struct {
 
 func (x *lifecycleRecoveryStoreCore) verificationRecordTransition(base *lifecycleVerifiedBase, next lifecycleV3Record) bool {
 	p := x.verificationRecord
+	wantVerified := ""
+	if x.record.core.Recovery != nil && x.record.core.Recovery.Execution != nil {
+		wantVerified, _ = lifecycleRecoveryStartedToVerifiedSchema(x.record.core.Recovery.Execution.Schema)
+	}
 	if p == nil || p.binding == nil || base == nil || !p.binding(p, x, base.core) || next.core == nil || x.record.core.Recovery == nil ||
-		x.record.core.Recovery.Execution == nil || x.record.core.Recovery.Execution.Schema != lifecycleRecoveryExecutionSchema || x.record.core.Recovery.Execution.Verification != nil ||
-		next.core.Recovery == nil || next.core.Recovery.Execution == nil || next.core.Recovery.Execution.Schema != lifecycleRecoveryVerifiedExecutionSchema || next.core.Recovery.Execution.Verification == nil {
+		x.record.core.Recovery.Execution == nil || !lifecycleRecoveryExecutionStartedSchema(x.record.core.Recovery.Execution.Schema) || x.record.core.Recovery.Execution.Verification != nil ||
+		next.core.Recovery == nil || next.core.Recovery.Execution == nil || wantVerified == "" || next.core.Recovery.Execution.Schema != wantVerified || next.core.Recovery.Execution.Verification == nil {
 		return false
 	}
 	raw, err := json.Marshal(next.core)
@@ -289,7 +304,7 @@ func (x *lifecycleRecoveryStoreCore) verificationRecordTransition(base *lifecycl
 	if json.Unmarshal(raw, &projection) != nil {
 		return false
 	}
-	projection.Recovery.Execution.Schema = lifecycleRecoveryExecutionSchema
+	projection.Recovery.Execution.Schema = x.record.core.Recovery.Execution.Schema
 	projection.Recovery.Execution.Verification = nil
 	return lifecycleV3Transition(x.record.core, &projection)
 }
@@ -323,11 +338,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryVerification(t *lifecycleRecovery
 		return errLifecycleUnsafe
 	}
 	source, err := decodeLifecycleV3Record([]byte(core.canonical))
-	if err != nil || source.core.Recovery == nil || source.core.Recovery.Execution == nil || source.core.Recovery.Execution.Schema != lifecycleRecoveryExecutionSchema || source.core.RecoveryOwner == nil {
+	if err != nil || source.core.Recovery == nil || source.core.Recovery.Execution == nil || !lifecycleRecoveryExecutionStartedSchema(source.core.Recovery.Execution.Schema) || source.core.RecoveryOwner == nil {
 		return errLifecycleUnsafe
 	}
 	a := x.record.core.Recovery
-	if a == nil || (a.Phase != "START_ARMED" && a.Phase != "RECOVERY_UNKNOWN") || a.Execution == nil || a.Execution.Schema != lifecycleRecoveryExecutionSchema || a.Execution.Verification != nil ||
+	if a == nil || (a.Phase != "START_ARMED" && a.Phase != "RECOVERY_UNKNOWN") || a.Execution == nil || !lifecycleRecoveryExecutionStartedSchema(a.Execution.Schema) || a.Execution.Verification != nil ||
 		!reflect.DeepEqual(a.Execution, source.core.Recovery.Execution) || !reflect.DeepEqual(x.record.core.RecoveryOwner, source.core.RecoveryOwner) ||
 		x.record.core.LastRecoveryFence != source.core.LastRecoveryFence || core.value.SourceRevision != source.core.Revision || core.value.SourceRecordSHA256 != source.core.RecordSHA256 {
 		return errLifecycleUnsafe
@@ -341,7 +356,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryVerification(t *lifecycleRecovery
 		return errLifecycleUnsafe
 	}
 	b := next.core.Recovery
-	b.Execution.Schema = lifecycleRecoveryVerifiedExecutionSchema
+	verifiedSchema, ok := lifecycleRecoveryStartedToVerifiedSchema(b.Execution.Schema)
+	if !ok {
+		return errLifecycleUnsafe
+	}
+	b.Execution.Schema = verifiedSchema
 	b.Execution.Verification = &lifecycleRecoveryVerification{Schema: lifecycleRecoveryVerificationSchema, Observation: core.value, ObservationSHA256: digest,
 		SourceOwner: *source.core.RecoveryOwner, SourceLastTrustedAt: source.core.LastTrustedAt, SourceLastRecoveryFence: source.core.LastRecoveryFence,
 		SourceRecoveryUpdatedAt: source.core.Recovery.UpdatedAt, SourceFailedQuiescence: source.core.Recovery.FailedQuiescence,

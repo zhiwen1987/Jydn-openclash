@@ -48,7 +48,7 @@ jobs:
           import ast,hashlib,importlib.util,json,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
-          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'e8c92e60d45a0922815116ab808d1d45ad840a0fa433a942af98fdd37a59f799')]
+          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'d9d70f0b2d38a0b710bb2317f9d4d8ca236c0b2a4a46500e49cd1f7a5bb37ce0')]
           for log,path,cls,count,pin in checks:
               text=(root/log).read_text(encoding='utf8').replace('\r\n','\n')
               tree=ast.parse(Path(path).read_text(encoding='utf8'))
@@ -64,6 +64,38 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
+          core_d_added={
+            'chengwang/internal/api::TestMihomoRecoveryAPIInspectExposesOnlyBoundedFailureExitMODEL',
+            'chengwang/internal/api::TestMihomoRecoveryAPIInspectExposesReconciledFreshCreateExitMODEL',
+            'chengwang/internal/api::TestMihomoRecoveryAPIInspectRemainsReadOnlyAndFailureStatusIsStrictMODEL',
+            'chengwang/internal/api::TestMihomoRecoveryAPIMutatingSuccessAndReplayAlwaysReportChangedMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryCaptureNamespaceIsDistinctAndSourceDerivedMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryCleanupCustodyCannotSerializeOrSurviveMutationMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryCleanupIssuerDiscardIsExactAtomicAndReleasesGraphMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryOwnerExpiryReplacementRejectsOldTokenAndPreservesHistoryMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryPhysicalFailureStagesExposeBoundedInspectExitMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryReconcileAuthenticatesBeforeBusyOrExecutingConflictMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryReconciliationRetryRetainsCustodyOnceAndThenLocksMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryRecordContextCoversRecordAndCancelsAfterReturnMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryRevokedFirstPlanBeginsFreshV1WithoutFacadeMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryStaleAuthorizedCheckCannotSpendAttemptMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryTerminalPrePermitFailureAndCloseDiscardUnclaimedCustodyMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryUnstartedCleanupConsumesActualLinuxStartFailureOnce',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryUnstartedCleanupCustodyIsAtomicOneUseForNormalAndAbsentMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryUnstartedCleanupRejectsProcessUnknownAndUnjoinedMODEL',
+            'chengwang/internal/mihomodeploy::TestLabRecoveryWithoutFacadeNeverDowngradesOrBypassesV2CurrentOwnerMODEL',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryAbsentCleanupRequiresPersistedSourceIdentity',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryAbsentExecutionSchemaPairsAreClosed',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileCompatibilityAndAuthorityNegatives',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveRejectsFullHistoryBeforeAction',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconciledStrictlyRestoresOriginalUnknown',
+          }
+          assert len(core_d_added)==27 and core_d_added.issubset(declared)
+          previous661=sorted(set(declared)-core_d_added)
+          assert len(previous661)==661 and hashlib.sha256('\n'.join(previous661).encode()).hexdigest()=='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
           baseline=json.loads(Path('chengwang/deploy/mihomo-lifecycle-lab/legacy_go_tops.json').read_bytes())
           assert set(baseline)=={'schema','scope','acceptedSourceCommit','count','namesSHA256','names'}
           assert baseline['schema']=='chengwang.legacy-go-test-declarations/v1' and baseline['scope']=='DECLARATIONS_NOT_RUNTIME_ACCEPTANCE'
@@ -177,9 +209,9 @@ jobs:
           } | recovery_lock_order_added
           assert len(recovery_completion_current_final_added)==14 and recovery_completion_current_final_added.issubset(declared)
           assert not recovery_completion_current_final_added.intersection(recovery_completion_current_added)
-          previous660=sorted(set(declared)-recovery_lock_order_added)
+          previous660=sorted(set(previous661)-recovery_lock_order_added)
           assert len(previous660)==660 and hashlib.sha256('\n'.join(previous660).encode()).hexdigest()=='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
-          previous647=sorted(set(declared)-recovery_completion_current_final_added)
+          previous647=sorted(set(previous661)-recovery_completion_current_final_added)
           assert len(previous647)==647 and hashlib.sha256('\n'.join(previous647).encode()).hexdigest()=='1e7db484a7eb5485b06037bd3ee1fb443201ab46799c17fefba9bcba9b0cca94'
           previous635=sorted(set(previous647)-recovery_completion_current_added)
           assert len(previous635)==635 and hashlib.sha256('\n'.join(previous635).encode()).hexdigest()=='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
@@ -203,8 +235,11 @@ jobs:
             'chengwang/internal/mihomodeploy/lab_recovery_start_test.go',
             'chengwang/internal/mihomodeploy/lab_recovery_start_linux_test.go'}
           assert added_test_paths.issubset(dict(module.TEST_FILES))
-          added_test_names={package+'::'+name for path,package in module.TEST_FILES if path in added_test_paths
+          observed_added_test_names={package+'::'+name for path,package in module.TEST_FILES if path in added_test_paths
             for name in re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{',Path(path).read_text('utf8'),re.M)}
+          assert len(observed_added_test_names)==47 and observed_added_test_names.intersection(core_d_added)=={
+            'chengwang/internal/mihomodeploy::TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL'}
+          added_test_names=observed_added_test_names-core_d_added
           assert len(added_test_names)==46 and added_test_names.issubset(previous585)
           previous539=sorted(set(previous585)-added_test_names)
           assert len(previous539)==539 and hashlib.sha256('\n'.join(previous539).encode()).hexdigest()=='dca819005e498a5d36c6157e00dbd244ad7f705616690001b0bf830c7900009c'
@@ -225,8 +260,8 @@ jobs:
           assert snapshot_added.issubset(declared)
           previous=sorted(set(previous539)-snapshot_added)
           assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
-          assert len(declared)==661 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
-          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous660_preserved=true previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
+          assert len(declared)==688 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280'
+          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous661_preserved=true previous660_preserved=true previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |

@@ -186,6 +186,18 @@ files+=(
   internal/mihomodeploy/lab_current_epoch_runtime.go
   internal/mihomodeploy/lab_current_epoch_runtime_test.go
 )
+files+=(
+  internal/api/mihomo_recovery.go
+  internal/api/mihomo_recovery_test.go
+  internal/mihomodeploy/lab_recovery_backend.go
+  internal/mihomodeploy/lab_recovery_backend_test.go
+  internal/mihomodeploy/lab_recovery_cleanup_bridge.go
+  internal/mihomodeploy/lab_recovery_coordinator_linux.go
+  internal/mihomodeploy/lab_recovery_coordinator_unsupported.go
+  internal/mihomodeploy/lab_recovery_unstarted_cleanup_linux_test.go
+  internal/mihomodeploy/lifecycle_recovery_reconcile.go
+  internal/mihomodeploy/lifecycle_recovery_reconcile_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?
