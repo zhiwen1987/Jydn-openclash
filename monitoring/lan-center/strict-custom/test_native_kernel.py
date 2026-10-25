@@ -51,7 +51,10 @@ def main():
     if p.poll() is not None:raise RuntimeError('isolated core exited: '+(folder/'core.log').read_text()[-500:])
     try:
      api(port,'/version')
-     if folder==b and api(port,'/proxies/Google').get('type')!='Selector':raise RuntimeError('groups not ready')
+     if folder==b:
+      if api(port,'/proxies/Google').get('type')!='Selector':raise RuntimeError('groups not ready')
+      if api(port,'/proxies/Gemini').get('now')!='PublicPool':raise RuntimeError('independent business selection unexpected')
+      if not http('Gemini'):raise RuntimeError('independent business route not ready')
      with socket.create_connection(('127.0.0.1',19441 if folder==a else 19445),timeout=.4):pass
      return p
     except Exception:time.sleep(.25)
@@ -133,7 +136,9 @@ def main():
    print(json.dumps({'passed':True,'tests':results,'test_count':len(results),'network':'none','production_data_mounted':False,'production_selectors_changed':False,'native_kernel_sha256':__import__('hashlib').sha256((ROOT/'core').read_bytes()).hexdigest()}))
   except BaseException as error:
    import sys
-   print(json.dumps({'failed_step':str(error),'http_errors':HTTP_ERRORS,'candidate_log':(b/'core.log').read_text(errors='replace')[-1400:],'fixture_log':(a/'core.log').read_text(errors='replace')[-800:]},ensure_ascii=False),file=sys.stderr)
+   try:state={name:api(19447,'/proxies/'+urllib.parse.quote(name,safe='')) for name in ['Google','Gemini','🔐 自定义节点']}
+   except Exception:state={}
+   print(json.dumps({'failed_step':str(error),'passed_steps':results,'http_errors':HTTP_ERRORS,'selector_state':state,'candidate_log':(b/'core.log').read_text(errors='replace')[-1400:],'fixture_log':(a/'core.log').read_text(errors='replace')[-800:]},ensure_ascii=False),file=sys.stderr)
    raise
   finally:
    for process,log in reversed(processes):
