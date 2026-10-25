@@ -1,0 +1,124 @@
+{
+  "baseline": "b409ab58ea5d061a536c19d8a29c1165070f59a8",
+  "controllerReceivedCount": null,
+  "defaultRequiredTests": 611,
+  "defaultTestFiles": 43,
+  "finalIndependentPeer": {
+    "ActionsRuntimeAndArtifactLayoutActuallyExecuted": false,
+    "actualNativeOrGoExecutionProvenByModels": false,
+    "beforeManifestOutsideWorkerInitialThreeAfterAlways": true,
+    "checkpointsCapsReplayAndUnsupportedClaimsClosedInSource": true,
+    "commonUnknownChainSources": 153,
+    "decodedFourPythonHeredocASTParsed": true,
+    "exclusiveNativeSources": 6,
+    "failedAttemptArtifactAndExitStatusPreserved": true,
+    "fixedBranchFourJobsNoPathsReadPermissions": true,
+    "fourSourceSHA256": {
+      ".github/workflows/chengwang-mihomo-native-recovery.yml": "9dd2fa53958e9b10dc7bf233b22b11ecfc73bc0373b250996e2aac7762a56e07",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py": "f82bafa76be8f2ee012e275c7b81ba91602c4edc61690ec5edb73b17829fc065",
+      "chengwang/deploy/mihomo-lifecycle-lab/run_native_recovery.sh": "0fc77c6e27b55511b7b53f8a2a170e1c26259a767dd3cbb9fde99ce1965545c4",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_native_recovery.py": "e80f93fd4f3dd638f71dca5c84417cbf473731c62898658169709a8a36dd0e7c"
+    },
+    "fourSourcesAnd159OriginBytesStable": true,
+    "freshOnlyConsumesOriginalsNoGoWorkerKernel": true,
+    "localGoWorkerNativeOrOSExperimentRun": false,
+    "mainRepositoryEdited": false,
+    "nativePrivateWALOrCredentialOrSyscallTraceProofClaimed": false,
+    "nativeSourceUnion": 159,
+    "pidFindingSourceClosedAndThreeCoordinatedNegativeSubcasesPresent": true,
+    "priorA5716YAMLDecodedQAReused": true,
+    "priorB16ModelLogsReusedNotRerun": true,
+    "producerNotImportedByReader": true,
+    "productionTouched": false,
+    "publicOriginalSet": 21,
+    "remainingDefiniteSourceBlockersFound": [],
+    "rootNativeTestOnlyLastLFNormalizationChecked": true,
+    "scope": "FROZEN_NATIVE_NON_GO_AND_159_UNION_SOURCE_PEER_ONLY_NOT_GO_NATIVE_OR_ACTIONS_ACCEPTANCE",
+    "sourceDeltaSuitableForRootReview": true,
+    "sourceGitCommitTreeIndexWorktreeSelfBindingsReviewed": true,
+    "sourceManifestsActualGitBindingStillRequiresCommittedIntegrationCI": true
+  },
+  "formatterFiles": 115,
+  "fullPrivateWALIndependentlyProven": false,
+  "fullSystemComplete": false,
+  "implementationSources": 25,
+  "mainMerged": false,
+  "nativeModelTests": 16,
+  "nativePublicFiles": 21,
+  "nativeSources": 159,
+  "nativeTopAddedToDefaultTests": false,
+  "nativeWorkflowJobs": 4,
+  "newGoOrFormatterOrNativeExecuted": false,
+  "newRuntimeAcceptance": false,
+  "normalSources": 121,
+  "originalNormalAndDiagnosticWorkflowBytesUnchanged": true,
+  "priorB409Accepted": true,
+  "production": false,
+  "readerCommitTreeIndexWorktreeBound": true,
+  "readerPIDMinimum": 2,
+  "receipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-started-v3-20261025-agent\\source-result.json",
+      "sha256": "5830e9acc615499fdaeeeafd8cda0af22a8a30ec2105c3747dbc88dc0bfa2e3b"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-default-bindings-b409-20261025-agent\\closeout.json",
+      "sha256": "ae76adc404fefb78a794c1ebb84f44b64a659c89aa0cab8514c8280368797d3e"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-recovery-ci-wiring-20261025-agent\\source-result.json",
+      "sha256": "a158f1eb4c32c9aeed2c7e137405ab034dcdd062cd7f32b60e4fd88f55a0a511"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-recovery-checker-source-20261025-agent\\final-v3\\source-final.json",
+      "sha256": "e2eb82912d95a405bce2628fcf4154b602a8a5d39186d284c6e45a6f4042832b"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-recovery-checker-source-20261025-agent\\final-v3\\source-index-159.json",
+      "sha256": "14696915646c183dd97f9319baf92341241d0a0976fe24fa7a8cc7a33139e752"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-ci-final-peer-20261025-agent\\receipt\\result.json",
+      "sha256": "ddca3870bad954453a4e226e8ecfe2191c6ae99e42257c614822b72ee5764211"
+    }
+  ],
+  "registryPublished": false,
+  "rootOnlyWhitespaceCorrection": {
+    "afterSHA256": "ab20fa0b3c07776c1e29d35485ff7eab92a7d503928262fc9b04bedb46afe39b",
+    "beforeSHA256": "c7d7fb132bab47dd19e6cd349165d80f9107126d91e431a9a658a8601fe1eefb",
+    "exactlyOneFinalLFRemoved": true,
+    "path": "chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go"
+  },
+  "s2OrProductRecoveryAPIComplete": false,
+  "schema": "chengwang.native-v3-integrated-source/v1",
+  "scope": "SOURCE_ASSEMBLY_AND_READER_MODELS_NOT_NEW_GO_OR_NATIVE_ACCEPTANCE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-native-recovery.yml": "9dd2fa53958e9b10dc7bf233b22b11ecfc73bc0373b250996e2aac7762a56e07",
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "80796b309aed0ef39198618f43e61fb28dbcf68a6e2d5edd79da87e730d32c90",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py": "0bf9f410461d96c31af612fb772e4370c16bdad3f980bc4b6bd1d3f9032d6967",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "25a52f8ea9ace63b5a4c43b0dd9690b86b6a1654b460d27cec395b4213989b9a",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "d3f5762869f47fe22390cc4c37f2d7c86370e57f18cffd51e4d7bddb4ec88828",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py": "f82bafa76be8f2ee012e275c7b81ba91602c4edc61690ec5edb73b17829fc065",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_service.py": "2fbe2b9a336cc59ee409522a876fd8cdf3d65b838c53cb488dc7018ff49feca6",
+    "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_contract.json": "fbbe5369588a26358744a1442257159eac0720a1128ad57f5679a8e012d2ee36",
+    "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py": "ca7d3ffe1a45258f1bc926a14a6b0713ae921c9c9c6f78955b523607501fa901",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "f1555cb6d355a486afcfd40c2db60bc0fef1d766bde284e83909b0d705e701fb",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_native_recovery.sh": "0fc77c6e27b55511b7b53f8a2a170e1c26259a767dd3cbb9fde99ce1965545c4",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py": "e5369125573d7484209ef57fc1444d6efc47965e01d2ae680987158b892d321e",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "cc52e6fb6a91e0a626ab0a139408cbd04e361792363020433ae8d2b817c4174f",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "c7a67beca91e67dfe8c477b15bdb68e7378cc7d3b1e5548e6bb3beba4f0abdcd",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_native_recovery.py": "e80f93fd4f3dd638f71dca5c84417cbf473731c62898658169709a8a36dd0e7c",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py": "27c0f96a5c145a68159dfc456a58991d76a2d2275ceaf3a1145c27520438c3d2",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "942d803ec2694397bf2c10d0efb4edb24d5b9c0fcfc0ae2a9b60ccc9245ab689",
+    "chengwang/docs/evidence/sys06-b409611-acceptance-20261025.json": "2807037092b5cfea6108c2638df9556f09b4a330eae0fac5b15db7d01a7e0463",
+    "chengwang/internal/mihomodeploy/lab_bootstrap.go": "9efe6a8b3c6b50a11316b1c0cdc10bc73ab03ef784c1e6575659b6f24f779473",
+    "chengwang/internal/mihomodeploy/lab_kernel_linux.go": "112d933fd941052e251cf0215c4fed9bce0b1d9a3868dca04ca4b1db9e8d35b5",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_linux.go": "ad1d26067884025c64b343ed12153227894b809f7046159861400927fdbafb96",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go": "ab20fa0b3c07776c1e29d35485ff7eab92a7d503928262fc9b04bedb46afe39b",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go": "b72c34897c3ef6587c8ac9f5318286d54f2913e04d0823422bfb4b8ea411d681",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go": "dbfdf73fd25fe9eefb2cf944b9196e6e72e6eb901c935e779760a54c2118ebdf",
+    "chengwang/internal/mihomodeploy/lab_quiescence_linux.go": "27377c7b9c72e752abe1a4d20b12bc4692841e45975902be367af009f14b1743",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go": "cb51a081f87e4f0c250189c086a34a6064d2129508e104ad05939e592fe6fbbc",
+    "chengwang/internal/mihomodeploy/lab_syntax_linux.go": "2c980d08ba900cb69b80050b6984e76fc9129ae9103f81428f33eb0778746394"
+  }
+}

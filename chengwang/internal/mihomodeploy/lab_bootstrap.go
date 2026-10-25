@@ -30,6 +30,7 @@ type labLifecycleRuntimeCore struct {
 	disk             labRuntimeDisk
 	fresh            *labFreshPermitCore
 	store            *lifecycleStore
+	recovery         *lifecycleRecoveryStore
 	closed, poisoned bool
 }
 type labFreshPermit struct{ core *labFreshPermitCore }
@@ -243,12 +244,20 @@ func (r *labLifecycleRuntime) close() error {
 	c := r.core
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	// An inconsistent close-owner image must remain rejected on every call;
+	// it cannot become a false idempotent success by setting closed first.
+	if c.store != nil && c.recovery != nil {
+		return errLifecycleUnsafe
+	}
 	if c.closed {
 		return nil
 	}
 	c.closed = true
 	if c.fresh != nil {
 		c.fresh.used = true
+	}
+	if c.recovery != nil {
+		return c.recovery.close()
 	}
 	if c.store != nil {
 		return c.store.close()
@@ -257,4 +266,46 @@ func (r *labLifecycleRuntime) close() error {
 		return c.disk.close()
 	}
 	return errLifecycleUnsafe
+}
+
+// evolveForRecovery transfers only this runtime's existing actual disk owner.
+// It authenticates nobody. The source-owned caller must have checked current
+// critical recovery authority and must not already hold the legacy store lock.
+// runtime.mu is outside legacy.mu, matching bootstrap/existingStore/close.
+func (r *labLifecycleRuntime) evolveForRecovery(p *labRecoveryPlan, now time.Time) (*lifecycleRecoveryStore, error) {
+	if r == nil || r.core == nil {
+		return nil, errLifecycleUnsafe
+	}
+	c := r.core
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed || c.poisoned || c.recovery != nil || c.store == nil || c.store.lifecycleStoreCore == nil || c.disk == nil {
+		return nil, errLifecycleUnsafe
+	}
+	old := c.store
+	// Only comparable actual source-owned disk objects can be the sole owner.
+	// Reject rather than panic on a caller-created noncomparable MODEL disk.
+	disk := reflect.ValueOf(c.disk)
+	if !disk.IsValid() || !disk.Comparable() || !reflect.ValueOf(old.disk).IsValid() || !reflect.ValueOf(old.disk).Comparable() || old.disk != c.disk {
+		return nil, errLifecycleUnsafe
+	}
+	next, err := evolveLifecycleV2ForRecovery(old, p, now)
+	if err != nil {
+		if old.poisoned {
+			c.poisoned = true
+		}
+		// The legacy object retains its actual disk on failed/unknown publish;
+		// runtime.close must still call that same object's close.
+		return nil, err
+	}
+	// evolve has already published/read back under the original exclusive
+	// mutex and irreversibly retired old. Retain next even on impossible
+	// postcondition failure, because it now owns the original live disk.
+	c.store = nil
+	c.recovery = next
+	if next == nil || next.core == nil || !old.closed || old.disk != nil || next.core.disk != c.disk {
+		c.poisoned = true
+		return nil, errLifecycleUnsafe
+	}
+	return next, nil
 }

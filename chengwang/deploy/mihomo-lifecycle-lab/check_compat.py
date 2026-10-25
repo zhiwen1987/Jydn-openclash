@@ -90,6 +90,9 @@ S1_STARTED_FILES = ('lifecycle_recovery_started.go', 'lifecycle_recovery_started
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in S1_STARTED_FILES]
 LAB_SELECTED_TARGET_FILES = ('lab_target_readback.go', 'lab_target_readback_test.go')
 FOUNDATION += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_SELECTED_TARGET_FILES]
+LAB_NATIVE_RECOVERY_FILES = ('lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
+    'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go')
+FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_NATIVE_RECOVERY_FILES]
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -168,7 +171,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 128)
+    need(len(FILES) == len(set(FILES)) == 132)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw

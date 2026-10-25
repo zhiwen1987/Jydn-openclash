@@ -1,0 +1,54 @@
+{
+  "schema": "chengwang.mihomo-native-recovery-contract/v1",
+  "scope": "ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_HTTP_COMPLETION_OR_PRODUCTION",
+  "tags": [
+    "chengwang_mihomo_service",
+    "chengwang_mihomo_faults",
+    "chengwang_mihomo_recovery_native"
+  ],
+  "goPackage": "./internal/mihomodeploy",
+  "topTests": [
+    "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup"
+  ],
+  "goTimeoutSeconds": 75,
+  "outerGoTimeoutSeconds": 90,
+  "privateRoot": "/tmp/chengwang-mihomo-recovery-private",
+  "identityRoot": "/tmp/chengwang-mihomo-service-identities",
+  "servicePrivateRoot": "/tmp/chengwang-mihomo-service-private",
+  "stateRoot": "/tmp/chengwang-mihomo-service-state",
+  "stages": [
+    "planned",
+    "approved",
+    "stop-armed",
+    "quiesced",
+    "start-armed",
+    "started"
+  ],
+  "reopenStage": "reopened",
+  "counterEventLimit": 256,
+  "eventCheckpoints": [
+    "before-permit-cap-replay",
+    "after-permit-cap-replay",
+    "before-runner-replay",
+    "after-runner-replay",
+    "before-cleanup",
+    "after-cleanup",
+    "before-cleanup-replay",
+    "after-cleanup-replay",
+    "before-reopen",
+    "after-reopen"
+  ],
+  "eventCheckpointKeys": ["stage", "count", "lastSequence", "eventsSHA256"],
+  "eventPrefixEncoding": "Go-json.Marshal([]labNativeRecoveryCall)-sequence-kind-core-at-no-newline",
+  "commandReceiptSchema": "chengwang.mihomo-native-command-receipt/v1",
+  "commandReceiptKeys": ["schema", "sequence", "sourceCommit", "commandClass", "argv", "cwd", "timeoutSeconds", "exitCode", "observed", "namespace"],
+  "commandClasses": ["SANDBOX", "GO_VERSION", "GOFMT", "GO_TEST"],
+  "commandReceiptLimit": 4,
+  "processEventsSchema": "chengwang.mihomo-apply-private-process-event/v1",
+  "processEventLimit": 64,
+  "maxPublicBytes": 16777216,
+  "production": false,
+  "httpRecoveryProven": false,
+  "completionProven": false,
+  "syntaxRawStreamsIndependentlyProven": false
+}

@@ -153,6 +153,7 @@ func startOwnedRecoveryKernel(lifetimeCtx context.Context, in *labKernelInput, s
 	o.StartInvoked = true
 	// Exactly one original call. In particular no Start retry, Stop, rollback,
 	// numeric PID adoption or phase-context cancellation of the child is added.
+	labNativeRecoveryObserve(nil, "RECOVERY_START_DISPATCH")
 	kernel, err = startOwnedLabKernel(lifetimeCtx, in, artifact)
 	o.StartReturned = true
 	class := "NONE"

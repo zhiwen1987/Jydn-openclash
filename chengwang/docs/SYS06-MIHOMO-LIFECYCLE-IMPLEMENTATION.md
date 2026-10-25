@@ -4,11 +4,27 @@
 
 ## 本次已有代码
 
+### 2026-10-25 原生Started事实实验与独立reader：25源组装，实际Linux验收待证
+
+本轮将原生v3的11源、默认控制绑定10源、专用CI两源及独立reader两源共25源汇入开发工作区。v3修复Wait事件观测同步、双owner close持续拒绝和成功前末端context复查；仅最后一项是逻辑deadline检查，不能强制中断同步OS读取。root对native测试只删除最后一个多余LF，保持全部其他字节，并单独保留c7d7fb13→ab20fa0b的21254B→21253B修订证明；不是本机gofmt输出。
+
+默认来源121、必需test文件43、必需611名单及旧pin均保持，格式源115；新native测试带专用tag，不伪称由默认611执行。专用工作流四任务仅固定开发分支，无paths过滤，复用真实固定内核获取、UID/caps/no-new-privs、只读模块和新net/mount/pid namespace；actor/源工件/权限/原件均保持隔离，不接生产。它尝试从原实际UNKNOWN经独立批准、旧内核quiescence、有效lifetime context启动、S1实际磁盘事实、重放拒绝和两代清理后重开；是否成功必须由新Linux CI原件证明，不能由源码或模型推导。
+
+独立reader不导入producer，绑定159个真实路径和21件公开原件。source-before在worker要求的初始3件公开文件之外保存，attempt后无论成功失败均另取after再公开；fresh只读取既有原件，不再次启动内核。root发现并修订的提交来源问题现在要求实际commit tree、stage0 index与工作树blob三方一致，CLI还核自身来源；V发现的PID域已按原owner收紧为至少2。最终16个模型含真实Git exact/staged/unstaged负例及old/new/syntax协调PID1拒绝，实际PID14412、exit0；它们仍是reader模型及来源检查，不是native执行。私有完整WAL、S2、HTTP恢复完成、授权闭环、真实互联网业务和生产状态不由该实验独立证明，相关标志保持false或未知。
+
+### 2026-10-25 b409的611常规与同提交诊断原件接受；native接线仍待
+
+触发覆盖修复b409ab58ea5d061a536c19d8a29c1165070f59a8已推送／远端一致，两工作流均实际触发。正常40171643965共13门success；root独立df3ca579核12ZIP208成员／1294blob，普通及race各1503语义／611必需全过、format0，原C.verify实际返回PASS的15729B报告be9f9cf82f984be3132eba8e2fb53e26e24c1444242d8ea9e67f19668c2ae7f0与producer/fresh逐字节同。原Windows main仍因未改POSIX writer边界exit1，明确不称本机完整Linux CLI通过，未替换Path／平台／函数或AST门。同提交诊断40171644029原件独立复核仍在进行，尚不称双套接受；先前d041／ead失败原件与原判保留。
+
+后续同提交diag40171644029已实际五门success，独立closeout72b2dd8a／atomic a6182e2c核4ZIP42成员、1294blob及117／43／full71，strict1503语义／611必需全PASS，新4 selected、16S1、bfae和全部旧必需集合实际通过；原producer/fresh字节一致。full容量85.64秒、包164.268秒，profile120.303秒TIMER；single容量87.18秒、包88.212秒，profile60.247秒。完整两套共16ZIP250成员；是本次有界验收，不推固定性能或长期可用率。接受档为[evidence/sys06-b409611-acceptance-20261025.json](evidence/sys06-b409611-acceptance-20261025.json)。
+
+native v3的11源候选5830e9ac及独立微差分peer2e23176d已处理Wait观测同步、双owner重复拒绝和末端context检查，仅源码审通过；独立reader／专用runner／workflow及各scope真实源集合接线尚在开发，没有Go、原生实验或完整恢复接受。其现有可复用执行环境经实际源码更正为GitHub ephemeral ubuntu-24.04 runner内net/mount/pid namespace，不是Docker容器，不宣称digest-pinned执行镜像或显式cgroup硬配额。安全隔离、固定工具链／内核及资源观测各按实际原件分别证明，不以文案替代证据。
+
 ### 2026-10-25 CI触发覆盖修复：固定开发分支每次提交均运行两套验收
 
 2b63a001f14b6cc72ddb8019cd77c2b373aa5e2f只修改新adapter测试的实际formatter空白，GitHub API仅出现正常40170650512，诊断未被触发。实际旧diagnostic paths只列lifecycle／lab_recovery_plan／bootstrap_state等，未覆盖已经纳入full suite的其他Go源；正常paths也遗漏六包中的authz。此为源码及实际触发记录支持的CI覆盖缺口，不能编造该提交的诊断运行或复用d041为新提交接受。
 
-两workflow的push均保唯一codex/chengwang-mihomo-lifecycle-20261024分支，移除paths筛选，让该独立开发分支每次提交都纳入正常与诊断验收。workflow_dispatch、permissions、concurrency、13/5 job全部执行内容、命令、固定工具链/镜像、隔离namespace、180秒/256历史/2MiB不变；不扩大main或生产写权限。改动会增加仅改文档时的开发CI开销，避免新目录或路径遗漏继续让同提交的完整验收缺席。行为依据[GitHub workflow path/branch filters](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)。新触发范围仍须YAML/分支约束及实际GitHub新提交运行验证，不能用源码检查当已触发。
+两workflow的push均保唯一codex/chengwang-mihomo-lifecycle-20261024分支，移除paths筛选，让该独立开发分支每次提交都纳入正常与诊断验收。workflow_dispatch、permissions、concurrency、13/5 job全部执行内容、命令、固定工具链及既有runner声明、隔离namespace、180秒/256历史/2MiB不变；不扩大main或生产写权限。改动会增加仅改文档时的开发CI开销，避免新目录或路径遗漏继续让同提交的完整验收缺席。行为依据[GitHub workflow path/branch filters](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)。新触发范围仍须YAML/分支约束及实际GitHub新提交运行验证，不能用源码检查当已触发。
 
 ### 2026-10-25 d041的611全部Go通过、正常仅格式失败：真实四hunk修订待新CI
 

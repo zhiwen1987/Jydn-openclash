@@ -93,6 +93,9 @@ S1_STARTED_FILES = ('lifecycle_recovery_started.go', 'lifecycle_recovery_started
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in S1_STARTED_FILES]
 LAB_SELECTED_TARGET_FILES = ('lab_target_readback.go', 'lab_target_readback_test.go')
 FILES += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_SELECTED_TARGET_FILES]
+LAB_NATIVE_RECOVERY_FILES = ('lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
+    'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go')
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_NATIVE_RECOVERY_FILES]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',

@@ -75,7 +75,9 @@ func labServiceSyntax(ctx context.Context, in *labKernelInput, a *LabConfigArtif
 	}
 	observation := labKernelStartObservation{Attempted: true, WaitErrorClass: "NOT_WAITED"}
 	runtime.LockOSThread()
+	labNativeRecoveryObserve(nil, "SYNTAX_OS_START_ATTEMPT")
 	startErr := cmd.Start()
+	labNativeRecoveryObserve(nil, "SYNTAX_OS_START_RETURN")
 	started := startErr == nil
 	observation.Started = &started
 	_ = ow.Close()

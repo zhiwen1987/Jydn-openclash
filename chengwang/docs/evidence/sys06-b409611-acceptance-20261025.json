@@ -1,0 +1,61 @@
+{
+  "schema": "chengwang.sys06-b409611-bounded-acceptance/v1",
+  "sourceCommit": "b409ab58ea5d061a536c19d8a29c1165070f59a8",
+  "scope": "ACTUAL_611_FOUNDATIONS_AND_FULL_DIAGNOSTIC_ACCEPTED_NOT_NATIVE_OR_PRODUCT_COMPLETION",
+  "normalRunID": 40171643965,
+  "diagnosticRunID": 40171644029,
+  "normalJobs": 13,
+  "diagnosticJobs": 5,
+  "semanticPassedEach": 1503,
+  "mandatoryPassedEach": 611,
+  "formatPatchBytes": 0,
+  "normalArchives": 12,
+  "normalMembers": 208,
+  "diagnosticArchives": 4,
+  "diagnosticMembers": 42,
+  "sourceGitBlobs": 1294,
+  "normalReportBytes": 15729,
+  "normalReportSHA256": "be9f9cf82f984be3132eba8e2fb53e26e24c1444242d8ea9e67f19668c2ae7f0",
+  "normalOriginalVerifyProducerFreshByteEqual": true,
+  "ordinaryCapacitySeconds": 4.48,
+  "raceCapacitySeconds": 54.52,
+  "ordinaryMihomodeployPackageSeconds": 15.083,
+  "raceMihomodeployPackageSeconds": 106.019,
+  "diagnosticFullCapacitySeconds": 85.64,
+  "diagnosticFullPackageSeconds": 164.268,
+  "diagnosticFullProfileSeconds": 120.303,
+  "diagnosticSingleCapacitySeconds": 87.18,
+  "diagnosticSinglePackageSeconds": 88.212,
+  "diagnosticSingleProfileSeconds": 60.247,
+  "windowsWholeLinuxCLIWriterAccepted": false,
+  "originalPlatformAndPathRejectionsPreserved": true,
+  "pathPlatformFunctionOrASTAdapters": false,
+  "actualNativeRecoveryProven": false,
+  "fullPrivateWALIndependentlyProven": false,
+  "controllerReceivedCount": null,
+  "s2AndProductRecoveryAPIComplete": false,
+  "wholeSystemComplete": false,
+  "production": false,
+  "receipts": [
+    {
+      "kind": "normal",
+      "path": "D:/CodexData/workspace/mihomo-b409ab5-foundation-audit-20261025-root/closeout.json",
+      "sha256": "df3ca57904cf3aaf951efffa479ce6687f4da60e1b580c394396a8b59b009823"
+    },
+    {
+      "kind": "otherFourScopes",
+      "path": "D:/CodexData/workspace/mihomo-b409ab5-nonfoundation-audit-20261025-root/result.json",
+      "sha256": "05e7beba20edf0e9468f4649b0d354484d77d2f3e3d7fe8514bd56b7bd601c37"
+    },
+    {
+      "kind": "diagnostic",
+      "path": "D:/CodexData/workspace/mihomo-b409ab5-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "72b2dd8a0355b607e924071fb5259695dfa4dfbd88bc7cf80c871874d1c325fb"
+    },
+    {
+      "kind": "diagnosticIndependent",
+      "path": "D:/CodexData/workspace/mihomo-b409ab5-full-profile-audit-20261025-agent/cpu/independent-result.json",
+      "sha256": "a6182e2cc6e6b77fb378171788a9473ebb40a1088fbb46aaeb04fba0283490b8"
+    }
+  ]
+}

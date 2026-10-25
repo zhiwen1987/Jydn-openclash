@@ -135,6 +135,7 @@ func quiesceOwnedLabKernel(ctx context.Context, old *ownedLabKernel, b labQuiesc
 	}
 	observation.StartedAt = &now
 	observation.StopInvoked = true
+	labNativeRecoveryObserve(old.ownedLabKernelCore, "RECOVERY_STOP_DISPATCH")
 	stopped, stopErr := old.stop(ctx)
 	observation.StopReturned = true
 	stopped = labQuiescenceCloneExit(stopped)

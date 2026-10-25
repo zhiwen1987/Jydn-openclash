@@ -548,7 +548,9 @@ func (c *ownedLabKernelCore) run(ctx context.Context, home string, raw []byte, w
 		if p == nil {
 			return os.ErrProcessDone
 		}
+		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_ATTEMPT")
 		e := p.Kill()
+		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_RETURN")
 		if e == nil {
 			c.exit.KillSent = true
 		}
@@ -592,7 +594,9 @@ func (c *ownedLabKernelCore) run(ctx context.Context, home string, raw []byte, w
 	c.mu.Lock()
 	c.startAttempted = true
 	c.mu.Unlock()
+	labNativeRecoveryObserve(c, "KERNEL_OS_START_ATTEMPT")
 	e = cmd.Start()
+	labNativeRecoveryObserve(c, "KERNEL_OS_START_RETURN")
 	_ = ow.Close()
 	_ = ew.Close()
 	if e != nil {
@@ -631,7 +635,10 @@ func (c *ownedLabKernelCore) run(ctx context.Context, home string, raw []byte, w
 		ready <- nil
 	} else {
 		c.mu.Lock()
-		if c.process.Kill() == nil {
+		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_ATTEMPT")
+		killErr := c.process.Kill()
+		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_RETURN")
+		if killErr == nil {
 			c.exit.KillSent = true
 		}
 		c.mu.Unlock()
@@ -641,7 +648,9 @@ func (c *ownedLabKernelCore) run(ctx context.Context, home string, raw []byte, w
 	if c.ops.waitGate != nil {
 		<-c.ops.waitGate
 	}
+	labNativeRecoveryObserve(c, "KERNEL_OS_WAIT_ENTER")
 	waitErr := cmd.Wait()
+	labNativeRecoveryObserve(c, "KERNEL_OS_WAIT_RETURN")
 	c.mu.Lock()
 	c.exit.WaitReturned = true
 	c.exit.WaitErrorClass = "NONE"
@@ -961,6 +970,7 @@ func (k *ownedLabKernel) stop(ctx context.Context) (labKernelExit, error) {
 		return labKernelExit{}, errLabKernelClosed
 	}
 	c := k.ownedLabKernelCore
+	labNativeRecoveryObserve(c, "OWNED_STOP_HELPER_ENTER")
 	c.stopMu.Lock()
 	defer c.stopMu.Unlock()
 	c.mu.Lock()
@@ -982,7 +992,9 @@ func (k *ownedLabKernel) stop(ctx context.Context) (labKernelExit, error) {
 	// Signal only the original os.Process object. Go's pidfd/sigMu/status
 	// synchronizes it with the single Wait, avoiding naked PID/PGID reuse.
 	c.mu.Lock()
+	labNativeRecoveryObserve(c, "KERNEL_OS_TERM_ATTEMPT")
 	e := proc.Signal(syscall.SIGTERM)
+	labNativeRecoveryObserve(c, "KERNEL_OS_TERM_RETURN")
 	if e == nil {
 		c.exit.TermSent = true
 	}
@@ -1007,7 +1019,9 @@ func (k *ownedLabKernel) stop(ctx context.Context) (labKernelExit, error) {
 		}
 	}
 	c.mu.Lock()
+	labNativeRecoveryObserve(c, "KERNEL_OS_KILL_ATTEMPT")
 	e = proc.Kill()
+	labNativeRecoveryObserve(c, "KERNEL_OS_KILL_RETURN")
 	if e == nil {
 		c.exit.KillSent = true
 	}
