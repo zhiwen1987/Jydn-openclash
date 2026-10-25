@@ -1,0 +1,226 @@
+{
+  "acceptedCommit": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+  "allElevenJobsSuccessful": true,
+  "apiRouteProven": false,
+  "artifacts": [
+    {
+      "bytes": 3140,
+      "id": 12614357944,
+      "name": "mihomo-native-completion-candidate-40234883944-1.zip",
+      "sha256": "71f634bba57836363733f9b706f7c62aa0014569ff97402608df5cd6a860d1cd"
+    },
+    {
+      "bytes": 26904,
+      "id": 12614701658,
+      "name": "mihomo-native-completion-positive-originals-40234883944-1.zip",
+      "sha256": "c85abe88076f3d3457c5ea05b4ca1def7b9ac113c36bbd7e3b3b4e908431341e"
+    },
+    {
+      "bytes": 27256,
+      "id": 12613909551,
+      "name": "mihomo-native-completion-not-committed-originals-40234883944-1.zip",
+      "sha256": "4699ead416af34cef505ec992cda86e8ac699a7faf3478273136ae3c178874a4"
+    },
+    {
+      "bytes": 26817,
+      "id": 12613978670,
+      "name": "mihomo-native-completion-unknown-originals-40234883944-1.zip",
+      "sha256": "58f212e13535107088021e69c0820de84713d2020a0461647dde48fd1bb957ab"
+    },
+    {
+      "bytes": 26893,
+      "id": 12614710887,
+      "name": "mihomo-native-completion-readback-originals-40234883944-1.zip",
+      "sha256": "f2590ef171e0e841033028fbe51b0fa7857850c3abaf874f7bd04c426d9f5300"
+    },
+    {
+      "bytes": 315,
+      "id": 12614637173,
+      "name": "mihomo-native-completion-positive-fresh-40234883944-1.zip",
+      "sha256": "e867591b6c91a2b2b5532b8064c6b6c6d334216901ccca3c58e8951da71b41c5"
+    },
+    {
+      "bytes": 329,
+      "id": 12614865472,
+      "name": "mihomo-native-completion-not-committed-fresh-40234883944-1.zip",
+      "sha256": "f6ab60f94e0805ee3726f0b01099c5307896f79fc4e88f29b66bbdc4a0a6e26b"
+    },
+    {
+      "bytes": 312,
+      "id": 12614691850,
+      "name": "mihomo-native-completion-unknown-fresh-40234883944-1.zip",
+      "sha256": "dcae5edcb9dff690061008d9d5971cc58e9056f8a9c20e32c207575fc6b06382"
+    },
+    {
+      "bytes": 314,
+      "id": 12614328115,
+      "name": "mihomo-native-completion-readback-fresh-40234883944-1.zip",
+      "sha256": "4ec69be382e8071f0dba821db80bc5c24234212d730e648844697c4d8f68803c"
+    }
+  ],
+  "fullCheckerMainDirectlyReplayedAllFourModesByIndependentAuditor": true,
+  "fullProjectComplete": false,
+  "isolatedFirstCompletionFourModeAccepted": true,
+  "localGoOrNativeOrGofmtExecuted": false,
+  "mainMerged": false,
+  "modes": {
+    "not-committed": {
+      "diskPhase": "START_ARMED",
+      "diskRevision": 18,
+      "memoryRevision": 18,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 7.944,
+      "reopenTransition": "START_ARMED_TO_RECOVERY_UNKNOWN",
+      "replaceForwardReadInjected": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportSHA256": "ba66ef85676e8ad84e51573b8941875cc09f55154bdb8b06eec284559ad79ed9",
+      "runtimeAdopted": false,
+      "testSeconds": 7.94
+    },
+    "positive": {
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "memoryRevision": 19,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 10.756,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "reportSHA256": "d99c6671f94cc343fc5eccf162e178cb3f4582978bbe10c03d254cf320d8658a",
+      "runtimeAdopted": true,
+      "testSeconds": 10.75
+    },
+    "readback": {
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "memoryRevision": 18,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 10.748,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "reportSHA256": "b26cabb18ccdcc156a61a84e56d631fc7d6a53dc6871e40494e295040faefb2b",
+      "runtimeAdopted": false,
+      "testSeconds": 10.74
+    },
+    "unknown": {
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "memoryRevision": 18,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 8.078,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "reportSHA256": "046f4031c90a5d3d96e47defb4478e6333c3a932dce8368fab63d308308da875",
+      "runtimeAdopted": false,
+      "testSeconds": 8.07
+    }
+  },
+  "ordinaryPublishProven": false,
+  "otherWorkflowStatusOnlyNotRawReauditedByThisAggregation": true,
+  "priorFailedRunsPreserved": [
+    40223175606,
+    40225294759,
+    40228540529,
+    40230016584,
+    40232348639,
+    40234883862
+  ],
+  "priorRootRecountAttempt": {
+    "outcome": "AUDIT_VIEW_COMPARED_AS_WIRE_BINDING",
+    "path": "D:/CodexData/workspace/mihomo-9adbbe0-completion-root-recount-h3culwjr/failure.json",
+    "preserved": true,
+    "productFailure": false
+  },
+  "privateWALIndependentProof": false,
+  "privateWALProducerAndIndexFsyncBindingOnly": true,
+  "producerAndFreshTextByteEqualAllFourModes": true,
+  "productionChanged": false,
+  "productionReady": false,
+  "receipts": [
+    {
+      "path": "D:/CodexData/workspace/mihomo-9adbbe0-completion9-originals-20261026-agent56h/AUDIT-RECEIPT-FINAL.json",
+      "role": "independent-full-checker-audit",
+      "sha256": "1016ac58c21efc37c42c44beb7752f152a135a49ed56d15a9a99934e3dd0b56b"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-9adbbe0-completion-root-recount-ud6jhnol/receipt.json",
+      "role": "root-raw-recount",
+      "sha256": "aef033faca16e86822eaafc3c1f1d03d3eac267552522c4be38a9ac1135f1efc"
+    }
+  ],
+  "registryPublished": false,
+  "rootIndependentlyRecountedRawGoCommandsCountersAndFullTrackedSource": true,
+  "run": 40234883944,
+  "runtimeAdoptionFirstPositiveObserved": true,
+  "schema": "chengwang.first-native-completion-isolated-acceptance/v1",
+  "scope": "FIRST_COMPLETION_FOUR_MODES_ONLY_NOT_PRODUCT_API_OR_PRODUCTION",
+  "secondRecoveryProven": false,
+  "serviceRebindProven": false,
+  "sourceBinding": {
+    "deliveryCount": 9,
+    "deliverySetSHA256": "6c1fd93d8f966ca8a8d3d5d35d24e25c559caeeeaa93c75bb4ea53d2c9311398",
+    "indexTree": "f3d9ddb2f61e1cd0e7a8501738398a1cbe079a1e",
+    "policySHA256": "fd9682a24a31d4087f72490771d9a7c00b648d8a7925f4805effc49a7b3a1385",
+    "schema": "chengwang.mihomo-native-completion-source-binding/v2",
+    "sourceCommit": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+    "sourceCount": 1381,
+    "sourceManifestSHA256": "72bb86e779fe0a41e46a1a1183fb7ba22d65e8d4dcc36dc91ffb1fbb888122a9",
+    "sourceSetSHA256": "5c9eb2da4e409e49f7a327d703bbf24085111b890bb6622bb828d5065106c40f",
+    "sourceTree": "f3d9ddb2f61e1cd0e7a8501738398a1cbe079a1e"
+  },
+  "sourceTrackedPathEntries": 1381,
+  "wholeNormalRegressionPassed": false,
+  "workflowStatusObservations": [
+    {
+      "conclusion": "success",
+      "head": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+      "id": 40234883895,
+      "name": "Chengwang Isolated Native Recovery Started Record",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "head": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+      "id": 40234883944,
+      "name": "Chengwang Isolated Native First Completion",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "head": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+      "id": 40234883995,
+      "name": "Chengwang Isolated Capacity CPU Diagnosis",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "head": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+      "id": 40234883862,
+      "name": "Chengwang Mihomo Lifecycle Foundations",
+      "status": "completed"
+    }
+  ],
+  "zipMembers": 167
+}

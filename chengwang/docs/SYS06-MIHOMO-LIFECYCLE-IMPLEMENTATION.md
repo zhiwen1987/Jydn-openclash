@@ -1,10 +1,16 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：`4bbbe70` 的首次真实 Completion 四模式已限定隔离验收通过；9 ZIP／167 成员、1364 跟踪路径，四模式原 checker main 直接复演通过，四组 producer／fresh 一致。其余三条 CI 状态成功，本轮没有重复审计全部旧门原件。先前 c1f9 的旧 S2 与 1937／661 普通及 race 限定基线保留；race 176.367 秒距 180 秒仅余 3.633 秒，不证明稳定容量余量。产品 service 换绑、新 head 后普通发布、产品恢复 API、第二恢复及完整系统／生产仍未验收。所有历史失败保留，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：`9adbbe0` 的首次真实Completion四模式已限定隔离验收通过；9 ZIP／167成员、1381跟踪路径，四模式原checker main直接复演通过，root原始Go／命令／落盘计数独立复核，四组producer／fresh一致。新基础门ordinary 688／688通过、race仍累计180秒超时，不能把Completion成功当整个回归通过；诊断与旧S2仅本轮CI状态核实为success。先前c1f9与4bbbe限定接受保留为各自提交历史，不证明当前稳定余量。产品service换绑、新head后普通发布、产品恢复API、第二恢复及完整系统／生产仍未验收。所有历史失败保留，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有PUT、204、配置生成或测试通过，都不能把SYS-06标为完成。
 
 ## 本次已有代码
 
-### 下一阶段源码：恢复协调器、reconciliation 与产品 API 已合入，Linux 验收待执行
+本轮待Linux重验的保守性能修订仅把BEGIN／REVOKE的完整草稿构造闭合在各自私有入口，在原copyRecord已完成intact及JSON分离后，省去同栈重复的第二次intact。publisher整函数、trusted clone、prepare语义尾、磁盘verify/read/CAS/fsync/readback及Completion freshness保持原字节；generic／split入口仍保留原intact与marshal。真实256循环、2MiB、688必需名称与180秒均不变，尚未证明性能收益。先前v1的direct-proof跳marshal候选因typed/raw变异缺口被拒，v2新增MODEL又因两次随机fixture不能假设同raw而被拒；当前v3改为一次canonical raw分别克隆到两个独立MODEL disk/store，不修改rand.Reader。当前三个非test common-helper调用点经根静态核对；这是源码证据，不是运行验收。
+
+### 恢复协调器、reconciliation 与产品 API 已合入，实际回归已进入，产品链尚待验收
+
+`9adbbe0` 已取得新原件：首次Completion run40234883944的11任务成功，9 ZIP／167成员、1381路径、四mode原checker直接复演及root原始Go／命令／落盘计数复算一致；[接受记录](evidence/sys06-9adbbe0-first-completion-acceptance-20261026.json)只接受首次四模式，不证明service rebind、产品API、普通发布、第二恢复或生产。基础门run40234883862仍失败，其250290字节／13成员原件已核：ordinary 688／688必需、1990语义通过；race 584必需通过、零terminal失败、1运行时超时、103未起，包180.047秒。capacity为88.85秒；alarm时当前测试仅运行约0.497秒，不能据栈归因全部预算。47／25模型和空格式门通过，全部历史失败保留。180秒、256实际begin/revoke循环、2MiB与逐plan检查不放宽；性能候选须独审及同提交Linux实测，不能预称已有收益。新连续HTTPS候选仍是外部source，读取器复审发现序号偏移、合法zero-core及嵌套响应绑定缺口，正在新版本修订；31请求尚未实际执行。
+
+完整私有WAL仍只有producer内复查与公开index/fsync旁证，不提升为独立全文证明。normal原件artifact12614223888 SHA256为`cc9ce1d8dbbd19ec78da718d161d828c394203349010b4fc5addc3d2176554bc`；[独立原件审计](evidence/sys06-9adbbe0-normal-contracts-original-audit-20261026.json)保留失败终态。下文6018及此前提交均为历史记录。
 
 固定实际图后的 `6018ebbb23eb85ee87bb11557b959b461a8b42a2` 已通过 reflection 与旧 S2 CI 状态门，但新阶段仍未整体验收。ordinary 688必需中684 PASS／4 FAIL，无未起；race628 PASS／4 FAIL／1运行时超时／55未起，原文 `panic: test timed out after 3m0s`，180秒是包总预算，不能把当时运行的HistoryContext测试认定为唯一热点。原 normal ZIP267520字节 SHA `d5202b4031441563d47bc18544fcf29dfb2d70b2d86a7fa4f0f4da383892e439` 与 full ZIP541160字节 SHA `5a39da1fb4f5b05904ae590760d39134288babd04223e132f537e4bedbf6e130` 保留。
 

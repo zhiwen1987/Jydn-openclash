@@ -25,6 +25,35 @@ func lifecycleRecoveryTransactionModel(t *testing.T) (*lifecycleRecoveryStore, *
 	return s, d, b, next, now
 }
 
+func lifecycleRecoveryReferenceBegin(x *lifecycleRecoveryStoreCore, base *lifecycleVerifiedBase, descriptor labRecoveryPlanDescriptor, now time.Time) error {
+	next, err := base.copyRecord()
+	if err != nil {
+		return err
+	}
+	next.core.Recovery = &lifecycleRecoveryTxn{Plan: descriptor, Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
+	return x.commitWithBase(base, next, now)
+}
+
+func lifecycleRecoveryReferenceRevoke(x *lifecycleRecoveryStoreCore, base *lifecycleVerifiedBase, actor, reason string, now time.Time) error {
+	next, err := base.copyRecord()
+	if err != nil {
+		return err
+	}
+	b := next.core.Recovery
+	b.Revocation = &lifecycleRevocation{x.record.core.Revision + 1, now, reason, actor}
+	b.UpdatedAt = now
+	if b.StopIntent == nil {
+		b.Phase = "REVOKED_UNSTARTED"
+		next.core.RecoveryHistory = append(next.core.RecoveryHistory, *b)
+	} else {
+		b.Phase = "RECOVERY_UNKNOWN"
+		if b.Failure == nil {
+			b.Failure = &lifecycleRecoveryFailure{reason, now}
+		}
+	}
+	return x.commitWithBase(base, next, now)
+}
+
 func TestLifecycleRecoveryVerifiedBaseRejectsForgedForeignAndStaleIdentity(t *testing.T) {
 	s, d, b, next, now := lifecycleRecoveryTransactionModel(t)
 	defer b.release()
@@ -130,6 +159,70 @@ func TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore(t *testi
 	if s.core.publishPrepared(p) == nil || d.writes != 1 {
 		t.Fatal("MODEL prepared candidate replayed")
 	}
+	t.Run("fresh-begin-revoke-exactly-match-generic", func(t *testing.T) {
+		record, plan, _, now := lifecycleV3Model(t)
+		raw, err := encodeLifecycleV3Record(record)
+		if err != nil {
+			t.Fatal("MODEL shared source encode")
+		}
+		open := func() (*lifecycleRecoveryStore, *lifecycleModelDisk) {
+			disk := &lifecycleModelDisk{raw: bytes.Clone(raw), exists: true, state: lifecycleCommitted}
+			store, openErr := openLifecycleRecoveryStore(disk, now)
+			if openErr != nil {
+				t.Fatal("MODEL shared source open")
+			}
+			return store, disk
+		}
+		fast, fastDisk := open()
+		reference, referenceDisk := open()
+		descriptor := plan.descriptor()
+		fastBase, fastErr := fast.core.verifiedBase()
+		referenceBase, referenceErr := reference.core.verifiedBase()
+		if fastErr != nil || referenceErr != nil {
+			t.Fatal("MODEL begin bases")
+		}
+		if fast.core.commitFreshRecoveryBegin(fastBase, descriptor, now) != nil ||
+			lifecycleRecoveryReferenceBegin(reference.core, referenceBase, descriptor, now) != nil ||
+			!bytes.Equal(fast.core.raw, reference.core.raw) || fastDisk.writes != referenceDisk.writes {
+			t.Fatal("MODEL fresh begin changed canonical bytes")
+		}
+		fastBase.release()
+		referenceBase.release()
+		fastBase, fastErr = fast.core.verifiedBase()
+		referenceBase, referenceErr = reference.core.verifiedBase()
+		if fastErr != nil || referenceErr != nil {
+			t.Fatal("MODEL revoke bases")
+		}
+		if fast.core.commitFreshRecoveryRevoke(fastBase, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil ||
+			lifecycleRecoveryReferenceRevoke(reference.core, referenceBase, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil ||
+			!bytes.Equal(fast.core.raw, reference.core.raw) || fastDisk.writes != referenceDisk.writes {
+			t.Fatal("MODEL fresh revoke changed canonical bytes")
+		}
+		fastBase.release()
+		referenceBase.release()
+	})
+	t.Run("fresh-failure-spend-and-poison-boundaries", func(t *testing.T) {
+		badBaseStore, badBaseDisk, badBasePlan, at := lifecycleRecoveryModelStore(t)
+		badBase, err := badBaseStore.core.verifiedBase()
+		if err != nil {
+			t.Fatal("MODEL bad base")
+		}
+		badBase.core.raw[0] ^= 1
+		if badBaseStore.core.commitFreshRecoveryBegin(badBase, badBasePlan.descriptor(), at) == nil || badBase.core.used || badBaseDisk.writes != 0 || badBaseStore.core.poisoned {
+			t.Fatal("MODEL pre-copy failure changed old spend boundary")
+		}
+		badBase.release()
+		rollbackStore, rollbackDisk, rollbackPlan, rollbackAt := lifecycleRecoveryModelStore(t)
+		rollbackBase, err := rollbackStore.core.verifiedBase()
+		if err != nil {
+			t.Fatal("MODEL rollback base")
+		}
+		if rollbackStore.core.commitFreshRecoveryBegin(rollbackBase, rollbackPlan.descriptor(), rollbackAt.Add(-time.Nanosecond)) == nil ||
+			!rollbackBase.core.used || !rollbackStore.core.poisoned || rollbackDisk.writes != 0 {
+			t.Fatal("MODEL post-copy rollback changed old spend or poison boundary")
+		}
+		rollbackBase.release()
+	})
 }
 
 func TestLifecycleRecoveryPreparedPublicationRechecksActualDiskBytesAndCustody(t *testing.T) {

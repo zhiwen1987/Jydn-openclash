@@ -4,6 +4,10 @@
 
 ## 最新核对：2026-10-26 SYS-06 首次真实 Completion 四模式通过限定隔离验收
 
+本轮合入待实际重验的性能修订只消除BEGIN／REVOKE已完整copyRecord后同栈重复intact；publisher、clone及完整语义校验保持。v1不安全跳marshal、v2双随机fixture均已拒绝并保留原件，v3用同一次真实canonical raw建立两个独立MODEL disk/store。三处非test common-helper调用点由根静态核对，688名称／256循环／2MiB／180秒保持，收益待下一同提交Linux CI，未进入生产。
+
+`9adbbe0` 已取得新原件：首次Completion run40234883944的11任务成功，9 ZIP／167成员、1381路径、四mode原checker直接复演及root原始Go／命令／落盘计数复算一致；[接受记录](evidence/sys06-9adbbe0-first-completion-acceptance-20261026.json)只接受首次四模式，不证明service rebind、产品API、普通发布、第二恢复或生产。基础门run40234883862仍失败，其250290字节／13成员原件已核：ordinary 688／688必需、1990语义通过；race 584必需通过、零terminal失败、1运行时超时、103未起，包180.047秒。capacity为88.85秒；alarm时当前测试仅运行约0.497秒，不能据栈归因全部预算。47／25模型和空格式门通过，全部历史失败保留。180秒、256实际begin/revoke循环、2MiB与逐plan检查不放宽；性能候选须独审及同提交Linux实测，不能预称已有收益。新连续HTTPS候选仍是外部source，读取器复审发现序号偏移、合法zero-core及嵌套响应绑定缺口，正在新版本修订；31请求尚未实际执行。
+
 6018后续回归已核：ordinary684／688 PASS、4FAIL；race628PASS／4FAIL／1run超时／55未起，真实包180秒timeout，性能缺口未关闭。四top最小功能修订与Completion worker旧83／84／661→实际84／88／688同步已合入待验；直接producer.contract CPU回归增加到既有top内，11顶层不变。旧S2本提交CI状态success，不抵消新Completion在Go前合同拒绝；图pin与复制属性不再是未知，但产品恢复API／普通发布／第二恢复仍未验收。新的10Go连续HTTPS与7CI文件只是外部source候选，31请求为计划调用，不是31次实测；尚未Go／HTTP运行或集成。
 
 后续 `69c2fc2` 真实编译／图诊断已进入，唯一diagnostic output+pass与独立digest MODEL同值：`ee925968d830156c5a5c0c366e28722e278b1d54284712ebc28b47a8ed7e4d61`，63结构／457字段／86槽（67指针19切片）。21成员原ZIP470958字节SHA `484b95eea7b5d0b02cefb0092aaff83f287e98684565f0854310b53a4dcc4edf`、1379源前后及Git字节已独立核，root收据SHA `bb7d009d2d84217bf91ed75cfe6d1049789018e1237d61f46f2675d4640b7ba0`。当前据此固定pin、同步原属性门63／86，全部复制与逐槽检查保留；full Go exit1／116顶层失败的原判定保持，不把诊断通过当整体通过，也不预判其余失败原因。

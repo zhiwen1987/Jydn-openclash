@@ -534,6 +534,58 @@ func (x *lifecycleRecoveryStoreCore) commitWithBase(base *lifecycleVerifiedBase,
 	}
 	return x.publishPrepared(p)
 }
+
+// These two entry points are intentionally closed over the complete
+// begin/revoke draft construction. copyRecord performs the unchanged full
+// base.intact check and JSON detachment; after it returns, only local detached
+// field changes occur before the same stack spends the base. There is no
+// interface, callback or unlock in that interval. The prepared candidate is
+// published immediately and is never returned from either entry point.
+func (x *lifecycleRecoveryStoreCore) commitFreshRecoveryBegin(base *lifecycleVerifiedBase, descriptor labRecoveryPlanDescriptor, now time.Time) error {
+	next, err := base.copyRecord()
+	if err != nil {
+		return err
+	}
+	next.core.Recovery = &lifecycleRecoveryTxn{Plan: descriptor, Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
+	if !base.issuedTo(x) || base.core.used {
+		return errLifecycleUnsafe
+	}
+	base.core.used = true
+	prepared, err := prepareLifecycleCandidateAfterVerifiedBase(x, base, next, now)
+	if err != nil {
+		return err
+	}
+	return x.publishPrepared(prepared)
+}
+
+func (x *lifecycleRecoveryStoreCore) commitFreshRecoveryRevoke(base *lifecycleVerifiedBase, actor, reason string, now time.Time) error {
+	next, err := base.copyRecord()
+	if err != nil {
+		return err
+	}
+	b := next.core.Recovery
+	b.Revocation = &lifecycleRevocation{x.record.core.Revision + 1, now, reason, actor}
+	b.UpdatedAt = now
+	if b.StopIntent == nil {
+		b.Phase = "REVOKED_UNSTARTED"
+		next.core.RecoveryHistory = append(next.core.RecoveryHistory, *b)
+	} else {
+		b.Phase = "RECOVERY_UNKNOWN"
+		if b.Failure == nil {
+			b.Failure = &lifecycleRecoveryFailure{reason, now}
+		}
+	}
+	if !base.issuedTo(x) || base.core.used {
+		return errLifecycleUnsafe
+	}
+	base.core.used = true
+	prepared, err := prepareLifecycleCandidateAfterVerifiedBase(x, base, next, now)
+	if err != nil {
+		return err
+	}
+	return x.publishPrepared(prepared)
+}
+
 func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Record, now time.Time) (*lifecyclePreparedCandidate, error) {
 	if base == nil || base.core == nil || !base.issuedTo(base.core.store) || base.core.used {
 		return nil, errLifecycleUnsafe
@@ -541,6 +593,16 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	x := base.core.store
 	base.core.used = true // invalid candidate/clock/CAS cannot reuse this base
 	if !base.intact(x) {
+		return nil, errLifecycleUnsafe
+	}
+	return prepareLifecycleCandidateAfterVerifiedBase(x, base, next, now)
+}
+
+// The caller has just performed base.intact and spent this exact active base.
+// It grants no authority: every transition, clock, fence, complete-history,
+// canonical clone and publication check below remains unchanged.
+func prepareLifecycleCandidateAfterVerifiedBase(x *lifecycleRecoveryStoreCore, base *lifecycleVerifiedBase, next lifecycleV3Record, now time.Time) (*lifecyclePreparedCandidate, error) {
+	if x == nil || base == nil || base.core == nil || !base.issuedTo(x) || !base.core.used {
 		return nil, errLifecycleUnsafe
 	}
 	if err := x.trustedNow(now); err != nil {

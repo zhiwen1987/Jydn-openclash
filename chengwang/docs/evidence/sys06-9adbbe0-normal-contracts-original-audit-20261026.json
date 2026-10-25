@@ -1,0 +1,151 @@
+{
+  "artifact": {
+    "bytes": 250290,
+    "caseFoldDuplicates": false,
+    "crcReadAllMembers": true,
+    "encryptedMembers": false,
+    "exclusiveOutputDirectory": true,
+    "members": 13,
+    "path": "D:/CodexData/workspace/mihomo-9adbbe0-normal-contracts-original-20261026-agent56h/mihomo-foundation-contracts-40234883862-1.original.zip",
+    "pathFence": true,
+    "sha256": "cc9ce1d8dbbd19ec78da718d161d828c394203349010b4fc5addc3d2176554bc",
+    "signedURLPersisted": false,
+    "symlinkMembers": false,
+    "uncompressedBytes": 3430496
+  },
+  "auditProgram": {
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "path": "D:/CodexData/workspace/mihomo-9adbbe0-normal-contracts-original-20261026-agent56h/audit_original.py",
+    "repositoryModified": false,
+    "sha256": "5717ae3bf16a387a27cc336f1cac328f4180e713ef10c03bc16787b4411d9f91",
+    "workflowRerun": false
+  },
+  "createdAtUTC": "2026-10-25T21:39:26.2138286Z",
+  "execution": {
+    "formatExit": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "ordinaryExit": 0,
+    "ordinaryStderrBytes": 0,
+    "production": false,
+    "raceExit": 1,
+    "raceStderrBytes": 0,
+    "realMihomoExecuted": false
+  },
+  "models": {
+    "contractEvidenceModels": {
+      "outcome": "PASS",
+      "tests": 25
+    },
+    "pinModels": {
+      "outcome": "PASS",
+      "tests": 47
+    }
+  },
+  "ordinary": {
+    "goJSONBytes": 1870784,
+    "goJSONSHA256": "ada78b601f9af6ade719d500867e4f28f22b6231d7c631ba687e3fff81f03ca3",
+    "mandatoryFailed": 0,
+    "mandatoryNotStarted": 0,
+    "mandatoryPassed": 688,
+    "mandatoryUnfinished": 0,
+    "mihomodeployPackageElapsedSeconds": 24.804,
+    "rows": 8000,
+    "semanticFailTerminals": 0,
+    "semanticPassTerminals": 1990,
+    "semanticSkipTerminals": 0,
+    "slowestMandatory": {
+      "elapsedSeconds": 7.75,
+      "name": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop"
+    }
+  },
+  "otherPackageRaceTerminals": {
+    "chengwang/internal/adapter/mihomo": {
+      "elapsedSeconds": 3.14,
+      "outcome": "PASS"
+    },
+    "chengwang/internal/api": {
+      "elapsedSeconds": 3.991,
+      "outcome": "PASS"
+    },
+    "chengwang/internal/authn": {
+      "elapsedSeconds": 1.102,
+      "outcome": "PASS"
+    },
+    "chengwang/internal/authz": {
+      "elapsedSeconds": 1.054,
+      "outcome": "PASS"
+    },
+    "chengwang/internal/serverruntime": {
+      "elapsedSeconds": 1.584,
+      "outcome": "PASS"
+    }
+  },
+  "race": {
+    "causalityBoundary": "The unfinished test was current when the cumulative 180 second package alarm fired; its approximately 0.497 second observed interval does not prove it consumed the preceding budget.",
+    "goJSONBytes": 1547493,
+    "goJSONSHA256": "a8f6ff3ccd9bcc220bc298fb462a4e366d46dc70bf1125561d858b0349a151ff",
+    "mandatoryFailed": 0,
+    "mandatoryNotStarted": 103,
+    "mandatoryPassed": 584,
+    "mandatoryUnfinished": 1,
+    "mihomodeployPackageElapsedSeconds": 180.047,
+    "mihomodeployPackageOutcome": "FAIL",
+    "rows": 6754,
+    "semanticFailTerminals": 0,
+    "semanticPassTerminals": 1663,
+    "semanticSkipTerminals": 0,
+    "slowestCompletedMandatory": [
+      {
+        "elapsedSeconds": 88.85,
+        "name": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop"
+      },
+      {
+        "elapsedSeconds": 8.46,
+        "name": "TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit"
+      },
+      {
+        "elapsedSeconds": 3.74,
+        "name": "TestLabRecoveryAuthorityStartRejectsForgedPermitAndWrongCurrentBinding"
+      },
+      {
+        "elapsedSeconds": 3.54,
+        "name": "TestLabServiceCloseRetainsUncertainOwnedHandleUntilActualModelWait"
+      },
+      {
+        "elapsedSeconds": 2.65,
+        "name": "TestLifecycleRecoveryStartedRecordRejectsCopiesJSONAndCrossStoreSource"
+      }
+    ],
+    "timeout": "test timed out after 3m0s",
+    "timeoutStack": [
+      "encoding/json.Marshal",
+      "lifecycleRecoveryVerificationPreimageScoped at lifecycle_recovery_verification.go:242",
+      "validateLifecycleRecoveryExecutionScoped at lifecycle_recovery_started.go:293",
+      "validateLifecycleV3ContentsScoped at lifecycle_v3.go:594",
+      "validateLifecycleV3RecordScoped at lifecycle_v3.go:520",
+      "decodeLifecycleV3RecordScoped at lifecycle_v3.go:296",
+      "lifecycleVerifiedBoundsModel at lifecycle_recovery_verified_bounds_test.go:88",
+      "TestLifecycleRecoveryVerifiedBoundsNestedValuesAreDetached at lifecycle_recovery_verified_bounds_test.go:214"
+    ],
+    "unfinishedMandatory": "TestLifecycleRecoveryVerifiedBoundsNestedValuesAreDetached",
+    "unfinishedObservedBeforeAlarmSecondsApprox": 0.497
+  },
+  "schema": "chengwang.mihomo-9adbbe0-normal-contracts-original-audit/v1",
+  "source": {
+    "artifactId": 12614223888,
+    "artifactName": "mihomo-foundation-contracts-40234883862-1",
+    "commit": "9adbbe0419668884db9b75391b3cbead2e1aa9b6",
+    "jobId": 121294227695,
+    "runId": 40234883862,
+    "snapshot": "D:/CodexData/workspace/mihomo-9adbbe0-acceptance-qc79_j6d/repo",
+    "trackedPathEntries": 1381
+  },
+  "sourceDerivedClosedSet": {
+    "checker": "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py",
+    "derivedFromActualSnapshotBytes": true,
+    "mandatoryTopLevelTests": 688
+  },
+  "status": "ACTUAL_NORMAL_CONTRACTS_FAILED_RACE_TIMEOUT_ORDINARY_PASSED"
+}

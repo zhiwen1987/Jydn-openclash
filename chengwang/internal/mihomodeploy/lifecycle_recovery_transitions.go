@@ -292,12 +292,7 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	if a := x.record.core.Recovery; a != nil && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" && a.Phase != "FAILED_RECONCILED" {
 		return errLifecycleUnsafe
 	}
-	next, err := base.copyRecord()
-	if err != nil {
-		return err
-	}
-	next.core.Recovery = &lifecycleRecoveryTxn{Plan: d, Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
-	if err := x.commitWithBase(base, next, now); err != nil {
+	if err := x.commitFreshRecoveryBegin(base, d, now); err != nil {
 		return err
 	}
 	if d.Schema == labRecoveryPlanSchemaV3 && lifecycleRecoveryBindAbsenceToPlan(x, p, t) != nil {
@@ -361,23 +356,7 @@ func (s *lifecycleRecoveryStore) revokeRecovery(t *lifecycleRecoveryOwnerToken, 
 	if a == nil || a.Revocation != nil || a.Phase == "COMPLETED" || a.Phase == "REVOKED_UNSTARTED" || !planReference.MatchString(actor) || (reason != "EXPLICIT_REVOKED" && reason != "AUTHORITY_CHANGED" && reason != "EXPIRED") || x.record.core.Revision == ^uint64(0) {
 		return errLifecycleUnsafe
 	}
-	next, err := base.copyRecord()
-	if err != nil {
-		return err
-	}
-	b := next.core.Recovery
-	b.Revocation = &lifecycleRevocation{x.record.core.Revision + 1, now, reason, actor}
-	b.UpdatedAt = now
-	if b.StopIntent == nil {
-		b.Phase = "REVOKED_UNSTARTED"
-		next.core.RecoveryHistory = append(next.core.RecoveryHistory, *b)
-	} else {
-		b.Phase = "RECOVERY_UNKNOWN"
-		if b.Failure == nil {
-			b.Failure = &lifecycleRecoveryFailure{reason, now}
-		}
-	}
-	if err := x.commitWithBase(base, next, now); err != nil {
+	if err := x.commitFreshRecoveryRevoke(base, actor, reason, now); err != nil {
 		return err
 	}
 	x.permit = nil
