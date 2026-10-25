@@ -4,6 +4,22 @@
 
 ## 本次已有代码
 
+### 2026-10-25 S1 Started持久化与607接线：源码集成，尚待本提交实际Linux验收
+
+S1把真实启动产生的私有Started能力与同store启动前START_ARMED canonical原像绑定，在record入口对已发行能力一次性消费；核原issuer／store／完整owner与fence／时钟／精确重建原像，通过临时私有publication proof及原完整candidate／history／CAS／replace／exact readback记录发生事实。失败或跨库／token／phase拒绝也花费该能力；迟到撤销／过期仅保事实并维持UNKNOWN，不恢复授权或新head。通用DTO不能mint／移除／替换Execution，重开不能重建owner／permit／能力。Execution v1只承载Started，尾部nil omitempty保持旧v3 canonical路径；真实旧金样与新否定用例仍须本提交实际Go验证。Stop前reserve包含新的Started完整尺寸，256历史／2MiB／180秒不放宽。
+
+本切片19源码（8Go+11control）源审dd2ecfe4／独立peer d4705e47；48结构／339字段／98节点，新增5数据类型按53字段与txn尾Execution字段显式深复制，schema源投影bfaed3e6c2938709025876729e2635a27d3e65096ca778687be9a60585ff4012，55指针＋13slice槽及sibling反例扩展，d7非法UTF8 oracle逐字保持。必需607 pin b745efef5b96ad29ececc9f9e4bf465d23277de5c03ff805c8c675abb100da62，旧591／587／585／539／528／407完整集合保留；normal115源／42test／109fmt，compat126／apply134／service141／unknown147，完整诊断70个包test来源。源／YAML／6受影响合成检查不代表Go／反射schema／金样／性能或真实native通过。
+
+有效上下文native Start→Started真实入库实验尚未完成；runtime的sole store close owner交接与双代kernel cleanup另行实现，不把这里的MODEL磁盘或cap当生产磁盘／原生发行。S2 selected-target comparer两个新源仍外部叶子候选，没有collector／私有receipt／时窗／completion；HTTP恢复API、LEGACY/V3 facade、新head、后续普通写、第二恢复及完整系统／生产未完成。
+
+### 2026-10-25 f40的591正常与完整诊断通过：仅关闭本性能／复制底座切片
+
+f40f02bd0a1506b467437cb95aedf39a9f9955e6正常40166486274实际13门success；普通／race各1380语义、591必需全部PASS，format0，原587／585／539／528／407、新4、invalid-utf8明确反例及原schema／dense快路径全过。容量7.51／86.65秒、race包151.443秒，本轮预算内完成。原C.verify实际返回PASS、15199B报告与producer/fresh逐字一致（9448b5ec…fe202a0），Windows原main随后按未改POSIX writer门自然exit1另列，未把它称作完整Linux CLI在Windows通过。独立d1161ccb核12ZIP208成员／1281blob及5分项原checker/fresh、末次源与原件稳定。
+
+诊断40166486286实际5门success；独立a78e5e86核4ZIP42成员／1281blob、113源／41必需test／69全包test／591pin与old587/585、原full strict事件1380／591全部PASS、新4及invalid-UTF8反例、原source/resource/argv/host与producer/fresh逐字一致。full容量85.03秒／pkg149.162秒，single84.22／85.257，120秒定时采样；不相加inclusive堆栈，不据此承诺固定提速或长期稳定。归档见[evidence/sys06-f40-trusted591-acceptance-20261025.json](evidence/sys06-f40-trusted591-acceptance-20261025.json)。
+
+旧fce失败和fresh缺失保留原判。S1 Started持久化仍是外部19文件607源码候选，不能继承f40运行接受；有效上下文native Start→真实Started入库、S2验收／新head、后续普通写与第二恢复／产品API/coordinator及整套系统／生产均未闭环。
+
 ### 2026-10-25 fce的591真实断言失败与修订：不改产品门或旧失败判定
 
 fce01f9正常40165751183终态11成功／2失败，普通与race各590必需PASS／1失败，均完整结束而非超时；容量4.48／52.78秒PASS、整包14.331／94.677秒。真实反射schema与dense快路径、原raw草稿边界和sibling隔离新3项通过；唯一新RepresentationFallbackMatchesRaw的invalid-utf8子例失败。诊断40165751185亦4成功／1失败，原full的590／1保留；这些观测不构成整套591或稳定性接受。

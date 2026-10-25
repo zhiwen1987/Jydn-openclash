@@ -145,6 +145,10 @@ files+=(
 files+=(
   internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go
 )
+files+=(
+  internal/mihomodeploy/lifecycle_recovery_started.go
+  internal/mihomodeploy/lifecycle_recovery_started_linux_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?

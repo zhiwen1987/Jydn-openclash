@@ -198,7 +198,7 @@ class SyntheticCompatEvidenceModels(unittest.TestCase):
         self.reject_json('version.exec.json',lambda d:d.__setitem__('inputBytes',1))
 
     def test_real_worker_is_mandatory_source_and_publisher_pin_cannot_gain_approval(self):
-        self.assertEqual(len(C.FILES),124); self.assertIn(C.PREFIX+'compat_worker.py',C.FILES)
+        self.assertEqual(len(C.FILES),126); self.assertIn(C.PREFIX+'compat_worker.py',C.FILES)
         raw,sources=fixture();pin=json.loads(sources[C.CANDIDATE+'pin.json']);pin['productionApproved']=True;sources[C.CANDIDATE+'pin.json']=wire(pin)
         receipt=json.loads(raw['consumption.json']);receipt['source']['pinSHA256']=hashed(sources[C.CANDIDATE+'pin.json'])
         receipt['source']['sourceFiles'][0].update(bytes=len(sources[C.CANDIDATE+'pin.json']),sha256=hashed(sources[C.CANDIDATE+'pin.json']))

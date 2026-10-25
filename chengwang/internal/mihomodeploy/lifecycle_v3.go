@@ -106,6 +106,7 @@ type lifecycleRecoveryTxn struct {
 	Completion       *lifecycleRecoveryCompletion   `json:"completion"`
 	Failure          *lifecycleRecoveryFailure      `json:"failure"`
 	UpdatedAt        time.Time                      `json:"updatedAt"`
+	Execution        *lifecycleRecoveryExecution     `json:"execution,omitempty"`
 }
 
 func (lifecycleV3Record) String() string   { return lifecycleRecoveryDebug }
@@ -407,7 +408,7 @@ func validateLifecycleV3Contents(w *lifecycleV3Wire) error {
 	var histRevision uint64
 	var histAt time.Time
 	for _, a := range w.RecoveryHistory {
-		if recoveryIDs[a.Plan.RecoveryID] || validateLifecycleRecoveryTxn(a, context, w.LastTrustedAt, w.Revision) != nil || (a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED") || a.UpdatedAt.Before(histAt) {
+		if recoveryIDs[a.Plan.RecoveryID] || validateLifecycleRecoveryTxn(a, context, w.LastTrustedAt, w.Revision) != nil || a.Execution != nil || (a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED") || a.UpdatedAt.Before(histAt) {
 			return errLifecycleUnsafe
 		}
 		recoveryIDs[a.Plan.RecoveryID] = true
@@ -416,6 +417,9 @@ func validateLifecycleV3Contents(w *lifecycleV3Wire) error {
 	if w.Recovery != nil {
 		a := *w.Recovery
 		if validateLifecycleRecoveryTxn(a, context, w.LastTrustedAt, w.Revision) != nil {
+			return errLifecycleUnsafe
+		}
+		if validateLifecycleRecoveryExecution(w, a) != nil {
 			return errLifecycleUnsafe
 		}
 		if recoveryIDs[a.Plan.RecoveryID] {

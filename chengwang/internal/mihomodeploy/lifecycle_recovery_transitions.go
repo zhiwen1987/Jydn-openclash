@@ -139,6 +139,9 @@ func lifecycleRecoveryFailedObservationValid(o labQuiescenceObservation, at time
 	return true
 }
 func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPlanValidationContext, at time.Time, revision uint64) error {
+	if !lifecycleRecoveryExecutionFieldsValid(a, at, revision) {
+		return errLifecycleUnsafe
+	}
 	if context.validateDescriptor(a.Plan) != nil {
 		return errLifecycleUnsafe
 	}
@@ -377,6 +380,11 @@ func lifecycleRecoveryReserve(w *lifecycleV3Wire) error {
 	h.VerifiedAt = a.Plan.ExpiresAt
 	a.Phase = "COMPLETED"
 	a.Completion = &lifecycleRecoveryCompletion{future.Current.Head, h, strings.Repeat("f", 64), ^uint64(0), a.Plan.ExpiresAt}
+	// Both the active transaction and its archived copy must fit before Stop.
+	// The source owner, complete target descriptor and fixed bounded startup
+	// observation are included; no later successful Start can enlarge this WAL
+	// budget. This is a size-only envelope, never a serialized physical fact.
+	a.Execution = lifecycleRecoveryStartedReserve(a)
 	if a.StopIntent == nil {
 		i := lifecycleRecoveryNewIntent(a, "STOP", ^uint64(0), a.Plan.ExpiresAt)
 		a.StopIntent = &i

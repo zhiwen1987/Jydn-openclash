@@ -31,6 +31,7 @@ type lifecycleRecoveryStoreCore struct {
 	live          *lifecycleRecoveryOwnerCore
 	quiescenceSHA string
 	permit        *labRecoveryStartCore
+	startedRecord *lifecycleStartedPublication
 	// Issuance identities only, scoped to one locked operation. They are
 	// released on every exit and are never a cross-operation validation cache.
 	activeBase     *lifecycleVerifiedBaseCore
@@ -293,6 +294,7 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 			x.poisoned = true
 			x.live = nil
 			x.permit = nil
+			x.startedRecord = nil
 			x.quiescenceSHA = ""
 			x.activeBase = nil
 			x.activePrepared = nil
@@ -500,7 +502,7 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	if err := x.trustedNow(now); err != nil {
 		return nil, err
 	}
-	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 || !lifecycleV3Transition(x.record.core, next.core) {
+	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 || (!lifecycleV3Transition(x.record.core, next.core) && !x.startedRecordTransition(base, next)) {
 		return nil, errLifecycleUnsafe
 	}
 	if next.core.LastRecoveryFence != x.record.core.LastRecoveryFence {
@@ -595,6 +597,7 @@ func (s *lifecycleRecoveryStore) close() error {
 	}
 	x.live = nil
 	x.permit = nil
+	x.startedRecord = nil
 	x.quiescenceSHA = ""
 	x.activeBase = nil
 	x.activePrepared = nil
@@ -613,6 +616,23 @@ func (s *lifecycleRecoveryStore) close() error {
 func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 	if a == nil || b == nil || a.Schema != b.Schema || a.Boundary != b.Boundary || a.Provisioning != b.Provisioning || !reflect.DeepEqual(a.SourceV2, b.SourceV2) || !reflect.DeepEqual(a.Current, b.Current) || !reflect.DeepEqual(a.RetiredEpochs, b.RetiredEpochs) || len(b.RecoveryHistory) < len(a.RecoveryHistory) || !reflect.DeepEqual(b.RecoveryHistory[:len(a.RecoveryHistory)], a.RecoveryHistory) {
 		return false
+	}
+	// Apply this before the nil/replacement/history early returns as well.
+	// Only the separate actual-capability recorder may append execution facts.
+	var beforeExecution, afterExecution *lifecycleRecoveryExecution
+	if a.Recovery != nil {
+		beforeExecution = a.Recovery.Execution
+	}
+	if b.Recovery != nil {
+		afterExecution = b.Recovery.Execution
+	}
+	if !reflect.DeepEqual(beforeExecution, afterExecution) {
+		return false
+	}
+	for _, appended := range b.RecoveryHistory[len(a.RecoveryHistory):] {
+		if appended.Execution != nil {
+			return false
+		}
 	}
 	// No head advancement/epoch factory in this initial, capability-incomplete
 	// extension. A future source-owned collector transition is separately gated.
@@ -647,7 +667,7 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 // fully validated candidate. Unknown fields/codecs fail closed before copying.
 // Every local struct is written as a complete positional literal: adding a
 // field requires an explicit copy update rather than a silent shallow alias.
-const lifecycleCloneSchemaSHA256 = "c9024a097ac3065a588a195e6cf947572ffd0cfd3103783054810da7b01a9d13"
+const lifecycleCloneSchemaSHA256 = "bfaed3e6c2938709025876729e2635a27d3e65096ca778687be9a60585ff4012"
 
 var errLifecycleCloneRepresentation = errors.New("trusted record copy requires original JSON representation")
 
@@ -986,8 +1006,28 @@ func (c *lifecycleCloneState) fact(v labQuiescenceFact) labQuiescenceFact {
 	return labQuiescenceFact{c.text(v.Schema), c.binding(v.Binding), c.quiescenceObservation(v.Observation), c.timestamp(v.ObservedAt), c.text(v.QuiescenceSHA256)}
 }
 
+func (c *lifecycleCloneState) kernelStartObservation(v labKernelStartObservation) labKernelStartObservation {
+	return labKernelStartObservation{v.Attempted, lifecycleClonePointer(v.Started, lifecycleCloneScalar[bool]), lifecycleClonePointer(v.PID, lifecycleCloneScalar[int]), lifecycleClonePointer(v.StartTicks, lifecycleCloneScalar[uint64]), lifecycleClonePointer(v.WaitReturned, lifecycleCloneScalar[bool]), c.text(v.WaitErrorClass), lifecycleClonePointer(v.ExitCode, lifecycleCloneScalar[int]), lifecycleClonePointer(v.Signal, lifecycleCloneScalar[int]), lifecycleClonePointer(v.TermSent, lifecycleCloneScalar[bool]), lifecycleClonePointer(v.KillSent, lifecycleCloneScalar[bool]), lifecycleClonePointer(v.GroupAbsent, lifecycleCloneScalar[bool]), lifecycleClonePointer(v.Stdout, c.stream), lifecycleClonePointer(v.Stderr, c.stream)}
+}
+
+func (c *lifecycleCloneState) startObservation(v labRecoveryStartObservation) labRecoveryStartObservation {
+	return labRecoveryStartObservation{c.text(v.Schema), v.PermitConsumed, v.StartInvoked, v.StartReturned, lifecycleClonePointer(v.StartErrorClass, c.text), lifecycleClonePointer(v.StartObservation, c.kernelStartObservation), lifecycleClonePointer(v.StartupIdentity, c.identity), lifecycleClonePointer(v.VerifiedIdentity, c.identity), lifecycleClonePointer(v.NamespaceInode, lifecycleCloneScalar[uint64]), lifecycleClonePointer(v.ListenersBefore, lifecycleCloneScalar[bool]), lifecycleClonePointer(v.ListenersAfter, lifecycleCloneScalar[bool]), lifecycleClonePointer(v.StartedAt, c.timestamp), lifecycleClonePointer(v.ReturnedAt, c.timestamp), c.text(v.Outcome), c.text(v.FailureCode)}
+}
+
+func (c *lifecycleCloneState) startedBinding(v labRecoveryStartedBinding) labRecoveryStartedBinding {
+	return labRecoveryStartedBinding{c.text(v.RecoveryID), c.text(v.RecoveryPlanSHA256), c.text(v.StartIntentSHA256), v.Revision, c.text(v.RecordSHA256), c.artifact(v.TargetArtifact), c.text(v.QuiescenceSHA256), c.timestamp(v.ArmedAt), c.timestamp(v.ExpiresAt), c.identity(v.ExpectedOldIdentity), v.StartMillis}
+}
+
+func (c *lifecycleCloneState) startedFact(v labRecoveryStartedFact) labRecoveryStartedFact {
+	return labRecoveryStartedFact{c.text(v.Schema), c.startedBinding(v.Binding), c.startObservation(v.Observation), c.timestamp(v.ObservedAt), c.text(v.StartedSHA256)}
+}
+
+func (c *lifecycleCloneState) execution(v lifecycleRecoveryExecution) lifecycleRecoveryExecution {
+	return lifecycleRecoveryExecution{c.text(v.Schema), c.startedFact(v.Started), c.owner(v.ArmedOwner), c.timestamp(v.ArmedLastTrustedAt), v.ArmedLastRecoveryFence, c.timestamp(v.ArmedRecoveryUpdatedAt), lifecycleCloneSlice(v.ArmedFailedQuiescence, c.quiescenceObservation), v.StartedCommitRevision, c.timestamp(v.RecordedAt)}
+}
+
 func (c *lifecycleCloneState) recovery(v lifecycleRecoveryTxn) lifecycleRecoveryTxn {
-	return lifecycleRecoveryTxn{c.recoveryPlan(v.Plan), c.text(v.Phase), lifecycleClonePointer(v.Approval, c.recoveryApproval), lifecycleClonePointer(v.Revocation, c.revocation), lifecycleClonePointer(v.StopIntent, c.action), lifecycleClonePointer(v.StopBinding, c.binding), lifecycleClonePointer(v.Quiescence, c.fact), lifecycleCloneSlice(v.FailedQuiescence, c.quiescenceObservation), lifecycleClonePointer(v.StartIntent, c.action), lifecycleClonePointer(v.Completion, c.recoveryCompletion), lifecycleClonePointer(v.Failure, c.failure), c.timestamp(v.UpdatedAt)}
+	return lifecycleRecoveryTxn{c.recoveryPlan(v.Plan), c.text(v.Phase), lifecycleClonePointer(v.Approval, c.recoveryApproval), lifecycleClonePointer(v.Revocation, c.revocation), lifecycleClonePointer(v.StopIntent, c.action), lifecycleClonePointer(v.StopBinding, c.binding), lifecycleClonePointer(v.Quiescence, c.fact), lifecycleCloneSlice(v.FailedQuiescence, c.quiescenceObservation), lifecycleClonePointer(v.StartIntent, c.action), lifecycleClonePointer(v.Completion, c.recoveryCompletion), lifecycleClonePointer(v.Failure, c.failure), c.timestamp(v.UpdatedAt), lifecycleClonePointer(v.Execution, c.execution)}
 }
 
 func (c *lifecycleCloneState) wire(v lifecycleV3Wire) lifecycleV3Wire {

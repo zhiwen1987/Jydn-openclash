@@ -141,7 +141,8 @@ func startOwnedRecoveryKernel(lifetimeCtx context.Context, in *labKernelInput, s
 	// Custody/configuration work above may have taken time. A revocation,
 	// expired actual lease or different CAS record must prevent this Start,
 	// despite the original permit already being irreversibly consumed.
-	if labRecoveryStartedFinalGate(p, f, b, time.Now().UTC()) != nil {
+	source, sourceErr := labRecoveryStartedCaptureSource(p, f, b, time.Now().UTC())
+	if sourceErr != nil {
 		return fail("ENTRY_REJECTED", "STATE_REJECTED")
 	}
 	if artifactContext(phaseCtx) != nil || !labRecoveryStartedBindingValid(b, time.Now().UTC()) {
@@ -205,7 +206,7 @@ func startOwnedRecoveryKernel(lifetimeCtx context.Context, in *labKernelInput, s
 	if err != nil {
 		return fail("START_UNCERTAIN", "OWNED_REJECTED")
 	}
-	core := &labRecoveryStartedEpochCore{issuer: issuer, owner: kernel, seal: seal}
+	core := &labRecoveryStartedEpochCore{issuer: issuer, owner: kernel, seal: seal, source: source}
 	if _, err := rand.Read(core.nonce[:]); err != nil || core.nonce == ([32]byte{}) {
 		return fail("START_UNCERTAIN", "ISSUER_REJECTED")
 	}

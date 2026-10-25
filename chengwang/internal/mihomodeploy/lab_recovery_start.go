@@ -77,6 +77,7 @@ type labRecoveryStartedEpochCore struct {
 	seal   *labRecoveryStartedOwnerSeal
 	nonce  [32]byte
 	fact   labRecoveryStartedFact
+	source *labRecoveryStartedSource
 }
 
 // Value copies alias one private registry entry. JSON is never a constructor.

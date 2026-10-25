@@ -72,7 +72,7 @@ func lifecycleClonePropertyDense(t *testing.T) lifecycleV3Record {
 	w := &lifecycleV3Wire{}
 	next, seen := 0, map[reflect.Type]bool{}
 	lifecycleClonePropertyFill(t, reflect.ValueOf(w).Elem(), &next, seen)
-	if len(seen) != 43 {
+	if len(seen) != 48 {
 		t.Fatal("MODEL reachable structural schema changed")
 	}
 	return lifecycleV3Record{core: w}
@@ -231,13 +231,13 @@ func TestLifecycleRecoveryTrustedCloneCanonicalGraphAndShape(t *testing.T) {
 	c := &lifecycleCloneState{}
 	direct := c.wire(*in.core)
 	if c.err != nil || !reflect.DeepEqual(in.core, &direct) || !lifecycleCloneTypeSchema() || !lifecycleCloneTypeSchemaFor(reflect.TypeOf(lifecycleV3Wire{})) {
-		t.Fatal("MODEL canonical 43-struct fast path or known STD pointer shape rejected")
+		t.Fatal("MODEL canonical 48-struct fast path or known STD pointer shape rejected")
 	}
 	out := lifecycleClonePropertyCopied(t, in)
 	before := lifecycleClonePropertyRaw(t, in.core)
 	var slots []lifecycleClonePropertySlot
 	lifecycleClonePropertySlots(reflect.ValueOf(in.core).Elem(), nil, map[string]bool{}, &slots)
-	if len(slots) != 46 {
+	if len(slots) != 68 {
 		t.Fatal("MODEL mutable type-field coverage changed")
 	}
 	for _, slot := range slots {
@@ -365,6 +365,9 @@ func TestLifecycleRecoveryTrustedCloneSplitsSiblingAliases(t *testing.T) {
 	out.core.Current.Head.Artifact.Config.Capabilities[0] = "MUTATED_ARTIFACT_SLICE"
 	*out.core.Current.Active.Approval.AuthoritySnapshotRef = "MUTATED_APPROVAL_POINTER"
 	out.core.Recovery.Approval.DeclaredApproverRef = "MUTATED_RECOVERY_POINTER"
+	*out.core.Recovery.Execution.Started.Observation.StartErrorClass = "MUTATED_STARTED_ERROR"
+	*out.core.Recovery.Execution.Started.Observation.StartObservation.PID = -991
+	out.core.Recovery.Execution.ArmedFailedQuiescence[0].Outcome = "MUTATED_ARMED_FAILURE_SLICE"
 	if !bytes.Equal(source, lifecycleClonePropertyRaw(t, in.core)) || !bytes.Equal(retired, lifecycleClonePropertyRaw(t, out.core.RetiredEpochs)) ||
 		!bytes.Equal(history, lifecycleClonePropertyRaw(t, out.core.RecoveryHistory)) || !bytes.Equal(completed, lifecycleClonePropertyRaw(t, out.core.Current.Completed)) {
 		t.Fatal("MODEL source or cloned sibling paths still share business storage")
