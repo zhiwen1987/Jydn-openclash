@@ -142,6 +142,7 @@ func lifecycleV3RecordHash(w lifecycleV3Wire) (string, error) {
 		RecoveryHistory   []lifecycleRecoveryTxn  `json:"recoveryHistory"`
 	}{w.Schema, w.Boundary, w.Revision, w.LastTrustedAt, w.Provisioning, w.SourceV2, w.Current, w.RetiredEpochs, w.RecoveryOwner, w.LastRecoveryFence, w.Recovery, w.RecoveryHistory})
 }
+
 // One top-level strict decode owns one bounded scope. A memo seal is issued only
 // from bytes that passed token, typed, root-hash, complete semantic and exact
 // canonical-byte checks. Its digest and length are calculated here, never read

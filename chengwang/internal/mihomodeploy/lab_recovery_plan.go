@@ -32,25 +32,25 @@ func labRecoveryFixedBudgets() labRecoveryBudgets {
 }
 
 type labRecoveryPlanDescriptor struct {
-	Schema                 string                `json:"schema"`
-	Boundary               string                `json:"boundary"`
-	RecoveryID             string                `json:"recoveryId"`
-	UnknownOperationID     string                `json:"unknownOperationId"`
-	OriginalPlanSHA256     string                `json:"originalPlanSHA256"`
-	OriginalIntentSHA256   string                `json:"originalIntentSHA256"`
-	DeclaredInitiatorRef   string                `json:"declaredInitiatorRef"`
-	ExpectedRevision       uint64                `json:"expectedRevision"`
-	ExpectedRecordSHA256   string                `json:"expectedRecordSHA256"`
-	PreviousHeadSHA256     string                `json:"previousHeadSHA256"`
-	PreviousHeadGeneration uint64                `json:"previousHeadGeneration"`
-	Provisioning           lifecycleProvisioning `json:"provisioning"`
-	OldEpochSHA256         string                `json:"oldEpochSHA256"`
-	TargetArtifact         ArtifactDescriptor    `json:"targetArtifact"`
-	Budgets                labRecoveryBudgets    `json:"budgets"`
-	CreatedAt              time.Time             `json:"createdAt"`
-	ExpiresAt              time.Time             `json:"expiresAt"`
+	Schema                 string                 `json:"schema"`
+	Boundary               string                 `json:"boundary"`
+	RecoveryID             string                 `json:"recoveryId"`
+	UnknownOperationID     string                 `json:"unknownOperationId"`
+	OriginalPlanSHA256     string                 `json:"originalPlanSHA256"`
+	OriginalIntentSHA256   string                 `json:"originalIntentSHA256"`
+	DeclaredInitiatorRef   string                 `json:"declaredInitiatorRef"`
+	ExpectedRevision       uint64                 `json:"expectedRevision"`
+	ExpectedRecordSHA256   string                 `json:"expectedRecordSHA256"`
+	PreviousHeadSHA256     string                 `json:"previousHeadSHA256"`
+	PreviousHeadGeneration uint64                 `json:"previousHeadGeneration"`
+	Provisioning           lifecycleProvisioning  `json:"provisioning"`
+	OldEpochSHA256         string                 `json:"oldEpochSHA256"`
+	TargetArtifact         ArtifactDescriptor     `json:"targetArtifact"`
+	Budgets                labRecoveryBudgets     `json:"budgets"`
+	CreatedAt              time.Time              `json:"createdAt"`
+	ExpiresAt              time.Time              `json:"expiresAt"`
 	Source                 *labRecoveryPlanSource `json:"source,omitempty"`
-	PlanSHA256             string                `json:"planSHA256"`
+	PlanSHA256             string                 `json:"planSHA256"`
 }
 
 type labRecoveryPlanSource struct {
@@ -81,24 +81,24 @@ type labRecoveryPlanBinding struct {
 }
 
 type labRecoveryPlanBindingV2 struct {
-	Schema                 string                 `json:"schema"`
-	Boundary               string                 `json:"boundary"`
-	RecoveryID             string                 `json:"recoveryId"`
-	UnknownOperationID     string                 `json:"unknownOperationId"`
-	OriginalPlanSHA256     string                 `json:"originalPlanSHA256"`
-	OriginalIntentSHA256   string                 `json:"originalIntentSHA256"`
-	DeclaredInitiatorRef   string                 `json:"declaredInitiatorRef"`
-	ExpectedRevision       uint64                 `json:"expectedRevision"`
-	ExpectedRecordSHA256   string                 `json:"expectedRecordSHA256"`
-	PreviousHeadSHA256     string                 `json:"previousHeadSHA256"`
-	PreviousHeadGeneration uint64                 `json:"previousHeadGeneration"`
-	Provisioning           lifecycleProvisioning  `json:"provisioning"`
-	OldEpochSHA256         string                 `json:"oldEpochSHA256"`
-	TargetArtifact         ArtifactDescriptor     `json:"targetArtifact"`
-	Budgets                labRecoveryBudgets     `json:"budgets"`
-	CreatedAt              time.Time              `json:"createdAt"`
-	ExpiresAt              time.Time              `json:"expiresAt"`
-	Source                 labRecoveryPlanSource  `json:"source"`
+	Schema                 string                `json:"schema"`
+	Boundary               string                `json:"boundary"`
+	RecoveryID             string                `json:"recoveryId"`
+	UnknownOperationID     string                `json:"unknownOperationId"`
+	OriginalPlanSHA256     string                `json:"originalPlanSHA256"`
+	OriginalIntentSHA256   string                `json:"originalIntentSHA256"`
+	DeclaredInitiatorRef   string                `json:"declaredInitiatorRef"`
+	ExpectedRevision       uint64                `json:"expectedRevision"`
+	ExpectedRecordSHA256   string                `json:"expectedRecordSHA256"`
+	PreviousHeadSHA256     string                `json:"previousHeadSHA256"`
+	PreviousHeadGeneration uint64                `json:"previousHeadGeneration"`
+	Provisioning           lifecycleProvisioning `json:"provisioning"`
+	OldEpochSHA256         string                `json:"oldEpochSHA256"`
+	TargetArtifact         ArtifactDescriptor    `json:"targetArtifact"`
+	Budgets                labRecoveryBudgets    `json:"budgets"`
+	CreatedAt              time.Time             `json:"createdAt"`
+	ExpiresAt              time.Time             `json:"expiresAt"`
+	Source                 labRecoveryPlanSource `json:"source"`
 }
 
 func labRecoveryPlanDigest(d labRecoveryPlanDescriptor) (string, error) {
@@ -134,15 +134,15 @@ type labRecoveryPlanValidationContext struct {
 	core *labRecoveryPlanValidationCore
 }
 type labRecoveryPlanValidationCore struct {
-	original lifecycleRecord
-	head lifecycleHead
-	active lifecycleActive
-	provisioning lifecycleProvisioning
-	revision uint64
-	recordSHA256 string
+	original      lifecycleRecord
+	head          lifecycleHead
+	active        lifecycleActive
+	provisioning  lifecycleProvisioning
+	revision      uint64
+	recordSHA256  string
 	lastTrustedAt time.Time
-	schema string
-	epoch    string
+	schema        string
+	epoch         string
 	// Exact full descriptor JSON, including nil versus [] and every field.
 	// A RecordSHA256/Config.SHA256 alone cannot serve as a memoization key.
 	targets map[string]struct{}

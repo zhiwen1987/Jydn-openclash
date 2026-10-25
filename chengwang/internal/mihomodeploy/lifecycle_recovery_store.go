@@ -36,9 +36,9 @@ type lifecycleRecoveryStoreCore struct {
 	completionRecord   *lifecycleCompletionPublication
 	// Ephemeral custody from an actually consumed Started core and successful
 	// S1 disk publication. Never decoded or persisted; reopen starts with nil.
-	retainedStarted *labRecoveryStartedCustody
-	retainedVerified *labRecoveryVerifiedCustody
-	currentLive      *lifecycleRecoveryCurrentOwnerCore
+	retainedStarted    *labRecoveryStartedCustody
+	retainedVerified   *labRecoveryVerifiedCustody
+	currentLive        *lifecycleRecoveryCurrentOwnerCore
 	currentPublication *lifecycleCurrentEpochPublication
 	// Issuance identities only, scoped to one locked operation. They are
 	// released on every exit and are never a cross-operation validation cache.
@@ -712,7 +712,7 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 // fully validated candidate. Unknown fields/codecs fail closed before copying.
 // Every local struct is written as a complete positional literal: adding a
 // field requires an explicit copy update rather than a silent shallow alias.
-const lifecycleCloneSchemaSHA256 = "07ec45b0a74f30b021af573f7b55f87b7dbcf28178e8fc5ea197dcde5a67ba99"
+const lifecycleCloneSchemaSHA256 = "6b46cd85d6dca689a7f40c08756671030e36722f185649540eaed875d9d07bd3"
 
 var errLifecycleCloneRepresentation = errors.New("trusted record copy requires original JSON representation")
 
