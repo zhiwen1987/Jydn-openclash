@@ -1,0 +1,547 @@
+{
+  "archiveCount": 25,
+  "artifacts": [
+    {
+      "artifactId": 12608280882,
+      "bytes": 7191,
+      "members": 1,
+      "name": "mihomo-contracts-fresh-40216287379-1",
+      "sha256": "7634cdcdce8796adf9239b05aa59eb86d4af732805fd0e81e88518e2c7019a10"
+    },
+    {
+      "artifactId": 12608240534,
+      "bytes": 10219,
+      "members": 1,
+      "name": "mihomo-service-fresh-40216287379-1",
+      "sha256": "03ca6b0a33c27dadb8f8fb64ca9d9914d6f312d1c5d7a6145cadf55e133bdf4b"
+    },
+    {
+      "artifactId": 12608116032,
+      "bytes": 1198,
+      "members": 1,
+      "name": "mihomo-candidate-fresh-40216287379-1",
+      "sha256": "9f3be9657884572549c37ed61fc49687ce762085f05bab3240422c5d0d3b6c01"
+    },
+    {
+      "artifactId": 12608056146,
+      "bytes": 58145,
+      "members": 61,
+      "name": "mihomo-unknown-originals-40216287379-1",
+      "sha256": "958c90e85bab2b6d7bce915e489562f4fd4832acded129fd2ea9d34695a882b0"
+    },
+    {
+      "artifactId": 12607861445,
+      "bytes": 10553,
+      "members": 1,
+      "name": "mihomo-unknown-fresh-40216287379-1",
+      "sha256": "b98b906f5a4f30e4175b00a3d9fe7281d1788c5031c12d9ff446bb91760148d9"
+    },
+    {
+      "artifactId": 12607831480,
+      "bytes": 34659,
+      "members": 39,
+      "name": "mihomo-apply-originals-40216287379-1",
+      "sha256": "6e48287f6cbc52644b089d977232d017064323145347be7d74994fe51c5692d1"
+    },
+    {
+      "artifactId": 12607696795,
+      "bytes": 2374,
+      "members": 2,
+      "name": "mihomo-candidate-consumption-40216287379-1",
+      "sha256": "2e039dbadb31578431c337066ea8f2e2b98021e37b7261bfaec44a6c38b99fa9"
+    },
+    {
+      "artifactId": 12607592111,
+      "bytes": 268069,
+      "members": 14,
+      "name": "mihomo-foundation-contracts-40216287379-1",
+      "sha256": "cf3bc23d5bbeba8dfe296838793ed03ea625f8939af2247f0b818028b1b396eb"
+    },
+    {
+      "artifactId": 12607532062,
+      "bytes": 9552,
+      "members": 1,
+      "name": "mihomo-apply-fresh-40216287379-1",
+      "sha256": "920b0fde2176babd58efd0f819f04a945af58a12950a386f3a008ba0dd6cc12e"
+    },
+    {
+      "artifactId": 12607502045,
+      "bytes": 19867,
+      "members": 25,
+      "name": "mihomo-compat-originals-40216287379-1",
+      "sha256": "195cf9d09bfbb4c730afe8d006cd55e8dcdc480407354207e643a251699cbad0"
+    },
+    {
+      "artifactId": 12607447286,
+      "bytes": 8210,
+      "members": 1,
+      "name": "mihomo-compat-fresh-40216287379-1",
+      "sha256": "7c170ad25f576b29e6b3cae1f349345db97a633f8dbad18d9ad3f9379342516c"
+    },
+    {
+      "artifactId": 12607442203,
+      "bytes": 54802,
+      "members": 61,
+      "name": "mihomo-service-originals-40216287379-1",
+      "sha256": "a3dcec84b481c11b6730be1f9c0c8257fb4eee522f4ac88c3a8ee86c3f0870a5"
+    },
+    {
+      "artifactId": 12608091162,
+      "bytes": 291622,
+      "members": 19,
+      "name": "mihomo-capacity-profile-40216287272-1",
+      "sha256": "5dd6987606dfa0669f2d583539cacc379703c8e34eb7a908a346bb4cc3d653e2"
+    },
+    {
+      "artifactId": 12608031625,
+      "bytes": 541739,
+      "members": 21,
+      "name": "mihomo-capacity-profile-full-40216287272-1",
+      "sha256": "d5828a070b0a57dc7d8c28cb94ce624315712e0753336f1cfaeeee2b0f060396"
+    },
+    {
+      "artifactId": 12607851742,
+      "bytes": 20115,
+      "members": 1,
+      "name": "mihomo-capacity-profile-full-fresh-40216287272-1",
+      "sha256": "cbad391a42eb01b7730701bb1eb20f281b41a8bd04eaf5727a407e896d1f0004"
+    },
+    {
+      "artifactId": 12607277672,
+      "bytes": 1346,
+      "members": 1,
+      "name": "mihomo-capacity-profile-fresh-40216287272-1",
+      "sha256": "ed8708aefa3ffd2be66e66aa96c0d7892190fa1c92d76c6bb20aa20b86259bf5"
+    },
+    {
+      "artifactId": 12608116110,
+      "bytes": 76079,
+      "members": 45,
+      "name": "mihomo-native-recovery-not-committed-originals-40216287334-1",
+      "sha256": "45b44152935eb2b087612383f11efe4b0592e839a55e38342e7d2c8ff5fb1522"
+    },
+    {
+      "artifactId": 12608046216,
+      "bytes": 11068,
+      "members": 1,
+      "name": "mihomo-native-recovery-fresh-40216287334-1",
+      "sha256": "3bce7300cef08293862fd26f15597c9eecfda5b89801976036e1e9e0dfd7b2ce"
+    },
+    {
+      "artifactId": 12608026242,
+      "bytes": 76020,
+      "members": 45,
+      "name": "mihomo-native-recovery-readback-originals-40216287334-1",
+      "sha256": "104096ac03610cc8baecf3da4b2d0c490780853054a09b1f4b6819baae40a588"
+    },
+    {
+      "artifactId": 12607786596,
+      "bytes": 11082,
+      "members": 1,
+      "name": "mihomo-native-recovery-readback-fresh-40216287334-1",
+      "sha256": "2a9305a77a467507f6917a9bc7760377baa37a33333e29816dc57a813ca49918"
+    },
+    {
+      "artifactId": 12607687019,
+      "bytes": 11095,
+      "members": 1,
+      "name": "mihomo-native-recovery-not-committed-fresh-40216287334-1",
+      "sha256": "fc1ed830e2d71d9600cf1aadbc1e10bb35a550be1c3d7756fa57b8949a9ca414"
+    },
+    {
+      "artifactId": 12607511975,
+      "bytes": 3142,
+      "members": 7,
+      "name": "mihomo-native-candidate-consumption-40216287334-1",
+      "sha256": "f7c1114b06c2a7a69e25637d40808655d12abdba30a89d49193669be4913d038"
+    },
+    {
+      "artifactId": 12607482148,
+      "bytes": 75919,
+      "members": 45,
+      "name": "mihomo-native-recovery-unknown-originals-40216287334-1",
+      "sha256": "51dbbbb199446b402be9241b3079fd2b29bcf97e9027d5b37ac0e355373415c8"
+    },
+    {
+      "artifactId": 12607412363,
+      "bytes": 11081,
+      "members": 1,
+      "name": "mihomo-native-recovery-unknown-fresh-40216287334-1",
+      "sha256": "da3d83347b44fd06633f5cc51b9abca8d0b8883ecbaef66f72b7e56fdbe9dc99"
+    },
+    {
+      "artifactId": 12607164679,
+      "bytes": 76101,
+      "members": 46,
+      "name": "mihomo-native-recovery-originals-40216287334-1",
+      "sha256": "9bb5f6bb22869a7d4651cbd1a1b3837440b47097cb0043cd20f2bbd4af9a71d0"
+    }
+  ],
+  "capacity": {
+    "fullProfileMarginSeconds": 2.725,
+    "fullProfilePackageSeconds": 177.275,
+    "fullSeconds": 86.62,
+    "marginSufficientForStabilityClaim": false,
+    "originalPackageTimeoutSeconds": 180,
+    "singleSeconds": 72.08
+  },
+  "mainMerged": false,
+  "memberCount": 442,
+  "nativeIndependentReceiptSHA256": "a7491c32e11fb0734f560f7d340d1cfd590f91f7816182b28ae107267211c11d",
+  "nativeOldS2Modes": [
+    {
+      "candidateAdopted": true,
+      "completionAbsent": true,
+      "diskRevision": 18,
+      "fixtureCleanupComplete": true,
+      "formatExit": 0,
+      "forwardedWrites": 1,
+      "freshArtifactId": 12608046216,
+      "goExit": 0,
+      "goTop": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+      "independentReportSHA256": "dec1f3fdea4d38d41b216db5690fe3f007dfb185311506641b137f9a7b71ac40",
+      "injectedReads": 0,
+      "liveOwnerCleared": false,
+      "memoryRevision": 18,
+      "mode": "positive",
+      "nativeCallCount": 19,
+      "newCore": 2,
+      "newDiskOwnerClosed": true,
+      "newPID": 2515,
+      "noNewPhysicalCalls": true,
+      "oldCore": 1,
+      "oldPID": 2499,
+      "originalArtifactId": 12607164679,
+      "passingSemanticTests": 1,
+      "portsConnectionRefused": [
+        28411,
+        28412,
+        28413,
+        28414,
+        28415
+      ],
+      "postWriteReads": 1,
+      "producerFreshByteEqual": true,
+      "receiptPresent": true,
+      "recordReturnedError": false,
+      "reopenedPhase": "RECOVERY_UNKNOWN",
+      "reopenedRevision": 19,
+      "replaceAttempts": 1,
+      "retainedStartedCleared": true,
+      "runtimeClosed": true,
+      "skips": 0,
+      "sourceRevision": 17,
+      "storePoisoned": false,
+      "topLevel": 1,
+      "underlyingCommitted": true,
+      "verificationCommitRevision": 18
+    },
+    {
+      "candidateAdopted": false,
+      "completionAbsent": true,
+      "diskRevision": 17,
+      "fixtureCleanupComplete": true,
+      "formatExit": 0,
+      "forwardedWrites": 0,
+      "freshArtifactId": 12607687019,
+      "goExit": 0,
+      "goTop": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+      "independentReportSHA256": "906e8263ba806480ffcc125d115dfaf91f8da85ea80a387ec09b3fff8e721619",
+      "injectedReads": 0,
+      "liveOwnerCleared": true,
+      "memoryRevision": 17,
+      "mode": "not-committed",
+      "nativeCallCount": 19,
+      "newCore": 2,
+      "newDiskOwnerClosed": true,
+      "newPID": 2495,
+      "noNewPhysicalCalls": true,
+      "oldCore": 1,
+      "oldPID": 2479,
+      "originalArtifactId": 12608116110,
+      "passingSemanticTests": 1,
+      "portsConnectionRefused": [
+        28411,
+        28412,
+        28413,
+        28414,
+        28415
+      ],
+      "postWriteReads": 0,
+      "producerFreshByteEqual": true,
+      "receiptPresent": false,
+      "recordReturnedError": true,
+      "reopenedPhase": "RECOVERY_UNKNOWN",
+      "reopenedRevision": 18,
+      "replaceAttempts": 1,
+      "retainedStartedCleared": true,
+      "runtimeClosed": true,
+      "skips": 0,
+      "sourceRevision": 17,
+      "storePoisoned": true,
+      "topLevel": 1,
+      "underlyingCommitted": false,
+      "verificationCommitRevision": null
+    },
+    {
+      "candidateAdopted": false,
+      "completionAbsent": true,
+      "diskRevision": 18,
+      "fixtureCleanupComplete": true,
+      "formatExit": 0,
+      "forwardedWrites": 1,
+      "freshArtifactId": 12607412363,
+      "goExit": 0,
+      "goTop": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+      "independentReportSHA256": "1f8b5bc334fbace50d4266fa63567fc28db7a01b0a8c3f43716299abf3987f23",
+      "injectedReads": 0,
+      "liveOwnerCleared": true,
+      "memoryRevision": 17,
+      "mode": "unknown",
+      "nativeCallCount": 19,
+      "newCore": 2,
+      "newDiskOwnerClosed": true,
+      "newPID": 2524,
+      "noNewPhysicalCalls": true,
+      "oldCore": 1,
+      "oldPID": 2509,
+      "originalArtifactId": 12607482148,
+      "passingSemanticTests": 1,
+      "portsConnectionRefused": [
+        28411,
+        28412,
+        28413,
+        28414,
+        28415
+      ],
+      "postWriteReads": 0,
+      "producerFreshByteEqual": true,
+      "receiptPresent": true,
+      "recordReturnedError": true,
+      "reopenedPhase": "RECOVERY_UNKNOWN",
+      "reopenedRevision": 19,
+      "replaceAttempts": 1,
+      "retainedStartedCleared": true,
+      "runtimeClosed": true,
+      "skips": 0,
+      "sourceRevision": 17,
+      "storePoisoned": true,
+      "topLevel": 1,
+      "underlyingCommitted": true,
+      "verificationCommitRevision": 18
+    },
+    {
+      "candidateAdopted": false,
+      "completionAbsent": true,
+      "diskRevision": 18,
+      "fixtureCleanupComplete": true,
+      "formatExit": 0,
+      "forwardedWrites": 1,
+      "freshArtifactId": 12607786596,
+      "goExit": 0,
+      "goTop": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+      "independentReportSHA256": "f177a28cf912b2899d3101a69f011574e0d6d6d2f7e5a23aae4610d0d254f0df",
+      "injectedReads": 1,
+      "liveOwnerCleared": true,
+      "memoryRevision": 17,
+      "mode": "readback",
+      "nativeCallCount": 19,
+      "newCore": 2,
+      "newDiskOwnerClosed": true,
+      "newPID": 2512,
+      "noNewPhysicalCalls": true,
+      "oldCore": 1,
+      "oldPID": 2496,
+      "originalArtifactId": 12608026242,
+      "passingSemanticTests": 1,
+      "portsConnectionRefused": [
+        28411,
+        28412,
+        28413,
+        28414,
+        28415
+      ],
+      "postWriteReads": 1,
+      "producerFreshByteEqual": true,
+      "receiptPresent": true,
+      "recordReturnedError": true,
+      "reopenedPhase": "RECOVERY_UNKNOWN",
+      "reopenedRevision": 19,
+      "replaceAttempts": 1,
+      "retainedStartedCleared": true,
+      "runtimeClosed": true,
+      "skips": 0,
+      "sourceRevision": 17,
+      "storePoisoned": true,
+      "topLevel": 1,
+      "underlyingCommitted": true,
+      "verificationCommitRevision": 18
+    }
+  ],
+  "normalAndDiagnosticContent": {
+    "applyTests": {
+      "passingSemanticTests": 1,
+      "skips": 0,
+      "subtests": 0,
+      "topLevel": 1
+    },
+    "candidateArchivePayloadReverificationPossibleFromThisArtifactSet": false,
+    "candidateSourceIdentityMatched": true,
+    "compatTests": {
+      "passingSemanticTests": 5,
+      "skips": 0,
+      "subtests": 2,
+      "topLevel": 3
+    },
+    "completeSixPackageTestSourceCount": 83,
+    "formatCleanOriginalSets": 7,
+    "fourRepairedCurrentEpochFixtureTests": {
+      "ordinary": {
+        "TestLifecycleCurrentEpochCopiedReceiverCannotUseOrRetireBackend": "pass",
+        "TestLifecycleCurrentEpochHandoffRequiresCompletedHistoryTail": "pass",
+        "TestLifecycleCurrentEpochObservationCapacityCountsRetiredEpochs": "pass",
+        "TestLifecycleCurrentEpochRollbackPoisonsBothStoresPermanently": "pass"
+      },
+      "race": {
+        "TestLifecycleCurrentEpochCopiedReceiverCannotUseOrRetireBackend": "pass",
+        "TestLifecycleCurrentEpochHandoffRequiresCompletedHistoryTail": "pass",
+        "TestLifecycleCurrentEpochObservationCapacityCountsRetiredEpochs": "pass",
+        "TestLifecycleCurrentEpochRollbackPoisonsBothStoresPermanently": "pass"
+      }
+    },
+    "fullCapacity": {
+      "fullGoAccepted": true,
+      "mihomodeployElapsedSeconds": 177.275,
+      "observedSemanticStates": 1936,
+      "profileDurationNanoseconds": 120291196205,
+      "profileSampleRecords": 5109,
+      "profileStopReason": "TIMER_120_SECONDS",
+      "requiredCounts": {
+        "failed": 0,
+        "notStarted": 0,
+        "passed": 661,
+        "skipped": 0,
+        "unfinished": 0
+      },
+      "testAction": "pass",
+      "testElapsedSeconds": 86.62,
+      "wholeSixPackageCPUProfileProven": false,
+      "wholeTestDurationProfileProven": false
+    },
+    "mandatoryNamesSHA256": "3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa",
+    "mandatoryTopLevelCount": 661,
+    "normalMandatorySourceCount": 54,
+    "normalSourceCount": 140,
+    "normalSuites": {
+      "ordinary.json": {
+        "allPassingSemanticTests": 1936,
+        "mandatoryNewTopLevelTests": 661,
+        "skips": 0
+      },
+      "race.json": {
+        "allPassingSemanticTests": 1936,
+        "mandatoryNewTopLevelTests": 661,
+        "skips": 0
+      }
+    },
+    "producerAndFreshReportsByteMatchedIndependentRecomputation": [
+      "contracts",
+      "compat",
+      "apply",
+      "service",
+      "unknown",
+      "capacity-single",
+      "capacity-full"
+    ],
+    "serviceTests": {
+      "passingSemanticTests": 1,
+      "skips": 0,
+      "topLevel": 1
+    },
+    "singleCapacity": {
+      "packageTerminal": "pass",
+      "profileDurationNanoseconds": 60232690084,
+      "profileSampleRecords": 2720,
+      "profileStopReason": "TIMER_60_SECONDS",
+      "testAction": "pass",
+      "testElapsedSeconds": 72.08
+    },
+    "unknownTests": {
+      "actualKernelPackage": {
+        "package": "chengwang/internal/serverruntime",
+        "passingSemanticTests": 1,
+        "topLevel": 1
+      },
+      "modelPackage": {
+        "package": "chengwang/internal/adapter/mihomo",
+        "passingSemanticTests": 33,
+        "topLevel": 1
+      },
+      "passingSemanticTests": 34,
+      "skips": 0,
+      "topLevel": 2
+    }
+  },
+  "normalAndDiagnosticIndependentReceiptSHA256": "8d283c9a071345c0853468ef9481dcad35e8594a8e1c06a01af68de269ad838d",
+  "oldFailuresPreserved": true,
+  "production": false,
+  "proofBoundaries": {
+    "candidateArchivePayloadIndependentlyReverifiedFromTheseArtifacts": false,
+    "checkerFunctionsAndGitSourceWereIndependentlyRecomputedWithExplicitPlatformAdaptation": true,
+    "fullPrivateWALIndependentProof": false,
+    "localFullLinuxCheckerCLIExecuted": false,
+    "nativeCompletionProven": false,
+    "ordinaryPostRecoveryPublishProven": false,
+    "productRecoveryAPIProven": false,
+    "secondRecoveryProven": false,
+    "wholeSixPackageCPUProfileProven": false
+  },
+  "registryPublished": false,
+  "rootRecountedActualGoSuites": {
+    "fullProfileRace": {
+      "allSemanticPass": 1936,
+      "fail": 0,
+      "mandatoryPass": 661,
+      "mihomodeployPackageElapsedSeconds": 177.275,
+      "notStarted": 0,
+      "skip": 0,
+      "sourceJSONSHA256": "d07cc46a4a5c55144f7f73c1f9a6a6cef403595191bfedba4d5cbe45cc2421a8",
+      "unfinished": 0
+    },
+    "ordinary": {
+      "allSemanticPass": 1936,
+      "fail": 0,
+      "mandatoryPass": 661,
+      "mihomodeployPackageElapsedSeconds": 18.94,
+      "notStarted": 0,
+      "skip": 0,
+      "sourceJSONSHA256": "38828280edc01bfbd5000228cceb2b152a2950523ef70b7fc9b054ca7a6875f2",
+      "unfinished": 0
+    },
+    "race": {
+      "allSemanticPass": 1936,
+      "fail": 0,
+      "mandatoryPass": 661,
+      "mihomodeployPackageElapsedSeconds": 138.984,
+      "notStarted": 0,
+      "skip": 0,
+      "sourceJSONSHA256": "8c16f466f4f9df3a57dc524369bc0b0824641b6aee3c8a40cc50317fdebeccf5",
+      "unfinished": 0
+    }
+  },
+  "runAttempt": 1,
+  "runs": {
+    "diagnostic": 40216287272,
+    "nativeOldS2": 40216287334,
+    "normal": 40216287379
+  },
+  "schema": "chengwang.mihomo-7a89-isolated-acceptance/v1",
+  "scope": "CURRENT_COMPLETION_MODELS_AND_OLD_S2_FOUR_MODE_ISOLATED_ACCEPTANCE_NOT_NATIVE_COMPLETION_API_CONTINUOUS_RECOVERY_OR_PRODUCTION",
+  "source": {
+    "allTrackedBytesMatchGit": true,
+    "snapshotClean": true,
+    "trackedPathEntries": 1348,
+    "uniqueGitBlobHashes": 1347
+  },
+  "sourceCommit": "7a89f8ea988fffdfdc2809210187534cd7cda1fe"
+}

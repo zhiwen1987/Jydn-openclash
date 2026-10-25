@@ -282,18 +282,21 @@ func lifecycleRecoveryCompletionProspectiveRoot(w *lifecycleV3Wire, a lifecycleR
 }
 
 type lifecycleCompletionPublication struct {
-	base      *lifecycleVerifiedBaseCore
-	cap       *labRecoveryCompletionCapCore
-	canonical string
-	binding   func(*lifecycleCompletionPublication, *lifecycleRecoveryStoreCore, *lifecycleVerifiedBaseCore, *labRecoveryCompletionCapCore) bool
+	base                *lifecycleVerifiedBaseCore
+	cap                 *labRecoveryCompletionCapCore
+	canonical           string
+	preflight           bool
+	transitionAttempted bool
+	transitionAdmitted  bool
+	binding             func(*lifecycleCompletionPublication, *lifecycleRecoveryStoreCore, *lifecycleVerifiedBaseCore, *labRecoveryCompletionCapCore) bool
 }
 
-// completionPublicationPreimage is the sole production prospective path. The
-// draft remains at the old root revision/time; a detached metadata view is
-// passed through the unchanged strict persisted validator and checkpoint
-// reconstruction only after exact consumed-cap, S2 custody, base and canonical
-// publication bindings have all been proven.
-func (x *lifecycleRecoveryStoreCore) completionPublicationPreimage(base *lifecycleVerifiedBase, next lifecycleV3Record) ([]byte, error) {
+// completionPublicationPreflight retains the original early error boundary
+// without reconstructing the full checkpoint root twice. It proves every
+// process-local binding and the exact prospective metadata before commit enters
+// its transition selector. The transition still performs the sole strict
+// checkpoint reconstruction before any candidate can be sealed or published.
+func (x *lifecycleRecoveryStoreCore) completionPublicationPreflight(base *lifecycleVerifiedBase, next lifecycleV3Record) (*lifecycleV3Wire, error) {
 	p := x.completionRecord
 	if p == nil || p.binding == nil || p.cap == nil || base == nil || !base.intact(x) || !p.binding(p, x, base.core, p.cap) ||
 		p.cap.binding == nil || !p.cap.binding(p.cap) || p.cap.store != x || p.cap.owner != x.live || !p.cap.custody.matches(x) ||
@@ -308,17 +311,35 @@ func (x *lifecycleRecoveryStoreCore) completionPublicationPreimage(base *lifecyc
 	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
+	return final, nil
+}
+
+// completionPublicationPreimage is the sole production strict reconstruction
+// path. The draft remains at the old root revision/time; a detached metadata
+// view reaches the unchanged persisted validator only after preflight bindings.
+func (x *lifecycleRecoveryStoreCore) completionPublicationPreimage(base *lifecycleVerifiedBase, next lifecycleV3Record) ([]byte, error) {
+	final, err := x.completionPublicationPreflight(base, next)
+	if err != nil {
+		return nil, err
+	}
 	return lifecycleRecoveryCompletionPreimage(final, *next.core.Recovery)
 }
 
 func (x *lifecycleRecoveryStoreCore) completionRecordTransition(base *lifecycleVerifiedBase, next lifecycleV3Record) bool {
 	p := x.completionRecord
-	if p == nil || p.binding == nil || base == nil || next.core == nil || next.core.Recovery == nil ||
-		next.core.Recovery.Phase != "COMPLETED" || next.core.Recovery.Execution == nil || next.core.Recovery.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema {
+	if p == nil || p.binding == nil || base == nil || !p.preflight || p.transitionAttempted || p.transitionAdmitted || next.core == nil || next.core.Recovery == nil {
+		return false
+	}
+	p.transitionAttempted = true
+	if next.core.Recovery.Phase != "COMPLETED" || next.core.Recovery.Execution == nil || next.core.Recovery.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema {
 		return false
 	}
 	preimage, err := x.completionPublicationPreimage(base, next)
-	return err == nil && bytes.Equal(preimage, base.core.raw)
+	if err != nil || !bytes.Equal(preimage, base.core.raw) || !bytes.Equal(preimage, []byte(p.cap.canonical)) {
+		return false
+	}
+	p.transitionAdmitted = true
+	return true
 }
 
 // Called under the actual store mutex after the final custody/read/CAS check.
@@ -329,7 +350,7 @@ func (x *lifecycleRecoveryStoreCore) completionFreshBeforeReplace(candidate *lif
 		return false
 	}
 	p := x.completionRecord
-	if p == nil || p.cap == nil || p.base == nil || p.binding == nil || candidate.base != p.base ||
+	if p == nil || p.cap == nil || p.base == nil || p.binding == nil || !p.preflight || !p.transitionAttempted || !p.transitionAdmitted || candidate.base != p.base ||
 		!p.binding(p, x, p.base, p.cap) || p.cap.binding == nil || !p.cap.binding(p.cap) ||
 		p.cap.store != x || p.cap.owner != x.live || p.cap.custody == nil || !p.cap.custody.matches(x) ||
 		!processLabRecoveryCompletionIssuer.consumed(p.cap) {
@@ -524,14 +545,19 @@ func (s *lifecycleRecoveryStore) recordRecoveryCompletion(t *lifecycleRecoveryOw
 	proof.binding = func(candidate *lifecycleCompletionPublication, owner *lifecycleRecoveryStoreCore, original *lifecycleVerifiedBaseCore, cap *labRecoveryCompletionCapCore) bool {
 		return candidate == proof && owner == x && original == base.core && cap == issued && candidate.base == original && candidate.cap == issued && candidate.canonical == image
 	}
-	preimage, err := x.completionPublicationPreimage(base, next)
-	if err != nil || !bytes.Equal(preimage, []byte(core.canonical)) {
+	if _, err := x.completionPublicationPreflight(base, next); err != nil {
 		return nil, errLifecycleUnsafe
 	}
+	proof.preflight = true
 	if err := x.commitWithBase(base, next, now); err != nil {
-		x.poisoned = true
-		x.live, x.retainedStarted, x.retainedVerified, x.currentLive = nil, nil, nil, nil
-		x.validated = nil
+		// Before this optimization, strict-preimage rejection happened in the
+		// early preflight and did not poison the store. Preserve that boundary;
+		// once the transition was admitted, every later failure remains sticky.
+		if !proof.transitionAttempted || proof.transitionAdmitted {
+			x.poisoned = true
+			x.live, x.retainedStarted, x.retainedVerified, x.currentLive = nil, nil, nil, nil
+			x.validated = nil
+		}
 		return nil, err
 	}
 	x.retainedStarted, x.retainedVerified = nil, nil

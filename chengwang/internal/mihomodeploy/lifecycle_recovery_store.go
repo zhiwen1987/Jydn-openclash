@@ -538,9 +538,20 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	if err := x.trustedNow(now); err != nil {
 		return nil, err
 	}
-	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 ||
-		(!lifecycleV3Transition(x.record.core, next.core) && !x.startedRecordTransition(base, next) && !x.verificationRecordTransition(base, next) &&
-			!x.completionRecordTransition(base, next) && !x.currentEpochTransition(base, next)) {
+	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 {
+		return nil, errLifecycleUnsafe
+	}
+	// An issued Completion publication is an exclusive transition kind. It may
+	// never fall through to a generic, S1, verification or current-epoch branch
+	// if its cap/base/checkpoint gate rejects the candidate.
+	transition := false
+	if x.completionRecord != nil {
+		transition = x.completionRecordTransition(base, next)
+	} else {
+		transition = lifecycleV3Transition(x.record.core, next.core) || x.startedRecordTransition(base, next) ||
+			x.verificationRecordTransition(base, next) || x.currentEpochTransition(base, next)
+	}
+	if !transition {
 		return nil, errLifecycleUnsafe
 	}
 	if next.core.LastRecoveryFence != x.record.core.LastRecoveryFence {

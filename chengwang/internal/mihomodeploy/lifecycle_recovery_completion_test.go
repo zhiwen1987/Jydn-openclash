@@ -137,6 +137,34 @@ func TestLifecycleRecoveryCompletionCapabilitiesArePrivateAndOneStoreBound(t *te
 	if _, err := handoff.consumeCurrent(&lifecycleRecoveryStoreCore{}); err == nil {
 		t.Fatal("unissued current handoff minted an owner")
 	}
+	t.Run("completion slot cannot fall through generic transition", func(t *testing.T) {
+		s, disk, _, plan, now := lifecycleRecoveryModelPlanned(t)
+		x := s.core
+		base, err := x.verifiedBase()
+		if err != nil {
+			t.Fatal("MODEL verified base", err)
+		}
+		defer base.release()
+		next, err := base.copyRecord()
+		if err != nil {
+			t.Fatal("MODEL detached candidate", err)
+		}
+		approval, err := newLifecycleRecoveryApproval(&plan, "MODEL_approver", now, now.Add(time.Minute))
+		if err != nil {
+			t.Fatal("MODEL approval", err)
+		}
+		next.core.Recovery.Approval = &approval
+		next.core.Recovery.Phase = "APPROVED"
+		next.core.Recovery.UpdatedAt = now
+		if !lifecycleV3Transition(x.record.core, next.core) {
+			t.Fatal("MODEL positive generic transition missing")
+		}
+		x.completionRecord = &lifecycleCompletionPublication{}
+		before := disk.writes
+		if _, err := prepareLifecycleCandidate(base, next, now); err == nil || disk.writes != before {
+			t.Fatal("generic transition bypassed issued completion slot")
+		}
+	})
 }
 
 func TestLifecycleCloneSchemaDigestForRecoveryCompletion(t *testing.T) {

@@ -1,0 +1,56 @@
+{
+  "7a89AcceptanceArchiveSHA256": "bc5d86526352196158f57056152d78785049791af55290ad257edd64ceb8985c",
+  "allHistoryPerPlanCheckpointAndCanonicalGatesRetained": true,
+  "baseline": "7a89f8ea988fffdfdc2809210187534cd7cda1fe",
+  "byteNormalization": [
+    {
+      "actualLFBytes": 26390,
+      "actualLFSHA256": "5ceb0f37fb889629bd43f438be4b22316ecf84f0b03383df1a0c289da75b5546",
+      "beforeGitBlobSHA256": "fc449c07081605ed57636d3a3dccf1fe3bdb3998e63d2459dcdca22c2cdf4b1e",
+      "externalCRLFSHA256": "286bfd4f6656f02fc43c8cd8a03025d66aaa718af185ef2a1f34fc696cc83eef",
+      "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_completion.go"
+    },
+    {
+      "actualLFBytes": 55066,
+      "actualLFSHA256": "ee1e44fe704797117af7da3f17f1f478acda5e99af676bfc65e13bb47a84918b",
+      "beforeGitBlobSHA256": "e525642076cd6712d829d03a00a2d1b02dddafb6ce182b878aade91adfe6531f",
+      "externalCRLFSHA256": "9362f13a17b674302cb5b80d83edcd3d918262c7a5161ac10cf5f27229e6a4e7",
+      "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go"
+    },
+    {
+      "actualLFBytes": 7724,
+      "actualLFSHA256": "c10edbf5a55f73e86af70f60dbdda99f0de54f818aa999399ce022e56cda31b0",
+      "beforeGitBlobSHA256": "f6027a5a8442cfa12c46328476cadbfc759d7bf29101560be62866594242ec2d",
+      "externalCRLFSHA256": "9635f6444bdef4e0e369e51362cc2eba0879ce90a74183e10d90d3978fe1faf5",
+      "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_completion_test.go"
+    }
+  ],
+  "candidateFreezeSHA256": "5972525bb39621ea1a5a586693443d374994c23bd9e5591ed024670c323255fe",
+  "candidatePatchSHA256": "a2769fd11666db36256a2f7377a66d9d7b670b16bf9e48040c831c78b2e0ade2",
+  "goExecutedLocally": false,
+  "gofmtExecutedLocally": false,
+  "historicalFailuresPreserved": true,
+  "mainMerged": false,
+  "mandatoryTops": 661,
+  "maxHistory": 256,
+  "maxWALBytes": 2097152,
+  "nativeCompletionEntryAdded": false,
+  "newActualRuntimeAcceptance": false,
+  "oldMandatoryNameSetsPreserved": true,
+  "originalGoTimeoutSeconds": 180,
+  "performanceImprovementProven": false,
+  "productRecoveryAPIIntegrated": false,
+  "production": false,
+  "registryPublished": false,
+  "rootStaticGuardSHA256": "4df9e0170aa84ce747f1c286fc8f2c3969c17277b1ad7754e7f6ef85a2bf26ef",
+  "schema": "chengwang.completion-single-preimage-source-integration/v1",
+  "scope": "SOURCE_OPTIMIZATION_AND_ARCHIVED_7A89_ACCEPTANCE_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "95e942807e352108651cbdb8499833e9817620a461110f07119561e412a243d9",
+    "chengwang/docs/evidence/sys06-7a89-isolated-acceptance-20261026.json": "bc5d86526352196158f57056152d78785049791af55290ad257edd64ceb8985c",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_completion.go": "5ceb0f37fb889629bd43f438be4b22316ecf84f0b03383df1a0c289da75b5546",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_completion_test.go": "c10edbf5a55f73e86af70f60dbdda99f0de54f818aa999399ce022e56cda31b0",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": "ee1e44fe704797117af7da3f17f1f478acda5e99af676bfc65e13bb47a84918b"
+  },
+  "wireGraphChanged": false
+}
