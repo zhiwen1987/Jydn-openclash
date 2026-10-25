@@ -1,8 +1,18 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：66c同提交的S2真实新内核八GET控制面观察、复制与重放拒绝已取得限定原生验收，完整诊断619项也已接受；普通入口因工作流旧611名单接线失败，其普通／race合同Go和格式尚未运行，修正版仍须新CI。产品恢复接口及完整发布恢复闭环未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：785同提交的S2控制面原生、完整诊断619及普通／race事件619全部已有实际证据，但普通入口119源格式检查因25177B差异失败，原完整检查器／fresh仍未通过，正在按真实CI格式补丁修订。产品恢复接口及完整发布恢复闭环未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 785实际619普通／race和两套限定运行接受，119源格式差异仍使normal失败
+
+7850204559b8722e9c8c11f63fcbe8e9e9fa1a9d修正了实际workflow漏接名单。normal40184766297真正执行普通／race，各1538语义／619必需全PASS，无skip；独立事件审计35136exit0、fe33b7dc核125来源／45必需测试文件／119格式输入和全部旧集合／旧79与81测试body。三个工具退出均0，但真实gofmt产生25177B原补丁SHA2fd0fc54839d685e79d1d329b7baf1e53252dcee6f1d612d5602099cdbdda4b2，严格格式门拒绝；原完整C.verify与foundation fresh没有PASS报告，whole normal保持11success／2failure。容量7.5／87.19秒只是本次观测。
+
+同提交diag40184766181五job success，独立e7df61d2核4ZIP42成员／1320blob／125来源／45必需／74实际测试源／619全部过，producer／fresh逐字同；full120.297764816秒和single60.170917940秒均TIMER，容量85.62／包165.901秒。native40184766176四job success，独立4897fbf6核3ZIP52成员／163来源／31公件，Go10.06及其9源格式0，新core8GET、四类copy／once／recollect拒绝、S1／物理prefix不变和全部原清理／WAL／reopen约束均过；26045B producer／fresh同SHA3a0087491aa6410fd3d48dee4a6c7eb1c150830a0037b25c80b51e75df1ab773。native9源格式0不能代normal119源；其余五原门11c17656／21d98488也独立通过，18ZIP300成员完整保管。
+
+原raw-token格式转交器PID29520严格拒绝：官方gofmt把可省略显式分号改成换行，旧regex未表达Go自动分号规则，不能据此声称程序逻辑有差异或原token门通过。原拒绝保留；后续只在新外部辅助版本中核固定Go1.23.12官方分号规则及有限词法，仍必须完整Git／hunk前像／原artifact摘要、注释／literal／operator保全及下一实际CI，不能泛删for头分号或关闭产品校验。完整档案见[evidence/sys06-785-s2-normal-format-failure-20261025.json](evidence/sys06-785-s2-normal-format-failure-20261025.json)。真实故障矩阵、恢复数据面、持久receipt／completion／newhead／API和全系统／生产仍未完成。
+
+原格式补丁的严格转交随后实际成功：新外部helper PID39804exit0，10c92b5c收据只含3个Go源的23个真实hunk，119源允许表／Git HEAD-tree-index／每个前像与位置／原25177B摘要均核；B在读取A输出前独立重建同样三个after，adf20612源审及逐字hash一致。新辅助guard依据固定[Go1.23.12规范](https://github.com/golang/go/blob/go1.23.12/doc/go_spec.html#L166-L209)与[官方scanner](https://github.com/golang/go/blob/go1.23.12/src/go/scanner/scanner.go)，保for头分号、operator最大吞并、comment／literal原文，仅规范自动／可省略的语句分号；9正21负CPU例实际通过并独立读回。只authority的旧raw-token比较仍为false，旧拒绝不改判。该有限词法检查不是Go AST或任意程序语义证明，也不独立证明编译器directive位置语义；实际可信gofmt来源／精确hunks与下一Go编译及原格式门仍是必需证据。root已应用三个精确after，未在本机运行Go／gofmt，下一同提交CI仍待。
 
 ### 66c真实S2控制面限定接受；普通入口旧名单拒绝，精准修订待新CI
 

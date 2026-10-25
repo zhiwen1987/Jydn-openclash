@@ -1,0 +1,56 @@
+{
+  "actualFormatterPatchSHA256": "2fd0fc54839d685e79d1d329b7baf1e53252dcee6f1d612d5602099cdbdda4b2",
+  "actualLocalGoOrGofmtRun": false,
+  "allCommentAndLiteralBytesPreserved": true,
+  "allRawTokenStreamsEqual": false,
+  "allSourcePreimagesAndAfterBytesExact": true,
+  "baseline": "7850204559b8722e9c8c11f63fcbe8e9e9fa1a9d",
+  "fullSystemComplete": false,
+  "hunks": 23,
+  "mainMerged": false,
+  "nativePublicFiles": 31,
+  "nativeSources": 163,
+  "newRuntimeAcceptance": false,
+  "normalSources": 125,
+  "notGoASTOrGeneralSemanticsProof": true,
+  "originalRawTokenRejectionPreserved": true,
+  "priorCommit": "7850204559b8722e9c8c11f63fcbe8e9e9fa1a9d",
+  "priorFailureArchive": "chengwang/docs/evidence/sys06-785-s2-normal-format-failure-20261025.json",
+  "productVerifiersAndAllWorkflowsByteUnchanged": true,
+  "production": false,
+  "receipts": [
+    {
+      "label": "transfer",
+      "path": "D:/CodexData/workspace/mihomo-7850204-actual-format-transfer-v2-20261025-agent/result.json",
+      "sha256": "10c92b5ccf92b902d106b4a4df8590976a7106fc07bb496c056fa76cd540fded"
+    },
+    {
+      "label": "independentPeer",
+      "path": "D:/CodexData/workspace/mihomo-785-format-independent-peer-20261025-agent/final-evidence/result.json",
+      "sha256": "adf206128327f971d1640e22a0ec2453809bda9608bce30247138fdd87dca00b"
+    },
+    {
+      "label": "guardOriginals",
+      "path": "D:/CodexData/workspace/mihomo-785-format-independent-peer-20261025-agent/final-evidence/author-guard-originals-observed.json",
+      "sha256": "be6134ac63fc1d1dd86e6eb0e0f20af19b5bf1f746750be33d28fab671326d4d"
+    },
+    {
+      "label": "independentRulePeer",
+      "path": "D:/CodexData/workspace/mihomo-go-semicolon-rule-peer-20261025-agent/result.json",
+      "sha256": "71e2d149771ba9cad762f4240cd05022f79e7b4b67a3b4bb42300fadd9487554"
+    }
+  ],
+  "registryPublished": false,
+  "requiredTests": 619,
+  "schema": "chengwang.s2-actual-ci-format-hunk-integration/v1",
+  "scope": "EXACT_ACTUAL_CI_FORMAT_OUTPUT_WITH_FINITE_LEXICAL_GUARD_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "semicolonNormalizedTokensEqual": true,
+  "sourceFiles": 3,
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "cabaa0936e13250c58d2122cff89112e38aa20e3c1238ad3e08fbf1301d75685",
+    "chengwang/docs/evidence/sys06-785-s2-normal-format-failure-20261025.json": "0c146feb82f92bb33361f4f91f98eeff399ac9ced17e3660f46564d322e62913",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority.go": "0c5641f3a61d813c58dc366ac618110cc095cc4609ed8babe20c04bda2735e88",
+    "chengwang/internal/mihomodeploy/lab_recovery_collector.go": "e37180335eafdc730e9def883589b9f65e6a45e0a1b6621bb6c3364cfa9e99f4",
+    "chengwang/internal/mihomodeploy/lab_recovery_collector_linux_test.go": "cc66eab70fb1f8aa2005e24d05db9fc3eb0e6749de463cbd49f65d4333dcd4c4"
+  }
+}

@@ -21,11 +21,11 @@ const labRecoveryObservationLimit = 32
 // This is memory-only custody, issued after actual successful S1 readback.
 // It neither reissues the spent Started capability nor survives a reopen.
 type labRecoveryStartedCustody struct {
-	store *lifecycleRecoveryStoreCore
-	owner *lifecycleRecoveryOwnerCore
-	started *labRecoveryStartedEpochCore
+	store     *lifecycleRecoveryStoreCore
+	owner     *lifecycleRecoveryOwnerCore
+	started   *labRecoveryStartedEpochCore
 	canonical string
-	binding func(*labRecoveryStartedCustody, *lifecycleRecoveryStoreCore) bool
+	binding   func(*labRecoveryStartedCustody, *lifecycleRecoveryStoreCore) bool
 }
 
 // Called only with the original store mutex after current disk verification.
@@ -40,55 +40,57 @@ func (c *labRecoveryStartedCustody) matches(x *lifecycleRecoveryStoreCore) bool 
 }
 
 type labRecoverySampleWindow struct {
-	StartedAt time.Time `json:"startedAt"`
+	StartedAt   time.Time `json:"startedAt"`
 	CompletedAt time.Time `json:"completedAt"`
 }
 
 // Metadata only. This DTO cannot construct a proof or mutate Execution/head.
 type labRecoveryObservedValue struct {
-	Schema string `json:"schema"`
-	RecoveryID string `json:"recoveryId"`
-	PlanSHA256 string `json:"planSHA256"`
-	StartIntentSHA256 string `json:"startIntentSHA256"`
-	StartedSHA256 string `json:"startedSHA256"`
-	SourceRevision uint64 `json:"sourceRevision"`
-	SourceRecordSHA256 string `json:"sourceRecordSHA256"`
-	OwnerFence uint64 `json:"ownerFence"`
-	Artifact ArtifactDescriptor `json:"artifact"`
-	StartupIdentity labKernelIdentity `json:"startupIdentity"`
-	EntryAt time.Time `json:"entryAt"`
-	Deadline time.Time `json:"deadline"`
-	SampleTimes [2]labRecoverySampleWindow `json:"sampleTimes"`
-	ObservedAt time.Time `json:"observedAt"`
-	Readback mihomo.LabTargetReadbackReport `json:"readback"`
-	TranscriptSHA256 string `json:"transcriptSHA256"`
-	BodySHA256s [8]string `json:"bodySHA256s"`
-	VerificationSHA256 string `json:"verificationSHA256"`
+	Schema             string                         `json:"schema"`
+	RecoveryID         string                         `json:"recoveryId"`
+	PlanSHA256         string                         `json:"planSHA256"`
+	StartIntentSHA256  string                         `json:"startIntentSHA256"`
+	StartedSHA256      string                         `json:"startedSHA256"`
+	SourceRevision     uint64                         `json:"sourceRevision"`
+	SourceRecordSHA256 string                         `json:"sourceRecordSHA256"`
+	OwnerFence         uint64                         `json:"ownerFence"`
+	Artifact           ArtifactDescriptor             `json:"artifact"`
+	StartupIdentity    labKernelIdentity              `json:"startupIdentity"`
+	EntryAt            time.Time                      `json:"entryAt"`
+	Deadline           time.Time                      `json:"deadline"`
+	SampleTimes        [2]labRecoverySampleWindow     `json:"sampleTimes"`
+	ObservedAt         time.Time                      `json:"observedAt"`
+	Readback           mihomo.LabTargetReadbackReport `json:"readback"`
+	TranscriptSHA256   string                         `json:"transcriptSHA256"`
+	BodySHA256s        [8]string                      `json:"bodySHA256s"`
+	VerificationSHA256 string                         `json:"verificationSHA256"`
 }
 
 type labRecoveryCollector struct {
-	artifacts *ArtifactStore
+	artifacts   *ArtifactStore
 	diagnostics *labServiceDiagnostics
-	authority *labRecoveryAuthority
-	session *labRecoverySession
-	kernel *ownedLabKernel
+	authority   *labRecoveryAuthority
+	session     *labRecoverySession
+	kernel      *ownedLabKernel
 }
 
-type labRecoveryObservedEvidence struct{ core *labRecoveryObservedEvidenceCore }
+type labRecoveryObservedEvidence struct {
+	core *labRecoveryObservedEvidenceCore
+}
 type labRecoveryObservedEvidenceCore struct {
 	collector *labRecoveryCollector
-	custody *labRecoveryStartedCustody
-	value labRecoveryObservedValue
-	binding func(*labRecoveryObservedEvidenceCore) bool
+	custody   *labRecoveryStartedCustody
+	value     labRecoveryObservedValue
+	binding   func(*labRecoveryObservedEvidenceCore) bool
 }
 
 // This finite first-slice issuer never evicts or resets spent source claims,
 // including across new collector instances. Exhaustion fails closed. It is
 // not a maintenance-free long-lived production registry or durable schema.
 type labRecoveryObservationIssuer struct {
-	mu sync.Mutex
+	mu      sync.Mutex
 	claimed map[*labRecoveryStartedCustody]bool
-	issued map[*labRecoveryObservedEvidenceCore]bool
+	issued  map[*labRecoveryObservedEvidenceCore]bool
 }
 
 var processLabRecoveryObservationIssuer = labRecoveryObservationIssuer{
@@ -96,14 +98,20 @@ var processLabRecoveryObservationIssuer = labRecoveryObservationIssuer{
 }
 
 func (labRecoveryStartedCustody) MarshalJSON() ([]byte, error) { return nil, errLabRecoveryCollector }
-func (labRecoveryStartedCustody) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, "private recorded Started custody") }
+func (labRecoveryStartedCustody) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, "private recorded Started custody")
+}
 func (*labRecoveryStartedCustody) UnmarshalJSON([]byte) error { return errLabRecoveryCollector }
-func (labRecoveryObservedEvidence) String() string { return "private one-use recovery observation" }
-func (labRecoveryObservedEvidence) GoString() string { return "private one-use recovery observation" }
-func (labRecoveryObservedEvidence) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, "private one-use recovery observation") }
+func (labRecoveryObservedEvidence) String() string            { return "private one-use recovery observation" }
+func (labRecoveryObservedEvidence) GoString() string          { return "private one-use recovery observation" }
+func (labRecoveryObservedEvidence) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, "private one-use recovery observation")
+}
 func (labRecoveryObservedEvidence) MarshalJSON() ([]byte, error) { return nil, errLabRecoveryCollector }
 func (e *labRecoveryObservedEvidence) UnmarshalJSON([]byte) error {
-	if e != nil { e.core = nil }
+	if e != nil {
+		e.core = nil
+	}
 	return errLabRecoveryCollector
 }
 
@@ -130,7 +138,7 @@ func labRecoveryObservationDeadline(c *labRecoveryStartedCustody, entry time.Tim
 		return time.Time{}, false
 	}
 	return labRecoveryWindowDeadline(entry, a.Plan.Budgets.VerificationMillis,
-		[4]time.Time{a.Plan.ExpiresAt, a.Approval.ExpiresAt, r.core.RecoveryOwner.ExpiresAt, s.ObservedAt.Add(30*time.Second)}, ctx)
+		[4]time.Time{a.Plan.ExpiresAt, a.Approval.ExpiresAt, r.core.RecoveryOwner.ExpiresAt, s.ObservedAt.Add(30 * time.Second)}, ctx)
 }
 
 func labRecoveryWindowDeadline(entry time.Time, millis uint32, bounds [4]time.Time, ctx context.Context) (time.Time, bool) {
@@ -139,10 +147,16 @@ func labRecoveryWindowDeadline(entry time.Time, millis uint32, bounds [4]time.Ti
 	}
 	deadline := entry.Add(time.Duration(millis) * time.Millisecond)
 	for _, bound := range bounds {
-		if !lifecycleTime(bound) { return time.Time{}, false }
-		if bound.Before(deadline) { deadline = bound }
+		if !lifecycleTime(bound) {
+			return time.Time{}, false
+		}
+		if bound.Before(deadline) {
+			deadline = bound
+		}
 	}
-	if bound, ok := ctx.Deadline(); ok && bound.Before(deadline) { deadline = bound.UTC() }
+	if bound, ok := ctx.Deadline(); ok && bound.Before(deadline) {
+		deadline = bound.UTC()
+	}
 	return deadline, entry.Before(deadline)
 }
 
@@ -170,10 +184,14 @@ func (c *labRecoveryCollector) currentKernel(source *labRecoveryStartedCustody) 
 }
 
 func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*labRecoveryObservedEvidence, error) {
-	if c == nil || artifactContext(ctx) != nil { return nil, errLabRecoveryCollector }
+	if c == nil || artifactContext(ctx) != nil {
+		return nil, errLabRecoveryCollector
+	}
 	entry := time.Now().UTC()
 	guard, err := c.authority.authorizeVerify(headers, c.session, nil, entry)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	source := guard.custody
 	i := &processLabRecoveryObservationIssuer
 	i.mu.Lock()
@@ -186,7 +204,9 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	i.mu.Unlock()
 	guard.release()
 	deadline, ok := labRecoveryObservationDeadline(source, entry, ctx)
-	if !ok || !c.currentKernel(source) { return nil, errLabRecoveryCollector }
+	if !ok || !c.currentKernel(source) {
+		return nil, errLabRecoveryCollector
+	}
 	phase, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
 	fact := source.started.fact
@@ -196,9 +216,13 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 		return nil, errLabRecoveryCollector
 	}
 	expected, err := labExpectationForArtifact(artifact)
-	if err != nil { return nil, errLabRecoveryCollector }
+	if err != nil {
+		return nil, errLabRecoveryCollector
+	}
 	reader, err := mihomo.NewLabReadbackClient(d.ControllerPort, config.ControllerSecret, 5*time.Second)
-	if err != nil { return nil, errLabRecoveryCollector }
+	if err != nil {
+		return nil, errLabRecoveryCollector
+	}
 	samples, evidence, readErr := reader.ReadStableCaptured(phase)
 	defer evidence.Release()
 	descriptor, descErr := evidence.Descriptor()
@@ -206,7 +230,7 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	var bodies [8][]byte
 	var hashes [8]string
 	for n := range bodies {
-		if raw, err := evidence.PrivateBody(uint8(n+1)); err == nil {
+		if raw, err := evidence.PrivateBody(uint8(n + 1)); err == nil {
 			bodies[n] = raw
 			hashes[n] = labConfigHash(raw)
 		}
@@ -228,28 +252,44 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	}
 	// Do not hold the source/authority mutex over private fsync or proc/HTTP IO.
 	r, err := decodeLifecycleV3Record([]byte(source.canonical))
-	if err != nil { return nil, errLabRecoveryCollector }
+	if err != nil {
+		return nil, errLabRecoveryCollector
+	}
 	a := r.core.Recovery
 	v := labRecoveryObservedValue{Schema: "chengwang.mihomo-recovery-control-observation/v1", RecoveryID: a.Plan.RecoveryID, PlanSHA256: a.Plan.PlanSHA256,
 		StartIntentSHA256: a.StartIntent.IntentSHA256, StartedSHA256: fact.StartedSHA256, SourceRevision: r.core.Revision, SourceRecordSHA256: r.core.RecordSHA256,
 		OwnerFence: r.core.RecoveryOwner.Fence, Artifact: cloneArtifactDescriptor(target), StartupIdentity: *fact.Observation.StartupIdentity,
 		EntryAt: entry, Deadline: deadline, ObservedAt: observed, Readback: report, TranscriptSHA256: labConfigHash(transcript), BodySHA256s: hashes}
-	for n, sample := range times { v.SampleTimes[n] = labRecoverySampleWindow{sample.StartedAt, sample.CompletedAt} }
+	for n, sample := range times {
+		v.SampleTimes[n] = labRecoverySampleWindow{sample.StartedAt, sample.CompletedAt}
+	}
 	raw, err := json.Marshal(v)
-	if err != nil { return nil, errLabRecoveryCollector }
+	if err != nil {
+		return nil, errLabRecoveryCollector
+	}
 	v.VerificationSHA256, err = c.diagnostics.verification(labRecoveryCaptureStage, raw)
-	if err != nil || artifactContext(phase) != nil { return nil, errLabRecoveryCollector }
+	if err != nil || artifactContext(phase) != nil {
+		return nil, errLabRecoveryCollector
+	}
 	finalNow := time.Now().UTC()
-	if !labRecoveryObservationWindow(times, entry, finalNow, deadline) || !c.currentKernel(source) { return nil, errLabRecoveryCollector }
+	if !labRecoveryObservationWindow(times, entry, finalNow, deadline) || !c.currentKernel(source) {
+		return nil, errLabRecoveryCollector
+	}
 	guard, err = c.authority.authorizeVerify(headers, c.session, source, finalNow)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer guard.release()
 	e := &labRecoveryObservedEvidenceCore{collector: c, custody: source, value: v}
 	sealed, err := json.Marshal(v)
-	if err != nil { return nil, errLabRecoveryCollector }
+	if err != nil {
+		return nil, errLabRecoveryCollector
+	}
 	image := string(sealed)
 	e.binding = func(candidate *labRecoveryObservedEvidenceCore) bool {
-		if candidate != e || candidate.collector != c || candidate.custody != source { return false }
+		if candidate != e || candidate.collector != c || candidate.custody != source {
+			return false
+		}
 		actual, err := json.Marshal(candidate.value)
 		return err == nil && string(actual) == image
 	}
@@ -266,7 +306,9 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 
 func (c *labRecoveryCollector) consume(ctx context.Context, headers []string, evidence *labRecoveryObservedEvidence) (labRecoveryObservedValue, error) {
 	var zero labRecoveryObservedValue
-	if evidence == nil || evidence.core == nil { return zero, errLabRecoveryCollector }
+	if evidence == nil || evidence.core == nil {
+		return zero, errLabRecoveryCollector
+	}
 	e := evidence.core
 	i := &processLabRecoveryObservationIssuer
 	i.mu.Lock()
@@ -277,9 +319,13 @@ func (c *labRecoveryCollector) consume(ctx context.Context, headers []string, ev
 		return zero, errLabRecoveryCollector
 	}
 	now := time.Now().UTC()
-	if now.Before(e.value.ObservedAt) || !now.Before(e.value.Deadline) { return zero, errLabRecoveryCollector }
+	if now.Before(e.value.ObservedAt) || !now.Before(e.value.Deadline) {
+		return zero, errLabRecoveryCollector
+	}
 	guard, err := c.authority.authorizeVerify(headers, c.session, e.custody, now)
-	if err != nil { return zero, err }
+	if err != nil {
+		return zero, err
+	}
 	defer guard.release()
 	value := e.value
 	value.Artifact = cloneArtifactDescriptor(value.Artifact)

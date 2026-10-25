@@ -1,0 +1,129 @@
+{
+  "schema": "chengwang.s2-normal-format-failure-with-scoped-runtime-acceptance/v1",
+  "sourceCommit": "7850204559b8722e9c8c11f63fcbe8e9e9fa1a9d",
+  "scope": "ORDINARY_RACE_EVENTS_AND_DIAGNOSTIC_NATIVE_SCOPES_PASS_FORMAT_GATE_FAILED_NOT_WHOLE_CI",
+  "normal": {
+    "runID": 40184766297,
+    "conclusion": "failure",
+    "successfulJobs": 11,
+    "failedJobs": 2,
+    "actualGoAndRaceInvoked": true,
+    "ordinarySemanticPassed": 1538,
+    "raceSemanticPassed": 1538,
+    "mandatoryOrdinaryPassed": 619,
+    "mandatoryRacePassed": 619,
+    "skips": 0,
+    "allOld611AndHistoricalGroupsPreserved": true,
+    "execution": {
+      "formatExit": 0,
+      "ordinaryExit": 0,
+      "raceExit": 0
+    },
+    "formatPatchBytes": 25177,
+    "formatPatchSHA256": "2fd0fc54839d685e79d1d329b7baf1e53252dcee6f1d612d5602099cdbdda4b2",
+    "originalFullVerifierAccepted": false,
+    "foundationFreshReportAvailable": false,
+    "capacityOrdinarySeconds": 7.5,
+    "capacityRaceSeconds": 87.19,
+    "zipCount": 11,
+    "members": 206,
+    "successNotInferredFromEvents": true
+  },
+  "diagnostic": {
+    "runID": 40184766181,
+    "conclusion": "success",
+    "successfulJobs": 5,
+    "requiredTests": 619,
+    "new8AndOld611AllPassed": true,
+    "sourceCount": 125,
+    "mandatoryTestFiles": 45,
+    "physicalTestSources": 74,
+    "fullProfileSeconds": 120.297764816,
+    "singleProfileSeconds": 60.17091794,
+    "profileStopReason": "TIMER",
+    "capacitySeconds": 85.62,
+    "packageSeconds": 165.901,
+    "zipCount": 4,
+    "members": 42,
+    "producerFreshByteEqual": true
+  },
+  "native": {
+    "runID": 40184766176,
+    "conclusion": "success",
+    "successfulJobs": 4,
+    "goSeconds": 10.06,
+    "formatPatchBytes": 0,
+    "formatScope": "NATIVE_NINE_SOURCE_SCOPE_NOT_NORMAL_119",
+    "sourceCount": 163,
+    "publicFiles": 31,
+    "actualGETs": 8,
+    "actualSamples": 2,
+    "targetMatched": true,
+    "recordRevision": 17,
+    "copiedStartedAndProofRejected": true,
+    "proofReplayAndRecollectRejected": true,
+    "sourceWALAndPhysicalEventPrefixUnchanged": true,
+    "fivePortsRefused": true,
+    "threeFixtureShutdownAndServeReturned": true,
+    "walIndexRows": 8,
+    "reopenedRevision": 18,
+    "reopenedPhase": "RECOVERY_UNKNOWN",
+    "originalCheckpoints": 10,
+    "zipCount": 3,
+    "members": 52,
+    "producerFreshByteEqual": true,
+    "producerBytes": 26045,
+    "producerSHA256": "3a0087491aa6410fd3d48dee4a6c7eb1c150830a0037b25c80b51e75df1ab773"
+  },
+  "nonfoundation": {
+    "originalGatesPassed": [
+      "service",
+      "apply",
+      "compat",
+      "candidate",
+      "unknown"
+    ],
+    "allProducerFreshByteEqual": true,
+    "wholeWorkflowFailurePreserved": true
+  },
+  "totalArchives": 18,
+  "totalMembers": 300,
+  "gitBlobsVerified": 1320,
+  "receipts": [
+    {
+      "path": "D:/CodexData/workspace/mihomo-7850204-foundation-audit-20261025-root/audit-result.json",
+      "sha256": "fe33b7dca6a87c011cf1bdb16eab764c07ce37ce4b9fab213823814191313f7d"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-7850204-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "e7df61d22d5e7d5faabb1dcf19b357a4b4462e9304a5c7472e81b2a9b4526602"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-7850204-native-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "4897fbf6b0a4da38b240e95006148ce0effc1b8c07394f717b0bf85444e1185b"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-7850204-nonfoundation-audit-20261025-root/result.json",
+      "sha256": "11c1765635d23d99d6512c673dce87e9926e5abc87fb3ad66d612106cf530fa5"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-7850204-nonfoundation-audit-20261025-root/unknown/result.json",
+      "sha256": "21d9848896dc82dabbe2e017d042584dc73f5a894b8c38f8da8828eac21574a9"
+    }
+  ],
+  "originalRawTokenTransferGuardRejected": true,
+  "rawTokenRejectionRetainedPID": 29520,
+  "rawTokenMismatchNotClaimedAsProductLogicDifference": true,
+  "localGoGofmtNativeOrProductHTTPExecuted": false,
+  "originalVerifierOrInputGatesWeakened": false,
+  "windowsOriginalCLIRejectionsPreserved": true,
+  "sourceGitFlagAdjustedOnlyInExplicitComparisonCopies": true,
+  "completeRealFaultMatrixProven": false,
+  "recoveryDataplaneProven": false,
+  "durableVerificationReceiptOrCompletionProven": false,
+  "productRecoveryAPIProven": false,
+  "fullSystemComplete": false,
+  "production": false,
+  "mainMerged": false,
+  "registryPublished": false
+}
