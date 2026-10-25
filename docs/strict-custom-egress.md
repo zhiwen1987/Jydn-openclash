@@ -2,7 +2,9 @@
 
 当前版本只保留一个全局入口：`🔐 自定义节点`，没有业务后缀，也不再生成单独的“自定义节点组”。69 个业务组按需引用同一个入口；这些引用不是新的组定义。旧的 138 个重复入口和引用会在编译时清除，订阅更新后不会再次生成。
 
-配置可以留空。未配置时入口只有 `REJECT`；选择它的业务会断流。节点配置后在这一处统一选择；所有使用它的业务会一起跟随选择，其他业务保持自己的出口。单节点失败不自动改走其他出口；如主动配置私有 fallback 池，只在该池批准的私有节点间切换。
+自建配置可以留空。入口会列出全部订阅实际节点和已定义的自建节点，并保留 `REJECT` 为默认项；没有任何实际节点时只有 `REJECT`。不把 DIRECT、国家组或自动组作为可选出口，流量提示等非节点条目也会过滤。所有使用入口的业务跟随这一处的手动选择；节点故障时仍保持原选择并断流，不按延迟换节点。
+
+订阅节点通过已有 provider 引用动态加入菜单；源更新新增节点后可直接选择。选中节点从源中消失时回到首项 REJECT，不选择其他可用节点。入口始终只有一个，不新增按业务划分的自定义组。
 
 原有业务默认值、公共节点、公共节点池、规则及其顺序保持原样。Google、Gemini、YouTube 分别设置，不进行 Google 全族合并。现有规则中优先匹配 DIRECT 的例外继续生效；此功能约束的是实际命中该业务组的流量，不能代替域名覆盖审计。
 
@@ -16,19 +18,19 @@
 - `/etc/openclash/custom/jydn_strict_custom_hook.sh`：在现有覆写脚本最后执行，订阅更新和重启时重建入口。
 - `/etc/openclash/custom/jydn_strict_bind.rb`：绑定、清理该业务旧连接、解除绑定的管理工具。
 
-真实密码、Token、密钥和上述私有配置不得提交 GitHub。公开示例见 `modules/strict-custom-private.example.yaml`。普通模板更新只生成空入口；私有数据始终在旁路由本地加载。
+真实密码、Token、密钥和上述私有配置不得提交 GitHub。公开示例见 `modules/strict-custom-private.example.yaml`。模板和旁路由覆写均提供全节点手动入口，私有凭据始终在旁路由本地加载。
 
 当前生产仍使用原 R4 文件名 `精准稳定-v1-r4-ha-subscription-managed.yaml`，避免破坏现有 Grok 控制器按路径读取配置的行为。功能版本通过 Git 提交和文件摘要区分，不靠改文件名。
 
 ## 导入和持久绑定
 
-先备份私有配置，再按示例填写节点。节点 ID 使用字母、数字、下划线或短横线，后续保持不变。节点池只允许引用已声明的私有节点，不允许 DIRECT、共享池或外部 provider。可选择 `select` 或仅在这些私有节点之间切换的 `fallback`。
+直接使用已有订阅节点，无需填写私有文件。导入自建节点时先备份，再按示例填写；节点 ID 使用字母、数字、下划线或短横线并保持不变。本版本入口选择实际节点，不把自动回退池作为出口。
 
 在旁路由执行（将业务名替换为面板上的完整名称，包括图标）：
 
 ```sh
 ruby /etc/openclash/custom/jydn_strict_bind.rb '业务完整名称' node own-us01
-ruby /etc/openclash/custom/jydn_strict_bind.rb '业务完整名称' group own-primary-backup
+ruby /etc/openclash/custom/jydn_strict_bind.rb '业务完整名称' existing '面板上的完整节点名称'
 ```
 
 节点未配置时可先绑定阻断：
@@ -37,7 +39,7 @@ ruby /etc/openclash/custom/jydn_strict_bind.rb '业务完整名称' group own-pr
 ruby /etc/openclash/custom/jydn_strict_bind.rb '业务完整名称' node REJECT
 ```
 
-工具先生成候选并执行当前内核校验，再阻断入口、关闭该业务及当前共享入口用户的旧连接，保存持久绑定并热加载。修改共享目标会影响所有使用它的业务。绑定后，该业务外层只允许共享入口和 REJECT；公共池不再是合法选项。入口默认 REJECT，因此选择缓存丢失或私有目标消失时保持断流。
+工具先核对目标确实在入口中，生成候选并执行当前内核校验，再阻断入口、关闭该业务及当前共享入口用户的旧连接，保存持久绑定并热加载。修改共享目标会影响所有使用它的业务。绑定后，该业务外层只允许共享入口和 REJECT，不能自动改回业务的其他出口。入口默认 REJECT，因此选择缓存丢失或目标消失时保持断流。
 
 解除绑定是明确的管理操作，会恢复保存的原业务菜单及选择：
 
@@ -63,14 +65,14 @@ ruby /etc/openclash/custom/jydn_strict_bind.rb '业务完整名称' unlock
 
 本轮备份位置：
 
-- 旁路由：`/root/openclash-backups/shared-custom-20261026-1792954903`
-- 249：`/var/backups/shared-custom-20261026-1792954905488406897`
+- 旁路由：`/root/openclash-backups/shared-custom-20261026-1792956515`
+- 249：`/var/backups/shared-custom-20261026-1792956516986255874`
 
 在目标旁路由 root shell 恢复本轮修改：
 
 ```sh
 # 旁路由：核对 MAC 必须为 00:0c:29:2d:96:e8
-ruby /root/openclash-backups/shared-custom-20261026-1792954903/stage/strict_custom_router_recovery.rb rollback /root/openclash-backups/shared-custom-20261026-1792954903
+ruby /root/openclash-backups/shared-custom-20261026-1792956515/stage/strict_custom_router_recovery.rb rollback /root/openclash-backups/shared-custom-20261026-1792956515
 ```
 
-恢复会还原本轮修改的配置和工具（包括旧的多入口布局），不会覆盖实时监控数据库。工具核对摘要，检测到后续并发修改会拒绝覆盖。后续已导入真实私有节点或绑定时，应使用当时的新备份，不直接回退本轮旧状态。
+恢复会还原本轮修改的配置和工具，回到此前只列自建节点的单入口状态，不会覆盖实时监控数据库。工具核对摘要，检测到后续并发修改会拒绝覆盖。后续已导入真实节点或绑定时，应使用当时的新备份。

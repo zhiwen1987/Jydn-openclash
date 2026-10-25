@@ -19,7 +19,7 @@ module StrictRouterRecovery
   end
   def self.uri(v);v.bytes.map{|b|b.chr.match?(/[A-Za-z0-9_.~-]/) ? b.chr : ('%%%02X'%b)}.join;end
   def self.api(path,method='GET',body=nil)
-    raise 'unsupported_api_path' unless path.match?(%r{\A/(proxies(?:/[^/?]+)?|configs(?:\?force=true)?|rules|connections(?:/[^/?]+)?)\z})
+    raise 'unsupported_api_path' unless path.match?(%r{\A/(proxies(?:/[^/?]+)?|providers/proxies(?:/[^/?]+)?|configs(?:\?force=true)?|rules|connections(?:/[^/?]+)?)\z})
     secret=sh('uci','-q','get','openclash.config.dashboard_password')
     config='url = '+json('http://127.0.0.1:9090'+path)+"\nheader = "+json('Authorization: Bearer '+secret)+"\nrequest = "+json(method)+"\n"
     config+='header = "Content-Type: application/json"'+"\ndata-binary = "+json(json(body))+"\n" if body

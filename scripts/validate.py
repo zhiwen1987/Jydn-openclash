@@ -2,7 +2,7 @@
 import re
 import json
 import sys
-from strict_catalog import choices as strict_choices, policy as strict_policy
+from strict_catalog import choices as strict_choices, policy as strict_policy, entry_definition as strict_definition
 from pathlib import Path
 
 from group_catalog import (
@@ -647,7 +647,7 @@ def validate_config(errors: list[str]) -> None:
         if name in strict_policy()["business_groups"]:
             expected_menu.extend(strict_choices(name))
             for child in strict_choices(name):
-                if group_definitions.get(child) != f"custom_proxy_group={child}`select`[]REJECT":
+                if group_definitions.get(child) != strict_definition(child):
                     errors.append(f"严格私有入口 {child} 必须以 REJECT 空占位生成")
         if ordered_references != expected_menu:
             errors.append(

@@ -3,7 +3,7 @@ import getpass,json,shlex,sys,datetime,base64,importlib.util
 from pathlib import Path
 import paramiko
 ROOT=Path(__file__).resolve().parents[1]
-CASE=ROOT/'reports/shared-custom-20261026'
+CASE=ROOT/'reports/shared-custom-all-nodes-20261026'
 def connection(host,user,password,sock=None):
  c=paramiko.SSHClient();c.load_system_host_keys();c.set_missing_host_key_policy(paramiko.RejectPolicy())
  c.connect(host,username=user,password=password,sock=sock,timeout=12,allow_agent=False,look_for_keys=False);return c
@@ -69,7 +69,7 @@ def main():
     if phase=='stage':
      meta=json.loads((CASE/'location.json').read_text(encoding='utf-8'))
      with r.open_sftp() as rsf:
-      for filename in ['empty.yaml','configured.yaml','locked.yaml','locked-empty.yaml','fixture.yaml']:
+      for filename in ['empty.yaml','configured.yaml','locked.yaml','locked-empty.yaml','fixture.yaml','all-nodes.yaml','provider-one.yaml','provider-two.yaml']:
        raw=rsf.open(meta['router']+'/stage/fixtures/'+filename,'rb').read()
        command='sudo -n sh -c '+shlex.quote('umask 077; cat > '+shlex.quote(meta['server']+'/stage/'+filename))
        pin,pout,perr=s.exec_command(command,timeout=30);pin.write(raw);pin.channel.shutdown_write();pout.read();perr.read()

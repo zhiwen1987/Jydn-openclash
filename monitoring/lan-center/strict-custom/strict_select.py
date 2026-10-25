@@ -4,13 +4,15 @@ from pathlib import Path
 PREFIX={'node':'🔐 自定义节点 · ','group':'🔐 自定义节点组 · '}
 SHARED={kind:'🔐 自定义节点' for kind in PREFIX}
 ALLOWED=('🔐 自建节点 · ','🔐 自建节点池 · ')
+FORBIDDEN={'Direct','Pass','Compatible','Dns','Selector','URLTest','Fallback','LoadBalance','Relay'}
 def activate(api,business,kind,target='REJECT'):
  wrapper=SHARED[kind];proxies=api('/proxies')['proxies']
  outer=proxies.get(business,{});inner=proxies.get(wrapper,{})
  if outer.get('type')!='Selector' or wrapper not in outer.get('all',[]):raise ValueError('business_not_prepared')
  members=inner.get('all',[])
- if inner.get('type')!='Selector' or 'REJECT' not in members or not all(n=='REJECT' or n.startswith(ALLOWED) for n in members):raise ValueError('strict_wrapper_invalid')
- if target not in members or (target!='REJECT' and not target.startswith(ALLOWED)):raise ValueError('target_not_approved')
+ if inner.get('type')!='Selector' or not members or members[0]!='REJECT':raise ValueError('strict_wrapper_invalid')
+ if any(n in {'DIRECT','PASS','COMPATIBLE','GLOBAL'} or proxies.get(n,{}).get('type') in FORBIDDEN and not n.startswith(ALLOWED) for n in members):raise ValueError('unsafe_group_or_bypass_member')
+ if target not in members:raise ValueError('target_not_approved')
  def select(group,node):
   path='/proxies/'+urllib.parse.quote(group,safe='')
   api(path,'PUT',{'name':node})
