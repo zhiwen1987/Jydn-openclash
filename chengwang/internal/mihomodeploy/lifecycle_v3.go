@@ -175,6 +175,31 @@ func encodeLifecycleV3Record(r lifecycleV3Record) ([]byte, error) {
 	}
 	return raw, nil
 }
+// Only prepareLifecycleCandidate calls this path after its issued-base,
+// transition, revision and clock checks. It derives this candidate's own root
+// digest exactly once, checks every semantic/history field, then emits bounded
+// canonical bytes. No supplied digest, trust flag or cached authority is used.
+// External bytes still use the unchanged strict decoder/encoder hash gate.
+func sealLifecycleV3Candidate(r lifecycleV3Record) ([]byte, error) {
+	w := r.core
+	if w == nil || w.Schema != lifecycleSchemaV3 || w.Boundary != lifecycleBoundary || w.Revision == 0 || !lifecycleTime(w.LastTrustedAt) || w.RetiredEpochs == nil || w.RecoveryHistory == nil || len(w.RetiredEpochs) > maxLifecycleHistory || len(w.RecoveryHistory) > maxLifecycleHistory {
+		return nil, errLifecycleUnsafe
+	}
+	h, err := lifecycleV3RecordHash(*w)
+	if err != nil || !lifecycleNonzeroHash(h) {
+		return nil, errLifecycleUnsafe
+	}
+	w.RecordSHA256 = h
+	if validateLifecycleV3Contents(w) != nil {
+		return nil, errLifecycleUnsafe
+	}
+	raw, err := json.Marshal(w)
+	if err != nil || len(raw) > maxLifecycleControlBytes {
+		return nil, errLifecycleUnsafe
+	}
+	return raw, nil
+}
+
 func lifecycleLegacyLedger(r lifecycleRecord, raw []byte) lifecycleEpochLedger {
 	w := r.wire
 	initial := *w.Head
@@ -346,6 +371,13 @@ func validateLifecycleV3Record(r lifecycleV3Record) error {
 	if err != nil || h != w.RecordSHA256 || !lifecycleNonzeroHash(h) {
 		return errLifecycleUnsafe
 	}
+	return validateLifecycleV3Contents(w)
+}
+
+// All source, epoch, owner, candidate and complete-history checks are shared
+// verbatim by strict external validation and the internal candidate sealer.
+// This is not a proof or a caller assertion that any bytes were validated.
+func validateLifecycleV3Contents(w *lifecycleV3Wire) error {
 	context, err := lifecycleV3SourceContext(w)
 	if err != nil {
 		return err

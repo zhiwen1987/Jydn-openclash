@@ -251,15 +251,18 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	if p == nil || p.validAt(now) != nil || x.record.core.Revision != expectedRevision || x.record.core.RecordSHA256 != expectedRecord || len(x.record.core.RetiredEpochs) != 0 {
 		return errLifecycleUnsafe
 	}
-	original, err := lifecycleV3Source(x.record.core)
+	context, err := lifecycleV3SourceContext(x.record.core)
 	if err != nil {
 		return err
 	}
-	if _, err := labRecoveryPlanFromDescriptor(p.descriptor(), original); err != nil {
+	// Retain this operation's actual canonical source context and one detached
+	// descriptor. The complete candidate/history validation still runs later.
+	d := p.descriptor()
+	if context.validateDescriptor(d) != nil {
 		return errLifecycleUnsafe
 	}
 	for _, a := range x.record.core.RecoveryHistory {
-		if a.Plan.RecoveryID == p.descriptor().RecoveryID || a.Plan.PlanSHA256 == p.descriptor().PlanSHA256 {
+		if a.Plan.RecoveryID == d.RecoveryID || a.Plan.PlanSHA256 == d.PlanSHA256 {
 			return errLifecycleUnsafe
 		}
 	}
@@ -270,7 +273,7 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	if err != nil {
 		return err
 	}
-	next.core.Recovery = &lifecycleRecoveryTxn{Plan: p.descriptor(), Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
+	next.core.Recovery = &lifecycleRecoveryTxn{Plan: d, Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
 	return x.commitWithBase(base, next, now)
 }
 func (s *lifecycleRecoveryStore) recordRecoveryApproval(t *lifecycleRecoveryOwnerToken, a lifecycleRecoveryApproval, now time.Time) error {

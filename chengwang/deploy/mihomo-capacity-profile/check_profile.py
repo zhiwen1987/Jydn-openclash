@@ -20,7 +20,11 @@ TAG='chengwang_capacity_profile'
 GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^'+TOP+'$','./internal/mihomodeploy']
 FULL_PACKAGES=['./internal/adapter/mihomo','./internal/mihomodeploy','./internal/authn','./internal/api','./internal/serverruntime','./internal/authz']
 FULL_GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^Test',*FULL_PACKAGES]
-FULL_REQUIRED_PIN='8319dfde365203ae1ae268b1a5d0a3938719bcd0671586bc66840ce2a20863c3'
+FULL_REQUIRED_PIN='14e88fa43dd23db1a77671ef4ae2b1bd36a0491b313ce7d5e3005bcc1d5d2951'
+FULL_PREVIOUS_REQUIRED_PIN='8319dfde365203ae1ae268b1a5d0a3938719bcd0671586bc66840ce2a20863c3'
+FULL_CANDIDATE_SEAL_ADDED=frozenset({
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealPreservesExternalDigestGate',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan'})
 NORMAL_CHECKER='chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py'
 PUBLIC=('host-before.json','host-after.json','source-before.json','source-after.json','sandbox.json','go-version.txt',
     'gofmt.patch','gofmt.stderr','capacity.json','capacity.stderr','commands.jsonl','execution.json',
@@ -148,7 +152,10 @@ def full_source_contract(sources,manifest):
     need(all(path in files and files[path]['sha256']==sha(raw) and files[path]['bytes']==len(raw)for path,raw in sources.items()))
     required=checker.required_names(sources)
     names=sorted(package+'::'+name for package,items in required.items()for name in items)
-    need(set(required)==checker.PACKAGES and len(names)==585 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
+    need(set(required)==checker.PACKAGES and len(names)==587 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
+    need(FULL_CANDIDATE_SEAL_ADDED.issubset(names))
+    previous=sorted(set(names)-FULL_CANDIDATE_SEAL_ADDED)
+    need(len(previous)==585 and sha('\n'.join(previous).encode())==FULL_PREVIOUS_REQUIRED_PIN)
     # -run '^Test' is equivalent to the current normal test selection only
     # because none of the six packages declares Example/Fuzz entry points.
     # Audit ALL package test files bound by the complete Git manifest, not
@@ -169,7 +176,7 @@ def full_source_contract(sources,manifest):
     # command, allowing only the fixed diagnostic tag and test filter.
     normal='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)+' > "$out/race.json" 2> "$out/race.stderr"'
     need(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh'].decode().splitlines().count(normal)==1)
-    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':585,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
+    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':587,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,
         'noExampleOrFuzzDeclarationInBoundSixPackageTestSources':True}
@@ -177,7 +184,7 @@ def full_source_contract(sources,manifest):
 def full_events(raw,required,checker,go_exit,stderr=b''):
     # Diagnostic partial-reader: accept coherent failed/unfinished originals,
     # never translate them into C.events acceptance. Extra legitimate top or
-    # subtests are allowed just as in the original checker; 585 is a subset.
+    # subtests are allowed just as in the original checker; 587 is a subset.
     need(type(raw)is bytes and 0<len(raw)<=64<<20 and type(stderr)is bytes and integer(go_exit,-128,255))
     packages=checker.PACKAGES;begun=set();terminals={};states={};outputs={p:[]for p in packages}
     for line in raw.splitlines():
@@ -208,12 +215,12 @@ def full_events(raw,required,checker,go_exit,stderr=b''):
         for name in items:
             state=states.get((package,name));bucket={'pass':'passed','fail':'failed','skip':'skipped','run':'unfinished','pause':'unfinished',None:'notStarted'}[state]
             required_sets[bucket].append(package+'::'+name)
-    need(sum(map(len,required_sets.values()))==585)
+    need(sum(map(len,required_sets.values()))==587)
     for items in required_sets.values():items.sort()
     unfinished=sorted(p+'::'+n for (p,n),state in states.items()if state in ('run','pause'));need(len(unfinished)<=4096)
     failed=sorted(p+'::'+n for (p,n),state in states.items()if state=='fail');need(len(failed)<=4096)
     skipped=sorted(p+'::'+n for (p,n),state in states.items()if state=='skip');need(len(skipped)<=4096)
-    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==585
+    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==587
     strict=None
     if structurally_complete:strict=checker.events(raw,required) # actual original strict gate, no exception-to-pass adapter
     if go_exit==0:need(begun==packages and set(terminals)==packages and all(v in ('pass','skip')for v in terminals.values()) and all(v in ('pass','skip')for v in states.values()))

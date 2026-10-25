@@ -1,0 +1,103 @@
+{
+  "baseline": "04bf4ef751bc95f1b288c49d5eca3d96917f9f2f",
+  "boundSources": 112,
+  "callerHashOrBooleanNotAuthority": true,
+  "completeCandidateAndAllHistorySemanticsPreserved": true,
+  "diagnosticFailureArchive": "chengwang/docs/evidence/sys06-04bf-harness-recovery-capacity-timeout-20261025.json",
+  "directFullV3SerializationCountPerSuccessBeginOrRevokeAfter": 4,
+  "directFullV3SerializationCountPerSuccessBeginOrRevokeBefore": 5,
+  "externalStrictHashGatePreserved": true,
+  "formatterFiles": 106,
+  "fullProjectComplete": false,
+  "independentTypedDecodesAndActualCASReadbackPreserved": true,
+  "mainMerged": false,
+  "measuredPerformanceImprovement": false,
+  "nativeRecoveryAccepted": false,
+  "newGoOrFormatterExecutedLocally": false,
+  "newRequiredNames": [
+    "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealPreservesExternalDigestGate",
+    "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan"
+  ],
+  "newRuntimeAcceptance": false,
+  "normalWorkflowJobs": 13,
+  "old539528407Preserved": true,
+  "oldActualFailuresRetained": true,
+  "originalHistory256ByteBudget2MiBAndTimeout180Preserved": true,
+  "packages": 6,
+  "permissionOrApprovalCacheAdded": false,
+  "previous585SubsetAndPinPreserved": true,
+  "production": false,
+  "productionReady": false,
+  "receipts": [
+    {
+      "kind": "source",
+      "path": "D:/CodexData/workspace/mihomo-candidate-seal-performance-20261025-agent/integrated-587-v2/result.json",
+      "sha256": "a58668cffe61494ba029d5045acbb0c0205b050654f3e6b5eea7724cef2d8635"
+    },
+    {
+      "kind": "peer",
+      "path": "D:/CodexData/workspace/mihomo-performance-587-final-peer-20261025-agent/result.json",
+      "sha256": "ea8df296a001dba5043f46554eaadab76cb0bf7fc10e8bf014dd19731f40182c"
+    },
+    {
+      "kind": "normalFailure",
+      "path": "D:/CodexData/workspace/mihomo-04bf4ef-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "d11968a370584b7002986b65843ce3276de3f7af7be459c1fc75c1060e13d23d"
+    },
+    {
+      "kind": "diagnosticFailure",
+      "path": "D:/CodexData/workspace/mihomo-04bf4ef-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "bc105b491efbd9dff50a11b8f47531376c133e6a5e2c6edea398f566bfe9ca7f"
+    }
+  ],
+  "registryPublished": false,
+  "requiredNamesSHA256": "14e88fa43dd23db1a77671ef4ae2b1bd36a0491b313ce7d5e3005bcc1d5d2951",
+  "requiredTopLevelCount": 587,
+  "s1RecoveryStartedNotIntegrated": true,
+  "schema": "chengwang.performance587-source-integration/v1",
+  "scope": "SOURCE_AND_BOUNDED_CPU_REVIEW_NOT_NEW_GO_OR_PERFORMANCE_ACCEPTANCE",
+  "sourceChanges": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": {
+      "afterSHA256": "acdcebb2c0596e33a43c9f3a7b92c21710b111f49d4308f5bb8be8d16d689a1e",
+      "beforeSHA256": "dfb03135c77d752fb6774ac95ea1e86363fa575c8ba4504f5a567cf2cfa9dbd4",
+      "bytes": 50365
+    },
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": {
+      "afterSHA256": "0237f4d898f633ae1726786cff9b074402032c23384b6f361d5b710fb1b97023",
+      "beforeSHA256": "b8bbc471631519b33592b75a766247eba92c3edd6253ccd10140a18833ee482c",
+      "bytes": 31484
+    },
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": {
+      "afterSHA256": "3557a3a9f826a6d0b50d3ff8ec2454e2b89f562b9d688a95ad1883680234c329",
+      "beforeSHA256": "225388bbe328fcb64ee5d5f46f47bf9716fd3344dfa08cd8b9055c34b455df73",
+      "bytes": 25916
+    },
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go": {
+      "afterSHA256": "80529d5a8ea66f9be9b9a134a40b2aa2c2647c747e51a593cfdc6c659c754bc2",
+      "beforeSHA256": "e5f2a37f12b7b45fe09e184d447ab852519f2a322ac148a78b019d0b5dcaae83",
+      "bytes": 31272
+    },
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_transitions.go": {
+      "afterSHA256": "3f1086c4587c1678766c6b6df41537df47d0e50b4d9e438f648c534515d6dccb",
+      "beforeSHA256": "fa4425525f347adeac973c7bdc5d1dad9a8fbcec26a0825ad273f85973e4ba83",
+      "bytes": 26181
+    },
+    "chengwang/internal/mihomodeploy/lifecycle_v3.go": {
+      "afterSHA256": "cfddf785198163dcda2a65b2e9036f47b0fc9e8bde4213c660f70ab0c417ce4b",
+      "beforeSHA256": "a4881b65164389ca881a730f35f6e5aebf105119b3d654d28c1f83c26cdb8f1f",
+      "bytes": 22679
+    }
+  },
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "acdcebb2c0596e33a43c9f3a7b92c21710b111f49d4308f5bb8be8d16d689a1e",
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "0237f4d898f633ae1726786cff9b074402032c23384b6f361d5b710fb1b97023",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "1281b514598e667cf065ff9455a6281a5a7565a7edf4bf9df1bb0cee14a87a18",
+    "chengwang/docs/evidence/sys06-04bf-harness-recovery-capacity-timeout-20261025.json": "74a2a80736cd1e30ed5b5a913d99beafc4c3e6f9f50efd7c948ec81b452140a0",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": "3557a3a9f826a6d0b50d3ff8ec2454e2b89f562b9d688a95ad1883680234c329",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go": "80529d5a8ea66f9be9b9a134a40b2aa2c2647c747e51a593cfdc6c659c754bc2",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_transitions.go": "3f1086c4587c1678766c6b6df41537df47d0e50b4d9e438f648c534515d6dccb",
+    "chengwang/internal/mihomodeploy/lifecycle_v3.go": "cfddf785198163dcda2a65b2e9036f47b0fc9e8bde4213c660f70ab0c417ce4b"
+  },
+  "staticCountExcludesNestedLegacyAndPlanSerialization": true,
+  "testFiles": 40
+}

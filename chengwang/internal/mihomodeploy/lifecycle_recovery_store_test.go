@@ -738,3 +738,71 @@ func TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan(t *
 		}
 	})
 }
+
+func TestLifecycleRecoveryCandidateSealPreservesExternalDigestGate(t *testing.T) {
+	_, d, base, next, now := lifecycleRecoveryTransactionModel(t)
+	defer base.release()
+	p, err := prepareLifecycleCandidate(base, next, now)
+	if err != nil {
+		t.Fatal("MODEL sealed candidate preparation")
+	}
+	if _, err := decodeLifecycleV3Record(p.core.raw); err != nil {
+		t.Fatal("MODEL candidate failed complete external decoder")
+	}
+	var changed lifecycleV3Wire
+	if json.Unmarshal(p.core.raw, &changed) != nil {
+		t.Fatal("MODEL independent typed copy")
+	}
+	changed.RecordSHA256 = strings.Repeat("0", 64)
+	if _, err := encodeLifecycleV3Record(lifecycleV3Record{core: &changed}); err == nil {
+		t.Fatal("MODEL candidate sealer weakened strict encoder digest gate")
+	}
+	raw, err := json.Marshal(&changed)
+	if err != nil {
+		t.Fatal("MODEL wrong-digest external bytes")
+	}
+	if _, err := decodeLifecycleV3Record(raw); err == nil || d.writes != 0 {
+		t.Fatal("MODEL wrong digest became external input or preparation wrote disk")
+	}
+}
+
+func TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan(t *testing.T) {
+	s, d, owner, first, now := lifecycleRecoveryModelPlanned(t)
+	original, err := lifecycleV3Source(s.core.record.core)
+	if err != nil {
+		t.Fatal("MODEL canonical source")
+	}
+	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+		t.Fatal("MODEL first independent archive")
+	}
+	descriptor := first.descriptor()
+	for n := 2; n <= 4; n++ {
+		plan, err := newLabRecoveryPlan(original, fmt.Sprintf("labrec_%032x", n), descriptor.DeclaredInitiatorRef, descriptor.TargetArtifact, now, now.Add(time.Minute))
+		if err != nil || s.beginRecovery(owner, &plan, s.core.record.core.Revision, s.core.record.core.RecordSHA256, now) != nil {
+			t.Fatal("MODEL independent next plan")
+		}
+		if n < 4 && s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+			t.Fatal("MODEL independent archived plan")
+		}
+	}
+	// The current fourth plan differs from every archived plan, so a current
+	// candidate check or last-history/current equality cannot mask this test.
+	if len(s.core.record.core.RecoveryHistory) != 3 || s.core.record.core.Recovery.Phase != "PLANNED" {
+		t.Fatal("MODEL three archives plus independent current candidate")
+	}
+	writes, before := d.writes, bytes.Clone(d.raw)
+	for index := range s.core.record.core.RecoveryHistory {
+		next, err := s.core.copyRecord()
+		if err != nil {
+			t.Fatal("MODEL independent candidate")
+		}
+		// Recompute both the changed plan digest and the outer record digest:
+		// rejection must come from original-source binding, not a stale hash.
+		changed := next.core.RecoveryHistory[index].Plan
+		changed.ExpectedRevision++
+		next.core.RecoveryHistory[index].Plan = labRecoveryPlanModelReseal(t, changed)
+		if _, err := sealLifecycleV3Candidate(next); err == nil || d.writes != writes || !bytes.Equal(before, d.raw) {
+			t.Fatal("MODEL candidate seal skipped an archived plan or wrote disk")
+		}
+	}
+}

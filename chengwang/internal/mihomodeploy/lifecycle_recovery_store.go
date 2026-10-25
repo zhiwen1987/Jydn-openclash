@@ -504,8 +504,7 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	}
 	next.core.Revision = x.record.core.Revision + 1
 	next.core.LastTrustedAt = now
-	next.core.RecordSHA256, _ = lifecycleV3RecordHash(*next.core)
-	raw, err := encodeLifecycleV3Record(next)
+	raw, err := sealLifecycleV3Candidate(next)
 	if err != nil {
 		return nil, err
 	}

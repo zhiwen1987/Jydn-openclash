@@ -1,8 +1,20 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，正常13门及585必需用例限定通过，独立完整诊断仍失败并正在修复，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，ca正常13门及585必需用例限定通过；最新04bf修复了诊断20项用例，但正常完整race和full诊断均容量超时，仍须修复性能，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 2026-10-25 同次context／候选根hash去重与587接线：源码待新运行
+
+本次在beginRecovery保留同次实际SourceV2严格context和一份detached descriptor，减少重复legacy编码／解码和循环descriptor复制；候选prepare改由专用sealer自行一次计算根hash，再执行与外部strict validator逐字共享的全部Contents语义及每个history验证、bounded canonical marshal。外部decode／encode／原根hash门保留；typed base／draft／prepared独立解码、实际CAS／replace／exact readback／publish一致性校验不削弱，不缓存批准或能力。成功begin／revoke的直接完整V3序列化静态计数由5到4，不是整体CPU下降比例或实测性能承诺。
+
+增加两个有意义负例：新候选必须通过完整外部严格解码且错误根摘要仍拒绝；分别变异每个独立归档plan的原source revision、重算内层PlanSHA和外层根摘要后仍须拒绝，避免靠摘要不一致掩盖source校验缺口。新必需587（pin14e88fa4…5d2951），旧585／539／528／407集合及旧79方法体逐字保留；112绑定源、40测试文件、106格式输入、原六包／两Go命令、256历史／2MiB／180秒均保持。来源A最终integrated-587-v2 source-only收据a58668cf，原3源及初6源冻结对象不覆盖；新的Go编译、格式、普通／race／诊断及性能结果尚未取得。Started事实S1仍在独立树，未混入本次。
+
+### 2026-10-25 04bf原诊断20项恢复，正常／full均仍容量超时
+
+04bf4ef751bc95f1b288c49d5eca3d96917f9f2f正常40159807452为11成功／2失败：普通1273语义／585必需全过、容量11.04秒、格式0；race180.046秒超时，489必需过／1未完／95未启动，容量观察约123.159秒仍无终态。其他五类原门通过不覆盖该失败，foundation fresh工件实际缺失，不推断其成功。独立d11968a3保11ZIP206成员、1272源blob及下载失败历史；只补未完成下载，没有重启Go或产品门。
+
+诊断40159807441为4成功／full1失败。旧ca原20必需及含子项27失败在新原Go JSON全部PASS，支持两harness接缝已恢复；full仍489过／1未完／95未启动、包180.047秒超时、容量仍run，不能标完整Go接受。full采样120秒完整、producer／fresh一致，独立bc105b49保4ZIP42成员和原函数重算；legacy单case111.07秒PASS不覆盖full失败。原CPU文本窗口120.18秒／117.71CPU秒，cum涉及prepare／begin／Marshal／strict decode，instrumentation占大；不相加重叠统计、不宣称单栈或某个serializer是唯一原因。下一性能修复仅减少同次操作重复工作，外部strict hash／完整candidate及history语义、原79体／256／2MiB／180保持；尚未有新性能接受。归档见[evidence/sys06-04bf-harness-recovery-capacity-timeout-20261025.json](evidence/sys06-04bf-harness-recovery-capacity-timeout-20261025.json)。S1仍在独立树源码开发，完整恢复／产品／生产未完成。
 
 ### 2026-10-25 ca正常585全门接受，完整诊断自身环境不兼容保留失败
 
