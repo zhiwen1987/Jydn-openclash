@@ -161,3 +161,13 @@ db99f13的[实际CI 40113825822](https://github.com/zhiwen1987/Jydn-openclash/ac
 新增UNKNOWN原未改 `check_unknown.verify_raw` 对58公件完整返回PASS，无AST例外；32份GET正文、14次HTTPS、33项胶囊MODEL语义与1项真实产品实验、实际204丢响应、客户端unknown／true／0、旧head generation1／写阻塞、原WAL及0→1→1→1计数、真实清理与五端口拒绝均有原件。底层控制器收到次数仍为null，不把Transport调用次数冒充该值。本机纯raw报告保留 `sourceGitVerified=false`，两份实际LinuxCLI报告为true；只在独立比较副本核其余字节，不修改原件或冒称本机LinuxCLI执行。
 
 统一实际收据见 `evidence/sys06-unknown-acceptance-2bba397-20261025.json`。该接受只覆盖固定双配置的正常链路及显式响应丢失UNKNOWN不重发实验；旧c9167f失败保留。完整中断／撤销／到期／崩溃矩阵、独立预批准的新epoch恢复、完整私密载荷／WAL及持密围栏独立证明、互联网业务、DNS、多内核、企业治理、真实UI、容量／浸泡、整套恢复、灰度和生产读回均未由此证明。本次只归档文档与证据，不改已验收的产品源码，不触碰生产、main或Registry。
+
+## 独立恢复底座：源码与CPU检查完成，新的Go验收尚待执行
+
+新增专用恢复RBAC、结构计划、原owned进程quiescence证明和独立v3日志／耐久启动前缀。五个恢复动作固定完整lab范围，写动作强制critical、双人批准且禁止BreakGlass；这些策略本身不认证用户。结构计划绑定原UNKNOWN及其原始record／plan／intent、旧epoch、目标完整工件与固定预算，允许选择旧工件重新启动epoch，不把旧请求改为ACK。v1/v2默认codec、genesis和磁盘实现保持原字节，v3只由显式受控演进路径使用；原v2完整私有control内联保管，不启动自动迁移或删库。
+
+新quiescence helper只操作原owned Process，支持仍持原能力时的自然退出；真实Wait／EOF／group及两个固定端口拒绝后才能签发一次性事实。原writer仍全量hash并drain日志、仅截存前64KiB，新证明因此区分CAPTURE_LIMIT_ONLY和未排空；旧stop错误与严格合同不改，不把截存称作完整原文证明。新record-only消费保留晚到的原签发事实，当前过期则保持UNKNOWN且不授Start。v3 store只有实际q来源经耐久记录及START_ARMED精确读回后才产生一次性结构启动许可，重开不从JSON恢复能力；opener显式接可信now，时钟回退拒绝。这里仍没有新的内核启动或成功head工厂。
+
+本次新增86项Go MODEL测试声明；CI目标6个包／37测试源／99格式输入，全部514项必需顶层（含原407和首次纳入此门的21项既有authz顶层）都有冻结名单与摘要。原407名称另由 `legacy_go_tops.json` 按已接受2bba源码固定为不可删除子集。137源的独立UNKNOWN绑定及其他层计数同步扩展。262个Python合成检查模型实际通过，但这不是新增86项Go已编译／运行的证明，仍须同提交真实Linux普通／race／格式与原件复核。
+
+完整恢复仍未实现：真实SnapshotManager恢复authority、闭合LEGACY/V3 journal facade、唯一新Start、专门恢复collector、实际新head与后续普通发布、API/runtime接线和真实恢复E2E／全故障矩阵必须继续。当前对外不打开恢复路径，不把结构许可当用户批准，不把源码或模型当生产可用。本轮仍无生产、main或Registry变更。

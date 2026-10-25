@@ -42,6 +42,11 @@ const (
 	ActionApproveSubscriptionSource Action = "subscription.source.approve"
 	ActionFetchSubscription         Action = "subscription.fetch"
 	ActionRollbackSubscription      Action = "subscription.rollback"
+	ActionReadLabRecovery           Action = "mihomo_lab.recovery.read"
+	ActionPrepareLabRecovery        Action = "mihomo_lab.recovery.prepare"
+	ActionApproveLabRecovery        Action = "mihomo_lab.recovery.approve"
+	ActionExecuteLabRecovery        Action = "mihomo_lab.recovery.execute"
+	ActionRevokeLabRecovery         Action = "mihomo_lab.recovery.revoke"
 )
 
 // Risk is the immutable risk classification of a draft or operation.
@@ -131,6 +136,10 @@ const (
 	ReasonDenyImageTrustBreakGlassForbidden   ReasonCode = "deny_image_trust_break_glass_forbidden"
 	ReasonDenySubscriptionBreakGlassForbidden ReasonCode = "deny_subscription_break_glass_forbidden"
 	ReasonDenySubscriptionResourceInvalid     ReasonCode = "deny_subscription_resource_invalid"
+	ReasonDenyLabRecoveryResourceInvalid      ReasonCode = "deny_lab_recovery_resource_invalid"
+	ReasonDenyLabRecoveryCriticalRequired     ReasonCode = "deny_lab_recovery_critical_required"
+	ReasonDenyLabRecoveryBreakGlassForbidden  ReasonCode = "deny_lab_recovery_break_glass_forbidden"
+	ReasonDenyLabRecoveryRevokerMismatch      ReasonCode = "deny_lab_recovery_revoker_mismatch"
 )
 
 // Decision is intentionally small: callers persist the stable reason code in

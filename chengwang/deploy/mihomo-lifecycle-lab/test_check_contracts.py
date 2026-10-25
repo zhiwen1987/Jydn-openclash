@@ -40,6 +40,17 @@ def transcript(rows):
 
 REQUIRED = {package: ['TestSynthetic'] for package in S.PACKAGES}
 ADDITIONAL_MODEL_TESTS = {
+    'policy_test.go': 'TestSyntheticRecovery_policytest',
+    'image_trust_test.go': 'TestSyntheticRecovery_imagetrusttest',
+    'image_trust_history_d8_test.go': 'TestSyntheticRecovery_imagetrusthistoryd8test',
+    'subscription_test.go': 'TestSyntheticRecovery_subscriptiontest',
+    'lab_recovery_test.go': 'TestSyntheticRecovery_labrecoverytest',
+    'lab_quiescence_test.go': 'TestSyntheticRecovery_labquiescencetest',
+    'lab_quiescence_linux_test.go': 'TestSyntheticRecovery_labquiescencelinuxtest',
+    'lab_recovery_plan_test.go': 'TestSyntheticRecovery_labrecoveryplantest',
+    'lifecycle_v3_test.go': 'TestSyntheticRecovery_lifecyclev3test',
+    'lifecycle_recovery_store_test.go': 'TestSyntheticRecovery_lifecyclerecoverystoretest',
+    'lifecycle_recovery_transitions_test.go': 'TestSyntheticRecovery_lifecyclerecoverytransitionstest',
     'artifact_test.go': 'TestSyntheticArtifact',
     'artifact_linux_test.go': 'TestSyntheticArtifactLinux',
     'plan_test.go': 'TestSyntheticPlan',
@@ -225,8 +236,8 @@ class ContractEvidenceModels(unittest.TestCase):
             S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
-        self.assertEqual(len(self.sources), 82)
-        self.assertEqual(len(S.PACKAGES), 5)
+        self.assertEqual(len(self.sources), 105)
+        self.assertEqual(len(S.PACKAGES), 6)
         result = self.verify_model()
         self.assertEqual(set(result['suites']), {'ordinary.json', 'race.json'})
         self.assertEqual(result['scope'], 'SOURCE_CONTRACTS_ONLY_NOT_LIFECYCLE_OR_DEPLOYMENT_ACCEPTANCE')

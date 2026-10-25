@@ -109,12 +109,36 @@ files+=(
   internal/mihomodeploy/lab_unknown_acceptance_linux.go
   internal/serverruntime/mihomo_unknown_e2e_linux_test.go
 )
+files+=(
+  internal/authz/model.go
+  internal/authz/policy.go
+  internal/authz/policy_test.go
+  internal/authz/image_trust_test.go
+  internal/authz/image_trust_history_d8_test.go
+  internal/authz/subscription.go
+  internal/authz/subscription_test.go
+  internal/authz/lab_recovery.go
+  internal/authz/lab_recovery_test.go
+  internal/mihomodeploy/lab_quiescence.go
+  internal/mihomodeploy/lab_quiescence_linux.go
+  internal/mihomodeploy/lab_quiescence_unsupported.go
+  internal/mihomodeploy/lab_quiescence_test.go
+  internal/mihomodeploy/lab_quiescence_linux_test.go
+  internal/mihomodeploy/lab_recovery_plan.go
+  internal/mihomodeploy/lab_recovery_plan_test.go
+  internal/mihomodeploy/lifecycle_v3.go
+  internal/mihomodeploy/lifecycle_v3_test.go
+  internal/mihomodeploy/lifecycle_recovery_store.go
+  internal/mihomodeploy/lifecycle_recovery_store_test.go
+  internal/mihomodeploy/lifecycle_recovery_transitions.go
+  internal/mihomodeploy/lifecycle_recovery_transitions_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?
-"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime > "$out/ordinary.json" 2> "$out/ordinary.stderr"
+"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz > "$out/ordinary.json" 2> "$out/ordinary.stderr"
 ordinary_code=$?
-"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime > "$out/race.json" 2> "$out/race.stderr"
+"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz > "$out/race.json" 2> "$out/race.stderr"
 race_code=$?
 set -e
 printf '{"schema":"chengwang.mihomo-contract-execution/v1","formatExit":%d,"ordinaryExit":%d,"raceExit":%d,"realMihomoExecuted":false,"production":false}\n' "$format_code" "$ordinary_code" "$race_code" > "$out/execution.json"

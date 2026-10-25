@@ -41,6 +41,11 @@ func Evaluate(request Request, now time.Time) Decision {
 	if !scopeAllowed(principal, request.Resource) {
 		return deny(ReasonDenyScopeMismatch)
 	}
+	if labRecoveryAction(request.Action) {
+		if code := labRecoveryInvariant(request); code != "" {
+			return deny(code)
+		}
+	}
 	if subscriptionAction(request.Action) && !subscriptionResource(request.Action, request.Resource) {
 		return deny(ReasonDenySubscriptionResourceInvalid)
 	}
@@ -109,6 +114,9 @@ func knownAction(action Action) bool {
 		ActionReadSubscription, ActionManageSubscriptionSource, ActionImportSubscription, ActionDecideSubscription,
 		ActionApproveSubscriptionSource, ActionFetchSubscription, ActionRollbackSubscription:
 		return true
+	case ActionReadLabRecovery, ActionPrepareLabRecovery, ActionApproveLabRecovery,
+		ActionExecuteLabRecovery, ActionRevokeLabRecovery:
+		return true
 	default:
 		return false
 	}
@@ -126,6 +134,8 @@ func knownRisk(risk Risk) bool {
 func requiresRisk(action Action) bool {
 	switch action {
 	case ActionCreateDraft, ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation:
+		return true
+	case ActionPrepareLabRecovery, ActionApproveLabRecovery, ActionExecuteLabRecovery, ActionRevokeLabRecovery:
 		return true
 	default:
 		return false
@@ -156,6 +166,12 @@ func fieldMatches(grant, target string) bool {
 
 func roleAllows(roles []Role, action Action, risk Risk) (allowed bool, riskDenied bool) {
 	for _, role := range roles {
+		if labRecoveryAction(action) {
+			if labRecoveryRoleAllows(role, action) {
+				return true, false
+			}
+			continue
+		}
 		if subscriptionAction(action) {
 			switch role {
 			case RoleAdmin:

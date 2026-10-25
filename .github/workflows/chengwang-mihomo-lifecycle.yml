@@ -57,7 +57,7 @@ jobs:
           (cd chengwang/tools/mihomo-runtime-candidate && python3 -B -m unittest -v test_consume_pin) 2>&1 | tee "$root/pin-models.log"
           (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_contracts) 2>&1 | tee "$root/go-evidence-models.log"
           python3 - "$root" <<'PY'
-          import ast,hashlib,importlib.util,re,sys
+          import ast,hashlib,importlib.util,json,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
           checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'e8c92e60d45a0922815116ab808d1d45ad840a0fa433a942af98fdd37a59f799')]
@@ -76,8 +76,15 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
-          assert len(declared)==407 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='9178e55615de9ba4573e912c2fc1a4748dc668fe5bb207116e51750dcc727e4c'
-          print('GO_TEST_DECLARATIONS=407 execution_not_proven=true')
+          baseline=json.loads(Path('chengwang/deploy/mihomo-lifecycle-lab/legacy_go_tops.json').read_bytes())
+          assert set(baseline)=={'schema','scope','acceptedSourceCommit','count','namesSHA256','names'}
+          assert baseline['schema']=='chengwang.legacy-go-test-declarations/v1' and baseline['scope']=='DECLARATIONS_NOT_RUNTIME_ACCEPTANCE'
+          assert baseline['acceptedSourceCommit']=='2bba397183464e456a62184e11a674405df7402e' and type(baseline['count']) is int and baseline['count']==407
+          old=baseline['names'];assert old==sorted(set(old)) and len(old)==407 and all(type(n) is str for n in old)
+          assert hashlib.sha256('\n'.join(old).encode()).hexdigest()==baseline['namesSHA256']=='9178e55615de9ba4573e912c2fc1a4748dc668fe5bb207116e51750dcc727e4c'
+          assert set(old).issubset(declared) and len(declared)>407
+          assert len(declared)==514 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b9622fa3d71185d954304deebe07877b0f66f0f27e4344ae74bcb66ab4e099e9'
+          print('GO_TEST_DECLARATIONS='+str(len(declared))+' legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |

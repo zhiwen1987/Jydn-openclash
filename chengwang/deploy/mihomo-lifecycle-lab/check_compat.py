@@ -74,6 +74,7 @@ FOUNDATION += [
     'chengwang/internal/mihomodeploy/lab_unknown_acceptance_linux.go',
     'chengwang/internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
 ]
+FOUNDATION += ['chengwang/internal/authz/model.go', 'chengwang/internal/authz/policy.go', 'chengwang/internal/authz/policy_test.go', 'chengwang/internal/authz/image_trust_test.go', 'chengwang/internal/authz/image_trust_history_d8_test.go', 'chengwang/internal/authz/subscription.go', 'chengwang/internal/authz/subscription_test.go', 'chengwang/internal/authz/lab_recovery.go', 'chengwang/internal/authz/lab_recovery_test.go', 'chengwang/internal/mihomodeploy/lab_quiescence.go', 'chengwang/internal/mihomodeploy/lab_quiescence_linux.go', 'chengwang/internal/mihomodeploy/lab_quiescence_unsupported.go', 'chengwang/internal/mihomodeploy/lab_quiescence_test.go', 'chengwang/internal/mihomodeploy/lab_quiescence_linux_test.go', 'chengwang/internal/mihomodeploy/lab_recovery_plan.go', 'chengwang/internal/mihomodeploy/lab_recovery_plan_test.go', 'chengwang/internal/mihomodeploy/lifecycle_v3.go', 'chengwang/internal/mihomodeploy/lifecycle_v3_test.go', 'chengwang/internal/mihomodeploy/lifecycle_recovery_store.go', 'chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go', 'chengwang/internal/mihomodeploy/lifecycle_recovery_transitions.go', 'chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go', 'chengwang/deploy/mihomo-lifecycle-lab/legacy_go_tops.json']
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -152,7 +153,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 93)
+    need(len(FILES) == len(set(FILES)) == 116)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw
