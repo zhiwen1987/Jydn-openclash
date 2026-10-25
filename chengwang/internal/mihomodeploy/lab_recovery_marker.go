@@ -248,20 +248,27 @@ func (c *labRecoveryCollector) authorizeLocal(headers []string, expected *labRec
 // Exact private original of the one actual route, including a failed route's
 // honest metadata. It shares the existing stage's total-byte accounting.
 func (d *labServiceDiagnostics) localMarker(raw []byte) (string, error) {
+	return d.localMarkerAt(labRecoveryCaptureStage, raw)
+}
+
+func (d *labServiceDiagnostics) localMarkerAt(stage string, raw []byte) (string, error) {
 	if d == nil || d.core == nil || len(raw) == 0 || len(raw) > labDiagnosticsVerification {
+		return "", errLabDiagnostics
+	}
+	if stage != labRecoveryCaptureStage && !labRecoveryCaptureNamespaceValid(stage) {
 		return "", errLabDiagnostics
 	}
 	c := d.core
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	used, exists := c.captureBytes[labRecoveryCaptureStage]
+	used, exists := c.captureBytes[stage]
 	if c.closed || !exists || len(raw) > labDiagnosticsCapture-used || len(raw) > labDiagnosticsTotal-c.used {
 		return "", errLabDiagnosticsLimit
 	}
-	if c.platform.write(labRecoveryCaptureStage+"/local-marker.json", raw, false) != nil {
+	if c.platform.write(stage+"/local-marker.json", raw, false) != nil {
 		return "", errLabDiagnostics
 	}
 	c.used += len(raw)
-	c.captureBytes[labRecoveryCaptureStage] += len(raw)
+	c.captureBytes[stage] += len(raw)
 	return labConfigHash(raw), nil
 }

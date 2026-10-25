@@ -48,7 +48,7 @@ jobs:
           import ast,hashlib,importlib.util,json,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
-          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'d9d70f0b2d38a0b710bb2317f9d4d8ca236c0b2a4a46500e49cd1f7a5bb37ce0')]
+          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'e8c92e60d45a0922815116ab808d1d45ad840a0fa433a942af98fdd37a59f799')]
           for log,path,cls,count,pin in checks:
               text=(root/log).read_text(encoding='utf8').replace('\r\n','\n')
               tree=ast.parse(Path(path).read_text(encoding='utf8'))

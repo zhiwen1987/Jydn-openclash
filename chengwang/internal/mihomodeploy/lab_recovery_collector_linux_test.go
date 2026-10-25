@@ -126,6 +126,61 @@ func TestLabRecoveryCollectorEntryAndSerializedEvidenceReject(t *testing.T) {
 	if _, err := newLabRecoveryCollector(nil, nil, nil, nil); err == nil {
 		t.Fatal("nil custody inputs admitted")
 	}
+	t.Run("source-derived capture namespace stays session bound", func(t *testing.T) {
+		base := &labAuthority{core: &labAuthorityCore{}}
+		recoveryCore := &labRecoveryAuthorityCore{base: base, sessions: map[*labRecoverySession]*labRecoverySessionCore{}}
+		authority := &labRecoveryAuthority{core: recoveryCore}
+		serviceCore := &labServiceCore{authority: base, artifacts: &ArtifactStore{}, diagnostics: &labServiceDiagnostics{core: &labDiagnosticsCore{}}, ctx: context.Background()}
+		var fixture *labServiceFixtureCustody
+		fixture = &labServiceFixtureCustody{service: serviceCore, fixture: &labLocalFixture{}, binding: func(actual *labServiceFixtureCustody, service *labServiceCore) bool {
+			return actual == fixture && service == serviceCore
+		}}
+		serviceCore.fixtureCustody = fixture
+		processLabServiceFixtureIssuer.mu.Lock()
+		processLabServiceFixtureIssuer.issued[fixture] = serviceCore
+		processLabServiceFixtureIssuer.mu.Unlock()
+		defer func() {
+			processLabServiceFixtureIssuer.mu.Lock()
+			delete(processLabServiceFixtureIssuer.issued, fixture)
+			processLabServiceFixtureIssuer.mu.Unlock()
+		}()
+		service := &LabService{core: serviceCore}
+		kernel := &ownedLabKernel{ownedLabKernelCore: &ownedLabKernelCore{}}
+		first := &labRecoverySession{core: &labRecoverySessionCore{authority: recoveryCore,
+			plan: labRecoveryPlanDescriptor{RecoveryID: "labrec_11111111111111111111111111111111"}}}
+		second := &labRecoverySession{core: &labRecoverySessionCore{authority: recoveryCore,
+			plan: labRecoveryPlanDescriptor{RecoveryID: "labrec_22222222222222222222222222222222"}}}
+		recoveryCore.sessions[first], recoveryCore.sessions[second] = first.core, second.core
+		firstStage, firstErr := labRecoveryCaptureNamespace(first.core.plan.RecoveryID)
+		secondStage, secondErr := labRecoveryCaptureNamespace(second.core.plan.RecoveryID)
+		fixed, fixedErr := newLabRecoveryCollector(service, authority, first, kernel)
+		derived, derivedErr := newLabRecoveryCollectorAt(service, authority, first, kernel, firstStage)
+		if firstErr != nil || secondErr != nil || fixedErr != nil || derivedErr != nil ||
+			fixed.captureStage != labRecoveryCaptureStage || derived.captureStage != firstStage {
+			t.Fatal("source-derived collector namespace unavailable")
+		}
+		if _, err := newLabRecoveryCollectorAt(service, authority, first, kernel, secondStage); err == nil {
+			t.Fatal("foreign recovery namespace admitted")
+		}
+		if _, err := newLabRecoveryCollectorAt(service, authority, second, kernel, firstStage); err == nil {
+			t.Fatal("wrong recovery session admitted")
+		}
+		copied := &labRecoverySession{core: first.core}
+		if _, err := newLabRecoveryCollectorAt(service, authority, copied, kernel, firstStage); err == nil {
+			t.Fatal("unregistered session wrapper admitted")
+		}
+		foreignAuthority := &labRecoveryAuthority{core: &labRecoveryAuthorityCore{base: base, sessions: map[*labRecoverySession]*labRecoverySessionCore{first: first.core}}}
+		if _, err := newLabRecoveryCollectorAt(service, foreignAuthority, first, kernel, firstStage); err == nil {
+			t.Fatal("foreign authority admitted")
+		}
+		if _, ok := labRecoveryCollectorCaptureStage(authority, first, ""); ok {
+			t.Fatal("empty capture namespace admitted")
+		}
+		first.core.plan.RecoveryID = second.core.plan.RecoveryID
+		if _, ok := labRecoveryCollectorCaptureStage(authority, first, firstStage); ok {
+			t.Fatal("collector retained a namespace after the registered session changed")
+		}
+	})
 	var collector *labRecoveryCollector
 	if _, err := collector.collect(context.Background(), nil); err == nil {
 		t.Fatal("nil collector admitted")

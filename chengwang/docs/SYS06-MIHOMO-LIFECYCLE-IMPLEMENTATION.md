@@ -6,6 +6,10 @@
 
 ### 下一阶段源码：恢复协调器、reconciliation 与产品 API 已合入，Linux 验收待执行
 
+首轮源码提交 `a9774e526735086a683b57f615b639791b9498e0` 已取得实际失败，不是待运行。foundation `40228540529` 的 47／25 CPU 模型通过后，在 Go 前的名称摘要门失败：25 名称应为 `e8c92e60d45a0922815116ab808d1d45ad840a0fa433a942af98fdd37a59f799`，工作流误用了模型文件摘要 `d9d70...`。独立 full diagnostic `40228540473` 真正启动 Go1.23.12 后编译失败，coordinator 的 643／884 行引用缺失的 `newLabRecoveryCollectorAt`。原 artifact 12612022850 为 240931 字节，SHA256 `88c69db620c06b7f6e61f26ce25f23e61bf34fff523cc35208833b058de6aab9`；18 成员与完整 1377 路径来源已由 root 独立复核。没有 diagnostic top 的 output／pass，故没有新图摘要或计数。root 有限失败收据 SHA256 `17b0c6751da91d252d0e18779a81319f7e52a8170b1866c4a0594299fb866e8e`。
+
+当前最小修订仅恢复该名称摘要并补 collector 的派生目录接缝：At 构造与 collect 写入前均从 exact registered session／authority／RecoveryID 重算 stage，同一个局部 stage 用于 transcript、8 bodies、local marker、verification；旧 constructor 和 marker wrapper 仍固定 `recovery-s2`。no-replace、容量、授权、current kernel 与取消门保留；回归只扩展原顶层的子例，688 名称不变。独立有限审查允许进入新 Linux diagnostic，不能据此宣布已编译或 API 通过。旧 full artifact 格式差异虽为0，但它只格式检查10文件，不覆盖完整144文件或本次新改3源。
+
 在已接受 `4bbbe70` 的隔离开发工作区，主集成者按冻结清单逐文件合入 37 路径，并保留此前四份任务文档及首次 Completion 接受记录。来源补丁 SHA256 `529e80f52fbc7dec6867bbbe9466c4d1fa39e95bfd30db41148e0bee04cd43f7`；重基独审收据 SHA256 `d0cd138ee1bf3a7404c7a7691284210b803ebee86f4f59aeb5fce0227ef1fbb5`。36 后像保持前一 v4 候选，唯一 checker 重叠只更新来源闭集及旧 native-v5 摘要，保留正式 alias、11 模型与 Go 格式后像。这里的合入不代表 Go 编译、运行通过或上线。
 
 源码新增真实 recovery backend／Linux coordinator 和 API 接线、暖进程失败后的有界 reconciliation、明确未启动 owned wrapper 清理、source-owned current epoch 接续。fresh 授权先于状态响应与重试预算，重锁后复核 exact operation／custody／WAL；完成提交继续使用独占 Completion publication 和 opaque handoff。CI 声明闭集变为 150 源／58 必需测试源／688 顶层／88 六包测试源／144 格式 Go 文件／188 native 来源；新 27 个顶层只是声明，尚未实际运行。

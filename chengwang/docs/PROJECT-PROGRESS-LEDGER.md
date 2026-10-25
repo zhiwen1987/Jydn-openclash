@@ -4,6 +4,8 @@
 
 ## 最新核对：2026-10-26 SYS-06 首次真实 Completion 四模式通过限定隔离验收
 
+后续 `a9774e5` 的真实首轮已失败：foundation 在 Go 前的25名称摘要误用整文件摘要；独立 full diagnostic 已调用 Go1.23.12，但两处缺少 `newLabRecoveryCollectorAt`，没有实际图诊断 output／pass，不能填 pin。原 full ZIP 240931字节／18成员与1377源已独立核，失败收据 SHA256 `17b0c6751da91d252d0e18779a81319f7e52a8170b1866c4a0594299fb866e8e`。最小修订恢复名称域并补exact session派生 collector stage，同stage贯穿全部证据sink；旧fixed兼容、688名单及空pin保持，须下一真实 Linux 重验。原格式0只覆盖10文件，不冒称完整144门。
+
 后续源码阶段：已按冻结补丁将 v4 的 37 声明路径合入开发工作区，来源 SHA256 `529e80f52fbc7dec6867bbbe9466c4d1fa39e95bfd30db41148e0bee04cd43f7`，重基独审 SHA256 `d0cd138ee1bf3a7404c7a7691284210b803ebee86f4f59aeb5fce0227ef1fbb5`。声明 150／58／688／88／144／188 闭集，原 661 历史链保留；尚未 Go 编译／运行。空 clone pin 保持 fail closed，下一实际 Linux diagnostic 读回结构摘要，不猜值。下段 4bbbe 接受结论只对应其精确提交，不覆盖这些新增源码。
 
 精确提交 `4bbbe70b1f13e53fa07201e32129366cf254ccee` 的新 Completion `40226840814` 全部 11 任务成功。9 ZIP／167 成员和完整 1364 跟踪路径来源已核；四模式原 checker main 直接复演 ACCEPT，无平台适配；root 独立重数真实 Go、命令、格式、计数／revision／adopt／poison及四组 producer／fresh 字节一致。[限定接受收据](evidence/sys06-4bbbe70-first-completion-acceptance-20261026.json) SHA256 `ea936d1bfd27c36f725afae251d81dca23a2ed8a58ce6268c32f0012eaebe8b5`。同提交基础、容量诊断和旧 S2 三条 CI 终态也 success，本轮只记录状态、不声称重新复算全部旧门。

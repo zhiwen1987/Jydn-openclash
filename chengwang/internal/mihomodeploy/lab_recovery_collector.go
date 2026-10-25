@@ -76,6 +76,7 @@ type labRecoveryCollector struct {
 	kernel         *ownedLabKernel
 	service        *LabService
 	fixtureCustody *labServiceFixtureCustody
+	captureStage   string
 }
 
 type labRecoveryObservedEvidence struct {
@@ -120,7 +121,47 @@ func (e *labRecoveryObservedEvidence) UnmarshalJSON([]byte) error {
 }
 
 func newLabRecoveryCollector(service *LabService, authority *labRecoveryAuthority, session *labRecoverySession, kernel *ownedLabKernel) (*labRecoveryCollector, error) {
+	return newLabRecoveryCollectorForStage(service, authority, session, kernel, labRecoveryCaptureStage)
+}
+
+// A fixed legacy stage remains source-compatible. Every derived stage is
+// recalculated from the exact registered session while holding the existing
+// authority registry mutex; the string itself issues no permission.
+func labRecoveryCollectorCaptureStage(authority *labRecoveryAuthority, session *labRecoverySession, stage string) (string, bool) {
+	if stage == labRecoveryCaptureStage {
+		return stage, true
+	}
+	if authority == nil || authority.core == nil || authority.core.base == nil || authority.core.base.core == nil ||
+		session == nil || session.core == nil || !labRecoveryCaptureNamespaceValid(stage) {
+		return "", false
+	}
+	b := authority.core.base.core
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	c := authority.core
+	if b.closed || b.poisoned || c.closed || c.sessions == nil || c.sessions[session] != session.core || session.core.authority != c {
+		return "", false
+	}
+	expected, err := labRecoveryCaptureNamespace(session.core.plan.RecoveryID)
+	return stage, err == nil && stage == expected
+}
+
+// The derived stage is only a private diagnostic namespace. The exact live
+// authority/session registry remains the source of the recovery ID, and every
+// later physical/record step still passes the existing authorization gates.
+func newLabRecoveryCollectorAt(service *LabService, authority *labRecoveryAuthority, session *labRecoverySession, kernel *ownedLabKernel, stage string) (*labRecoveryCollector, error) {
+	actual, ok := labRecoveryCollectorCaptureStage(authority, session, stage)
+	if !ok || actual == labRecoveryCaptureStage {
+		return nil, errLabRecoveryCollector
+	}
+	return newLabRecoveryCollectorForStage(service, authority, session, kernel, actual)
+}
+
+func newLabRecoveryCollectorForStage(service *LabService, authority *labRecoveryAuthority, session *labRecoverySession, kernel *ownedLabKernel, stage string) (*labRecoveryCollector, error) {
 	if service == nil || service.core == nil || authority == nil || session == nil || session.core == nil || kernel == nil || kernel.ownedLabKernelCore == nil {
+		return nil, errLabRecoveryCollector
+	}
+	if stage != labRecoveryCaptureStage && !labRecoveryCaptureNamespaceValid(stage) {
 		return nil, errLabRecoveryCollector
 	}
 	s := service.core
@@ -130,7 +171,7 @@ func newLabRecoveryCollector(service *LabService, authority *labRecoveryAuthorit
 		return nil, errLabRecoveryCollector
 	}
 	return &labRecoveryCollector{artifacts: s.artifacts, diagnostics: s.diagnostics, authority: authority, session: session, kernel: kernel,
-		service: service, fixtureCustody: s.fixtureCustody}, nil
+		service: service, fixtureCustody: s.fixtureCustody, captureStage: stage}, nil
 }
 
 func labRecoveryObservationDeadline(c *labRecoveryStartedCustody, entry time.Time, ctx context.Context) (time.Time, bool) {
@@ -236,6 +277,10 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	if c == nil || artifactContext(ctx) != nil {
 		return nil, errLabRecoveryCollector
 	}
+	stage, ok := labRecoveryCollectorCaptureStage(c.authority, c.session, c.captureStage)
+	if !ok {
+		return nil, errLabRecoveryCollector
+	}
 	entry := time.Now().UTC()
 	guard, err := c.authorizeLocal(headers, nil, entry)
 	if err != nil {
@@ -290,7 +335,7 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	}
 	// Partial originals remain exclusive diagnostics on failure; no replacement
 	// GET or second collector can reset the shared source attempt.
-	captureErr := c.diagnostics.capture(labRecoveryCaptureStage, transcript, bodies)
+	captureErr := c.diagnostics.capture(stage, transcript, bodies)
 	if readErr != nil || descErr != nil || transcriptErr != nil || captureErr != nil || descriptor.Outcome != "COMPLETE" || descriptor.DoInvocations != 8 || descriptor.CompletedBodies != 8 || descriptor.LimitReached {
 		return nil, errLabRecoveryCollector
 	}
@@ -314,7 +359,7 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 		return nil, errLabRecoveryCollector
 	}
 	localRaw, encodeErr := json.Marshal(local)
-	localSHA, captureLocalErr := c.diagnostics.localMarker(localRaw)
+	localSHA, captureLocalErr := c.diagnostics.localMarkerAt(stage, localRaw)
 	markerObserved := time.Now().UTC()
 	if localErr != nil || encodeErr != nil || captureLocalErr != nil || local.ExpectedRole != role ||
 		!labRecoveryMarkerWindow(local, observed, markerObserved, deadline) || artifactContext(phase) != nil || !c.currentKernel(source) {
@@ -338,7 +383,7 @@ func (c *labRecoveryCollector) collect(ctx context.Context, headers []string) (*
 	if err != nil {
 		return nil, errLabRecoveryCollector
 	}
-	v.VerificationSHA256, err = c.diagnostics.verification(labRecoveryCaptureStage, raw)
+	v.VerificationSHA256, err = c.diagnostics.verification(stage, raw)
 	if err != nil || artifactContext(phase) != nil {
 		return nil, errLabRecoveryCollector
 	}
