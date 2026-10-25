@@ -65,11 +65,14 @@ def adapter():
 def contract():
     s = adapter(); w = s.adapter().shared()
     value = w.decode(w.file_bytes(Path(__file__).absolute().with_name('native_recovery_contract.json'), 64 << 10)[0])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v1', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v2', scope=SCOPE,
         tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
         goTimeoutSeconds=75, outerGoTimeoutSeconds=90, privateRoot=str(ROOT),
         identityRoot=str(s.IDENTITIES), servicePrivateRoot=str(s.ROOT), stateRoot=str(s.STATE),
         stages=list(STAGES), reopenStage='reopened', counterEventLimit=256,
+        cleanupPorts=[28411, 28412, 28413, 28414, 28415], fixtureRoles=['origin', 'A', 'B'],
+        cleanupProbeKeys=['port', 'attempted', 'result'],
+        fixtureCleanupKeys=['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
         eventCheckpoints=list(CHECKPOINTS), eventCheckpointKeys=['stage', 'count', 'lastSequence', 'eventsSHA256'],
         eventPrefixEncoding='Go-json.Marshal([]labNativeRecoveryCall)-sequence-kind-core-at-no-newline',
         commandReceiptSchema='chengwang.mihomo-native-command-receipt/v1', commandReceiptKeys=list(COMMAND_KEYS),
@@ -187,7 +190,7 @@ def private_outputs(commit):
     s = adapter(); w = s.adapter().shared(); forbidden = disclosure_inputs()
     raw = s.private_file(ROOT/'native-report.private.json', 1 << 20)
     report = w.decode(raw)
-    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v1' and
+    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v2' and
          report['scope'] == SCOPE and report['sourceCommit'] == commit and
          report['outcome'] in ('PASS', 'FAIL') and type(report['nativeCalls']) is list and len(report['nativeCalls']) <= 256)
     # Public evidence does not include owner nonce/raw WAL. The Go test's

@@ -9,8 +9,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net"
 	"os"
 	"reflect"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -18,6 +20,41 @@ import (
 
 const labNativeRecoveryPrivate = "/tmp/chengwang-mihomo-recovery-private"
 const labNativeRecoveryScope = "ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_HTTP_COMPLETION_OR_PRODUCTION"
+
+// Cleanup observes the fixed kernel and fixture endpoints after their actual
+// retained owners have closed them. This acceptance-only allowlist is separate
+// from the two-port quiescence probe; it grants no stop or recovery authority.
+func labNativeRecoveryCleanupDial(ctx context.Context, port uint16) labQuiescenceProbe {
+	value := labQuiescenceProbe{Port: port, Result: "OTHER"}
+	switch port {
+	case 28411, 28412, 28413, 28414, 28415:
+	default:
+		return value
+	}
+	if artifactContext(ctx) != nil {
+		value.Result = "CONTEXT_REJECTED"
+		return value
+	}
+	dialer := net.Dialer{Timeout: 250 * time.Millisecond}
+	value.Attempted = true
+	conn, err := dialer.DialContext(ctx, "tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(int(port))))
+	if conn != nil {
+		_ = conn.Close()
+	}
+	if err == nil && conn != nil {
+		value.Result = "CONNECTION_ACCEPTED"
+	} else if errors.Is(err, syscall.ECONNREFUSED) {
+		value.Result = "CONNECTION_REFUSED"
+	} else if ctx.Err() != nil || errors.Is(err, context.Canceled) {
+		value.Result = "CONTEXT_REJECTED"
+	} else {
+		var timeout net.Error
+		if errors.As(err, &timeout) && timeout.Timeout() {
+			value.Result = "TIMEOUT"
+		}
+	}
+	return value
+}
 
 var errLabNativeRecovery = errors.New("isolated native recovery experiment rejected")
 

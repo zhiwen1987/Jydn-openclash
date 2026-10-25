@@ -4,6 +4,14 @@
 
 ## 本次已有代码
 
+### 2026-10-25 133底座双套接受、native清理探测失败；v2五端口实际观测候选
+
+133ef0ab1522f182486e5c3d7d377aab76e0fa70正常40177100131为13门success，独立8165eb68核12ZIP208成员／1308blob，普通及race各1503语义／611必需全部PASS、format0；原C.verify返回16274B报告128733f0与producer/fresh字节一致，Windows原main仍在未改POSIXwriter边界exit1，不称本机LinuxCLI通过。diag40177100066五门success，独立624c2d5e核4ZIP42成员／121/43/72及611全过，full实际120.286819940秒TIMER、容量83.67秒、包162.437秒；不推长期性能。以上不能覆盖native失败。
+
+native40177100093已实际越过独立批准、Stop/Start与Started17，重放不增加调用，两代退出及清理有原件；但唯一top7.33秒在五端口检查失败，closedPorts只记录28411/12、reopen未到，整体FAIL。两ZIP38成员、21公件、sandbox serviceBases本轮原组件已通过，缺fresh原判保留。故障源码定位为调用方误用仅准两端口的labQuiescenceDial：28413入口直接OTHER／Attempted=false，不能据此声称仍有监听。fixture真实owner是Go labLocalFixture，原service.Close已有Shutdown/Serve join；不引入先前未证实的Python worker关闭协议。失败档见[evidence/sys06-133-native-cleanup-failure-20261025.json](evidence/sys06-133-native-cleanup-failure-20261025.json)。
+
+新候选保留原两端口quiescence门与fixture/service/store/authority源，新native-only helper只准固定五个loopback tcp4端口并实际DialContext；探测先保存Attempted/Result再判失败。原fixtureCleanup观察来自真实retained owner，和五份cleanupProbes一起公开；closedPorts仍要求全部五口，严格reopen及十个checkpoint仍保留。report/contract显式升级v2，PUBLIC21／FILES159／16模型名字不变；独立reader严格三role shutdown/join及五次真实拒连，14个新增负例与合法forced-close非零正控已通过模型。作者046cb28f/B e5c641a6与独立peer f7856a61只证明源码／模型，不代表native已成功；必须新CI。未运行本机Go/worker/native，未改变生产。
+
 ### 2026-10-25 cde首次真实native失败与caller／producer修订：必须再做新CI
 
 cde91493ba5f155a9d5da0367edd53046aa86274统一28文件后，三套CI均实际运行。normal40175135231为11成功／2失败：普通及race各1503语义／611必需全过、Go均exit0，但实际9609B gofmt差异使正常合同失败，fresh报告缺失。独立normal9aa0ac00核11ZIP206成员／1306blob；原其他五scope门及producer/fresh各自通过，不能覆盖normal失败。diag40175135226五门success，独立da36ff6a核4ZIP42成员及121／43／72来源与611全部通过，full容量50.91秒／包101.448秒、采样100.423806204秒M_RUN_RETURNED，不声称120秒。

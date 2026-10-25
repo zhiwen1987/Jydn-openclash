@@ -51,6 +51,8 @@ type labNativeRecoveryReport struct {
 	DualOwnerCloseRejectedTwice         bool                               `json:"dualOwnerCloseRejectedTwice"`
 	CountersBounded                     bool                               `json:"countersBounded"`
 	ClosedPorts                         []uint16                           `json:"closedPorts"`
+	FixtureCleanup                      []labLocalFixtureCleanup           `json:"fixtureCleanup"`
+	CleanupProbes                       []labQuiescenceProbe               `json:"cleanupProbes"`
 	RuntimeClosed                       bool                               `json:"runtimeClosed"`
 	NewDiskOwnerClosed                  bool                               `json:"newDiskOwnerClosed"`
 	CleanupReplayNoOp                   bool                               `json:"cleanupReplayNoOp"`
@@ -115,10 +117,11 @@ func labNativeRecoveryCount(events []labNativeRecoveryCall, kind string, core ui
 }
 
 func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T) {
-	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v1",
+	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v2",
 		Scope: labNativeRecoveryScope, SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"),
 		Outcome: "FAIL", FailureCode: "NOT_COMPLETED", Stages: []labNativeRecoveryCheckpoint{}, Syntax: []labKernelStartObservation{},
-		NativeCalls: []labNativeRecoveryCall{}, EventCheckpoints: []labNativeRecoveryEventCheckpoint{}, ClosedPorts: []uint16{}}
+		NativeCalls: []labNativeRecoveryCall{}, EventCheckpoints: []labNativeRecoveryEventCheckpoint{}, ClosedPorts: []uint16{},
+		FixtureCleanup: []labLocalFixtureCleanup{}, CleanupProbes: []labQuiescenceProbe{}}
 	var service *LabService
 	var runner *labNativeRecoveryRunner
 	var manager *authn.SnapshotManager
@@ -154,6 +157,9 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 			report.EventCheckpoints = append([]labNativeRecoveryEventCheckpoint{}, runner.eventCheckpoints...)
 		}
 		if service != nil {
+			service.core.mu.Lock()
+			report.FixtureCleanup = append([]labLocalFixtureCleanup{}, service.core.fixtureCloseObservations...)
+			service.core.mu.Unlock()
 			report.OldCleanup = service.core.kernelCloseObservation
 			report.RuntimeClosed = service.core.runtime != nil && service.core.runtime.core.closed
 			if service.core.runtime != nil && service.core.runtime.core.recovery != nil {
@@ -389,11 +395,38 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		t.Fatal("repeated cleanup added a signal, Wait or Start")
 	}
 	report.CleanupReplayNoOp = true
+	service.core.mu.Lock()
+	fixtureCleanup := append([]labLocalFixtureCleanup{}, service.core.fixtureCloseObservations...)
+	fixtureSettled := service.core.fixtureSettled
+	service.core.mu.Unlock()
+	if !fixtureSettled || len(fixtureCleanup) != 3 {
+		report.FailureCode = "FIXTURE_CLEANUP"
+		t.Fatal("actual fixture owner shutdown observations missing")
+	}
+	for i, role := range []string{"origin", "A", "B"} {
+		observed := fixtureCleanup[i]
+		if observed.Role != role || !observed.ShutdownReturned || !observed.ServeReturned ||
+			observed.ForcedConnectionsClosed < 0 || observed.ErrorClass != "NONE" {
+			report.FailureCode = "FIXTURE_CLEANUP"
+			t.Fatal("actual fixture Shutdown and Serve join did not settle")
+		}
+	}
+	// These negative controls make no connection and cannot close any resource.
+	if rejected := labNativeRecoveryCleanupDial(context.Background(), 28416); rejected.Attempted || rejected.Result != "OTHER" {
+		t.Fatal("cleanup probe accepted an endpoint outside its fixed allowlist")
+	}
+	cancelledProbe, cancelProbe := context.WithCancel(context.Background())
+	cancelProbe()
+	if rejected := labNativeRecoveryCleanupDial(cancelledProbe, 28413); rejected.Attempted || rejected.Result != "CONTEXT_REJECTED" {
+		t.Fatal("cleanup probe attempted a connection after entry cancellation")
+	}
 	for _, port := range []uint16{28411, 28412, 28413, 28414, 28415} {
 		probeCtx, probeCancel := context.WithTimeout(context.Background(), time.Second)
-		probe := labQuiescenceDial(probeCtx, port)
+		probe := labNativeRecoveryCleanupDial(probeCtx, port)
 		probeCancel()
-		if probe.Result != "CONNECTION_REFUSED" {
+		report.CleanupProbes = append(report.CleanupProbes, probe)
+		if !probe.Attempted || probe.Result != "CONNECTION_REFUSED" {
+			report.FailureCode = "CLEANUP_PROBE"
 			t.Fatal("actual owned endpoint remained or closure was inconclusive")
 		}
 		report.ClosedPorts = append(report.ClosedPorts, port)

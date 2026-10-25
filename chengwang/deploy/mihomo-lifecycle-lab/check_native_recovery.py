@@ -62,7 +62,8 @@ REPORT_KEYS = ('schema', 'scope', 'sourceCommit', 'outcome', 'failureCode', 'ori
                'bootstrapStart', 'oldCore', 'newCore', 'quiescence', 'start', 'startedSHA256',
                'stages', 'replayRejected', 'recoverySelfApprovalDenied', 'reopened', 'oldCleanup',
                'newCleanup', 'syntax', 'nativeCalls', 'eventCheckpoints', 'dualOwnerCloseRejectedTwice',
-               'countersBounded', 'closedPorts', 'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp',
+               'countersBounded', 'closedPorts', 'fixtureCleanup', 'cleanupProbes',
+               'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp',
                'httpRecoveryProven', 'completionProven', 'fullPrivateWALIndependentlyProven',
                'syntaxRawStreamsIndependentlyProven', 'internetBusinessProven', 'production')
 HEX = re.compile(r'[a-f0-9]{64}')
@@ -374,7 +375,7 @@ def event_checkpoints(checkpoints, rows, positions, old_core, new_core):
 
 def contract(sources):
     value = decode(sources[PREFIX + 'native_recovery_contract.json'])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v1', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v2', scope=SCOPE,
                     tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
                     goTimeoutSeconds=75, outerGoTimeoutSeconds=90,
                     privateRoot='/tmp/chengwang-mihomo-recovery-private',
@@ -387,6 +388,9 @@ def contract(sources):
                     commandReceiptSchema='chengwang.mihomo-native-command-receipt/v1',
                     commandReceiptKeys=list(COMMAND_KEYS), commandClasses=list(COMMAND_CLASSES),
                     commandReceiptLimit=4, processEventsSchema='chengwang.mihomo-apply-private-process-event/v1',
+                    cleanupPorts=[28411, 28412, 28413, 28414, 28415], fixtureRoles=['origin', 'A', 'B'],
+                    cleanupProbeKeys=['port', 'attempted', 'result'],
+                    fixtureCleanupKeys=['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
                     processEventLimit=64, maxPublicBytes=16 << 20, production=False,
                     httpRecoveryProven=False, completionProven=False,
                     syntaxRawStreamsIndependentlyProven=False)
@@ -656,9 +660,30 @@ def wal_index(raw, report, source_commit):
             'publicControlIndexCrossChecked': True, 'fullPrivateWALIndependentlyProven': False}
 
 
+def endpoint_cleanup(value):
+    # These are source-bound owner observations plus actual TCP probes. They
+    # do not establish complete syscall tracing or arbitrary process custody.
+    ports = [28411, 28412, 28413, 28414, 28415]
+    same(value['closedPorts'], ports)
+    fixtures = value['fixtureCleanup']
+    need(type(fixtures) is list and len(fixtures) == 3)
+    for role, item in zip(('origin', 'A', 'B'), fixtures):
+        row = exact(item, ('role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'))
+        need(row['role'] == role and row['shutdownReturned'] is True and row['serveReturned'] is True)
+        need(row['errorClass'] == 'NONE')
+        integer(row['forcedConnectionsClosed'], 0)
+    probes = value['cleanupProbes']
+    need(type(probes) is list and len(probes) == len(ports))
+    for port, item in zip(ports, probes):
+        row = exact(item, ('port', 'attempted', 'result'))
+        integer(row['port'], port, port)
+        need(row['attempted'] is True and row['result'] == 'CONNECTION_REFUSED')
+    return {'fixtureCleanupRecords': len(fixtures), 'actualEndpointProbeRecords': len(probes)}
+
+
 def native_report(raw, source_commit, elf, sandbox_value, go_result):
     value = exact(decode(raw['native-report.json']), REPORT_KEYS)
-    need(value['schema'] == 'chengwang.mihomo-native-recovery-experiment/v1' and value['scope'] == SCOPE and value['sourceCommit'] == source_commit)
+    need(value['schema'] == 'chengwang.mihomo-native-recovery-experiment/v2' and value['scope'] == SCOPE and value['sourceCommit'] == source_commit)
     need(value['outcome'] == 'PASS' and value['failureCode'] == 'NONE')
     for key in ('replayRejected', 'recoverySelfApprovalDenied', 'dualOwnerCloseRejectedTwice', 'countersBounded',
                 'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp'):
@@ -666,7 +691,7 @@ def native_report(raw, source_commit, elf, sandbox_value, go_result):
     for key in ('httpRecoveryProven', 'completionProven', 'fullPrivateWALIndependentlyProven',
                 'syntaxRawStreamsIndependentlyProven', 'internetBusinessProven', 'production'):
         need(value[key] is False)
-    same(value['closedPorts'], [28411, 28412, 28413, 28414, 28415])
+    cleanup = endpoint_cleanup(value)
     original_unknown(value['originalUnknown'])
     digest(value['startedSHA256'])
     fault = exact(value['fault'], ('schema', 'state', 'claimed', 'underlyingRoundTrips', 'statusCode', 'bodyBytes',
@@ -724,6 +749,7 @@ def native_report(raw, source_commit, elf, sandbox_value, go_result):
     replay = event_checkpoints(value['eventCheckpoints'], calls, positions, value['oldCore'], value['newCore'])
     index = wal_index(raw['wal-readback-index.json'], value, source_commit)
     return value, {'sourceCallEvents': len(calls), 'replay': replay, 'wal': index,
+                   'endpointCleanup': cleanup,
                    'ownedKernelStartAttempts': 2, 'ownedKernelWaitReturns': 2,
                    'syntaxStartAttempts': 1, 'syntaxReportedWaitReturns': 1,
                    'oldStopDispatches': 1, 'newStartDispatches': 1,

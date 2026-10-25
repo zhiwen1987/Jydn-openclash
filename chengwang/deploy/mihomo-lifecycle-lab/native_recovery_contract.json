@@ -1,5 +1,5 @@
 {
-  "schema": "chengwang.mihomo-native-recovery-contract/v1",
+  "schema": "chengwang.mihomo-native-recovery-contract/v2",
   "scope": "ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_HTTP_COMPLETION_OR_PRODUCTION",
   "tags": [
     "chengwang_mihomo_service",
@@ -26,6 +26,10 @@
   ],
   "reopenStage": "reopened",
   "counterEventLimit": 256,
+  "cleanupPorts": [28411, 28412, 28413, 28414, 28415],
+  "fixtureRoles": ["origin", "A", "B"],
+  "cleanupProbeKeys": ["port", "attempted", "result"],
+  "fixtureCleanupKeys": ["role", "shutdownReturned", "serveReturned", "forcedConnectionsClosed", "errorClass"],
   "eventCheckpoints": [
     "before-permit-cap-replay",
     "after-permit-cap-replay",

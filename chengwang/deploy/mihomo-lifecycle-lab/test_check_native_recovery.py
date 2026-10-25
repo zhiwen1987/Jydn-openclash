@@ -224,7 +224,10 @@ def closed_fixture():
     syntax = dict(attempted=True, started=True, pid=125, startTicks=None, waitReturned=True, waitErrorClass='NONE',
                   exitCode=0, signal=None, termSent=False, killSent=False, groupAbsent=True,
                   stdout=stream_meta(b'MODEL unexported syntax output'), stderr=stream_meta(b''))
-    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v1', scope=C.SCOPE, sourceCommit=commit,
+    fixtures = [dict(role=role, shutdownReturned=True, serveReturned=True,
+                     forcedConnectionsClosed=0, errorClass='NONE') for role in ('origin', 'A', 'B')]
+    probes = [dict(port=port, attempted=True, result='CONNECTION_REFUSED') for port in (28411, 28412, 28413, 28414, 28415)]
+    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v2', scope=C.SCOPE, sourceCommit=commit,
                   outcome='PASS', failureCode='NONE', originalUnknown=unknown,
                   fault=dict(schema='chengwang.mihomo-reload-response-loss-observation/v1', state='INJECTED', claimed=True,
                              underlyingRoundTrips=1, statusCode=204, bodyBytes=0, eofObserved=True, closeSucceeded=True,
@@ -235,6 +238,7 @@ def closed_fixture():
                   replayRejected=True, recoverySelfApprovalDenied=True, reopened=checkpoint(index[-1]), oldCleanup=oldexit,
                   newCleanup=newexit, syntax=[syntax], nativeCalls=native, eventCheckpoints=checkpoints,
                   dualOwnerCloseRejectedTwice=True, countersBounded=True, closedPorts=[28411, 28412, 28413, 28414, 28415],
+                  fixtureCleanup=fixtures, cleanupProbes=probes,
                   runtimeClosed=True, newDiskOwnerClosed=True, cleanupReplayNoOp=True, httpRecoveryProven=False,
                   completionProven=False, fullPrivateWALIndependentlyProven=False, syntaxRawStreamsIndependentlyProven=False,
                   internetBusinessProven=False, production=False)
@@ -348,6 +352,13 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
         raw, sources, commit = closed_fixture()
         value = C.verify_raw(raw, sources, commit)
         self.assertEqual(value['outcome'], 'PASS')
+        self.assertEqual(value['nativeObservations']['endpointCleanup'],
+                         dict(fixtureCleanupRecords=3, actualEndpointProbeRecords=5))
+        # Actual owned hijacked connections may have needed closure; zero is
+        # not required. The count remains an integer observation, not a flag.
+        changed = dict(raw)
+        edit_json(changed, 'native-report.json', lambda v: v['fixtureCleanup'][1].update(forcedConnectionsClosed=1))
+        self.assertEqual(C.verify_raw(changed, sources, commit)['outcome'], 'PASS')
         for key in ('sourceGitVerified', 'fullPrivateWALIndependentlyProven', 'syntaxRawStreamsIndependentlyProven',
                     'privateDisclosureFenceIndependentlyProven', 'completeKernelSyscallTracingProven', 'completionProven', 'production'):
             self.assertIs(value[key], False)
@@ -428,7 +439,10 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
     def test_source_call_counts_and_cross_core_identity_are_not_trusted_booleans(self):
         raw, sources, commit = closed_fixture()
         for kind in ('extra_start', 'core_alias', 'identity_alias', 'unsettled', 'false_cleanup',
-                     'old_pid_one', 'new_pid_one', 'syntax_pid_one'):
+                     'old_pid_one', 'new_pid_one', 'syntax_pid_one', 'fixture_missing', 'fixture_role',
+                     'shutdown_unobserved', 'serve_unjoined', 'fixture_error', 'forced_count_bool', 'forced_count_negative',
+                     'probe_missing', 'probe_unattempted', 'probe_connected', 'probe_unsupported', 'probe_alias',
+                     'probe_extra_field', 'legacy_report_schema'):
             bad = dict(raw)
             def change(v):
                 if kind == 'extra_start': v['nativeCalls'][8]['kind'] = 'KERNEL_OS_START_ATTEMPT'
@@ -443,6 +457,20 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
                     v['newIdentity']['pid'] = v['start']['startObservation']['pid'] = 1
                     v['start']['startupIdentity']['pid'] = v['start']['verifiedIdentity']['pid'] = 1
                 elif kind == 'syntax_pid_one': v['syntax'][0]['pid'] = 1
+                elif kind == 'fixture_missing': del v['fixtureCleanup']
+                elif kind == 'fixture_role': v['fixtureCleanup'][2]['role'] = 'A'
+                elif kind == 'shutdown_unobserved': v['fixtureCleanup'][0]['shutdownReturned'] = False
+                elif kind == 'serve_unjoined': v['fixtureCleanup'][1]['serveReturned'] = False
+                elif kind == 'fixture_error': v['fixtureCleanup'][2]['errorClass'] = 'SHUTDOWN'
+                elif kind == 'forced_count_bool': v['fixtureCleanup'][0]['forcedConnectionsClosed'] = True
+                elif kind == 'forced_count_negative': v['fixtureCleanup'][0]['forcedConnectionsClosed'] = -1
+                elif kind == 'probe_missing': v['cleanupProbes'].pop()
+                elif kind == 'probe_unattempted': v['cleanupProbes'][2]['attempted'] = False
+                elif kind == 'probe_connected': v['cleanupProbes'][3]['result'] = 'CONNECTION_ACCEPTED'
+                elif kind == 'probe_unsupported': v['cleanupProbes'][2].update(attempted=False, result='OTHER')
+                elif kind == 'probe_alias': v['cleanupProbes'][3]['port'] = 28413
+                elif kind == 'probe_extra_field': v['cleanupProbes'][0]['unprovedOwner'] = True
+                elif kind == 'legacy_report_schema': v['schema'] = 'chengwang.mihomo-native-recovery-experiment/v1'
                 elif kind == 'unsettled': v['newCleanup']['groupAbsent'] = False
                 else: v['runtimeClosed'] = False
             edit_json(bad, 'native-report.json', change)

@@ -1,0 +1,86 @@
+{
+  "schema": "chengwang.133-native-cleanup-first-failure-archive/v1",
+  "sourceCommit": "133ef0ab1522f182486e5c3d7d377aab76e0fa70",
+  "scope": "DEFAULT_FOUNDATIONS_ACCEPTED_NATIVE_CLEANUP_NOT_ACCEPTED",
+  "normal": {
+    "runID": 40177100131,
+    "conclusion": "success",
+    "jobs": 13,
+    "semanticEach": 1503,
+    "requiredEach": 611,
+    "formatPatchBytes": 0,
+    "originalVerifyProducerFreshByteEqual": true,
+    "reportBytes": 16274,
+    "reportSHA256": "128733f0008d4795359b93c8c36359504e3c4d0c65af97947c182dca8f873035",
+    "archives": 12,
+    "members": 208,
+    "windowsWholeLinuxCLIWriterAccepted": false
+  },
+  "diagnostic": {
+    "runID": 40177100066,
+    "conclusion": "success",
+    "jobs": 5,
+    "requiredPassed": 611,
+    "archives": 4,
+    "members": 42,
+    "fullProfileSeconds": 120.28681994,
+    "fullProfileReason": "TIMER",
+    "fullCapacitySeconds": 83.67,
+    "fullPackageSeconds": 162.437
+  },
+  "native": {
+    "runID": 40177100093,
+    "conclusion": "failure",
+    "jobs": 4,
+    "goExit": 1,
+    "goTopSeconds": 7.33,
+    "formatPatchBytes": 0,
+    "publicFilesPresent": 21,
+    "publicFilesRequired": 21,
+    "sandboxServiceBasesActualComponentAccepted": true,
+    "recoveryStopInvokedAndReturned": true,
+    "recoveryStartInvokedAndReturned": true,
+    "startedPhaseObservedRevision": 17,
+    "permitAndRunnerReplayAddedCalls": false,
+    "twoKernelExitAndCleanupObserved": true,
+    "closedPortsActuallyRecorded": [
+      28411,
+      28412
+    ],
+    "firstUnrecordedPort": 28413,
+    "firstUnrecordedProbeResultPublished": false,
+    "sourceProvenCallDomain": "Original labQuiescenceDial permits only 28411/28412; 28413 returns OTHER/Attempted=false before Dial. It does not prove a remaining listener.",
+    "reopenObserved": false,
+    "wholeNativeAccepted": false,
+    "freshReportPresent": false,
+    "archives": 2,
+    "members": 38
+  },
+  "sourceGitBlobs": 1308,
+  "normalSources": 121,
+  "defaultRequiredTestFiles": 43,
+  "nativeSources": 159,
+  "nativePublicFiles": 21,
+  "fullPackageTestSources": 72,
+  "fullPrivateWALIndependentlyProven": false,
+  "controllerReceivedCount": null,
+  "s2OrProductRecoveryAPIComplete": false,
+  "production": false,
+  "receipts": [
+    {
+      "kind": "normal",
+      "path": "D:/CodexData/workspace/mihomo-133ef0a-foundation-audit-20261025-root/closeout.json",
+      "sha256": "8165eb68aae2bb2b5a115890e7b11f558850175ce2987d7d81cc46d1c0f8b0f2"
+    },
+    {
+      "kind": "diagnostic",
+      "path": "D:/CodexData/workspace/mihomo-133ef0a-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "624c2d5ef32ad9d8d0ce4a09888cb377c64c0ea9abeb906595964000f1e1c03c"
+    },
+    {
+      "kind": "nativeFailure",
+      "path": "D:/CodexData/workspace/mihomo-133ef0a-native-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "51916b2aa820b330d588c947035b6db41f08d7f118bacd217c8e092205852867"
+    }
+  ]
+}
