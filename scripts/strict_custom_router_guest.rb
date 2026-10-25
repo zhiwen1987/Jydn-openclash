@@ -49,6 +49,7 @@ when 'stage'
  b=ARGS.fetch('router');abort 'Unexpected backup location' unless b.start_with?('/root/openclash-backups/strict-custom-20261026-') && File.directory?(b)
  stage=b+'/stage';sh('mkdir','-p',stage);File.chmod(0700,stage)
  BUNDLE.each{|name,encoded|abort 'Unsafe staged filename' if name.include?('/');File.write(stage+'/'+name,encoded.unpack1('m0'));File.chmod(0600,stage+'/'+name)}
+ %w[strict_bind.rb strict_custom_router_recovery.rb].each{|name|sh('ruby','-c',stage+'/'+name)}
  result=sh('ruby','-E','UTF-8',stage+'/test_strict_custom.rb');File.write(stage+'/unit-tests.log',result)
  require stage+'/strict_custom'
  policy=StrictCustom.load(stage+'/strict-custom-policy.json')

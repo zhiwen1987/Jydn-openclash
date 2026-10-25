@@ -15,9 +15,9 @@ private_value={'schema'=>1,'nodes'=>[
  {'id'=>'own-good','proxy'=>{'type'=>'socks5','server'=>'127.0.0.1','port'=>19441}},
  {'id'=>'own-bad','proxy'=>{'type'=>'socks5','server'=>'127.0.0.1','port'=>19449}}],
  'pools'=>[{'id'=>'mine','mode'=>'fallback','node_ids'=>['own-bad','own-good']}]}
-[['empty',nil],['configured',private_value],['locked',private_value]].each do |name,private_data|
+[['empty',nil],['configured',private_value],['locked',private_value],['locked-empty',nil]].each do |name,private_data|
  locks={'schema'=>1,'bindings'=>{}}
- locks['bindings']['Google']={'kind'=>'node','target'=>'own-good','original_menu'=>['PublicPool']} if name=='locked'
+ locks['bindings']['Google']={'kind'=>'node','target'=>'own-good','original_menu'=>['PublicPool']} if name.start_with?('locked')
  y=Marshal.load(Marshal.dump(base));StrictCustom.apply(y,policy,private_data,locks)
  y['proxy-groups'].select{|g|g['type']=='fallback'}.each{|g|g['url']='http://127.0.0.1:19440/';g['interval']=1;g['timeout']=500}
  File.write(root+'/'+name+'.yaml',YAML.dump(y));File.chmod(0600,root+'/'+name+'.yaml')
@@ -27,4 +27,4 @@ fixture={
  'hosts'=>base['hosts'],'profile'=>{'store-selected'=>false},'rules'=>['MATCH,DIRECT'],
  'dns'=>{'enable'=>true,'listen'=>'127.0.0.1:19455','enhanced-mode'=>'fake-ip','fake-ip-range'=>'198.18.0.1/16','fake-ip-filter'=>[],'nameserver'=>['127.0.0.1']}}
 File.write(root+'/fixture.yaml',YAML.dump(fixture));File.chmod(0600,root+'/fixture.yaml')
-puts 'fixtures_written=4'
+puts 'fixtures_written=5'

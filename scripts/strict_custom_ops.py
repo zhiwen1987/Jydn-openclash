@@ -62,7 +62,7 @@ def main():
     if phase=='stage':
      meta=json.loads((CASE/'location.json').read_text(encoding='utf-8'))
      with r.open_sftp() as rsf:
-      for filename in ['empty.yaml','configured.yaml','locked.yaml','fixture.yaml']:
+      for filename in ['empty.yaml','configured.yaml','locked.yaml','locked-empty.yaml','fixture.yaml']:
        raw=rsf.open(meta['router']+'/stage/fixtures/'+filename,'rb').read()
        command='sudo -n sh -c '+shlex.quote('umask 077; cat > '+shlex.quote(meta['server']+'/stage/'+filename))
        pin,pout,perr=s.exec_command(command,timeout=30);pin.write(raw);pin.channel.shutdown_write();pout.read();perr.read()

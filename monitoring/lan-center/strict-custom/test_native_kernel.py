@@ -99,7 +99,7 @@ def main():
    try:select('Google','PublicPool');escaped=True
    except Exception:escaped=False
    check('durable_lock_refuses_public_api_selection',not escaped)
-   stop(pb);pb=start(b,'empty.yaml')
+   stop(pb);pb=start(b,'locked-empty.yaml')
    check('removed_nodes_stay_rejected',not http('Google') and not dns('Google'))
    check('removed_nodes_other_business_ok',http('Gemini') and dns('Gemini'))
    print(json.dumps({'passed':True,'tests':results,'test_count':len(results),'network':'none','production_data_mounted':False,'production_selectors_changed':False,'native_kernel_sha256':__import__('hashlib').sha256((ROOT/'core').read_bytes()).hexdigest()}))
