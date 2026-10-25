@@ -93,8 +93,11 @@ const (
 // consumption and the corresponding record call. The deferred cancellation is
 // observable after action returns, never while the record method is running.
 func labRecoveryWithRecordContext(parent context.Context, budget time.Duration, action func(context.Context) error) error {
-	if parent == nil || budget <= 0 || action == nil || artifactContext(parent) != nil {
+	if parent == nil || budget <= 0 || action == nil {
 		return errLifecycleUnsafe
+	}
+	if err := artifactContext(parent); err != nil {
+		return err
 	}
 	ctx, cancel := context.WithTimeout(parent, budget)
 	defer cancel()

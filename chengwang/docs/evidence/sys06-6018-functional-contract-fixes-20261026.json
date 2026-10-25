@@ -1,0 +1,136 @@
+{
+  "actualEvidence": {
+    "completionPositiveOriginal": {
+      "artifact": 12613207293,
+      "bytes": 5173,
+      "crcEntries": "12/12",
+      "job": 121286618899,
+      "run": 40232348620,
+      "sha256": "d60b303b27036f774e8231bfe9d0d1007fe1cbb414b823cb8aa06b61553087a2"
+    },
+    "diagnosticFullOriginal": {
+      "artifact": 12613238957,
+      "bytes": 541160,
+      "crcEntries": "21/21",
+      "goVersion": "go1.23.12 linux/amd64",
+      "job": 121286577583,
+      "reflectionCounts": {
+        "fields": 457,
+        "mutableSlots": 86,
+        "pointers": 67,
+        "slices": 19,
+        "structs": 63
+      },
+      "reflectionDiagnostic": "PASS",
+      "reflectionDigest": "ee925968d830156c5a5c0c366e28722e278b1d54284712ebc28b47a8ed7e4d61",
+      "run": 40232348644,
+      "sha256": "5a39da1fb4f5b05904ae590760d39134288babd04223e132f537e4bedbf6e130"
+    },
+    "normalFoundationOriginal": {
+      "artifact": 12613703546,
+      "bytes": 267520,
+      "crcEntries": "13/13",
+      "job": 121286577937,
+      "ordinaryMandatory": {
+        "fail": 4,
+        "pass": 684,
+        "unfinished": 0
+      },
+      "raceMandatory": {
+        "exactCause": "go test -race -timeout=180s emitted panic: test timed out after 3m0s",
+        "fail": 4,
+        "notStarted": 55,
+        "pass": 628,
+        "runningAtTimeout": 1
+      },
+      "run": 40232348639,
+      "sha256": "d5202b4031441563d47bc18544fcf29dfb2d70b2d86a7fa4f0f4da383892e439"
+    }
+  },
+  "actualProducerContractCPURegressionWithinExistingTop": true,
+  "baseline": "6018ebbb23eb85ee87bb11557b959b461a8b42a2",
+  "callerContextErrorPreserved": true,
+  "candidatePatchSHA256": "f2bbec6d317178ec9950d2f1591378a4c351796853c2c37af37027d3d14c7f9e",
+  "candidateReceiptSHA256": "ef332f705b3b2cdfbb341d16326498f4da7aaa2a2dc924dc3dfb235579c0dc43",
+  "completionCaptureAndTimeoutsUnchanged": true,
+  "completionProducerCounts": {
+    "candidate": 88,
+    "ordinaryMandatory": 688,
+    "previous": 84
+  },
+  "continuousHTTPSourceCandidatesOnlyNotRun": true,
+  "contractModelReadsActualJSONAndActualCompatDecoder": true,
+  "failedCommit": "6018ebbb23eb85ee87bb11557b959b461a8b42a2",
+  "goMandatoryTopCount": 688,
+  "historical256AndControl2MiBLimitsUnchanged": true,
+  "initialAuxiliaryStrictDecoderFailurePreserved": true,
+  "localGoOrGofmtExecuted": false,
+  "mainMerged": false,
+  "modelArmStartPreconditionsRestored": true,
+  "newCompletionAccepted": false,
+  "newSuiteAccepted": false,
+  "onlyFileCustodyIOModeled": true,
+  "originalRaceIncompletePreserved": true,
+  "privateWALIndependentProof": false,
+  "productRecoveryAPIAccepted": false,
+  "production": false,
+  "productionReserveOrFailureValidatorChanged": false,
+  "pythonModelTopCount": 11,
+  "race180SecondTimeoutResolved": false,
+  "recordContextLifetimeAndCancelGatesPreserved": true,
+  "registryPublished": false,
+  "reserveModelExpectedSixBooleanDifferenceCopies": 2,
+  "rootSourceGuardSHA256": "59e6d7cd2ce8958eee0262a9b1a570f0053d8c80f54d42a240ef2629ad7cb916",
+  "schema": "chengwang.remaining-functional-contract-source-fix/v1",
+  "scope": "ACTUAL_FAILURE_AND_REVIEWED_SOURCE_FIX_NOT_SUITE_ACCEPTANCE",
+  "sourceChanges": [
+    {
+      "afterGitBlob": "f6d4c35c195fe2dfcaa749a34730398faae812b8",
+      "beforeGitBlob": "2d72aa189c5ae9af68079c04e9e8994283d18202",
+      "crlf": 0,
+      "finalLF": true,
+      "lf": 785,
+      "mode": "100644",
+      "path": "chengwang/internal/mihomodeploy/lab_recovery_authority_test.go"
+    },
+    {
+      "afterGitBlob": "569ffcfbea9b3d0eb635b7ea98611536dbe5306f",
+      "beforeGitBlob": "5af2234f0b366e9c336bbfeec1e8b12d8800fd18",
+      "crlf": 0,
+      "finalLF": true,
+      "lf": 1273,
+      "mode": "100644",
+      "path": "chengwang/internal/mihomodeploy/lab_recovery_backend.go"
+    },
+    {
+      "afterGitBlob": "8a6d92cd3b63ed8c5c7abb388c452f8994d5ed42",
+      "beforeGitBlob": "1480e97922025127fb621f3dbea6a0b514b916d3",
+      "crlf": 0,
+      "finalLF": true,
+      "lf": 511,
+      "mode": "100644",
+      "path": "chengwang/internal/mihomodeploy/lab_recovery_backend_test.go"
+    },
+    {
+      "afterGitBlob": "1234e3dd0c591fecf230ffb09894e963b92f4db2",
+      "beforeGitBlob": "a8648f7f779104eb3dd84290810a77ab04a06e03",
+      "crlf": 0,
+      "finalLF": true,
+      "lf": 623,
+      "mode": "100644",
+      "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile_test.go"
+    }
+  ],
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-lifecycle-lab/native_completion_worker.py": "63d1af3c754d77f8fde6983cd7fd028e917415a98a4524a32c080d9db5889c31",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_native_completion_reader_model.py": "3a453a18e545047c91fe19cc0cf9a4a73626e4d83447bf5980cdb8d711783717",
+    "chengwang/docs/LIVE-TASKS.md": "95d826fdfd1cf7bc02b97fd2a4412b0935b7295d2ea59783a3614dd68727dfa4",
+    "chengwang/docs/PROJECT-PROGRESS-LEDGER.md": "66d53a86800da119026a48d190d53b01331a7dfc0bd27e47c5acaa728a24aa29",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "bb56aebcd7b04d2e77110948e3b77570291b09044b10904dbd3ec7529ff72338",
+    "chengwang/docs/SYSTEM-COMPLETION-GAP-AUDIT.md": "3165aa324352c9e5694976be80403e0b0be0ef286603a7e1849ab83b78e618ec",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority_test.go": "bdaeb1751ab4d9ff20e2d653483b3f5bf219551df6ebf576e8cf7a5225f69361",
+    "chengwang/internal/mihomodeploy/lab_recovery_backend.go": "9111bafed828fdb0d3364169f41200df7d2abd7235cfb49dd97819b7ce5b3994",
+    "chengwang/internal/mihomodeploy/lab_recovery_backend_test.go": "b532a749d5d8363673222bdddb194451cf41810dcc0efd47428875f2b2bc37c9",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile_test.go": "8ac9cbbdd839e881165e0aa879a9af87dcfea4c238bc54fb479c0a8a38857112"
+  }
+}

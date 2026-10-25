@@ -434,7 +434,7 @@ func TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL(t *testing.
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			m := labRecoveryAuthorityTestModel(t)
-			m.approve(t)
+			m.armStart(t)
 			if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
 				t.Fatal("MODEL durable UNKNOWN")
 			}
@@ -456,7 +456,7 @@ func TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL(t *testing.
 
 	t.Run("copied-session", func(t *testing.T) {
 		m := labRecoveryAuthorityTestModel(t)
-		m.approve(t)
+		m.armStart(t)
 		if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
 			t.Fatal("MODEL durable UNKNOWN")
 		}
@@ -468,7 +468,7 @@ func TestLabRecoveryReconcileRequiresFreshExactInitiatorPrepareMODEL(t *testing.
 
 	t.Run("revoked-initiator-snapshot", func(t *testing.T) {
 		m := labRecoveryAuthorityTestModel(t)
-		m.approve(t)
+		m.armStart(t)
 		if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
 			t.Fatal("MODEL durable UNKNOWN")
 		}

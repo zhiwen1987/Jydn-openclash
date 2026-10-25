@@ -262,6 +262,48 @@ class CompletionReaderModelTests(unittest.TestCase):
             temporary.cleanup()
 
     def test_report_contract_accepts_all_four_exact_modes(self):
+        # Execute the real producer contract against its actual sibling JSON.
+        # Only custody-aware file IO is modeled; main/capture/Go never run.
+        contract_path = Path(self.w.__file__).absolute().with_name('native_completion_contract.json')
+        declaration_raw = contract_path.read_bytes()
+        shared_path = Path(self.w.__file__).with_name('compat_worker.py')
+        shared_spec = importlib.util.spec_from_file_location('_completion_contract_shared_decode', shared_path)
+        actual_shared = importlib.util.module_from_spec(shared_spec)
+        shared_spec.loader.exec_module(actual_shared)
+        declaration = actual_shared.decode(declaration_raw)
+
+        class Shared:
+            raw = declaration_raw
+            decode = staticmethod(actual_shared.decode)
+            def file_bytes(shared, path, limit):
+                self.assertEqual(path, contract_path)
+                self.assertLessEqual(len(shared.raw), limit)
+                return shared.raw, None
+
+        shared = Shared()
+
+        class Adapter:
+            def shared(self):
+                return shared
+
+        class Service:
+            def adapter(self):
+                return Adapter()
+
+        with mock.patch.object(self.w, 'service_worker', return_value=Service()):
+            self.assertEqual(self.w.contract(), declaration)
+            fields = declaration['completePackageTestSources']
+            for key, old in (('previousCount',83),('candidateCount',84),
+                             ('ordinaryMandatoryTopLevelCount',661)):
+                for wrong in (old, float(fields[key]), True):
+                    with self.subTest(contractField=key, wrong=wrong):
+                        changed = copy.deepcopy(declaration)
+                        changed['completePackageTestSources'][key] = wrong
+                        shared.raw = self.c.canonical(changed)
+                        with self.assertRaises(ValueError):
+                            self.w.contract()
+            shared.raw = declaration_raw
+            self.assertEqual(self.w.contract(), declaration)
         for mode in self.c.MODES:
             with self.subTest(mode=mode):
                 report,binding = self.report_fixture(mode)

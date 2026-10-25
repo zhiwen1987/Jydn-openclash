@@ -131,7 +131,7 @@ func TestLabRecoveryStaleAuthorizedCheckCannotSpendAttemptMODEL(t *testing.T) {
 func labRecoveryBusyReconcileMODEL(t *testing.T) (*labRecoveryAuthorityModel, *labRecoveryCoordinator, *labRecoveryOperation, LabRecoveryExecuteRequest) {
 	t.Helper()
 	m := labRecoveryAuthorityTestModel(t)
-	m.approve(t)
+	m.armStart(t)
 	if err := m.store.recordRecoveryFailure(m.owner, "START_UNCERTAIN", nil, m.f.now); err != nil {
 		t.Fatal("MODEL durable UNKNOWN")
 	}

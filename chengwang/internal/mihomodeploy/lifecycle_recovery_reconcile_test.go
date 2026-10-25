@@ -147,7 +147,10 @@ func TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLim
 	shorter.StartObservation.Stdout.Truncated, shorter.StartObservation.Stdout.Complete = true, true
 	shorter.StartObservation.Stderr.Truncated, shorter.StartObservation.Stderr.Complete = true, true
 	shorterEncoded, err := lifecycleRecoveryReconcileReservationBytes(&w, &shorter)
-	if err != nil || len(maxEncoded) != len(shorterEncoded)+6 {
+	// The reservation persists the same cleanup once in Recovery and once in
+	// its RecoveryHistory tail, so each of the six longer false values occurs
+	// twice in the canonical future WAL.
+	if err != nil || len(maxEncoded) != len(shorterEncoded)+12 {
 		t.Fatal("MODEL independent legal boolean variants did not prove the maximum Attempt length")
 	}
 	absent := maximum.Attempt.Schema == labRecoveryAbsentStartObservationSchema

@@ -284,8 +284,8 @@ def contract():
              'trackedSet':'ALL_GIT_HEAD_BLOBS','deliveryCount':len(DELIVERY_PATHS),
              'gitCommitRequired':True,'gitTreeRequired':True,'gitIndexMustMatchCommitTree':True,
              'workingBytesMustMatchGitBlobs':True,'oldTwentyOneSourceManifestAccepted':False})
-    exact_same(value['completePackageTestSources'],{'previousCount':83,'candidateCount':84,
-             'ordinaryMandatoryTopLevelCount':661,'completionHarnessExcludedFromOrdinaryMandatoryNames':True})
+    exact_same(value['completePackageTestSources'],{'previousCount':84,'candidateCount':88,
+             'ordinaryMandatoryTopLevelCount':688,'completionHarnessExcludedFromOrdinaryMandatoryNames':True})
     exact_same(value['coldReopen'],{
         'coldReopenMatchedDiskMeaning':'POST_OPEN_DISK_EQUALS_REOPENED_STORE_RAW',
         'positive':'COMPLETED_UNCHANGED','not-committed':'START_ARMED_TO_RECOVERY_UNKNOWN',

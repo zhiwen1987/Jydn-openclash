@@ -6,6 +6,12 @@
 
 ### 下一阶段源码：恢复协调器、reconciliation 与产品 API 已合入，Linux 验收待执行
 
+固定实际图后的 `6018ebbb23eb85ee87bb11557b959b461a8b42a2` 已通过 reflection 与旧 S2 CI 状态门，但新阶段仍未整体验收。ordinary 688必需中684 PASS／4 FAIL，无未起；race628 PASS／4 FAIL／1运行时超时／55未起，原文 `panic: test timed out after 3m0s`，180秒是包总预算，不能把当时运行的HistoryContext测试认定为唯一热点。原 normal ZIP267520字节 SHA `d5202b4031441563d47bc18544fcf29dfb2d70b2d86a7fa4f0f4da383892e439` 与 full ZIP541160字节 SHA `5a39da1fb4f5b05904ae590760d39134288babd04223e132f537e4bedbf6e130` 保留。
+
+本轮仅修实际4个失败：authority的三处夹具及busy夹具改走现有armStart，补齐批准→StopIntent→quiescence→StartIntent后才记START_UNCERTAIN；record-context helper保留nil／budget／action拒绝，原样返回caller取消或超时，派生timeout／defer cancel／二次Err门不变；reserve MODEL把6个false→true在Recovery及其等值History尾两次编码的差异明确为12字节，不改production reserve／validator。688顶层名称、全部断言和180秒／256历史／2MiB门保持，race性能仍需独立关闭。
+
+同提交首次Completion四mode均在Go前被worker仍写83／84／661的合同拒绝；JSON／reader已为84／88／688，属于执行器同步遗漏，不能称Completion真实运行失败。现只同步这3计数，旧capture／pidfd／预算字节不改；在既有11个CPU顶层内新增直接执行真实producer.contract与actual sibling JSON／实际compat.decode的回归子例，只模型化受限文件读取，旧counts／float／bool必须拒绝。初次辅助回放误用严格compact报告decoder读取pretty合同而拒绝，已改用真实compat decoder，原失败保留，修正单顶层CPU通过；此CPU结果不代替下一Linux四mode。
+
 修正提交 `69c2fc29e63e6f3c8c0cd993757a225a74d58782` 已在真实 Linux 编译并进入 mihomodeploy 测试。full diagnostic `40231324060` 的 artifact12613366005为470958字节／21成员，SHA256 `484b95eea7b5d0b02cefb0092aaff83f287e98684565f0854310b53a4dcc4edf`；1379路径来源前后相同，root逐Git blob／SHA再核。唯一诊断 top 的实际 output／pass给出 digest `ee925968d830156c5a5c0c366e28722e278b1d54284712ebc28b47a8ed7e4d61`、63结构、457字段、86可变槽（67指针／19切片），另一个digest MODEL同值PASS。root原件审计收据 SHA256 `bb7d009d2d84217bf91ed75cfe6d1049789018e1237d61f46f2675d4640b7ba0`。
 
 据此只固定该实际图pin，并把现有属性覆盖门59→63、82→86及对应诊断文案同步；不删除任何复制／逐槽／canonical／来源校验，也不改变克隆算法、记录格式或权限。full仍为Go exit1、116顶层失败，此前空pin是已知阻断，不能推断全部失败均无第二原因；下一同提交实际回归才决定是否通过。该反射元数据不是产品API、真实恢复成功、完整私有WAL或生产证据。
