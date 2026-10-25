@@ -4,6 +4,14 @@
 
 ## 本次已有代码
 
+### 2026-10-25 d041的611全部Go通过、正常仅格式失败：真实四hunk修订待新CI
+
+d0412c7ba0c4a4fefbdb8322ca021c10eebab195正常40169669618实际11成功／2失败：普通与race各1503语义／611必需全部PASS，旧607／新4 selected-target、S1及bfae属性通过；容量7.46／86.57秒、包21.772／165.872秒，非超时。实际gofmt.patch为4664B，仅新target test的4个map对齐hunk；normal严格格式失败、foundation fresh确无报告，未调用必拒完整C.verify。root独立f23e37b9核11ZIP206成员／1291blob与117源／43test／111fmt、5scope原函数/fresh、原件及来源末次稳定；首in_progress快照与终态均保留，不重跑成功门。
+
+诊断40169669594五门success，独立59cda664核4ZIP42成员／1291blob、117／43／71与原strict events1503／611、新4含同mapper输入pointer反例、旧607／16S1／bfae、原source/resource/namespace/argv及producer/fresh。full容量54.27秒／包106.726秒、profile实际M_RUN_RETURNED105.696秒，不声称满120；single容量85.41／包86.444、采样60.249秒。诊断tagfmt0不覆盖正常111文件，不能用diag成功抵消normal失败或承诺固定速度／长期稳定。
+
+root仅应用实际4664B原patch c346e7deae5be75cd12ff49a2c5c7669d41cd0f893ecbe2cfe1b6bcd1617c7c3的单源4hunk，strict transfer bd5a5636ccb4cf0eccd1c41407fa701333f5839737cd66496e11a593cc330da5；原Gitblob/原hunk位置/词法token核对后，test源1a013c06→12ff191ba2a0914a97fb814729df0861ac8daed4b61ab99947b7a3fe55ae315f。原611名单、prod比较器及全部其他源、Go命令/180/256/2MiB不改，不运行本机Go/gofmt或重旧模型；新格式提交必须独立Linux CI验收，尚未获接受。native v2真实启动/所有权交接/两代cleanup、独立reader/CI、新S2 collector/receipt/completion／产品恢复接口及完整系统与生产仍未完成。
+
 ### 2026-10-25 选定目标投影比较叶子与611接线：源码集成，尚待实际Go
 
 新增CompareLabTargetReadback仅复用原CompareLabReadback(samples,target,target)的opaque输入／摘要／8GET两样本／witness／时间顺序检查，然后在独立封闭enum中将原AMBIGUOUS解释为“选定目标投影匹配”，DRIFT/UNSTABLE仍按原义，STABLE_OLD/NEW或未知结论拒绝。旧API/enum/reader及S1存储代码不改，报告四个payload/dataplane/authorization/production标志全false，Observed摘要指针单独复制。该叶子没有绝对新鲜度／Started epoch／issuer绑定，不能作为私有恢复事实、授权或完成许可；S2 collector必须另建真实来源链。

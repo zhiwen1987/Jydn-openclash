@@ -99,13 +99,13 @@ func TestLabTargetReadbackRetainsOriginalInputDigestAndTimeGuards(t *testing.T) 
 		t.Fatal("MODEL valid seed rejected before negative cases")
 	}
 	for name, edit := range map[string]func(*labSamplesCore){
-		"seven_requests": func(s *labSamplesCore) { s.requests = 7 },
-		"nine_requests": func(s *labSamplesCore) { s.requests = 9 },
-		"digest_changed": func(s *labSamplesCore) { s.samples[1].digest = strings.Repeat("0", 64) },
+		"seven_requests":                    func(s *labSamplesCore) { s.requests = 7 },
+		"nine_requests":                     func(s *labSamplesCore) { s.requests = 9 },
+		"digest_changed":                    func(s *labSamplesCore) { s.samples[1].digest = strings.Repeat("0", 64) },
 		"projection_changed_without_digest": func(s *labSamplesCore) { s.samples[1].projection.General = json.RawMessage(`{}`) },
-		"missing_witness": func(s *labSamplesCore) { s.samples[0].witness = "" },
-		"zero_started": func(s *labSamplesCore) { s.samples[0].started = time.Time{} },
-		"zero_completed": func(s *labSamplesCore) { s.samples[1].completed = time.Time{} },
+		"missing_witness":                   func(s *labSamplesCore) { s.samples[0].witness = "" },
+		"zero_started":                      func(s *labSamplesCore) { s.samples[0].started = time.Time{} },
+		"zero_completed":                    func(s *labSamplesCore) { s.samples[1].completed = time.Time{} },
 	} {
 		t.Run(name, func(t *testing.T) {
 			bad := labTargetTestCloneSamples(t, seed)
@@ -116,9 +116,9 @@ func TestLabTargetReadbackRetainsOriginalInputDigestAndTimeGuards(t *testing.T) 
 		})
 	}
 	for name, edit := range map[string]func(*labSamplesCore){
-		"first_completed_before_start": func(s *labSamplesCore) { s.samples[0].completed = s.samples[0].started.Add(-time.Nanosecond) },
+		"first_completed_before_start":          func(s *labSamplesCore) { s.samples[0].completed = s.samples[0].started.Add(-time.Nanosecond) },
 		"second_started_before_first_completed": func(s *labSamplesCore) { s.samples[1].started = s.samples[0].completed.Add(-time.Nanosecond) },
-		"second_completed_before_start": func(s *labSamplesCore) { s.samples[1].completed = s.samples[1].started.Add(-time.Nanosecond) },
+		"second_completed_before_start":         func(s *labSamplesCore) { s.samples[1].completed = s.samples[1].started.Add(-time.Nanosecond) },
 	} {
 		t.Run(name, func(t *testing.T) {
 			bad := labTargetTestCloneSamples(t, seed)
@@ -131,8 +131,8 @@ func TestLabTargetReadbackRetainsOriginalInputDigestAndTimeGuards(t *testing.T) 
 		})
 	}
 	for name, edit := range map[string]func(*labExpectedCore){
-		"not_constructed": func(e *labExpectedCore) { e.constructed = false },
-		"expected_digest_changed": func(e *labExpectedCore) { e.digest = strings.Repeat("0", 64) },
+		"not_constructed":             func(e *labExpectedCore) { e.constructed = false },
+		"expected_digest_changed":     func(e *labExpectedCore) { e.digest = strings.Repeat("0", 64) },
 		"expected_projection_changed": func(e *labExpectedCore) { e.projection.General = json.RawMessage(`{}`) },
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -181,15 +181,15 @@ func TestLabTargetReadbackClosedMappingAndReportOwnership(t *testing.T) {
 		}
 	}
 	for name, edit := range map[string]func(*LabReadbackReport){
-		"count": func(r *LabReadbackReport) { r.SampleCount = 1 },
-		"requests": func(r *LabReadbackReport) { r.RequestsObserved = 7 },
+		"count":             func(r *LabReadbackReport) { r.SampleCount = 1 },
+		"requests":          func(r *LabReadbackReport) { r.RequestsObserved = 7 },
 		"different_targets": func(r *LabReadbackReport) { r.PreviousProjectionSHA256 = "DIFFERENT" },
-		"missing_observed": func(r *LabReadbackReport) { r.ObservedProjectionSHA256 = nil },
-		"wrong_observed": func(r *LabReadbackReport) { v := "DIFFERENT"; r.ObservedProjectionSHA256 = &v },
-		"dataplane": func(r *LabReadbackReport) { r.DataplaneProven = true },
-		"full_payload": func(r *LabReadbackReport) { r.FullPayloadProven = true },
-		"authorization": func(r *LabReadbackReport) { r.AuthorizationProven = true },
-		"production": func(r *LabReadbackReport) { r.Production = true },
+		"missing_observed":  func(r *LabReadbackReport) { r.ObservedProjectionSHA256 = nil },
+		"wrong_observed":    func(r *LabReadbackReport) { v := "DIFFERENT"; r.ObservedProjectionSHA256 = &v },
+		"dataplane":         func(r *LabReadbackReport) { r.DataplaneProven = true },
+		"full_payload":      func(r *LabReadbackReport) { r.FullPayloadProven = true },
+		"authorization":     func(r *LabReadbackReport) { r.AuthorizationProven = true },
+		"production":        func(r *LabReadbackReport) { r.Production = true },
 	} {
 		t.Run(name, func(t *testing.T) {
 			bad := comparison
