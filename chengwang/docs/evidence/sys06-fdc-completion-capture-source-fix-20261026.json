@@ -1,0 +1,73 @@
+{
+  "actualFailureStage": "SANDBOX_CAPTURE_VALIDATION_BEFORE_POPEN",
+  "actualPositiveJob": 121259015851,
+  "barePIDSignalFallback": false,
+  "baseline": "fdc25879c725697f8da4c030eeafd942c893a38e",
+  "candidatePatchSHA256": "e3915e8b4f0a687a1f7a297566cc48a51b43a5e8fc4981872276377eeec37312",
+  "candidateReceiptSHA256": "ccd09aac38da924bc3c42146adaf103c573d24143ac7b958be6485f4bf836141",
+  "completeSixPackageTestSources": 84,
+  "failedCommit": "fdc25879c725697f8da4c030eeafd942c893a38e",
+  "failedRun": 40223175606,
+  "failureEvidence": {
+    "attemptExit": {
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "value": 1
+    },
+    "custodySHA256": "44d1c50f0004f58217fd16fbf894ffac601c4fd9756ba5753555c9eec37590ab",
+    "goEntered": false,
+    "jobID": 121259015851,
+    "originalArtifact": {
+      "bytes": 5169,
+      "id": 12610037829,
+      "members": 12,
+      "sha256": "f91ca6f78c8cef1bb57da3554eaaffb91a3026f068d46b4837d09f407fc37988"
+    },
+    "report": {
+      "bytes": 1652,
+      "path": "FAILURE-EVIDENCE.md",
+      "sha256": "308d676b1c0c70f57adc0b994af1e49b08a3b015691aa0df4bbd5db5d222d289"
+    },
+    "rootCause": "native Completion delegated its distinct output names and 120-second GO_TEST envelope to the old apply capture, whose closed names differ and whose timeout ceiling is 90",
+    "runID": 40223175606,
+    "stage": "SANDBOX_CAPTURE_VALIDATION_BEFORE_SUBPROCESS_SPAWN",
+    "step": "Execute one actual first Completion experiment in new namespaces",
+    "verificationStderr": {
+      "bytes": 146,
+      "sha256": "3537a97736617a34a973d144240bdd8f5849a6c6a95446de3325e41518f11dcb"
+    }
+  },
+  "fullPrivateWALIndependentProof": false,
+  "goEnteredInOriginalPositiveRun": false,
+  "goExecutedLocally": false,
+  "gofmtExecutedLocally": false,
+  "mainMerged": false,
+  "modelsDoNotProveActualLinuxExecution": true,
+  "newDispatcherModels": 11,
+  "newGoOrNativeAcceptance": false,
+  "oldApplyTimeoutSeconds": 90,
+  "oldApplyWorkerChanged": false,
+  "oldFailurePreserved": true,
+  "oldNativeS2TimeoutOrCoreGateChanged": false,
+  "ordinaryMandatoryTests": 661,
+  "ownCommandTimeoutSeconds": [
+    30,
+    15,
+    30,
+    120
+  ],
+  "peerAssessmentSHA256": "bbafc179fa2ab689186d74d470d36c23214fea3982c573d3f042fc0bddb32fec",
+  "pidfdBeforeAnyPollOrWait": true,
+  "productRecoveryAPIIntegrated": false,
+  "production": false,
+  "registryPublished": false,
+  "rootActualJobLogExcerptSHA256": "ee17ede42ad08ecc63b106967f06169a4a20cef1068acce236d06fd273b99902",
+  "rootSourceGuardSHA256": "f8c96ac7d295e5829ada674c2f907b15e07aeebc9fc765e6739420a300a5f501",
+  "schema": "chengwang.native-completion-capture-source-fix-integration/v1",
+  "scope": "ACTUAL_PRESPAWN_FAILURE_AND_SOURCE_REPAIR_NOT_NATIVE_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-lifecycle-lab/native_completion_worker.py": "f3c449579997c179191cff15ccdd5230951cf96d0df5f7235f82d18ffe27352a",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_native_completion_reader_model.py": "f1a046901be9f26c0cf0a68722e5a85cc631d2e686750241f4b662cdb74f7cb5",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "295a95b877cca16160b5a21a04e1f500e629ace726080fb2655000f32d2344a3"
+  }
+}

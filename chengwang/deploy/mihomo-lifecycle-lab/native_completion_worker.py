@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import stat
 import subprocess
 import sys
@@ -22,6 +23,12 @@ TOP = 'TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup'
 MODES = ('positive', 'not-committed', 'unknown', 'readback')
 OUTPUT_MODES = {'mihomo-native-completion-'+mode+'-public': mode for mode in MODES}
 COMMANDS = ('SANDBOX', 'GO_VERSION', 'GOFMT', 'GO_TEST')
+CAPTURE_COMMANDS = {
+    'completion-sandbox.private.json': ('completion-sandbox.private.stderr', 'SANDBOX', 30),
+    'go-version.txt': ('go-version.private.stderr', 'GO_VERSION', 15),
+    'completion-gofmt.patch': ('completion-gofmt.stderr', 'GOFMT', 30),
+    'completion.json': ('completion.stderr', 'GO_TEST', 120),
+}
 WALS = ('completion-s1.private.json', 'completion-s2.private.json',
         'completion-attempted.private.json', 'completion-reopened.private.json')
 CAPTURES = ('transcript.json', *(f'body-{n}.json' for n in range(1, 9)),
@@ -356,15 +363,95 @@ def append_command(state, row):
     state['completionCommandSequence'] = sequence
 
 
+def completion_argv(state, adapter, shared, command_class):
+    binding = state.get('sourceBinding')
+    mode = state.get('completionMode')
+    need(type(binding) is dict and mode in MODES and state.get('commit') == binding.get('sourceCommit'))
+    worker = adapter.PATHS['module']+'/deploy/mihomo-lifecycle-lab/native_completion_worker.py'
+    commands = {
+        'SANDBOX': [shared.tool('python3'),'-B',worker,'--sandbox',state['commit'],
+                    binding['sourceTree'],binding['indexTree'],binding['sourceManifestSHA256'],
+                    binding['sourceSetSHA256'],binding['deliverySetSHA256'],binding['policySHA256'],
+                    str(binding['sourceCount']),str(binding['deliveryCount']),mode],
+        'GO_VERSION': [adapter.PATHS['goRoot']+'/bin/go','version'],
+        'GOFMT': [adapter.PATHS['goRoot']+'/bin/gofmt','-d',*FMT],
+        'GO_TEST': [adapter.PATHS['goRoot']+'/bin/go','test','-json','-count=1','-shuffle=off','-p=1',
+                    '-tags='+','.join(TAGS),'-run=^'+TOP+'$','-timeout=105s','./internal/mihomodeploy',
+                    '-args','-chengwang-native-completion-mode='+mode],
+    }
+    need(command_class in commands)
+    return tuple(commands[command_class])
+
+
 def capture(state, argv, name, err_name, timeout, command_class):
     s = service_worker(); a = s.adapter(); w = a.shared()
     actual = tuple(argv)
-    need(command_class == COMMANDS[state.get('completionCommandSequence', 0)] and
-         type(timeout) is int and 0 < timeout <= 120 and actual and
-         all(type(arg) is str and 0 < len(arg) <= 4096 for arg in actual))
+    need(name in CAPTURE_COMMANDS and
+         (err_name, command_class, timeout) == CAPTURE_COMMANDS[name] and
+         command_class == COMMANDS[state.get('completionCommandSequence', 0)] and
+         type(timeout) is int and actual and
+         all(type(arg) is str and 0 < len(arg) <= 4096 for arg in actual) and
+         actual == completion_argv(state, a, w, command_class))
     observed, code = False, None
     try:
-        code = a.capture(state, actual, name, err_name, timeout)
+        a.process_event(state, command_class, 'START_INTENT')
+        with (a.ROOT_PRIVATE/name).open('xb') as stdout, (a.ROOT_PRIVATE/err_name).open('xb') as stderr:
+            os.fchmod(stdout.fileno(), 0o600)
+            os.fchmod(stderr.fileno(), 0o600)
+            try:
+                process = subprocess.Popen(w.unprivileged(actual, state['environment']),
+                                           env=w.ROOT_ENV, cwd=a.PATHS['module'],
+                                           stdin=subprocess.DEVNULL, stdout=stdout,
+                                           stderr=stderr, start_new_session=True)
+            except Exception:
+                a.process_event(state, command_class, 'START_UNOBSERVED')
+                raise ValueError('owned Completion process start unobserved') from None
+            entry = dict(process=process, pidfd=None)
+            state['pending'].append(entry)
+            a.process_event(state, command_class, 'STARTED', pid=process.pid)
+            # The child is deliberately not polled or reaped before the owned
+            # reference exists. A fast-exiting child therefore cannot have its
+            # PID reused before this Completion worker binds it.
+            try:
+                fd = os.pidfd_open(process.pid, 0)
+            except Exception:
+                a.process_event(state, command_class, 'REFERENCE_UNAVAILABLE',
+                                pid=process.pid, acquired=False)
+                raise ValueError('owned Completion process reference unavailable') from None
+            entry['pidfd'] = fd
+            a.process_event(state, command_class, 'REFERENCE_ACQUIRED', pid=process.pid, acquired=True)
+            try:
+                try:
+                    code = process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    a.process_event(state, command_class, 'WAIT_TIMEOUT', pid=process.pid, acquired=True)
+                    a.process_event(state, command_class, 'SIGNAL_INTENT', pid=process.pid, acquired=True)
+                    try:
+                        signal.pidfd_send_signal(fd, signal.SIGKILL)
+                    except Exception:
+                        a.process_event(state, command_class, 'SIGNAL_UNCERTAIN',
+                                        pid=process.pid, acquired=True)
+                        raise ValueError('owned Completion process termination unobserved') from None
+                    a.process_event(state, command_class, 'SIGNAL_SENT', pid=process.pid, acquired=True)
+                    try:
+                        code = process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        a.process_event(state, command_class, 'WAIT_UNOBSERVED',
+                                        pid=process.pid, acquired=True)
+                        raise ValueError('owned Completion process wait unobserved') from None
+                except Exception:
+                    a.process_event(state, command_class, 'WAIT_UNOBSERVED',
+                                    pid=process.pid, acquired=True)
+                    raise ValueError('owned Completion process wait unobserved') from None
+                a.process_event(state, command_class, 'WAIT_RETURNED',
+                                pid=process.pid, acquired=True, exit_code=code)
+                stdout.flush(); stderr.flush()
+                os.fsync(stdout.fileno()); os.fsync(stderr.fileno())
+            finally:
+                if process.returncode is not None:
+                    os.close(fd)
+                    entry['pidfd'] = None
+                    state['pending'].remove(entry)
         observed = True
         return code
     finally:
@@ -634,6 +721,7 @@ def main(args):
     need(mode in MODES)
     state = a.prepare_namespace(*args); _STATE = state
     state['sourceBinding'] = source_binding
+    state['completionMode'] = mode
     s.bases(True); native_base(True)
     write_private_source_manifest(generated_manifest_raw)
     worker = a.PATHS['module']+'/deploy/mihomo-lifecycle-lab/native_completion_worker.py'

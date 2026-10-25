@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 
 def load_worker():
@@ -442,6 +443,210 @@ class CompletionReaderModelTests(unittest.TestCase):
         for value in (False,True,1.0):
             with self.subTest(value=repr(value)):
                 with self.assertRaises(ValueError): self.c.exact_same({'count':value},{'count':1})
+
+    def test_completion_capture_closed_dispatch_and_owned_wait_model(self):
+        worker = self.w
+
+        class Shared:
+            ROOT_ENV = {}
+            @staticmethod
+            def unprivileged(argv, environment):
+                self.assertEqual(environment, {'MODEL':'ONLY'})
+                return list(argv)
+            @staticmethod
+            def tool(name):
+                self.assertEqual(name,'python3')
+                return 'python3'
+            @staticmethod
+            def canonical(value):
+                return json.dumps(value,ensure_ascii=True,allow_nan=False,
+                                  separators=(',',':'),sort_keys=True).encode('ascii')
+            @staticmethod
+            def namespace_values():
+                return {'networkNamespace':'net:[1]','mountNamespace':'mnt:[2]','pidNamespace':'pid:[3]'}
+
+        class Adapter:
+            def __init__(self, root):
+                self.ROOT_PRIVATE = root
+                self.PATHS = {'module':str(root),'goRoot':'/model/go'}
+                self.events = []
+                self._shared = Shared()
+            def shared(self):
+                return self._shared
+            def process_event(self, state, command_class, event, **fields):
+                self.events.append((command_class,event,fields))
+
+        class Service:
+            def __init__(self, adapter): self._adapter = adapter
+            def adapter(self): return self._adapter
+
+        class Process:
+            next_pid = 4000
+            plans = []
+            calls = []
+            def __init__(self, argv, **kwargs):
+                type(self).next_pid += 1
+                self.pid = type(self).next_pid
+                self.returncode = None
+                self.plan = list(type(self).plans.pop(0))
+                type(self).calls.append((tuple(argv),kwargs))
+            def wait(self, timeout):
+                action = self.plan.pop(0)
+                if action == 'timeout':
+                    raise subprocess.TimeoutExpired(['model'],timeout)
+                self.returncode = action
+                return action
+
+        def state(binding=None):
+            return {'commit':'a'*40,'environment':{'MODEL':'ONLY'},'pending':[],
+                    'sourceBinding':binding or self.binding_fixture(),'completionMode':'positive'}
+
+        def command_rows(adapter, current):
+            binding = current['sourceBinding']; module = adapter.PATHS['module']
+            return (
+                (['python3','-B',module+'/deploy/mihomo-lifecycle-lab/native_completion_worker.py',
+                  '--sandbox',current['commit'],binding['sourceTree'],binding['indexTree'],
+                  binding['sourceManifestSHA256'],binding['sourceSetSHA256'],binding['deliverySetSHA256'],
+                  binding['policySHA256'],str(binding['sourceCount']),str(binding['deliveryCount']),'positive'],
+                 'completion-sandbox.private.json','completion-sandbox.private.stderr',30,'SANDBOX'),
+                (['/model/go/bin/go','version'],'go-version.txt','go-version.private.stderr',15,'GO_VERSION'),
+                (['/model/go/bin/gofmt','-d',*worker.FMT],
+                 'completion-gofmt.patch','completion-gofmt.stderr',30,'GOFMT'),
+                (['/model/go/bin/go','test','-json','-count=1','-shuffle=off','-p=1',
+                  '-tags='+','.join(worker.TAGS),'-run=^'+worker.TOP+'$','-timeout=105s',
+                  './internal/mihomodeploy','-args','-chengwang-native-completion-mode=positive'],
+                 'completion.json','completion.stderr',120,'GO_TEST'))
+
+        def pidfd_open(pid, flags):
+            self.assertGreaterEqual(pid,4001); self.assertEqual(flags,0)
+            return os.open(os.devnull,os.O_RDONLY)
+
+        def receipt_sink(rows):
+            def append(current, row):
+                sequence = current.get('completionCommandSequence',0)+1
+                self.assertEqual(row['sequence'],sequence)
+                self.assertEqual(row['commandClass'],worker.COMMANDS[sequence-1])
+                rows.append(copy.deepcopy(row))
+                current['completionCommandSequence'] = sequence
+            return append
+
+        original_service = worker.service_worker
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = Adapter(Path(directory))
+            worker.service_worker = lambda: Service(adapter)
+            Process.calls,Process.plans = [],[[0],[0],[0],[0]]
+            receipts = []
+            try:
+                with mock.patch.object(worker.subprocess,'Popen',Process), \
+                     mock.patch.object(worker.os,'pidfd_open',pidfd_open,create=True), \
+                     mock.patch.object(worker.os,'fchmod',lambda fd,mode: None,create=True), \
+                     mock.patch.object(worker.signal,'pidfd_send_signal',create=True), \
+                     mock.patch.object(worker,'append_command',receipt_sink(receipts)):
+                    current = state()
+                    rows = command_rows(adapter,current)
+                    for argv,name,err,timeout,command_class in rows:
+                        self.assertEqual(worker.capture(current,argv,name,err,timeout,command_class),0)
+                    self.assertEqual(current['completionCommandSequence'],4)
+                    self.assertEqual(current['pending'],[])
+                    self.assertEqual(len(Process.calls),4)
+                    self.assertEqual([event for _,event,_ in adapter.events],
+                                     ['START_INTENT','STARTED','REFERENCE_ACQUIRED','WAIT_RETURNED']*4)
+                    self.assertEqual([row['commandClass'] for row in receipts],list(worker.COMMANDS))
+                    self.assertTrue(all(row['observed'] and row['exitCode'] == 0 for row in receipts))
+
+                    sandbox = command_rows(adapter,state())[0][0]
+                    rejected = (
+                        (sandbox,'unknown','completion-sandbox.private.stderr',30,'SANDBOX'),
+                        (sandbox,'completion-sandbox.private.json','wrong.stderr',30,'SANDBOX'),
+                        (sandbox,'completion-sandbox.private.json','completion-sandbox.private.stderr',29,'SANDBOX'),
+                        (sandbox,'completion-sandbox.private.json','completion-sandbox.private.stderr',30,'GO_VERSION'),
+                        (sandbox+['foreign'],'completion-sandbox.private.json','completion-sandbox.private.stderr',30,'SANDBOX'))
+                    for argv,name,err,timeout,command_class in rejected:
+                        before = len(Process.calls)
+                        with self.assertRaises(ValueError):
+                            worker.capture(state(),argv,name,err,timeout,command_class)
+                        self.assertEqual(len(Process.calls),before)
+            finally:
+                worker.service_worker = original_service
+
+        # Reference failure keeps the actual child in pending and never polls,
+        # reaps, or falls back to a numeric PID signal.
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = Adapter(Path(directory)); worker.service_worker = lambda: Service(adapter)
+            Process.calls,Process.plans = [],[[0]]
+            try:
+                with mock.patch.object(worker.subprocess,'Popen',Process), \
+                     mock.patch.object(worker.os,'pidfd_open',side_effect=OSError('model'),create=True), \
+                     mock.patch.object(worker.os,'fchmod',lambda fd,mode: None,create=True), \
+                     mock.patch.object(worker,'append_command',receipt_sink([])):
+                    current = state()
+                    argv,name,err,timeout,command_class = command_rows(adapter,current)[0]
+                    with self.assertRaisesRegex(ValueError,'reference unavailable'):
+                        worker.capture(current,argv,name,err,timeout,command_class)
+                    self.assertEqual(len(current['pending']),1)
+                    self.assertIsNone(current['pending'][0]['process'].returncode)
+                    self.assertEqual([event for _,event,_ in adapter.events][-1],'REFERENCE_UNAVAILABLE')
+            finally:
+                worker.service_worker = original_service
+
+        # Timeout termination is pidfd-only, bounded by the fixed five-second
+        # second wait, and is not reported complete until that wait returns.
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = Adapter(Path(directory)); worker.service_worker = lambda: Service(adapter)
+            Process.calls,Process.plans = [],[[0],[0],[0],['timeout',-9]]; signals = []
+            def send(fd, sig): signals.append((fd,sig))
+            try:
+                with mock.patch.object(worker.subprocess,'Popen',Process), \
+                     mock.patch.object(worker.os,'pidfd_open',pidfd_open,create=True), \
+                     mock.patch.object(worker.os,'fchmod',lambda fd,mode: None,create=True), \
+                     mock.patch.object(worker.signal,'SIGKILL',9,create=True), \
+                     mock.patch.object(worker.signal,'pidfd_send_signal',send,create=True), \
+                     mock.patch.object(worker,'append_command',receipt_sink([])):
+                    current = state()
+                    rows = command_rows(adapter,current)
+                    for argv,name,err,timeout,command_class in rows[:3]:
+                        self.assertEqual(worker.capture(current,argv,name,err,timeout,command_class),0)
+                    self.assertEqual(worker.capture(current,*rows[3]),-9)
+                    self.assertEqual(current['pending'],[])
+                    self.assertEqual(len(signals),1)
+                    self.assertEqual([event for _,event,_ in adapter.events][-7:],
+                        ['START_INTENT','STARTED','REFERENCE_ACQUIRED','WAIT_TIMEOUT',
+                         'SIGNAL_INTENT','SIGNAL_SENT','WAIT_RETURNED'])
+                    self.assertEqual(Process.calls[-1][1]['start_new_session'],True)
+                    self.assertEqual(Process.calls[-1][0],tuple(rows[3][0]))
+            finally:
+                worker.service_worker = original_service
+
+        for failure in ('signal','second-wait'):
+            with self.subTest(timeoutFailure=failure), tempfile.TemporaryDirectory() as directory:
+                adapter = Adapter(Path(directory)); worker.service_worker = lambda: Service(adapter)
+                final_plan = ['timeout'] if failure == 'signal' else ['timeout','timeout']
+                Process.calls,Process.plans = [],[[0],[0],[0],final_plan]; signals = []
+                def send_or_fail(fd, sig):
+                    signals.append((fd,sig))
+                    if failure == 'signal': raise OSError('model')
+                try:
+                    with mock.patch.object(worker.subprocess,'Popen',Process), \
+                         mock.patch.object(worker.os,'pidfd_open',pidfd_open,create=True), \
+                         mock.patch.object(worker.os,'fchmod',lambda fd,mode: None,create=True), \
+                         mock.patch.object(worker.signal,'SIGKILL',9,create=True), \
+                         mock.patch.object(worker.signal,'pidfd_send_signal',send_or_fail,create=True), \
+                         mock.patch.object(worker,'append_command',receipt_sink([])):
+                        current = state(); rows = command_rows(adapter,current)
+                        for argv,name,err,timeout,command_class in rows[:3]:
+                            self.assertEqual(worker.capture(current,argv,name,err,timeout,command_class),0)
+                        expected = 'termination unobserved' if failure == 'signal' else 'wait unobserved'
+                        with self.assertRaisesRegex(ValueError,expected):
+                            worker.capture(current,*rows[3])
+                        self.assertEqual(len(current['pending']),1)
+                        self.assertIsNone(current['pending'][0]['process'].returncode)
+                        events = [event for _,event,_ in adapter.events]
+                        self.assertIn('WAIT_TIMEOUT',events)
+                        self.assertIn('SIGNAL_INTENT',events)
+                        self.assertIn('SIGNAL_UNCERTAIN' if failure == 'signal' else 'WAIT_UNOBSERVED',events)
+                        os.close(current['pending'][0]['pidfd'])
+                finally:
+                    worker.service_worker = original_service
 
 
 if __name__ == '__main__':
