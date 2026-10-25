@@ -11,7 +11,15 @@ def dbcopy(src,dst):
  a=sqlite3.connect('file:'+str(src)+'?mode=ro',uri=True);b=sqlite3.connect(dst)
  try:a.backup(b);assert b.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
  finally:a.close();b.close()
-if ARGS['phase']=='preflight':
+if ARGS['phase']=='observe':
+ import importlib.util
+ b=Path(ARGS['server']);spec=importlib.util.spec_from_file_location('strict_recovery',b/'stage/server_recovery.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+ db=sqlite3.connect('file:'+str(P/'data/uptime-kuma/kuma.db')+'?mode=ro',uri=True)
+ try:rows=db.execute('SELECT m.name,h.status FROM monitor m LEFT JOIN heartbeat h ON h.id=(SELECT MAX(id) FROM heartbeat WHERE monitor_id=m.id) WHERE m.active=1').fetchall()
+ finally:db.close()
+ result={'health':mod.health(),'active_monitor_count':len(rows),'monitor_status_counts':{str(status):sum(1 for _,v in rows if v==status) for status in {v for _,v in rows}},'center_running':json.loads(run(['docker','inspect','clash-center']))[0]['State']['Running']}
+ save(b/('observation-'+str(int(time.time()))+'.json'),result)
+elif ARGS['phase']=='preflight':
  x=json.loads(run(['docker','inspect','clash-center']))[0]
  quality=json.loads((D/'route-quality-policy.json').read_text())
  result={'center':{'image_id':x['Image'],'tag':x['Config']['Image'],'running':x['State']['Running'],'health':x['State'].get('Health',{}).get('Status')},

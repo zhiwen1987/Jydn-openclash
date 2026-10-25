@@ -46,7 +46,11 @@ def main():
    port=19446 if folder==a else 19447;deadline=time.time()+30
    while time.time()<deadline:
     if p.poll() is not None:raise RuntimeError('isolated core exited: '+(folder/'core.log').read_text()[-500:])
-    try:api(port,'/version');return p
+    try:
+     api(port,'/version')
+     if folder==b and api(port,'/proxies/Google').get('type')!='Selector':raise RuntimeError('groups not ready')
+     with socket.create_connection(('127.0.0.1',19441 if folder==a else 19445),timeout=.4):pass
+     return p
     except Exception:time.sleep(.25)
    raise RuntimeError('isolated core not ready')
   def stop(p):

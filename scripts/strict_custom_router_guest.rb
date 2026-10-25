@@ -16,6 +16,18 @@ paths['group_filter']='/etc/openclash/custom/jydn_patch_runtime_groups.rb'
 paths['catalog']='/etc/openclash/custom/jydn_business_group_catalog.json'
 files=paths.transform_values{|p|File.file?(p) ? {'path'=>p,'sha256'=>hash_file(p),'bytes'=>File.size(p)} : {'path'=>p,'missing'=>true}}
 case ARGS.fetch('phase')
+when 'observe'
+ b=ARGS.fetch('router');require b+'/stage/strict_custom_router_recovery';r=StrictRouterRecovery;y=YAML.load_file(runtime)
+ port=y['mixed-port'].to_i;port=y['port'].to_i if port==0;raise 'http_proxy_listener_missing' if port==0
+ tests={}
+ {'google'=>'https://www.google.com/generate_204','github'=>'https://github.com/','domestic'=>'https://www.baidu.com/'}.each do |name,url|
+  config='url = '+r.json(url)+"\nproxy = "+r.json('http://127.0.0.1:'+port.to_s)+"\n"
+  auth=Array(y['authentication']).first;config+='proxy-user = '+r.json(auth)+"\n" if auth
+  output=IO.popen(['curl','-sS','--max-time','12','-o','/dev/null','-w','%{http_code} %{time_total}','--config','-'],'r+',err:File::NULL){|f|f.write(config);f.close_write;f.read}
+  tests[name]={'http_code'=>output.split.first,'seconds'=>output.split.last,'curl_ok'=>$?.success?}
+ end
+ now=r.api('/proxies')['proxies'];result={'identity'=>'00:0c:29:2d:96:e8','probes'=>tests,'rule_count'=>r.api('/rules')['rules'].length,'groups'=>now.values.count{|v|v.key?('all')},'mode'=>r.api('/configs')['mode'],'source_sha256'=>hash_file(source)}
+ r.atomic(b+'/observation-'+Time.now.to_i.to_s+'.yaml',YAML.dump(result));puts YAML.dump(result)
 when 'preflight'
  if ARGS['router'] && File.file?(ARGS['router']+'/stage/core-validation.log')
   lines=File.readlines(ARGS['router']+'/stage/core-validation.log').last(12).map{|line|line.gsub(/https?:\/\/\S+/,'[URL]').gsub(/(secret|password|token|authentication)\s*[:=]\s*\S+/i,'\\1=[REDACTED]')}
