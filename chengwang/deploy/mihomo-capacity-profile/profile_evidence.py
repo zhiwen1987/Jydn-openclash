@@ -29,7 +29,17 @@ FULL_FMT=[*CAPACITY_FMT,
     'internal/mihomodeploy/lifecycle_current_epoch.go',
     'internal/mihomodeploy/lifecycle_current_epoch_test.go',
     'internal/mihomodeploy/lab_current_epoch_runtime.go',
-    'internal/mihomodeploy/lab_current_epoch_runtime_test.go']
+    'internal/mihomodeploy/lab_current_epoch_runtime_test.go',
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/mihomodeploy/lab_service.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+    'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go']
 RAW_NAMES=('go-version.txt','gofmt.patch','gofmt.stderr','capacity.json','capacity.stderr',
     'commands.jsonl','execution.json','profile-state.json','pprof-top.txt','pprof-top.stderr','pprof-cum.txt','pprof-cum.stderr')
 RESOURCE_NAMES=('resource-before.json','resource-after.json')

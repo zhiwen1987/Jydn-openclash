@@ -1,0 +1,133 @@
+{
+  "artifacts": [
+    {
+      "bytes": 297660,
+      "crcAndPathCheck": "PASS",
+      "downloadStderrBytes": 0,
+      "id": 12615663563,
+      "memberCount": 19,
+      "name": "mihomo-capacity-profile-40238148526-1",
+      "sha256": "71726de1da72e898f5afcbd05f53e6249b775e4fc1111b5db1f253234a330f2b"
+    },
+    {
+      "bytes": 536618,
+      "crcAndPathCheck": "PASS",
+      "downloadStderrBytes": 0,
+      "id": 12615409266,
+      "memberCount": 21,
+      "name": "mihomo-capacity-profile-full-40238148526-1",
+      "sha256": "236485503017acba634b9115f30c0ced1267affde619d01fac163bd82ac05351"
+    },
+    {
+      "bytes": 251811,
+      "crcAndPathCheck": "PASS",
+      "downloadStderrBytes": 0,
+      "id": 12615374450,
+      "memberCount": 13,
+      "name": "mihomo-foundation-contracts-40238148520-1",
+      "sha256": "7990fd3166cdfef70b69803de02e85cfe2e9ae01035f8d3fb161cfc99a020b93"
+    }
+  ],
+  "boundaries": [
+    "No local Go, gofmt, HTTP product test, workflow restart, production action, or repository-R write was performed.",
+    "The successful 70.24 second profile case is a different execution mode and is not used as the source-benefit comparison.",
+    "The full diagnostic captured every required top but failed the new MODEL; normal race still timed out at the unchanged 180 second gate.",
+    "This receipt does not accept N3 and does not claim that its production optimization is invalid."
+  ],
+  "diagnosticFull": {
+    "capacityJSONSHA256": "4cfa654c2b2bd811c0b85a4f8a5233b03713579880174c43f730909028e4f8f2",
+    "capacityTestElapsedSeconds": 65.01,
+    "failedSubtest": "fresh-begin-revoke-exactly-match-generic",
+    "failedTop": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore",
+    "failedTopElapsedSeconds": 0.46,
+    "failureSourceLine": "chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go:187",
+    "failureText": "MODEL fresh begin changed canonical bytes",
+    "formatClean": true,
+    "goExit": 1,
+    "mihomodeployPackageElapsedSeconds": 147.671,
+    "packageTimeoutObserved": false,
+    "required": {
+      "failed": 1,
+      "notStarted": 0,
+      "passed": 687,
+      "skipped": 0,
+      "unfinished": 0
+    }
+  },
+  "diagnosticProfile": {
+    "capacityJSONSHA256": "396546468f5d879f661bc400eb152442fddcc7116351dbdabf4dc5644ee18c48",
+    "capacityTest": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+    "formatClean": true,
+    "goExit": 0,
+    "packageElapsedSeconds": 71.266,
+    "profileComplete": true,
+    "profileTimerSeconds": 60,
+    "testElapsedSeconds": 70.24,
+    "testPass": true
+  },
+  "normalOrdinary": {
+    "capacityTestElapsedSeconds": 7.2,
+    "eventJSONSHA256": "51c7e01df367ec5f8f79e2d5ccde32a95d7cf7c53def4581170ed259792363d0",
+    "exit": 1,
+    "failedSubtest": "fresh-begin-revoke-exactly-match-generic",
+    "failedTop": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore",
+    "failedTopElapsedSeconds": 0.06,
+    "failureSourceLine": "chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go:187",
+    "failureText": "MODEL fresh begin changed canonical bytes",
+    "mihomodeployPackageElapsedSeconds": 23.901,
+    "required": {
+      "failed": 1,
+      "notStarted": 0,
+      "passed": 687,
+      "skipped": 0,
+      "unfinished": 0
+    }
+  },
+  "normalRace": {
+    "capacityTestElapsedSeconds": 86.45,
+    "eventJSONSHA256": "ba00e39717779a3b23f76bf2580f3570820f9ad56cc05585c1a8f67e4945301c",
+    "exit": 1,
+    "failedTop": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore",
+    "mihomodeployPackageElapsedSeconds": 180.047,
+    "packageTimeoutObserved": true,
+    "required": {
+      "failed": 1,
+      "notStarted": 100,
+      "passed": 586,
+      "skipped": 0,
+      "unfinished": 1
+    },
+    "unfinishedTop": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal"
+  },
+  "performanceComparison": {
+    "diagnostic70_24ComparedToNormalBaseline": false,
+    "interpretation": "ONE_RUN_OBSERVATION_ONLY_NOT_STABLE_SOURCE_BENEFIT",
+    "observedDifferenceSeconds": -2.4,
+    "race180Closed": false,
+    "sameModeNormalRaceBaseline9adSeconds": 88.85,
+    "sameModeNormalRaceN3Seconds": 86.45
+  },
+  "runs": {
+    "diagnostic": 40238148526,
+    "normal": 40238148520,
+    "restarted": false
+  },
+  "schema": "chengwang.mihomo-n3-actual-failure-receipt/v1",
+  "source": {
+    "commit": "3c6d45633afcf92923340d7dbc04bddb6e9e526b",
+    "goVersion": "go1.23.12 linux/amd64",
+    "immutablePath": "D:/CodexData/workspace/mihomo-3c6d456-acceptance-1bsrd0o3/repo",
+    "trackedPaths": 1385
+  },
+  "sourceDiagnosis": {
+    "finding": "The shared canonical seed is opened without first publishing one actual RecoveryOwner. Both compared BEGIN paths therefore attempt to add Recovery while RecoveryOwner is nil, which the unchanged strict validator rejects.",
+    "minimumCorrection": "Create one actual model store, acquire its recovery owner once, capture that resulting canonical raw plus the original plan and time, and then open two independent cloned disks from those exact post-owner bytes before comparing the specialized and generic BEGIN/REVOKE paths.",
+    "productionSourceFailureProven": false,
+    "randomReaderOverrideAllowed": false,
+    "scope": "MODEL_FIXTURE_ONLY",
+    "seedLines": "chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go:163-178",
+    "strictValidatorLines": "chengwang/internal/mihomodeploy/lifecycle_v3.go:565-568",
+    "validatorWeakeningAllowed": false
+  },
+  "status": "REJECT_N3_MODEL_FIXTURE_AND_RACE180_STILL_OPEN"
+}

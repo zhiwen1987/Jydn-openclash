@@ -30,7 +30,17 @@ FULL_FMT=[*CAPACITY_FMT,
     'internal/mihomodeploy/lifecycle_current_epoch.go',
     'internal/mihomodeploy/lifecycle_current_epoch_test.go',
     'internal/mihomodeploy/lab_current_epoch_runtime.go',
-    'internal/mihomodeploy/lab_current_epoch_runtime_test.go']
+    'internal/mihomodeploy/lab_current_epoch_runtime_test.go',
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/mihomodeploy/lab_service.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+    'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go']
 FULL_REQUIRED_PIN='b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280'
 FULL_PREVIOUS_661_PIN='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
 FULL_CORE_D_ADDED=frozenset({
@@ -284,7 +294,7 @@ def load_normal_checker(sources=None):
     if sources is not None:need(type(sources)is dict and sources.get(NORMAL_CHECKER)==code)
     module=types.ModuleType('_actual_bound_normal_contract_checker');module.__file__=str(path)
     exec(compile(code,str(path),'exec'),module.__dict__)
-    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==150 and len(module.TEST_FILES)==58)
+    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==158 and len(module.TEST_FILES)==58)
     return module
 
 def full_source_contract(sources,manifest):
@@ -332,7 +342,7 @@ def full_source_contract(sources,manifest):
     # -run '^Test' is equivalent to the current normal test selection only
     # because none of the six packages declares Example/Fuzz entry points.
     # Audit ALL package test files bound by the complete Git manifest, not
-    # only the 54 mandatory files. A future new entry point fails closed and
+    # only the 58 mandatory files. A future new entry point fails closed and
     # needs an explicit diagnostic-contract upgrade instead of silent omission.
     package_dirs={'chengwang'+p[1:]for p in FULL_PACKAGES};suite_test_sources={}
     repo=Path(__file__).resolve().parents[3]
@@ -351,13 +361,22 @@ def full_source_contract(sources,manifest):
         'chengwang/internal/mihomodeploy/lab_recovery_unstarted_cleanup_linux_test.go',
         'chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile_test.go',
     }
-    need(completion_source in suite_test_sources and len(suite_test_sources)==88 and
+    continuous_test_sources={
+        'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+        'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+        'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    }
+    need(completion_source in suite_test_sources and len(suite_test_sources)==91 and
          core_d_test_sources.issubset(suite_test_sources) and completion_source not in dict(checker.TEST_FILES) and
+         continuous_test_sources.issubset(suite_test_sources) and
+         continuous_test_sources.isdisjoint(dict(checker.TEST_FILES)) and
          all(any(p.rsplit('/',1)[0]==directory for p in suite_test_sources)for directory in package_dirs))
+    previous88={path:digest for path,digest in suite_test_sources.items()if path not in continuous_test_sources}
+    need(len(previous88)==88 and core_d_test_sources.issubset(previous88))
     # Preserve the previously accepted complete 84-source set explicitly.  The
     # four-tag Completion harness is source-bound but intentionally excluded
     # from ordinary mandatory names, while the four core+D sources are new.
-    previous84={path:digest for path,digest in suite_test_sources.items()if path not in core_d_test_sources}
+    previous84={path:digest for path,digest in previous88.items()if path not in core_d_test_sources}
     need(len(previous84)==84 and completion_source in previous84)
     # Bind the diagnosis's six-package command to the unchanged normal race
     # command, allowing only the fixed diagnostic tag and test filter.
@@ -366,7 +385,10 @@ def full_source_contract(sources,manifest):
     return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':688,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,
-        'previousCompletePackageTestSourceCount':len(previous84),'previousCompletePackageTestSourceSHA256':previous84,
+        'previousCompletePackageTestSourceCount':len(previous88),'previousCompletePackageTestSourceSHA256':previous88,
+        'historicalCompletePackageTestSourceCount':len(previous84),'historicalCompletePackageTestSourceSHA256':previous84,
+        'continuousRecoveryTaggedTestSourceCount':len(continuous_test_sources),
+        'continuousRecoveryTaggedTestsExcludedFromOrdinaryMandatoryNames':True,
         'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
         'noExampleOrFuzzDeclarationInBoundSixPackageTestSources':True}
 

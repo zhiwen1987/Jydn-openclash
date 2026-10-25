@@ -60,7 +60,17 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lifecycle_v3_decode_scope_test.go',
     'lifecycle_current_epoch.go',
     'lifecycle_current_epoch_test.go', 'lab_current_epoch_runtime.go',
-    'lab_current_epoch_runtime_test.go'))
+    'lab_current_epoch_runtime_test.go')) + (
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/mihomodeploy/lab_service.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+    'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go')
 RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json', 'local-marker.json')
 RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 PUBLIC = ('host-before.json', 'host-after.json', 'consumption.json', 'consumption-independent.json',
@@ -424,6 +434,17 @@ def contract(sources):
     go = sources['chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go'].decode('utf-8')
     need(go.startswith('//go:build linux && chengwang_mihomo_service && chengwang_mihomo_faults && chengwang_mihomo_recovery_native\n'))
     need(re.findall(r'^func (Test\w+)\(t \*testing\.T\)', go, re.M) == [TOP])
+    # The old S2 command never enables the continuous fault. Its ordinary
+    # build therefore selects both default bridges. The continuous HTTP
+    # harness is the only supported owner of the new fault tag, and its
+    # server bridge explicitly excludes the old-fault and Completion tags.
+    need('chengwang_mihomo_recovery_continuous_fault' not in TAGS)
+    need(sources['chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go'].startswith(
+        b'//go:build !linux || !chengwang_mihomo_recovery_continuous_fault || !chengwang_mihomo_recovery_native\n'))
+    need(sources['chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go'].startswith(
+        b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'))
+    need(sources['chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go'].startswith(
+        b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'))
     return value
 
 
@@ -1136,6 +1157,8 @@ FILES = (
     'chengwang/internal/adapter/mihomo/lab_reload_fault_linux.go',
     'chengwang/internal/adapter/mihomo/lab_reload_fault_linux_test.go',
     'chengwang/internal/adapter/mihomo/lab_reload_fault_unsupported.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
+    'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
     'chengwang/internal/adapter/mihomo/lab_target_readback.go',
     'chengwang/internal/adapter/mihomo/lab_target_readback_test.go',
     'chengwang/internal/adapter/mihomo/write_client.go',
@@ -1180,6 +1203,9 @@ FILES = (
     'chengwang/internal/mihomodeploy/lab_collector_linux_test.go',
     'chengwang/internal/mihomodeploy/lab_collector_test.go',
     'chengwang/internal/mihomodeploy/lab_collector_unsupported.go',
+    'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
+    'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
+    'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'chengwang/internal/mihomodeploy/lab_expectation.go',
     'chengwang/internal/mihomodeploy/lab_expectation_test.go',
     'chengwang/internal/mihomodeploy/lab_kernel.go',
@@ -1244,6 +1270,9 @@ FILES = (
     'chengwang/internal/mihomodeploy/runtime_compat_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_lab_config_test.go',
     'chengwang/internal/serverruntime/mihomo_lab_runtime.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
     'chengwang/internal/serverruntime/mihomo_service_e2e_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
     'chengwang/internal/serverruntime/runtime.go',
@@ -1286,7 +1315,7 @@ FILES = tuple(sorted((*FILES,
 
 
 def make_source_manifest(sources, source_commit):
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 188)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 196)
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     return {'schema': 'chengwang.mihomo-native-source-manifest/v1',
             'scope': 'FIXED_GIT_SOURCE_BYTES_NOT_NATIVE_EXECUTION',
@@ -1315,7 +1344,7 @@ def verify_raw(raw, sources, source_commit, variant='positive'):
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 33)
     need(all(type(v) is bytes and len(v) <= 16 << 20 for v in raw.values()) and sum(map(len, raw.values())) <= 16 << 20)
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 188)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 196)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     for path in FILES:
         source_path(path)

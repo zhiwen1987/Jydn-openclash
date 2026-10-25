@@ -240,6 +240,9 @@ func RunWith(options Options) (result error) {
 		if err != nil {
 			return errMihomoLabRuntime
 		}
+		if err := bindLabContinuousRecoveryHarness(mihomoLab); err != nil {
+			return errMihomoLabRuntime
+		}
 	}
 	var subscriptions subscriptionctl.Backend
 	if c.SubscriptionsEnabled {

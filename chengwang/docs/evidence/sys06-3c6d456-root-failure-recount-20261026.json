@@ -1,0 +1,289 @@
+{
+  "artifacts": [
+    {
+      "artifact": "mihomo-foundation-contracts-40238148520-1.zip",
+      "bytes": 251811,
+      "execution": {
+        "formatExit": 0,
+        "ordinaryExit": 1,
+        "production": false,
+        "raceExit": 1,
+        "realMihomoExecuted": false,
+        "schema": "chengwang.mihomo-contract-execution/v1"
+      },
+      "headBindingBasis": "GITHUB_RUN_HEAD_AND_ARTIFACT_DIGEST_NOT_A_FIELD_OF_V1_EXECUTION",
+      "members": 13,
+      "sha256": "7990fd3166cdfef70b69803de02e85cfe2e9ae01035f8d3fb161cfc99a020b93",
+      "streams": {
+        "ordinary.json": {
+          "failed": [
+            "chengwang/internal/mihomodeploy::TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore"
+          ],
+          "failureMessages": [
+            {
+              "output": "lifecycle_recovery_store_test.go:187: MODEL fresh begin changed canonical bytes",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic"
+            },
+            {
+              "output": "--- FAIL: TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic (0.02s)",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic"
+            },
+            {
+              "output": "--- FAIL: TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore (0.06s)",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore"
+            }
+          ],
+          "mandatoryFailed": 1,
+          "mandatoryPassed": 687,
+          "notStarted": 0,
+          "packageTerminals": [
+            {
+              "action": "pass",
+              "package": "chengwang/internal/adapter/mihomo",
+              "seconds": 0.636
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/authn",
+              "seconds": 0.037
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/api",
+              "seconds": 0.504
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/authz",
+              "seconds": 0.008
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/serverruntime",
+              "seconds": 0.107
+            },
+            {
+              "action": "fail",
+              "package": "chengwang/internal/mihomodeploy",
+              "seconds": 23.901
+            }
+          ],
+          "sha256": "51c7e01df367ec5f8f79e2d5ccde32a95d7cf7c53def4581170ed259792363d0",
+          "slowest": [
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "seconds": 7.2
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabServiceCloseRetainsUncertainOwnedHandleUntilActualModelWait",
+              "seconds": 3.52
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabKernelUnknownStopRetainsSameOwnedHandleUntilActualWait",
+              "seconds": 1.77
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit",
+              "seconds": 0.44
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabRecoveryAuthorityStartRejectsForgedPermitAndWrongCurrentBinding",
+              "seconds": 0.39
+            }
+          ],
+          "unfinished": []
+        },
+        "race.json": {
+          "failed": [
+            "chengwang/internal/mihomodeploy::TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore"
+          ],
+          "failureMessages": [
+            {
+              "output": "lifecycle_recovery_store_test.go:187: MODEL fresh begin changed canonical bytes",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic"
+            },
+            {
+              "output": "--- FAIL: TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic (0.16s)",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic"
+            },
+            {
+              "output": "--- FAIL: TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore (0.60s)",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore"
+            },
+            {
+              "output": "panic: test timed out after 3m0s",
+              "test": "TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal/source-owner"
+            }
+          ],
+          "mandatoryFailed": 1,
+          "mandatoryPassed": 586,
+          "notStarted": 100,
+          "packageTerminals": [
+            {
+              "action": "pass",
+              "package": "chengwang/internal/adapter/mihomo",
+              "seconds": 3.196
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/authn",
+              "seconds": 1.123
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/authz",
+              "seconds": 1.046
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/api",
+              "seconds": 3.819
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/serverruntime",
+              "seconds": 1.583
+            },
+            {
+              "action": "fail",
+              "package": "chengwang/internal/mihomodeploy",
+              "seconds": 180.047
+            }
+          ],
+          "sha256": "ba00e39717779a3b23f76bf2580f3570820f9ad56cc05585c1a8f67e4945301c",
+          "slowest": [
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "seconds": 86.45
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit",
+              "seconds": 8.37
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabRecoveryAuthorityStartRejectsForgedPermitAndWrongCurrentBinding",
+              "seconds": 3.63
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabServiceCloseRetainsUncertainOwnedHandleUntilActualModelWait",
+              "seconds": 3.55
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordRejectsCopiesJSONAndCrossStoreSource",
+              "seconds": 2.59
+            }
+          ],
+          "unfinished": [
+            "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal"
+          ]
+        }
+      }
+    },
+    {
+      "artifact": "mihomo-capacity-profile-full-40238148526-1.zip",
+      "bytes": 536618,
+      "execution": {
+        "cumExit": 0,
+        "diagnosticMode": "FULL_CONTRACTS",
+        "formatExit": 0,
+        "goExit": 1,
+        "production": false,
+        "profileCaptureComplete": true,
+        "schema": "chengwang.capacity-profile-execution/v2",
+        "sourceCommit": "3c6d45633afcf92923340d7dbc04bddb6e9e526b",
+        "topExit": 0,
+        "versionExit": 0
+      },
+      "headBindingBasis": "EXECUTION_SOURCE_COMMIT_AND_GITHUB_ARTIFACT_DIGEST",
+      "members": 21,
+      "sha256": "236485503017acba634b9115f30c0ced1267affde619d01fac163bd82ac05351",
+      "streams": {
+        "capacity.json": {
+          "failed": [
+            "chengwang/internal/mihomodeploy::TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore"
+          ],
+          "failureMessages": [
+            {
+              "output": "lifecycle_recovery_store_test.go:187: MODEL fresh begin changed canonical bytes",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic"
+            },
+            {
+              "output": "--- FAIL: TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic (0.12s)",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore/fresh-begin-revoke-exactly-match-generic"
+            },
+            {
+              "output": "--- FAIL: TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore (0.46s)",
+              "test": "TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore"
+            }
+          ],
+          "mandatoryFailed": 1,
+          "mandatoryPassed": 687,
+          "notStarted": 0,
+          "packageTerminals": [
+            {
+              "action": "pass",
+              "package": "chengwang/internal/adapter/mihomo",
+              "seconds": 2.574
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/authn",
+              "seconds": 1.095
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/api",
+              "seconds": 3.101
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/authz",
+              "seconds": 1.031
+            },
+            {
+              "action": "pass",
+              "package": "chengwang/internal/serverruntime",
+              "seconds": 1.383
+            },
+            {
+              "action": "fail",
+              "package": "chengwang/internal/mihomodeploy",
+              "seconds": 147.671
+            }
+          ],
+          "sha256": "4cfa654c2b2bd811c0b85a4f8a5233b03713579880174c43f730909028e4f8f2",
+          "slowest": [
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "seconds": 65.01
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit",
+              "seconds": 6.13
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabServiceCloseRetainsUncertainOwnedHandleUntilActualModelWait",
+              "seconds": 3.54
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLabRecoveryAuthorityStartRejectsForgedPermitAndWrongCurrentBinding",
+              "seconds": 2.84
+            },
+            {
+              "name": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordRejectsCopiesJSONAndCrossStoreSource",
+              "seconds": 2.04
+            }
+          ],
+          "unfinished": []
+        }
+      }
+    }
+  ],
+  "head": "3c6d45633afcf92923340d7dbc04bddb6e9e526b",
+  "localGoExecuted": false,
+  "mandatoryCount": 688,
+  "originalsChanged": false,
+  "productionChanged": false,
+  "schema": "chengwang.3c6-root-bounded-failure-recount/v2",
+  "scope": "RAW_ZIP_AND_GO_REQUIRED_TOPS_ONLY_NOT_FULL_CHECKER_ACCEPTANCE"
+}

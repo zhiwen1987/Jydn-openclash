@@ -552,6 +552,23 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
             with self.subTest(kind=kind), self.assertRaises(ValueError):
                 C.verify_raw(bad, changed, commit)
 
+    def test_old_native_source_closure_selects_defaults_and_rejects_dual_fault_tags(self):
+        sources = fixture_sources()
+        self.assertEqual(len(C.FILES), 196)
+        self.assertEqual(len(C.FMT), 28)
+        self.assertEqual(C.contract(sources)['tags'], list(C.TAGS))
+        changed = dict(sources)
+        path = 'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go'
+        changed[path] = changed[path].replace(b' || chengwang_mihomo_faults', b'', 1)
+        with self.assertRaises(ValueError):
+            C.contract(changed)
+        changed = dict(sources)
+        contract = C.decode(changed[C.PREFIX + 'native_recovery_contract.json'])
+        contract['tags'].append('chengwang_mihomo_recovery_continuous_fault')
+        changed[C.PREFIX + 'native_recovery_contract.json'] = C.canonical(contract)
+        with self.assertRaises(ValueError):
+            C.contract(changed)
+
     def test_actual_command_projection_rejects_changed_run_tag_timeout_or_namespace(self):
         raw, sources, commit = closed_fixture()
         for kind in ('run', 'tags', 'timeout', 'cwd', 'namespace', 'unobserved'):

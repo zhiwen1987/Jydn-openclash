@@ -293,8 +293,8 @@ class CompletionReaderModelTests(unittest.TestCase):
         with mock.patch.object(self.w, 'service_worker', return_value=Service()):
             self.assertEqual(self.w.contract(), declaration)
             fields = declaration['completePackageTestSources']
-            for key, old in (('previousCount',83),('candidateCount',84),
-                             ('ordinaryMandatoryTopLevelCount',661)):
+            for key, old in (('historicalCount',83),('previousCount',87),('candidateCount',90),
+                             ('continuousRecoveryTaggedSourceCount',2),('ordinaryMandatoryTopLevelCount',661)):
                 for wrong in (old, float(fields[key]), True):
                     with self.subTest(contractField=key, wrong=wrong):
                         changed = copy.deepcopy(declaration)

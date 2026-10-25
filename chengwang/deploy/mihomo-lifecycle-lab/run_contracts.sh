@@ -110,6 +110,16 @@ files+=(
   internal/serverruntime/mihomo_unknown_e2e_linux_test.go
 )
 files+=(
+  internal/adapter/mihomo/lab_reload_response_schedule_linux.go
+  internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go
+  internal/mihomodeploy/lab_continuous_recovery_fault_default.go
+  internal/mihomodeploy/lab_continuous_recovery_fault_linux.go
+  internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go
+  internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go
+  internal/serverruntime/mihomo_continuous_recovery_hook_default.go
+  internal/serverruntime/mihomo_continuous_recovery_hook_linux.go
+)
+files+=(
   internal/authz/model.go
   internal/authz/policy.go
   internal/authz/policy_test.go

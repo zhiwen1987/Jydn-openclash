@@ -867,10 +867,15 @@ func (c *labServiceCore) execute(ctx context.Context, headers []string, id strin
 		c.mu.Unlock()
 		return
 	}
+	if labContinuousRecoveryBeforeReload(c, writer, prepared, id, intent) != nil {
+		c.mu.Unlock()
+		return
+	}
 	c.once[intent] = "RELOAD_CALL_CLAIMED"
 	_ = c.diagnostics.event("RELOAD_CALL_INTENT", id, intent)
 	c.mu.Unlock()
 	result, _ := writer.Reload(ctx, prepared.CandidateBytes())
+	defer labContinuousRecoveryAfterReload(c, writer, prepared, id, intent, result)
 	c.mu.Lock()
 	actualResult := result
 	c.lastObservedResult = &actualResult

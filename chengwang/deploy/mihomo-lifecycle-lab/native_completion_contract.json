@@ -58,10 +58,13 @@
     "oldTwentyOneSourceManifestAccepted": false
   },
   "completePackageTestSources": {
-    "previousCount": 84,
-    "candidateCount": 88,
+    "historicalCount": 84,
+    "previousCount": 88,
+    "candidateCount": 91,
+    "continuousRecoveryTaggedSourceCount": 3,
     "ordinaryMandatoryTopLevelCount": 688,
-    "completionHarnessExcludedFromOrdinaryMandatoryNames": true
+    "completionHarnessExcludedFromOrdinaryMandatoryNames": true,
+    "continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames": true
   },
   "coldReopen": {
     "coldReopenMatchedDiskMeaning": "POST_OPEN_DISK_EQUALS_REOPENED_STORE_RAW",

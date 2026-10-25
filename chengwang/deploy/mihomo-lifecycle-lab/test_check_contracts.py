@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import re
 import tempfile
 import unittest
 from unittest import mock
@@ -257,7 +258,7 @@ class ContractEvidenceModels(unittest.TestCase):
             S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
-        self.assertEqual(len(self.sources), 150)
+        self.assertEqual(len(self.sources), 158)
         self.assertEqual(len(S.PACKAGES), 6)
         result = self.verify_model()
         self.assertEqual(set(result['suites']), {'ordinary.json', 'race.json'})
@@ -273,6 +274,27 @@ class ContractEvidenceModels(unittest.TestCase):
                     self.verify_model()
         self.payloads['go-version.txt'] = version
         self.flush()
+
+    def test_continuous_tagged_sources_are_bound_but_not_ordinary_required_tests(self):
+        self.assertEqual(set(S.CONTINUOUS_RECOVERY_COMPAT_FILES) - set(self.sources), set())
+        repo = Path(__file__).resolve().parents[3]
+        tagged = {
+            'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+            'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+            'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+        }
+        self.assertTrue(tagged.isdisjoint(dict(S.TEST_FILES)))
+        self.assertTrue((repo/'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go').read_bytes().startswith(
+            b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'))
+        self.assertTrue((repo/'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go').read_bytes().startswith(
+            b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'))
+        run = (repo/'chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh').read_text(encoding='utf8')
+        declared = set(re.findall(r'(?<![A-Za-z0-9_./-])(internal/[A-Za-z0-9_./-]+\.go)(?![A-Za-z0-9_./-])',
+                                  run.split('"${common[@]}" "$goroot/bin/gofmt"', 1)[0]))
+        bound = {path.removeprefix('chengwang/') for path in S.FILES
+                 if path.startswith('chengwang/') and path.endswith('.go')}
+        self.assertEqual(len(declared), 152)
+        self.assertEqual(declared, bound)
 
     def test_missing_race_cannot_be_replaced_by_ordinary_success(self):
         self.payloads['race.json'] = b''

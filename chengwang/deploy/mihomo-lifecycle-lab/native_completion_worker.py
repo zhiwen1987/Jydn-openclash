@@ -40,7 +40,17 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
     'lifecycle_recovery_checkpoint.go', 'lifecycle_recovery_completion.go', 'lifecycle_recovery_completion_test.go',
     'lifecycle_current_epoch.go', 'lab_current_epoch_runtime.go',
-    'lab_native_completion_linux_test.go'))
+    'lab_native_completion_linux_test.go')) + (
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
+    'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/mihomodeploy/lab_service.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
+    'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+    'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
+    'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go')
 MANIFEST_REL = 'chengwang/deploy/mihomo-lifecycle-lab/native_completion_source_manifest.json'
 DELIVERY_PATHS = (
     '.github/workflows/chengwang-mihomo-native-completion.yml',
@@ -284,8 +294,10 @@ def contract():
              'trackedSet':'ALL_GIT_HEAD_BLOBS','deliveryCount':len(DELIVERY_PATHS),
              'gitCommitRequired':True,'gitTreeRequired':True,'gitIndexMustMatchCommitTree':True,
              'workingBytesMustMatchGitBlobs':True,'oldTwentyOneSourceManifestAccepted':False})
-    exact_same(value['completePackageTestSources'],{'previousCount':84,'candidateCount':88,
-             'ordinaryMandatoryTopLevelCount':688,'completionHarnessExcludedFromOrdinaryMandatoryNames':True})
+    exact_same(value['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'candidateCount':91,
+             'continuousRecoveryTaggedSourceCount':3,'ordinaryMandatoryTopLevelCount':688,
+             'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
+             'continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames':True})
     exact_same(value['coldReopen'],{
         'coldReopenMatchedDiskMeaning':'POST_OPEN_DISK_EQUALS_REOPENED_STORE_RAW',
         'positive':'COMPLETED_UNCHANGED','not-committed':'START_ARMED_TO_RECOVERY_UNKNOWN',

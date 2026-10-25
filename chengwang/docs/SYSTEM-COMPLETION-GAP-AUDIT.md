@@ -1,5 +1,7 @@
 # 澄网系统完成度与闭环差距审计
 
+本次源码集成（基3c6d456，尚未Linux验收）：按冻结清单合入连续HTTPS链与兼容闭集37路径，并只修复N3对照MODEL缺RecoveryOwner前置的一份测试源；源审通过不代表Go／HTTP已运行。计划链为真实UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复，共31次产品HTTPS调用；目前仍为待运行计划。基础源码158／必需测试源58／完整格式源152，688必需名称摘要保持；完整包测试源91→去连续标签3项为88→去上一阶段4项为历史84；旧native来源196／格式28，Completion格式25。新默认hook互补闭合，实验不能从HTTP或环境启用，old+new故障双标签明确不支持。保持180秒、256次真实循环、2MiB、原publisher／validator及全部历史失败；未改生产、main或Registry。
+
 2026-10-26 最新9ad验收：`9adbbe0` 已取得新原件：首次Completion run40234883944的11任务成功，9 ZIP／167成员、1381路径、四mode原checker直接复演及root原始Go／命令／落盘计数复算一致；[接受记录](evidence/sys06-9adbbe0-first-completion-acceptance-20261026.json)只接受首次四模式，不证明service rebind、产品API、普通发布、第二恢复或生产。基础门run40234883862仍失败，其250290字节／13成员原件已核：ordinary 688／688必需、1990语义通过；race 584必需通过、零terminal失败、1运行时超时、103未起，包180.047秒。capacity为88.85秒；alarm时当前测试仅运行约0.497秒，不能据栈归因全部预算。47／25模型和空格式门通过，全部历史失败保留。180秒、256实际begin/revoke循环、2MiB与逐plan检查不放宽；性能候选须独审及同提交Linux实测，不能预称已有收益。新连续HTTPS候选仍是外部source，读取器复审发现序号偏移、合法zero-core及嵌套响应绑定缺口，正在新版本修订；31请求尚未实际执行。
 
 2026-10-26 回归更新：6018 ordinary684／688通过、4失败，race180秒超时未完成；当前只修明确功能失败及Completion worker计数遗漏，性能不提高预算掩盖。旧S2 CI状态成功与4bbbe限定接受均不能证明新版Completion／产品API／连续恢复。新连续HTTPS31调用与独立CI已有外部源码候选，未编译／运行／部署，不能记为实际业务能力。

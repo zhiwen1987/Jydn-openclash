@@ -48,7 +48,7 @@ jobs:
           import ast,hashlib,importlib.util,json,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
-          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',25,'e8c92e60d45a0922815116ab808d1d45ad840a0fa433a942af98fdd37a59f799')]
+          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',26,'c983fbe5dba8dd8cb7f476b8fb346348e5afc0f739474fcc152d713a93c3c2e6')]
           for log,path,cls,count,pin in checks:
               text=(root/log).read_text(encoding='utf8').replace('\r\n','\n')
               tree=ast.parse(Path(path).read_text(encoding='utf8'))
@@ -58,7 +58,7 @@ jobs:
               assert sorted(a for a,_ in observed)==names and hashlib.sha256('\n'.join(names).encode()).hexdigest()==pin
               assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==[str(count)] and re.findall(r'^OK$',text,re.M)==['OK']
               assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
-          print('PYTHON_MODELS=PASS pin47 evidence25 not_go_or_kernel_execution=true')
+          print('PYTHON_MODELS=PASS pin47 evidence26 not_go_or_kernel_execution=true')
           checker=Path('chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py')
           spec=importlib.util.spec_from_file_location('declared_go_contracts',checker)
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

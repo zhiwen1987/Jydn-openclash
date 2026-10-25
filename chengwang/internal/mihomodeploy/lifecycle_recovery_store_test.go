@@ -160,11 +160,14 @@ func TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore(t *testi
 		t.Fatal("MODEL prepared candidate replayed")
 	}
 	t.Run("fresh-begin-revoke-exactly-match-generic", func(t *testing.T) {
-		record, plan, _, now := lifecycleV3Model(t)
-		raw, err := encodeLifecycleV3Record(record)
-		if err != nil {
-			t.Fatal("MODEL shared source encode")
+		seed, seedDisk, plan, now := lifecycleRecoveryModelStore(t)
+		owner := lifecycleRecoveryModelOwner(t, seed, now)
+		if owner == nil || owner.core == nil || seed.core.live != owner.core || seed.core.record.core.RecoveryOwner == nil ||
+			seed.core.record.core.RecoveryOwner.OwnerNonce != owner.core.nonce || seed.core.record.core.RecoveryOwner.Fence != owner.core.fence ||
+			seedDisk.writes != 1 || !bytes.Equal(seedDisk.raw, seed.core.raw) {
+			t.Fatal("MODEL shared source did not persist one actual recovery owner")
 		}
+		raw := bytes.Clone(seed.core.raw)
 		open := func() (*lifecycleRecoveryStore, *lifecycleModelDisk) {
 			disk := &lifecycleModelDisk{raw: bytes.Clone(raw), exists: true, state: lifecycleCommitted}
 			store, openErr := openLifecycleRecoveryStore(disk, now)
@@ -175,14 +178,20 @@ func TestLifecycleRecoveryPreparedCandidateDetachesAndRejectsCopiedCore(t *testi
 		}
 		fast, fastDisk := open()
 		reference, referenceDisk := open()
-		descriptor := plan.descriptor()
+		fastDescriptor := plan.descriptor()
+		referenceDescriptor := plan.descriptor()
+		if !reflect.DeepEqual(fastDescriptor, referenceDescriptor) || fast.core.record.core.RecoveryOwner == nil || reference.core.record.core.RecoveryOwner == nil ||
+			!reflect.DeepEqual(fast.core.record.core.RecoveryOwner, seed.core.record.core.RecoveryOwner) ||
+			!reflect.DeepEqual(reference.core.record.core.RecoveryOwner, seed.core.record.core.RecoveryOwner) {
+			t.Fatal("MODEL shared post-owner source was not independently reopened")
+		}
 		fastBase, fastErr := fast.core.verifiedBase()
 		referenceBase, referenceErr := reference.core.verifiedBase()
 		if fastErr != nil || referenceErr != nil {
 			t.Fatal("MODEL begin bases")
 		}
-		if fast.core.commitFreshRecoveryBegin(fastBase, descriptor, now) != nil ||
-			lifecycleRecoveryReferenceBegin(reference.core, referenceBase, descriptor, now) != nil ||
+		if fast.core.commitFreshRecoveryBegin(fastBase, fastDescriptor, now) != nil ||
+			lifecycleRecoveryReferenceBegin(reference.core, referenceBase, referenceDescriptor, now) != nil ||
 			!bytes.Equal(fast.core.raw, reference.core.raw) || fastDisk.writes != referenceDisk.writes {
 			t.Fatal("MODEL fresh begin changed canonical bytes")
 		}
