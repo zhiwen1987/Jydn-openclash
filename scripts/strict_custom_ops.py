@@ -15,14 +15,14 @@ def main():
  r=connection('10.88.0.254','root',rp,sock=channel);rp=None
  try:
   while True:
-   phase=input('Strict phase (preflight/backup/stage/build/lab/activate_server/activate_router/accept/rollback/exit): ').strip()
+   phase=input('Shared phase (preflight/backup/stage/lab/observe/activate_router/accept/verify_hooks/rollback/exit): ').strip()
    if phase=='exit':break
    if not phase.replace('_','').isalpha():continue
    owner=None
    try:
     results={}
     hosts=[('router',r),('server',s)]
-    if phase in ['build','lab','activate_server','stage_server']:hosts=[('server',s)]
+    if phase in ['lab','stage_server']:hosts=[('server',s)]
     if phase=='activate_router':hosts=[('router',r)]
     for name,c in hosts:
      source=(ROOT/'scripts/strict_custom_guest.py').read_text(encoding='utf-8')
