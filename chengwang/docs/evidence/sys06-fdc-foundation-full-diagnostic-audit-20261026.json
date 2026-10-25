@@ -1,0 +1,120 @@
+{
+  "schema": "chengwang.mihomo-fdc-four-gate-audit/v1",
+  "outcome": "PASS_OLD_FOUNDATION_AND_FULL_DIAGNOSTIC_ONLY",
+  "sourceCommit": "fdc25879c725697f8da4c030eeafd942c893a38e",
+  "immutableSnapshot": {
+    "path": "D:/CodexData/workspace/mihomo-fdc2587-acceptance-sy83i67w/repo",
+    "headVerified": true,
+    "clean": true,
+    "trackedPathEntries": 1360,
+    "allTrackedBytesGitBlobVerifiedByBoundSourceChecker": true,
+    "sourceManifestSHA256": "5c6594b84aa750589c423b595bd5d4148a860ab1f39d5180cb3028d7e77c1fe6"
+  },
+  "transport": {
+    "authenticatedGitHubMCPOnly": true,
+    "signedURLsPrintedOrPersisted": false,
+    "ghOrAnonymousRESTRetryUsed": false,
+    "allRunsHeadSHAExact": true,
+    "allArtifactsExpired": false
+  },
+  "artifacts": [
+    {
+      "runId": 40223175556,
+      "artifactId": 12610038364,
+      "file": "foundation-12610038364.zip",
+      "bytes": 269976,
+      "sha256": "e74a9bacbf9aef916edfaafb804d251ab0e9f7948594abae8622ef93d089c7b0",
+      "members": 14,
+      "expandedBytes": 3667005,
+      "memberManifestSHA256": "1aa765e4ce7dee3d17212bbbbe3ac24a40b7ee43f841f17dcc53e386726fb038"
+    },
+    {
+      "runId": 40223175556,
+      "artifactId": 12610746410,
+      "file": "normal-fresh-12610746410.zip",
+      "bytes": 7190,
+      "sha256": "9b004b7aa6254e3648bd0e77f09fe68419cd3b18ab2db66b5c648189a04907db",
+      "members": 1,
+      "expandedBytes": 18815,
+      "memberManifestSHA256": "7534421ae9d114149657745342a8f71ffa86a71b5bbff5a96e368066e0f73c2c"
+    },
+    {
+      "runId": 40223175598,
+      "artifactId": 12609878702,
+      "file": "diag-full-12609878702.zip",
+      "bytes": 541485,
+      "sha256": "2c38d3301e3a312bc37fbf495f767590b2e092b0c492075615a02da4e4661efc",
+      "members": 21,
+      "expandedBytes": 2753121,
+      "memberManifestSHA256": "15adbf402b0e57d08033abdd1e2a178560ead9dd81f127acaaa85f9eadbca886"
+    },
+    {
+      "runId": 40223175598,
+      "artifactId": 12609823706,
+      "file": "diag-full-fresh-12609823706.zip",
+      "bytes": 20336,
+      "sha256": "25913ce3df796f2087e27a5ac9d8d0ca84879b533876fafd851aa95aeed914fc",
+      "members": 1,
+      "expandedBytes": 90499,
+      "memberManifestSHA256": "92c9bbbc307b879146c05986024cc24b3e5db9018a4dc6be80cf5a30887dae3b"
+    }
+  ],
+  "zipAudit": {
+    "memberCount": 37,
+    "allMemberManifestSHA256": "d5bfe3a1aa5ea81cb3502a0a743e202d3ca729092f2e46ab7f5e9922d3fdac7e",
+    "crcAndFullReadPassed": true,
+    "duplicateOrEmptyNames": 0,
+    "absoluteParentOrBackslashPaths": 0,
+    "symlinks": 0,
+    "encryptedMembers": 0,
+    "overwriteDuringExtraction": false
+  },
+  "foundation": {
+    "boundCheckerDirectVerifyPassed": true,
+    "windowsWriterRejectedAsDesigned": true,
+    "sourceCount": 140,
+    "mandatoryTestSourceCount": 54,
+    "mandatoryTopLevelCount": 661,
+    "ordinaryActualSemanticTests": 1937,
+    "raceActualSemanticTests": 1937,
+    "ordinaryFailedOrSkipped": 0,
+    "raceFailedOrSkipped": 0,
+    "ordinaryAndRaceNameSetSHA256": "1201b88aa68b7821c86c4fad76acf16af0e99a941d664ca8f5dc068e48f2d987",
+    "verificationSHA256": "b6d94dc55d236feda5a437d55cf99d5800bc1b3d87159a4f70a6f89abc4d41fe",
+    "originalEqualsFreshEqualsIndependentRecompute": true,
+    "formatPatchBytes": 0,
+    "formatStderrBytes": 0
+  },
+  "fullDiagnostic": {
+    "boundCheckerDirectVerifyPassed": true,
+    "linuxAbsolutePathSemanticsModeledOnlyForEvidenceGoRoot": true,
+    "repositoryFilesReadWithNativeWindowsPaths": true,
+    "fullGoAccepted": true,
+    "normalStrictEventsAccepted": true,
+    "observedSemanticStates": 1937,
+    "requiredPassed": 661,
+    "requiredFailedSkippedUnfinishedOrNotStarted": 0,
+    "sourceCount": 140,
+    "completePackageTestSourceCount": 84,
+    "previousCompletePackageTestSourceCount": 83,
+    "completionHarnessExcludedFromOrdinaryMandatoryNames": true,
+    "completionHarnessTopObservedInOrdinaryOrRace": false,
+    "formatClean": true,
+    "profileStopReason": "TIMER_120_SECONDS",
+    "profileMeasuredDurationNanoseconds": 120305687604,
+    "profileSampleRecords": 5046,
+    "profileFunctions": 1368,
+    "verificationSHA256": "11f9ed2ff635f7050332363c1c67ad49c85dce8d165a8d298190c4fa0d298fd8",
+    "originalEqualsFreshEqualsIndependentRecompute": true
+  },
+  "boundaries": {
+    "oldFoundationAndDiagnosticGatesAccepted": true,
+    "firstCompletionAccepted": false,
+    "completionNativeHarnessExecutedByTheseArtifacts": false,
+    "oldS2NativeFourModeReexecutedByTheseArtifacts": false,
+    "wholeCIProvenByTheseFourArtifacts": false,
+    "production": false,
+    "mainChanged": false,
+    "localGoNativeOrGofmtExecuted": false
+  }
+}

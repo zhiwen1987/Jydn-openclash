@@ -82,77 +82,77 @@ func (d *labNativeCompletionDisk) readControl() ([]byte, bool, error) {
 }
 
 type labNativeCompletionPublication struct {
-	Schema                   string    `json:"schema"`
-	Scope                    string    `json:"scope"`
-	Mode                     string    `json:"mode"`
-	AttemptedAt              time.Time `json:"attemptedAt"`
-	ReturnedAt               time.Time `json:"returnedAt"`
-	ReplaceAttempts          int       `json:"replaceAttempts"`
-	ForwardedWrites          int       `json:"forwardedWrites"`
-	PostWriteReads           int       `json:"postWriteReads"`
-	InjectedReads            int       `json:"injectedReads"`
-	UnderlyingCommitted      bool      `json:"underlyingCommitted"`
-	RecordReturnedError      bool      `json:"recordReturnedError"`
-	CapReplayRejected        bool      `json:"capReplayRejected"`
-	CapSpent                 bool      `json:"capSpent"`
-	StorePoisoned            bool      `json:"storePoisoned"`
-	HandoffReturned          bool      `json:"handoffReturned"`
-	RuntimeAdopted           bool      `json:"runtimeAdopted"`
-	CloseExclusionHeld       bool      `json:"closeExclusionHeld"`
-	HandoffReplayRejected    bool      `json:"handoffReplayRejected"`
-	SourceRevision           uint64    `json:"sourceRevision"`
-	SourceRecordSHA256       string    `json:"sourceRecordSHA256"`
-	SourceControlSHA256      string    `json:"sourceControlSHA256"`
-	MemoryRevision           uint64    `json:"memoryRevision"`
-	MemoryRecordSHA256       string    `json:"memoryRecordSHA256"`
-	MemoryControlSHA256      string    `json:"memoryControlSHA256"`
-	DiskRevision             uint64    `json:"diskRevision"`
-	DiskRecordSHA256         string    `json:"diskRecordSHA256"`
-	DiskControlSHA256        string    `json:"diskControlSHA256"`
-	DiskPhase                string    `json:"diskPhase"`
-	S1PreimageSHA256         string    `json:"s1PreimageSHA256"`
-	S2PreimageSHA256         *string   `json:"s2PreimageSHA256"`
-	PreviousHeadSHA256       string    `json:"previousHeadSHA256"`
-	NewHeadSHA256            *string   `json:"newHeadSHA256"`
-	RetiredEpochCount        int       `json:"retiredEpochCount"`
-	RecoveryHistoryCount     int       `json:"recoveryHistoryCount"`
-	NoCompletionNativeCalls  bool      `json:"noCompletionNativeCalls"`
-	NativePrefixCount        int       `json:"nativePrefixCount"`
-	NativePrefixSHA256       string    `json:"nativePrefixSHA256"`
-	ColdReopenMatchedDisk    bool      `json:"coldReopenMatchedDisk"`
-	ReopenTransition         string    `json:"reopenTransition"`
-	ServiceRebindProven      bool      `json:"serviceRebindProven"`
-	APIRouteProven           bool      `json:"apiRouteProven"`
-	OrdinaryPublishProven    bool      `json:"ordinaryPublishProven"`
-	SecondRecoveryProven     bool      `json:"secondRecoveryProven"`
-	Production               bool      `json:"production"`
+	Schema                  string    `json:"schema"`
+	Scope                   string    `json:"scope"`
+	Mode                    string    `json:"mode"`
+	AttemptedAt             time.Time `json:"attemptedAt"`
+	ReturnedAt              time.Time `json:"returnedAt"`
+	ReplaceAttempts         int       `json:"replaceAttempts"`
+	ForwardedWrites         int       `json:"forwardedWrites"`
+	PostWriteReads          int       `json:"postWriteReads"`
+	InjectedReads           int       `json:"injectedReads"`
+	UnderlyingCommitted     bool      `json:"underlyingCommitted"`
+	RecordReturnedError     bool      `json:"recordReturnedError"`
+	CapReplayRejected       bool      `json:"capReplayRejected"`
+	CapSpent                bool      `json:"capSpent"`
+	StorePoisoned           bool      `json:"storePoisoned"`
+	HandoffReturned         bool      `json:"handoffReturned"`
+	RuntimeAdopted          bool      `json:"runtimeAdopted"`
+	CloseExclusionHeld      bool      `json:"closeExclusionHeld"`
+	HandoffReplayRejected   bool      `json:"handoffReplayRejected"`
+	SourceRevision          uint64    `json:"sourceRevision"`
+	SourceRecordSHA256      string    `json:"sourceRecordSHA256"`
+	SourceControlSHA256     string    `json:"sourceControlSHA256"`
+	MemoryRevision          uint64    `json:"memoryRevision"`
+	MemoryRecordSHA256      string    `json:"memoryRecordSHA256"`
+	MemoryControlSHA256     string    `json:"memoryControlSHA256"`
+	DiskRevision            uint64    `json:"diskRevision"`
+	DiskRecordSHA256        string    `json:"diskRecordSHA256"`
+	DiskControlSHA256       string    `json:"diskControlSHA256"`
+	DiskPhase               string    `json:"diskPhase"`
+	S1PreimageSHA256        string    `json:"s1PreimageSHA256"`
+	S2PreimageSHA256        *string   `json:"s2PreimageSHA256"`
+	PreviousHeadSHA256      string    `json:"previousHeadSHA256"`
+	NewHeadSHA256           *string   `json:"newHeadSHA256"`
+	RetiredEpochCount       int       `json:"retiredEpochCount"`
+	RecoveryHistoryCount    int       `json:"recoveryHistoryCount"`
+	NoCompletionNativeCalls bool      `json:"noCompletionNativeCalls"`
+	NativePrefixCount       int       `json:"nativePrefixCount"`
+	NativePrefixSHA256      string    `json:"nativePrefixSHA256"`
+	ColdReopenMatchedDisk   bool      `json:"coldReopenMatchedDisk"`
+	ReopenTransition        string    `json:"reopenTransition"`
+	ServiceRebindProven     bool      `json:"serviceRebindProven"`
+	APIRouteProven          bool      `json:"apiRouteProven"`
+	OrdinaryPublishProven   bool      `json:"ordinaryPublishProven"`
+	SecondRecoveryProven    bool      `json:"secondRecoveryProven"`
+	Production              bool      `json:"production"`
 }
 
 type labNativeCompletionReport struct {
-	Schema          string                         `json:"schema"`
-	Scope           string                         `json:"scope"`
-	Mode            string                         `json:"mode"`
-	SourceCommit    string                         `json:"sourceCommit"`
-	Outcome         string                         `json:"outcome"`
-	FailureCode     string                         `json:"failureCode"`
-	OldIdentity     *labKernelIdentity             `json:"oldIdentity"`
-	NewIdentity     *labKernelIdentity             `json:"newIdentity"`
-	OldCore         uint64                         `json:"oldCore"`
-	NewCore         uint64                         `json:"newCore"`
-	S1              *labNativeRecoveryCheckpoint   `json:"s1"`
-	S2              *labNativeRecoveryCheckpoint   `json:"s2"`
-	Reopened        *labNativeRecoveryCheckpoint   `json:"reopened"`
+	Schema          string                          `json:"schema"`
+	Scope           string                          `json:"scope"`
+	Mode            string                          `json:"mode"`
+	SourceCommit    string                          `json:"sourceCommit"`
+	Outcome         string                          `json:"outcome"`
+	FailureCode     string                          `json:"failureCode"`
+	OldIdentity     *labKernelIdentity              `json:"oldIdentity"`
+	NewIdentity     *labKernelIdentity              `json:"newIdentity"`
+	OldCore         uint64                          `json:"oldCore"`
+	NewCore         uint64                          `json:"newCore"`
+	S1              *labNativeRecoveryCheckpoint    `json:"s1"`
+	S2              *labNativeRecoveryCheckpoint    `json:"s2"`
+	Reopened        *labNativeRecoveryCheckpoint    `json:"reopened"`
 	ControlPlane    *labRecoveryObservedValue       `json:"controlPlane"`
 	Completion      *labNativeCompletionPublication `json:"completion"`
-	NativeCalls     []labNativeRecoveryCall        `json:"nativeCalls"`
-	CountersBounded bool                           `json:"countersBounded"`
-	ClosedPorts     []uint16                       `json:"closedPorts"`
-	CleanupProbes   []labQuiescenceProbe           `json:"cleanupProbes"`
-	FixtureCleanup  []labLocalFixtureCleanup       `json:"fixtureCleanup"`
+	NativeCalls     []labNativeRecoveryCall         `json:"nativeCalls"`
+	CountersBounded bool                            `json:"countersBounded"`
+	ClosedPorts     []uint16                        `json:"closedPorts"`
+	CleanupProbes   []labQuiescenceProbe            `json:"cleanupProbes"`
+	FixtureCleanup  []labLocalFixtureCleanup        `json:"fixtureCleanup"`
 	OldCleanup      *labKernelExit                  `json:"oldCleanup"`
 	NewCleanup      *labKernelExit                  `json:"newCleanup"`
-	RuntimeClosed   bool                           `json:"runtimeClosed"`
-	DiskOwnerClosed bool                           `json:"diskOwnerClosed"`
+	RuntimeClosed   bool                            `json:"runtimeClosed"`
+	DiskOwnerClosed bool                            `json:"diskOwnerClosed"`
 }
 
 func labNativeCompletionWrite(name string, raw []byte) error {
@@ -542,7 +542,7 @@ func TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup(t *testing.T)
 		PostWriteReads: postWriteReads, InjectedReads: injectedReads, UnderlyingCommitted: underlyingCommitted, RecordReturnedError: recordErr != nil,
 		CapReplayRejected: true, CapSpent: capSpent, StorePoisoned: storePoisoned, HandoffReturned: handoff != nil,
 		CloseExclusionHeld: closeExclusionHeld,
-		SourceRevision: s2.core.Revision, SourceRecordSHA256: s2.core.RecordSHA256, SourceControlSHA256: labConfigHash(s2Raw),
+		SourceRevision:     s2.core.Revision, SourceRecordSHA256: s2.core.RecordSHA256, SourceControlSHA256: labConfigHash(s2Raw),
 		MemoryRevision: memoryDecoded.core.Revision, MemoryRecordSHA256: memoryDecoded.core.RecordSHA256, MemoryControlSHA256: labConfigHash(memoryRaw),
 		DiskRevision: diskRecord.core.Revision, DiskRecordSHA256: diskRecord.core.RecordSHA256, DiskControlSHA256: diskPoint.ControlSHA256,
 		DiskPhase: diskRecord.core.Recovery.Phase, S1PreimageSHA256: labConfigHash(s1Preimage), PreviousHeadSHA256: s2.core.Current.Head.HeadSHA256}

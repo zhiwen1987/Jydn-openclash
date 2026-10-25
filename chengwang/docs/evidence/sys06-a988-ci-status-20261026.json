@@ -1,0 +1,46 @@
+{
+  "schema": "chengwang.isolated-ci-status/v1",
+  "observedAtUTC": "2026-10-25T19:24:40Z",
+  "commit": "a9882e481cc76f7ca9b29f1f37559b0279d65370",
+  "scope": "WORKFLOW_TERMINAL_STATUS_ONLY_NOT_ARTIFACT_ACCEPTANCE",
+  "runs": [
+    {
+      "id": 40225294575,
+      "name": "Chengwang Mihomo Lifecycle Foundations",
+      "head": "a9882e481cc76f7ca9b29f1f37559b0279d65370",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40225294575"
+    },
+    {
+      "id": 40225294759,
+      "name": "Chengwang Isolated Native First Completion",
+      "head": "a9882e481cc76f7ca9b29f1f37559b0279d65370",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40225294759"
+    },
+    {
+      "id": 40225294675,
+      "name": "Chengwang Isolated Native Recovery Started Record",
+      "head": "a9882e481cc76f7ca9b29f1f37559b0279d65370",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40225294675"
+    },
+    {
+      "id": 40225294602,
+      "name": "Chengwang Isolated Capacity CPU Diagnosis",
+      "head": "a9882e481cc76f7ca9b29f1f37559b0279d65370",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40225294602"
+    }
+  ],
+  "newNativeCompletionAccepted": false,
+  "newFailureStage": "PENDING_ORIGINAL_ARTIFACT_INSPECTION",
+  "productRecoveryAPIAccepted": false,
+  "productionChanged": false,
+  "mainMerged": false,
+  "registryPublished": false
+}

@@ -393,7 +393,8 @@ def command_receipts(raw, commit, mode, binding):
         need(set(row) == {'schema','sequence','sourceCommit','commandClass','argv','cwd','timeoutSeconds','exitCode','observed','namespace','sourceBinding'} and
              row['schema'] == 'chengwang.mihomo-native-completion-command-receipt/v3' and row['sourceCommit'] == commit and
              row['commandClass'] == classes[number-1] and type(row['argv']) is list and
-             all(type(value) is str for value in row['argv']) and type(row['cwd']) is str and row['cwd'].endswith('/chengwang'))
+             all(type(value) is str for value in row['argv']) and
+             row['cwd'] == '/tmp/mihomo-apply-source')
         integer(row['sequence'],number,number); integer(row['exitCode'],0,0)
         integer(row['timeoutSeconds'],timeouts[number-1],timeouts[number-1]); boolean(row['observed'],True)
         exact_same(row['sourceBinding'],binding); current = namespace(row['namespace'])

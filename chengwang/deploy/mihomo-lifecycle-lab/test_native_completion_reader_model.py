@@ -112,7 +112,7 @@ class CompletionReaderModelTests(unittest.TestCase):
                 argv = ['go','test','-tags='+','.join(self.c.TAGS),'-run=^'+self.c.TOP+'$','-timeout=105s',
                         '-chengwang-native-completion-mode='+mode]
             rows.append({'schema':'chengwang.mihomo-native-completion-command-receipt/v3','sequence':sequence,
-                'sourceCommit':commit,'commandClass':name,'argv':argv,'cwd':'/tmp/source/chengwang',
+                'sourceCommit':commit,'commandClass':name,'argv':argv,'cwd':'/tmp/mihomo-apply-source',
                 'timeoutSeconds':timeout,'exitCode':0,'observed':True,'namespace':namespace,'sourceBinding':binding})
         return rows,binding
 
@@ -317,6 +317,12 @@ class CompletionReaderModelTests(unittest.TestCase):
         for field,value in (('sequence',1.0),('exitCode',False),('timeoutSeconds',30.0)):
             with self.subTest(field=field):
                 changed = copy.deepcopy(rows); changed[0][field] = value
+                raw = b'\n'.join(self.c.canonical(row) for row in changed) + b'\n'
+                with self.assertRaises(ValueError):
+                    self.c.command_receipts(raw,binding['sourceCommit'],'positive',binding)
+        for cwd in ('/tmp/source/chengwang','/tmp/mihomo-apply-source/chengwang'):
+            with self.subTest(cwd=cwd):
+                changed = copy.deepcopy(rows); changed[0]['cwd'] = cwd
                 raw = b'\n'.join(self.c.canonical(row) for row in changed) + b'\n'
                 with self.assertRaises(ValueError):
                     self.c.command_receipts(raw,binding['sourceCommit'],'positive',binding)

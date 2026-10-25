@@ -2,7 +2,19 @@
 
 日常查看：[项目任务清单](LIVE-TASKS.md)（当前优先项、完整剩余功能、依赖与验收条件）。[实时执行动态](http://127.0.0.1:8765)复用本机现有监控台；其估算百分比不代表项目完成率。任务清单由实际结果驱动更新，不冒称每秒自动同步或生产已上线。
 
-## 最新实际回归：78真实诊断定位时间步骤；纠正额外时间假设候选188项CPU通过
+## 最新核对：2026-10-26 SYS-06 首次真实 Completion 仍未通过
+
+03:24（Asia/Shanghai）核对开发提交 `a9882e481cc76f7ca9b29f1f37559b0279d65370`：基础门 `40225294575`、容量诊断 `40225294602` 和旧 S2 `40225294675` 均已终结 success；新 Completion `40225294759` 已终结 failure。[机器记录](evidence/sys06-a988-ci-status-20261026.json)仅证明精确提交的工作流终态，不声称新原件独立验收。
+
+后续 positive 原 ZIP 28625 字节、39 成员及 SHA256 `af25d8cd4f52de42ed1046eb5fc00ee0d436fbb3a34a8479513e18e9d1873a80` 已由 root 独立读完 CRC、逐成员与解包字节和关键三源 Git blob；Go 顶层实际 10.90 秒 PASS，包 10.909 秒，四命令退出 0，外层 attempt 为 1。首个拒绝来自 reader 的错误 cwd 后缀假设：正式只读 module alias、实际 Popen 和真实 receipt 均为 `/tmp/mihomo-apply-source`，不是 `/chengwang` 结尾。另有真实 9904 字节非空 gofmt 差异，格式进程退出 0 不等于格式门通过。两个门须分别修正，不伪造 receipt、不放宽空格式要求；旧 `fdc2587` 的 Go 前失败保留且不再作为新版原因。独立有限收据为 `D:/CodexData/workspace/mihomo-a988-positive-root-audit-xsrab0by/receipt.json`，SHA256 `f682004746d80bb85ccdba2b45dd8f902abf6422185aebcc0a029704eb5cc59c`；它不证明完整 positive reader 或四模式通过。
+
+当前已接受的限定基线仍为 `c1f9`：普通／race／full 各 1937 语义与 661 必需项、旧 S2 四模式、25 ZIP／442 成员已核；其 race 包 176.367 秒，距原 180 秒仅余 3.633 秒，不宣称稳定性能余量充分。新专用采集器的 11 项 CPU 模型通过只允许进入隔离 CI。失败恢复协调器和产品 API 仍为外部候选，独立审查要求修正 fresh 授权之前的状态响应顺序，尚未集成或取得真实 Go 验收。
+
+另补齐 `fdc2587` 的 [foundation 与 full diagnostic 四原件审计](evidence/sys06-fdc-foundation-full-diagnostic-audit-20261026.json)：四 ZIP／37 成员、完整 1360 跟踪路径来源、140 源／54 必需测试源／661 顶层；普通、race、full 各 1937 语义通过，producer／fresh／独立函数复算逐字节一致。这只是这两类旧门；未重新验收 old S2、新 Completion 或整套 CI，Windows 路径／writer 的明确适配边界保留。
+
+[任务清单](LIVE-TASKS.md)已同步当前阶段并保留旧条目，完整 [SYS-06 记录](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)保留每次失败与证据限制。恢复后普通发布、第二恢复、DNS、多内核、企业治理、全功能 UI、容量／浸泡、灰度和生产读回仍未完成。本轮未操作生产、main 或 Registry。
+
+## 历史实际回归：78真实诊断定位时间步骤；纠正额外时间假设候选188项CPU通过
 
 2026-10-24 15:49：78父40072726950、订阅40072726986成功，UI40072726996旧订阅16任务成功、新能力8任务失败。4份v2 producer共144原件成员已核；首个拒绝均DOCUMENT/r1/EVENT_FINISH_TIME，另外七类错误0。独立公开投影核验通过；私有canary没有导出，未在本机重做私有fence。原始时间没有导出，尚不能区分us转换和比较、更不能断言唯一数值原因。见[78实际跟进](evidence/p2-78ffc4e-ci-followup.json)。
 

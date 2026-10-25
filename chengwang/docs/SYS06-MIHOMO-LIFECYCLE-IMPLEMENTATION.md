@@ -4,13 +4,15 @@
 
 ## 本次已有代码
 
-### 已核c1f9限定基线；当前工作区继续准备真实Completion验收
+### 已核c1f9限定基线；a988真实Completion Go已进入，独立门仍失败
 
-当前工作区已接入独立的首次真实Completion隔离CI源码入口，尚未取得该入口的Go／gofmt／四模式运行结果。新标签要求实际S2 collector签发cap、一次性Completion耐久提交、positive opaque runtime交接；另在Completion提交点注入NotCommitted／Unknown／坏readback。旧S2的75／90秒及4core门不变，新场景单独使用105秒Go／120秒外层上限。完整六包测试源显式83→84，新四标签harness不冒充普通661项必需测试。
+当前工作区已接入独立的首次真实Completion隔离CI源码入口。`a9882e4` 的 positive 真实 Go 顶层已运行并 PASS，但独立 reader 及格式门仍失败，完整四模式仍未验收。新标签要求实际S2 collector签发cap、一次性Completion耐久提交、positive opaque runtime交接；另在Completion提交点注入NotCommitted／Unknown／坏readback。旧S2的75／90秒及4core门不变，新场景单独使用105秒Go／120秒外层上限。完整六包测试源显式83→84，新四标签harness不冒充普通661项必需测试。
 
 入口提交`fdc25879c725697f8da4c030eeafd942c893a38e`的原有normal40223175556、diag40223175598、旧S2 native40223175541均成功，但新增Completion run40223175606失败。positive原ZIP 5169字节、SHA256 `f91ca6f78c8cef1bb57da3554eaaffb91a3026f068d46b4837d09f407fc37988`及实际job121259015851日志确认：SANDBOX采集在Popen前被旧apply采集器的输出名白名单拒绝，Go尚未进入；旧采集器90秒上限也不能承载新120秒场景。首次失败保留，不算Go编译失败或内核运行失败。
 
-当前源码修订为新Completion场景提供四类封闭采集器，精确匹配name／stderr／argv／sequence及30／15／30／120秒预算；沿用同一非特权环境，先取得pidfd再wait，引用不明保留pending，超时只用pidfd终止并等待5秒，不伪造exitCode。11项CPU模型实际调用新dispatcher，只替换底层Popen／pidfd等OS原语；源审查同意进入隔离CI，但尚未证明新Go或native运行通过。原apply／service／旧S2采集器字节与90秒合同不变。
+源码修订 `a9882e4` 为新Completion场景提供四类封闭采集器，精确匹配name／stderr／argv／sequence及30／15／30／120秒预算；沿用同一非特权环境，先取得pidfd再wait，引用不明保留pending，超时只用pidfd终止并等待5秒，不伪造exitCode。11项CPU模型实际调用新dispatcher，只替换底层Popen／pidfd等OS原语；原apply／service／旧S2采集器字节与90秒合同不变。
+
+其实际 Completion CI `40225294759` 仍为 failure，不能用其他三条 CI 的 success 抵消。positive 原 ZIP 28625 字节／39 成员已独立核 SHA256、CRC、成员与三份关键源 Git 字节；实际 Go 顶层 10.90 秒 PASS、包 10.909 秒，四命令退出 0，attempt 为 1。reader 首拒绝为错误要求 cwd 以 `/chengwang` 结尾；正式只读挂载、sandbox cwd 断言、Popen 与 receipt 都绑定 `/tmp/mihomo-apply-source`，receipt 不是伪报。另有实际 9904 字节非空 gofmt.patch，来自新 native Completion 测试源；格式退出 0 不证明差异为空。下一最小修订保持实际 alias、精确校正 reader 并补 foreign cwd 拒绝，只转移原 Linux Go1.23 格式补丁，两个失败均保留，不靠改原件或放宽空格式门取得 PASS。root 有限审计收据 SHA256 `f682004746d80bb85ccdba2b45dd8f902abf6422185aebcc0a029704eb5cc59c`，尚不是完整 reader／四模式验收。
 
 执行器和fresh reader各自从实际HEAD、tree、index及每项Git blob／工作树字节派生完整tracked来源；运行时manifest不把本地synthetic数量或caller摘要当authority。来源模型、整数／布尔类型、四模式字段关联、冷开及并发序列模型是CPU证据，只有下一真实Linux原件才能证明新入口运行。未提交的S2冷开按原opener转RECOVERY_UNKNOWN／PROCESS_REOPENED并增加revision，保留原执行事实；三种已COMPLETED磁盘保持原字节。Completion前后native调用前缀必须相同，随后合法cleanup尾另行验证，不把清理动作误算为Completion期间新增动作。
 
