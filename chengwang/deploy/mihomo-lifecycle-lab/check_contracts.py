@@ -91,6 +91,8 @@ FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_EXE
 FILES += ['chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go']
 S1_STARTED_FILES = ('lifecycle_recovery_started.go', 'lifecycle_recovery_started_linux_test.go')
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in S1_STARTED_FILES]
+LAB_SELECTED_TARGET_FILES = ('lab_target_readback.go', 'lab_target_readback_test.go')
+FILES += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_SELECTED_TARGET_FILES]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
@@ -110,6 +112,7 @@ TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/m
     for name in ('lab_recovery_authority_test.go', 'lab_recovery_start_test.go', 'lab_recovery_start_linux_test.go')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go', 'chengwang/internal/mihomodeploy')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/lifecycle_recovery_started_linux_test.go', 'chengwang/internal/mihomodeploy')]
+TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_target_readback_test.go', 'chengwang/internal/adapter/mihomo')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
     'chengwang/internal/api', 'chengwang/internal/serverruntime', 'chengwang/internal/authz'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,

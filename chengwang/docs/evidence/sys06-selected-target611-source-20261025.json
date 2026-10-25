@@ -1,0 +1,116 @@
+{
+  "APIIntegrated": false,
+  "absoluteFreshnessEpochOrIssuerBindingImplemented": false,
+  "accepted607BaselineArchived": true,
+  "allFourUnsupportedClaimsFalse": true,
+  "baseline": "04e947eb0b4ee0cb166ad659c99a7f3ccb7fab06",
+  "boundSources": 117,
+  "equalTargetAmbiguityMappedOnlyToSelectedTargetProjection": true,
+  "formatterFiles": 111,
+  "fullPackageTestSources": 71,
+  "fullProjectComplete": false,
+  "localGoExecuted": false,
+  "localGofmtExecuted": false,
+  "mainMerged": false,
+  "nativeRecoveryExperimentAccepted": false,
+  "new611GoAccepted": false,
+  "newHeadCompleted": false,
+  "newRequiredNames": [
+    "chengwang/internal/adapter/mihomo::TestLabTargetReadbackClosedMappingAndReportOwnership",
+    "chengwang/internal/adapter/mihomo::TestLabTargetReadbackMatchesEitherSelectedEpochWithoutOldNewClaim",
+    "chengwang/internal/adapter/mihomo::TestLabTargetReadbackPreservesProjectionAndWitnessInstability",
+    "chengwang/internal/adapter/mihomo::TestLabTargetReadbackRetainsOriginalInputDigestAndTimeGuards"
+  ],
+  "old591587585539528407Preserved": true,
+  "old607SubsetAndPinPreserved": true,
+  "original180Seconds256History2MiBLimitsPreserved": true,
+  "originalOldNewComparerAndEnumUnchanged": true,
+  "originalOpaqueSampleExpectationAndEightGETGuardsReused": true,
+  "production": false,
+  "productionReady": false,
+  "receipts": [
+    {
+      "kind": "complete611Source",
+      "path": "D:/CodexData/workspace/mihomo-selected-target-611-bindings-20261025-agent/result.json",
+      "sha256": "e58811694417d99037d253fb9d45bc67798830187594a4cffed867db41f75af8"
+    },
+    {
+      "kind": "complete611Closeout",
+      "path": "D:/CodexData/workspace/mihomo-selected-target-611-bindings-20261025-agent/closeout.json",
+      "sha256": "33606210867547a6508682cb2281b85be07024670ba986ff4d518b5c630607c7"
+    },
+    {
+      "kind": "bounded611SourceFixtures",
+      "path": "D:/CodexData/workspace/mihomo-selected-target-611-bindings-20261025-agent/validation-v3/validation-result.json",
+      "sha256": "9e78edaa793e0056e5dcf6ebb8e0523ec80836bcd790e240a4f4d812f984d0f6"
+    },
+    {
+      "kind": "independentV2TwoGoSourcePeer",
+      "path": "D:/CodexData/workspace/mihomo-selected-target-readback-peer-20261025-agent/v2/result.json",
+      "sha256": "173aa5c1e7634c37e9f877f34776d283de109cf8f8efa91744e502754b4d23fd"
+    },
+    {
+      "kind": "independentElevenControlPeer",
+      "path": "D:/CodexData/workspace/mihomo-selected-target-611-control-peer-20261025-agent/closeout.json",
+      "sha256": "d0b5d089f5f44033e0e098bab70513670cb156caabe0492036b14eb5935a62da"
+    },
+    {
+      "kind": "normalFoundationCloseout",
+      "path": "D:/CodexData/workspace/mihomo-04e947e-foundation-audit-20261025-agent/closeout.json",
+      "sha256": "5eac1f3f305bd9b0404484fd988689b7c2c89a5a4b59c0c219a1a3127a99dd91"
+    },
+    {
+      "kind": "normalOtherScopesCloseout",
+      "path": "D:/CodexData/workspace/mihomo-04e947e-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "035a9b0d61e33711e1bfd3eee1bc7cceef1e3e23346d63dbffa7efd5952ef032"
+    },
+    {
+      "kind": "diagnosticCloseout",
+      "path": "D:/CodexData/workspace/mihomo-04e947e-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "8faecdfba30fe417c6adb4063bed355ad9d7567cbedb2de78f153846a2a031cf"
+    }
+  ],
+  "registryPublished": false,
+  "reportObservedPointerIndependent": true,
+  "requiredCount": 611,
+  "requiredNamesSHA256": "327f5833d99a02a12170b894aec43da81432c85c6de78338b15532ab3572e79c",
+  "sameInputPrivateMapperAliasTestStrengthened": true,
+  "schema": "chengwang.selected-target611-source-integration/v1",
+  "scope": "TWO_SOURCE_PROJECTION_LEAF_AND_BINDINGS_NOT_NEW_GO_OR_S2_ACCEPTANCE",
+  "secondRecoveryAccepted": false,
+  "sourceChanges": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "e505cf1bbc7093939e1072e0e335f60db39b90aed5114431f91fa11105c9b25c",
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "91359fc57b5ccff47c096eda87630fd8056d4f93106617ca7253c678ab358bce",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py": "bd4c2c0bb504e19a08ea1bb93598b27736ae90114c27bdb49cb947829941f359",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "ce231939bdc8b6086f5ad0f04252caecd1651de2ded1d4d58cbc803f441f7890",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "8129a680e155787bd3c9f8aedef81a5dccd246b3534bee5e29ed29ca5beab995",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_service.py": "241d15d61afc9fa42ade5e1322cba4a1fdc8105eb56c1dab8ce3a8b0afd12a1e",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "5ece818bdaa3f2a658c4d465713be0e910c50a3032223fae6f8e3447817edc2b",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py": "890a3ec84b27bb975a7677c4b08f39195a0657f7849f77f16c0d3ceed8f0007f",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "b335bd7e166729d639d36030c74ffec8514dd2c6f01b4754d3f9bc23575eb16a",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "9ff6e6b87e3e18bd8d08fd1ffced9a2866ebede3cfc8bc4103b6ab60f9108591",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py": "d5137329df2263d134b79cb61c490908648eca6813f73bb5e7bf71d9c928d048",
+    "chengwang/internal/adapter/mihomo/lab_target_readback.go": "9b3eb9471a77ccafd10d5a5e204114c1d84cff236dac03341c7326137cf31327",
+    "chengwang/internal/adapter/mihomo/lab_target_readback_test.go": "1a013c06f6e5f82ea48faad3c000d42510eae8cbb752c03450dd830cbe21c5b8"
+  },
+  "sourceOwnedCollectorReceiptOrCompletionImplemented": false,
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "e505cf1bbc7093939e1072e0e335f60db39b90aed5114431f91fa11105c9b25c",
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "91359fc57b5ccff47c096eda87630fd8056d4f93106617ca7253c678ab358bce",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py": "bd4c2c0bb504e19a08ea1bb93598b27736ae90114c27bdb49cb947829941f359",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "ce231939bdc8b6086f5ad0f04252caecd1651de2ded1d4d58cbc803f441f7890",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "8129a680e155787bd3c9f8aedef81a5dccd246b3534bee5e29ed29ca5beab995",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_service.py": "241d15d61afc9fa42ade5e1322cba4a1fdc8105eb56c1dab8ce3a8b0afd12a1e",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "5ece818bdaa3f2a658c4d465713be0e910c50a3032223fae6f8e3447817edc2b",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py": "890a3ec84b27bb975a7677c4b08f39195a0657f7849f77f16c0d3ceed8f0007f",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "b335bd7e166729d639d36030c74ffec8514dd2c6f01b4754d3f9bc23575eb16a",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "9ff6e6b87e3e18bd8d08fd1ffced9a2866ebede3cfc8bc4103b6ab60f9108591",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py": "d5137329df2263d134b79cb61c490908648eca6813f73bb5e7bf71d9c928d048",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "a07e5d5e728ea85ed1593bc619c14d6aeddd6321465bc07ea95e0fd0b9949a3d",
+    "chengwang/docs/evidence/sys06-04e-s1607-acceptance-20261025.json": "fa0ed7b4b4033b3618aa761104ca9e4bd1f3647e52216b5c7ecbcedcf2f31c91",
+    "chengwang/internal/adapter/mihomo/lab_target_readback.go": "9b3eb9471a77ccafd10d5a5e204114c1d84cff236dac03341c7326137cf31327",
+    "chengwang/internal/adapter/mihomo/lab_target_readback_test.go": "1a013c06f6e5f82ea48faad3c000d42510eae8cbb752c03450dd830cbe21c5b8"
+  },
+  "testFiles": 43,
+  "unknownOrStableOldNewConclusionsRejected": true
+}

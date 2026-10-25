@@ -1,8 +1,24 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：f40的591底座切片已通过正常及完整诊断、独立原件复核；后续ead的S1 607普通／race／诊断full均通过，但正常CI因真实格式差异仍失败，修正版必须再验。历史失败不被后来成功覆盖，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：04e的S1 607结构测试底座已通过正常及完整诊断、独立原件复核，旧ead格式失败保持原判；实际native启动入库、运行时关闭交接、S2、产品恢复接口及完整闭环仍未完成，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 2026-10-25 选定目标投影比较叶子与611接线：源码集成，尚待实际Go
+
+新增CompareLabTargetReadback仅复用原CompareLabReadback(samples,target,target)的opaque输入／摘要／8GET两样本／witness／时间顺序检查，然后在独立封闭enum中将原AMBIGUOUS解释为“选定目标投影匹配”，DRIFT/UNSTABLE仍按原义，STABLE_OLD/NEW或未知结论拒绝。旧API/enum/reader及S1存储代码不改，报告四个payload/dataplane/authorization/production标志全false，Observed摘要指针单独复制。该叶子没有绝对新鲜度／Started epoch／issuer绑定，不能作为私有恢复事实、授权或完成许可；S2 collector必须另建真实来源链。
+
+两个Go新源四top覆盖旧==新时旧API仍AMBIGUOUS、old或new均可为显式target、drift／witness与时间不稳、请求数／摘要／expectation／零输入拒绝、封闭映射及报告独立性。root按独立review补同mapper结果直接变异其输入指针的可辨识性反例；prod9b3eb947／test1a013c06固定，source peer173aa5c1与控制peer d0b5d089分别审阅。13源码（2Go+11control）来自33606210，有限6fixture及source/AST/YAML检查不当实际Go通过。
+
+必需611 pin327f5833d99a02a12170b894aec43da81432c85c6de78338b15532ab3572e79c，旧607／591／587／585／539／528／407完整保留；normal117源／43test／111fmt，compat128／apply136／service143／unknown149，全六包71个test来源。原双Go命令、13/5工作流其余字节、180／256／2MiB不变。真实Go／格式及新4尚待本提交隔离CI，S1 native启动入库与资源owner交接、S2 collector/receipt/completion、HTTP/facade／新head／后续及第二恢复／完整系统和生产均未完成。
+
+### 2026-10-25 04e的S1 607结构测试完整通过：不代表真实native恢复入库
+
+04e947eb0b4ee0cb166ad659c99a7f3ccb7fab06正常40168547039实际13门success；普通／race各1473语义／607必需全部PASS、format0，原591及新16 S1、bfae schema／48结构／68槽属性实际过，容量4.56／55.13秒、包15.426／108.809秒。原C.verify实际返回PASS，15472B报告c144e410…2b0f16与producer/fresh逐字一致；Windows原main随后按原POSIX writer检查exit1另列，不伪装Windows完整Linux CLI通过。基础5eac1f3f／其余scope035a9b0d核12ZIP208成员／1287blob，原件与source稳定、5scope原函数/fresh通过。
+
+诊断40168547003实际5门success，独立8faecdfb／原子b0e9881a核4ZIP42成员、115源／42test／70全包test／607及原strict events1473／607全过、16 S1与原集合、source/resource/namespace/argv及producer/fresh字节一致。full容量86.87秒／包166.248秒，完整定时profile120.295秒；single容量49.65／pkg50.817、采样49.794秒早结束，未说满60。原180／256／2MiB未改，不据本轮耗时承诺固定速度或长期稳定。接受档见[evidence/sys06-04e-s1607-acceptance-20261025.json](evidence/sys06-04e-s1607-acceptance-20261025.json)，旧ead失败与缺fresh原封。
+
+这里证明S1结构方法与指定旧新测试在隔离Linux实际运行通过；测试内MODEL发行和磁盘不冒充真实native Start/cap/FS落盘。有效上下文真实启动、sole-close-owner交接、双代kernel cleanup仍由下一独立native实验实现/验收；selected-target叶子、S2 collector/receipt/completion、HTTP/facade、新head、普通后续写及第二恢复、整套系统与生产仍未完成。
 
 ### 2026-10-25 ead的607全部Go通过，但正常格式失败；按真实formatter修订
 

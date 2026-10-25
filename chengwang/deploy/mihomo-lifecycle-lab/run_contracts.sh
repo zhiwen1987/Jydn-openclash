@@ -149,6 +149,10 @@ files+=(
   internal/mihomodeploy/lifecycle_recovery_started.go
   internal/mihomodeploy/lifecycle_recovery_started_linux_test.go
 )
+files+=(
+  internal/adapter/mihomo/lab_target_readback.go
+  internal/adapter/mihomo/lab_target_readback_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?

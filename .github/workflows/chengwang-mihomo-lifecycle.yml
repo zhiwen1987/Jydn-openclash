@@ -113,7 +113,16 @@ jobs:
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedReserveCoversFullBoundedRecordedFact',
           }
           assert s1_started_added.issubset(declared) and not s1_started_added.intersection(trusted_clone_added | candidate_seal_added)
-          previous591=sorted(set(declared)-s1_started_added)
+          selected_target_added={
+            'chengwang/internal/adapter/mihomo::TestLabTargetReadbackClosedMappingAndReportOwnership',
+            'chengwang/internal/adapter/mihomo::TestLabTargetReadbackMatchesEitherSelectedEpochWithoutOldNewClaim',
+            'chengwang/internal/adapter/mihomo::TestLabTargetReadbackPreservesProjectionAndWitnessInstability',
+            'chengwang/internal/adapter/mihomo::TestLabTargetReadbackRetainsOriginalInputDigestAndTimeGuards',
+          }
+          assert selected_target_added.issubset(declared) and not selected_target_added.intersection(s1_started_added | trusted_clone_added | candidate_seal_added)
+          previous607=sorted(set(declared)-selected_target_added)
+          assert len(previous607)==607 and hashlib.sha256('\n'.join(previous607).encode()).hexdigest()=='b745efef5b96ad29ececc9f9e4bf465d23277de5c03ff805c8c675abb100da62'
+          previous591=sorted(set(previous607)-s1_started_added)
           assert len(previous591)==591 and hashlib.sha256('\n'.join(previous591).encode()).hexdigest()=='bd98cdb360c8eb7fd8c90f0a7a2855a9d8135a3a832f77cfd115ac39c5078857'
           previous587=sorted(set(previous591)-trusted_clone_added)
           assert len(previous587)==587 and hashlib.sha256('\n'.join(previous587).encode()).hexdigest()=='14e88fa43dd23db1a77671ef4ae2b1bd36a0491b313ce7d5e3005bcc1d5d2951'
@@ -126,7 +135,7 @@ jobs:
           assert added_test_paths.issubset(dict(module.TEST_FILES))
           previous539=sorted(package+'::'+name for path,package in module.TEST_FILES if path not in added_test_paths
             for name in re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{',Path(path).read_text('utf8'),re.M)
-            if package+'::'+name not in candidate_seal_added and package+'::'+name not in trusted_clone_added and package+'::'+name not in s1_started_added)
+            if package+'::'+name not in candidate_seal_added and package+'::'+name not in trusted_clone_added and package+'::'+name not in s1_started_added and package+'::'+name not in selected_target_added)
           assert len(previous539)==539 and hashlib.sha256('\n'.join(previous539).encode()).hexdigest()=='dca819005e498a5d36c6157e00dbd244ad7f705616690001b0bf830c7900009c'
           assert set(previous539).issubset(declared)
           snapshot_added={
@@ -145,7 +154,7 @@ jobs:
           assert snapshot_added.issubset(declared)
           previous=sorted(set(previous539)-snapshot_added)
           assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
-          assert len(declared)==607 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b745efef5b96ad29ececc9f9e4bf465d23277de5c03ff805c8c675abb100da62'
+          assert len(declared)==611 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='327f5833d99a02a12170b894aec43da81432c85c6de78338b15532ab3572e79c'
           print('GO_TEST_DECLARATIONS='+str(len(declared))+' legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
