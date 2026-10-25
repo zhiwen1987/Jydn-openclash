@@ -1,0 +1,70 @@
+{
+  "actualPriorSourceCommit": "850fbac8cee1422e18bff9c927b94fc5e78fb8e8",
+  "baseline": "850fbac8cee1422e18bff9c927b94fc5e78fb8e8",
+  "diagnosticConclusion": "success",
+  "diagnosticFullCapacitySeconds": 106.12,
+  "diagnosticFullPackageSeconds": 169.763,
+  "diagnosticRunID": 40161229105,
+  "failedNormalAndAbsentFreshPreserved": true,
+  "localGoOrFormatterExecuted": false,
+  "mainMerged": false,
+  "modelsRepeatedForWhitespace": false,
+  "newRuntimeAcceptance": false,
+  "normalConclusion": "failure",
+  "normalRacePackageSeconds": 119.637,
+  "normalRunID": 40161229161,
+  "old585539528407AndNew2Passed": true,
+  "oneLFAdded": true,
+  "ordinaryAndRaceCapacitySeconds": [
+    6.32,
+    74.5
+  ],
+  "ordinaryAndRaceSemanticEach": 1275,
+  "production": false,
+  "receipts": [
+    {
+      "kind": "normal",
+      "path": "D:/CodexData/workspace/mihomo-850fbac-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "ac0192c71f5e68d6ebea7399bcfdd7d8be13ba5e0b7371e0937b74ff40d29483"
+    },
+    {
+      "kind": "diagnostic",
+      "path": "D:/CodexData/workspace/mihomo-850fbac-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "3ba4847f0861142018f45fbfcb9b4dca1909265ff173a005800ea4ee626f6288"
+    },
+    {
+      "kind": "formatTransfer",
+      "path": "D:/CodexData/workspace/mihomo-850fbac-foundation-audit-20261025-agent/format-transfer/result.json",
+      "sha256": "cef17a9c51312eba18848a524880bb49a5b9dc5a48a877ed4782651919fa0775"
+    }
+  ],
+  "registryPublished": false,
+  "requiredEach": 587,
+  "s1Integrated": false,
+  "schema": "chengwang.performance587-actual-format-transfer/v1",
+  "scope": "ACTUAL_CI_FORMATTER_TRANSFER_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "semanticChanges": false,
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "d75d6aa8dc3bb58e81f17474a57565d03742dbb8c083aca7d0253cde6da7f909",
+    "chengwang/docs/evidence/sys06-850fbac-go587-pass-format-failure-20261025.json": "1f3da0b89fb090f994acccf8e03164097b7a51e3920f0d129c0aaaf384ee9313",
+    "chengwang/internal/mihomodeploy/lifecycle_v3.go": "7c6a36e5a2b38f0359ab14836f3ab434a4c49512921a08cf2fd38796597202e6"
+  },
+  "transfer": {
+    "actualFormatterPatchBytes": 457,
+    "actualFormatterPatchSHA256": "423c9221c1722c99c5fdf39c055720e5d5a30759d218bbc9fa9d8887f308e2dd",
+    "afterSHA256": "7c6a36e5a2b38f0359ab14836f3ab434a4c49512921a08cf2fd38796597202e6",
+    "beforeSHA256": "cfddf785198163dcda2a65b2e9036f47b0fc9e8bde4213c660f70ab0c417ce4b",
+    "commit": "850fbac8cee1422e18bff9c927b94fc5e78fb8e8",
+    "externalApplyPatchSHA256": "733277894292e821bc4d8d69d149a8b328f8ddc4e16e41fea21f327b5742784e",
+    "gitBlobSHA1": "0b2a7155cda0cafc06d031525470a57b708c7144",
+    "goOrGofmtExecuted": false,
+    "hunks": 1,
+    "pid": 13812,
+    "production": false,
+    "schema": "chengwang.actual-ci-format-hunk-transfer/v1",
+    "singleBlankLineInsertionOnly": true,
+    "source": "chengwang/internal/mihomodeploy/lifecycle_v3.go",
+    "sourceApplied": false
+  },
+  "wholeProjectOrNativeRecoveryAccepted": false
+}

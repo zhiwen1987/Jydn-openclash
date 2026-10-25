@@ -175,6 +175,7 @@ func encodeLifecycleV3Record(r lifecycleV3Record) ([]byte, error) {
 	}
 	return raw, nil
 }
+
 // Only prepareLifecycleCandidate calls this path after its issued-base,
 // transition, revision and clock checks. It derives this candidate's own root
 // digest exactly once, checks every semantic/history field, then emits bounded
