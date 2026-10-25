@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+from strict_catalog import add_entries
 from pathlib import Path
 
 from group_catalog import (
@@ -201,6 +202,7 @@ def build() -> str:
         read_required(CUSTOM_DIR / "groups.ini"),
     )
     result = normalize_business_proxy_choices(result)
+    result = add_entries(result)
     return result + "\n"
 
 

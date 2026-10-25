@@ -8,3 +8,8 @@ node-geo-report*.yaml
 # Runtime secrets
 .env
 **/.env
+
+# Private strict routing inputs and deployment evidence remain local.
+strict-custom-private.yaml
+strict-custom-locks.yaml*
+reports/strict-custom-*/

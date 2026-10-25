@@ -1,0 +1,18 @@
+# 仅在旁路由私有目录填写真实节点；不要提交真实节点、密码或订阅 Token。
+schema: 1
+nodes: []
+pools: []
+
+# 后续导入示例（示例域名不能用于真实连接）：
+# nodes:
+#   - id: own-us01
+#     proxy:
+#       type: socks5
+#       server: proxy.example.invalid
+#       port: 1080
+#       username: replace-locally
+#       password: replace-locally
+# pools:
+#   - id: own-primary-backup
+#     mode: fallback  # 只允许在 node_ids 指定的私有节点内切换
+#     node_ids: [own-us01]
