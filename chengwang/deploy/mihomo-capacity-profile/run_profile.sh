@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # CI-only private CPU experiment. Never invokes Mihomo, a service or HTTP.
 set -euo pipefail
-test "$#" -eq 4
+test "$#" -eq 4 || test "$#" -eq 5
 repo="$1"
 out="$2"
 goroot="$3"
 commit="$4"
+diagnostic_mode="${5:-SINGLE_CASE}"
+case "$diagnostic_mode" in SINGLE_CASE|FULL_CONTRACTS) ;; *) exit 2 ;; esac
 test "$(id -u)" -eq 0
 test -d "$repo/chengwang/vendor"
 test -x "$goroot/bin/go"
@@ -35,13 +37,18 @@ common=(setpriv --reuid=10001 --regid=10001 --clear-groups --no-new-privs --boun
   GOCACHE=/tmp/chengwang-capacity-profile-cache GOMODCACHE=/tmp/chengwang-capacity-profile-mod GOPROXY=off GOSUMDB=off
   GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor CGO_ENABLED=1 LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC
   "CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT=$commit")
+diagnostic_args=()
+if test "$diagnostic_mode" = FULL_CONTRACTS; then
+  common+=(CHENGWANG_CAPACITY_PROFILE_MODE=FULL_CONTRACTS)
+  diagnostic_args=(--diagnostic-mode FULL_CONTRACTS)
+fi
 helper=/tmp/chengwang-capacity-profile-source/deploy/mihomo-capacity-profile/profile_evidence.py
-"${common[@]}" python3 -B "$helper" sandbox --goroot "$goroot" > /tmp/chengwang-capacity-profile-export/sandbox.json
+"${common[@]}" python3 -B "$helper" sandbox --goroot "$goroot" "${diagnostic_args[@]}" > /tmp/chengwang-capacity-profile-export/sandbox.json
 set +e
-"${common[@]}" python3 -B "$helper" commands --goroot "$goroot"
+"${common[@]}" python3 -B "$helper" commands --goroot "$goroot" "${diagnostic_args[@]}"
 capture_code=$?
 set -e
-env -i PATH=/usr/bin:/bin "CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT=$commit" python3 -B "$helper" export --out /tmp/chengwang-capacity-profile-export
+env -i PATH=/usr/bin:/bin "CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT=$commit" python3 -B "$helper" export --out /tmp/chengwang-capacity-profile-export "${diagnostic_args[@]}"
 test "$capture_code" -eq 0
 # Preserve the real original Go exit and nonempty formatter patch as failure.
 python3 -B - /tmp/chengwang-capacity-profile-export <<'PY'

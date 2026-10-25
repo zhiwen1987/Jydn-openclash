@@ -1,0 +1,87 @@
+{
+  "actualPriorCompleteAndTimeoutJSONReaderChecked": true,
+  "baseline": "2de5661481603d75f3483b599614f89747295a9c",
+  "diagnosticSourceFiles": {
+    ".github/workflows/chengwang-mihomo-capacity-profile.yml": {
+      "bytes": 13439,
+      "sha256": "d853b370300feaa3983121bc620a2d545b72ecab333331405b822d5d3a08c7a5"
+    },
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": {
+      "bytes": 30944,
+      "sha256": "b8bbc471631519b33592b75a766247eba92c3edd6253ccd10140a18833ee482c"
+    },
+    "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py": {
+      "bytes": 13194,
+      "sha256": "67255d89175369dac5178f2f6117fd29e923f42ca407862cc342249a1e3bbd2b"
+    },
+    "chengwang/deploy/mihomo-capacity-profile/run_profile.sh": {
+      "bytes": 3282,
+      "sha256": "5e365e7c2a868f6c44ceb4a6cbd675e36b1422356d2f4ac8446741f9a2e5955a"
+    },
+    "chengwang/internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go": {
+      "bytes": 6163,
+      "sha256": "107e80e693e74b9160e5991c48f9c43254fefd5781a1c75dc289c172cdc24af4"
+    }
+  },
+  "fullGoFailureNotConvertedToPass": true,
+  "fullProjectComplete": false,
+  "fullPublicFiles": 20,
+  "fullSampleSeconds": 120,
+  "localGoExecuted": false,
+  "mainMerged": false,
+  "mandatory585Pin": "8319dfde365203ae1ae268b1a5d0a3938719bcd0671586bc66840ce2a20863c3",
+  "nativeRecoveryAccepted": false,
+  "newFullGoExecuted": false,
+  "newFullJobs": 2,
+  "newResourceObservationsExecuted": false,
+  "newRuntimeAcceptance": false,
+  "normalBoundSourceCount": 112,
+  "normalWorkflowByteUnchanged": true,
+  "originalCapacityHistoryLimit": 256,
+  "originalGoTimeoutSeconds": 180,
+  "originalSingleJobs": 3,
+  "originalStrictEventsUsed": true,
+  "outerTimeoutSeconds": 600,
+  "performanceFixProven": false,
+  "pprofNumericRecomputeProven": false,
+  "production": false,
+  "productionReady": false,
+  "receipts": [
+    {
+      "kind": "source",
+      "path": "D:/CodexData/workspace/mihomo-full-profile-source-20261025-a/source-final-v2.json",
+      "sha256": "0acbe72ba0fba37dec99a6817a42d654ad680eb4b14441136a01d0d1db1fcea5"
+    },
+    {
+      "kind": "peer",
+      "path": "D:/CodexData/workspace/mihomo-full-profile-peer-20261025/closeout.json",
+      "sha256": "83a0c9762c016bed6502a901c19caa3d1c6429c8c81005c11015a1ab9571a5db"
+    },
+    {
+      "kind": "foundationFailure",
+      "path": "D:/CodexData/workspace/mihomo-2de5661-foundation-audit-20261025-agent/result.json",
+      "sha256": "e84284e079c06b152890c4b1d3cfdbcee3f5a2f6aef2e4659765a8074cd28b40"
+    },
+    {
+      "kind": "otherFive",
+      "path": "D:/CodexData/workspace/mihomo-2de5661-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "119eab3ac44525f8d5d8eaf908e7bd0667b6b2c0a41edb62395aefdbf97be0b7"
+    }
+  ],
+  "registryPublished": false,
+  "resourceCauseProven": false,
+  "schema": "chengwang.full-contract-profile-source-integration/v1",
+  "scope": "PEER_REVIEWED_DIAGNOSTIC_SOURCE_NOT_NEW_RUNTIME_OR_PRODUCT_ACCEPTANCE",
+  "singlePublicFiles": 18,
+  "singleSampleSeconds": 60,
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-capacity-profile.yml": "d853b370300feaa3983121bc620a2d545b72ecab333331405b822d5d3a08c7a5",
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "b8bbc471631519b33592b75a766247eba92c3edd6253ccd10140a18833ee482c",
+    "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py": "67255d89175369dac5178f2f6117fd29e923f42ca407862cc342249a1e3bbd2b",
+    "chengwang/deploy/mihomo-capacity-profile/run_profile.sh": "5e365e7c2a868f6c44ceb4a6cbd675e36b1422356d2f4ac8446741f9a2e5955a",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "84a31572b5352069522f59773906e802ab3c74fa009c9a97282f7384647cd77a",
+    "chengwang/docs/evidence/sys06-next7-2de-race-failure-20261025.json": "a73265871272aef5f425c958ac912476a1b6916f7f21939e1e143de5b534be3a",
+    "chengwang/internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go": "107e80e693e74b9160e5991c48f9c43254fefd5781a1c75dc289c172cdc24af4"
+  },
+  "wholeSixPackageCPUProfileProven": false
+}

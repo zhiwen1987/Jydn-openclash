@@ -1,0 +1,73 @@
+{
+  "schema": "chengwang.next7-race-failure/v1",
+  "sourceCommit": "2de5661481603d75f3483b599614f89747295a9c",
+  "runID": 40155992395,
+  "wholeConclusion": "failure",
+  "successfulJobs": 11,
+  "failedJobs": [
+    "contracts",
+    "contracts-fresh"
+  ],
+  "formatPatchBytes": 0,
+  "ordinary": {
+    "semanticPassed": 1273,
+    "requiredPassed": 585,
+    "newAuthorityPassed": 27,
+    "newStartPassed": 19,
+    "capacitySeconds": 10.99
+  },
+  "race": {
+    "semanticStarted": 1158,
+    "semanticPassed": 1157,
+    "requiredPassed": 489,
+    "requiredUnfinished": 1,
+    "requiredNotStarted": 95,
+    "legacy407Passed": 328,
+    "authority27Passed": true,
+    "start19Passed": true,
+    "ownerExpiryPreparationPassed": true,
+    "maxRevisionPassed": true,
+    "packageTimeoutSeconds": 180.047,
+    "capacityHasRunOnly": true,
+    "capacityRunOffsetFromPackageStartSeconds": 57.294115,
+    "capacityObservedSecondsBeforePackageFail": 122.753361
+  },
+  "sourceEvidence": {
+    "trackedGitBlobsVerified": 1268,
+    "foundationBoundSources": 112,
+    "old79RecoveryBodiesByteExact": true,
+    "capacity256AndTimeout180Preserved": true,
+    "panicIsSingleStackNotCPUProfile": true,
+    "dominantCostProven": false
+  },
+  "receipts": [
+    {
+      "kind": "foundation",
+      "path": "D:/CodexData/workspace/mihomo-2de5661-foundation-audit-20261025-agent/result.json",
+      "sha256": "e84284e079c06b152890c4b1d3cfdbcee3f5a2f6aef2e4659765a8074cd28b40"
+    },
+    {
+      "kind": "otherFive",
+      "path": "D:/CodexData/workspace/mihomo-2de5661-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "119eab3ac44525f8d5d8eaf908e7bd0667b6b2c0a41edb62395aefdbf97be0b7"
+    }
+  ],
+  "priorCompleteGoRun": {
+    "commit": "2b8ccb68e5ca3297667b5291ae7519de678812bb",
+    "requiredEach": 585,
+    "ordinaryCapacitySeconds": 6.32,
+    "raceCapacitySeconds": 77.69,
+    "wholeConclusion": "failure",
+    "failureIncludesNonemptyFormat": true
+  },
+  "otherFiveOriginalGatesPassed": true,
+  "previousCompleteAcceptanceSource": "40c6b4e2f1f65f9d16aeec8e3a6538277d63d62a",
+  "plannedNextStep": "actual full-six-package race CPU diagnostic; preserve original commands, full history and 180-second timeout",
+  "newGoAccepted": false,
+  "stablePerformanceGuarantee": false,
+  "nativeRecoveryStartAccepted": false,
+  "fullRecoveryAccepted": false,
+  "fullProjectComplete": false,
+  "productionReady": false,
+  "production": false
+}

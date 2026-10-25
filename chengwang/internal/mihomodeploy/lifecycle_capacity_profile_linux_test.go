@@ -78,9 +78,14 @@ func capacityProfileWriteJSON(name string, value any) bool {
 func TestMain(m *testing.M) {
 	flag.Parse()
 	commit := os.Getenv("CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT")
+	mode := os.Getenv("CHENGWANG_CAPACITY_PROFILE_MODE")
+	runPattern, timerSeconds, stateSchema := capacityProfileTest, 60, "chengwang.capacity-cpu-profile-state/v1"
+	if mode == "FULL_CONTRACTS" {
+		runPattern, timerSeconds, stateSchema = "^Test", 120, "chengwang.capacity-cpu-profile-state/v2"
+	}
 	timeout, err := time.ParseDuration(flag.Lookup("test.timeout").Value.String())
 	info, statErr := os.Lstat(capacityProfilePrivate)
-	if err != nil || timeout != 180*time.Second || flag.Lookup("test.run").Value.String() != capacityProfileTest ||
+	if (mode != "" && mode != "FULL_CONTRACTS") || err != nil || timeout != 180*time.Second || flag.Lookup("test.run").Value.String() != runPattern ||
 		flag.Lookup("test.count").Value.String() != "1" || !regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(commit) ||
 		commit == "0000000000000000000000000000000000000000" || os.Getuid() != 10001 || os.Getgid() != 10001 ||
 		statErr != nil || !info.IsDir() || info.Mode().Perm() != 0700 || info.Mode()&os.ModeSymlink != 0 {
@@ -129,11 +134,12 @@ func TestMain(m *testing.M) {
 				Complete            bool      `json:"complete"`
 				TimerSeconds        int       `json:"timerSeconds"`
 				TestTimeoutSeconds  int       `json:"testTimeoutSeconds"`
-			}{"chengwang.capacity-cpu-profile-state/v1", commit, reason, started.UTC(), stopped.UTC(), stopped.Sub(started).Nanoseconds(), len(raw), hex.EncodeToString(digest[:]), w.failed, w.limited, synced, closed, complete, 60, 180}
+				DiagnosticMode      string    `json:"diagnosticMode,omitempty"`
+			}{stateSchema, commit, reason, started.UTC(), stopped.UTC(), stopped.Sub(started).Nanoseconds(), len(raw), hex.EncodeToString(digest[:]), w.failed, w.limited, synced, closed, complete, timerSeconds, 180, mode}
 			captureOK = capacityProfileWriteJSON("profile-state.json", value) && complete
 		})
 	}
-	timer := time.AfterFunc(60*time.Second, func() { stop("TIMER_60_SECONDS") })
+	timer := time.AfterFunc(time.Duration(timerSeconds)*time.Second, func() { stop(fmt.Sprintf("TIMER_%d_SECONDS", timerSeconds)) })
 	code := m.Run()
 	_ = timer.Stop()
 	stop("M_RUN_RETURNED") // sync.Once also joins an already-running timer stop
