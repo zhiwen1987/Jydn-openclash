@@ -193,9 +193,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryStarted(t *lifecycleRecoveryOwner
 	// error until the store's clock check so rollback still poisons that store.
 	var fact labRecoveryStartedFact
 	var consumeErr error
+	var consumedCore *labRecoveryStartedEpochCore
 	if q == nil || q.core == nil {
 		consumeErr = errLabRecoveryStart
 	} else {
+		consumedCore = q.core
 		fact, consumeErr = q.consumeStartedEpochForRecord(q.core.fact.Binding, now)
 	}
 	if s == nil || s.core == nil {
@@ -264,7 +266,45 @@ func (s *lifecycleRecoveryStore) recordRecoveryStarted(t *lifecycleRecoveryOwner
 	proof.binding = func(candidate *lifecycleStartedPublication, owner *lifecycleRecoveryStoreCore, original *lifecycleVerifiedBaseCore) bool {
 		return candidate == proof && owner == x && original == base.core && candidate.base == original && candidate.canonical == sealed
 	}
-	return x.commitWithBase(base, next, now)
+	if err := x.commitWithBase(base, next, now); err != nil {
+		return err
+	}
+	// The original registry item was consumed above. Only an actual successful
+	// canonical publication/readback may retain its source-owned identity for
+	// observation. This never restores that item or grants another Start.
+	if fresh && consumedCore.issuer == &processLabRecoveryStartedIssuer {
+		// This issuance block is reachable only through the original successful
+		// registry consume and actual S1 publication in this locked invocation.
+		// There is deliberately no callable factory accepting old fact/core DTOs.
+		if x.startedRecord != proof || proof.binding == nil || !proof.binding(proof, x, base.core) || x.verify() != nil ||
+			x.record.core.Recovery == nil || x.record.core.Recovery.Execution == nil || x.live != t.core ||
+			!reflect.DeepEqual(x.record.core.Recovery.Execution.Started, fact) || !reflect.DeepEqual(consumedCore.fact, fact) {
+			return errLifecycleUnsafe
+		}
+		actualNow := time.Now().UTC()
+		current := x.record.core.Recovery
+		if x.trustedNow(actualNow) != nil {
+			return errLifecycleUnsafe
+		}
+		if current.Phase == "START_ARMED" && current.Revocation == nil && current.Failure == nil && current.Approval != nil &&
+			actualNow.Before(current.Approval.ExpiresAt) && actualNow.Before(current.Plan.ExpiresAt) && actualNow.Before(x.record.core.RecoveryOwner.ExpiresAt) {
+			canonical, err := json.Marshal(x.record.core)
+			if err != nil || !bytes.Equal(canonical, x.raw) {
+				return errLifecycleUnsafe
+			}
+			started, originalSource, seal, kernel := consumedCore, consumedCore.source, consumedCore.seal, consumedCore.owner
+			originalFact := labRecoveryStartedCloneFact(fact)
+			owner, image := t.core, string(x.raw)
+			custody := &labRecoveryStartedCustody{store: x, owner: owner, started: started, canonical: image}
+			custody.binding = func(candidate *labRecoveryStartedCustody, store *lifecycleRecoveryStoreCore) bool {
+				return candidate == custody && store == x && candidate.store == x && candidate.owner == owner && candidate.started == started && candidate.canonical == image &&
+					started.owner == kernel && started.source == originalSource && started.seal == seal && reflect.DeepEqual(started.fact, originalFact) &&
+					originalSource != nil && originalSource.binding != nil && originalSource.binding(originalSource, x)
+			}
+			x.retainedStarted = custody
+		}
+	}
+	return nil
 }
 
 func lifecycleRecoveryStartedReserve(a *lifecycleRecoveryTxn) *lifecycleRecoveryExecution {

@@ -19,6 +19,8 @@ ROOT = Path('/tmp/chengwang-mihomo-recovery-private')
 TAGS = ('chengwang_mihomo_service', 'chengwang_mihomo_faults', 'chengwang_mihomo_recovery_native')
 TOP = 'TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup'
 STAGES = ('planned', 'approved', 'stop-armed', 'quiesced', 'start-armed', 'started')
+RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json')
+RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 FMT = tuple('internal/mihomodeploy/'+name for name in (
     'lab_bootstrap.go', 'lab_kernel_linux.go', 'lab_quiescence_linux.go',
     'lab_recovery_start_linux.go', 'lab_syntax_linux.go',
@@ -28,7 +30,7 @@ PREEXISTING = ('host-before.json', 'host-after.json', 'consumption.json', 'consu
 PRODUCED = ('native-report.json', 'wal-readback-index.json', 'old-kernel.stdout', 'old-kernel.stderr',
             'new-kernel.stdout', 'new-kernel.stderr', 'sandbox.json', 'execution.json',
             'go-version.txt', 'gofmt.patch', 'gofmt.stderr', 'native.json', 'native.stderr',
-            'commands.jsonl', 'process-events.jsonl')
+            'commands.jsonl', 'process-events.jsonl', *RECOVERY_PUBLIC)
 _ADAPTER = None
 _STATE = None
 
@@ -65,7 +67,7 @@ def adapter():
 def contract():
     s = adapter(); w = s.adapter().shared()
     value = w.decode(w.file_bytes(Path(__file__).absolute().with_name('native_recovery_contract.json'), 64 << 10)[0])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v2', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v3', scope=SCOPE,
         tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
         goTimeoutSeconds=75, outerGoTimeoutSeconds=90, privateRoot=str(ROOT),
         identityRoot=str(s.IDENTITIES), servicePrivateRoot=str(s.ROOT), stateRoot=str(s.STATE),
@@ -73,6 +75,9 @@ def contract():
         cleanupPorts=[28411, 28412, 28413, 28414, 28415], fixtureRoles=['origin', 'A', 'B'],
         cleanupProbeKeys=['port', 'attempted', 'result'],
         fixtureCleanupKeys=['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
+        recoveryCaptureStage='recovery-s2', recoveryCaptureFiles=list(RECOVERY_CAPTURE),
+        recoveryCaptureMaxBytes=2 << 20, recoveryCaptureBodyBytes=256 << 10, recoveryVerificationBytes=64 << 10,
+        recoveryControlOnly=True,
         eventCheckpoints=list(CHECKPOINTS), eventCheckpointKeys=['stage', 'count', 'lastSequence', 'eventsSHA256'],
         eventPrefixEncoding='Go-json.Marshal([]labNativeRecoveryCall)-sequence-kind-core-at-no-newline',
         commandReceiptSchema='chengwang.mihomo-native-command-receipt/v1', commandReceiptKeys=list(COMMAND_KEYS),
@@ -190,7 +195,7 @@ def private_outputs(commit):
     s = adapter(); w = s.adapter().shared(); forbidden = disclosure_inputs()
     raw = s.private_file(ROOT/'native-report.private.json', 1 << 20)
     report = w.decode(raw)
-    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v2' and
+    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v3' and
          report['scope'] == SCOPE and report['sourceCommit'] == commit and
          report['outcome'] in ('PASS', 'FAIL') and type(report['nativeCalls']) is list and len(report['nativeCalls']) <= 256)
     # Public evidence does not include owner nonce/raw WAL. The Go test's
@@ -226,6 +231,20 @@ def private_outputs(commit):
             need(report['outcome'] == 'FAIL')
             continue
         outputs[public] = s.private_file(path, 64 << 10, empty=True)
+    # Fixed originals from this one real bounded capture; never a second GET
+    # or a blind directory export. Existing disclosure checks below apply to
+    # every retained byte, including captured HTTP entities and transcript.
+    capture_bytes = 0
+    for name, public in zip(RECOVERY_CAPTURE, RECOVERY_PUBLIC):
+        path = s.ROOT/'recovery-s2'/name
+        if not path.exists():
+            need(report['outcome'] == 'FAIL')
+            continue
+        limit = 64 << 10 if name == 'verification.json' else 256 << 10 if name.startswith('body-') else 2 << 20
+        data = s.private_file(path, limit)
+        capture_bytes += len(data)
+        need(capture_bytes <= 2 << 20)
+        outputs[public] = data
     for data in outputs.values():
         s.disclosure(data, forbidden)
     return outputs, forbidden, report

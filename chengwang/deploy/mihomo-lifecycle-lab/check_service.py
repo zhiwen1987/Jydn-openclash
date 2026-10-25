@@ -395,7 +395,7 @@ def journal(raw,report,captures,operation,intent):
 def verify_raw(raw,sources,commit):
     try:
         need(type(raw) is dict and set(raw)==set(PUBLIC) and len(PUBLIC)==len(set(PUBLIC))==58)
-        need(type(sources) is dict and set(sources)==set(FILES) and len(FILES)==len(set(FILES))==147)
+        need(type(sources) is dict and set(sources)==set(FILES) and len(FILES)==len(set(FILES))==151)
         need(type(commit) is str and re.fullmatch('[a-f0-9]{40}',commit) is not None)
         need(all(type(v) is bytes and 0<len(v)<=1<<20 for v in sources.values()))
         need(all(type(v) is bytes for v in raw.values()) and sum(map(len,raw.values()))<=16<<20)
@@ -462,7 +462,7 @@ def source_bindings(repo,commit):
         result=subprocess.run(['git','-c','safe.directory='+str(repo),'-C',str(repo),*args],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=30)
         need(result.returncode==0 and len(result.stdout)<=1<<20); return result.stdout
     need(git('rev-parse','HEAD').strip().decode('ascii')==commit and Path(os.fsdecode(git('rev-parse','--show-toplevel').strip())).resolve()==repo)
-    need(len(FILES)==len(set(FILES))==147)
+    need(len(FILES)==len(set(FILES))==151)
     sources={}
     for p in FILES:
         raw=C.read(repo/p,1<<20,False); need(raw==git('show',commit+':'+p)); sources[p]=raw

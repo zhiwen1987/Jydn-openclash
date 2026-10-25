@@ -3,7 +3,7 @@
 package mihomodeploy
 
 // Real pinned-kernel/native-disk acceptance. This file never calls a MODEL
-// helper, seeds a WAL, writes an issuer registry or constructs a private cap.
+// helper, seeds a WAL, writes an issuer registry or mints a private cap.
 // It has no skip path. Only the isolated Linux worker may satisfy its envelope.
 import (
 	"bytes"
@@ -56,6 +56,14 @@ type labNativeRecoveryReport struct {
 	RuntimeClosed                       bool                               `json:"runtimeClosed"`
 	NewDiskOwnerClosed                  bool                               `json:"newDiskOwnerClosed"`
 	CleanupReplayNoOp                   bool                               `json:"cleanupReplayNoOp"`
+	ControlPlane                        *labRecoveryObservedValue          `json:"controlPlane"`
+	ControlEvents                       []labNativeRecoveryEventCheckpoint `json:"controlEvents"`
+	ControlBeforeSHA256                 string                             `json:"controlBeforeSHA256"`
+	ControlAfterSHA256                  string                             `json:"controlAfterSHA256"`
+	ControlProofReplayRejected          bool                               `json:"controlProofReplayRejected"`
+	ControlRecollectRejected            bool                               `json:"controlRecollectRejected"`
+	ControlCopiedStartedRejected        bool                               `json:"controlCopiedStartedRejected"`
+	ControlCopiedProofRejected          bool                               `json:"controlCopiedProofRejected"`
 	HTTPRecoveryProven                  bool                               `json:"httpRecoveryProven"`
 	CompletionProven                    bool                               `json:"completionProven"`
 	FullPrivateWALIndependentlyProven   bool                               `json:"fullPrivateWALIndependentlyProven"`
@@ -117,11 +125,11 @@ func labNativeRecoveryCount(events []labNativeRecoveryCall, kind string, core ui
 }
 
 func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T) {
-	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v2",
+	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v3",
 		Scope: labNativeRecoveryScope, SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"),
 		Outcome: "FAIL", FailureCode: "NOT_COMPLETED", Stages: []labNativeRecoveryCheckpoint{}, Syntax: []labKernelStartObservation{},
 		NativeCalls: []labNativeRecoveryCall{}, EventCheckpoints: []labNativeRecoveryEventCheckpoint{}, ClosedPorts: []uint16{},
-		FixtureCleanup: []labLocalFixtureCleanup{}, CleanupProbes: []labQuiescenceProbe{}}
+		FixtureCleanup: []labLocalFixtureCleanup{}, CleanupProbes: []labQuiescenceProbe{}, ControlEvents: []labNativeRecoveryEventCheckpoint{}}
 	var service *LabService
 	var runner *labNativeRecoveryRunner
 	var manager *authn.SnapshotManager
@@ -300,6 +308,12 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 	}
 	execution := *w.core.Recovery.Execution
 	report.StartedSHA256 = execution.Started.StartedSHA256
+	runner.store.core.mu.Lock()
+	nativeCustody := runner.store.core.retainedStarted
+	runner.store.core.mu.Unlock()
+	if nativeCustody == nil {
+		t.Fatal("actual successful Started publication retained no observation custody")
+	}
 	if err := runner.awaitNewKernelWait(); err != nil {
 		t.Fatal("actual new kernel did not enter its sole pending Wait")
 	}
@@ -338,6 +352,94 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		t.Fatal("replay added a real native call")
 	}
 	report.ReplayRejected = true
+	// S2 observes the actual post-S1 new core. Original spent-cap/runner replay
+	// above must not clear or reissue its original retained source custody.
+	runner.store.core.mu.Lock()
+	controlBefore := bytes.Clone(runner.store.core.raw)
+	retainedAfterReplay := runner.store.core.retainedStarted
+	runner.store.core.mu.Unlock()
+	if retainedAfterReplay != nativeCustody {
+		t.Fatal("failed original replay replaced actual post-S1 custody")
+	}
+	// Copying metadata cannot recreate the native registry identity. This is
+	// the original native core's shallow copy, never an issued capability.
+	copiedStartedCore := *runner.started.core
+	copiedStarted := &labRecoveryStartedEpoch{core: &copiedStartedCore}
+	if err := runner.store.recordRecoveryStarted(runner.owner, copiedStarted, time.Now().UTC()); err == nil {
+		t.Fatal("copied actual Started core bypassed the spent issuer")
+	}
+	runner.store.core.mu.Lock()
+	copyRejectedWithoutMutation := runner.store.core.retainedStarted == nativeCustody && bytes.Equal(controlBefore, runner.store.core.raw)
+	runner.store.core.mu.Unlock()
+	if !copyRejectedWithoutMutation {
+		t.Fatal("copied Started rejection changed retained custody or actual WAL")
+	}
+	report.ControlCopiedStartedRejected = true
+	controlCallsBefore, bounded := labNativeRecoveryReadCalls()
+	if !bounded || len(controlCallsBefore) == 0 {
+		t.Fatal("actual S2 native-event baseline unavailable")
+	}
+	controlRawBefore, err := json.Marshal(controlCallsBefore)
+	if err != nil {
+		t.Fatal("actual S2 native-event baseline encoding unavailable")
+	}
+	report.ControlEvents = append(report.ControlEvents, labNativeRecoveryEventCheckpoint{
+		Stage: "before-control-plane", Count: len(controlCallsBefore), LastSequence: controlCallsBefore[len(controlCallsBefore)-1].Sequence, EventsSHA256: labConfigHash(controlRawBefore)})
+	report.ControlBeforeSHA256 = labConfigHash(controlBefore)
+	collector, err := newLabRecoveryCollector(service.core.artifacts, service.core.diagnostics, runner.authority, runner.session, runner.next)
+	if err != nil {
+		report.FailureCode = "CONTROL_COLLECTOR"
+		t.Fatal("actual recovery collector could not bind retained objects")
+	}
+	controlCtx, controlCancel := context.WithTimeout(service.core.ctx, 10*time.Second)
+	defer controlCancel()
+	observed, err := collector.collect(controlCtx, headers["initiator"])
+	if err != nil || observed == nil || observed.core == nil {
+		report.FailureCode = "CONTROL_CAPTURE"
+		t.Fatal("actual post-S1 eight-GET control observation failed")
+	}
+	copiedObservedCore := *observed.core
+	if _, err := collector.consume(controlCtx, headers["initiator"], &labRecoveryObservedEvidence{core: &copiedObservedCore}); err == nil {
+		t.Fatal("copied observation core became a source-issued proof")
+	}
+	report.ControlCopiedProofRejected = true
+	controlValue, err := collector.consume(controlCtx, headers["initiator"], observed)
+	if err != nil || controlValue.SourceRevision != w.core.Revision || controlValue.SourceRecordSHA256 != w.core.RecordSHA256 ||
+		controlValue.StartedSHA256 != report.StartedSHA256 || controlValue.StartupIdentity != runner.newIdentity ||
+		!reflect.DeepEqual(controlValue.Artifact, execution.Started.Binding.TargetArtifact) || controlValue.VerificationSHA256 == "" ||
+		controlValue.Readback.Conclusion != mihomo.LabTargetProjectionMatched || controlValue.Readback.SampleCount != 2 || controlValue.Readback.RequestsObserved != 8 ||
+		controlValue.Readback.DataplaneProven || controlValue.Readback.FullPayloadProven || controlValue.Readback.AuthorizationProven || controlValue.Readback.Production {
+		report.FailureCode = "CONTROL_CONSUME"
+		t.Fatal("actual one-use observation did not bind current S1 and selected target")
+	}
+	report.ControlPlane = &controlValue
+	if _, err := collector.consume(controlCtx, headers["initiator"], observed); err == nil {
+		t.Fatal("spent actual S2 observation proof replayed")
+	}
+	report.ControlProofReplayRejected = true
+	anotherCollector, err := newLabRecoveryCollector(service.core.artifacts, service.core.diagnostics, runner.authority, runner.session, runner.next)
+	if err != nil {
+		t.Fatal("same retained S2 objects could not be reopened for replay rejection")
+	}
+	if _, err := anotherCollector.collect(controlCtx, headers["initiator"]); err == nil {
+		t.Fatal("a second collector reset the actual custody attempt")
+	}
+	report.ControlRecollectRejected = true
+	runner.store.core.mu.Lock()
+	controlAfter := bytes.Clone(runner.store.core.raw)
+	retainedAfterControl := runner.store.core.retainedStarted
+	runner.store.core.mu.Unlock()
+	report.ControlAfterSHA256 = labConfigHash(controlAfter)
+	controlCallsAfter, bounded := labNativeRecoveryReadCalls()
+	if !bounded || !bytes.Equal(controlBefore, controlAfter) || retainedAfterControl != nativeCustody || !reflect.DeepEqual(controlCallsBefore, controlCallsAfter) {
+		t.Fatal("read-only S2 changed the actual WAL, custody or physical call prefix")
+	}
+	controlRawAfter, err := json.Marshal(controlCallsAfter)
+	if err != nil || len(controlCallsAfter) == 0 {
+		t.Fatal("actual S2 native-event ending unavailable")
+	}
+	report.ControlEvents = append(report.ControlEvents, labNativeRecoveryEventCheckpoint{
+		Stage: "after-control-plane", Count: len(controlCallsAfter), LastSequence: controlCallsAfter[len(controlCallsAfter)-1].Sequence, EventsSHA256: labConfigHash(controlRawAfter)})
 	// Owned-metadata negative control only: these are the actual retired
 	// closed legacy object and the actual migrated new disk owner. No disk,
 	// record, capability or public setter is constructed for this case.

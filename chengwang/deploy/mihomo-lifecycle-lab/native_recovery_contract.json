@@ -1,5 +1,5 @@
 {
-  "schema": "chengwang.mihomo-native-recovery-contract/v2",
+  "schema": "chengwang.mihomo-native-recovery-contract/v3",
   "scope": "ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_HTTP_COMPLETION_OR_PRODUCTION",
   "tags": [
     "chengwang_mihomo_service",
@@ -30,6 +30,12 @@
   "fixtureRoles": ["origin", "A", "B"],
   "cleanupProbeKeys": ["port", "attempted", "result"],
   "fixtureCleanupKeys": ["role", "shutdownReturned", "serveReturned", "forcedConnectionsClosed", "errorClass"],
+  "recoveryCaptureStage": "recovery-s2",
+  "recoveryCaptureFiles": ["transcript.json", "body-1.json", "body-2.json", "body-3.json", "body-4.json", "body-5.json", "body-6.json", "body-7.json", "body-8.json", "verification.json"],
+  "recoveryCaptureMaxBytes": 2097152,
+  "recoveryCaptureBodyBytes": 262144,
+  "recoveryVerificationBytes": 65536,
+  "recoveryControlOnly": true,
   "eventCheckpoints": [
     "before-permit-cap-replay",
     "after-permit-cap-replay",

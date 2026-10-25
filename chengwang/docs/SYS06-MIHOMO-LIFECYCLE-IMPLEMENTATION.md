@@ -1,8 +1,22 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：04e的S1 607结构测试底座已通过正常及完整诊断、独立原件复核，旧ead格式失败保持原判；实际native启动入库、运行时关闭交接、S2、产品恢复接口及完整闭环仍未完成，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：b57同提交的实际native启动、S1入库、清理与重开隔离切片已完成三套CI及独立原件验收；S2新内核验证正在实现，产品恢复接口及完整发布恢复闭环仍未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### S2当前开发：真实样本时间接口与私有新内核验证采集
+
+新增只读SampleTimes接口从原opaque双样本返回四个真实采样时间值，独立校验形状、摘要和时间顺序，不把时间DTO当授权、当前新鲜度或业务可用性。对应三项Go测试声明已汇入开发目录，但尚未执行Go。私有post-S1来源绑定、VERIFY当前授权、八GET捕获与一次性观测证据由实现代理开发，独立代理审阅；来源发行只能发生在原Started能力真实消费及S1磁盘提交／读回成功之后，不能用旧q或JSON重造。持久Execution-v1、Current及head不扩张，后续数据面、持久验证回执、完成许可和产品API仍须实施。
+
+检查器source／formatter／mandatory名单已为新增四源接线，normal125、compat136、apply144、service151、unknown157源仍逐项绑定且不删除旧源。五类检查器187项纯CPU模型通过，实际PID14728，原件位于D:/CodexData/workspace/s2-source-models-ikzoh5s2；首次来源数量未同步的失败oz5il9db原件保留。该结果不证明新Go编译、格式、真实HTTP、新内核观测或生产。当前尚未进行本候选统一提交／Linux CI／原生验收，实际范围以随后的同提交收据为准。
+
+### 2026-10-25 b57三套原件接受：真实native Started/S1事实/清理/重开本范围闭环
+
+b57d57eb2546874fc4ae8a90e8992ab1ea72f841同提交正常40179752807实际13success，root f00bff1b核12ZIP208成员／1312blob、普通与race各1503语义／611必需全PASS及format0，原C.verify16274B报告f9db9469与producer/fresh同。diag40179752897实际5success，独立f97f29ba核4ZIP42成员／121/43/72来源及611全部PASS，full120.271824712秒TIMER、single60.229660250秒TIMER；容量79.44／包154.557秒只是本轮观测。原Windows CLI/POSIXwriter exit1仍单列，不冒充本机Linux写入接受。
+
+native40179752888实际4success，独立eb96506b核3ZIP42成员／159来源／21公件／16实际模型，GoPASS8.22秒、fmt0；原verify_raw全部严格门通过，实际五次拒连、三fixture Shutdown/Serve、八阶段WAL index、reopen18 RECOVERY_UNKNOWN和十checkpoint完整，未削弱时间窗或阶段校验。Linux producer/fresh23753B逐字同，SHA df43c5da2ab98161f9fce6aa4b739b0b4581473b4d12d92b839c84d30b7c359e。原pure-data结果的sourceGitVerified仍false，仅显式comparison副本将已独立核验的source标志设true后比Linux两报告，不改输入、函数、权限或平台。全部三套19ZIP292成员保管稳定，前三轮native失败及外部审计器错误记录仍按原判保留。
+
+此接受只证明隔离实验内实际UNKNOWN→独立批准→实际Stop/Start→S1事实磁盘入库→重放拒绝→两代及fixture清理→五口拒连→严格重开失效封闭。完整私有WAL公开独立证明、全系统syscall tracing、S2/data-plane/完成permit/新head/产品恢复API/后续普通写/第二恢复/互联网业务和生产均未证明，标志保持false或未知。接受档[evidence/sys06-b57-native-started-s1-acceptance-20261025.json](evidence/sys06-b57-native-started-s1-acceptance-20261025.json)已写，待下一真实源码统一集成，不为文档单独触发重跑；生产/main/Registry未动。
 
 ### 2026-10-25 db原生Go通过但独立reader拒绝；时间快照与WAL阶段修订待新CI
 

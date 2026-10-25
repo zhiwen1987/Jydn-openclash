@@ -154,6 +154,14 @@ files+=(
   internal/adapter/mihomo/lab_target_readback_test.go
 )
 files+=(
+  internal/adapter/mihomo/lab_sample_times.go
+  internal/adapter/mihomo/lab_sample_times_test.go
+)
+files+=(
+  internal/mihomodeploy/lab_recovery_collector.go
+  internal/mihomodeploy/lab_recovery_collector_linux_test.go
+)
+files+=(
   internal/mihomodeploy/lab_native_recovery_linux.go
   internal/mihomodeploy/lab_native_recovery_linux_test.go
   internal/mihomodeploy/lab_native_recovery_observer_default.go

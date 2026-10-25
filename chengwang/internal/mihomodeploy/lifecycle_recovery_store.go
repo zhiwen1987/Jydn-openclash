@@ -32,6 +32,9 @@ type lifecycleRecoveryStoreCore struct {
 	quiescenceSHA string
 	permit        *labRecoveryStartCore
 	startedRecord *lifecycleStartedPublication
+	// Ephemeral custody from an actually consumed Started core and successful
+	// S1 disk publication. Never decoded or persisted; reopen starts with nil.
+	retainedStarted *labRecoveryStartedCustody
 	// Issuance identities only, scoped to one locked operation. They are
 	// released on every exit and are never a cross-operation validation cache.
 	activeBase     *lifecycleVerifiedBaseCore
@@ -292,6 +295,7 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 	if x == nil || x.record.core == nil || !lifecycleTime(now) || now.Before(x.record.core.LastTrustedAt) {
 		if x != nil {
 			x.poisoned = true
+			x.retainedStarted = nil
 			x.live = nil
 			x.permit = nil
 			x.startedRecord = nil
@@ -324,12 +328,14 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 	}
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return nil, err
 	}
 	raw, exists, err := x.disk.readControl()
 	if err != nil || !exists || !bytes.Equal(raw, x.raw) {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
@@ -340,6 +346,7 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 	if image == nil || image.store != x || image.identity != image || image.binding == nil || !image.binding(image, x) || image.generation == 0 || image.generation != x.validationGeneration || len(image.canonical) == 0 ||
 		labConfigHash([]byte(image.canonical)) != image.rawSHA256 || !bytes.Equal(raw, []byte(image.canonical)) {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
@@ -350,6 +357,7 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 	canonical, err := json.Marshal(x.record.core)
 	if err != nil || !bytes.Equal(canonical, []byte(image.canonical)) {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
@@ -359,6 +367,7 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 	r, err := cloneTrustedLifecycleV3(x.record, raw)
 	if err != nil {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
@@ -377,18 +386,21 @@ func (x *lifecycleRecoveryStoreCore) publish(raw []byte) error {
 	defer func() { x.activePrepared = nil }()
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return err
 	}
 	before, exists, err := x.disk.readControl()
 	if err != nil || !exists {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return errLifecycleUnsafe
 	}
 	old, err := decodeLifecycleRecord(before)
 	if err != nil || old.wire.Schema != lifecycleSchemaV2 {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return errLifecycleUnsafe
 	}
@@ -422,6 +434,7 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	// A fresh actual custody/read/CAS check remains immediately before replace.
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return err
 	}
@@ -429,18 +442,21 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	if err != nil || !exists || !bytes.Equal(before, c.before) ||
 		(c.base != nil && (!bytes.Equal(x.raw, c.before) || x.record.core == nil || !reflect.DeepEqual(x.record.core, c.base.record.core))) {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return errLifecycleUnsafe
 	}
 	state, err := x.disk.replaceControl(c.raw)
 	if state == lifecycleUnknown || (state != lifecycleNotCommitted && state != lifecycleCommitted) || (state == lifecycleCommitted && err != nil) {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return errLifecycleCommitUnknown
 	}
 	if state != lifecycleCommitted {
 		if errors.Is(err, errLifecycleUnsafe) {
 			x.poisoned = true
+			x.retainedStarted = nil
 			x.validated = nil
 		}
 		if err != nil {
@@ -451,6 +467,7 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	actual, exists, err := x.disk.readControl()
 	if err != nil || !exists || !bytes.Equal(actual, c.raw) || x.disk.verify() != nil {
 		x.poisoned = true
+		x.retainedStarted = nil
 		x.validated = nil
 		return errLifecycleCommitUnknown
 	}
@@ -598,6 +615,7 @@ func (s *lifecycleRecoveryStore) close() error {
 	x.live = nil
 	x.permit = nil
 	x.startedRecord = nil
+	x.retainedStarted = nil
 	x.quiescenceSHA = ""
 	x.activeBase = nil
 	x.activePrepared = nil
@@ -607,6 +625,7 @@ func (s *lifecycleRecoveryStore) close() error {
 	}
 	if err := x.disk.close(); err != nil {
 		x.poisoned = true
+		x.retainedStarted = nil
 		return err
 	}
 	x.closed = true

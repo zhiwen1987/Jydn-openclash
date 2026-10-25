@@ -93,6 +93,10 @@ S1_STARTED_FILES = ('lifecycle_recovery_started.go', 'lifecycle_recovery_started
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in S1_STARTED_FILES]
 LAB_SELECTED_TARGET_FILES = ('lab_target_readback.go', 'lab_target_readback_test.go')
 FILES += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_SELECTED_TARGET_FILES]
+LAB_SAMPLE_TIMES_FILES = ('lab_sample_times.go', 'lab_sample_times_test.go')
+FILES += ['chengwang/internal/adapter/mihomo/' + name for name in LAB_SAMPLE_TIMES_FILES]
+LAB_RECOVERY_COLLECTOR_FILES = ('lab_recovery_collector.go', 'lab_recovery_collector_linux_test.go')
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_COLLECTOR_FILES]
 LAB_NATIVE_RECOVERY_FILES = ('lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go')
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_NATIVE_RECOVERY_FILES]
@@ -116,6 +120,8 @@ TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/m
 TEST_FILES += [('chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go', 'chengwang/internal/mihomodeploy')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/lifecycle_recovery_started_linux_test.go', 'chengwang/internal/mihomodeploy')]
 TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_target_readback_test.go', 'chengwang/internal/adapter/mihomo')]
+TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_sample_times_test.go', 'chengwang/internal/adapter/mihomo')]
+TEST_FILES += [('chengwang/internal/mihomodeploy/lab_recovery_collector_linux_test.go', 'chengwang/internal/mihomodeploy')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
     'chengwang/internal/api', 'chengwang/internal/serverruntime', 'chengwang/internal/authz'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,

@@ -6,6 +6,7 @@ fixed source manifest are closed. Component validators never execute native I/O.
 import argparse
 import datetime
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -52,18 +53,22 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lab_recovery_start_linux.go', 'lab_syntax_linux.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go',
     'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go'))
+RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json')
+RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 PUBLIC = ('host-before.json', 'host-after.json', 'consumption.json', 'consumption-independent.json',
           'native-report.json', 'wal-readback-index.json', 'old-kernel.stdout', 'old-kernel.stderr',
           'new-kernel.stdout', 'new-kernel.stderr', 'sandbox.json', 'execution.json', 'go-version.txt',
           'gofmt.patch', 'gofmt.stderr', 'native.json', 'native.stderr', 'commands.jsonl', 'process-events.jsonl',
-          'source-before.json', 'source-after.json')
+          'source-before.json', 'source-after.json', *RECOVERY_PUBLIC)
 REPORT_KEYS = ('schema', 'scope', 'sourceCommit', 'outcome', 'failureCode', 'originalUnknown', 'fault',
                'reloadBefore', 'reloadUnknown', 'reloadFinal', 'oldIdentity', 'newIdentity',
                'bootstrapStart', 'oldCore', 'newCore', 'quiescence', 'start', 'startedSHA256',
                'stages', 'replayRejected', 'recoverySelfApprovalDenied', 'reopened', 'oldCleanup',
                'newCleanup', 'syntax', 'nativeCalls', 'eventCheckpoints', 'dualOwnerCloseRejectedTwice',
                'countersBounded', 'closedPorts', 'fixtureCleanup', 'cleanupProbes',
-               'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp',
+               'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp', 'controlPlane', 'controlEvents',
+               'controlBeforeSHA256', 'controlAfterSHA256', 'controlProofReplayRejected', 'controlRecollectRejected',
+               'controlCopiedStartedRejected', 'controlCopiedProofRejected',
                'httpRecoveryProven', 'completionProven', 'fullPrivateWALIndependentlyProven',
                'syntaxRawStreamsIndependentlyProven', 'internetBusinessProven', 'production')
 HEX = re.compile(r'[a-f0-9]{64}')
@@ -375,7 +380,7 @@ def event_checkpoints(checkpoints, rows, positions, old_core, new_core):
 
 def contract(sources):
     value = decode(sources[PREFIX + 'native_recovery_contract.json'])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v2', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v3', scope=SCOPE,
                     tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
                     goTimeoutSeconds=75, outerGoTimeoutSeconds=90,
                     privateRoot='/tmp/chengwang-mihomo-recovery-private',
@@ -391,6 +396,9 @@ def contract(sources):
                     cleanupPorts=[28411, 28412, 28413, 28414, 28415], fixtureRoles=['origin', 'A', 'B'],
                     cleanupProbeKeys=['port', 'attempted', 'result'],
                     fixtureCleanupKeys=['role', 'shutdownReturned', 'serveReturned', 'forcedConnectionsClosed', 'errorClass'],
+                    recoveryCaptureStage='recovery-s2', recoveryCaptureFiles=list(RECOVERY_CAPTURE),
+                    recoveryCaptureMaxBytes=2 << 20, recoveryCaptureBodyBytes=256 << 10, recoveryVerificationBytes=64 << 10,
+                    recoveryControlOnly=True,
                     processEventLimit=64, maxPublicBytes=16 << 20, production=False,
                     httpRecoveryProven=False, completionProven=False,
                     syntaxRawStreamsIndependentlyProven=False)
@@ -660,6 +668,170 @@ def wal_index(raw, report, source_commit):
             'publicControlIndexCrossChecked': True, 'fullPrivateWALIndependentlyProven': False}
 
 
+def recovery_projection_reader():
+    # Only the already source-bound independent parser is imported. This is
+    # neither the worker nor a constructor for an old/new authorization DTO.
+    path = Path(__file__).absolute().with_name('get_projection.py')
+    for part in (*reversed(path.parents), path):
+        info = part.lstat()
+        need(not stat.S_ISLNK(info.st_mode) and not getattr(info, 'st_file_attributes', 0) & 1024)
+    info = path.lstat()
+    need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 < info.st_size <= 1 << 20)
+    spec = importlib.util.spec_from_file_location('_native_independent_target_projection', path)
+    need(spec is not None and spec.loader is not None)
+    reader = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(reader)
+    need(reader.unicodedata.unidata_version == reader.UNICODE_VERSION)
+    return reader
+
+
+def recovery_go_bytes(value, projection):
+    def struct(item):
+        if type(item) is dict:
+            return projection._Struct([(key, struct(child)) for key, child in item.items()])
+        if type(item) is list:
+            return [struct(child) for child in item]
+        return item
+    return projection.go_codec(struct(value))
+
+
+def recovery_artifact(value, projection):
+    keys = ('schema', 'recordSHA256', 'config', 'sourceSpecSHA256', 'sourceSpecBytes', 'controllerPort', 'mixedPort')
+    cfg_keys = ('schema', 'scope', 'sha256', 'bytes', 'draftSHA256', 'requirementsSHA256',
+                'capabilities', 'requirements', 'admissible', 'blockers')
+    exact(value, keys); need(list(value) == list(keys))
+    cfg = exact(value['config'], cfg_keys); need(list(cfg) == list(cfg_keys))
+    need(value['schema'] == 'chengwang.mihomo-artifact/v1' and cfg['schema'] == 'chengwang.mihomo-lab-config/v1')
+    need(cfg['scope'] == 'ISOLATED_LOOPBACK_MIHOMO_STATIC_SUBSET_NOT_PRODUCTION')
+    for item in (value['recordSHA256'], value['sourceSpecSHA256'], cfg['sha256'], cfg['draftSHA256'], cfg['requirementsSHA256']):
+        digest(item)
+    integer(value['sourceSpecBytes'], 1, 2 << 20); integer(cfg['bytes'], 1, 1 << 20)
+    integer(value['controllerPort'], 28412, 28412); integer(value['mixedPort'], 28411, 28411)
+    need(cfg['admissible'] is True and cfg['requirements'] == [] and cfg['blockers'] == [])
+    same(cfg['capabilities'], ['static_domain_suffix_rules', 'explicit_selectors', 'loopback_http_nodes',
+                               'private_loopback_controller', 'built_in_dns_disabled'])
+    record = dict(schema='chengwang.mihomo-artifact-record/v1', config=cfg,
+                  sourceSpecSHA256=value['sourceSpecSHA256'], sourceSpecBytes=value['sourceSpecBytes'],
+                  controllerPort=28412, mixedPort=28411)
+    need(sha(recovery_go_bytes(record, projection)) == value['recordSHA256'])
+
+
+def recovery_capture(raw, observation, projection):
+    transcript_raw = raw['recovery-s2-transcript.json']
+    need(0 < len(transcript_raw) <= 1 << 20 and observation['transcriptSHA256'] == sha(transcript_raw))
+    transcript = projection._object(projection._json(transcript_raw, projection.METADATA_LIMIT), projection.TOP_KEYS, True)
+    need(transcript['schema'] == 'chengwang.mihomo-lab-get-evidence/v1' and
+         transcript['scope'] == 'PRIVATE_HTTP_ENTITY_RESPONSE_EVIDENCE_NOT_AUTHORIZATION_OR_PAYLOAD_PROOF' and
+         transcript['outcome'] == 'COMPLETE' and transcript['failureClass'] is None and
+         transcript['limitReached'] is False and transcript['contextState'] == 'ACTIVE')
+    schedule, records = transcript['expectedSchedule'], transcript['records']
+    need(type(schedule) is list and type(records) is list and len(schedule) == len(records) == 8)
+    hashes = observation['bodySHA256s']
+    need(type(hashes) is list and len(hashes) == 8)
+    bodies, total = [], 0
+    for i, expected in enumerate(projection.SCHEDULE):
+        projection._object(schedule[i], projection.SCHEDULE_KEYS, True)
+        integer(schedule[i]['ordinal'], i + 1, i + 1); integer(schedule[i]['round'], expected['round'], expected['round'])
+        need(schedule[i]['endpointKind'] == expected['endpointKind'])
+        row = projection._object(records[i], projection.RECORD_KEYS, True)
+        integer(row['ordinal'], i + 1, i + 1); integer(row['round'], expected['round'], expected['round'])
+        need(row['endpointKind'] == expected['endpointKind'])
+        need(all(row[key] is True for key in ('requestBuilt', 'doInvoked', 'responseObserved', 'readAttempted', 'naturalEOF', 'closeAttempted')))
+        integer(row['statusCode'], 200, 200)
+        headers = projection._headers(row['headers'])
+        need(row['uncompressed'] is False and row['limitReached'] is False and
+             row['readErrorClass'] == row['closeErrorClass'] == 'NONE' and row['contextState'] == 'ACTIVE' and
+             row['parseState'] == 'SHAPE_ACCEPTED' and row['terminalClass'] == 'NONE')
+        body = raw[f'recovery-s2-body-{i+1}.json']
+        need(0 < len(body) <= 256 << 10)
+        integer(row['retainedBytes'], len(body), len(body))
+        need(row['retainedSHA256'] == hashes[i] == sha(body))
+        length = integer(row['contentLength'], -1, 256 << 10)
+        need(length == -1 or length == len(body))
+        if headers['transferEncodingValuesB64']:
+            need(length == -1)
+        total += len(body); bodies.append(body)
+    for key in ('slotsEntered', 'doInvocations', 'responsesObserved', 'readAttempts', 'completedBodies'):
+        integer(transcript[key], 8, 8)
+    integer(transcript['retainedBytes'], total, total)
+    digests, witnesses = [], []
+    for start in (0, 4):
+        hashed, witness = projection.projection_from_bodies(*bodies[start:start+4])
+        digests.append(hashed); witnesses.append(witness)
+    need(digests[0] == digests[1] and witnesses[0] == witnesses[1])
+    readback = observation['readback']
+    need(readback['targetProjectionSHA256'] == readback['observedProjectionSHA256'] == digests[0])
+    need(sum(len(raw[name]) for name in RECOVERY_PUBLIC) <= 2 << 20)
+    return {'actualResponseBodies': 8, 'rounds': 2, 'roundProjectionSHA256': digests,
+            'roundUUIDWitnessSHA256': witnesses, 'transcriptSHA256': sha(transcript_raw),
+            'independentProjectionRecomputeProven': True, 'expectedPrivateSourceIndependentlyProven': False,
+            'controllerReceivedCount': None}
+
+
+def recovery_control(raw, report, source_commit, elf, netns):
+    projection = recovery_projection_reader()
+    keys = ('schema', 'recoveryId', 'planSHA256', 'startIntentSHA256', 'startedSHA256', 'sourceRevision',
+            'sourceRecordSHA256', 'ownerFence', 'artifact', 'startupIdentity', 'entryAt', 'deadline',
+            'sampleTimes', 'observedAt', 'readback', 'transcriptSHA256', 'bodySHA256s', 'verificationSHA256')
+    verification = raw['recovery-s2-verification.json']
+    need(0 < len(verification) <= 64 << 10)
+    observed = exact(decode(verification), keys)
+    need(list(observed) == list(keys) and observed['verificationSHA256'] == '' and recovery_go_bytes(observed, projection) == verification)
+    public = exact(report['controlPlane'], keys)
+    digest(public['verificationSHA256']); need(public['verificationSHA256'] == sha(verification))
+    comparison = dict(public); comparison['verificationSHA256'] = ''
+    same(comparison, observed)
+    need(observed['schema'] == 'chengwang.mihomo-recovery-control-observation/v1')
+    need(type(observed['recoveryId']) is str and re.fullmatch(r'labrec_[a-f0-9]{32}', observed['recoveryId']) is not None)
+    for key in ('planSHA256', 'startIntentSHA256', 'startedSHA256', 'sourceRecordSHA256', 'transcriptSHA256'):
+        digest(observed[key])
+    need(observed['startedSHA256'] == report['startedSHA256'])
+    latest = report['stages'][-1]
+    integer(observed['sourceRevision'], latest['revision'], latest['revision'])
+    need(observed['sourceRecordSHA256'] == latest['recordSHA256'])
+    integer(observed['ownerFence'], 1)
+    recovery_artifact(observed['artifact'], projection)
+    need(observed['artifact']['recordSHA256'] == report['originalUnknown']['candidateRecordSHA256'] and
+         observed['artifact']['config']['sha256'] == report['originalUnknown']['candidateConfigSHA256'])
+    actual = identity(observed['startupIdentity'], source_commit, elf, netns, observed['artifact']['config']['sha256'])
+    same(actual, report['newIdentity'])
+    entry, deadline, at = (timestamp(observed[key]) for key in ('entryAt', 'deadline', 'observedAt'))
+    started_at = timestamp(report['start']['returnedAt'])
+    need(started_at <= entry <= at < deadline <= entry + 10_000_000_000 and deadline <= started_at + 30_000_000_000)
+    windows = observed['sampleTimes']; need(type(windows) is list and len(windows) == 2)
+    previous = entry
+    for window in windows:
+        exact(window, ('startedAt', 'completedAt'))
+        begin, end = timestamp(window['startedAt']), timestamp(window['completedAt'])
+        need(previous <= begin <= end <= at)
+        previous = end
+    readback = exact(observed['readback'], ('schema', 'conclusion', 'sampleCount', 'requestsObserved',
+                     'targetProjectionSHA256', 'observedProjectionSHA256', 'dataplaneProven', 'fullPayloadProven', 'authorizationProven', 'production'))
+    need(readback['schema'] == 'chengwang.mihomo-selected-target-readback/v1' and readback['conclusion'] == 'TARGET_PROJECTION_MATCHED')
+    integer(readback['sampleCount'], 2, 2); integer(readback['requestsObserved'], 8, 8)
+    for key in ('dataplaneProven', 'fullPayloadProven', 'authorizationProven', 'production'):
+        need(readback[key] is False)
+    digest(readback['targetProjectionSHA256']); digest(readback['observedProjectionSHA256'])
+    for key in ('controlProofReplayRejected', 'controlRecollectRejected', 'controlCopiedStartedRejected', 'controlCopiedProofRejected'):
+        need(report[key] is True)
+    need(report['controlBeforeSHA256'] == report['controlAfterSHA256'] == latest['controlSHA256'])
+    checkpoints = report['controlEvents']; need(type(checkpoints) is list and len(checkpoints) == 2)
+    original = report['eventCheckpoints']; boundary = original[3]
+    need(boundary['count'] == original[4]['count'] and boundary['eventsSHA256'] == original[4]['eventsSHA256'])
+    for stage, point in zip(('before-control-plane', 'after-control-plane'), checkpoints):
+        exact(point, ('stage', 'count', 'lastSequence', 'eventsSHA256'))
+        need(point['stage'] == stage)
+        integer(point['count'], boundary['count'], boundary['count']); integer(point['lastSequence'], point['count'], point['count'])
+        need(point['eventsSHA256'] == event_prefix_sha(report['nativeCalls'], point['count']) == boundary['eventsSHA256'])
+    calls = report['nativeCalls']
+    need(timestamp(calls[checkpoints[0]['count']-1]['at']) <= entry <= at <= timestamp(calls[checkpoints[1]['count']]['at']))
+    capture = recovery_capture(raw, observed, projection)
+    return {'capture': capture, 'sampleWindows': 2, 'sourceRevision': observed['sourceRevision'],
+            'sameS1WALBeforeAfter': True, 'physicalCallsAdded': 0,
+            'oneUseAndCopyRejectionsObservedBySource': True,
+            'authorizationIndependentlyProven': False, 'completionProven': False, 'dataplaneProven': False}
+
+
 def endpoint_cleanup(value):
     # These are source-bound owner observations plus actual TCP probes. They
     # do not establish complete syscall tracing or arbitrary process custody.
@@ -683,7 +855,7 @@ def endpoint_cleanup(value):
 
 def native_report(raw, source_commit, elf, sandbox_value, go_result):
     value = exact(decode(raw['native-report.json']), REPORT_KEYS)
-    need(value['schema'] == 'chengwang.mihomo-native-recovery-experiment/v2' and value['scope'] == SCOPE and value['sourceCommit'] == source_commit)
+    need(value['schema'] == 'chengwang.mihomo-native-recovery-experiment/v3' and value['scope'] == SCOPE and value['sourceCommit'] == source_commit)
     need(value['outcome'] == 'PASS' and value['failureCode'] == 'NONE')
     for key in ('replayRejected', 'recoverySelfApprovalDenied', 'dualOwnerCloseRejectedTwice', 'countersBounded',
                 'runtimeClosed', 'newDiskOwnerClosed', 'cleanupReplayNoOp'):
@@ -748,8 +920,10 @@ def native_report(raw, source_commit, elf, sandbox_value, go_result):
             need(len(positions.get((core, 'KERNEL_OS_KILL_ATTEMPT'), [])) == 1)
     replay = event_checkpoints(value['eventCheckpoints'], calls, positions, value['oldCore'], value['newCore'])
     index = wal_index(raw['wal-readback-index.json'], value, source_commit)
+    control = recovery_control(raw, value, source_commit, elf, netns)
     return value, {'sourceCallEvents': len(calls), 'replay': replay, 'wal': index,
                    'endpointCleanup': cleanup,
+                   'recoveryControlObservation': control,
                    'ownedKernelStartAttempts': 2, 'ownedKernelWaitReturns': 2,
                    'syntaxStartAttempts': 1, 'syntaxReportedWaitReturns': 1,
                    'oldStopDispatches': 1, 'newStartDispatches': 1,
@@ -800,6 +974,8 @@ FILES = (
     'chengwang/internal/adapter/mihomo/lab_evidence_test.go',
     'chengwang/internal/adapter/mihomo/lab_readback.go',
     'chengwang/internal/adapter/mihomo/lab_readback_test.go',
+    'chengwang/internal/adapter/mihomo/lab_sample_times.go',
+    'chengwang/internal/adapter/mihomo/lab_sample_times_test.go',
     'chengwang/internal/adapter/mihomo/lab_reload_fault_default.go',
     'chengwang/internal/adapter/mihomo/lab_reload_fault_linux.go',
     'chengwang/internal/adapter/mihomo/lab_reload_fault_linux_test.go',
@@ -868,6 +1044,8 @@ FILES = (
     'chengwang/internal/mihomodeploy/lab_quiescence_unsupported.go',
     'chengwang/internal/mihomodeploy/lab_recovery_authority.go',
     'chengwang/internal/mihomodeploy/lab_recovery_authority_test.go',
+    'chengwang/internal/mihomodeploy/lab_recovery_collector.go',
+    'chengwang/internal/mihomodeploy/lab_recovery_collector_linux_test.go',
     'chengwang/internal/mihomodeploy/lab_recovery_plan.go',
     'chengwang/internal/mihomodeploy/lab_recovery_plan_test.go',
     'chengwang/internal/mihomodeploy/lab_recovery_start.go',
@@ -925,7 +1103,7 @@ FILES = tuple(sorted((*FILES, '.github/workflows/chengwang-mihomo-native-recover
 
 
 def make_source_manifest(sources, source_commit):
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 159)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 163)
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     return {'schema': 'chengwang.mihomo-native-source-manifest/v1',
             'scope': 'FIXED_GIT_SOURCE_BYTES_NOT_NATIVE_EXECUTION',
@@ -951,9 +1129,9 @@ def source_manifests(raw, sources, source_commit):
 
 def verify_raw(raw, sources, source_commit):
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
-    need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 21)
+    need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 31)
     need(all(type(v) is bytes and len(v) <= 16 << 20 for v in raw.values()) and sum(map(len, raw.values())) <= 16 << 20)
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 159)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 163)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     for path in FILES:
         source_path(path)

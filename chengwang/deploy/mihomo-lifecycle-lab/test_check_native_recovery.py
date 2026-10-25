@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import test_get_projection as GET
 
 path = Path(__file__).with_name('check_native_recovery.py')
 spec = importlib.util.spec_from_file_location('native_reader_under_test', path)
@@ -139,6 +140,60 @@ def stream_meta(raw, complete=True):
     return dict(bytes=len(raw), totalBytes=len(raw), sha256=C.sha(raw), truncated=False, complete=complete)
 
 
+def recovery_fixture(raw, report, index, hashed):
+    # Pure synthetic response entities from the existing independent model
+    # helper. They are never claimed to be requests, a real cap or actual WAL.
+    original, projection_report = GET.fixture()
+    phase = 'candidate'
+    raw['recovery-s2-transcript.json'] = original[phase+'-get-evidence.json']
+    bodies = []
+    for i in range(1, 9):
+        name = f'recovery-s2-body-{i}.json'
+        raw[name] = original[phase+'-get-'+str(i).zfill(2)+'.body']
+        bodies.append(C.sha(raw[name]))
+    cfg = dict(schema='chengwang.mihomo-lab-config/v1', scope='ISOLATED_LOOPBACK_MIHOMO_STATIC_SUBSET_NOT_PRODUCTION',
+               sha256=report['newIdentity']['artifactSHA256'], bytes=1234, draftSHA256=hashed('draft'),
+               requirementsSHA256=hashed('requirements'), capabilities=['static_domain_suffix_rules', 'explicit_selectors',
+               'loopback_http_nodes', 'private_loopback_controller', 'built_in_dns_disabled'], requirements=[], admissible=True, blockers=[])
+    record = dict(schema='chengwang.mihomo-artifact-record/v1', config=cfg, sourceSpecSHA256=hashed('source spec'),
+                  sourceSpecBytes=567, controllerPort=28412, mixedPort=28411)
+    artifact = dict(schema='chengwang.mihomo-artifact/v1', recordSHA256=C.sha(C.recovery_go_bytes(record, GET.G)),
+                    config=cfg, sourceSpecSHA256=record['sourceSpecSHA256'], sourceSpecBytes=567, controllerPort=28412, mixedPort=28411)
+    report['originalUnknown']['candidateRecordSHA256'] = artifact['recordSHA256']
+    target = projection_report['readbacks'][phase]['observedProjectionSHA256']
+    readback = dict(schema='chengwang.mihomo-selected-target-readback/v1', conclusion='TARGET_PROJECTION_MATCHED',
+                    sampleCount=2, requestsObserved=8, targetProjectionSHA256=target, observedProjectionSHA256=target,
+                    dataplaneProven=False, fullPayloadProven=False, authorizationProven=False, production=False)
+    observed = dict(schema='chengwang.mihomo-recovery-control-observation/v1', recoveryId='labrec_'+'3'*32,
+                    planSHA256=hashed('recovery plan'), startIntentSHA256=hashed('start intent'), startedSHA256=report['startedSHA256'],
+                    sourceRevision=report['stages'][-1]['revision'], sourceRecordSHA256=report['stages'][-1]['recordSHA256'],
+                    ownerFence=1, artifact=artifact, startupIdentity=copy.deepcopy(report['newIdentity']),
+                    entryAt='2026-10-25T00:00:14.55Z', deadline='2026-10-25T00:00:14.95Z',
+                    sampleTimes=[dict(startedAt='2026-10-25T00:00:14.6Z', completedAt='2026-10-25T00:00:14.65Z'),
+                                 dict(startedAt='2026-10-25T00:00:14.7Z', completedAt='2026-10-25T00:00:14.75Z')],
+                    observedAt='2026-10-25T00:00:14.8Z', readback=readback,
+                    transcriptSHA256=C.sha(raw['recovery-s2-transcript.json']), bodySHA256s=bodies, verificationSHA256='')
+    verification = C.recovery_go_bytes(observed, GET.G)
+    raw['recovery-s2-verification.json'] = verification
+    report['controlPlane'] = copy.deepcopy(observed)
+    report['controlPlane']['verificationSHA256'] = C.sha(verification)
+    report['controlBeforeSHA256'] = report['controlAfterSHA256'] = report['stages'][-1]['controlSHA256']
+    report['controlProofReplayRejected'] = report['controlRecollectRejected'] = True
+    report['controlCopiedStartedRejected'] = report['controlCopiedProofRejected'] = True
+    report['controlEvents'] = [dict(stage=stage, count=14, lastSequence=14, eventsSHA256=C.event_prefix_sha(report['nativeCalls'],14))
+                               for stage in ('before-control-plane','after-control-plane')]
+
+
+def edit_recovery_value(raw, change):
+    value = C.decode(raw['recovery-s2-verification.json'])
+    change(value)
+    raw['recovery-s2-verification.json'] = C.recovery_go_bytes(value, GET.G)
+    report = C.decode(raw['native-report.json'])
+    report['controlPlane'] = copy.deepcopy(value)
+    report['controlPlane']['verificationSHA256'] = C.sha(raw['recovery-s2-verification.json'])
+    raw['native-report.json'] = C.canonical(report)
+
+
 def closed_fixture():
     # Entirely SYNTHETIC. Public strings/counters exercise protocol validation;
     # no process, permit, Start, Wait, socket, credential or WAL is constructed.
@@ -227,7 +282,7 @@ def closed_fixture():
     fixtures = [dict(role=role, shutdownReturned=True, serveReturned=True,
                      forcedConnectionsClosed=0, errorClass='NONE') for role in ('origin', 'A', 'B')]
     probes = [dict(port=port, attempted=True, result='CONNECTION_REFUSED') for port in (28411, 28412, 28413, 28414, 28415)]
-    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v2', scope=C.SCOPE, sourceCommit=commit,
+    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v3', scope=C.SCOPE, sourceCommit=commit,
                   outcome='PASS', failureCode='NONE', originalUnknown=unknown,
                   fault=dict(schema='chengwang.mihomo-reload-response-loss-observation/v1', state='INJECTED', claimed=True,
                              underlyingRoundTrips=1, statusCode=204, bodyBytes=0, eofObserved=True, closeSucceeded=True,
@@ -271,6 +326,8 @@ def closed_fixture():
                 'go-version.txt': b'go version go1.23.12 linux/amd64\n', 'native.json': wire(go_fixture()),
                 'commands.jsonl': wire(commands), 'process-events.jsonl': wire(process),
                 'source-before.json': C.canonical(manifest), 'source-after.json': C.canonical(manifest)})
+    recovery_fixture(raw, report, index, hashed)
+    raw['native-report.json'] = C.canonical(report)
     return raw, sources, commit
 
 
@@ -508,6 +565,67 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
                     else: v['reloadFinal']['doInvocations'] = True
                 edit_json(bad, 'native-report.json', change)
             with self.subTest(kind=kind), self.assertRaises(ValueError):
+                C.verify_raw(bad, sources, commit)
+        # Re-sign both the private-summary metadata and its public projection
+        # where applicable, so these cases reach semantic/time/source gates
+        # rather than only failing a changed outer digest.
+        for kind in ('missing_capture', 'body_hash', 'source_revision', 'identity', 'future', 'sample_order',
+                     'target_mismatch', 'dataplane', 'proof_replay', 'recollect', 'copied_started', 'copied_proof',
+                     'physical_call', 'wal_changed', 'two_round_drift', 'non_eof', 'close_error', 'legacy_v2', 'epoch_age'):
+            bad = dict(raw)
+            if kind == 'missing_capture': del bad['recovery-s2-body-8.json']
+            elif kind == 'body_hash': bad['recovery-s2-body-1.json'] += b' '
+            elif kind == 'source_revision': edit_recovery_value(bad, lambda v: v.update(sourceRevision=v['sourceRevision']-1))
+            elif kind == 'identity': edit_recovery_value(bad, lambda v: v['startupIdentity'].update(pid=123))
+            elif kind == 'future': edit_recovery_value(bad, lambda v: v.update(observedAt='2026-10-25T00:00:14.99Z'))
+            elif kind == 'sample_order': edit_recovery_value(bad, lambda v: v['sampleTimes'][1].update(startedAt='2026-10-25T00:00:14.61Z'))
+            elif kind == 'target_mismatch': edit_recovery_value(bad, lambda v: v['readback'].update(targetProjectionSHA256='a'*64, observedProjectionSHA256='a'*64))
+            elif kind == 'dataplane': edit_recovery_value(bad, lambda v: v['readback'].update(dataplaneProven=True))
+            elif kind in ('proof_replay', 'recollect', 'copied_started', 'copied_proof'):
+                key = {'proof_replay':'controlProofReplayRejected', 'recollect':'controlRecollectRejected',
+                       'copied_started':'controlCopiedStartedRejected', 'copied_proof':'controlCopiedProofRejected'}[kind]
+                edit_json(bad, 'native-report.json', lambda v: v.update({key:False}))
+            elif kind == 'physical_call':
+                edit_json(bad, 'native-report.json', lambda v: v['controlEvents'][1].update(count=15,lastSequence=15,eventsSHA256=C.event_prefix_sha(v['nativeCalls'],15)))
+            elif kind == 'wal_changed': edit_json(bad, 'native-report.json', lambda v: v.update(controlAfterSHA256='a'*64))
+            elif kind == 'epoch_age':
+                # Move every relevant later event/window consistently. Only
+                # the absolute Started+30s cap should reject, not a stale
+                # prefix hash, cleanup-before-capture or Go-test boundary.
+                late = C.decode(bad['native-report.json'])
+                for row in late['nativeCalls'][14:]:
+                    row['at'] = '2026-10-25T00:00:%02dZ' % (row['sequence']+30)
+                for point in late['eventCheckpoints']:
+                    point['eventsSHA256'] = C.event_prefix_sha(late['nativeCalls'],point['count'])
+                bad['native-report.json'] = C.canonical(late)
+                stream = [C.decode(row,elapsed=True)for row in bad['native.json'].splitlines()]
+                stream[-2].update(Time='2026-10-25T00:01:10Z',Elapsed=69)
+                stream[-1].update(Time='2026-10-25T00:01:11Z',Elapsed=71)
+                bad['native.json'] = wire(stream)
+                def late_value(v):
+                    v.update(entryAt='2026-10-25T00:00:44.1Z',deadline='2026-10-25T00:00:44.95Z',observedAt='2026-10-25T00:00:44.6Z')
+                    v['sampleTimes'] = [dict(startedAt='2026-10-25T00:00:44.2Z',completedAt='2026-10-25T00:00:44.3Z'),
+                                        dict(startedAt='2026-10-25T00:00:44.4Z',completedAt='2026-10-25T00:00:44.5Z')]
+                edit_recovery_value(bad, late_value)
+            elif kind in ('two_round_drift', 'non_eof', 'close_error'):
+                transcript = C.decode(bad['recovery-s2-transcript.json'])
+                if kind == 'two_round_drift':
+                    body = json.loads(bad['recovery-s2-body-7.json'])
+                    body['proxies']['默认策略']['now'] = 'apply-a'
+                    bad['recovery-s2-body-7.json'] = GET.wire(body)
+                    row = transcript['records'][6]
+                    row.update(retainedBytes=len(bad['recovery-s2-body-7.json']), retainedSHA256=C.sha(bad['recovery-s2-body-7.json']),
+                               contentLength=len(bad['recovery-s2-body-7.json']))
+                    transcript['retainedBytes'] = sum(len(bad[f'recovery-s2-body-{i}.json'])for i in range(1,9))
+                elif kind == 'non_eof': transcript['records'][4]['naturalEOF'] = False
+                else: transcript['records'][5]['closeErrorClass'] = 'CLOSE_FAILED'
+                bad['recovery-s2-transcript.json'] = GET.wire(transcript)
+                def rebind(v):
+                    v['transcriptSHA256'] = C.sha(bad['recovery-s2-transcript.json'])
+                    v['bodySHA256s'] = [C.sha(bad[f'recovery-s2-body-{i}.json'])for i in range(1,9)]
+                edit_recovery_value(bad, rebind)
+            else: edit_json(bad, 'native-report.json', lambda v: v.update(schema='chengwang.mihomo-native-recovery-experiment/v2'))
+            with self.subTest(recovery=kind), self.assertRaises(ValueError):
                 C.verify_raw(bad, sources, commit)
 
 

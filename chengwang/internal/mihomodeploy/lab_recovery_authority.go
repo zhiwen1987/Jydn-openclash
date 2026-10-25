@@ -427,6 +427,67 @@ func (a *labRecoveryAuthority) authorizeStep(headers []string, h *labRecoverySes
 	return labRecoveryMakeCheck(b, s, p, "RECOVERY_"+step+"_AUTHORIZATION_CHECK", intent), nil
 }
 
+// A short source gate, never held over process/artifact/HTTP/diagnostic IO.
+// Existing authority -> store order is preserved; the caller may take only
+// the observation issuer's short registry mutex before release.
+type labRecoveryVerifyGuard struct {
+	base *labAuthorityCore
+	store *lifecycleRecoveryStoreCore
+	custody *labRecoveryStartedCustody
+}
+
+func (g *labRecoveryVerifyGuard) release() {
+	if g != nil && g.store != nil && g.base != nil {
+		g.store.mu.Unlock()
+		g.base.mu.Unlock()
+		g.store, g.base = nil, nil
+	}
+}
+
+// VERIFY is a new private observation step under the existing critical
+// Execute/Admin policy, not a new authz action or a reusable dispatch permit.
+func (a *labRecoveryAuthority) authorizeVerify(headers []string, h *labRecoverySession, expected *labRecoveryStartedCustody, now time.Time) (*labRecoveryVerifyGuard, error) {
+	c, b, now, err := a.lock(now)
+	if err != nil { return nil, err }
+	s, err := c.session(h)
+	if err != nil { b.mu.Unlock(); return nil, err }
+	if err := labRecoveryAuthorityLockStore(s.store, s.owner, true, now); err != nil {
+		b.mu.Unlock()
+		return nil, err
+	}
+	g := &labRecoveryVerifyGuard{base: b, store: s.store.core}
+	fail := func() (*labRecoveryVerifyGuard, error) {
+		g.release()
+		return nil, labAuthorityFailure("verification_source_invalid")
+	}
+	active, err := c.binding(b, s, now, true)
+	if err != nil { return fail() }
+	x := s.store.core
+	q := x.retainedStarted
+	if active.Phase != "START_ARMED" || active.Execution == nil || active.Completion != nil || active.Failure != nil ||
+		active.StartIntent == nil || active.Quiescence == nil || active.StopBinding == nil || q == nil || !q.matches(x) || (expected != nil && expected != q) ||
+		now.Before(active.Execution.RecordedAt) || now.Before(active.Execution.Started.ObservedAt) || now.Sub(active.Execution.Started.ObservedAt) > 30*time.Second {
+		return fail()
+	}
+	p, verifierRef, err := b.authenticate(headers, now)
+	if err != nil { g.release(); return nil, err }
+	if err := b.current(s.initiatorRef, s.initiatorID, authz.ActionPrepareLabRecovery, "", "", now); err != nil {
+		g.release(); return nil, err
+	}
+	if err := b.current(s.approverRef, s.approverID, authz.ActionApproveLabRecovery, s.initiatorID, "", now); err != nil {
+		g.release(); return nil, err
+	}
+	if err := b.evaluate(p, authz.ActionExecuteLabRecovery, s.initiatorID, s.approverID, now); err != nil {
+		g.release(); return nil, err
+	}
+	if err := b.current(verifierRef, p.ID, authz.ActionExecuteLabRecovery, s.initiatorID, s.approverID, now); err != nil {
+		g.release(); return nil, err
+	}
+	if x.verify() != nil || !q.matches(x) { return fail() }
+	g.custody = q
+	return g, nil
+}
+
 // Cancellation is not a new physical action. It intentionally does not demand
 // the old initiator's still-active identity/lease/approval. The caller itself
 // must authenticate currently; a matched approver is accepted only through an

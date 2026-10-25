@@ -43,6 +43,9 @@ func labDiagnosticName(name string) bool {
 		return true
 	}
 	parts := strings.Split(name, "/")
+	if len(parts) == 2 && parts[0] == "recovery-s2" {
+		return labCaptureBase(parts[1])
+	}
 	if len(parts) == 2 && parts[0] == "bootstrap" {
 		return labCaptureBase(parts[1])
 	}
