@@ -1,0 +1,113 @@
+{
+  "schema": "chengwang.trusted591-original-oracle-failure/v1",
+  "scope": "ACTUAL_ISOLATED_LINUX_FAILURE_AND_INDEPENDENT_RAW_AUDIT_NOT_NEW_FIX_ACCEPTANCE",
+  "sourceCommit": "fce01f9ddb16a990823b6ea3dd11ba158084db05",
+  "normal": {
+    "runID": 40165751183,
+    "status": "completed",
+    "conclusion": "failure",
+    "successfulJobs": 11,
+    "failedJobs": 2,
+    "ordinaryGoExit": 1,
+    "raceGoExit": 1,
+    "requiredEach": 591,
+    "requiredPassedEach": 590,
+    "requiredFailedEach": 1,
+    "semanticStartedEach": 1380,
+    "semanticPassedEach": 1378,
+    "bothStderrEmpty": true,
+    "ordinaryCapacitySeconds": 4.48,
+    "raceCapacitySeconds": 52.78,
+    "ordinaryPackageSeconds": 14.331,
+    "racePackageSeconds": 94.677,
+    "capacityBothPassed": true,
+    "timeoutObserved": false,
+    "formatPatchBytes": 1457,
+    "formatPatchSHA256": "c88fc15724b8fa76204281b737f7f179fdb3a935607064ccc00781e0c3caf4db",
+    "formatOnlyPropertyFileThreeWhitespaceHunks": true,
+    "foundationFreshArtifactPresent": false,
+    "fiveOtherScopedOriginalGatesPassed": true,
+    "fiveOtherProducerFreshByteEqual": true,
+    "ZIPCount": 11,
+    "ZIPMemberCount": 206
+  },
+  "diagnostic": {
+    "runID": 40165751185,
+    "status": "completed",
+    "conclusion": "failure",
+    "successfulJobs": 4,
+    "failedJobs": 1,
+    "fullRequiredPassed": 590,
+    "fullRequiredFailed": 1,
+    "fullRequiredUnfinished": 0,
+    "fullRequiredNotStarted": 0,
+    "fullCapacitySeconds": 77.66,
+    "fullPackageSeconds": 137.132,
+    "singleCapacitySeconds": 64.70,
+    "singlePackageSeconds": 65.725,
+    "capacityPassed": true,
+    "timeoutObserved": false,
+    "fullGoAccepted": false,
+    "captureVerifiedIsNotGoAcceptance": true,
+    "producerFreshBytesEqual": true,
+    "profileSeconds": 120,
+    "ZIPCount": 4,
+    "ZIPMemberCount": 42
+  },
+  "failedRequiredTop": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneRepresentationFallbackMatchesRaw",
+  "failedSubtest": "invalid-utf8",
+  "originalFailureMessage": "MODEL trusted copy differs from original JSON operation",
+  "originalGoOutputDoesNotIndividuallyIdentifyWhichCombinedPredicateFailed": true,
+  "sourceAnalysis": "The new property helper additionally required Marshal(newCopy)==inputRaw. The original Unmarshal(inputRaw) operation normalizes invalid UTF8 to replacement runes, whose subsequent Marshal can spell the same decoded string differently. The proposed correction compares the complete new copy and its reencoding with the original decoded copy, and adds an explicit old-operation wire-normalization counterexample and unchanged-input controls.",
+  "primarySourceReferences": [
+    "https://raw.githubusercontent.com/golang/go/go1.23.12/src/encoding/json/encode.go",
+    "https://raw.githubusercontent.com/golang/go/go1.23.12/src/encoding/json/decode.go"
+  ],
+  "requiredNamesSHA256": "bd98cdb360c8eb7fd8c90f0a7a2855a9d8135a3a832f77cfd115ac39c5078857",
+  "old587AndEarlier585539528407Passed": true,
+  "otherThreeNewTopsPassed": true,
+  "actualGraphSchemaAndDenseFastPathPositivePassed": true,
+  "graphSchemaSHA256": "c9024a097ac3065a588a195e6cf947572ffd0cfd3103783054810da7b01a9d13",
+  "sourceGitBlobs": 1279,
+  "boundSources": 113,
+  "mandatoryTestFiles": 41,
+  "formatterFiles": 107,
+  "fullPackageTestFiles": 69,
+  "sourcesAndOriginalsStable": true,
+  "receipts": [
+    {
+      "kind": "normalCloseout",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "f545c9c95e5532b91075f702c964006295ef499c3bb695f9908f0a69c5315a04"
+    },
+    {
+      "kind": "foundationRawAudit",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-foundation-audit-20261025-agent/audit-result.json",
+      "sha256": "f9f1e942d9598cffb9939768f781cb73186bcd47b2ddc830a02488bbdce69119"
+    },
+    {
+      "kind": "diagnosticCloseout",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "b0bf1f565baca6301eacef8168d9caefbd91e439331bd3dd9ad7e2f52dcdcd3c"
+    },
+    {
+      "kind": "diagnosticOriginalAtomicAudit",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-full-profile-audit-20261025-agent/cpu/independent-result.json",
+      "sha256": "439c3213baeed45ee2baf21ec2abf49aafa15a43fe85c316006a04c02e31bd85"
+    },
+    {
+      "kind": "actualFormatterTransfer",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-foundation-audit-20261025-agent/format-transfer/result.json",
+      "sha256": "2c2bc9ec1c563ff42e87225d4d229176ef7b7fc5c6d513407862ebe6a8666e2e"
+    }
+  ],
+  "actualNewFixGoAcceptance": false,
+  "performanceImprovementCausallyProven": false,
+  "s1Integrated": false,
+  "nativeRecoveryAccepted": false,
+  "fullProjectComplete": false,
+  "productionReady": false,
+  "production": false,
+  "mainMerged": false,
+  "registryPublished": false
+}

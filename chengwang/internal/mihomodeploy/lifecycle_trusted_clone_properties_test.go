@@ -82,7 +82,7 @@ func lifecycleClonePropertySmall() lifecycleV3Record {
 	return lifecycleV3Record{core: &lifecycleV3Wire{
 		LastTrustedAt: time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC),
 		Current: lifecycleEpochLedger{
-			Head: lifecycleHead{Artifact: ArtifactDescriptor{Config: LabConfigDescriptor{Capabilities: []string{"MODEL"}}}},
+			Head:   lifecycleHead{Artifact: ArtifactDescriptor{Config: LabConfigDescriptor{Capabilities: []string{"MODEL"}}}},
 			Active: &lifecycleActive{},
 		},
 	}}
@@ -110,9 +110,17 @@ func lifecycleClonePropertyCopied(t *testing.T, in lifecycleV3Record) lifecycleV
 	t.Helper()
 	raw := lifecycleClonePropertyRaw(t, in.core)
 	old := lifecycleClonePropertyOldCopy(t, raw)
+	// The old operation is Unmarshal(raw), not a byte-preserving JSON round
+	// trip. Invalid UTF-8 becomes U+FFFD; encoding that valid rune again need
+	// not reproduce the initial escaped replacement spelling.
+	expected := lifecycleClonePropertyRaw(t, old.core)
+	before := bytes.Clone(raw)
 	out, err := cloneTrustedLifecycleV3(in, raw)
-	if err != nil || out.core == nil || !reflect.DeepEqual(out.core, old.core) || !bytes.Equal(lifecycleClonePropertyRaw(t, out.core), raw) {
+	if err != nil || out.core == nil || !reflect.DeepEqual(out.core, old.core) || !bytes.Equal(lifecycleClonePropertyRaw(t, out.core), expected) {
 		t.Fatal("MODEL trusted copy differs from original JSON operation")
+	}
+	if !bytes.Equal(raw, before) || !bytes.Equal(raw, lifecycleClonePropertyRaw(t, in.core)) {
+		t.Fatal("MODEL trusted copy changed its raw or typed source")
 	}
 	return out
 }
@@ -133,7 +141,7 @@ func lifecycleClonePropertySlots(v reflect.Value, path []lifecycleClonePropertyS
 		}
 	case reflect.Slice:
 		if v.Len() > 0 {
-			lifecycleClonePropertySlots(v.Index(v.Len()-1), lifecycleClonePropertyPath(path, lifecycleClonePropertyStep{'[', v.Len()-1}), seen, slots)
+			lifecycleClonePropertySlots(v.Index(v.Len()-1), lifecycleClonePropertyPath(path, lifecycleClonePropertyStep{'[', v.Len() - 1}), seen, slots)
 		}
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
@@ -200,7 +208,7 @@ func lifecycleClonePropertyChange(v reflect.Value) {
 		if v.Len() == 0 {
 			v.Set(reflect.Append(v, reflect.Zero(v.Type().Elem())))
 		}
-		lifecycleClonePropertyChange(v.Index(v.Len()-1))
+		lifecycleClonePropertyChange(v.Index(v.Len() - 1))
 	case reflect.Struct:
 		if v.NumField() > 0 {
 			lifecycleClonePropertyChange(v.Field(0))
@@ -390,6 +398,14 @@ func TestLifecycleRecoveryTrustedCloneRepresentationFallbackMatchesRaw(t *testin
 				in.core.Current.Active.Recovery = &v
 			}
 			raw := lifecycleClonePropertyRaw(t, in.core)
+			if kind == "invalid-utf8" {
+				old := lifecycleClonePropertyOldCopy(t, raw)
+				normalized := lifecycleClonePropertyRaw(t, old.core)
+				if old.core.Schema != "\ufffd\ufffd" || bytes.Equal(raw, normalized) ||
+					!bytes.Contains(raw, []byte(`\ufffd\ufffd`)) || !bytes.Contains(normalized, []byte("\ufffd\ufffd")) {
+					t.Fatal("MODEL old JSON normalization counterexample was not reached")
+				}
+			}
 			c := &lifecycleCloneState{}
 			_ = c.wire(*in.core)
 			if c.err != errLifecycleCloneRepresentation {

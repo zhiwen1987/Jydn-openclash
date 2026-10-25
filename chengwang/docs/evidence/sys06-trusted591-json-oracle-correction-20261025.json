@@ -1,0 +1,109 @@
+{
+  "actualFormatterTransfer": {
+    "actualFormatterPatchBytes": 1457,
+    "actualFormatterPatchSHA256": "c88fc15724b8fa76204281b737f7f179fdb3a935607064ccc00781e0c3caf4db",
+    "actualRawHunksPreserved": true,
+    "afterFormatterOnlySHA256": "5d6a879102d460ec39405349366c21f47994bea1519ebcb92bd95f800728b81f",
+    "beforeSHA256": "a7e27f3198148576326f97f05917758f3cb2fa9b7fe03f32f38eb0ef5b98593e",
+    "commit": "fce01f9ddb16a990823b6ea3dd11ba158084db05",
+    "externalApplyPatchSHA256": "ae7f1a0fa17ae80cd5f969214d4a2b93f005941a5e8a5f634413c4b310daefc3",
+    "gitBlobSHA1": "75fe2f316142c3a23467815d65b5c99c0f463ccc",
+    "goOrGofmtExecuted": false,
+    "hunks": [
+      {
+        "newCount": 7,
+        "oldCount": 7,
+        "oldStart": 82
+      },
+      {
+        "newCount": 7,
+        "oldCount": 7,
+        "oldStart": 133
+      },
+      {
+        "newCount": 7,
+        "oldCount": 7,
+        "oldStart": 200
+      }
+    ],
+    "onlyWhitespaceChanged": true,
+    "pid": 4596,
+    "production": false,
+    "schema": "chengwang.original-ci-format-three-hunk-transfer/v1",
+    "source": "chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go",
+    "sourceRChanged": false
+  },
+  "actualPriorSourceCommit": "fce01f9ddb16a990823b6ea3dd11ba158084db05",
+  "baseline": "fce01f9ddb16a990823b6ea3dd11ba158084db05",
+  "boundSources": 113,
+  "formatterFiles": 107,
+  "fullProjectComplete": false,
+  "invalidUTF8NormalizationCounterexampleAsserted": true,
+  "localGoExecuted": false,
+  "localGofmtExecuted": false,
+  "mainMerged": false,
+  "measuredSpeedupOrLongTermStabilityProven": false,
+  "nativeRecoveryAccepted": false,
+  "new591GoAccepted": false,
+  "newCopyDeepEqualsOriginalDecodedCopy": true,
+  "newCopyReencodingComparedToOriginalDecodedReencoding": true,
+  "normalTestFiles": 41,
+  "old587CompleteSourceAndTestBodiesUnchanged": true,
+  "original180Seconds256History2MiBLimitsPreserved": true,
+  "original591NamesExact": true,
+  "originalJSONUnmarshalOracleRetained": true,
+  "other112BoundSourcesByteExact": true,
+  "packages": 6,
+  "priorMissingFoundationFreshRetained": true,
+  "priorNormalAndDiagnosticFailuresRetained": true,
+  "productCloneAndAdmissionGatesUnchanged": true,
+  "production": false,
+  "rawAndTypedInputUnchangedAssertionsAdded": true,
+  "receipts": [
+    {
+      "kind": "normalCloseout",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "f545c9c95e5532b91075f702c964006295ef499c3bb695f9908f0a69c5315a04"
+    },
+    {
+      "kind": "foundationRawAudit",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-foundation-audit-20261025-agent/audit-result.json",
+      "sha256": "f9f1e942d9598cffb9939768f781cb73186bcd47b2ddc830a02488bbdce69119"
+    },
+    {
+      "kind": "diagnosticCloseout",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "b0bf1f565baca6301eacef8168d9caefbd91e439331bd3dd9ad7e2f52dcdcd3c"
+    },
+    {
+      "kind": "diagnosticOriginalAtomicAudit",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-full-profile-audit-20261025-agent/cpu/independent-result.json",
+      "sha256": "439c3213baeed45ee2baf21ec2abf49aafa15a43fe85c316006a04c02e31bd85"
+    },
+    {
+      "kind": "actualFormatterTransfer",
+      "path": "D:/CodexData/workspace/mihomo-fce01f9-foundation-audit-20261025-agent/format-transfer/result.json",
+      "sha256": "2c2bc9ec1c563ff42e87225d4d229176ef7b7fc5c6d513407862ebe6a8666e2e"
+    },
+    {
+      "kind": "oracleDeltaPeer",
+      "path": "D:/CodexData/workspace/mihomo-fce-oracle-delta-peer-20261025-agent/result.json",
+      "sha256": "d6995573992a8622303e83e3f9ec8c1a7f95500cc8bac506720073e3f0ec9fde"
+    }
+  ],
+  "registryPublished": false,
+  "requiredCount": 591,
+  "requiredNamesSHA256": "bd98cdb360c8eb7fd8c90f0a7a2855a9d8135a3a832f77cfd115ac39c5078857",
+  "s1Integrated": false,
+  "schema": "chengwang.trusted591-original-json-oracle-correction/v1",
+  "scope": "SOURCE_AND_ACTUAL_PRIOR_FORMAT_TRANSFER_NOT_NEW_GO_ACCEPTANCE",
+  "semanticFunctionsChanged": [
+    "lifecycleClonePropertyCopied",
+    "TestLifecycleRecoveryTrustedCloneRepresentationFallbackMatchesRaw"
+  ],
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "d5cca49ee0dd22a0260fa55bc499cfa487c9e6d9513797177581c61b35fde442",
+    "chengwang/docs/evidence/sys06-fce-trusted591-oracle-failure-20261025.json": "18b83c002dc2d634d3f9ed5be46c230cdc4b7967c9165b2ebb8c5e1cfbe4c78e",
+    "chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go": "d7c1e3ebff74e43cac331b65558aaa1417837d3867bdc1fa48692270171217c4"
+  }
+}

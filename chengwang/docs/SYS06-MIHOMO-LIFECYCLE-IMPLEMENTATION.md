@@ -4,6 +4,14 @@
 
 ## 本次已有代码
 
+### 2026-10-25 fce的591真实断言失败与修订：不改产品门或旧失败判定
+
+fce01f9正常40165751183终态11成功／2失败，普通与race各590必需PASS／1失败，均完整结束而非超时；容量4.48／52.78秒PASS、整包14.331／94.677秒。真实反射schema与dense快路径、原raw草稿边界和sibling隔离新3项通过；唯一新RepresentationFallbackMatchesRaw的invalid-utf8子例失败。诊断40165751185亦4成功／1失败，原full的590／1保留；这些观测不构成整套591或稳定性接受。
+
+root核Go1.23.12官方encoding/json源码：非法UTF8首次Marshal产生转义\\ufffd，Unmarshal得到U+FFFD，后续Marshal合法rune可写literal UTF8；原json.Unmarshal复制本身不保证前后wire拼写一致。新测试错误地把与原decode深相等和重编码等于输入raw绑成同一oracle。修订helper以原decode结果的重编码作expected，仍要求新旧完整DeepEqual／输出bytes相同；另外检查原raw和typed输入未被修改，并在invalid-utf8明确要求原转义raw与原decode重编码不同、两替换rune及两种拼写都实际出现，避免例子未到达却通过。产品typed clone、严格canonical／hash／全部语义／CAS／readback均不改，旧587及新4名单不删。依据：[Go encoder](https://raw.githubusercontent.com/golang/go/go1.23.12/src/encoding/json/encode.go)、[Go decoder](https://raw.githubusercontent.com/golang/go/go1.23.12/src/encoding/json/decode.go)。
+
+同时只转入fce真实gofmt产生的1457B／3个空白hunk，原patch SHA c88fc15724b8fa76204281b737f7f179fdb3a935607064ccc00781e0c3caf4db；transfer收据2c2bc9ec1c563ff42e87225d4d229176ef7b7fc5c6d513407862ebe6a8666e2e。不运行本机formatter，不用旧fce失败原件充当修订后运行；新修订仍待新隔离Linux CI。
+
 ### 2026-10-25 591可信深复制候选：完成源审，等待真实Linux验收
 
 本切片仅在verifiedBase与prepared-owned两个已可信入口以闭合typed深复制替代完整JSON解析；base.copyRecord保持原始raw解码，防止共同修改typed store/base后仍通过相等比较的内容进入草稿。实际disk／custody／canonical／外部strict hash／全部candidate与history语义、独立对象／CAS／exact readback均保留。43结构／285字段／90类型节点按字段显式复制，schema pin对未知形状和codec拒绝；sync.OnceValue仅缓存静态Go类型元数据。已知time／UTF8／RawMessage表示差异回到同入口原raw JSON复制，不缓存授权或共享可变业务引用。
