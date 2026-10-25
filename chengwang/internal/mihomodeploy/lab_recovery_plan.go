@@ -11,6 +11,8 @@ import (
 )
 
 const labRecoveryPlanSchema = "chengwang.mihomo-lab-recovery-plan/v1"
+const labRecoveryPlanSchemaV2 = "chengwang.mihomo-lab-recovery-plan/v2"
+const labRecoveryPlanSourceSchema = "chengwang.mihomo-lab-recovery-plan-source/v1"
 const labRecoveryPlanBoundary = "STRUCTURAL_RECOVERY_PLAN_NOT_AUTHORIZATION"
 const labRecoveryPlanDebug = "private structural recovery plan; not authorization"
 
@@ -47,7 +49,13 @@ type labRecoveryPlanDescriptor struct {
 	Budgets                labRecoveryBudgets    `json:"budgets"`
 	CreatedAt              time.Time             `json:"createdAt"`
 	ExpiresAt              time.Time             `json:"expiresAt"`
+	Source                 *labRecoveryPlanSource `json:"source,omitempty"`
 	PlanSHA256             string                `json:"planSHA256"`
+}
+
+type labRecoveryPlanSource struct {
+	Schema string                          `json:"schema"`
+	Root   lifecycleRecoveryRootCheckpoint `json:"root"`
 }
 
 // The ordered binding is exactly the descriptor without its own digest.
@@ -72,7 +80,40 @@ type labRecoveryPlanBinding struct {
 	ExpiresAt              time.Time             `json:"expiresAt"`
 }
 
+type labRecoveryPlanBindingV2 struct {
+	Schema                 string                 `json:"schema"`
+	Boundary               string                 `json:"boundary"`
+	RecoveryID             string                 `json:"recoveryId"`
+	UnknownOperationID     string                 `json:"unknownOperationId"`
+	OriginalPlanSHA256     string                 `json:"originalPlanSHA256"`
+	OriginalIntentSHA256   string                 `json:"originalIntentSHA256"`
+	DeclaredInitiatorRef   string                 `json:"declaredInitiatorRef"`
+	ExpectedRevision       uint64                 `json:"expectedRevision"`
+	ExpectedRecordSHA256   string                 `json:"expectedRecordSHA256"`
+	PreviousHeadSHA256     string                 `json:"previousHeadSHA256"`
+	PreviousHeadGeneration uint64                 `json:"previousHeadGeneration"`
+	Provisioning           lifecycleProvisioning  `json:"provisioning"`
+	OldEpochSHA256         string                 `json:"oldEpochSHA256"`
+	TargetArtifact         ArtifactDescriptor     `json:"targetArtifact"`
+	Budgets                labRecoveryBudgets     `json:"budgets"`
+	CreatedAt              time.Time              `json:"createdAt"`
+	ExpiresAt              time.Time              `json:"expiresAt"`
+	Source                 labRecoveryPlanSource  `json:"source"`
+}
+
 func labRecoveryPlanDigest(d labRecoveryPlanDescriptor) (string, error) {
+	if d.Schema == labRecoveryPlanSchemaV2 {
+		if d.Source == nil {
+			return "", errLifecycleUnsafe
+		}
+		return lifecycleHash(labRecoveryPlanBindingV2{d.Schema, d.Boundary, d.RecoveryID, d.UnknownOperationID,
+			d.OriginalPlanSHA256, d.OriginalIntentSHA256, d.DeclaredInitiatorRef, d.ExpectedRevision,
+			d.ExpectedRecordSHA256, d.PreviousHeadSHA256, d.PreviousHeadGeneration, d.Provisioning,
+			d.OldEpochSHA256, d.TargetArtifact, d.Budgets, d.CreatedAt, d.ExpiresAt, *d.Source})
+	}
+	if d.Schema != labRecoveryPlanSchema || d.Source != nil {
+		return "", errLifecycleUnsafe
+	}
 	return lifecycleHash(labRecoveryPlanBinding{d.Schema, d.Boundary, d.RecoveryID, d.UnknownOperationID,
 		d.OriginalPlanSHA256, d.OriginalIntentSHA256, d.DeclaredInitiatorRef, d.ExpectedRevision,
 		d.ExpectedRecordSHA256, d.PreviousHeadSHA256, d.PreviousHeadGeneration, d.Provisioning,
@@ -94,6 +135,13 @@ type labRecoveryPlanValidationContext struct {
 }
 type labRecoveryPlanValidationCore struct {
 	original lifecycleRecord
+	head lifecycleHead
+	active lifecycleActive
+	provisioning lifecycleProvisioning
+	revision uint64
+	recordSHA256 string
+	lastTrustedAt time.Time
+	schema string
 	epoch    string
 	// Exact full descriptor JSON, including nil versus [] and every field.
 	// A RecordSHA256/Config.SHA256 alone cannot serve as a memoization key.
@@ -110,7 +158,44 @@ func newLabRecoveryPlanValidationContext(raw []byte) (*labRecoveryPlanValidation
 	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
-	return &labRecoveryPlanValidationContext{core: &labRecoveryPlanValidationCore{original: r, epoch: epoch, targets: map[string]struct{}{}}}, nil
+	return &labRecoveryPlanValidationContext{core: &labRecoveryPlanValidationCore{original: r, head: *r.wire.Head, active: *r.wire.Active,
+		provisioning: r.wire.V2.Provisioning, revision: r.wire.Revision, recordSHA256: r.wire.RecordSHA256,
+		lastTrustedAt: r.wire.LastTrustedAt, schema: labRecoveryPlanSchema, epoch: epoch, targets: map[string]struct{}{}}}, nil
+}
+
+func lifecycleRecoveryPlanContext(w *lifecycleV3Wire, d labRecoveryPlanDescriptor) (*labRecoveryPlanValidationContext, error) {
+	return lifecycleRecoveryPlanContextScoped(w, d, newLifecycleV3DecodeScope())
+}
+
+func lifecycleRecoveryPlanContextScoped(w *lifecycleV3Wire, d labRecoveryPlanDescriptor, scope *lifecycleV3DecodeScope) (*labRecoveryPlanValidationContext, error) {
+	if scope == nil {
+		return nil, errLifecycleUnsafe
+	}
+	if d.Schema == labRecoveryPlanSchema {
+		if d.Source != nil {
+			return nil, errLifecycleUnsafe
+		}
+		return lifecycleV3SourceContext(w)
+	}
+	if w == nil || d.Schema != labRecoveryPlanSchemaV2 || d.Source == nil || d.Source.Schema != labRecoveryPlanSourceSchema ||
+		d.Source.Root.RecoveryKind != lifecycleRecoveryCheckpointHistoryTail {
+		return nil, errLifecycleUnsafe
+	}
+	raw, err := lifecycleRecoveryCheckpointPreimageScoped(w, d.Source.Root, nil, scope)
+	if err != nil {
+		return nil, errLifecycleUnsafe
+	}
+	r, err := decodeLifecycleV3RecordScoped(raw, scope)
+	if err != nil || r.core.Current.Active == nil || r.core.Current.Active.Phase != "UNKNOWN" || r.core.Current.Active.Attempt == 0 || r.core.Current.Active.Intent == nil {
+		return nil, errLifecycleUnsafe
+	}
+	epoch, err := labRecoveryEpochSHA256(r.core.Current.Head, r.core.Provisioning)
+	if err != nil {
+		return nil, errLifecycleUnsafe
+	}
+	return &labRecoveryPlanValidationContext{core: &labRecoveryPlanValidationCore{head: r.core.Current.Head, active: *r.core.Current.Active,
+		provisioning: r.core.Provisioning, revision: r.core.Revision, recordSHA256: r.core.RecordSHA256,
+		lastTrustedAt: r.core.LastTrustedAt, schema: labRecoveryPlanSchemaV2, epoch: epoch, targets: map[string]struct{}{}}}, nil
 }
 
 func (c *labRecoveryPlanValidationContext) validTarget(d ArtifactDescriptor) bool {
@@ -136,18 +221,21 @@ func (c *labRecoveryPlanValidationContext) validTarget(d ArtifactDescriptor) boo
 // every entry. Only immutable source parsing/epoch derivation and an exact
 // repeated target descriptor's validation are shared within this one pass.
 func (c *labRecoveryPlanValidationContext) validateDescriptor(d labRecoveryPlanDescriptor) error {
-	if c == nil || c.core == nil || c.core.original.wire == nil || c.core.original.wire.Schema != lifecycleSchemaV2 || c.core.original.wire.Head == nil || c.core.original.wire.Active == nil ||
-		c.core.original.wire.Active.Phase != "UNKNOWN" || c.core.original.wire.Active.Attempt != 1 || c.core.original.wire.Active.Intent == nil || c.core.original.wire.V2 == nil || !lifecycleNonzeroHash(c.core.epoch) || c.core.targets == nil {
+	if c == nil || c.core == nil || c.core.active.Phase != "UNKNOWN" || c.core.active.Attempt == 0 || c.core.active.Intent == nil ||
+		!lifecycleNonzeroHash(c.core.epoch) || c.core.targets == nil || (c.core.schema != labRecoveryPlanSchema && c.core.schema != labRecoveryPlanSchemaV2) {
 		return errLifecycleUnsafe
 	}
-	w := c.core.original.wire
-	a := w.Active
-	if d.Schema != labRecoveryPlanSchema || d.Boundary != labRecoveryPlanBoundary || !labRecoveryID.MatchString(d.RecoveryID) || !planReference.MatchString(d.DeclaredInitiatorRef) ||
+	a := &c.core.active
+	if d.Schema != c.core.schema || (d.Schema == labRecoveryPlanSchema) != (d.Source == nil) || d.Boundary != labRecoveryPlanBoundary || !labRecoveryID.MatchString(d.RecoveryID) || !planReference.MatchString(d.DeclaredInitiatorRef) ||
 		d.UnknownOperationID != a.Plan.OperationID || d.OriginalPlanSHA256 != a.Plan.PlanSHA256 || d.OriginalIntentSHA256 != a.Intent.IntentSHA256 ||
-		d.ExpectedRevision != w.Revision || d.ExpectedRecordSHA256 != w.RecordSHA256 || d.PreviousHeadSHA256 != w.Head.HeadSHA256 ||
-		d.PreviousHeadGeneration != w.Head.Generation || d.Provisioning != w.V2.Provisioning || d.OldEpochSHA256 != c.core.epoch || d.Budgets != labRecoveryFixedBudgets() ||
-		!lifecycleTime(d.CreatedAt) || !lifecycleTime(d.ExpiresAt) || d.CreatedAt.Before(w.LastTrustedAt) || !d.ExpiresAt.After(d.CreatedAt) || d.ExpiresAt.Sub(d.CreatedAt) > 5*time.Minute ||
-		d.TargetArtifact.ControllerPort != w.Head.ControllerPort || d.TargetArtifact.MixedPort != w.Head.MixedPort || !c.validTarget(d.TargetArtifact) {
+		d.ExpectedRevision != c.core.revision || d.ExpectedRecordSHA256 != c.core.recordSHA256 || d.PreviousHeadSHA256 != c.core.head.HeadSHA256 ||
+		d.PreviousHeadGeneration != c.core.head.Generation || d.Provisioning != c.core.provisioning || d.OldEpochSHA256 != c.core.epoch || d.Budgets != labRecoveryFixedBudgets() ||
+		!lifecycleTime(d.CreatedAt) || !lifecycleTime(d.ExpiresAt) || d.CreatedAt.Before(c.core.lastTrustedAt) || !d.ExpiresAt.After(d.CreatedAt) || d.ExpiresAt.Sub(d.CreatedAt) > 5*time.Minute ||
+		d.TargetArtifact.ControllerPort != c.core.head.ControllerPort || d.TargetArtifact.MixedPort != c.core.head.MixedPort || !c.validTarget(d.TargetArtifact) {
+		return errLifecycleUnsafe
+	}
+	if d.Schema == labRecoveryPlanSchemaV2 && (d.Source == nil || d.Source.Schema != labRecoveryPlanSourceSchema || !lifecycleRecoveryCheckpointValid(d.Source.Root) || d.Source.Root.RecoveryKind != lifecycleRecoveryCheckpointHistoryTail ||
+		d.Source.Root.Revision != c.core.revision || d.Source.Root.RecordSHA256 != c.core.recordSHA256 || !d.Source.Root.LastTrustedAt.Equal(c.core.lastTrustedAt)) {
 		return errLifecycleUnsafe
 	}
 	hash, err := labRecoveryPlanDigest(d)
@@ -215,10 +303,11 @@ func newLabRecoveryPlan(original lifecycleRecord, recoveryID, initiator string, 
 	}
 	copy := context.core.original
 	a := copy.wire.Active
-	d := labRecoveryPlanDescriptor{labRecoveryPlanSchema, labRecoveryPlanBoundary, recoveryID, a.Plan.OperationID,
-		a.Plan.PlanSHA256, a.Intent.IntentSHA256, initiator, copy.wire.Revision, copy.wire.RecordSHA256,
-		copy.wire.Head.HeadSHA256, copy.wire.Head.Generation, copy.wire.V2.Provisioning, context.core.epoch,
-		cloneArtifactDescriptor(target), labRecoveryFixedBudgets(), now, expires, ""}
+	d := labRecoveryPlanDescriptor{Schema: labRecoveryPlanSchema, Boundary: labRecoveryPlanBoundary, RecoveryID: recoveryID,
+		UnknownOperationID: a.Plan.OperationID, OriginalPlanSHA256: a.Plan.PlanSHA256, OriginalIntentSHA256: a.Intent.IntentSHA256,
+		DeclaredInitiatorRef: initiator, ExpectedRevision: copy.wire.Revision, ExpectedRecordSHA256: copy.wire.RecordSHA256,
+		PreviousHeadSHA256: copy.wire.Head.HeadSHA256, PreviousHeadGeneration: copy.wire.Head.Generation, Provisioning: copy.wire.V2.Provisioning,
+		OldEpochSHA256: context.core.epoch, TargetArtifact: cloneArtifactDescriptor(target), Budgets: labRecoveryFixedBudgets(), CreatedAt: now, ExpiresAt: expires}
 	d.PlanSHA256, err = labRecoveryPlanDigest(d)
 	if err != nil || context.validateDescriptor(d) != nil {
 		return labRecoveryPlan{}, errLifecycleUnsafe
@@ -232,7 +321,38 @@ func (p *labRecoveryPlan) descriptor() labRecoveryPlanDescriptor {
 	}
 	d := p.core.descriptor
 	d.TargetArtifact = cloneArtifactDescriptor(d.TargetArtifact)
+	d.Source = lifecycleClonePointer(d.Source, func(v labRecoveryPlanSource) labRecoveryPlanSource {
+		return labRecoveryPlanSource{Schema: v.Schema, Root: cloneLifecycleRecoveryRootCheckpoint(v.Root)}
+	})
 	return d
+}
+
+func newLabRecoveryPlanV2(source lifecycleV3Record, recoveryID, initiator string, target ArtifactDescriptor, now, expires time.Time) (labRecoveryPlan, error) {
+	if source.core == nil || source.core.Current.Active == nil || source.core.Current.Active.Phase != "UNKNOWN" || source.core.Current.Active.Intent == nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	checkpoint, err := lifecycleRecoveryCheckpoint(source.core, lifecycleRecoveryCheckpointHistoryTail)
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	planSource := &labRecoveryPlanSource{Schema: labRecoveryPlanSourceSchema, Root: checkpoint}
+	a := source.core.Current.Active
+	epoch, err := labRecoveryEpochSHA256(source.core.Current.Head, source.core.Provisioning)
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	d := labRecoveryPlanDescriptor{Schema: labRecoveryPlanSchemaV2, Boundary: labRecoveryPlanBoundary, RecoveryID: recoveryID,
+		UnknownOperationID: a.Plan.OperationID, OriginalPlanSHA256: a.Plan.PlanSHA256, OriginalIntentSHA256: a.Intent.IntentSHA256,
+		DeclaredInitiatorRef: initiator, ExpectedRevision: source.core.Revision, ExpectedRecordSHA256: source.core.RecordSHA256,
+		PreviousHeadSHA256: source.core.Current.Head.HeadSHA256, PreviousHeadGeneration: source.core.Current.Head.Generation,
+		Provisioning: source.core.Provisioning, OldEpochSHA256: epoch, TargetArtifact: cloneArtifactDescriptor(target), Budgets: labRecoveryFixedBudgets(),
+		CreatedAt: now, ExpiresAt: expires, Source: planSource}
+	d.PlanSHA256, err = labRecoveryPlanDigest(d)
+	context, contextErr := lifecycleRecoveryPlanContext(source.core, d)
+	if err != nil || contextErr != nil || context.validateDescriptor(d) != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d}}, nil
 }
 
 func labRecoveryPlanFromDescriptor(d labRecoveryPlanDescriptor, original lifecycleRecord) (labRecoveryPlan, error) {
@@ -250,12 +370,25 @@ func labRecoveryPlanFromDescriptor(d labRecoveryPlanDescriptor, original lifecyc
 	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d}}, nil
 }
 
+func labRecoveryPlanFromV3Descriptor(d labRecoveryPlanDescriptor, source *lifecycleV3Wire) (labRecoveryPlan, error) {
+	context, err := lifecycleRecoveryPlanContext(source, d)
+	if err != nil || context.validateDescriptor(d) != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	d.TargetArtifact = cloneArtifactDescriptor(d.TargetArtifact)
+	d.Source = lifecycleClonePointer(d.Source, func(v labRecoveryPlanSource) labRecoveryPlanSource {
+		return labRecoveryPlanSource{Schema: v.Schema, Root: cloneLifecycleRecoveryRootCheckpoint(v.Root)}
+	})
+	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d}}, nil
+}
+
 func (p *labRecoveryPlan) validAt(now time.Time) error {
 	if p == nil || p.core == nil || !lifecycleTime(now) {
 		return errLifecycleUnsafe
 	}
 	d := p.descriptor()
-	if d.Schema != labRecoveryPlanSchema || d.Boundary != labRecoveryPlanBoundary || !lifecycleTime(d.CreatedAt) || !lifecycleTime(d.ExpiresAt) ||
+	if (d.Schema != labRecoveryPlanSchema && d.Schema != labRecoveryPlanSchemaV2) || (d.Schema == labRecoveryPlanSchema) != (d.Source == nil) ||
+		d.Boundary != labRecoveryPlanBoundary || !lifecycleTime(d.CreatedAt) || !lifecycleTime(d.ExpiresAt) ||
 		now.Before(d.CreatedAt) || !now.Before(d.ExpiresAt) || !d.ExpiresAt.After(d.CreatedAt) || d.ExpiresAt.Sub(d.CreatedAt) > 5*time.Minute ||
 		!lifecycleNonzeroHash(d.PlanSHA256) || d.Budgets != labRecoveryFixedBudgets() || !lifecycleArtifactDescriptorValid(d.TargetArtifact) {
 		return errLifecycleUnsafe

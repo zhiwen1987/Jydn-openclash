@@ -33,9 +33,13 @@ type lifecycleRecoveryStoreCore struct {
 	permit             *labRecoveryStartCore
 	startedRecord      *lifecycleStartedPublication
 	verificationRecord *lifecycleVerificationPublication
+	completionRecord   *lifecycleCompletionPublication
 	// Ephemeral custody from an actually consumed Started core and successful
 	// S1 disk publication. Never decoded or persisted; reopen starts with nil.
 	retainedStarted *labRecoveryStartedCustody
+	retainedVerified *labRecoveryVerifiedCustody
+	currentLive      *lifecycleRecoveryCurrentOwnerCore
+	currentPublication *lifecycleCurrentEpochPublication
 	// Issuance identities only, scoped to one locked operation. They are
 	// released on every exit and are never a cross-operation validation cache.
 	activeBase     *lifecycleVerifiedBaseCore
@@ -301,10 +305,14 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 			x.permit = nil
 			x.startedRecord = nil
 			x.verificationRecord = nil
+			x.completionRecord = nil
 			x.quiescenceSHA = ""
 			x.activeBase = nil
 			x.activePrepared = nil
 			x.validated = nil
+			x.retainedVerified = nil
+			x.currentLive = nil
+			x.currentPublication = nil
 		}
 		return errLifecycleUnsafe
 	}
@@ -448,6 +456,15 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 		x.validated = nil
 		return errLifecycleUnsafe
 	}
+	// Full-history validation and the final disk CAS may take time. A
+	// Completion must still have a live window immediately before replace;
+	// an earlier cap check cannot authorize a late head/owner publication.
+	if x.completionRecord != nil && !x.completionFreshBeforeReplace(c) {
+		x.poisoned = true
+		x.live, x.retainedStarted, x.retainedVerified, x.currentLive = nil, nil, nil, nil
+		x.validated = nil
+		return errLifecycleUnsafe
+	}
 	state, err := x.disk.replaceControl(c.raw)
 	if state == lifecycleUnknown || (state != lifecycleNotCommitted && state != lifecycleCommitted) || (state == lifecycleCommitted && err != nil) {
 		x.poisoned = true
@@ -521,7 +538,9 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	if err := x.trustedNow(now); err != nil {
 		return nil, err
 	}
-	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 || (!lifecycleV3Transition(x.record.core, next.core) && !x.startedRecordTransition(base, next) && !x.verificationRecordTransition(base, next)) {
+	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 ||
+		(!lifecycleV3Transition(x.record.core, next.core) && !x.startedRecordTransition(base, next) && !x.verificationRecordTransition(base, next) &&
+			!x.completionRecordTransition(base, next) && !x.currentEpochTransition(base, next)) {
 		return nil, errLifecycleUnsafe
 	}
 	if next.core.LastRecoveryFence != x.record.core.LastRecoveryFence {
@@ -618,7 +637,11 @@ func (s *lifecycleRecoveryStore) close() error {
 	x.permit = nil
 	x.startedRecord = nil
 	x.verificationRecord = nil
+	x.completionRecord = nil
 	x.retainedStarted = nil
+	x.retainedVerified = nil
+	x.currentLive = nil
+	x.currentPublication = nil
 	x.quiescenceSHA = ""
 	x.activeBase = nil
 	x.activePrepared = nil
@@ -981,7 +1004,23 @@ func (c *lifecycleCloneState) budgets(v labRecoveryBudgets) labRecoveryBudgets {
 }
 
 func (c *lifecycleCloneState) recoveryPlan(v labRecoveryPlanDescriptor) labRecoveryPlanDescriptor {
-	return labRecoveryPlanDescriptor{c.text(v.Schema), c.text(v.Boundary), c.text(v.RecoveryID), c.text(v.UnknownOperationID), c.text(v.OriginalPlanSHA256), c.text(v.OriginalIntentSHA256), c.text(v.DeclaredInitiatorRef), v.ExpectedRevision, c.text(v.ExpectedRecordSHA256), c.text(v.PreviousHeadSHA256), v.PreviousHeadGeneration, c.provisioning(v.Provisioning), c.text(v.OldEpochSHA256), c.artifact(v.TargetArtifact), c.budgets(v.Budgets), c.timestamp(v.CreatedAt), c.timestamp(v.ExpiresAt), c.text(v.PlanSHA256)}
+	return labRecoveryPlanDescriptor{Schema: c.text(v.Schema), Boundary: c.text(v.Boundary), RecoveryID: c.text(v.RecoveryID),
+		UnknownOperationID: c.text(v.UnknownOperationID), OriginalPlanSHA256: c.text(v.OriginalPlanSHA256), OriginalIntentSHA256: c.text(v.OriginalIntentSHA256),
+		DeclaredInitiatorRef: c.text(v.DeclaredInitiatorRef), ExpectedRevision: v.ExpectedRevision, ExpectedRecordSHA256: c.text(v.ExpectedRecordSHA256),
+		PreviousHeadSHA256: c.text(v.PreviousHeadSHA256), PreviousHeadGeneration: v.PreviousHeadGeneration, Provisioning: c.provisioning(v.Provisioning),
+		OldEpochSHA256: c.text(v.OldEpochSHA256), TargetArtifact: c.artifact(v.TargetArtifact), Budgets: c.budgets(v.Budgets), CreatedAt: c.timestamp(v.CreatedAt),
+		ExpiresAt: c.timestamp(v.ExpiresAt), Source: lifecycleClonePointer(v.Source, c.recoveryPlanSource), PlanSHA256: c.text(v.PlanSHA256)}
+}
+
+func (c *lifecycleCloneState) recoveryCheckpoint(v lifecycleRecoveryRootCheckpoint) lifecycleRecoveryRootCheckpoint {
+	return lifecycleRecoveryRootCheckpoint{Schema: c.text(v.Schema), Revision: v.Revision, RecordSHA256: c.text(v.RecordSHA256), LastTrustedAt: c.timestamp(v.LastTrustedAt),
+		RecoveryOwner: lifecycleClonePointer(v.RecoveryOwner, c.owner), LastRecoveryFence: v.LastRecoveryFence, CurrentEpochPosition: v.CurrentEpochPosition,
+		CurrentLedgerSHA256: c.text(v.CurrentLedgerSHA256), RetiredPrefixCount: v.RetiredPrefixCount, RetiredPrefixSHA256: c.text(v.RetiredPrefixSHA256),
+		RecoveryHistoryPrefixCount: v.RecoveryHistoryPrefixCount, RecoveryHistoryPrefixSHA256: c.text(v.RecoveryHistoryPrefixSHA256), RecoveryKind: c.text(v.RecoveryKind)}
+}
+
+func (c *lifecycleCloneState) recoveryPlanSource(v labRecoveryPlanSource) labRecoveryPlanSource {
+	return labRecoveryPlanSource{Schema: c.text(v.Schema), Root: c.recoveryCheckpoint(v.Root)}
 }
 
 func (c *lifecycleCloneState) recoveryApproval(v lifecycleRecoveryApproval) lifecycleRecoveryApproval {
@@ -1045,7 +1084,15 @@ func (c *lifecycleCloneState) startedFact(v labRecoveryStartedFact) labRecoveryS
 }
 
 func (c *lifecycleCloneState) execution(v lifecycleRecoveryExecution) lifecycleRecoveryExecution {
-	return lifecycleRecoveryExecution{c.text(v.Schema), c.startedFact(v.Started), c.owner(v.ArmedOwner), c.timestamp(v.ArmedLastTrustedAt), v.ArmedLastRecoveryFence, c.timestamp(v.ArmedRecoveryUpdatedAt), lifecycleCloneSlice(v.ArmedFailedQuiescence, c.quiescenceObservation), v.StartedCommitRevision, c.timestamp(v.RecordedAt), lifecycleClonePointer(v.Verification, c.verification)}
+	return lifecycleRecoveryExecution{Schema: c.text(v.Schema), Started: c.startedFact(v.Started), ArmedOwner: c.owner(v.ArmedOwner),
+		ArmedLastTrustedAt: c.timestamp(v.ArmedLastTrustedAt), ArmedLastRecoveryFence: v.ArmedLastRecoveryFence, ArmedRecoveryUpdatedAt: c.timestamp(v.ArmedRecoveryUpdatedAt),
+		ArmedFailedQuiescence: lifecycleCloneSlice(v.ArmedFailedQuiescence, c.quiescenceObservation), StartedCommitRevision: v.StartedCommitRevision,
+		RecordedAt: c.timestamp(v.RecordedAt), Verification: lifecycleClonePointer(v.Verification, c.verification),
+		CompletionSource: lifecycleClonePointer(v.CompletionSource, c.recoveryCompletionSource)}
+}
+
+func (c *lifecycleCloneState) recoveryCompletionSource(v lifecycleRecoveryCompletionSource) lifecycleRecoveryCompletionSource {
+	return lifecycleRecoveryCompletionSource{Schema: c.text(v.Schema), Root: c.recoveryCheckpoint(v.Root), CommitDeadline: c.timestamp(v.CommitDeadline)}
 }
 
 func (c *lifecycleCloneState) verificationSample(v labRecoverySampleWindow) labRecoverySampleWindow {

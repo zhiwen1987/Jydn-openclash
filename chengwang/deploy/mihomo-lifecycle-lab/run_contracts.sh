@@ -175,6 +175,17 @@ files+=(
   internal/mihomodeploy/lab_native_recovery_observer_default.go
   internal/mihomodeploy/lab_native_recovery_observer_linux.go
 )
+files+=(
+  internal/mihomodeploy/lifecycle_recovery_checkpoint.go
+  internal/mihomodeploy/lifecycle_recovery_completion.go
+  internal/mihomodeploy/lifecycle_recovery_completion_test.go
+  internal/mihomodeploy/lifecycle_completion_shape_diagnostic_test.go
+  internal/mihomodeploy/lifecycle_v3_decode_scope_test.go
+  internal/mihomodeploy/lifecycle_current_epoch.go
+  internal/mihomodeploy/lifecycle_current_epoch_test.go
+  internal/mihomodeploy/lab_current_epoch_runtime.go
+  internal/mihomodeploy/lab_current_epoch_runtime_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?

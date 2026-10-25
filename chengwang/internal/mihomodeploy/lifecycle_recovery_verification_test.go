@@ -29,7 +29,7 @@ func TestLifecycleRecoveryVerificationVersionedCodecPreservesLegacyExecutionByte
 		t.Fatal("MODEL old execution encoding unavailable")
 	}
 	actual, err := json.Marshal(e)
-	if err != nil || !bytes.Equal(want, actual) || bytes.Contains(actual, []byte(`"verification"`)) {
+	if err != nil || !bytes.Equal(want, actual) || bytes.Contains(actual, []byte(`"verification"`)) || bytes.Contains(actual, []byte(`"completionSource"`)) {
 		t.Fatal("v1 canonical bytes acquired a v2 field or changed order")
 	}
 	if !lifecycleRecoveryVerificationFieldsValid(lifecycleRecoveryTxn{Execution: &e}, time.Time{}, 0) {

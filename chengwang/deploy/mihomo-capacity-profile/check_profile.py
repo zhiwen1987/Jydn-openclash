@@ -20,7 +20,49 @@ TAG='chengwang_capacity_profile'
 GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^'+TOP+'$','./internal/mihomodeploy']
 FULL_PACKAGES=['./internal/adapter/mihomo','./internal/mihomodeploy','./internal/authn','./internal/api','./internal/serverruntime','./internal/authz']
 FULL_GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^Test',*FULL_PACKAGES]
-FULL_REQUIRED_PIN='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
+CAPACITY_FMT=['internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go']
+FULL_FMT=[*CAPACITY_FMT,
+    'internal/mihomodeploy/lifecycle_recovery_checkpoint.go',
+    'internal/mihomodeploy/lifecycle_recovery_completion.go',
+    'internal/mihomodeploy/lifecycle_recovery_completion_test.go',
+    'internal/mihomodeploy/lifecycle_completion_shape_diagnostic_test.go',
+    'internal/mihomodeploy/lifecycle_v3_decode_scope_test.go',
+    'internal/mihomodeploy/lifecycle_current_epoch.go',
+    'internal/mihomodeploy/lifecycle_current_epoch_test.go',
+    'internal/mihomodeploy/lab_current_epoch_runtime.go',
+    'internal/mihomodeploy/lab_current_epoch_runtime_test.go']
+FULL_REQUIRED_PIN='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
+FULL_PREVIOUS_647_PIN='1e7db484a7eb5485b06037bd3ee1fb443201ab46799c17fefba9bcba9b0cca94'
+FULL_PREVIOUS_635_PIN='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
+FULL_RECOVERY_COMPLETION_CURRENT_ADDED=frozenset({
+    'chengwang/internal/mihomodeploy::TestLabCurrentEpochRuntimeRejectsPoisonedOrForeignDiskWithoutLegacyFallback',
+    'chengwang/internal/mihomodeploy::TestLabCurrentEpochRuntimeRejectsUnissuedHandoffAndPreservesCloseOwner',
+    'chengwang/internal/mihomodeploy::TestLabCurrentEpochRuntimeSnapshotIsDetachedReadOnly',
+    'chengwang/internal/mihomodeploy::TestLifecycleCloneSchemaDigestForRecoveryCompletion',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionActualCloneShapeDiagnostic',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochGenericCandidateCannotIssuePublication',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochLedgerRejectsResealedCorruptProjection',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochMutationRejectsOwnerAndRevisionBypass',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochProjectionDetachesNestedMutableState',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochProjectionDoesNotRelaxLegacyGenesis',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCapabilitiesArePrivateAndOneStoreBound',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCheckpointReconstructsExactVerifiedRoot',
+})
+FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED=frozenset({
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionProspectiveMetadataUsesStrictS2Preimage',
+    'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCustodyRejectsCopiesForeignResetAndReopen',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochNilHandoffRejectsBeforeRecoveryMutation',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochCopiedReceiverCannotUseOrRetireBackend',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochRollbackPoisonsBothStoresPermanently',
+    'chengwang/internal/mihomodeploy::TestLifecycleV3GlobalBudgetCountsEveryEpochAndUniqueRecovery',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochObservationCapacityCountsRetiredEpochs',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochHandoffRequiresCompletedHistoryTail',
+    'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochReverseProjectionDetachesNestedState',
+    'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeMemoUsesExactCanonicalBytesAndDetachedValues',
+    'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeCheckpointRootIsStrictlyValidatedOnce',
+    'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopesNeverShareValidationAcrossOperations',
+    'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeDeepChainBudgetsFailClosed',
+})
 FULL_PREVIOUS_627_PIN='3bd65c00bb45bbef41763cadf7b8b98c6c0ce2fbc8ec93b3bb8dfa6dd0880543'
 FULL_DURABLE_S2_ADDED=frozenset({
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerificationTypedFactRejectsUnissuedRecordCapability',
@@ -104,8 +146,8 @@ ENV=sorted(['PATH','GOROOT','HOME','TMPDIR','GOCACHE','GOMODCACHE','GOPROXY','GO
     'GOFLAGS','CGO_ENABLED','LANG','LC_ALL','TZ','CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT'])
 ORIGINAL_SOURCE_PINS={
     'chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go':'ea0a3ec623691b161680727378e1feb638157322df230b60d0f7e09534a2b7d6',
-    'chengwang/internal/mihomodeploy/lifecycle.go':'15491b8f671d6b5bc2e948abbbdb56100753cb951176dd8c85167efa9e9f3fe4',
-    'chengwang/internal/mihomodeploy/lab_bootstrap_state.go':'4b11dfbbf1e521933ff57be60cab3dd9d44c36e034b68d9529b353a837ca817e',
+    'chengwang/internal/mihomodeploy/lifecycle.go':'026bd6b1e38bc05024aa8c26bf3195784a4e8dd0df75d7d0fcca34c941c0eb1c',
+    'chengwang/internal/mihomodeploy/lab_bootstrap_state.go':'472592e381a67f1850b1518d2b47698111dada600459cf8bec2f795f4719aad5',
 }
 
 def need(v):
@@ -208,7 +250,7 @@ def load_normal_checker(sources=None):
     if sources is not None:need(type(sources)is dict and sources.get(NORMAL_CHECKER)==code)
     module=types.ModuleType('_actual_bound_normal_contract_checker');module.__file__=str(path)
     exec(compile(code,str(path),'exec'),module.__dict__)
-    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==131 and len(module.TEST_FILES)==49)
+    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==140 and len(module.TEST_FILES)==54)
     return module
 
 def full_source_contract(sources,manifest):
@@ -218,14 +260,21 @@ def full_source_contract(sources,manifest):
     need(all(path in files and files[path]['sha256']==sha(raw) and files[path]['bytes']==len(raw)for path,raw in sources.items()))
     required=checker.required_names(sources)
     names=sorted(package+'::'+name for package,items in required.items()for name in items)
-    need(set(required)==checker.PACKAGES and len(names)==635 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
+    need(set(required)==checker.PACKAGES and len(names)==660 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
+    need(FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED.issubset(names))
+    previous647=sorted(set(names)-FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED)
+    need(len(previous647)==647 and sha('\n'.join(previous647).encode())==FULL_PREVIOUS_647_PIN)
+    need(FULL_RECOVERY_COMPLETION_CURRENT_ADDED.issubset(names))
+    need(not FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED.intersection(FULL_RECOVERY_COMPLETION_CURRENT_ADDED))
+    previous635=sorted(set(previous647)-FULL_RECOVERY_COMPLETION_CURRENT_ADDED)
+    need(len(previous635)==635 and sha('\n'.join(previous635).encode())==FULL_PREVIOUS_635_PIN)
     need(FULL_TRUSTED_CLONE_ADDED.issubset(names) and not FULL_TRUSTED_CLONE_ADDED.intersection(FULL_CANDIDATE_SEAL_ADDED))
     need(FULL_S1_STARTED_ADDED.issubset(names) and not FULL_S1_STARTED_ADDED.intersection(FULL_TRUSTED_CLONE_ADDED | FULL_CANDIDATE_SEAL_ADDED))
     need(FULL_SELECTED_TARGET_ADDED.issubset(names) and not FULL_SELECTED_TARGET_ADDED.intersection(FULL_S1_STARTED_ADDED | FULL_TRUSTED_CLONE_ADDED | FULL_CANDIDATE_SEAL_ADDED))
     need(FULL_S2_COLLECTOR_ADDED.issubset(names) and not FULL_S2_COLLECTOR_ADDED.intersection(FULL_SELECTED_TARGET_ADDED | FULL_S1_STARTED_ADDED | FULL_TRUSTED_CLONE_ADDED | FULL_CANDIDATE_SEAL_ADDED))
     need(FULL_LOCAL_MARKER_ADDED.issubset(names) and not FULL_LOCAL_MARKER_ADDED.intersection(FULL_S2_COLLECTOR_ADDED | FULL_SELECTED_TARGET_ADDED | FULL_S1_STARTED_ADDED | FULL_TRUSTED_CLONE_ADDED | FULL_CANDIDATE_SEAL_ADDED))
     need(FULL_DURABLE_S2_ADDED.issubset(names) and not FULL_DURABLE_S2_ADDED.intersection(FULL_LOCAL_MARKER_ADDED | FULL_S2_COLLECTOR_ADDED | FULL_SELECTED_TARGET_ADDED | FULL_S1_STARTED_ADDED | FULL_TRUSTED_CLONE_ADDED | FULL_CANDIDATE_SEAL_ADDED))
-    previous627=sorted(set(names)-FULL_DURABLE_S2_ADDED)
+    previous627=sorted(set(previous635)-FULL_DURABLE_S2_ADDED)
     need(len(previous627)==627 and sha('\n'.join(previous627).encode())==FULL_PREVIOUS_627_PIN)
     previous619=sorted(set(previous627)-FULL_LOCAL_MARKER_ADDED)
     need(len(previous619)==619 and sha('\n'.join(previous619).encode())==FULL_PREVIOUS_619_PIN)
@@ -243,7 +292,7 @@ def full_source_contract(sources,manifest):
     # -run '^Test' is equivalent to the current normal test selection only
     # because none of the six packages declares Example/Fuzz entry points.
     # Audit ALL package test files bound by the complete Git manifest, not
-    # only the 49 mandatory files. A future new entry point fails closed and
+    # only the 54 mandatory files. A future new entry point fails closed and
     # needs an explicit diagnostic-contract upgrade instead of silent omission.
     package_dirs={'chengwang'+p[1:]for p in FULL_PACKAGES};suite_test_sources={}
     repo=Path(__file__).resolve().parents[3]
@@ -255,12 +304,12 @@ def full_source_contract(sources,manifest):
         masked=re.sub(r'//[^\n]*|/\*[\s\S]*?\*/|`[^`]*`|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'',lambda m:''.join('\n'if c=='\n'else' 'for c in m[0]),text)
         need(re.search(r'\bfunc\s+(?:Example|Fuzz)\w*\s*\(',masked)is None)
         suite_test_sources[path]=sha(data)
-    need(len(suite_test_sources)==78 and all(any(p.rsplit('/',1)[0]==directory for p in suite_test_sources)for directory in package_dirs))
+    need(len(suite_test_sources)==83 and all(any(p.rsplit('/',1)[0]==directory for p in suite_test_sources)for directory in package_dirs))
     # Bind the diagnosis's six-package command to the unchanged normal race
     # command, allowing only the fixed diagnostic tag and test filter.
     normal='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)+' > "$out/race.json" 2> "$out/race.stderr"'
     need(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh'].decode().splitlines().count(normal)==1)
-    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':635,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
+    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':660,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,
         'noExampleOrFuzzDeclarationInBoundSixPackageTestSources':True}
@@ -268,7 +317,7 @@ def full_source_contract(sources,manifest):
 def full_events(raw,required,checker,go_exit,stderr=b''):
     # Diagnostic partial-reader: accept coherent failed/unfinished originals,
     # never translate them into C.events acceptance. Extra legitimate top or
-    # subtests are allowed just as in the original checker; 635 is a subset.
+    # subtests are allowed just as in the original checker; 660 is a subset.
     need(type(raw)is bytes and 0<len(raw)<=64<<20 and type(stderr)is bytes and integer(go_exit,-128,255))
     packages=checker.PACKAGES;begun=set();terminals={};states={};outputs={p:[]for p in packages}
     for line in raw.splitlines():
@@ -299,12 +348,12 @@ def full_events(raw,required,checker,go_exit,stderr=b''):
         for name in items:
             state=states.get((package,name));bucket={'pass':'passed','fail':'failed','skip':'skipped','run':'unfinished','pause':'unfinished',None:'notStarted'}[state]
             required_sets[bucket].append(package+'::'+name)
-    need(sum(map(len,required_sets.values()))==635)
+    need(sum(map(len,required_sets.values()))==660)
     for items in required_sets.values():items.sort()
     unfinished=sorted(p+'::'+n for (p,n),state in states.items()if state in ('run','pause'));need(len(unfinished)<=4096)
     failed=sorted(p+'::'+n for (p,n),state in states.items()if state=='fail');need(len(failed)<=4096)
     skipped=sorted(p+'::'+n for (p,n),state in states.items()if state=='skip');need(len(skipped)<=4096)
-    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==635
+    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==660
     strict=None
     if structurally_complete:strict=checker.events(raw,required) # actual original strict gate, no exception-to-pass adapter
     if go_exit==0:need(begun==packages and set(terminals)==packages and all(v in ('pass','skip')for v in terminals.values()) and all(v in ('pass','skip')for v in states.values()))
@@ -377,7 +426,7 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
     shape=profile_shape(binary,diagnostic_mode)
     rows=[decode(line) for line in raw['commands.jsonl'].splitlines()];need(len(rows)==15)
     go=str(Path(box['goRoot'])/'bin/go')
-    expected=[('VERSION',[go,'version'],'versionExit'),('FORMAT',[str(Path(box['goRoot'])/'bin/gofmt'),'-d','internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go'],'formatExit'),
+    expected=[('VERSION',[go,'version'],'versionExit'),('FORMAT',[str(Path(box['goRoot'])/'bin/gofmt'),'-d',*(FULL_FMT if full else CAPACITY_FMT)],'formatExit'),
         ('GO_TEST',[go,*(FULL_GO_ARGS if full else GO_ARGS)],'goExit'),('PPROF_TOP',[go,'tool','pprof','-symbolize=local','-top',PRIVATE+'/cpu.pprof'],'topExit'),
         ('PPROF_CUM',[go,'tool','pprof','-symbolize=local','-top','-cum',PRIVATE+'/cpu.pprof'],'cumExit')]
     previous=0

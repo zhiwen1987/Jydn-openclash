@@ -1,0 +1,298 @@
+{
+  "actualRuns": {
+    "diagnostic": 40196529953,
+    "native": 40196529934,
+    "normal": 40196529913
+  },
+  "aggregateMemberCount": 442,
+  "aggregateZipCount": 25,
+  "comparisonFlagSetOnlyAfterActualGitCheck": true,
+  "completeGeneralFaultMatrixProven": false,
+  "diagnosticFacts": {
+    "FULL_CONTRACTS": {
+      "capacityTerminal": [
+        {
+          "Action": "pass",
+          "Elapsed": 66.68,
+          "Package": "chengwang/internal/mihomodeploy",
+          "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+          "Time": "2026-10-25T13:14:55.972137738Z"
+        }
+      ],
+      "formatPatchBytes": 0,
+      "formatStderrBytes": 0,
+      "packageTerminal": [
+        {
+          "Action": "pass",
+          "Elapsed": 2.519,
+          "Package": "chengwang/internal/adapter/mihomo",
+          "Time": "2026-10-25T13:12:49.492319386Z"
+        },
+        {
+          "Action": "pass",
+          "Elapsed": 1.099,
+          "Package": "chengwang/internal/authn",
+          "Time": "2026-10-25T13:12:54.391537632Z"
+        },
+        {
+          "Action": "pass",
+          "Elapsed": 3.095,
+          "Package": "chengwang/internal/api",
+          "Time": "2026-10-25T13:12:56.387079174Z"
+        },
+        {
+          "Action": "pass",
+          "Elapsed": 1.029,
+          "Package": "chengwang/internal/authz",
+          "Time": "2026-10-25T13:12:56.473681404Z"
+        },
+        {
+          "Action": "pass",
+          "Elapsed": 1.3860000000000001,
+          "Package": "chengwang/internal/serverruntime",
+          "Time": "2026-10-25T13:12:56.830589899Z"
+        },
+        {
+          "Action": "pass",
+          "Elapsed": 135.978,
+          "Package": "chengwang/internal/mihomodeploy",
+          "Time": "2026-10-25T13:15:09.270307412Z"
+        }
+      ],
+      "profileState": {
+        "closeSucceeded": true,
+        "complete": true,
+        "diagnosticMode": "FULL_CONTRACTS",
+        "durationNanoseconds": 120220891650,
+        "limitReached": false,
+        "profileBytes": 152560,
+        "profileSHA256": "fad6c65d1ad92d4827903d972974b4db58b356ba45f18c8d3be266dff9f98cf8",
+        "schema": "chengwang.capacity-cpu-profile-state/v2",
+        "sourceCommit": "9dd6313b55e29e6e5fbe4def5311b8adb4ec2751",
+        "startedAt": "2026-10-25T13:12:53.312353732Z",
+        "stopReason": "TIMER_120_SECONDS",
+        "stoppedAt": "2026-10-25T13:14:53.533245392Z",
+        "syncSucceeded": true,
+        "testTimeoutSeconds": 180,
+        "timerSeconds": 120,
+        "writerFailed": false
+      },
+      "sandboxIndependentBoundariesPassed": true,
+      "sourceAndHostBeforeAfterByteExact": true
+    },
+    "SINGLE_CASE": {
+      "capacityTerminal": [
+        {
+          "Action": "pass",
+          "Elapsed": 53.41,
+          "Package": "chengwang/internal/mihomodeploy",
+          "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+          "Time": "2026-10-25T13:13:35.618026899Z"
+        }
+      ],
+      "formatPatchBytes": 0,
+      "formatStderrBytes": 0,
+      "packageTerminal": [
+        {
+          "Action": "pass",
+          "Elapsed": 54.57,
+          "Package": "chengwang/internal/mihomodeploy",
+          "Time": "2026-10-25T13:13:36.758499963Z"
+        }
+      ],
+      "profileState": {
+        "closeSucceeded": true,
+        "complete": true,
+        "durationNanoseconds": 53546417759,
+        "limitReached": false,
+        "profileBytes": 68674,
+        "profileSHA256": "eb9403376c460cdabd0e3354dcf38bcd1fa6e1b31ccce655482bf22e77e58bbe",
+        "schema": "chengwang.capacity-cpu-profile-state/v1",
+        "sourceCommit": "9dd6313b55e29e6e5fbe4def5311b8adb4ec2751",
+        "startedAt": "2026-10-25T13:12:42.204355554Z",
+        "stopReason": "M_RUN_RETURNED",
+        "stoppedAt": "2026-10-25T13:13:35.750773302Z",
+        "syncSucceeded": true,
+        "testTimeoutSeconds": 180,
+        "timerSeconds": 60,
+        "writerFailed": false
+      },
+      "sandboxIndependentBoundariesPassed": true,
+      "sourceAndHostBeforeAfterByteExact": true
+    }
+  },
+  "formatterInputs": 125,
+  "fullPrivateWALOrReceiptIndependentlyProven": false,
+  "historical627And619AndEarlierExactSubsets": true,
+  "independentReceipts": [
+    {
+      "path": "D:/CodexData/workspace/mihomo-9dd6313-foundation-audit-20261025-agent/closeout/closeout.json",
+      "role": "normal",
+      "sha256": "24cb864782b8cee81e4c423459153ced043268d7c1de090d5114138b814edc71"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-9dd6313-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "role": "diagnostic",
+      "sha256": "e579c3d9686ca4267d940c59d697344a88d77cd3b9eb3dc4a89b4fd5081b9b2e"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-9dd6313-native-audit-20261025-agent/closeout/closeout.json",
+      "role": "native",
+      "sha256": "f30e3ea8db84b12db6ec5a543c7d9ddcd71d76191c0992f24511e62337ed7c17"
+    }
+  ],
+  "internetBusinessProven": false,
+  "mandatoryTestFiles": 49,
+  "mandatoryTests": 635,
+  "nativeOriginalPureGitFlagsPreserved": true,
+  "nativePublicFilesPerMode": 33,
+  "nativeSources": 169,
+  "normalOriginalVerifyReportBytes": 17600,
+  "normalOriginalVerifyReportSHA256": "a692a5149c9b787d3b0b67ab0d58b9bae2629814c26766a0c5452cb258b03564",
+  "normalSources": 131,
+  "oldFailuresReclassified": false,
+  "ordinaryAndRaceSemanticTestsEach": 1884,
+  "physicalPackageTestFiles": 78,
+  "productRecoveryAPIAccepted": false,
+  "productionDeployed": false,
+  "realPowerLossDurabilityProven": false,
+  "recoveryCompletionAndNewHeadProven": false,
+  "remaining": [
+    "Source-owned recovery completion and epoch head commit",
+    "Runtime journal facade and authenticated recovery API",
+    "Subsequent ordinary publish and a second UNKNOWN recovery",
+    "Full scenario/fault/soak/capacity acceptance and other system modules",
+    "Authorized gray release, backups/rollback and production readback"
+  ],
+  "requiredNamesSHA256": "1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6",
+  "schema": "chengwang.durable-s2-four-mode-acceptance/v1",
+  "scope": "ISOLATED_DURABLE_VERIFICATION_AND_THREE_FIXED_PUBLICATION_FAULTS_NOT_COMPLETION_PRODUCT_OR_PRODUCTION",
+  "sourceCommit": "9dd6313b55e29e6e5fbe4def5311b8adb4ec2751",
+  "sourceGitBlobs": 1334,
+  "subsequentNormalPublishAndSecondRecoveryProven": false,
+  "successfulJobCounts": {
+    "diagnostic": 5,
+    "native": 10,
+    "normal": 13
+  },
+  "variants": {
+    "not-committed": {
+      "CompletionOrCurrentHeadAdvanced": false,
+      "actualColdReopenPhase": "RECOVERY_UNKNOWN",
+      "actualColdReopenRevision": 18,
+      "actualEightGETAndLocalMarkerAccepted": true,
+      "actualKnownCap": true,
+      "actualWALStages": 9,
+      "candidateAdopted": false,
+      "capSpentAndReplayRejected": true,
+      "diskRevision": 17,
+      "forwardedWrites": 0,
+      "fullPrivateReceiptIndependentlyProven": false,
+      "goExit": 0,
+      "goTopSeconds": 9.26,
+      "injectedReads": 0,
+      "memoryRevision": 17,
+      "nativeNineFormatPatchBytes": 0,
+      "originalFiveEndpointRefusalsAndThreeFixtureCleanupAccepted": true,
+      "originalWholeVerifyRawAccepted": true,
+      "postWriteReads": 0,
+      "producerFreshBytes": 28093,
+      "producerFreshSHA256": "1c341bd7864593ab134dda5a2f689cadd640c1001b7c5d8538ac3e5ac98b2989",
+      "publicFiles": 33,
+      "receiptPresent": false,
+      "replaceAttempts": 1,
+      "sameCollectionOnlyS1AndNativePrefix": true,
+      "sourceFiles": 169,
+      "storePoisoned": true
+    },
+    "positive": {
+      "CompletionOrCurrentHeadAdvanced": false,
+      "actualColdReopenPhase": "RECOVERY_UNKNOWN",
+      "actualColdReopenRevision": 19,
+      "actualEightGETAndLocalMarkerAccepted": true,
+      "actualKnownCap": true,
+      "actualWALStages": 9,
+      "candidateAdopted": true,
+      "capSpentAndReplayRejected": true,
+      "diskRevision": 18,
+      "forwardedWrites": 1,
+      "fullPrivateReceiptIndependentlyProven": false,
+      "goExit": 0,
+      "goTopSeconds": 7.97,
+      "injectedReads": 0,
+      "memoryRevision": 18,
+      "nativeNineFormatPatchBytes": 0,
+      "originalFiveEndpointRefusalsAndThreeFixtureCleanupAccepted": true,
+      "originalWholeVerifyRawAccepted": true,
+      "postWriteReads": 1,
+      "producerFreshBytes": 28082,
+      "producerFreshSHA256": "705f9dcb7d04d799bffce0b75a5f63a609893acd37e12a0e052308b3922900c6",
+      "publicFiles": 33,
+      "receiptPresent": true,
+      "replaceAttempts": 1,
+      "sameCollectionOnlyS1AndNativePrefix": true,
+      "sourceFiles": 169,
+      "storePoisoned": false
+    },
+    "readback": {
+      "CompletionOrCurrentHeadAdvanced": false,
+      "actualColdReopenPhase": "RECOVERY_UNKNOWN",
+      "actualColdReopenRevision": 19,
+      "actualEightGETAndLocalMarkerAccepted": true,
+      "actualKnownCap": true,
+      "actualWALStages": 9,
+      "candidateAdopted": false,
+      "capSpentAndReplayRejected": true,
+      "diskRevision": 18,
+      "forwardedWrites": 1,
+      "fullPrivateReceiptIndependentlyProven": false,
+      "goExit": 0,
+      "goTopSeconds": 11.84,
+      "injectedReads": 1,
+      "memoryRevision": 17,
+      "nativeNineFormatPatchBytes": 0,
+      "originalFiveEndpointRefusalsAndThreeFixtureCleanupAccepted": true,
+      "originalWholeVerifyRawAccepted": true,
+      "postWriteReads": 1,
+      "producerFreshBytes": 28082,
+      "producerFreshSHA256": "844708e659d4db533aed6a458a9989762eeb6998100131cbf1be6e224301d4e0",
+      "publicFiles": 33,
+      "receiptPresent": true,
+      "replaceAttempts": 1,
+      "sameCollectionOnlyS1AndNativePrefix": true,
+      "sourceFiles": 169,
+      "storePoisoned": true
+    },
+    "unknown": {
+      "CompletionOrCurrentHeadAdvanced": false,
+      "actualColdReopenPhase": "RECOVERY_UNKNOWN",
+      "actualColdReopenRevision": 19,
+      "actualEightGETAndLocalMarkerAccepted": true,
+      "actualKnownCap": true,
+      "actualWALStages": 9,
+      "candidateAdopted": false,
+      "capSpentAndReplayRejected": true,
+      "diskRevision": 18,
+      "forwardedWrites": 1,
+      "fullPrivateReceiptIndependentlyProven": false,
+      "goExit": 0,
+      "goTopSeconds": 10.25,
+      "injectedReads": 0,
+      "memoryRevision": 17,
+      "nativeNineFormatPatchBytes": 0,
+      "originalFiveEndpointRefusalsAndThreeFixtureCleanupAccepted": true,
+      "originalWholeVerifyRawAccepted": true,
+      "postWriteReads": 0,
+      "producerFreshBytes": 28080,
+      "producerFreshSHA256": "a30e6d219698f17d839ceb04f4a98428b17c4056cfb37af6dd055658a4eb1562",
+      "publicFiles": 33,
+      "receiptPresent": true,
+      "replaceAttempts": 1,
+      "sameCollectionOnlyS1AndNativePrefix": true,
+      "sourceFiles": 169,
+      "storePoisoned": true
+    }
+  },
+  "wholeSystemCompleted": false,
+  "windowsCompletePOSIXCLIAccepted": false
+}

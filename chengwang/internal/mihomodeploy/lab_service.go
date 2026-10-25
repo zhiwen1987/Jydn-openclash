@@ -354,6 +354,19 @@ func (c *labServiceCore) read(headers []string) error {
 	return nil
 }
 func (c *labServiceCore) wire() (lifecycleRecord, error) {
+	if c.runtime != nil {
+		r, present, err := c.runtime.recoverySnapshot()
+		if present {
+			if err != nil {
+				return lifecycleRecord{}, labServiceError(LabBackendUnavailable, false)
+			}
+			projection, _, err := lifecycleCurrentProjection(r.core)
+			if err != nil || projection.wire.Head == nil || projection.wire.Head.Scope != c.scope || projection.wire.Head.DeviceRef != c.scope.ObjectID {
+				return lifecycleRecord{}, labServiceError(LabBackendUnavailable, false)
+			}
+			return projection, nil
+		}
+	}
 	if c.store == nil || c.store.lifecycleStoreCore == nil || c.store.mu == nil {
 		return lifecycleRecord{}, labServiceError(LabBackendUnavailable, false)
 	}

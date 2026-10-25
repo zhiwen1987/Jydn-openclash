@@ -2,6 +2,7 @@ package mihomodeploy
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -141,7 +142,63 @@ func lifecycleV3RecordHash(w lifecycleV3Wire) (string, error) {
 		RecoveryHistory   []lifecycleRecoveryTxn  `json:"recoveryHistory"`
 	}{w.Schema, w.Boundary, w.Revision, w.LastTrustedAt, w.Provisioning, w.SourceV2, w.Current, w.RetiredEpochs, w.RecoveryOwner, w.LastRecoveryFence, w.Recovery, w.RecoveryHistory})
 }
+// One top-level strict decode owns one bounded scope. A memo seal is issued only
+// from bytes that passed token, typed, root-hash, complete semantic and exact
+// canonical-byte checks. Its digest and length are calculated here, never read
+// from RecordSHA256 or a caller assertion. A hit repeats the syntax, typed,
+// canonical-byte and root-hash checks before it may reuse semantic validation.
+// The scope is never stored on a runtime or store.
+const (
+	maxLifecycleV3DecodeRoots = maxLifecycleHistory*4 + 8
+	maxLifecycleV3DecodeDepth = maxLifecycleHistory*4 + 8
+	// Every admitted root may check every history entry's Plan and Completion
+	// prefix. This bound covers the full 256-entry topology; it does not reduce
+	// the existing history capacity.
+	maxLifecycleV3DecodeWork = maxLifecycleV3DecodeRoots * (maxLifecycleHistory + 1) * (maxLifecycleHistory*4 + 32)
+)
+
+type lifecycleV3DecodeMemoKey struct {
+	bytes  int
+	sha256 [sha256.Size]byte
+}
+
+type lifecycleV3DecodeMemoSeal struct {
+	identity     *lifecycleV3DecodeMemoSeal
+	scope        *lifecycleV3DecodeScope
+	key          lifecycleV3DecodeMemoKey
+	schema       string
+	boundary     string
+	revision     uint64
+	recordSHA256 string
+}
+
+type lifecycleV3DecodeScope struct {
+	memo      map[lifecycleV3DecodeMemoKey]*lifecycleV3DecodeMemoSeal
+	active    map[lifecycleV3DecodeMemoKey]bool
+	roots     int
+	validated int
+	memoHits  int
+	work      int
+	depth     int
+}
+
+func newLifecycleV3DecodeScope() *lifecycleV3DecodeScope {
+	return &lifecycleV3DecodeScope{memo: map[lifecycleV3DecodeMemoKey]*lifecycleV3DecodeMemoSeal{}, active: map[lifecycleV3DecodeMemoKey]bool{}}
+}
+
+func (s *lifecycleV3DecodeScope) charge(n int) error {
+	if s == nil || n < 0 || s.work > maxLifecycleV3DecodeWork-n {
+		return errLifecycleUnsafe
+	}
+	s.work += n
+	return nil
+}
+
 func decodeLifecycleV3Record(raw []byte) (lifecycleV3Record, error) {
+	return decodeLifecycleV3RecordScoped(raw, newLifecycleV3DecodeScope())
+}
+
+func lifecycleV3DecodeCanonicalSyntax(raw []byte) (lifecycleV3Record, error) {
 	if len(raw) == 0 || len(raw) > maxLifecycleControlBytes {
 		return lifecycleV3Record{}, errLifecycleUnsafe
 	}
@@ -159,15 +216,63 @@ func decodeLifecycleV3Record(raw []byte) (lifecycleV3Record, error) {
 	if d.Decode(&w) != nil {
 		return lifecycleV3Record{}, errLifecycleUnsafe
 	}
-	r := lifecycleV3Record{core: &w}
-	canonical, err := encodeLifecycleV3Record(r)
+	canonical, err := json.Marshal(&w)
 	if err != nil || !bytes.Equal(canonical, raw) {
 		return lifecycleV3Record{}, errLifecycleUnsafe
 	}
+	return lifecycleV3Record{core: &w}, nil
+}
+
+func decodeLifecycleV3RecordScoped(raw []byte, scope *lifecycleV3DecodeScope) (lifecycleV3Record, error) {
+	if len(raw) == 0 || len(raw) > maxLifecycleControlBytes {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	if scope == nil || scope.memo == nil || scope.active == nil {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	key := lifecycleV3DecodeMemoKey{bytes: len(raw), sha256: sha256.Sum256(raw)}
+	if seal, ok := scope.memo[key]; ok {
+		r, err := lifecycleV3DecodeCanonicalSyntax(raw)
+		if err != nil || seal == nil || seal.identity != seal || seal.scope != scope || seal.key != key || r.core == nil ||
+			r.core.Schema != seal.schema || r.core.Boundary != seal.boundary || r.core.Revision != seal.revision || r.core.RecordSHA256 != seal.recordSHA256 {
+			return lifecycleV3Record{}, errLifecycleUnsafe
+		}
+		h, err := lifecycleV3RecordHash(*r.core)
+		if err != nil || h != r.core.RecordSHA256 || !lifecycleNonzeroHash(h) {
+			return lifecycleV3Record{}, errLifecycleUnsafe
+		}
+		scope.memoHits++
+		return r, nil
+	}
+	if scope.active[key] || scope.roots >= maxLifecycleV3DecodeRoots || scope.depth >= maxLifecycleV3DecodeDepth {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	scope.roots++
+	scope.active[key] = true
+	scope.depth++
+	defer func() {
+		delete(scope.active, key)
+		scope.depth--
+	}()
+	r, err := lifecycleV3DecodeCanonicalSyntax(raw)
+	if err != nil {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	if validateLifecycleV3RecordScoped(r, scope) != nil {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	seal := &lifecycleV3DecodeMemoSeal{scope: scope, key: key, schema: r.core.Schema, boundary: r.core.Boundary,
+		revision: r.core.Revision, recordSHA256: r.core.RecordSHA256}
+	seal.identity = seal
+	scope.validated++
+	scope.memo[key] = seal
 	return r, nil
 }
 func encodeLifecycleV3Record(r lifecycleV3Record) ([]byte, error) {
-	if validateLifecycleV3Record(r) != nil {
+	return encodeLifecycleV3RecordScoped(r, newLifecycleV3DecodeScope())
+}
+func encodeLifecycleV3RecordScoped(r lifecycleV3Record, scope *lifecycleV3DecodeScope) ([]byte, error) {
+	if validateLifecycleV3RecordScoped(r, scope) != nil {
 		return nil, errLifecycleUnsafe
 	}
 	raw, err := json.Marshal(r.core)
@@ -192,7 +297,7 @@ func sealLifecycleV3Candidate(r lifecycleV3Record) ([]byte, error) {
 		return nil, errLifecycleUnsafe
 	}
 	w.RecordSHA256 = h
-	if validateLifecycleV3Contents(w) != nil {
+	if validateLifecycleV3ContentsScoped(w, newLifecycleV3DecodeScope()) != nil {
 		return nil, errLifecycleUnsafe
 	}
 	raw, err := json.Marshal(w)
@@ -365,21 +470,32 @@ func lifecycleEpochTombstone(l lifecycleEpochLedger, a lifecycleActive, rev uint
 }
 
 func validateLifecycleV3Record(r lifecycleV3Record) error {
+	return validateLifecycleV3RecordScoped(r, newLifecycleV3DecodeScope())
+}
+
+func validateLifecycleV3RecordScoped(r lifecycleV3Record, scope *lifecycleV3DecodeScope) error {
 	w := r.core
-	if w == nil || w.Schema != lifecycleSchemaV3 || w.Boundary != lifecycleBoundary || w.Revision == 0 || !lifecycleTime(w.LastTrustedAt) || w.RetiredEpochs == nil || w.RecoveryHistory == nil || len(w.RetiredEpochs) > maxLifecycleHistory || len(w.RecoveryHistory) > maxLifecycleHistory {
+	if scope == nil || w == nil || w.Schema != lifecycleSchemaV3 || w.Boundary != lifecycleBoundary || w.Revision == 0 || !lifecycleTime(w.LastTrustedAt) || w.RetiredEpochs == nil || w.RecoveryHistory == nil || len(w.RetiredEpochs) > maxLifecycleHistory || len(w.RecoveryHistory) > maxLifecycleHistory {
 		return errLifecycleUnsafe
 	}
 	h, err := lifecycleV3RecordHash(*w)
 	if err != nil || h != w.RecordSHA256 || !lifecycleNonzeroHash(h) {
 		return errLifecycleUnsafe
 	}
-	return validateLifecycleV3Contents(w)
+	return validateLifecycleV3ContentsScoped(w, scope)
 }
 
 // All source, epoch, owner, candidate and complete-history checks are shared
 // verbatim by strict external validation and the internal candidate sealer.
 // This is not a proof or a caller assertion that any bytes were validated.
 func validateLifecycleV3Contents(w *lifecycleV3Wire) error {
+	return validateLifecycleV3ContentsScoped(w, newLifecycleV3DecodeScope())
+}
+
+func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3DecodeScope) error {
+	if scope == nil || w == nil || scope.charge(len(w.RecoveryHistory)+len(w.RetiredEpochs)+1) != nil {
+		return errLifecycleUnsafe
+	}
 	context, err := lifecycleV3SourceContext(w)
 	if err != nil {
 		return err
@@ -408,7 +524,10 @@ func validateLifecycleV3Contents(w *lifecycleV3Wire) error {
 	var histRevision uint64
 	var histAt time.Time
 	for _, a := range w.RecoveryHistory {
-		if recoveryIDs[a.Plan.RecoveryID] || validateLifecycleRecoveryTxn(a, context, w.LastTrustedAt, w.Revision) != nil || a.Execution != nil || (a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED") || a.UpdatedAt.Before(histAt) {
+		planContext, contextErr := lifecycleRecoveryPlanContextScoped(w, a.Plan, scope)
+		if recoveryIDs[a.Plan.RecoveryID] || contextErr != nil || validateLifecycleRecoveryTxn(a, planContext, w.LastTrustedAt, w.Revision) != nil ||
+			(a.Execution != nil && (a.Phase != "COMPLETED" || a.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema || validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil)) ||
+			(a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED") || a.UpdatedAt.Before(histAt) {
 			return errLifecycleUnsafe
 		}
 		recoveryIDs[a.Plan.RecoveryID] = true
@@ -416,10 +535,11 @@ func validateLifecycleV3Contents(w *lifecycleV3Wire) error {
 	}
 	if w.Recovery != nil {
 		a := *w.Recovery
-		if validateLifecycleRecoveryTxn(a, context, w.LastTrustedAt, w.Revision) != nil {
+		planContext, contextErr := lifecycleRecoveryPlanContextScoped(w, a.Plan, scope)
+		if contextErr != nil || validateLifecycleRecoveryTxn(a, planContext, w.LastTrustedAt, w.Revision) != nil {
 			return errLifecycleUnsafe
 		}
-		if validateLifecycleRecoveryExecution(w, a) != nil {
+		if validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil {
 			return errLifecycleUnsafe
 		}
 		if recoveryIDs[a.Plan.RecoveryID] {

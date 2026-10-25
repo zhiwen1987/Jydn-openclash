@@ -54,7 +54,13 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lab_bootstrap.go', 'lab_kernel_linux.go', 'lab_quiescence_linux.go',
     'lab_recovery_start_linux.go', 'lab_syntax_linux.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go',
-    'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go'))
+    'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
+    'lifecycle_recovery_checkpoint.go', 'lifecycle_recovery_completion.go',
+    'lifecycle_recovery_completion_test.go', 'lifecycle_completion_shape_diagnostic_test.go',
+    'lifecycle_v3_decode_scope_test.go',
+    'lifecycle_current_epoch.go',
+    'lifecycle_current_epoch_test.go', 'lab_current_epoch_runtime.go',
+    'lab_current_epoch_runtime_test.go'))
 RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json', 'local-marker.json')
 RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 PUBLIC = ('host-before.json', 'host-after.json', 'consumption.json', 'consumption-independent.json',
@@ -1256,10 +1262,20 @@ FILES = tuple(sorted((*FILES, '.github/workflows/chengwang-mihomo-native-recover
 FILES = tuple(sorted((*FILES, 'chengwang/internal/mihomodeploy/lifecycle_recovery_verification.go',
                       'chengwang/internal/mihomodeploy/lifecycle_recovery_verification_test.go',
                       'chengwang/internal/mihomodeploy/lifecycle_recovery_verified_bounds_test.go')))
+FILES = tuple(sorted((*FILES,
+                      'chengwang/internal/mihomodeploy/lifecycle_recovery_checkpoint.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_recovery_completion.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_recovery_completion_test.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_completion_shape_diagnostic_test.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_v3_decode_scope_test.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_current_epoch.go',
+                      'chengwang/internal/mihomodeploy/lifecycle_current_epoch_test.go',
+                      'chengwang/internal/mihomodeploy/lab_current_epoch_runtime.go',
+                      'chengwang/internal/mihomodeploy/lab_current_epoch_runtime_test.go')))
 
 
 def make_source_manifest(sources, source_commit):
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 169)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 178)
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     return {'schema': 'chengwang.mihomo-native-source-manifest/v1',
             'scope': 'FIXED_GIT_SOURCE_BYTES_NOT_NATIVE_EXECUTION',
@@ -1288,7 +1304,7 @@ def verify_raw(raw, sources, source_commit, variant='positive'):
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 33)
     need(all(type(v) is bytes and len(v) <= 16 << 20 for v in raw.values()) and sum(map(len, raw.values())) <= 16 << 20)
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 169)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 178)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     for path in FILES:
         source_path(path)

@@ -329,6 +329,14 @@ func (s *lifecycleStore) recordUnknownObservation(t *lifecycleOwnerToken, e *lab
 	if w.Schema != lifecycleSchemaV2 || w.Active == nil || w.Active.Phase != "UNKNOWN" || len(w.V2.Observations) >= maxLifecycleHistory || e == nil {
 		return errLifecycleUnsafe
 	}
+	// A recovered current epoch shares the full V3 observation budget with all
+	// retired ledgers and recovery failed-quiescence facts. Reject before the
+	// one-use evidence is consumed.
+	if s.currentEpoch != nil {
+		if err := s.currentEpochObservationCapacity(now); err != nil {
+			return err
+		}
+	}
 	o, err := e.consumeLifecycle("UNKNOWN_OBSERVATION", now)
 	if err != nil || o.Phase != "UNKNOWN_OBSERVATION" || !lifecycleObservationMatches(o, w.Head, w.Active, now) {
 		return errLifecycleUnsafe
@@ -389,6 +397,9 @@ func (s *lifecycleStore) recordServiceGate(t *lifecycleOwnerToken, intentSHA str
 func (s *lifecycleStore) reserveLifecycleResultCapacity(now time.Time) error {
 	if s == nil || s.lifecycleStoreCore == nil || s.record.wire == nil {
 		return errLifecycleUnsafe
+	}
+	if s.currentEpoch != nil {
+		return s.reserveCurrentEpochCapacity(now)
 	}
 	return lifecycleReserveCapacity(s.record.wire, len(s.raw), now)
 }

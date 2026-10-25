@@ -19,6 +19,17 @@ TOP='TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop'
 GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags','chengwang_capacity_profile','-run','^'+TOP+'$','./internal/mihomodeploy']
 FULL_PACKAGES=['./internal/adapter/mihomo','./internal/mihomodeploy','./internal/authn','./internal/api','./internal/serverruntime','./internal/authz']
 FULL_GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags','chengwang_capacity_profile','-run','^Test',*FULL_PACKAGES]
+CAPACITY_FMT=['internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go']
+FULL_FMT=[*CAPACITY_FMT,
+    'internal/mihomodeploy/lifecycle_recovery_checkpoint.go',
+    'internal/mihomodeploy/lifecycle_recovery_completion.go',
+    'internal/mihomodeploy/lifecycle_recovery_completion_test.go',
+    'internal/mihomodeploy/lifecycle_completion_shape_diagnostic_test.go',
+    'internal/mihomodeploy/lifecycle_v3_decode_scope_test.go',
+    'internal/mihomodeploy/lifecycle_current_epoch.go',
+    'internal/mihomodeploy/lifecycle_current_epoch_test.go',
+    'internal/mihomodeploy/lab_current_epoch_runtime.go',
+    'internal/mihomodeploy/lab_current_epoch_runtime_test.go']
 RAW_NAMES=('go-version.txt','gofmt.patch','gofmt.stderr','capacity.json','capacity.stderr',
     'commands.jsonl','execution.json','profile-state.json','pprof-top.txt','pprof-top.stderr','pprof-cum.txt','pprof-cum.stderr')
 RESOURCE_NAMES=('resource-before.json','resource-after.json')
@@ -131,8 +142,8 @@ def commands(goroot,diagnostic_mode='SINGLE_CASE'):
     os.umask(0o077)
     go=str(Path(goroot)/'bin/go')
     version=run('VERSION',[go,'version'],'go-version.txt','version.stderr.private')
-    fmt=run('FORMAT',[str(Path(goroot)/'bin/gofmt'),'-d','internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go'],'gofmt.patch','gofmt.stderr')
     full=diagnostic_mode=='FULL_CONTRACTS'
+    fmt=run('FORMAT',[str(Path(goroot)/'bin/gofmt'),'-d',*(FULL_FMT if full else CAPACITY_FMT)],'gofmt.patch','gofmt.stderr')
     if full:
         write(PRIVATE/'resource-before.json',encoded(resource_observation()));os.chmod(PRIVATE/'resource-before.json',0o600)
     code=run('GO_TEST',[go,*(FULL_GO_ARGS if full else GO_ARGS)],'capacity.json','capacity.stderr')

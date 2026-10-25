@@ -104,6 +104,18 @@ FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_VER
 LAB_NATIVE_RECOVERY_FILES = ('lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go')
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_NATIVE_RECOVERY_FILES]
+RECOVERY_COMPLETION_CURRENT_FILES = (
+    'lifecycle_recovery_checkpoint.go',
+    'lifecycle_recovery_completion.go',
+    'lifecycle_recovery_completion_test.go',
+    'lifecycle_completion_shape_diagnostic_test.go',
+    'lifecycle_v3_decode_scope_test.go',
+    'lifecycle_current_epoch.go',
+    'lifecycle_current_epoch_test.go',
+    'lab_current_epoch_runtime.go',
+    'lab_current_epoch_runtime_test.go',
+)
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in RECOVERY_COMPLETION_CURRENT_FILES]
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
@@ -130,6 +142,11 @@ TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/m
     for name in ('lab_recovery_marker_test.go', 'lab_recovery_marker_bounds_test.go')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
     for name in ('lifecycle_recovery_verification_test.go', 'lifecycle_recovery_verified_bounds_test.go')]
+TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
+    for name in ('lifecycle_recovery_completion_test.go', 'lifecycle_completion_shape_diagnostic_test.go',
+                 'lifecycle_v3_decode_scope_test.go',
+                 'lifecycle_current_epoch_test.go',
+                 'lab_current_epoch_runtime_test.go')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
     'chengwang/internal/api', 'chengwang/internal/serverruntime', 'chengwang/internal/authz'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,

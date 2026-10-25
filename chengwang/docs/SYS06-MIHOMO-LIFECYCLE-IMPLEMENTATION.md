@@ -1,8 +1,30 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：caa同提交三套CI及独立原件收口，恢复后控制面与本地代理marker限定隔离验收通过，普通／race各1797语义／627必需及122源格式0、完整诊断及原生原reader／producer-fresh一致均已核。37f的实际编译与格式FAIL保持；完整S2、产品恢复接口及发布恢复闭环未完成，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：9dd同提交三套CI及独立原件已收口，恢复后真实控制面／本地代理及持久S2事实的正常、NotCommitted、Unknown、坏readback四模式限定隔离验收通过；普通／race各1884语义／635必需、125源格式0及各自producer／fresh一致均已核。37f／3dc等实际FAIL保持。Completion、新head、产品恢复接口、后续普通发布、第二恢复及完整系统／生产仍未完成，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 当前工作区：恢复完成与当前 epoch 适配候选，尚未编译或验收
+
+在9dd基线上，单一集成者已将21个Go源码文件的候选合入隔离开发工作区，并逐文件核对来源SHA256及diff检查。代码包含Execution/v3完成来源检查点、Plan/v2的后续epoch来源、完成权限及一次性交接、保留完整V3状态的普通发布适配、冷开只读诊断和按一次解码隔离的历史校验memo。这里的“合入工作区”不表示已提交、CI通过、产品流程可用或已部署。
+
+独立源码审查已要求修复内部对象复制后的接收者绑定、时钟回退毒化、全局历史／观察预算及反向深拷贝；修订候选已合入。另查出首个Completion草稿提前使用持久记录版本校验而必拒，以及同一验证来源缺少一次性签发限制，已合入专用publication前像与custody一次性claim的源码修订，待实际Linux回归。原始拒绝报告保持，不改判为通过。封闭clone的旧固定摘要和56结构／79槽门暂保留fail-closed，须由隔离Linux实际Go反射输出新摘要和覆盖数量后精确更新。
+
+本机独立复跑仅完成旧版来源／CPU基线和连续恢复验收器MODEL测试，不是Go编译、旧二进制对照、真实Completion或真实API证据。正常服务协调器换绑、恢复API、普通发布接续和第二次恢复尚未闭环；相关真实Linux验收入口仍在开发。生产设备、主分支及Registry未改动。
+
+计数说明：9dd原收据中的“1334Gitblob”是逐跟踪路径验证的1334项；实际唯一Git blob散列为1333。原件与原判定保留。
+
+### 9dd同提交真实验收：持久S2与三类固定发布故障，完成提交与产品流程仍缺
+
+9dd6313b55e29e6e5fbe4def5311b8adb4ec2751的normal40196529913实际13门success，24cb8647核12ZIP208成员／1334Gitblob／131来源／49必需测试源／125格式输入，普通与race各1884语义／635必需含新持久8及全部历史子集均过，格式差异0。原C.verify实际PASS的17600B SHAa692a5149c9b787d3b0b67ab0d58b9bae2629814c26766a0c5452cb258b03564与producer／fresh逐字同；Windows原CLI仍仅POSIXwriter拒exit1，未改函数、输入、Path或平台，不能称本机完整LinuxCLI接受。
+
+diag40196529953实际5门success，e579c3d9核4ZIP42成员、131／49／78与635全部实际PASS。full采样120.220891650秒TIMER、容量66.68秒／包135.978秒；single实际53.546417759秒M_RUN_RETURNED、容量53.41秒／包54.57秒，未采满60秒。原180秒限制、pprof符号warning与非独立数值归因边界保持，不以不同轮次耗时变化声称已证明性能优化。
+
+native40196529934实际10门success，f30e3ea8核9ZIP192成员／169来源／每mode33公件／1334blob，四种模式分别经过原strict reader及各自producer／fresh逐字复核。正常write／forward／post-read／injected-read为1／1／1／0，内存与盘revision18、receipt存在且adopt；NotCommitted为1／0／0／0，内存与盘17、receipt不存在；Unknown为1／1／0／0、坏readback为1／1／1／1，两者内存17／盘18且receipt实际存在。三个故障实例均poison且不adopt，原cap已消费，重放拒绝；不是把未签发DTO前门拒绝当作到达故障点。
+
+四模式均核原8GET／真实本地marker、collection-only的S1字节与物理事件前缀不变、40字段脱敏记录投影、9个WAL检查点，按mode冷开UNKNOWN revision18或19且不恢复能力，五口拒连及三fixture清理通过。四原始报告分别28082／28093／28080／28082B，完整SHA在接受JSON中，原数据sourceGit false与经实际Git检查后的比较副本true分列；native9源格式0不能代normal125，后者已另核为0。
+
+三套总25ZIP442成员，root聚合PID11348exit0；[evidence/sys06-9dd-durable-s2-four-mode-acceptance-20261025.json](evidence/sys06-9dd-durable-s2-four-mode-acceptance-20261025.json)待下一真实源码统一归档，不为文档单独触发运行。这里只接受隔离POSIX场景内持久事实及三种固定发布故障；完整私有WAL／Receipt公开独立复算、真实掉电耐久、完整故障矩阵、Completion／新head、产品恢复API、后续普通发布、第二恢复、互联网业务和全系统／生产均未完成。此前3dc写名单及格式FAIL不改判，生产／main／Registry未动。
 
 ### caa同提交真实验收：控制面与本地代理marker，完整恢复尚未闭环
 

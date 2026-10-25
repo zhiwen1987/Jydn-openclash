@@ -214,11 +214,12 @@ func lifecycleRecoveryObservedValid(v lifecycleRecoveryObservedFact, a lifecycle
 func lifecycleRecoveryVerificationFieldsValid(a lifecycleRecoveryTxn, at time.Time, revision uint64) bool {
 	e := a.Execution
 	if e == nil || e.Verification == nil {
-		return e == nil || e.Schema == lifecycleRecoveryExecutionSchema
+		return e == nil || e.Schema == lifecycleRecoveryExecutionSchema && e.CompletionSource == nil
 	}
 	v := e.Verification
+	versioned := e.Schema == lifecycleRecoveryVerifiedExecutionSchema && e.CompletionSource == nil || e.Schema == lifecycleRecoveryCompletedExecutionSchema && e.CompletionSource != nil
 	digest, err := lifecycleRecoveryObservationHash(v.Observation)
-	return e.Schema == lifecycleRecoveryVerifiedExecutionSchema && v.Schema == lifecycleRecoveryVerificationSchema && err == nil && digest == v.ObservationSHA256 &&
+	return versioned && v.Schema == lifecycleRecoveryVerificationSchema && err == nil && digest == v.ObservationSHA256 &&
 		lifecycleNonzeroHash(digest) && lifecycleRecoveryObservedValid(v.Observation, a, v.SourceOwner) &&
 		v.SourceOwner.Fence == v.SourceLastRecoveryFence && v.SourceLastRecoveryFence == a.StartIntent.OwnerFence &&
 		lifecycleTime(v.SourceLastTrustedAt) && lifecycleTime(v.SourceRecoveryUpdatedAt) && v.SourceLastTrustedAt.Equal(e.RecordedAt) && v.SourceRecoveryUpdatedAt.Equal(e.RecordedAt) &&
@@ -230,7 +231,11 @@ func lifecycleRecoveryVerificationFieldsValid(a lifecycleRecoveryTxn, at time.Ti
 // Reconstruct the exact original S1 canonical record. That record then passes
 // the old strict v1 decoder and its own original armed-preimage validation.
 func lifecycleRecoveryVerificationPreimage(w *lifecycleV3Wire, a lifecycleRecoveryTxn) ([]byte, error) {
-	if w == nil || a.Execution == nil || a.Execution.Verification == nil || w.Recovery == nil || !reflect.DeepEqual(*w.Recovery, a) {
+	return lifecycleRecoveryVerificationPreimageScoped(w, a, newLifecycleV3DecodeScope())
+}
+
+func lifecycleRecoveryVerificationPreimageScoped(w *lifecycleV3Wire, a lifecycleRecoveryTxn, scope *lifecycleV3DecodeScope) ([]byte, error) {
+	if scope == nil || w == nil || a.Execution == nil || a.Execution.Verification == nil || w.Recovery == nil || !reflect.DeepEqual(*w.Recovery, a) {
 		return nil, errLifecycleUnsafe
 	}
 	v := a.Execution.Verification
@@ -256,7 +261,7 @@ func lifecycleRecoveryVerificationPreimage(w *lifecycleV3Wire, a lifecycleRecove
 	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
-	decoded, err := decodeLifecycleV3Record(raw)
+	decoded, err := decodeLifecycleV3RecordScoped(raw, scope)
 	if err != nil || decoded.core.Recovery == nil || decoded.core.Recovery.Execution == nil || decoded.core.Recovery.Execution.Schema != lifecycleRecoveryExecutionSchema || decoded.core.Revision != decoded.core.Recovery.Execution.StartedCommitRevision {
 		return nil, errLifecycleUnsafe
 	}
@@ -375,9 +380,19 @@ func (s *lifecycleRecoveryStore) recordRecoveryVerification(t *lifecycleRecovery
 		x.poisoned = true
 		x.live = nil
 		x.retainedStarted = nil
+		x.retainedVerified = nil
+		x.currentLive = nil
 		x.validated = nil
 		return err
 	}
+	canonical := string(x.raw)
+	custody := &labRecoveryVerifiedCustody{store: x, disk: x.disk, owner: core.owner, started: core.custody, record: core, canonical: canonical}
+	store, disk, owner, started, record, sealed := x, x.disk, core.owner, core.custody, core, canonical
+	custody.binding = func(candidate *labRecoveryVerifiedCustody, current *lifecycleRecoveryStoreCore) bool {
+		return candidate == custody && current == store && candidate.store == store && lifecycleRecoverySameDisk(candidate.disk, disk) &&
+			candidate.owner == owner && candidate.started == started && candidate.record == record && candidate.canonical == sealed
+	}
+	x.retainedVerified = custody
 	x.retainedStarted = nil
 	return nil
 }

@@ -31,6 +31,7 @@ type labLifecycleRuntimeCore struct {
 	fresh            *labFreshPermitCore
 	store            *lifecycleStore
 	recovery         *lifecycleRecoveryStore
+	current          *lifecycleStore
 	closed, poisoned bool
 }
 type labFreshPermit struct{ core *labFreshPermitCore }
@@ -101,6 +102,20 @@ func ownLabLifecycleRuntime(d labRuntimeDisk, fresh bool) (*labLifecycleRuntime,
 	raw, exists, err := d.readControl()
 	if err != nil || !exists || d.verify() != nil {
 		return nil, nil, errLifecycleUnsafe
+	}
+	// A cold V3 opener owns diagnostics only. Persisted Completion is not a
+	// process-local handoff, ordinary owner, live kernel, or permission to write.
+	if before, decodeErr := decodeLifecycleV3Record(raw); decodeErr == nil {
+		if before.core.Provisioning != binding {
+			return nil, nil, errLifecycleUnsafe
+		}
+		recovery, openErr := openLifecycleRecoveryStore(d, time.Now().UTC())
+		if openErr != nil {
+			return nil, nil, openErr
+		}
+		r.core.recovery = recovery
+		keep = true
+		return r, nil, nil
 	}
 	before, err := decodeLifecycleRecord(raw)
 	if err != nil || before.wire.Schema != lifecycleSchemaV2 || before.wire.V2 == nil || before.wire.V2.Provisioning != binding {
@@ -246,11 +261,20 @@ func (r *labLifecycleRuntime) close() error {
 	defer c.mu.Unlock()
 	// An inconsistent close-owner image must remain rejected on every call;
 	// it cannot become a false idempotent success by setting closed first.
-	if c.store != nil && c.recovery != nil {
+	if (c.store != nil && c.recovery != nil) || (c.current != nil && (c.recovery == nil || c.store != nil)) {
 		return errLifecycleUnsafe
 	}
 	if c.closed {
 		return nil
+	}
+	if c.current != nil {
+		// Retire the live ordinary facade before closing its sole real disk
+		// owner. A failed retirement cannot become an idempotent success.
+		if err := c.current.close(); err != nil {
+			c.poisoned = true
+			return err
+		}
+		c.current = nil
 	}
 	c.closed = true
 	if c.fresh != nil {

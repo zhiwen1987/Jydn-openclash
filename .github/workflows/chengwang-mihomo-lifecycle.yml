@@ -141,7 +141,44 @@ jobs:
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsWindowIdentityAndSourceStayBound',
           }
           assert len(recovery_verification_added)==8 and recovery_verification_added.issubset(declared) and not recovery_verification_added.intersection(recovery_marker_added | s2_collector_added | selected_target_added | s1_started_added | trusted_clone_added | candidate_seal_added)
-          previous627=sorted(set(declared)-recovery_verification_added)
+          recovery_completion_current_added={
+            'chengwang/internal/mihomodeploy::TestLabCurrentEpochRuntimeRejectsPoisonedOrForeignDiskWithoutLegacyFallback',
+            'chengwang/internal/mihomodeploy::TestLabCurrentEpochRuntimeRejectsUnissuedHandoffAndPreservesCloseOwner',
+            'chengwang/internal/mihomodeploy::TestLabCurrentEpochRuntimeSnapshotIsDetachedReadOnly',
+            'chengwang/internal/mihomodeploy::TestLifecycleCloneSchemaDigestForRecoveryCompletion',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionActualCloneShapeDiagnostic',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochGenericCandidateCannotIssuePublication',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochLedgerRejectsResealedCorruptProjection',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochMutationRejectsOwnerAndRevisionBypass',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochProjectionDetachesNestedMutableState',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochProjectionDoesNotRelaxLegacyGenesis',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCapabilitiesArePrivateAndOneStoreBound',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCheckpointReconstructsExactVerifiedRoot',
+          }
+          assert len(recovery_completion_current_added)==12 and recovery_completion_current_added.issubset(declared)
+          recovery_completion_current_final_added={
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionProspectiveMetadataUsesStrictS2Preimage',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCustodyRejectsCopiesForeignResetAndReopen',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochNilHandoffRejectsBeforeRecoveryMutation',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochCopiedReceiverCannotUseOrRetireBackend',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochRollbackPoisonsBothStoresPermanently',
+            'chengwang/internal/mihomodeploy::TestLifecycleV3GlobalBudgetCountsEveryEpochAndUniqueRecovery',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochObservationCapacityCountsRetiredEpochs',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochHandoffRequiresCompletedHistoryTail',
+            'chengwang/internal/mihomodeploy::TestLifecycleCurrentEpochReverseProjectionDetachesNestedState',
+            'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeMemoUsesExactCanonicalBytesAndDetachedValues',
+            'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeCheckpointRootIsStrictlyValidatedOnce',
+            'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopesNeverShareValidationAcrossOperations',
+            'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeDeepChainBudgetsFailClosed',
+          }
+          assert len(recovery_completion_current_final_added)==13 and recovery_completion_current_final_added.issubset(declared)
+          assert not recovery_completion_current_final_added.intersection(recovery_completion_current_added)
+          previous647=sorted(set(declared)-recovery_completion_current_final_added)
+          assert len(previous647)==647 and hashlib.sha256('\n'.join(previous647).encode()).hexdigest()=='1e7db484a7eb5485b06037bd3ee1fb443201ab46799c17fefba9bcba9b0cca94'
+          previous635=sorted(set(previous647)-recovery_completion_current_added)
+          assert len(previous635)==635 and hashlib.sha256('\n'.join(previous635).encode()).hexdigest()=='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
+          assert not recovery_completion_current_added.intersection(previous635)
+          previous627=sorted(set(previous635)-recovery_verification_added)
           assert len(previous627)==627 and hashlib.sha256('\n'.join(previous627).encode()).hexdigest()=='3bd65c00bb45bbef41763cadf7b8b98c6c0ce2fbc8ec93b3bb8dfa6dd0880543'
           previous619=sorted(set(previous627)-recovery_marker_added)
           assert len(previous619)==619 and hashlib.sha256('\n'.join(previous619).encode()).hexdigest()=='8a2587e2dfbf54c6a56a3de75b8c728429e69c40d74bc654cb773a9cf96516ac'
@@ -181,8 +218,8 @@ jobs:
           assert snapshot_added.issubset(declared)
           previous=sorted(set(previous539)-snapshot_added)
           assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
-          assert len(declared)==635 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
-          print('GO_TEST_DECLARATIONS='+str(len(declared))+' legacy407_preserved=true execution_not_proven=true')
+          assert len(declared)==660 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
+          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |

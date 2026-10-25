@@ -9,6 +9,7 @@ import (
 )
 
 const lifecycleRecoveryExecutionSchema = "chengwang.mihomo-recovery-execution/v1"
+const lifecycleRecoveryCompletedExecutionSchema = "chengwang.mihomo-recovery-execution/v3"
 
 // V1 records only an actual happened Start. It grants no verification,
 // completion or fresh process authority. A later contract needs a new version.
@@ -24,6 +25,7 @@ type lifecycleRecoveryExecution struct {
 	StartedCommitRevision  uint64                         `json:"startedCommitRevision"`
 	RecordedAt             time.Time                      `json:"recordedAt"`
 	Verification           *lifecycleRecoveryVerification `json:"verification,omitempty"`
+	CompletionSource       *lifecycleRecoveryCompletionSource `json:"completionSource,omitempty"`
 }
 
 // Captured only from the same actual START_ARMED WAL, immediately before the
@@ -81,7 +83,8 @@ func lifecycleRecoveryExecutionFieldsValid(a lifecycleRecoveryTxn, at time.Time,
 	if e == nil {
 		return true
 	}
-	if !lifecycleRecoveryVerificationFieldsValid(a, at, revision) || (a.Phase != "START_ARMED" && a.Phase != "RECOVERY_UNKNOWN") || a.Completion != nil || a.StartIntent == nil || a.Quiescence == nil || a.StopBinding == nil || a.Approval == nil ||
+	completed := e.Schema == lifecycleRecoveryCompletedExecutionSchema && e.Verification != nil && e.CompletionSource != nil && a.Phase == "COMPLETED" && a.Completion != nil
+	if !lifecycleRecoveryVerificationFieldsValid(a, at, revision) || (!completed && a.Phase != "START_ARMED" && a.Phase != "RECOVERY_UNKNOWN") || (!completed && a.Completion != nil) || a.StartIntent == nil || a.Quiescence == nil || a.StopBinding == nil || a.Approval == nil ||
 		e.ArmedFailedQuiescence == nil || len(e.ArmedFailedQuiescence) > len(a.FailedQuiescence) || !reflect.DeepEqual(e.ArmedFailedQuiescence, a.FailedQuiescence[:len(e.ArmedFailedQuiescence)]) ||
 		!lifecycleTime(e.RecordedAt) || e.RecordedAt.Before(e.Started.ObservedAt) || e.RecordedAt.After(a.UpdatedAt) || e.RecordedAt.After(at) ||
 		e.StartedCommitRevision <= e.Started.Binding.Revision || e.StartedCommitRevision > revision ||
@@ -107,8 +110,13 @@ func lifecycleRecoveryExecutionFieldsValid(a lifecycleRecoveryTxn, at time.Time,
 // exact current immutable bytes; failed observations retain the armed prefix.
 // The result is fully decoded and hashed, not a caller-declared source digest.
 func lifecycleRecoveryArmedPreimage(w *lifecycleV3Wire, a lifecycleRecoveryTxn) ([]byte, error) {
+	return lifecycleRecoveryArmedPreimageScoped(w, a, newLifecycleV3DecodeScope())
+}
+
+func lifecycleRecoveryArmedPreimageScoped(w *lifecycleV3Wire, a lifecycleRecoveryTxn, scope *lifecycleV3DecodeScope) ([]byte, error) {
 	e := a.Execution
-	if w == nil || e == nil || w.Recovery == nil || !reflect.DeepEqual(*w.Recovery, a) || len(w.RetiredEpochs) != 0 {
+	if scope == nil || w == nil || e == nil || w.Recovery == nil || !reflect.DeepEqual(*w.Recovery, a) ||
+		(e.Schema != lifecycleRecoveryExecutionSchema && e.Schema != lifecycleRecoveryVerifiedExecutionSchema) || e.CompletionSource != nil {
 		return nil, errLifecycleUnsafe
 	}
 	raw, err := json.Marshal(w)
@@ -136,7 +144,7 @@ func lifecycleRecoveryArmedPreimage(w *lifecycleV3Wire, a lifecycleRecoveryTxn) 
 	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
-	r, err := decodeLifecycleV3Record(raw) // execution nil: a single bounded pass
+	r, err := decodeLifecycleV3RecordScoped(raw, scope)
 	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
@@ -148,7 +156,11 @@ func lifecycleRecoveryArmedPreimage(w *lifecycleV3Wire, a lifecycleRecoveryTxn) 
 }
 
 func validateLifecycleRecoveryExecution(w *lifecycleV3Wire, a lifecycleRecoveryTxn) error {
-	if w == nil {
+	return validateLifecycleRecoveryExecutionScoped(w, a, newLifecycleV3DecodeScope())
+}
+
+func validateLifecycleRecoveryExecutionScoped(w *lifecycleV3Wire, a lifecycleRecoveryTxn, scope *lifecycleV3DecodeScope) error {
+	if scope == nil || w == nil {
 		return errLifecycleUnsafe
 	}
 	if a.Execution == nil {
@@ -157,9 +169,20 @@ func validateLifecycleRecoveryExecution(w *lifecycleV3Wire, a lifecycleRecoveryT
 	if !lifecycleRecoveryExecutionFieldsValid(a, w.LastTrustedAt, w.Revision) {
 		return errLifecycleUnsafe
 	}
-	_, err := lifecycleRecoveryArmedPreimage(w, a)
+	if a.Execution.Schema == lifecycleRecoveryCompletedExecutionSchema {
+		preimage, err := lifecycleRecoveryCompletionPreimageScoped(w, a, scope)
+		if err != nil {
+			return err
+		}
+		verified, err := decodeLifecycleV3RecordScoped(preimage, scope)
+		if err != nil || verified.core.Recovery == nil || verified.core.Recovery.Execution == nil || verified.core.Recovery.Execution.Schema != lifecycleRecoveryVerifiedExecutionSchema {
+			return errLifecycleUnsafe
+		}
+		return nil
+	}
+	_, err := lifecycleRecoveryArmedPreimageScoped(w, a, scope)
 	if err == nil && a.Execution.Verification != nil {
-		_, err = lifecycleRecoveryVerificationPreimage(w, a)
+		_, err = lifecycleRecoveryVerificationPreimageScoped(w, a, scope)
 	}
 	return err
 }

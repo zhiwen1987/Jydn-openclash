@@ -29,7 +29,13 @@ FMT = tuple('internal/mihomodeploy/'+name for name in (
     'lab_bootstrap.go', 'lab_kernel_linux.go', 'lab_quiescence_linux.go',
     'lab_recovery_start_linux.go', 'lab_syntax_linux.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go',
-    'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go'))
+    'lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
+    'lifecycle_recovery_checkpoint.go', 'lifecycle_recovery_completion.go',
+    'lifecycle_recovery_completion_test.go', 'lifecycle_completion_shape_diagnostic_test.go',
+    'lifecycle_v3_decode_scope_test.go',
+    'lifecycle_current_epoch.go',
+    'lifecycle_current_epoch_test.go', 'lab_current_epoch_runtime.go',
+    'lab_current_epoch_runtime_test.go'))
 PREEXISTING = ('host-before.json', 'host-after.json', 'consumption.json', 'consumption-independent.json')
 PRODUCED = ('native-report.json', 'wal-readback-index.json', 'old-kernel.stdout', 'old-kernel.stderr',
             'new-kernel.stdout', 'new-kernel.stderr', 'sandbox.json', 'execution.json',

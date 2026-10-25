@@ -232,11 +232,7 @@ func (a *labRecoveryAuthority) bindPlan(h *labRecoveryInitiator, store *lifecycl
 	if w == nil || w.Current.Head.Scope != b.scope || w.Current.Head.DeviceRef != b.scope.ObjectID || w.RecoveryOwner == nil || w.Recovery == nil || w.Recovery.Phase != "PLANNED" || w.Recovery.Revocation != nil || w.Recovery.Approval != nil || w.Recovery.StopIntent != nil || w.Recovery.Plan.DeclaredInitiatorRef != h.core.actorRef {
 		return nil, labAuthorityFailure("binding_invalid")
 	}
-	original, err := lifecycleV3Source(w)
-	if err != nil {
-		return nil, labAuthorityFailure("binding_invalid")
-	}
-	p, err := labRecoveryPlanFromDescriptor(w.Recovery.Plan, original)
+	p, err := labRecoveryPlanFromV3Descriptor(w.Recovery.Plan, w)
 	if err != nil || p.validAt(now) != nil {
 		return nil, labAuthorityFailure("binding_invalid")
 	}
@@ -275,11 +271,7 @@ func (c *labRecoveryAuthorityCore) binding(b *labAuthorityCore, s *labRecoverySe
 		w.Recovery == nil || !reflect.DeepEqual(w.Recovery.Plan, s.plan) || w.Recovery.Plan.DeclaredInitiatorRef != s.initiatorActor || w.Recovery.Revocation != nil {
 		return nil, labAuthorityFailure("binding_invalid")
 	}
-	original, err := lifecycleV3Source(w)
-	if err != nil {
-		return nil, labAuthorityFailure("binding_invalid")
-	}
-	p, err := labRecoveryPlanFromDescriptor(w.Recovery.Plan, original)
+	p, err := labRecoveryPlanFromV3Descriptor(w.Recovery.Plan, w)
 	if err != nil || p.validAt(now) != nil {
 		return nil, labAuthorityFailure("binding_invalid")
 	}
@@ -337,11 +329,7 @@ func (a *labRecoveryAuthority) approve(headers []string, h *labRecoverySession, 
 		}
 		return *s.material, nil
 	}
-	original, err := lifecycleV3Source(s.store.core.record.core)
-	if err != nil {
-		return zero, labAuthorityFailure("binding_invalid")
-	}
-	plan, err := labRecoveryPlanFromDescriptor(s.plan, original)
+	plan, err := labRecoveryPlanFromV3Descriptor(s.plan, s.store.core.record.core)
 	if err != nil {
 		return zero, labAuthorityFailure("binding_invalid")
 	}

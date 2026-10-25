@@ -554,6 +554,7 @@ type lifecycleStoreCore struct {
 	record           lifecycleRecord
 	raw              []byte
 	live             *lifecycleOwnerToken
+	currentEpoch     *lifecycleCurrentEpochBackend
 	closed, poisoned bool
 }
 type lifecycleStore struct{ *lifecycleStoreCore }
@@ -614,6 +615,9 @@ func (s *lifecycleStore) copyRecord() (lifecycleRecord, error) {
 	if s.poisoned {
 		return lifecycleRecord{}, errLifecyclePoisoned
 	}
+	if s.currentEpoch != nil {
+		return s.copyCurrentEpochProjection()
+	}
 	return decodeLifecycleRecord(s.raw)
 }
 func (s *lifecycleStore) verify() error {
@@ -622,6 +626,9 @@ func (s *lifecycleStore) verify() error {
 	}
 	if s.poisoned {
 		return errLifecyclePoisoned
+	}
+	if s.currentEpoch != nil {
+		return s.verifyCurrentEpoch()
 	}
 	if err := s.disk.verify(); err != nil {
 		s.poisoned = true
@@ -715,6 +722,9 @@ func (s *lifecycleStore) commitTransition(next lifecycleRecord, now time.Time, m
 		return err
 	}
 	next.wire.RecordSHA256 = hash
+	if s.currentEpoch != nil {
+		return s.commitCurrentEpoch(next, now, mode)
+	}
 	raw, err := encodeLifecycleRecord(next)
 	if err != nil {
 		return err
@@ -1113,6 +1123,9 @@ func (s *lifecycleStore) close() error {
 	}
 	s.closed = true
 	s.live = nil
+	if s.currentEpoch != nil {
+		return s.retireCurrentEpoch()
+	}
 	if s.disk == nil {
 		return errLifecycleUnsafe
 	}

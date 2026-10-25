@@ -40,6 +40,11 @@ def transcript(rows):
 
 REQUIRED = {package: ['TestSynthetic'] for package in S.PACKAGES}
 ADDITIONAL_MODEL_TESTS = {
+    'lifecycle_recovery_completion_test.go': 'TestSyntheticRecoveryCompletion',
+    'lifecycle_completion_shape_diagnostic_test.go': 'TestSyntheticCompletionShapeDiagnostic',
+    'lifecycle_v3_decode_scope_test.go': 'TestSyntheticV3DecodeScope',
+    'lifecycle_current_epoch_test.go': 'TestSyntheticCurrentEpoch',
+    'lab_current_epoch_runtime_test.go': 'TestSyntheticCurrentEpochRuntime',
     'lifecycle_recovery_verification_test.go': 'TestSyntheticRecoveryVerification',
     'lifecycle_recovery_verified_bounds_test.go': 'TestSyntheticRecoveryVerifiedBounds',
     'lab_recovery_marker_test.go': 'TestSyntheticRecoveryMarkerProjection',
@@ -248,7 +253,7 @@ class ContractEvidenceModels(unittest.TestCase):
             S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
-        self.assertEqual(len(self.sources), 131)
+        self.assertEqual(len(self.sources), 140)
         self.assertEqual(len(S.PACKAGES), 6)
         result = self.verify_model()
         self.assertEqual(set(result['suites']), {'ordinary.json', 'race.json'})

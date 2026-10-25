@@ -145,7 +145,7 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 	if context.validateDescriptor(a.Plan) != nil {
 		return errLifecycleUnsafe
 	}
-	original := context.core.original
+	sourceHead := context.core.head
 	if !lifecycleTime(a.UpdatedAt) || a.UpdatedAt.Before(a.Plan.CreatedAt) || a.UpdatedAt.After(at) || a.FailedQuiescence == nil || len(a.FailedQuiescence) > 1 {
 		return errLifecycleUnsafe
 	}
@@ -163,7 +163,7 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 	if a.StopIntent != nil {
 		b := a.StopBinding
 		if a.Approval == nil || !lifecycleRecoveryIntentValid(a.StopIntent, a, "STOP", a.UpdatedAt) || a.StopIntent.ArmedAt.Before(a.Approval.IssuedAt) || !a.StopIntent.ArmedAt.Before(a.Approval.ExpiresAt) || b == nil ||
-			b.RecoveryID != a.Plan.RecoveryID || b.RecoveryPlanSHA256 != a.Plan.PlanSHA256 || b.StopIntentSHA256 != a.StopIntent.IntentSHA256 || b.OldEpochSHA256 != a.Plan.OldEpochSHA256 || !b.ArmedAt.Equal(a.StopIntent.ArmedAt) || !b.ExpiresAt.Equal(a.Plan.ExpiresAt) || !lifecycleRecoveryIdentityMatches(b.ExpectedOldIdentity, *original.wire.Head) {
+			b.RecoveryID != a.Plan.RecoveryID || b.RecoveryPlanSHA256 != a.Plan.PlanSHA256 || b.StopIntentSHA256 != a.StopIntent.IntentSHA256 || b.OldEpochSHA256 != a.Plan.OldEpochSHA256 || !b.ArmedAt.Equal(a.StopIntent.ArmedAt) || !b.ExpiresAt.Equal(a.Plan.ExpiresAt) || !lifecycleRecoveryIdentityMatches(b.ExpectedOldIdentity, sourceHead) {
 			return errLifecycleUnsafe
 		}
 	} else if a.StopBinding != nil || a.Quiescence != nil || a.StartIntent != nil || a.Completion != nil || len(a.FailedQuiescence) != 0 {
@@ -220,7 +220,7 @@ func validateLifecycleRecoveryTxn(a lifecycleRecoveryTxn, context *labRecoveryPl
 		}
 	case "COMPLETED":
 		c := a.Completion
-		if c == nil || a.StartIntent == nil || a.Failure != nil || !lifecycleTime(c.CommittedAt) || c.CommittedAt.After(at) || !c.CommittedAt.Equal(a.UpdatedAt) || c.CommitRevision == 0 || c.CommitRevision > revision || !reflect.DeepEqual(c.PreviousHead, *original.wire.Head) ||
+		if c == nil || a.StartIntent == nil || a.Failure != nil || !lifecycleTime(c.CommittedAt) || c.CommittedAt.After(at) || !c.CommittedAt.Equal(a.UpdatedAt) || c.CommitRevision == 0 || c.CommitRevision > revision || !reflect.DeepEqual(c.PreviousHead, sourceHead) ||
 			c.PreviousHead.Generation >= ^uint64(0)-1 || c.Head.Generation != c.PreviousHead.Generation+1 || c.Head.PreviousHeadSHA256 == nil || *c.Head.PreviousHeadSHA256 != c.PreviousHead.HeadSHA256 || c.Head.DeviceRef != c.PreviousHead.DeviceRef || c.Head.Scope != c.PreviousHead.Scope || c.Head.ControllerPort != c.PreviousHead.ControllerPort || c.Head.MixedPort != c.PreviousHead.MixedPort ||
 			!reflect.DeepEqual(c.Head.Artifact, a.Plan.TargetArtifact) || !lifecycleNonzeroHash(c.EvidenceSHA256) || c.Head.VerificationSHA256 != c.EvidenceSHA256 || c.Head.VerifiedAt.Before(a.StartIntent.ArmedAt) || c.Head.VerifiedAt.After(c.CommittedAt) {
 			return errLifecycleUnsafe
@@ -251,16 +251,20 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	if err := x.token(t, true, now); err != nil {
 		return err
 	}
-	if p == nil || p.validAt(now) != nil || x.record.core.Revision != expectedRevision || x.record.core.RecordSHA256 != expectedRecord || len(x.record.core.RetiredEpochs) != 0 {
+	if p == nil || p.validAt(now) != nil || x.record.core.Revision != expectedRevision || x.record.core.RecordSHA256 != expectedRecord {
 		return errLifecycleUnsafe
 	}
-	context, err := lifecycleV3SourceContext(x.record.core)
+	d := p.descriptor()
+	if d.Schema == labRecoveryPlanSchema && len(x.record.core.RetiredEpochs) != 0 ||
+		d.Schema == labRecoveryPlanSchemaV2 && (len(x.record.core.RetiredEpochs) == 0 || x.currentLive == nil) {
+		return errLifecycleUnsafe
+	}
+	context, err := lifecycleRecoveryPlanContext(x.record.core, d)
 	if err != nil {
 		return err
 	}
 	// Retain this operation's actual canonical source context and one detached
 	// descriptor. The complete candidate/history validation still runs later.
-	d := p.descriptor()
 	if context.validateDescriptor(d) != nil {
 		return errLifecycleUnsafe
 	}
@@ -277,7 +281,13 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 		return err
 	}
 	next.core.Recovery = &lifecycleRecoveryTxn{Plan: d, Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
-	return x.commitWithBase(base, next, now)
+	if err := x.commitWithBase(base, next, now); err != nil {
+		return err
+	}
+	if d.Schema == labRecoveryPlanSchemaV2 {
+		x.currentLive = nil
+	}
+	return nil
 }
 func (s *lifecycleRecoveryStore) recordRecoveryApproval(t *lifecycleRecoveryOwnerToken, a lifecycleRecoveryApproval, now time.Time) error {
 	if s == nil || s.core == nil {
