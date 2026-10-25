@@ -4,6 +4,16 @@
 
 ## 本次已有代码
 
+### 2026-10-25 cde首次真实native失败与caller／producer修订：必须再做新CI
+
+cde91493ba5f155a9d5da0367edd53046aa86274统一28文件后，三套CI均实际运行。normal40175135231为11成功／2失败：普通及race各1503语义／611必需全过、Go均exit0，但实际9609B gofmt差异使正常合同失败，fresh报告缺失。独立normal9aa0ac00核11ZIP206成员／1306blob；原其他五scope门及producer/fresh各自通过，不能覆盖normal失败。diag40175135226五门success，独立da36ff6a核4ZIP42成员及121／43／72来源与611全部通过，full容量50.91秒／包101.448秒、采样100.423806204秒M_RUN_RETURNED，不声称120秒。
+
+native40175135319实际两成功／两失败：Go编译并执行唯一top后6.29秒FAIL，报告仅到PLANNED rev12且selfApprovalDenied=true，恢复Stop／Start尚未调用；bootstrap启动和失败清理另有真实OS观测。独立05dc3820保2ZIP38成员、19／21件public（缺两份new-kernel流）与缺fresh原判。原sandbox组件因缺serviceBases严格拒绝，未往旧raw补字段。CLI因public不完整在writer前拒绝，不伪称本机Linux写入成功。完整失败档见[evidence/sys06-cde-native-first-failure-20261025.json](evidence/sys06-cde-native-first-failure-20261025.json)。
+
+源码确认caller分别取两次当前时间，和recordRecoveryApproval要求IssuedAt.Equal(now)冲突；这足以构成必要修复，但现有原件没有区分独立批准与入库子步，不能称唯一运行根因已证实。修订仅一次真实approvalAt供两个原API；额外当前freshness只读context、墙钟、实际owner及到期信息，不调用trustedNow/token/verify、不写LastTrustedAt、不替代后续Stop／Start现时授权，也不提供跨调用原子性。现有FailureCode增加封闭阶段诊断、不输出rawerr；成功仍PASS／NONE。producer仅在a.sandbox、s.bases(False)、native_base(False)实际通过后公开三条真实serviceBases。原store／RBAC／caps／strictreader均不改。作者45ef688b与独立peer46c7117e仅证明源码修订，未Go/native。
+
+三份Go空白由本次实际normal及native formatter原件独立迁移：raw patch哈希ec85df85与d92bea0b因文件顺序不同，3份postimage严格相同，3hunk位置／原Gitblob／保守词法token均核；迁移收据58a117b4与c40263f1。root将此格式修订与最小caller／producer修订合并再提交验收，未运行本机Go/gofmt、未放宽180秒／256历史／2MiB或任何权限检查，未改判旧失败。S1真实入库、S2及产品恢复闭环仍须后续实际证明，生产未动。
+
 ### 2026-10-25 原生Started事实实验与独立reader：25源组装，实际Linux验收待证
 
 本轮将原生v3的11源、默认控制绑定10源、专用CI两源及独立reader两源共25源汇入开发工作区。v3修复Wait事件观测同步、双owner close持续拒绝和成功前末端context复查；仅最后一项是逻辑deadline检查，不能强制中断同步OS读取。root对native测试只删除最后一个多余LF，保持全部其他字节，并单独保留c7d7fb13→ab20fa0b的21254B→21253B修订证明；不是本机gofmt输出。

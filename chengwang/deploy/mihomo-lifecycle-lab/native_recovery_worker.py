@@ -270,6 +270,7 @@ def main(args):
     if len(args) == 3 and args[0] == '--sandbox':
         facts = a.sandbox(args[1], args[2])
         s.bases(False); native_base(False)
+        facts['serviceBases'] = [str(s.ROOT), str(s.IDENTITIES), str(s.STATE)]
         facts['schema'] = 'chengwang.mihomo-native-recovery-sandbox/v1'
         print(w.canonical(facts).decode('ascii'), end='')
         return 0

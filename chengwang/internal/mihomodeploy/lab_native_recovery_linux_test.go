@@ -21,45 +21,45 @@ import (
 )
 
 type labNativeRecoveryReport struct {
-	Schema             string                         `json:"schema"`
-	Scope              string                         `json:"scope"`
-	SourceCommit       string                         `json:"sourceCommit"`
-	Outcome            string                         `json:"outcome"`
-	FailureCode        string                         `json:"failureCode"`
-	OriginalUnknown    *LabDeploymentView             `json:"originalUnknown"`
-	Fault              *mihomo.LabReloadFaultObservation `json:"fault"`
-	ReloadBefore       mihomo.ReloadCounters           `json:"reloadBefore"`
-	ReloadUnknown      mihomo.ReloadCounters           `json:"reloadUnknown"`
-	ReloadFinal        mihomo.ReloadCounters           `json:"reloadFinal"`
-	OldIdentity        *labKernelIdentity              `json:"oldIdentity"`
-	NewIdentity        *labKernelIdentity              `json:"newIdentity"`
-	BootstrapStart     *labKernelStartObservation     `json:"bootstrapStart"`
-	OldCore            uint64                         `json:"oldCore"`
-	NewCore            uint64                         `json:"newCore"`
-	Quiescence         *labQuiescenceObservation       `json:"quiescence"`
-	Start              *labRecoveryStartObservation   `json:"start"`
-	StartedSHA256      string                         `json:"startedSHA256"`
-	Stages             []labNativeRecoveryCheckpoint  `json:"stages"`
-	ReplayRejected     bool                           `json:"replayRejected"`
-	RecoverySelfApprovalDenied bool                    `json:"recoverySelfApprovalDenied"`
-	Reopened           *labNativeRecoveryCheckpoint   `json:"reopened"`
-	OldCleanup         *labKernelExit                 `json:"oldCleanup"`
-	NewCleanup         *labKernelExit                 `json:"newCleanup"`
-	Syntax             []labKernelStartObservation    `json:"syntax"`
-	NativeCalls        []labNativeRecoveryCall        `json:"nativeCalls"`
-	EventCheckpoints   []labNativeRecoveryEventCheckpoint `json:"eventCheckpoints"`
-	DualOwnerCloseRejectedTwice bool                  `json:"dualOwnerCloseRejectedTwice"`
-	CountersBounded    bool                           `json:"countersBounded"`
-	ClosedPorts        []uint16                       `json:"closedPorts"`
-	RuntimeClosed      bool                           `json:"runtimeClosed"`
-	NewDiskOwnerClosed bool                           `json:"newDiskOwnerClosed"`
-	CleanupReplayNoOp  bool                           `json:"cleanupReplayNoOp"`
-	HTTPRecoveryProven bool                           `json:"httpRecoveryProven"`
-	CompletionProven   bool                           `json:"completionProven"`
-	FullPrivateWALIndependentlyProven bool             `json:"fullPrivateWALIndependentlyProven"`
-	SyntaxRawStreamsIndependentlyProven bool           `json:"syntaxRawStreamsIndependentlyProven"`
-	InternetBusinessProven bool                       `json:"internetBusinessProven"`
-	Production         bool                           `json:"production"`
+	Schema                              string                             `json:"schema"`
+	Scope                               string                             `json:"scope"`
+	SourceCommit                        string                             `json:"sourceCommit"`
+	Outcome                             string                             `json:"outcome"`
+	FailureCode                         string                             `json:"failureCode"`
+	OriginalUnknown                     *LabDeploymentView                 `json:"originalUnknown"`
+	Fault                               *mihomo.LabReloadFaultObservation  `json:"fault"`
+	ReloadBefore                        mihomo.ReloadCounters              `json:"reloadBefore"`
+	ReloadUnknown                       mihomo.ReloadCounters              `json:"reloadUnknown"`
+	ReloadFinal                         mihomo.ReloadCounters              `json:"reloadFinal"`
+	OldIdentity                         *labKernelIdentity                 `json:"oldIdentity"`
+	NewIdentity                         *labKernelIdentity                 `json:"newIdentity"`
+	BootstrapStart                      *labKernelStartObservation         `json:"bootstrapStart"`
+	OldCore                             uint64                             `json:"oldCore"`
+	NewCore                             uint64                             `json:"newCore"`
+	Quiescence                          *labQuiescenceObservation          `json:"quiescence"`
+	Start                               *labRecoveryStartObservation       `json:"start"`
+	StartedSHA256                       string                             `json:"startedSHA256"`
+	Stages                              []labNativeRecoveryCheckpoint      `json:"stages"`
+	ReplayRejected                      bool                               `json:"replayRejected"`
+	RecoverySelfApprovalDenied          bool                               `json:"recoverySelfApprovalDenied"`
+	Reopened                            *labNativeRecoveryCheckpoint       `json:"reopened"`
+	OldCleanup                          *labKernelExit                     `json:"oldCleanup"`
+	NewCleanup                          *labKernelExit                     `json:"newCleanup"`
+	Syntax                              []labKernelStartObservation        `json:"syntax"`
+	NativeCalls                         []labNativeRecoveryCall            `json:"nativeCalls"`
+	EventCheckpoints                    []labNativeRecoveryEventCheckpoint `json:"eventCheckpoints"`
+	DualOwnerCloseRejectedTwice         bool                               `json:"dualOwnerCloseRejectedTwice"`
+	CountersBounded                     bool                               `json:"countersBounded"`
+	ClosedPorts                         []uint16                           `json:"closedPorts"`
+	RuntimeClosed                       bool                               `json:"runtimeClosed"`
+	NewDiskOwnerClosed                  bool                               `json:"newDiskOwnerClosed"`
+	CleanupReplayNoOp                   bool                               `json:"cleanupReplayNoOp"`
+	HTTPRecoveryProven                  bool                               `json:"httpRecoveryProven"`
+	CompletionProven                    bool                               `json:"completionProven"`
+	FullPrivateWALIndependentlyProven   bool                               `json:"fullPrivateWALIndependentlyProven"`
+	SyntaxRawStreamsIndependentlyProven bool                               `json:"syntaxRawStreamsIndependentlyProven"`
+	InternetBusinessProven              bool                               `json:"internetBusinessProven"`
+	Production                          bool                               `json:"production"`
 }
 
 // Non-secret identity profiles are source generated; plaintext tokens remain
@@ -266,8 +266,19 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		t.Fatal("failed actual transfer lost or replaced its original close owner")
 	}
 	if err := runner.run(headers["initiator"], headers["approver"], headers["initiator"]); err != nil {
-		report.FailureCode = "NATIVE_RECOVERY"
+		report.FailureCode = labNativeRecoveryFailureCode(err)
 		t.Fatal("actual native recovery-to-Started chain rejected")
+	}
+	approvedRaw, err := os.ReadFile(labNativeRecoveryPrivate + "/approved-control.private.json")
+	if err != nil {
+		t.Fatal("actual approval transition bytes unavailable")
+	}
+	approvedRecord, err := decodeLifecycleV3Record(approvedRaw)
+	if err != nil || approvedRecord.core.Recovery == nil || approvedRecord.core.Recovery.Phase != "APPROVED" ||
+		approvedRecord.core.Recovery.Approval == nil ||
+		!approvedRecord.core.Recovery.Approval.IssuedAt.Equal(approvedRecord.core.Recovery.UpdatedAt) ||
+		!approvedRecord.core.LastTrustedAt.Equal(approvedRecord.core.Recovery.UpdatedAt) {
+		t.Fatal("actual approval issuance and record did not retain one logical transition time")
 	}
 	report.NewIdentity = &runner.newIdentity
 	report.NewCore, bounded = labNativeRecoveryReadCore(runner.next)

@@ -63,7 +63,7 @@ type labNativeRecoveryCalls struct {
 }
 
 var processLabNativeRecoveryCalls = labNativeRecoveryCalls{
-	cores: map[*ownedLabKernelCore]uint64{},
+	cores:  map[*ownedLabKernelCore]uint64{},
 	events: []labNativeRecoveryCall{},
 }
 

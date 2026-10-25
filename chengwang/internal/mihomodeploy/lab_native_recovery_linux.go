@@ -21,6 +21,34 @@ const labNativeRecoveryScope = "ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_
 
 var errLabNativeRecovery = errors.New("isolated native recovery experiment rejected")
 
+// Closed diagnostic sentinels carry no original error text or credentials.
+// They classify the first failed source step, never grant any authority.
+var errLabNativeRecoveryBindPlan = errors.New("isolated native recovery bind rejected")
+var errLabNativeRecoverySelfApproval = errors.New("isolated native recovery self approval accepted")
+var errLabNativeRecoveryIndependentApproval = errors.New("isolated native recovery independent approval rejected")
+var errLabNativeRecoveryApprovalFreshness = errors.New("isolated native recovery approval freshness rejected")
+var errLabNativeRecoveryRecordApproval = errors.New("isolated native recovery approval record rejected")
+var errLabNativeRecoveryApprovedReadback = errors.New("isolated native recovery approved readback rejected")
+
+func labNativeRecoveryFailureCode(err error) string {
+	switch err {
+	case errLabNativeRecoveryBindPlan:
+		return "NATIVE_BIND_PLAN_REJECTED"
+	case errLabNativeRecoverySelfApproval:
+		return "NATIVE_SELF_APPROVAL_ACCEPTED"
+	case errLabNativeRecoveryIndependentApproval:
+		return "NATIVE_INDEPENDENT_APPROVAL_REJECTED"
+	case errLabNativeRecoveryApprovalFreshness:
+		return "NATIVE_APPROVAL_FRESHNESS_REJECTED"
+	case errLabNativeRecoveryRecordApproval:
+		return "NATIVE_RECORD_APPROVAL_REJECTED"
+	case errLabNativeRecoveryApprovedReadback:
+		return "NATIVE_APPROVED_READBACK_REJECTED"
+	default:
+		return "NATIVE_RECOVERY"
+	}
+}
+
 type labNativeRecoveryCheckpoint struct {
 	Stage         string `json:"stage"`
 	ControlSHA256 string `json:"controlSHA256"`
@@ -30,30 +58,30 @@ type labNativeRecoveryCheckpoint struct {
 }
 
 type labNativeRecoveryRunner struct {
-	mu           sync.Mutex
-	service      *LabService
-	authority    *labRecoveryAuthority
-	store        *lifecycleRecoveryStore
-	owner        *lifecycleRecoveryOwnerToken
-	session      *labRecoverySession
-	permit       *labRecoveryStartPermit
-	started      *labRecoveryStartedEpoch
-	old          *ownedLabKernel
-	next         *ownedLabKernel
-	legacy       []byte
-	oldIdentity  labKernelIdentity
-	newIdentity  labKernelIdentity
-	quiescence   labQuiescenceObservation
-	start        labRecoveryStartObservation
-	newExit      *labKernelExit
-	stages       []labNativeRecoveryCheckpoint
-	claimed      bool
-	holdsClose   bool
-	cleanupDone  bool
-	nextSettled  bool
-	streamsSaved bool
+	mu                 sync.Mutex
+	service            *LabService
+	authority          *labRecoveryAuthority
+	store              *lifecycleRecoveryStore
+	owner              *lifecycleRecoveryOwnerToken
+	session            *labRecoverySession
+	permit             *labRecoveryStartPermit
+	started            *labRecoveryStartedEpoch
+	old                *ownedLabKernel
+	next               *ownedLabKernel
+	legacy             []byte
+	oldIdentity        labKernelIdentity
+	newIdentity        labKernelIdentity
+	quiescence         labQuiescenceObservation
+	start              labRecoveryStartObservation
+	newExit            *labKernelExit
+	stages             []labNativeRecoveryCheckpoint
+	claimed            bool
+	holdsClose         bool
+	cleanupDone        bool
+	nextSettled        bool
+	streamsSaved       bool
 	selfApprovalDenied bool
-	eventCheckpoints []labNativeRecoveryEventCheckpoint
+	eventCheckpoints   []labNativeRecoveryEventCheckpoint
 }
 
 // Fixed-path exclusive private files. Raw WAL, streams and credentials never
@@ -249,24 +277,31 @@ func (r *labNativeRecoveryRunner) run(initiatorHeaders, approverHeaders, executo
 	}
 	r.session, err = r.authority.bindPlan(h, r.store, r.owner, time.Now().UTC())
 	if err != nil {
-		return err
+		return errLabNativeRecoveryBindPlan
 	}
 	// Actual current policy negative control on this same bound plan; it is
 	// followed by positive independent approval, so an unrelated bad binding
 	// cannot mask the self-approval check.
 	if _, err := r.authority.approve(initiatorHeaders, r.session, time.Now().UTC()); err == nil {
-		return errLabNativeRecovery
+		return errLabNativeRecoverySelfApproval
 	}
 	r.selfApprovalDenied = true
-	approval, err := r.authority.approve(approverHeaders, r.session, time.Now().UTC())
+	// Approval issuance and its record are one logical transition: the
+	// existing store contract requires IssuedAt.Equal(the supplied now).
+	// Capture this real time once; never relax that private equality gate.
+	approvalAt := time.Now().UTC()
+	approval, err := r.authority.approve(approverHeaders, r.session, approvalAt)
 	if err != nil {
-		return err
+		return errLabNativeRecoveryIndependentApproval
 	}
-	if err := r.store.recordRecoveryApproval(r.owner, approval, time.Now().UTC()); err != nil {
-		return err
+	if !r.approvalStillCurrent(approval, approvalAt) {
+		return errLabNativeRecoveryApprovalFreshness
+	}
+	if err := r.store.recordRecoveryApproval(r.owner, approval, approvalAt); err != nil {
+		return errLabNativeRecoveryRecordApproval
 	}
 	if err := r.checkpoint("approved"); err != nil {
-		return err
+		return errLabNativeRecoveryApprovedReadback
 	}
 	binding, err := r.store.armRecoveryStop(r.owner, r.oldIdentity, time.Now().UTC())
 	if err != nil {
@@ -317,6 +352,33 @@ func (r *labNativeRecoveryRunner) run(initiatorHeaders, approverHeaders, executo
 		return err
 	}
 	return r.checkpoint("started")
+}
+
+// Supplementary read-only freshness observation. It neither writes trusted
+// time nor validates/authorizes a candidate or substitutes for the original
+// record method and the subsequent current Stop/Start authorization gates.
+func (r *labNativeRecoveryRunner) approvalStillCurrent(approval lifecycleRecoveryApproval, approvalAt time.Time) bool {
+	if r == nil || r.service == nil || r.service.core == nil || r.store == nil || r.store.core == nil || r.owner == nil || r.owner.core == nil {
+		return false
+	}
+	x := r.store.core
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	now := time.Now().UTC()
+	if artifactContext(r.service.core.ctx) != nil || !lifecycleTime(now) || !lifecycleTime(approvalAt) ||
+		!approval.IssuedAt.Equal(approvalAt) || now.Before(approvalAt) || !now.Before(approval.ExpiresAt) ||
+		x.closed || x.poisoned || x.record.core == nil || x.live != r.owner.core || r.owner.core.store != x {
+		return false
+	}
+	w := x.record.core
+	o, a := w.RecoveryOwner, w.Recovery
+	if o == nil || a == nil || a.Phase != "PLANNED" || a.Revocation != nil || a.Approval != nil || a.StopIntent != nil ||
+		r.owner.core.nonce != o.OwnerNonce || r.owner.core.fence != o.Fence || o.Fence != w.LastRecoveryFence ||
+		now.Before(w.LastTrustedAt) || approvalAt.Before(w.LastTrustedAt) || !now.Before(o.ExpiresAt) || !now.Before(a.Plan.ExpiresAt) ||
+		approval.ExpiresAt.After(a.Plan.ExpiresAt) || approval.RecoveryPlanSHA256 != a.Plan.PlanSHA256 {
+		return false
+	}
+	return artifactContext(r.service.core.ctx) == nil
 }
 
 // Replay proves rejection at the same original entrypoints. It never resets a

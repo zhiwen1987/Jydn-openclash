@@ -1,0 +1,226 @@
+{
+  "actualFormatter": {
+    "RChanged": false,
+    "actualLocalGoOrGofmtRun": false,
+    "allOriginalHunkPositionsAndPreimagesExact": true,
+    "allSourceTokensPreservedConservativelyNotGoAST": true,
+    "applyPatchSHA256": "4eb0ce7b784c17aeda30ab7bc66dea087541e9572e607df5991f7061300e6e00",
+    "files": {
+      "chengwang/internal/mihomodeploy/lab_native_recovery_linux.go": {
+        "afterBytes": 17099,
+        "afterSHA256": "04e18cb60f6e765d93201e97fa09109ddcc73d6943af50f8c3526e780021129f",
+        "beforeBytes": 16965,
+        "beforeGitBlob": "74dc7884d316e9bf5e83c9c6e60a5bcf0ef4b31c",
+        "beforeSHA256": "ad1d26067884025c64b343ed12153227894b809f7046159861400927fdbafb96",
+        "conservativeLexicalTokensByteEqual": true,
+        "hunks": [
+          {
+            "newCount": 30,
+            "newStart": 30,
+            "oldCount": 30,
+            "oldStart": 30
+          }
+        ]
+      },
+      "chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go": {
+        "afterBytes": 22056,
+        "afterSHA256": "f149231dd6ca359ae98fdabf17c3956f7150dc3cc36b7ab0bc9257e999a4e9bb",
+        "beforeBytes": 21253,
+        "beforeGitBlob": "39bad965c19b09f5adfcb36ecfd0d4a181b4c57e",
+        "beforeSHA256": "ab20fa0b3c07776c1e29d35485ff7eab92a7d503928262fc9b04bedb46afe39b",
+        "conservativeLexicalTokensByteEqual": true,
+        "hunks": [
+          {
+            "newCount": 45,
+            "newStart": 21,
+            "oldCount": 45,
+            "oldStart": 21
+          }
+        ]
+      },
+      "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go": {
+        "afterBytes": 3791,
+        "afterSHA256": "c06c498510a2d61c6b831527a84c5fbb3311658bcbac7494a88459a0ba588894",
+        "beforeBytes": 3790,
+        "beforeGitBlob": "58ce5bd306dcfecfdab2e98e41398dd69962e927",
+        "beforeSHA256": "dbfdf73fd25fe9eefb2cf944b9196e6e72e6eb901c935e779760a54c2118ebdf",
+        "conservativeLexicalTokensByteEqual": true,
+        "hunks": [
+          {
+            "newCount": 7,
+            "newStart": 63,
+            "oldCount": 7,
+            "oldStart": 63
+          }
+        ]
+      }
+    },
+    "hunkCount": 3,
+    "originalPatchBytes": 9609,
+    "originalPatchPath": "D:\\CodexData\\workspace\\mihomo-cde9149-foundation-audit-20261025-root\\mihomo-foundation-contracts-40175135231-1\\mihomo-foundation-contracts\\gofmt.patch",
+    "originalPatchSHA256": "ec85df85bce0903d9aea504f417b82957c9b404ef0e975b25af01a76602fd142",
+    "productionTouched": false,
+    "runID": 40175135231,
+    "scope": "ACTUAL_CI_FORMAT_HUNKS_ON_EXACT_GIT_BLOBS_NOT_LOCAL_FORMATTER",
+    "sourceCommit": "cde91493ba5f155a9d5da0367edd53046aa86274"
+  },
+  "actualPriorCommit": "cde91493ba5f155a9d5da0367edd53046aa86274",
+  "baseline": "cde91493ba5f155a9d5da0367edd53046aa86274",
+  "defaultRequiredTests": 611,
+  "defaultTestFiles": 43,
+  "fullSystemComplete": false,
+  "independentSourcePeer": {
+    "closedFailureCodeMappingNoRawErrors": true,
+    "formattedBaseMatchesActualRoot": true,
+    "goCompiledOrNativeRanLocally": false,
+    "newCIOrNativeSuccessClaimed": false,
+    "noDeterminateSourceBlockerFound": true,
+    "oldFailedRun40175135319RemainsFailed": true,
+    "originalAuthorityStoreCodecCASRBACAndStrictReaderBytesUnchanged": true,
+    "proofLimits": [
+      "Freshness is an observation, not atomic with later IO/revocation.",
+      "Actual approval point failure was not uniquely identified by original coarse report.",
+      "New Linux CI must validate compilation, format and the remaining native chain."
+    ],
+    "sandboxFieldOnlyAfterActualExistingChecks": true,
+    "scope": "INDEPENDENT_THREE_SOURCE_DELTA_REVIEW_NOT_GO_OR_NATIVE_ACCEPTANCE",
+    "singleActualApprovalTimeRetainsOriginalEqualGate": true,
+    "sourceFiles": {
+      "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py": {
+        "afterSHA256": "6a86a956bfd086408988daa3fd3caddd3cfee3b1b70cd12cff7207057b66c0a2",
+        "beforeSHA256": "ca7d3ffe1a45258f1bc926a14a6b0713ae921c9c9c6f78955b523607501fa901",
+        "bytes": 18812
+      },
+      "chengwang/internal/mihomodeploy/lab_native_recovery_linux.go": {
+        "afterSHA256": "5aae2d66cebab609b1c1c6923d7575ce63c368016f59403a3b280d45fddb797e",
+        "beforeSHA256": "04e18cb60f6e765d93201e97fa09109ddcc73d6943af50f8c3526e780021129f",
+        "bytes": 20477
+      },
+      "chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go": {
+        "afterSHA256": "0de7e8982918815752b8911cc37a02b1fecfbf6bd3b263419b6415bd587cb9a1",
+        "beforeSHA256": "f149231dd6ca359ae98fdabf17c3956f7150dc3cc36b7ab0bc9257e999a4e9bb",
+        "bytes": 22743
+      }
+    },
+    "sourceFreezePath": "D:\\CodexData\\workspace\\mihomo-cde9149-native-approval-fix-20261025-agent\\source-result.json",
+    "sourceFreezeSHA256": "45ef688be6d441d1e8337d5b2363bb30c384d238fa52d9601046e48956a051ad",
+    "supplementaryFreshnessObservationDoesNotWriteClockOrAuthority": true,
+    "workerASTParsedWithoutImportOrExecution": true
+  },
+  "localGoGofmtWorkerOrNativeExecuted": false,
+  "mainMerged": false,
+  "nativePublicFiles": 21,
+  "nativeSources": 159,
+  "newRuntimeAcceptance": false,
+  "normalAndNativeFormatterPostimagesEqual": true,
+  "normalSources": 121,
+  "originalStrictReaderStoreRBACCapsAndThreeWorkflowsByteUnchanged": true,
+  "priorFailureArchive": "chengwang/docs/evidence/sys06-cde-native-first-failure-20261025.json",
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.native-approval-producer-source-fix/v1",
+  "scope": "SOURCE_FIX_ON_ACTUAL_FAILURE_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceFix": {
+    "GoExecuted": false,
+    "HTTPExecuted": false,
+    "RChanged": false,
+    "actualFailureZIPCRCAndStable": true,
+    "applyPatchSHA256": "dc28f946610288741a0c9e308cde906fd57a00926a016710872892e0d6bf9a81",
+    "baseCommit": "cde91493ba5f155a9d5da0367edd53046aa86274",
+    "closedFailureCodeNoPublicSchemaChange": true,
+    "diffSHA256": "a7c361f82e95e17f8be955995b3f77bcc76c11b5c6a3b04fc895446a3a2fde1c",
+    "fileCount": 3,
+    "files": [
+      {
+        "beforeSHA256": "ca7d3ffe1a45258f1bc926a14a6b0713ae921c9c9c6f78955b523607501fa901",
+        "bytes": 18812,
+        "path": "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py",
+        "sha256": "6a86a956bfd086408988daa3fd3caddd3cfee3b1b70cd12cff7207057b66c0a2"
+      },
+      {
+        "beforeSHA256": "04e18cb60f6e765d93201e97fa09109ddcc73d6943af50f8c3526e780021129f",
+        "bytes": 20477,
+        "path": "chengwang/internal/mihomodeploy/lab_native_recovery_linux.go",
+        "sha256": "5aae2d66cebab609b1c1c6923d7575ce63c368016f59403a3b280d45fddb797e"
+      },
+      {
+        "beforeSHA256": "f149231dd6ca359ae98fdabf17c3956f7150dc3cc36b7ab0bc9257e999a4e9bb",
+        "bytes": 22743,
+        "path": "chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go",
+        "sha256": "0de7e8982918815752b8911cc37a02b1fecfbf6bd3b263419b6415bd587cb9a1"
+      }
+    ],
+    "formattedRootPreimagesVerified": true,
+    "gofmtExecuted": false,
+    "nativeExecuted": false,
+    "nativeRun": 40175135319,
+    "needsRootPeerAndNewActualLinuxCI": true,
+    "oldModelsNotRepeated": true,
+    "pid": 21540,
+    "productionTouched": false,
+    "reviewSHA256": "e708ed62adb8d467cf4382f1475c4493de1344852c26c2edb64b9382c70917a9",
+    "sandboxServiceBasesAfterActualChecksOnly": true,
+    "schema": "chengwang.native-approval-caller-fix-source/v1",
+    "scope": "EXTERNAL_MINIMAL_SOURCE_FIX_NOT_RUNTIME_PROVEN",
+    "singleActualApprovalTimestampShared": true,
+    "sourceBytesBeforeAfterStable": true,
+    "storeIssuedAtEqualGateUnchanged": true,
+    "supplementaryFreshCheckReadOnly": true,
+    "unchangedAuthorityStoreCapGuards": [
+      {
+        "path": "chengwang/internal/mihomodeploy/lab_recovery_authority.go",
+        "sha256": "6fe85c0727eb46108c6fa649ff785f3ffaa77aebb2fa041c4a56ac92f2b26766"
+      },
+      {
+        "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go",
+        "sha256": "c0f63097452cc4f3bbd5e2da1f4522d1fca12ae1e85e016cd141febba66e888d"
+      },
+      {
+        "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_transitions.go",
+        "sha256": "6e4036960465d55809045c5edea3792a31fbca2d0428b17159e62e667aca634f"
+      },
+      {
+        "path": "chengwang/internal/mihomodeploy/lab_recovery_start.go",
+        "sha256": "e00bf6770795e15d09d315c3d8a34781534c25f941bcfb0608d95727300c0599"
+      },
+      {
+        "path": "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go",
+        "sha256": "cb51a081f87e4f0c250189c086a34a6064d2129508e104ad05939e592fe6fbbc"
+      },
+      {
+        "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_started.go",
+        "sha256": "3457df382d82dc7c54df308f6267d5b2fb3e43646d8232eb545a5a008c8c91f6"
+      }
+    ],
+    "uniqueRuntimeCauseProven": false,
+    "workerExecuted": false,
+    "workerOnlyOneValidatedObservationAdded": true
+  },
+  "sourceReceipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-cde9149-native-approval-fix-20261025-agent\\source-result.json",
+      "sha256": "45ef688be6d441d1e8337d5b2363bb30c384d238fa52d9601046e48956a051ad"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-approval-fix-peer-20261025-agent\\result.json",
+      "sha256": "46c7117e6eaaf84e4a005a44c03daf1614d4a212d174856cf8d1cd72a0f1b181"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-cde9149-foundation-audit-20261025-root\\format-transfer\\result.json",
+      "sha256": "58a117b49ef3e3692d370ef5851be31ad88246f6c2590b47c0a7216d8d94011a"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-cde9149-foundation-audit-20261025-root\\native-format-transfer\\result.json",
+      "sha256": "c40263f1c228ea06397c66231a3465ac55bf7cfe6353ce3d88d198a0bc1af9a6"
+    }
+  ],
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py": "6a86a956bfd086408988daa3fd3caddd3cfee3b1b70cd12cff7207057b66c0a2",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "7368bc1b0ea57fe490eb63e10da2305e4db07f5432165adf47b2d55a3201b496",
+    "chengwang/docs/evidence/sys06-cde-native-first-failure-20261025.json": "aa504f05a774475d19f11b44bddbcd2007e23ea005da9e0ef69974551e91af0e",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_linux.go": "5aae2d66cebab609b1c1c6923d7575ce63c368016f59403a3b280d45fddb797e",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go": "0de7e8982918815752b8911cc37a02b1fecfbf6bd3b263419b6415bd587cb9a1",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go": "c06c498510a2d61c6b831527a84c5fbb3311658bcbac7494a88459a0ba588894"
+  },
+  "uniqueRuntimeCauseProven": false
+}

@@ -1,0 +1,100 @@
+{
+  "schema": "chengwang.cde-native-first-failure-archive/v1",
+  "sourceCommit": "cde91493ba5f155a9d5da0367edd53046aa86274",
+  "scope": "ACTUAL_DEFAULT_GO_PASS_AND_NATIVE_FAILURE_NOT_NATIVE_ACCEPTANCE",
+  "normal": {
+    "runID": 40175135231,
+    "conclusion": "failure",
+    "successfulJobs": 11,
+    "failedJobs": 2,
+    "ordinaryExit": 0,
+    "raceExit": 0,
+    "ordinaryAndRaceSemanticEach": 1503,
+    "requiredEach": 611,
+    "formatPatchBytes": 9609,
+    "foundationFreshReportPresent": false,
+    "archives": 11,
+    "members": 206
+  },
+  "diagnostic": {
+    "runID": 40175135226,
+    "conclusion": "success",
+    "jobs": 5,
+    "requiredPassed": 611,
+    "archives": 4,
+    "members": 42,
+    "fullCapacitySeconds": 50.91,
+    "fullPackageSeconds": 101.448,
+    "fullProfileSeconds": 100.423806204,
+    "fullProfileStopReason": "M_RUN_RETURNED_NOT_120_SECONDS_OF_SAMPLING"
+  },
+  "native": {
+    "runID": 40175135319,
+    "conclusion": "failure",
+    "jobs": 4,
+    "successfulJobs": 2,
+    "failedJobs": 2,
+    "goTop": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+    "goTopSeconds": 6.29,
+    "goExit": 1,
+    "lastObservedRecoveryPhase": "PLANNED",
+    "lastObservedRevision": 12,
+    "recoverySelfApprovalDenied": true,
+    "recoveryStopInvoked": false,
+    "recoveryStartInvoked": false,
+    "bootstrapAndFailureCleanupOSActionsSeparatelyObserved": true,
+    "freshReportPresent": false,
+    "publicFilesPresent": 19,
+    "publicFilesRequired": 21,
+    "missingPublicFiles": [
+      "new-kernel.stdout",
+      "new-kernel.stderr"
+    ],
+    "sandboxOriginalComponentRejectedBecauseServiceBasesMissing": true,
+    "archives": 2,
+    "members": 38
+  },
+  "sourceGitBlobs": 1306,
+  "normalSourceCount": 121,
+  "defaultTestFileCount": 43,
+  "formatterFiles": 115,
+  "nativeBoundSourceCount": 159,
+  "fullPackageTestSourceCount": 72,
+  "fixesStillRequireNewActualCI": [
+    "Align approval caller time arguments with existing exact IssuedAt store contract without weakening freshness",
+    "Publish producer serviceBases only after existing actual sandbox/base checks",
+    "Apply actual three-file CI formatter postimages"
+  ],
+  "fullNativePrivateWALIndependentlyProven": false,
+  "controllerReceivedCount": null,
+  "fullNativeRecoveryProven": false,
+  "productRecoveryAPIComplete": false,
+  "production": false,
+  "receipts": [
+    {
+      "kind": "normal",
+      "path": "D:/CodexData/workspace/mihomo-cde9149-foundation-audit-20261025-root/closeout.json",
+      "sha256": "9aa0ac0030e8e751c4194273e6a12b97ca9cc40872161a7628071fab57026d64"
+    },
+    {
+      "kind": "diagnostic",
+      "path": "D:/CodexData/workspace/mihomo-cde9149-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "da36ff6a5440d52892c561895ba4639d725e2e7435779d4bee0fc5a4e0f44293"
+    },
+    {
+      "kind": "nativeFailure",
+      "path": "D:/CodexData/workspace/mihomo-cde9149-native-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "05dc3820a3085eed159361abeea327ab1be65f03ffc6bce963320bb1766237cc"
+    },
+    {
+      "kind": "actualNormalFormatterTransfer",
+      "path": "D:/CodexData/workspace/mihomo-cde9149-foundation-audit-20261025-root/format-transfer/result.json",
+      "sha256": "58a117b49ef3e3692d370ef5851be31ad88246f6c2590b47c0a7216d8d94011a"
+    },
+    {
+      "kind": "actualNativeFormatterTransfer",
+      "path": "D:/CodexData/workspace/mihomo-cde9149-foundation-audit-20261025-root/native-format-transfer/result.json",
+      "sha256": "c40263f1c228ea06397c66231a3465ac55bf7cfe6353ce3d88d198a0bc1af9a6"
+    }
+  ]
+}
