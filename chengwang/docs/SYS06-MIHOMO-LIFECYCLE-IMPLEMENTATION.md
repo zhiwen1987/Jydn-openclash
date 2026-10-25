@@ -1,14 +1,24 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：b57同提交的实际native启动、S1入库、清理与重开隔离切片已完成三套CI及独立原件验收；S2新内核验证正在实现，产品恢复接口及完整发布恢复闭环仍未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：66c同提交的S2真实新内核八GET控制面观察、复制与重放拒绝已取得限定原生验收，完整诊断619项也已接受；普通入口因工作流旧611名单接线失败，其普通／race合同Go和格式尚未运行，修正版仍须新CI。产品恢复接口及完整发布恢复闭环未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 66c真实S2控制面限定接受；普通入口旧名单拒绝，精准修订待新CI
+
+66c5210f55dd9a3f9edd34a85c40d5fff6302d6f的native40183908514四门成功并独立3e567c3e接受：Go8.78秒、该native格式范围0差异，163来源／31公件／3ZIP52成员。实际新core两轮八GET正文／transcript／headers／EOF／close／hash与投影及UUID重算通过，S1 revision17／身份／Started30秒上界、真实复制Started与proof拒绝／一用重放及新collector重采拒绝、WAL字节和物理事件prefix14→14不变；原五口拒连／三fixture／WAL8／reopen18／10checkpoint完整。26045B producer／fresh逐字同，SHA54eb49594299df94238ad37c267cd40869036f246882caa72564567385d4c3d3。ObservedAt仅读回采样时刻，不冒称最终准入或消费时间已公开独立复算。
+
+diag40183908402五门成功，独立66526cb7核4ZIP42成员、1318Gitblob及125来源／45必需测试文件／74实际包测试源，619含新8及旧611全部实际通过，无skip／未完／未启动；full120.261947162秒与single60.240934253秒均TIMER。容量79.54秒／整包155.521秒只是这次观测。pprof符号warning及原WindowsCLI／POSIXwriter限制保留，sourceGitVerified比较副本和原pure false分列，不改输入或原函数。
+
+normal40183908390终态11成功／2失败：47消费模型和25证据模型原log都OK，但workflow漏同步新8，旧previous607由619减4得到615，严格拒绝；后续普通／race合同Go及gofmt步骤为skipped，不能说它们通过。原foundation仅两个模型log，无Go事件、格式补丁或fresh报告。其余service／apply／compat／candidate四原门及UNKNOWN由原函数和producer／fresh独立通过，44bccb0c／81c0ad7b收据仍保wholeCI failure。三套合计18ZIP289成员。完整档案见[evidence/sys06-66c-s2-native-acceptance-normal-wrapper-failure-20261025.json](evidence/sys06-66c-s2-native-acceptance-normal-wrapper-failure-20261025.json)。
+
+精准修订只更新该workflow的显式新8、旧611327f及607／591／587／585／539／528／407保留链和总619pin8a2587，13jobs／权限／分支／命令／180秒不变。A原heredoc原log实际18172exit1重现旧拒绝、新38956exit0通过，11个缺源／改名变体均拒；独立0bc7b31c核严格逆转及YAML外围同。该修订是CPU与源码结果，必须新提交真实普通／race／格式，不能挪用66c诊断或native作完整正常接受。真实完整故障矩阵、恢复数据面／持久验证回执／完成许可／新head／产品API及全系统／生产均未完成。
 
 ### S2当前开发：真实样本时间接口与私有新内核验证采集
 
 新增只读SampleTimes接口从原opaque双样本返回四个真实采样时间值，独立校验形状、摘要和时间顺序，不把时间DTO当授权、当前新鲜度或业务可用性。对应三项Go测试声明已汇入开发目录，但尚未执行Go。私有post-S1来源绑定、VERIFY当前授权、八GET捕获与一次性观测证据由实现代理开发，独立代理审阅；来源发行只能发生在原Started能力真实消费及S1磁盘提交／读回成功之后，不能用旧q或JSON重造。持久Execution-v1、Current及head不扩张，后续数据面、持久验证回执、完成许可和产品API仍须实施。
 
-检查器source／formatter／mandatory名单已为新增四源接线，normal125、compat136、apply144、service151、unknown157源仍逐项绑定且不删除旧源。五类检查器187项纯CPU模型通过，实际PID14728，原件位于D:/CodexData/workspace/s2-source-models-ikzoh5s2；首次来源数量未同步的失败oz5il9db原件保留。该结果不证明新Go编译、格式、真实HTTP、新内核观测或生产。当前尚未进行本候选统一提交／Linux CI／原生验收，实际范围以随后的同提交收据为准。
+检查器source／formatter／mandatory名单已为新增四源接线，normal125、compat136、apply144、service151、unknown157源仍逐项绑定且不删除旧源。五类检查器187项纯CPU模型通过，实际PID14728，原件位于D:/CodexData/workspace/s2-source-models-ikzoh5s2；首次来源数量未同步的失败oz5il9db原件保留。该CPU结果不证明Go编译、格式、真实HTTP、新内核观测或生产。源码冻结时尚未统一提交／Linux CI／原生验收，后续实际范围以上方66c同提交收据为准。
 
 ### 2026-10-25 b57三套原件接受：真实native Started/S1事实/清理/重开本范围闭环
 

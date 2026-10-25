@@ -1,0 +1,36 @@
+{
+  "actualCandidateWrapperExit": 0,
+  "actualNewRuntimeAcceptance": false,
+  "actualOriginalWrapperExit": 1,
+  "allOtherDecodedWorkflowValuesUnchanged": true,
+  "allProductAndCheckerSourceBytesUnchanged": true,
+  "baseline": "66c5210f55dd9a3f9edd34a85c40d5fff6302d6f",
+  "fullSystemComplete": false,
+  "independentPeer": {
+    "path": "D:\\CodexData\\workspace\\mihomo-66c-wrapper-independent-peer-20261025-agent\\evidence\\result.json",
+    "sha256": "0bc7b31c2b8fb08227b8afbf6769c4df092d7cf60f979fe7bde78db125681c97"
+  },
+  "localGoGofmtNativeExecuted": false,
+  "mainMerged": false,
+  "nativePublicFiles": 31,
+  "nativeSources": 163,
+  "negativeSourceVariants": 11,
+  "normalSources": 125,
+  "old611AndAllHistoricalPinsPreserved": true,
+  "priorCommit": "66c5210f55dd9a3f9edd34a85c40d5fff6302d6f",
+  "priorFailureArchive": "chengwang/docs/evidence/sys06-66c-s2-native-acceptance-normal-wrapper-failure-20261025.json",
+  "production": false,
+  "registryPublished": false,
+  "requiredTests": 619,
+  "schema": "chengwang.s2-normal-wrapper-declaration-fix/v1",
+  "scope": "SOURCE_AND_ORIGINAL_WRAPPER_CPU_REPLAY_NOT_NEW_GO_ACCEPTANCE",
+  "sourceReceipt": {
+    "path": "D:\\CodexData\\workspace\\mihomo-66c5210-foundation-wrapper-fix-20261025-agent\\v2\\source-result.json",
+    "sha256": "a00ddc4024d3629aa55e4f504f6eaa2e3f26108a7ac15dc8ac0dad964b293428"
+  },
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "16c89fabb4f4dcc8e2dfe2f22e301b47c252b15c595194bf6403859790a5f8cd",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "f6db1592de678834e24bb75cb4c1a4d60caaf184d4b6e4bd8f95b4a3900cb417",
+    "chengwang/docs/evidence/sys06-66c-s2-native-acceptance-normal-wrapper-failure-20261025.json": "e5aabe7ff32e7c9572a5e2f26ff55916754ea0d2794a873ee13a97b617c67be2"
+  }
+}

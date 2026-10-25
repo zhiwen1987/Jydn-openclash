@@ -1,0 +1,133 @@
+{
+  "schema": "chengwang.s2-native-acceptance-and-foundation-wrapper-failure/v1",
+  "sourceCommit": "66c5210f55dd9a3f9edd34a85c40d5fff6302d6f",
+  "scope": "LIMITED_NATIVE_CONTROL_OBSERVATION_AND_DIAGNOSTIC_ACCEPTED_NORMAL_FOUNDATION_FAILED_NOT_PRODUCTION",
+  "normal": {
+    "runID": 40183908390,
+    "conclusion": "failure",
+    "successJobs": 11,
+    "failedJobs": 2,
+    "zipCount": 11,
+    "members": 195,
+    "foundationOrdinaryRaceAndFormatInvoked": false,
+    "originalModelLogs": {
+      "go-evidence-models.log": {
+        "bytes": 4004,
+        "sha256": "6644caca70ea108828746210566c19594dd3593dc6a41f5b4cbee890f95f8722"
+      },
+      "pin-models.log": {
+        "bytes": 7109,
+        "sha256": "f9e098afafa28ded878723adc378d61e1bfeb9940a76ca0ae9bb02cf0645b71e"
+      }
+    },
+    "unknownReceiptSHA256": "81c0ad7b6486233abfe0bcd18ec8294c7fa28e3ec3a8fb1907a32376afa416a9",
+    "foundationFullVerifierAccepted": false,
+    "foundationProducerOrFreshReportAvailable": false,
+    "oldDeclarationWrapperRejectedAfterBothModelSuitesPassed": true,
+    "declaredTests": 619,
+    "oldPrevious607ActualCount": 615,
+    "oldPrevious607RequiredCount": 607,
+    "failureReclassifiedAsSuccess": false
+  },
+  "diagnostic": {
+    "runID": 40183908402,
+    "conclusion": "success",
+    "successfulJobs": 5,
+    "sourceCount": 125,
+    "mandatoryTestFiles": 45,
+    "physicalTestSources": 74,
+    "requiredTests": 619,
+    "new8AndOld611AllPassed": true,
+    "fullProfileSeconds": 120.261947162,
+    "singleProfileSeconds": 60.240934253,
+    "profileStopReason": "TIMER",
+    "capacitySeconds": 79.54,
+    "packageSeconds": 155.521,
+    "zipCount": 4,
+    "members": 42,
+    "producerFreshByteEqual": true,
+    "pprofNumericalAttributionIndependentlyRecomputed": false
+  },
+  "native": {
+    "runID": 40183908514,
+    "conclusion": "success",
+    "successfulJobs": 4,
+    "goSeconds": 8.78,
+    "formatPatchBytes": 0,
+    "sourceCount": 163,
+    "publicFiles": 31,
+    "actualGETs": 8,
+    "actualSamples": 2,
+    "targetMatched": true,
+    "recordRevision": 17,
+    "copiedStartedAndProofRejected": true,
+    "proofReplayAndRecollectRejected": true,
+    "sourceWALUnchanged": true,
+    "physicalEventPrefixBefore": 14,
+    "physicalEventPrefixAfter": 14,
+    "fivePortsRefused": true,
+    "threeFixtureShutdownAndServeReturned": true,
+    "walIndexRows": 8,
+    "reopenedRevision": 18,
+    "reopenedPhase": "RECOVERY_UNKNOWN",
+    "originalCheckpoints": 10,
+    "zipCount": 3,
+    "members": 52,
+    "producerFreshByteEqual": true,
+    "producerBytes": 26045,
+    "producerSHA256": "54eb49594299df94238ad37c267cd40869036f246882caa72564567385d4c3d3",
+    "observedAtMeansReadbackSampleNotFinalAdmission": true
+  },
+  "nonfoundation": {
+    "fourOriginalGatesPassed": [
+      "service",
+      "apply",
+      "compat",
+      "candidate"
+    ],
+    "unknownOriginalGatePassed": true,
+    "producerFreshByteEqual": true,
+    "wholeWorkflowFailurePreserved": true
+  },
+  "totalArchives": 18,
+  "totalMembers": 289,
+  "gitBlobsVerified": 1318,
+  "receipts": [
+    {
+      "path": "D:/CodexData/workspace/mihomo-66c5210-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "66526cb7fd2c5d9ad3efbe51053c198a73b982bcfd15870c8f70cefc79bbd6b3"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-66c5210-native-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "3e567c3e111d6cfd8f9a73c833ffc8cd0f87e11c3f154becc48dd662afb16b6d"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-66c5210-nonfoundation-audit-20261025-root/result.json",
+      "sha256": "44bccb0cf6f6b9486180d7fdd28e45b6a6e1bc2227f20b773377b3ef8c6a7bc3"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-66c5210-nonfoundation-audit-20261025-root/unknown/result.json",
+      "sha256": "81c0ad7b6486233abfe0bcd18ec8294c7fa28e3ec3a8fb1907a32376afa416a9"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-66c5210-foundation-wrapper-fix-20261025-agent/v2/source-result.json",
+      "sha256": "a00ddc4024d3629aa55e4f504f6eaa2e3f26108a7ac15dc8ac0dad964b293428"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-66c-wrapper-independent-peer-20261025-agent/evidence/result.json",
+      "sha256": "0bc7b31c2b8fb08227b8afbf6769c4df092d7cf60f979fe7bde78db125681c97"
+    }
+  ],
+  "localGoGofmtNativeOrProductHTTPExecuted": false,
+  "windowsOriginalCLIRejectionsPreserved": true,
+  "originalPureReportsSourceGitVerifiedFalsePreserved": true,
+  "sourceGitFlagAdjustedOnlyInExplicitComparisonCopies": true,
+  "completeRealFaultMatrixProven": false,
+  "recoveryDataplaneProven": false,
+  "durableVerificationReceiptOrCompletionProven": false,
+  "productRecoveryAPIProven": false,
+  "fullSystemComplete": false,
+  "production": false,
+  "mainMerged": false,
+  "registryPublished": false
+}
