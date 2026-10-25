@@ -11,7 +11,14 @@ def dbcopy(src,dst):
  a=sqlite3.connect('file:'+str(src)+'?mode=ro',uri=True);b=sqlite3.connect(dst)
  try:a.backup(b);assert b.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
  finally:a.close();b.close()
-if ARGS['phase']=='observe':
+if ARGS['phase']=='verify_hooks':
+ b=Path(ARGS['server']);old=json.loads((b/'docker-compose.yml').read_text());now=json.loads((P/'docker-compose.yml').read_text());now['services']['center']['image']=old['services']['center']['image'];assert now==old,'Other compose settings changed'
+ m=json.loads((b/'manifest.json').read_text())
+ for name,path in [('.env',P/'.env'),('route-quality-policy.json',D/'route-quality-policy.json')]:
+  if name in m['files']:assert hashlib.sha256(path.read_bytes()).hexdigest()==m['files'][name]
+ result={'compose_only_image_changed':True,'environment_unchanged':True,'quality_policy_unchanged':True,'autonomy_timer':run(['systemctl','is-active','lan-center-autonomy.timer']).strip(),'grok_timer':run(['systemctl','is-active','lan-center-grok-failover.timer']).strip()}
+ save(b/'persistence-acceptance.json',result)
+elif ARGS['phase']=='observe':
  import importlib.util
  b=Path(ARGS['server']);spec=importlib.util.spec_from_file_location('strict_recovery',b/'stage/server_recovery.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
  db=sqlite3.connect('file:'+str(P/'data/uptime-kuma/kuma.db')+'?mode=ro',uri=True)

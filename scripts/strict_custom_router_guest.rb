@@ -16,6 +16,17 @@ paths['group_filter']='/etc/openclash/custom/jydn_patch_runtime_groups.rb'
 paths['catalog']='/etc/openclash/custom/jydn_business_group_catalog.json'
 files=paths.transform_values{|p|File.file?(p) ? {'path'=>p,'sha256'=>hash_file(p),'bytes'=>File.size(p)} : {'path'=>p,'missing'=>true}}
 case ARGS.fetch('phase')
+when 'verify_hooks'
+ b=ARGS.fetch('router');require b+'/stage/strict_custom_router_recovery';r=StrictRouterRecovery;r.verify(b)
+ before=YAML.load_file(runtime);test_path=b+'/hook-test.yaml';r.atomic(test_path,YAML.dump(before))
+ sh('/etc/openclash/custom/jydn_strict_custom_hook.sh',test_path)
+ abort 'Installed hook is not idempotent' unless YAML.load_file(test_path)==before
+ %w[strict-custom-private.yaml strict-custom-locks.yaml strict-custom-locks.yaml.good].each do |name|
+  abort 'Private input permissions too broad' unless File.stat('/etc/openclash/custom/'+name).mode & 0077 == 0
+ end
+ abort 'Unexpected private nodes' unless YAML.load_file('/etc/openclash/custom/strict-custom-private.yaml')['nodes']==[]
+ abort 'Unexpected active persistent binding' unless YAML.load_file('/etc/openclash/custom/strict-custom-locks.yaml')['bindings']=={}
+ puts YAML.dump({'installed_hook_idempotent'=>true,'private_permissions_verified'=>true,'actual_private_nodes'=>0,'production_bindings_activated'=>0,'backup_integrity_reverified'=>true,'runtime_dns_policy_count'=>before.dig('dns','nameserver-policy').length})
 when 'observe'
  b=ARGS.fetch('router');require b+'/stage/strict_custom_router_recovery';r=StrictRouterRecovery;y=YAML.load_file(runtime)
  port=y['mixed-port'].to_i;port=y['port'].to_i if port==0;raise 'http_proxy_listener_missing' if port==0
