@@ -4,12 +4,12 @@ from pathlib import Path
 from unittest.mock import patch
 HERE=Path(__file__).resolve().parent;sys.path.insert(0,str(HERE));sys.path.insert(0,str(HERE/'tests/fixtures'))
 from strict_custom_guard import is_strict_path
-from strict_select import activate,PREFIX
+from strict_select import activate,PREFIX,SHARED
 from patch_quality import patch as patch_source
 
 class FakeAPI:
  def __init__(self):
-  self.business='Google';self.wrapper=PREFIX['node']+self.business;self.events=[]
+  self.business='Google';self.wrapper=SHARED['node'];self.events=[]
   self.groups={'Google':{'type':'Selector','all':['public',self.wrapper],'now':'public'},'Gemini':{'type':'Selector','all':['other'],'now':'other'},
    self.wrapper:{'type':'Selector','all':['REJECT','🔐 自建节点 · own'],'now':'REJECT'}}
   self.connections=[{'id':'google-old','chains':['public','Google']},{'id':'gemini-old','chains':['other','Gemini']}]
@@ -33,6 +33,11 @@ class ControlTests(unittest.TestCase):
   api=FakeAPI();r=activate(api,'Google','node');self.assertTrue(r['closed_until_configured']);self.assertEqual(api.groups[api.wrapper]['now'],'REJECT')
  def test_native_null_connection_list(self):
   api=FakeAPI();api.connections=None;r=activate(api,'Google','node');self.assertEqual(r['matching_connections_closed'],0)
+ def test_shared_target_change_drains_all_subscribers_only(self):
+  api=FakeAPI();api.groups['Gemini']['now']=api.wrapper
+  api.connections += [{'id':'shared-old','chains':['🔐 自建节点 · own',api.wrapper,'Gemini']},{'id':'unrelated','chains':['third']}]
+  r=activate(api,'Google','node','🔐 自建节点 · own');self.assertEqual(r['matching_connections_closed'],2)
+  self.assertEqual([v['id'] for v in api.connections],['gemini-old','unrelated'])
  def test_foreign_target_refused_before_writes(self):
   api=FakeAPI()
   with self.assertRaises(ValueError):activate(api,'Google','node','DIRECT')
@@ -50,13 +55,13 @@ class ControlTests(unittest.TestCase):
   from strict_custom_guard import may_reclaim
   self.assertTrue(may_reclaim('public-manual',{'manual_override_seconds':60}))
   self.assertFalse(may_reclaim(PREFIX['group']+'Google',{'manual_override_seconds':60}))
- def test_real_controller_never_reclaims_expired_strict_selection(self):
+ def test_real_controller_respects_current_permanent_manual_policy(self):
   with tempfile.TemporaryDirectory() as td:
    directory=Path(td);source=HERE/'tests/fixtures/route_quality.py';target=directory/'quality.py';target.write_text(patch_source(source.read_text(encoding='utf-8')),encoding='utf-8')
    spec=importlib.util.spec_from_file_location('tested_quality',target);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
    m.ROOT=directory;m.POLICY=directory/'policy.json';m.STATE=directory/'state.json'
-   m.POLICY.write_text(json.dumps({'schema':1,'enabled':True,'manual_override_seconds':1}))
-   pool,outer=m.BUSINESSES['chatgpt'];wrapper=PREFIX['node']+outer
+   m.POLICY.write_text(json.dumps({'schema':1,'enabled':True,'manual_override_seconds':0}))
+   pool,outer=m.BUSINESSES['chatgpt'];wrapper=SHARED['node']
    groups={outer:{'type':'Selector','all':[pool,wrapper],'now':wrapper},pool:{'type':'Selector','all':['public'],'now':'public'},wrapper:{'type':'Selector','all':['REJECT'],'now':'REJECT'}};writes=[]
    def api(path,method='GET',body=None):
     if method!='GET':writes.append((path,method,body));raise AssertionError('strict takeover attempted')
@@ -64,6 +69,6 @@ class ControlTests(unittest.TestCase):
     return copy.deepcopy(groups[urllib.parse.unquote(path.split('/proxies/',1)[1])])
    c=m.Controller(api,lambda:{'nodes':[]},clock=lambda:10000,probe_fn=lambda b:{'ok':False,'ms':8000,'reason':'test'})
    c.state['businesses']['chatgpt']={'manual_selection':wrapper,'manual_since':1,'bad_streak':0}
-   c.tick();self.assertEqual(writes,[]);self.assertTrue(c.state['businesses']['chatgpt']['strict_locked'])
+   c.tick();self.assertEqual(writes,[]);self.assertTrue(c.state['businesses']['chatgpt']['manual_override'])
 
 if __name__=='__main__':unittest.main(verbosity=2)

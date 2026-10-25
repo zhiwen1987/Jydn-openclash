@@ -2,9 +2,10 @@
 import argparse,json,os,urllib.request,urllib.parse
 from pathlib import Path
 PREFIX={'node':'🔐 自定义节点 · ','group':'🔐 自定义节点组 · '}
+SHARED={kind:'🔐 自定义节点' for kind in PREFIX}
 ALLOWED=('🔐 自建节点 · ','🔐 自建节点池 · ')
 def activate(api,business,kind,target='REJECT'):
- wrapper=PREFIX[kind]+business;proxies=api('/proxies')['proxies']
+ wrapper=SHARED[kind];proxies=api('/proxies')['proxies']
  outer=proxies.get(business,{});inner=proxies.get(wrapper,{})
  if outer.get('type')!='Selector' or wrapper not in outer.get('all',[]):raise ValueError('business_not_prepared')
  members=inner.get('all',[])
@@ -14,13 +15,13 @@ def activate(api,business,kind,target='REJECT'):
   path='/proxies/'+urllib.parse.quote(group,safe='')
   api(path,'PUT',{'name':node})
   if api(path).get('now')!=node:raise RuntimeError('selection_readback_failed_left_closed')
- # Only this business wrapper is fenced; other businesses keep their selection.
+ # Changing a shared target fences and drains every current subscriber.
  select(wrapper,'REJECT');select(business,wrapper)
  closed=[]
  for _ in range(3):
   if api('/proxies/'+urllib.parse.quote(business,safe='')).get('now')!=wrapper:raise RuntimeError('concurrent_manual_change')
   rows=api('/connections').get('connections') or []
-  matches=[v for v in rows if business in v.get('chains',[])]
+  matches=[v for v in rows if business in v.get('chains',[]) or wrapper in v.get('chains',[])]
   if not matches:break
   for row in matches:
    cid=row['id'];api('/connections/'+urllib.parse.quote(cid,safe=''),'DELETE');closed.append(cid)

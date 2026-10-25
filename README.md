@@ -215,7 +215,7 @@ ruleset=MySite,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-op
 
 ## 参考
 
-业务自定义节点、自定义节点组及持久断流绑定的用法与恢复办法见 [专属出口操作说明](docs/strict-custom-egress.md)。
+全局单个自定义节点入口及持久断流绑定的用法与恢复办法见 [专属出口操作说明](docs/strict-custom-egress.md)，运行核验见 [单入口验收记录](docs/shared-custom-acceptance-20261026.md)。
 
 - [OpenClash 官方仓库](https://github.com/vernesong/OpenClash)
 - [OpenClash 官方覆写模块参数与 YAML 操作符](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/root/etc/openclash/overwrite/default)
