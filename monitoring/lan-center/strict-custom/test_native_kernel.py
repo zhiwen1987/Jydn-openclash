@@ -41,6 +41,9 @@ def main():
  with tempfile.TemporaryDirectory() as temp:
   root=Path(temp);a=root/'fixture';b=root/'candidate';a.mkdir();b.mkdir()
   def start(folder,config):
+   if config=='all-nodes.yaml':
+    for filename in ['provider-one.yaml','provider-two.yaml']:
+     if not (folder/filename).exists():(folder/filename).write_bytes((ROOT/filename).read_bytes())
    path=folder/'config.yaml';path.write_bytes((ROOT/config).read_bytes())
    log=(folder/'core.log').open('ab');p=subprocess.Popen([str(ROOT/'core'),'-d',str(folder),'-f',str(path)],stdout=log,stderr=log,env={**os.environ,'GOMAXPROCS':'1','GOMEMLIMIT':'48MiB'});processes.append((p,log))
    port=19446 if folder==a else 19447;deadline=time.time()+30
@@ -48,7 +51,10 @@ def main():
     if p.poll() is not None:raise RuntimeError('isolated core exited: '+(folder/'core.log').read_text()[-500:])
     try:
      api(port,'/version')
-     if folder==b and api(port,'/proxies/Google').get('type')!='Selector':raise RuntimeError('groups not ready')
+     if folder==b:
+      if api(port,'/proxies/Google').get('type')!='Selector':raise RuntimeError('groups not ready')
+      if api(port,'/proxies/Gemini').get('now')!='PublicPool':raise RuntimeError('independent business selection unexpected')
+      if not http('Gemini'):raise RuntimeError('independent business route not ready')
      with socket.create_connection(('127.0.0.1',19441 if folder==a else 19445),timeout=.4):pass
      return p
     except Exception:time.sleep(.25)
@@ -107,10 +113,32 @@ def main():
    stop(pb);pb=start(b,'locked-empty.yaml')
    check('removed_nodes_stay_rejected',not http('Google') and not dns('Google'))
    check('removed_nodes_other_business_ok',http('Gemini') and dns('Gemini'))
+   stop(pb);shutil.rmtree(b);b.mkdir();api(19446,'/configs','PATCH',{'mixed-port':19441});pb=start(b,'all-nodes.yaml')
+   shared='🔐 自定义节点';path='/proxies/'+urllib.parse.quote(shared,safe='');deadline=time.time()+10
+   while time.time()<deadline and 'subscription-good' not in api(19447,path)['all']:time.sleep(.2)
+   entry=api(19447,path)
+   check('all_sources_visible',set(entry['all'])=={'REJECT','raw-good','subscription-good','subscription-bad'})
+   check('all_nodes_defaults_reject',entry['now']=='REJECT' and entry.get('emptyFallback')=='REJECT')
+   check('group_and_bypass_nodes_not_selectable',not set(entry['all']) & {'DIRECT','PublicPool','raw-direct','alias-direct','剩余流量 99GB'})
+   select('Google',shared);select(shared,'subscription-good')
+   check('subscription_node_http_and_dns',http('Google') and dns('Google'))
+   api(19446,'/configs','PATCH',{'mixed-port':0});time.sleep(.3)
+   check('subscription_failure_does_not_switch',not http('Google') and not dns('Google') and api(19447,path)['now']=='subscription-good')
+   check('subscription_failure_other_business_ok',http('Gemini') and dns('Gemini'))
+   api(19446,'/configs','PATCH',{'mixed-port':19441})
+   replacement={'proxies':[{'name':'subscription-replacement','type':'socks5','server':'127.0.0.1','port':19441}]}
+   (b/'provider-one.yaml').write_text(json.dumps(replacement));api(19447,'/providers/proxies/provider-one','PUT')
+   entry=api(19447,path)
+   check('provider_refresh_adds_new_node', 'subscription-replacement' in entry['all'] and 'subscription-good' not in entry['all'])
+   check('removed_selected_subscription_rejects',entry['now']=='REJECT' and not http('Google') and not dns('Google'))
+   select(shared,'raw-good');check('inline_node_selectable',http('Google') and dns('Google'))
+   select(shared,'subscription-replacement');check('new_subscription_selectable',http('Google') and dns('Google'))
    print(json.dumps({'passed':True,'tests':results,'test_count':len(results),'network':'none','production_data_mounted':False,'production_selectors_changed':False,'native_kernel_sha256':__import__('hashlib').sha256((ROOT/'core').read_bytes()).hexdigest()}))
   except BaseException as error:
    import sys
-   print(json.dumps({'failed_step':str(error),'http_errors':HTTP_ERRORS,'candidate_log':(b/'core.log').read_text(errors='replace')[-1400:],'fixture_log':(a/'core.log').read_text(errors='replace')[-800:]},ensure_ascii=False),file=sys.stderr)
+   try:state={name:api(19447,'/proxies/'+urllib.parse.quote(name,safe='')) for name in ['Google','Gemini','🔐 自定义节点']}
+   except Exception:state={}
+   print(json.dumps({'failed_step':str(error),'passed_steps':results,'http_errors':HTTP_ERRORS,'selector_state':state,'candidate_log':(b/'core.log').read_text(errors='replace')[-1400:],'fixture_log':(a/'core.log').read_text(errors='replace')[-800:]},ensure_ascii=False),file=sys.stderr)
    raise
   finally:
    for process,log in reversed(processes):

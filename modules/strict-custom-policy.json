@@ -1,5 +1,6 @@
 {
   "schema": 1,
+  "select_all_nodes": true,
   "business_groups": [
     "🏠 本地网络",
     "🌐 联网检测",

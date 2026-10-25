@@ -22,9 +22,20 @@ private_value={'schema'=>1,'nodes'=>[
  y['proxy-groups'].select{|g|g['type']=='fallback'}.each{|g|g['url']='http://127.0.0.1:19440/';g['interval']=1;g['timeout']=500}
  File.write(root+'/'+name+'.yaml',YAML.dump(y));File.chmod(0600,root+'/'+name+'.yaml')
 end
+all_nodes=Marshal.load(Marshal.dump(base))
+all_nodes['proxies']=[{'name'=>'raw-good','type'=>'socks5','server'=>'127.0.0.1','port'=>19441},{'name'=>'raw-direct','type'=>'direct'}]
+all_nodes['proxy-providers']={
+ 'provider-one'=>{'type'=>'file','path'=>'./provider-one.yaml'},
+ 'provider-two'=>{'type'=>'file','path'=>'./provider-two.yaml'}}
+StrictCustom.apply(all_nodes,policy.merge('select_all_nodes'=>true))
+File.write(root+'/all-nodes.yaml',YAML.dump(all_nodes))
+{
+ 'provider-one.yaml'=>[{'name'=>'subscription-good','type'=>'socks5','server'=>'127.0.0.1','port'=>19441},{'name'=>'alias-direct','type'=>'direct'},{'name'=>'剩余流量 99GB','type'=>'socks5','server'=>'127.0.0.1','port'=>19441}],
+ 'provider-two.yaml'=>[{'name'=>'subscription-bad','type'=>'socks5','server'=>'127.0.0.1','port'=>19449}]
+}.each{|name,proxies|File.write(root+'/'+name,YAML.dump({'proxies'=>proxies}));File.chmod(0600,root+'/'+name)}
 fixture={
  'allow-lan'=>false,'bind-address'=>'127.0.0.1','mixed-port'=>19441,'external-controller'=>'127.0.0.1:19446','secret'=>'isolated-lab-only','ipv6'=>false,'log-level'=>'error',
  'hosts'=>base['hosts'],'profile'=>{'store-selected'=>false},'rules'=>['MATCH,DIRECT'],
  'dns'=>{'enable'=>true,'listen'=>'127.0.0.1:19455','enhanced-mode'=>'fake-ip','fake-ip-range'=>'198.18.0.1/16','fake-ip-filter'=>[],'nameserver'=>['127.0.0.1']}}
 File.write(root+'/fixture.yaml',YAML.dump(fixture));File.chmod(0600,root+'/fixture.yaml')
-puts 'fixtures_written=5'
+puts 'fixtures_written=8'

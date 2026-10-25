@@ -30,14 +30,15 @@ module StrictBind
     raise 'lock_registry_invalid' unless locks.is_a?(Hash) && locks['schema']==1 && locks['bindings'].is_a?(Hash)
     old_binding=locks['bindings'][business]
     raise 'no_persistent_binding' if unlock && !old_binding
-    raise 'binding_kind_invalid' unless unlock || %w[node group].include?(kind)
+    raise 'binding_kind_invalid' unless unlock || %w[node group existing].include?(kind)
     allowed=kind=='node' ? nodes.map{|n|n['name']} : pools.map{|p|p['name']}
-    full_target=target=='REJECT' ? 'REJECT' : (kind=='node' ? StrictCustom::NODE : StrictCustom::POOL)+target.to_s
-    raise 'private_target_missing' unless unlock || full_target=='REJECT' || allowed.include?(full_target)
+    full_target=target=='REJECT' ? 'REJECT' : kind=='existing' ? target.to_s : (kind=='node' ? StrictCustom::NODE : StrictCustom::POOL)+target.to_s
     before=r.api('/proxies')['proxies'];outer=before.fetch(business)
     wrapper=unlock ? (old_binding['kind']=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP) : (kind=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP)
     fence=old_binding ? (old_binding['kind']=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP) : wrapper
     raise 'strict_entry_not_installed' unless before[wrapper] && before[fence] && outer['all'].include?(fence)
+    raise 'target_not_in_shared_selector' unless unlock || before[wrapper]['all'].include?(full_target)
+    raise 'private_target_missing' unless unlock || kind=='existing' || full_target=='REJECT' || allowed.include?(full_target)
     backup='/root/openclash-backups/strict-bind-'+Time.now.to_i.to_s+'-'+Process.pid.to_s;r.sh('mkdir','-m','700',backup)
     {'source'=>source,'runtime'=>runtime,'private'=>ROOT+'/strict-custom-private.yaml','locks'=>path}.each do |name,file|
       next unless File.file?(file);r.atomic(backup+'/'+name+'.before',File.binread(file))
@@ -101,7 +102,7 @@ module StrictBind
   end
 end
 if __FILE__==$0
-  raise 'usage: strict_bind.rb BUSINESS node|group TARGET_ID_OR_REJECT / BUSINESS unlock' unless ARGV.length==3 || ARGV.length==2 && ARGV[1]=='unlock'
+  raise 'usage: strict_bind.rb BUSINESS node|group|existing TARGET_ID_OR_NODE_NAME / BUSINESS unlock' unless ARGV.length==3 || ARGV.length==2 && ARGV[1]=='unlock'
   business,kind,target=ARGV
   puts YAML.dump(StrictBind.execute(business,kind,target,kind=='unlock'))
 end

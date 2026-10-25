@@ -88,4 +88,14 @@ rules=copy(y['rules']);StrictCustom.apply(y,POLICY);assert(y['rules']==rules,'mi
 assert(y['proxy-groups'].none?{|g|StrictCustom.legacy_entry?(g['name']) || Array(g['proxies']).any?{|n|StrictCustom.legacy_entry?(n)}},'migration retained old entries')
 assert(y['proxy-groups'].count{|g|g['name']==StrictCustom::SINGLE}==1,'migration did not keep exactly one')
 puts 'PASS remove_legacy_groups_and_references'
-puts 'strict_custom_tests='+(tests.length+3).to_s
+y=fixture;all_policy=POLICY.merge('select_all_nodes'=>true)
+y['proxies'] << {'name'=>'alias-direct','type'=>'direct'}
+y['proxy-providers']={'one'=>{'type'=>'file','path'=>'./provider-one.yaml'},'two'=>{'type'=>'file','path'=>'./provider-two.yaml'}}
+StrictCustom.apply(y,all_policy,PRIVATE);entry=y['proxy-groups'].find{|g|g['name']==StrictCustom::SINGLE}
+assert(entry['proxies'].first=='REJECT' && entry['proxies'].include?('public') && entry['proxies'].include?(StrictCustom::NODE+'own-a'),'all-node raw list incomplete')
+assert(!entry['proxies'].include?('alias-direct') && entry['use']==%w[one two] && entry['empty-fallback']=='REJECT','all-node source or fail-closed invalid')
+puts 'PASS all_actual_nodes_and_all_providers'
+entry['proxies'] << 'PublicPool'
+begin;StrictCustom.validate(y);raise 'public group accepted';rescue RuntimeError=>e;raise unless e.message=='all_nodes_group_or_direct_escape';end
+puts 'PASS all_nodes_group_escape_rejected'
+puts 'strict_custom_tests='+(tests.length+5).to_s

@@ -33,6 +33,14 @@ class ControlTests(unittest.TestCase):
   api=FakeAPI();r=activate(api,'Google','node');self.assertTrue(r['closed_until_configured']);self.assertEqual(api.groups[api.wrapper]['now'],'REJECT')
  def test_native_null_connection_list(self):
   api=FakeAPI();api.connections=None;r=activate(api,'Google','node');self.assertEqual(r['matching_connections_closed'],0)
+ def test_subscription_leaf_can_be_selected(self):
+  api=FakeAPI();api.groups[api.wrapper]['all'].append('subscription-node')
+  api.groups['subscription-node']={'type':'Shadowsocks'}
+  result=activate(api,'Google','node','subscription-node');self.assertEqual(result['selected'],'subscription-node')
+ def test_bypass_alias_rejected_before_changes(self):
+  api=FakeAPI();api.groups[api.wrapper]['all'].append('renamed-direct');api.groups['renamed-direct']={'type':'Direct'}
+  with self.assertRaises(ValueError):activate(api,'Google','node','renamed-direct')
+  self.assertFalse(any(row[0]=='PUT' for row in api.events))
  def test_shared_target_change_drains_all_subscribers_only(self):
   api=FakeAPI();api.groups['Gemini']['now']=api.wrapper
   api.connections += [{'id':'shared-old','chains':['🔐 自建节点 · own',api.wrapper,'Gemini']},{'id':'unrelated','chains':['third']}]

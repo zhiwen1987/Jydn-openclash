@@ -40,6 +40,7 @@ when 'observe'
  end
  now=r.api('/proxies')['proxies'];result={'identity'=>'00:0c:29:2d:96:e8','probes'=>tests,'rule_count'=>r.api('/rules')['rules'].length,'groups'=>now.values.count{|v|v.key?('all')},'mode'=>r.api('/configs')['mode'],'source_sha256'=>hash_file(source)}
  entries=now.keys.select{|name|name.include?('自定义节点')};result['custom_entry_count']=entries.length;result['custom_entry_names_preview']=entries.first(3)
+ result['shared_selector']=now['🔐 自定义节点']&.slice('type','now','all','emptyFallback')
  r.atomic(b+'/observation-'+Time.now.to_i.to_s+'.yaml',YAML.dump(result));puts YAML.dump(result)
 when 'preflight'
  if ARGS['router'] && File.file?(ARGS['router']+'/stage/core-validation.log')
@@ -142,7 +143,19 @@ when 'accept'
  b=ARGS.fetch('router');stage=b+'/stage';require stage+'/strict_custom_router_recovery';require stage+'/strict_custom'
  recovery=StrictRouterRecovery;a=YAML.load_file(b+'/activated_router.yaml');now=recovery.api('/proxies')['proxies'];y=StrictCustom.load(runtime)
  strict=now.select{|name,g|name==StrictCustom::SINGLE || name.start_with?('🔐 自定义节点 · ','🔐 自定义节点组 · ')}
- abort 'Private selector missing or not closed' unless strict.keys==[StrictCustom::SINGLE] && strict.values.all?{|g|g['type']=='Selector' && g['all']==['REJECT'] && g['now']=='REJECT'}
+ entry=strict[StrictCustom::SINGLE]
+ abort 'Shared selector missing or default changed' unless strict.keys==[StrictCustom::SINGLE] && entry['type']=='Selector' && entry['all'].first=='REJECT' && entry['now']==a['choices'][StrictCustom::SINGLE] && entry['emptyFallback']=='REJECT'
+ forbidden=StrictCustom::EXCLUDE_TYPES.downcase.split('|')
+ providers=recovery.api('/providers/proxies')['providers']
+ expected=Array(y['proxies']).reject{|node|StrictCustom::NON_NODE_TYPES.include?(node['type'].to_s.downcase)}.map{|node|node['name']}
+ y.fetch('proxy-providers',{}).keys.each do |name|
+  abort 'Provider missing from API' unless providers[name]
+  expected+=Array(providers[name]['proxies']).reject{|node|forbidden.include?(node['type'].to_s.downcase)}.map{|node|node['name']}
+ end
+ expected=expected.reject{|name|name.match?(Regexp.new(StrictCustom::NOTICE_FILTER))}.uniq.sort
+ actual=entry['all'].reject{|name|name=='REJECT'}.uniq.sort
+ abort 'Not all actual nodes are visible' unless actual==expected
+ abort 'Policy group or bypass entry leaked' unless entry['all'].none?{|name|name!='REJECT' && now[name] && forbidden.include?(now[name]['type'].to_s.downcase)}
  rules=recovery.api('/rules')['rules'].map{|r|r.slice('type','payload','proxy')};abort 'Production rules changed' unless rules==a['rules']
  ignored=['GLOBAL','🧪 节点能力检测','🔬 节点归属校验']
  a['choices'].each{|name,selected|next if ignored.include?(name) || StrictCustom.legacy_entry?(name);abort 'Production selection changed' unless now.dig(name,'now')==StrictCustom.canonical(selected)}
@@ -152,7 +165,7 @@ when 'accept'
  StrictCustom.validate(y);abort 'Persistent private hook missing' unless File.read(paths['overwrite']).include?('# BEGIN JYDN STRICT CUSTOM')
  abort 'UCI source changed unexpectedly' unless sh('uci','-q','get','openclash.config.config_path')==source
  recovery.atomic(b+'/ROUTER_ACCEPTED','accepted');sh('/etc/init.d/'+a['guard_service'],'disable');sh('/etc/init.d/'+a['guard_service'],'stop')
- result={'accepted'=>true,'source'=>source,'business_count'=>69,'strict_group_count'=>1,'legacy_group_count'=>0,'shared_entries'=>strict.keys,'all_empty_private_entries_reject'=>true,'rules_unchanged'=>true,'dns_unchanged'=>true,'original_choices_preserved'=>true,'subscription_restart_hook_persistent'=>true,'native_kernel_replaced'=>false,'rollback_guard_disarmed'=>true,
+ result={'accepted'=>true,'source'=>source,'business_count'=>69,'strict_group_count'=>1,'legacy_group_count'=>0,'shared_entries'=>strict.keys,'selectable_node_count'=>actual.length,'all_sources_verified'=>true,'default_is_reject'=>true,'rules_unchanged'=>true,'dns_unchanged'=>true,'original_choices_preserved'=>true,'subscription_restart_hook_persistent'=>true,'native_kernel_replaced'=>false,'rollback_guard_disarmed'=>true,
   'source_sha256'=>hash_file(source),'runtime_sha256'=>hash_file(runtime)}
  recovery.atomic(b+'/router-acceptance.yaml',YAML.dump(result));puts YAML.dump(result)
 when 'rollback'

@@ -12,6 +12,9 @@ module StrictCustom
   PREFIXES = [NODE, POOL, LEGACY_SINGLE, LEGACY_GROUP].freeze
   TYPES = %w[ss ssr vmess vless trojan socks5 http snell hysteria hysteria2 tuic wireguard].freeze
   ID = /\A[a-zA-Z0-9][a-zA-Z0-9_-]{0,47}\z/
+  EXCLUDE_TYPES='Direct|Pass|Compatible|Dns|Selector|URLTest|Fallback|LoadBalance|Relay'
+  NOTICE_FILTER='(?i)(剩余流量|重置剩余|下次重置|套餐到期|官网|邮箱|节点异常|刷新订阅|刷新失败|更新失败|取消订阅时限)'
+  NON_NODE_TYPES=%w[direct reject reject-drop pass compatible dns select selector url-test fallback load-balance relay].freeze
   def self.owned?(name);name.is_a?(String) && (name==SINGLE || PREFIXES.any?{|p|name.start_with?(p)});end
   def self.legacy_entry?(name)
     name.is_a?(String) && (name.start_with?(LEGACY_SINGLE) && name!=SINGLE || name.start_with?(LEGACY_GROUP) && name!=GROUP)
@@ -59,8 +62,8 @@ module StrictCustom
     targets=policy['business_groups'];raise 'public_business_invalid' unless targets.all?{|n|n.is_a?(String)} && targets.uniq==targets
     raise 'lock_registry_invalid' unless locks.is_a?(Hash) && locks['schema']==1 && locks['bindings'].is_a?(Hash)
     locks['bindings'].each do |name,binding|
-      raise 'lock_binding_invalid' unless targets.include?(name) && binding.is_a?(Hash) && %w[node group].include?(binding['kind']) &&
-        (binding['target']=='REJECT' || ID.match?(binding['target'].to_s))
+      raise 'lock_binding_invalid' unless targets.include?(name) && binding.is_a?(Hash) && %w[node group existing].include?(binding['kind']) &&
+        (binding['target']=='REJECT' || binding['kind']=='existing' && binding['target'].is_a?(String) && binding['target'].length.between?(1,512) && !binding['target'].match?(/[\x00-\x1f]/) || ID.match?(binding['target'].to_s))
     end
     original=config['proxy-groups'];existing=original.to_h{|g|[g.fetch('name'),g]}
     defaults=existing.to_h{|name,g|[name,(locks.dig('bindings',name,'original_menu') || g['proxies'] || []).first]}
@@ -82,6 +85,12 @@ module StrictCustom
     groups=original.reject{|g|owned?(g['name'])}
     applied=[];private_names=nodes.map{|n|n['name']}
     generated=[{'name'=>SINGLE,'type'=>'select','proxies'=>['REJECT']+private_names+pools.map{|v|v['name']}}]
+    if policy['select_all_nodes']==true
+      names=(raw+nodes).reject{|node|NON_NODE_TYPES.include?(node['type'].to_s.downcase) || node['name'].to_s.match?(Regexp.new(NOTICE_FILTER))}.map{|node|node['name']}
+      entry=generated.first;entry['proxies']=(['REJECT']+names).uniq
+      entry['use']=config.fetch('proxy-providers',{}).keys unless config.fetch('proxy-providers',{}).empty?
+      entry['exclude-type']=EXCLUDE_TYPES;entry['exclude-filter']=NOTICE_FILTER;entry['empty-fallback']='REJECT'
+    end
     groups.each do |g|
       # Private raw nodes never enter public include-all pools.
       if g['include-all']==true || g['include-all-proxies']==true
@@ -149,6 +158,14 @@ module StrictCustom
     groups.each_value do |group|
       next unless owned?(group['name'])
       raise 'strict_type_invalid' unless %w[select fallback].include?(group['type'])
+      if group['name']==SINGLE && group['empty-fallback']=='REJECT'
+        raise 'all_nodes_selector_invalid' unless group['type']=='select' && group['proxies'].first=='REJECT' && group['exclude-type']==EXCLUDE_TYPES && group['exclude-filter']==NOTICE_FILTER
+        raise 'all_nodes_expansion_invalid' if group['include-all'] || group['include-all-proxies'] || group['include-all-providers']
+        raise 'all_nodes_provider_invalid' unless Array(group['use']).sort==config.fetch('proxy-providers',{}).keys.sort
+        raw=Array(config['proxies']).to_h{|node|[node['name'],node]}
+        raise 'all_nodes_group_or_direct_escape' unless group['proxies'].all?{|name|name=='REJECT' || raw[name] && !NON_NODE_TYPES.include?(raw[name]['type'].to_s.downcase)}
+        next
+      end
       raise 'strict_external_provider_forbidden' if group['use'] || group['include-all'] || group['include-all-proxies'] || group['include-all-providers']
       members=group['proxies'];raise 'strict_members_invalid' unless members.is_a?(Array) && !members.empty?
       raise 'strict_foreign_escape' unless members.all?{|n|n=='REJECT' || owned?(n)}
