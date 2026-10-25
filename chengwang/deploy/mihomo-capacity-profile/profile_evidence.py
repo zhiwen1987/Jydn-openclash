@@ -115,7 +115,11 @@ def commands(goroot,diagnostic_mode='SINGLE_CASE'):
     def run(kind,argv,out,err):
         journal(kind,argv,'START_INTENT')
         with (PRIVATE/out).open('xb') as stdout,(PRIVATE/err).open('xb') as stderr:
-            p=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=stdout,stderr=stderr)
+            # The normal Go suite observes0022. Keep this capture parent077
+            # (and its original streams0600), changing only the full GO_TEST
+            # child before exec via CPython's POSIX-only umask keyword.
+            child_options={'umask':0o022}if diagnostic_mode=='FULL_CONTRACTS'and kind=='GO_TEST'else{}
+            p=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=stdout,stderr=stderr,**child_options)
             journal(kind,argv,'STARTED',p.pid)
             code=p.wait()
             stdout.flush();os.fsync(stdout.fileno());stderr.flush();os.fsync(stderr.fileno())

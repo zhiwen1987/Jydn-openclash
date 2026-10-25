@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# CI-only private CPU experiment. Never invokes Mihomo, a service or HTTP.
+# CI-only private Go test CPU experiment. No real Mihomo or HTTP pprof.
+# FULL_CONTRACTS retains original MODEL selfexec and unit HTTP fixtures.
 set -euo pipefail
 test "$#" -eq 4 || test "$#" -eq 5
 repo="$1"

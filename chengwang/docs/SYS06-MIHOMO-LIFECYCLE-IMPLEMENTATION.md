@@ -1,8 +1,16 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，服务实验分项通过，完整 CI 仍失败，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，正常13门及585必需用例限定通过，独立完整诊断仍失败并正在修复，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 2026-10-25 ca正常585全门接受，完整诊断自身环境不兼容保留失败
+
+ca5431e362e3a8dfe1c54f9458cb66e5510cebfd正常40158396898实际13／13成功；普通／race各1273语义与585必需全过，旧539／528／407及新authority27／Start19齐全、格式0，原256容量6.62／79.12秒，race包124.382秒。foundation4cdd8b77与五门60aa20b4独立原件复核通过，原完整verify返回15055字节与producer／fresh相等；正常12ZIP208成员及1270Gitblob稳定。原Windows main在POSIX报告写入门自然exit1保留，不把本机原CLI称成功。
+
+诊断40158396908实际4success／full1failure，不能被正常成功抵消。full采样120.210秒完整，但565必需过／20失败、无timeout，容量93.74秒PASS；独立518a1942保4ZIP42成员及两模式producer／fresh一致。原Go输出与源码支持两个新harness原因：umask077改变故意0644权限反例，profile-tag TestMain拦原MODEL／flock helper子进程；未逐个重现每个失败，不把20失败直接称产品回归。pprof仅mihomodeploy窗口，前后资源不是逐测试或有效祖先CPU证明；未独立重算pprof数值，无Path／AST适配。归档见[evidence/sys06-ca5431e-normal-acceptance-profile-failure-20261025.json](evidence/sys06-ca5431e-normal-acceptance-profile-failure-20261025.json)。诊断修复须保所有原测试体、585、256与180秒并重新真实CI；完整恢复API／coordinator／新head／后续发布／再次恢复、整套产品及生产仍未完成。
+
+本次修正仅两个诊断源，真实新运行待验：父Python保umask077／私件0600，只对FULL的GO_TEST使用[Popen的POSIX子进程umask参数](https://docs.python.org/3.12/library/subprocess.html#subprocess.Popen)设0022；不改变产品权限校验。TestMain支持原有两条精确MODEL／probe子进程协议，以full-only私有parent marker、实际PPid及父／子exe身份核对约束，子进程只运行原helper，不打开或写父profile；clean-env MODEL无需继承profile凭据，probe检查继承绑定。默认single行为、公件18／20与报告schema不变。源码／有限模型不能代替新Linux编译、格式及真实原失败用例通过。
 
 ### 2026-10-25 完整六包race诊断接线：源码复核通过，真实运行待验
 

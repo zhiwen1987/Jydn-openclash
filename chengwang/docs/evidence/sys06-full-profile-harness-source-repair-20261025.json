@@ -1,0 +1,116 @@
+{
+  "actualAcceptedNormalRunID": 40158396898,
+  "actualAcceptedNormalSourceCommit": "ca5431e362e3a8dfe1c54f9458cb66e5510cebfd",
+  "actualFailedDiagnosticRunID": 40158396908,
+  "arbitraryRunOrEnvironmentMarkerAloneRejected": true,
+  "baseline": "ca5431e362e3a8dfe1c54f9458cb66e5510cebfd",
+  "captureParentUmask": "0077",
+  "defaultSingleBehaviorPreserved": true,
+  "diagnosticSourceFiles": {
+    ".github/workflows/chengwang-mihomo-capacity-profile.yml": {
+      "bytes": 13439,
+      "sha256": "d853b370300feaa3983121bc620a2d545b72ecab333331405b822d5d3a08c7a5"
+    },
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": {
+      "bytes": 30944,
+      "sha256": "b8bbc471631519b33592b75a766247eba92c3edd6253ccd10140a18833ee482c"
+    },
+    "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py": {
+      "bytes": 13538,
+      "sha256": "67f00cd11b83f0616f2a562db3ce9846a240feec26ef7ffba57b14bb4841c582"
+    },
+    "chengwang/deploy/mihomo-capacity-profile/run_profile.sh": {
+      "bytes": 3352,
+      "sha256": "e92790abda187a37c3d9a7ac5410705aff3b3215666459a329374ead65eb7a4f"
+    },
+    "chengwang/internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go": {
+      "bytes": 11892,
+      "sha256": "b7d1db0c5ae889cb3358f8e9211992250d340d5e8fd65fe47f0d1e02b32afe57"
+    }
+  },
+  "diagnosticTimersSeconds": [
+    60,
+    120
+  ],
+  "failedDiagnosticOriginalsRetained": true,
+  "failedDiagnosticRequiredCounts": {
+    "failed": 20,
+    "notStarted": 0,
+    "passed": 565,
+    "skipped": 0,
+    "unfinished": 0
+  },
+  "fullOnlyGoChildUmask": "0022",
+  "fullProjectComplete": false,
+  "helperActualParentProvenance": {
+    "actualDirectParentPIDRequired": true,
+    "directoryMode": "0700",
+    "fileMode": "0600",
+    "group": 10001,
+    "maxBytes": 16384,
+    "nlink": 1,
+    "noParentProfileOpenOrWriteInChildBranch": true,
+    "owner": 10001,
+    "parentGuardBeforeMarker": true,
+    "sameProcExecutableInodeRequired": true
+  },
+  "helpersExactRunAndSourceProtocolOnly": true,
+  "localGoOrFormatterOrHelperOrUmaskExperiment": false,
+  "mainMerged": false,
+  "mandatoryCount": 585,
+  "mandatoryNamesSHA256": "8319dfde365203ae1ae268b1a5d0a3938719bcd0671586bc66840ce2a20863c3",
+  "nativeRecoveryAccepted": false,
+  "newRuntimeAcceptance": false,
+  "normal13WorkflowUnchanged": true,
+  "normalAcceptanceNotInferredForNewCommit": true,
+  "normalBoundSourcesUnchanged": 112,
+  "originalHistory256AndTimeout180Preserved": true,
+  "outerTimeoutSeconds": 600,
+  "performanceFixProven": false,
+  "privateMarkerExports": false,
+  "privateStreamsMode": "0600",
+  "production": false,
+  "productionReady": false,
+  "publicFilesEachMode": [
+    18,
+    20
+  ],
+  "publicParentMarkerAdded": false,
+  "receipts": [
+    {
+      "kind": "source",
+      "path": "D:/CodexData/workspace/mihomo-full-profile-harness-fix-20261025-a/source-final.json",
+      "sha256": "1a5797894866b3fa59baf330ae4859f8f2f1bc9c55bbecaead7866b6b63adef1"
+    },
+    {
+      "kind": "peer",
+      "path": "D:/CodexData/workspace/mihomo-full-profile-harness-peer-20261025-a/result.json",
+      "sha256": "02e4ab04ac1edc31ba91f2d932cb7240aad9bed88dd44d56d2e58dacae89ed94"
+    },
+    {
+      "kind": "normalFoundation",
+      "path": "D:/CodexData/workspace/mihomo-ca5431e-foundation-audit-20261025-agent/closeout.json",
+      "sha256": "4cdd8b77ed0a9b4f0ea397c6157156ed082887c193a05a608801a70858b277ce"
+    },
+    {
+      "kind": "otherFive",
+      "path": "D:/CodexData/workspace/mihomo-ca5431e-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "60aa20b4725e2755e4a3d24aa7de19b99273cc50794a538a415935db1ebb3291"
+    },
+    {
+      "kind": "diagnosticFailure",
+      "path": "D:/CodexData/workspace/mihomo-ca5431e-full-profile-audit-20261025-agent/closeout.json",
+      "sha256": "518a194269199363ae3fb646589ed468beba5bfb1aa58602cddf478b29b2fc2c"
+    }
+  ],
+  "registryPublished": false,
+  "schema": "chengwang.full-profile-harness-repair-source-integration/v1",
+  "scope": "REVIEWED_DIAGNOSTIC_HARNESS_REPAIR_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py": "67f00cd11b83f0616f2a562db3ce9846a240feec26ef7ffba57b14bb4841c582",
+    "chengwang/deploy/mihomo-capacity-profile/run_profile.sh": "e92790abda187a37c3d9a7ac5410705aff3b3215666459a329374ead65eb7a4f",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "5167da63bbd6b68e806e9ef3bb5922264f539fe863160350325417744faa6e01",
+    "chengwang/docs/evidence/sys06-ca5431e-normal-acceptance-profile-failure-20261025.json": "a023e6538b0ddac9ce532e51a088731cdd22b3e5214d340af063e08ba3d8ad75",
+    "chengwang/internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go": "b7d1db0c5ae889cb3358f8e9211992250d340d5e8fd65fe47f0d1e02b32afe57"
+  }
+}
