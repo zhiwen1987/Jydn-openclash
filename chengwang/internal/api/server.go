@@ -30,28 +30,28 @@ import (
 )
 
 type Options struct {
-	Mode                      string
-	AdminToken                string
-	AllowPublish              bool
-	Versions                  *store.VersionStore
-	Mihomo                    MihomoReader
-	Evidence                  EvidenceVerifier
-	Authn                     Authenticator
-	Operations                OperationLister
-	Control                   *control.Service
-	OperationWritesEnabled    bool
-	ManagementScope           authz.ResourceScope
-	EvidenceMaxAge            time.Duration
-	Observation               ObservationReader
-	Overview                  overview.SnapshotProvider
-	Probes                    ProbeReader
-	ImageTrust                imagetrust.Backend
-	ImageTrustWritesEnabled   bool
-	Subscriptions             subscriptionctl.Backend
-	SubscriptionWritesEnabled bool
-	MihomoLab                 mihomodeploy.LabBackend
-	MihomoLabWritesEnabled    bool
-	MihomoRecoveries          mihomodeploy.LabRecoveryBackend
+	Mode                        string
+	AdminToken                  string
+	AllowPublish                bool
+	Versions                    *store.VersionStore
+	Mihomo                      MihomoReader
+	Evidence                    EvidenceVerifier
+	Authn                       Authenticator
+	Operations                  OperationLister
+	Control                     *control.Service
+	OperationWritesEnabled      bool
+	ManagementScope             authz.ResourceScope
+	EvidenceMaxAge              time.Duration
+	Observation                 ObservationReader
+	Overview                    overview.SnapshotProvider
+	Probes                      ProbeReader
+	ImageTrust                  imagetrust.Backend
+	ImageTrustWritesEnabled     bool
+	Subscriptions               subscriptionctl.Backend
+	SubscriptionWritesEnabled   bool
+	MihomoLab                   mihomodeploy.LabBackend
+	MihomoLabWritesEnabled      bool
+	MihomoRecoveries            mihomodeploy.LabRecoveryBackend
 	MihomoRecoveryWritesEnabled bool
 }
 
@@ -86,12 +86,12 @@ type ObservationReader interface {
 }
 
 type server struct {
-	options           Options
-	runtime           *runtimeProvider
-	evidenceScanGate  chan struct{}
-	imageTrustScope   authz.ResourceScope
-	subscriptionScope authz.ResourceScope
-	mihomoLabScope    authz.ResourceScope
+	options             Options
+	runtime             *runtimeProvider
+	evidenceScanGate    chan struct{}
+	imageTrustScope     authz.ResourceScope
+	subscriptionScope   authz.ResourceScope
+	mihomoLabScope      authz.ResourceScope
 	mihomoRecoveryScope authz.ResourceScope
 }
 

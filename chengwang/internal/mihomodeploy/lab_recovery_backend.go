@@ -47,25 +47,25 @@ type LabRecoveryRevokeRequest struct {
 }
 
 type LabRecoveryView struct {
-	Schema                     string       `json:"schema"`
-	Boundary                   string       `json:"boundary"`
-	RecoveryID                 string       `json:"recoveryId"`
-	Phase                      string       `json:"phase"`
-	Revision                   uint64       `json:"revision"`
-	PlanSHA256                 string       `json:"planSHA256"`
-	UnknownOperationID         string       `json:"unknownOperationId"`
-	OriginalPlanSHA256         string       `json:"originalPlanSHA256"`
-	PreviousHeadSHA256         string       `json:"previousHeadSHA256"`
-	HeadSHA256                 string       `json:"headSHA256"`
-	HeadGeneration             uint64       `json:"headGeneration"`
-	TargetArtifactRecordSHA256 string       `json:"targetArtifactRecordSHA256"`
-	TargetConfigSHA256         string       `json:"targetConfigSHA256"`
-	ExpiresAt                  time.Time    `json:"expiresAt"`
-	WriteBlocked               bool         `json:"writeBlocked"`
-	Replayed                   bool         `json:"replayed"`
-	HeadAdvanced               bool         `json:"headAdvanced"`
+	Schema                     string                  `json:"schema"`
+	Boundary                   string                  `json:"boundary"`
+	RecoveryID                 string                  `json:"recoveryId"`
+	Phase                      string                  `json:"phase"`
+	Revision                   uint64                  `json:"revision"`
+	PlanSHA256                 string                  `json:"planSHA256"`
+	UnknownOperationID         string                  `json:"unknownOperationId"`
+	OriginalPlanSHA256         string                  `json:"originalPlanSHA256"`
+	PreviousHeadSHA256         string                  `json:"previousHeadSHA256"`
+	HeadSHA256                 string                  `json:"headSHA256"`
+	HeadGeneration             uint64                  `json:"headGeneration"`
+	TargetArtifactRecordSHA256 string                  `json:"targetArtifactRecordSHA256"`
+	TargetConfigSHA256         string                  `json:"targetConfigSHA256"`
+	ExpiresAt                  time.Time               `json:"expiresAt"`
+	WriteBlocked               bool                    `json:"writeBlocked"`
+	Replayed                   bool                    `json:"replayed"`
+	HeadAdvanced               bool                    `json:"headAdvanced"`
 	Failure                    *LabRecoveryFailureView `json:"failure,omitempty"`
-	Proof                      LabProofView `json:"proof"`
+	Proof                      LabProofView            `json:"proof"`
 }
 
 // Failure is detached status only. CleanupSHA256 names the source-derived
@@ -81,11 +81,11 @@ type LabRecoveryFailureView struct {
 type labRecoveryBackend struct{ service *LabService }
 
 const (
-	labRecoveryReconcileReady      = "READY"
-	labRecoveryReconcileArmed      = "ARMED"
-	labRecoveryReconcileCommitting = "COMMITTING"
-	labRecoveryReconcileCommitted  = "COMMITTED"
-	labRecoveryReconcileLocked     = "LOCKED"
+	labRecoveryReconcileReady       = "READY"
+	labRecoveryReconcileArmed       = "ARMED"
+	labRecoveryReconcileCommitting  = "COMMITTING"
+	labRecoveryReconcileCommitted   = "COMMITTED"
+	labRecoveryReconcileLocked      = "LOCKED"
 	labRecoveryReconcileMaxAttempts = 2
 )
 
@@ -105,33 +105,33 @@ func labRecoveryWithRecordContext(parent context.Context, budget time.Duration, 
 }
 
 type labRecoveryOperation struct {
-	id        string
-	session   *labRecoverySession
-	store     *lifecycleRecoveryStore
-	owner     *lifecycleRecoveryOwnerToken
-	plan      labRecoveryPlanDescriptor
-	executing bool
-	settled   bool
-	old       *ownedLabKernel
-	oldIdentity labKernelIdentity
-	oldExit   *labKernelExit
-	quiescence *labQuiescenceObservation
-	next      *ownedLabKernel
-	nextIdentity *labKernelIdentity
-	startObservation *labRecoveryStartObservation
-	executorRef string
-	physical    bool
-	startedRecorded bool
+	id                  string
+	session             *labRecoverySession
+	store               *lifecycleRecoveryStore
+	owner               *lifecycleRecoveryOwnerToken
+	plan                labRecoveryPlanDescriptor
+	executing           bool
+	settled             bool
+	old                 *ownedLabKernel
+	oldIdentity         labKernelIdentity
+	oldExit             *labKernelExit
+	quiescence          *labQuiescenceObservation
+	next                *ownedLabKernel
+	nextIdentity        *labKernelIdentity
+	startObservation    *labRecoveryStartObservation
+	executorRef         string
+	physical            bool
+	startedRecorded     bool
 	completionCommitted bool
-	failureCode string
-	failureRecorded bool
-	failure     *LabRecoveryFailureView
-	cleanup     *labRecoveryCleanupCustody
-	reentry     *labRecoveryTerminalReentryPermit
-	sourceCleanup *labRecoveryCleanupCustody
-	sourceReentry *labRecoveryTerminalReentryPermit
-	reconcileState string
-	reconcileAttempts uint8
+	failureCode         string
+	failureRecorded     bool
+	failure             *LabRecoveryFailureView
+	cleanup             *labRecoveryCleanupCustody
+	reentry             *labRecoveryTerminalReentryPermit
+	sourceCleanup       *labRecoveryCleanupCustody
+	sourceReentry       *labRecoveryTerminalReentryPermit
+	reconcileState      string
+	reconcileAttempts   uint8
 }
 
 // These helpers are called only while the exact service mutex is held. A
@@ -197,23 +197,23 @@ type labRecoveryCleanupProbe struct {
 // canonical receipt for a future typed core reconciliation contract, but cannot
 // itself archive UNKNOWN, mint a Plan, approve, execute or restart a kernel.
 type labRecoveryCleanupCustody struct {
-	issuer    *labRecoveryCleanupIssuer
-	operation *labRecoveryOperation
-	service   *labServiceCore
-	runtime   *labLifecycleRuntimeCore
-	store     *lifecycleRecoveryStoreCore
-	disk      labRuntimeDisk
-	diagnostics *labDiagnosticsCore
-	owner     *lifecycleRecoveryOwnerCore
-	old       *ownedLabKernelCore
-	next      *ownedLabKernelCore
-	unstartedNext *labRecoveryUnstartedCleanupCustody
-	oldIdentity  labKernelIdentity
-	nextIdentity *labKernelIdentity
-	oldExit      labKernelExit
-	nextExit     *labKernelExit
-	attempt      *labRecoveryStartObservation
-	probes       [4]labRecoveryCleanupProbe
+	issuer           *labRecoveryCleanupIssuer
+	operation        *labRecoveryOperation
+	service          *labServiceCore
+	runtime          *labLifecycleRuntimeCore
+	store            *lifecycleRecoveryStoreCore
+	disk             labRuntimeDisk
+	diagnostics      *labDiagnosticsCore
+	owner            *lifecycleRecoveryOwnerCore
+	old              *ownedLabKernelCore
+	next             *ownedLabKernelCore
+	unstartedNext    *labRecoveryUnstartedCleanupCustody
+	oldIdentity      labKernelIdentity
+	nextIdentity     *labKernelIdentity
+	oldExit          labKernelExit
+	nextExit         *labKernelExit
+	attempt          *labRecoveryStartObservation
+	probes           [4]labRecoveryCleanupProbe
 	oldStdoutSHA256  string
 	oldStderrSHA256  string
 	nextStdoutSHA256 string
@@ -222,13 +222,13 @@ type labRecoveryCleanupCustody struct {
 	oldStderrBytes   int
 	nextStdoutBytes  int
 	nextStderrBytes  int
-	observedAt time.Time
-	failureCode string
-	canonical string
-	digest    string
-	settled   bool
-	used      bool
-	binding   func(*labRecoveryCleanupCustody, *labRecoveryOperation) bool
+	observedAt       time.Time
+	failureCode      string
+	canonical        string
+	digest           string
+	settled          bool
+	used             bool
+	binding          func(*labRecoveryCleanupCustody, *labRecoveryOperation) bool
 }
 
 const labRecoveryUnstartedCleanupSchema = "chengwang.mihomo-recovery-unstarted-kernel-cleanup/v1"
@@ -236,9 +236,9 @@ const labRecoveryUnstartedCleanupSchema = "chengwang.mihomo-recovery-unstarted-k
 type labRecoveryUnstartedCleanupReceipt struct {
 	Schema      string                    `json:"schema"`
 	Observation labKernelStartObservation `json:"observation"`
-	Stdout      labKernelStream            `json:"stdout"`
-	Stderr      labKernelStream            `json:"stderr"`
-	ObservedAt  time.Time                  `json:"observedAt"`
+	Stdout      labKernelStream           `json:"stdout"`
+	Stderr      labKernelStream           `json:"stderr"`
+	ObservedAt  time.Time                 `json:"observedAt"`
 }
 
 // labRecoveryUnstartedCleanupCustody is a memory-only, source-issued proof
@@ -246,24 +246,26 @@ type labRecoveryUnstartedCleanupReceipt struct {
 // acquiring an OS process identity. It is issued and consumed atomically with
 // its parent cleanup custody; it is never a persisted New-kernel authority.
 type labRecoveryUnstartedCleanupCustody struct {
-	issuer      *labRecoveryCleanupIssuer
-	parent      *labRecoveryCleanupCustody
-	operation   *labRecoveryOperation
-	service     *labServiceCore
-	kernel      *ownedLabKernelCore
-	observation labKernelStartObservation
-	stdout      labKernelStream
-	stderr      labKernelStream
+	issuer       *labRecoveryCleanupIssuer
+	parent       *labRecoveryCleanupCustody
+	operation    *labRecoveryOperation
+	service      *labServiceCore
+	kernel       *ownedLabKernelCore
+	observation  labKernelStartObservation
+	stdout       labKernelStream
+	stderr       labKernelStream
 	stdoutSHA256 string
 	stderrSHA256 string
-	stdoutBytes int
-	stderrBytes int
-	observedAt  time.Time
-	used        bool
-	binding     func(*labRecoveryUnstartedCleanupCustody, *labRecoveryCleanupCustody, *labRecoveryOperation) bool
+	stdoutBytes  int
+	stderrBytes  int
+	observedAt   time.Time
+	used         bool
+	binding      func(*labRecoveryUnstartedCleanupCustody, *labRecoveryCleanupCustody, *labRecoveryOperation) bool
 }
 
-func (labRecoveryUnstartedCleanupCustody) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
+func (labRecoveryUnstartedCleanupCustody) MarshalJSON() ([]byte, error) {
+	return nil, errLifecycleUnsafe
+}
 func (c *labRecoveryUnstartedCleanupCustody) UnmarshalJSON([]byte) error {
 	if c != nil {
 		*c = labRecoveryUnstartedCleanupCustody{}
@@ -344,24 +346,24 @@ func (i *labRecoveryCleanupIssuer) contains(c *labRecoveryCleanupCustody) bool {
 }
 
 type labRecoveryAbsentStartCustody struct {
-	issuer    *labRecoveryAbsentStartIssuer
-	operation *labRecoveryOperation
-	service   *labServiceCore
-	runtime   *labLifecycleRuntimeCore
-	store     *lifecycleRecoveryStoreCore
-	disk      labRuntimeDisk
-	owner     *lifecycleRecoveryOwnerCore
-	reentry   *labRecoveryTerminalReentryPermitCore
-	oldIdentity labKernelIdentity
-	cleanupSHA string
-	terminalRoot string
+	issuer            *labRecoveryAbsentStartIssuer
+	operation         *labRecoveryOperation
+	service           *labServiceCore
+	runtime           *labLifecycleRuntimeCore
+	store             *lifecycleRecoveryStoreCore
+	disk              labRuntimeDisk
+	owner             *lifecycleRecoveryOwnerCore
+	reentry           *labRecoveryTerminalReentryPermitCore
+	oldIdentity       labKernelIdentity
+	cleanupSHA        string
+	terminalRoot      string
 	terminalCanonical string
-	planSHA   string
-	recoveryID string
-	probes    [2]labRecoveryCleanupProbe
-	observedAt time.Time
-	used      bool
-	binding   func(*labRecoveryAbsentStartCustody) bool
+	planSHA           string
+	recoveryID        string
+	probes            [2]labRecoveryCleanupProbe
+	observedAt        time.Time
+	used              bool
+	binding           func(*labRecoveryAbsentStartCustody) bool
 }
 
 type labRecoveryAbsentStartIssuer struct {
@@ -393,27 +395,27 @@ func (i *labRecoveryAbsentStartIssuer) issue(c *labRecoveryAbsentStartCustody) b
 }
 
 type labRecoveryAbsentReentryCustody struct {
-	issuer    *labRecoveryAbsentReentryIssuer
-	operation *labRecoveryOperation
-	service   *labServiceCore
-	runtime   *labLifecycleRuntimeCore
-	store     *lifecycleRecoveryStoreCore
-	disk      labRuntimeDisk
-	owner     *lifecycleRecoveryOwnerCore
-	reentry   *labRecoveryTerminalReentryPermitCore
-	sourceCleanup *labRecoveryCleanupCustody
-	oldIdentity labKernelIdentity
-	cleanupSHA string
-	terminalRoot string
+	issuer            *labRecoveryAbsentReentryIssuer
+	operation         *labRecoveryOperation
+	service           *labServiceCore
+	runtime           *labLifecycleRuntimeCore
+	store             *lifecycleRecoveryStoreCore
+	disk              labRuntimeDisk
+	owner             *lifecycleRecoveryOwnerCore
+	reentry           *labRecoveryTerminalReentryPermitCore
+	sourceCleanup     *labRecoveryCleanupCustody
+	oldIdentity       labKernelIdentity
+	cleanupSHA        string
+	terminalRoot      string
 	terminalCanonical string
-	planSHA string
-	recoveryID string
-	used bool
-	binding func(*labRecoveryAbsentReentryCustody) bool
+	planSHA           string
+	recoveryID        string
+	used              bool
+	binding           func(*labRecoveryAbsentReentryCustody) bool
 }
 
 type labRecoveryAbsentReentryIssuer struct {
-	mu sync.Mutex
+	mu     sync.Mutex
 	issued map[*labRecoveryAbsentReentryCustody]bool
 }
 
@@ -441,17 +443,17 @@ func (i *labRecoveryAbsentReentryIssuer) issue(c *labRecoveryAbsentReentryCustod
 }
 
 type labRecoveryLiveReentryCustody struct {
-	issuer   *labRecoveryLiveReentryIssuer
-	service  *labServiceCore
-	runtime  *labLifecycleRuntimeCore
-	store    *lifecycleRecoveryStoreCore
-	disk     labRuntimeDisk
-	owner    *lifecycleRecoveryOwnerCore
-	kernel   *ownedLabKernelCore
-	identity labKernelIdentity
+	issuer     *labRecoveryLiveReentryIssuer
+	service    *labServiceCore
+	runtime    *labLifecycleRuntimeCore
+	store      *lifecycleRecoveryStoreCore
+	disk       labRuntimeDisk
+	owner      *lifecycleRecoveryOwnerCore
+	kernel     *ownedLabKernelCore
+	identity   labKernelIdentity
 	recoveryID string
-	used     bool
-	binding  func(*labRecoveryLiveReentryCustody) bool
+	used       bool
+	binding    func(*labRecoveryLiveReentryCustody) bool
 }
 
 type labRecoveryLiveReentryIssuer struct {
@@ -900,53 +902,53 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 			s.runtime.core == nil || s.runtime.core.recovery == nil || s.runtime.core.current != s.store {
 			return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 		} else {
-		store, owner = s.runtime.core.recovery, c.owner
-		_, fresh, ownerErr := labRecoveryOwnerExpiry(store, owner, now)
-		if ownerErr != nil || !fresh {
-			// Replacement is permitted only after the exact old token is observed
-			// expired under this same live store. acquireRecoveryOwner performs the
-			// durable fence increment and installs the sole new process token.
+			store, owner = s.runtime.core.recovery, c.owner
+			_, fresh, ownerErr := labRecoveryOwnerExpiry(store, owner, now)
+			if ownerErr != nil || !fresh {
+				// Replacement is permitted only after the exact old token is observed
+				// expired under this same live store. acquireRecoveryOwner performs the
+				// durable fence increment and installs the sole new process token.
+				if ownerErr != nil {
+					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
+				}
+				owner, err = store.acquireRecoveryOwner(now, now.Add(5*time.Minute))
+				if err != nil {
+					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
+				}
+				c.owner = owner
+				source, present, err = s.runtime.recoverySnapshot()
+				if err != nil || !present || source.core == nil || source.core.Current.Active == nil || source.core.Current.Active.Phase != "UNKNOWN" ||
+					source.core.Current.Active.Plan.OperationID != request.UnknownOperationID || source.core.Current.Active.Plan.PlanSHA256 != request.OriginalPlanSHA256 {
+					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
+				}
+			}
+			expires, _, ownerErr := labRecoveryOwnerExpiry(store, owner, time.Now().UTC())
 			if ownerErr != nil {
+				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
+			}
+			now = time.Now().UTC()
+			planExpires, expiryErr := labRecoveryPlanExpiry(now, request.TTLSeconds, expires)
+			if expiryErr != nil {
+				return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
+			}
+			target := cloneArtifactDescriptor(source.core.Current.Active.Plan.Artifact)
+			if labRecoveryExactTarget(ctx, s.artifacts, target) != nil {
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 			}
-			owner, err = store.acquireRecoveryOwner(now, now.Add(5*time.Minute))
-			if err != nil {
-				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
-			}
-			c.owner = owner
-			source, present, err = s.runtime.recoverySnapshot()
-			if err != nil || !present || source.core == nil || source.core.Current.Active == nil || source.core.Current.Active.Phase != "UNKNOWN" ||
-				source.core.Current.Active.Plan.OperationID != request.UnknownOperationID || source.core.Current.Active.Plan.PlanSHA256 != request.OriginalPlanSHA256 {
-				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
-			}
-		}
-		expires, _, ownerErr := labRecoveryOwnerExpiry(store, owner, time.Now().UTC())
-		if ownerErr != nil {
-			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
-		}
-		now = time.Now().UTC()
-		planExpires, expiryErr := labRecoveryPlanExpiry(now, request.TTLSeconds, expires)
-		if expiryErr != nil {
-			return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
-		}
-		target := cloneArtifactDescriptor(source.core.Current.Active.Plan.Artifact)
-		if labRecoveryExactTarget(ctx, s.artifacts, target) != nil {
-			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
-		}
 			plan, err = labRecoveryPlanForCurrentEpoch(source, id, actor, target, now, planExpires)
-		if err != nil {
-			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
-		}
-		s.ready = false
+			if err != nil {
+				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
+			}
+			s.ready = false
 			if s.store == nil {
 				err = s.runtime.beginRecoveryWithoutCurrent(store, owner, &plan, source.core.Revision, source.core.RecordSHA256, time.Now().UTC())
 			} else {
 				err = s.runtime.beginNextRecovery(s.store, store, owner, &plan, source.core.Revision, source.core.RecordSHA256, time.Now().UTC())
 			}
 			if err != nil {
-			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
-		}
-		s.store, s.owner = nil, nil
+				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
+			}
+			s.store, s.owner = nil, nil
 		}
 	}
 	session, err := c.authority.bindPlan(initiator, store, owner, time.Now().UTC())

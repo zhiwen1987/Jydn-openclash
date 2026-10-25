@@ -17,7 +17,9 @@ const lifecycleRecoveryCleanupSchema = "chengwang.mihomo-owned-recovery-cleanup/
 // Linux source coordinator may combine it with its separately registered
 // cleanup custody. Neither this value nor persisted cleanup evidence is an
 // authorization or a generic callback/factory.
-type labRecoveryReconcilePermit struct{ core *labRecoveryReconcilePermitCore }
+type labRecoveryReconcilePermit struct {
+	core *labRecoveryReconcilePermitCore
+}
 type labRecoveryReconcilePermitCore struct {
 	runtime          *labLifecycleRuntimeCore
 	service          *labServiceCore
@@ -36,38 +38,42 @@ type labRecoveryReconcilePermitCore struct {
 	binding          func(*labRecoveryReconcilePermitCore) bool
 }
 
-type labRecoveryTerminalReentryPermit struct{ core *labRecoveryTerminalReentryPermitCore }
+type labRecoveryTerminalReentryPermit struct {
+	core *labRecoveryTerminalReentryPermitCore
+}
 type labRecoveryTerminalReentryPermitCore struct {
-	runtime      *labLifecycleRuntimeCore
-	service      *labServiceCore
-	store        *lifecycleRecoveryStoreCore
-	disk         lifecycleDisk
-	terminalPlan string
-	terminalRoot string
+	runtime           *labLifecycleRuntimeCore
+	service           *labServiceCore
+	store             *lifecycleRecoveryStoreCore
+	disk              lifecycleDisk
+	terminalPlan      string
+	terminalRoot      string
 	terminalCanonical string
-	cleanupSHA   string
-	fence        uint64
-	used         bool
-	binding      func(*labRecoveryTerminalReentryPermitCore) bool
+	cleanupSHA        string
+	fence             uint64
+	used              bool
+	binding           func(*labRecoveryTerminalReentryPermitCore) bool
 }
 
 type labRecoveryAbsenceCustodyCore struct {
-	runtime    *labLifecycleRuntimeCore
-	service    *labServiceCore
-	store      *lifecycleRecoveryStoreCore
-	disk       lifecycleDisk
-	cleanupSHA string
-	terminalRoot string
-	terminalCanonical string
+	runtime             *labLifecycleRuntimeCore
+	service             *labServiceCore
+	store               *lifecycleRecoveryStoreCore
+	disk                lifecycleDisk
+	cleanupSHA          string
+	terminalRoot        string
+	terminalCanonical   string
 	planSHA, recoveryID string
-	ownerNonce string
-	ownerFence uint64
-	reentry *labRecoveryTerminalReentryPermitCore
-	oldIdentity labKernelIdentity
-	binding    func(*labRecoveryAbsenceCustodyCore) bool
+	ownerNonce          string
+	ownerFence          uint64
+	reentry             *labRecoveryTerminalReentryPermitCore
+	oldIdentity         labKernelIdentity
+	binding             func(*labRecoveryAbsenceCustodyCore) bool
 }
 
-type labRecoveryAbsentStartPermit struct{ core *labRecoveryAbsentStartPermitCore }
+type labRecoveryAbsentStartPermit struct {
+	core *labRecoveryAbsentStartPermitCore
+}
 type labRecoveryAbsentStartPermitCore struct {
 	store        *lifecycleRecoveryStoreCore
 	absence      *labRecoveryAbsenceCustodyCore
@@ -82,21 +88,42 @@ type labRecoveryAbsentStartPermitCore struct {
 }
 type labRecoveryAbsentStartFact struct {
 	RecoveryID, PlanSHA256, StartIntentSHA256 string
-	Revision uint64
-	RecordSHA256 string
-	TargetArtifact ArtifactDescriptor
-	ArmedAt, ExpiresAt time.Time
+	Revision                                  uint64
+	RecordSHA256                              string
+	TargetArtifact                            ArtifactDescriptor
+	ArmedAt, ExpiresAt                        time.Time
 }
 
-func (labRecoveryReconcilePermit) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, lifecycleRecoveryDebug) }
+func (labRecoveryReconcilePermit) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, lifecycleRecoveryDebug)
+}
 func (labRecoveryReconcilePermit) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
-func (p *labRecoveryReconcilePermit) UnmarshalJSON([]byte) error { if p != nil { p.core = nil }; return errLifecycleUnsafe }
-func (labRecoveryTerminalReentryPermit) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, lifecycleRecoveryDebug) }
+func (p *labRecoveryReconcilePermit) UnmarshalJSON([]byte) error {
+	if p != nil {
+		p.core = nil
+	}
+	return errLifecycleUnsafe
+}
+func (labRecoveryTerminalReentryPermit) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, lifecycleRecoveryDebug)
+}
 func (labRecoveryTerminalReentryPermit) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
-func (p *labRecoveryTerminalReentryPermit) UnmarshalJSON([]byte) error { if p != nil { p.core = nil }; return errLifecycleUnsafe }
-func (labRecoveryAbsentStartPermit) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, lifecycleRecoveryDebug) }
+func (p *labRecoveryTerminalReentryPermit) UnmarshalJSON([]byte) error {
+	if p != nil {
+		p.core = nil
+	}
+	return errLifecycleUnsafe
+}
+func (labRecoveryAbsentStartPermit) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, lifecycleRecoveryDebug)
+}
 func (labRecoveryAbsentStartPermit) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
-func (p *labRecoveryAbsentStartPermit) UnmarshalJSON([]byte) error { if p != nil { p.core = nil }; return errLifecycleUnsafe }
+func (p *labRecoveryAbsentStartPermit) UnmarshalJSON([]byte) error {
+	if p != nil {
+		p.core = nil
+	}
+	return errLifecycleUnsafe
+}
 
 func lifecycleRecoveryCleanupHash(v lifecycleRecoveryCleanupFact) (string, error) {
 	v.CleanupSHA256 = ""
@@ -418,7 +445,9 @@ func lifecycleRecoveryReconcileReservationBytes(w *lifecycleV3Wire, attempt *lab
 	if attempt == nil {
 		attempt = lifecycleRecoveryMaxCleanupAttempt(future.Recovery.Plan.Schema == labRecoveryPlanSchemaV3 && future.Recovery.Plan.StartMode == labRecoveryStartModeOldEpochAbsent, id, stream, when)
 	}
-	probe := func(role string, port uint16) lifecycleRecoveryCleanupProbe { return lifecycleRecoveryCleanupProbe{Role: role, Probe: labQuiescenceProbe{Port: port, Attempted: true, Result: "CONNECTION_REFUSED"}, ObservedAt: when} }
+	probe := func(role string, port uint16) lifecycleRecoveryCleanupProbe {
+		return lifecycleRecoveryCleanupProbe{Role: role, Probe: labQuiescenceProbe{Port: port, Attempted: true, Result: "CONNECTION_REFUSED"}, ObservedAt: when}
+	}
 	cleanup := lifecycleRecoveryCleanupFact{Schema: lifecycleRecoveryCleanupSchema, RecoveryID: future.Recovery.Plan.RecoveryID, FailureCode: future.Recovery.Failure.Code,
 		Old: lifecycleRecoveryCleanedKernel{Identity: id, Exit: exit}, New: &lifecycleRecoveryCleanedKernel{Identity: id, Exit: exit},
 		Attempt: attempt, Probes: []lifecycleRecoveryCleanupProbe{probe("OLD_CONTROLLER", 28412), probe("OLD_MIXED", 28411), probe("NEW_CONTROLLER", 28412), probe("NEW_MIXED", 28411)},
@@ -456,39 +485,80 @@ func lifecycleRecoveryReconcileReserve(w *lifecycleV3Wire) error {
 // Called only by the same warm Linux coordinator after a fresh Prepare policy
 // check. It reserves the complete WAL before that coordinator touches a kernel.
 func (r *labLifecycleRuntime) armRecoveryReconcile(service *LabService, s *lifecycleRecoveryStore, t *lifecycleRecoveryOwnerToken, now time.Time) (*labRecoveryReconcilePermit, error) {
-	if r == nil || r.core == nil || service == nil || service.core == nil || s == nil || s.core == nil { return nil, errLifecycleUnsafe }
+	if r == nil || r.core == nil || service == nil || service.core == nil || s == nil || s.core == nil {
+		return nil, errLifecycleUnsafe
+	}
 	c, x := r.core, s.core
-	c.mu.Lock(); defer c.mu.Unlock()
-	x.mu.Lock(); defer x.mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	x.mu.Lock()
+	defer x.mu.Unlock()
 	if c.closed || c.poisoned || c.recovery != s || c.store != nil || c.current != nil || service.core.runtime != r ||
-		!lifecycleRecoverySameDisk(c.disk, x.disk) || x.reconcilePermit != nil || x.closed || x.poisoned { return nil, errLifecycleUnsafe }
-	base, err := x.verifiedBase(); if err != nil { return nil, err }; defer base.release()
-	if x.token(t, false, now) != nil { return nil, errLifecycleUnsafe }
+		!lifecycleRecoverySameDisk(c.disk, x.disk) || x.reconcilePermit != nil || x.closed || x.poisoned {
+		return nil, errLifecycleUnsafe
+	}
+	base, err := x.verifiedBase()
+	if err != nil {
+		return nil, err
+	}
+	defer base.release()
+	if x.token(t, false, now) != nil {
+		return nil, errLifecycleUnsafe
+	}
 	a := x.record.core.Recovery
-	if a == nil || a.Phase != "RECOVERY_UNKNOWN" || a.Failure == nil || a.Reconciliation != nil || lifecycleRecoveryReconcileReserve(x.record.core) != nil { return nil, errLifecycleUnsafe }
-	root, err := lifecycleRecoveryCheckpoint(x.record.core, lifecycleRecoveryCheckpointUnknown); if err != nil { return nil, errLifecycleUnsafe }
+	if a == nil || a.Phase != "RECOVERY_UNKNOWN" || a.Failure == nil || a.Reconciliation != nil || lifecycleRecoveryReconcileReserve(x.record.core) != nil {
+		return nil, errLifecycleUnsafe
+	}
+	root, err := lifecycleRecoveryCheckpoint(x.record.core, lifecycleRecoveryCheckpointUnknown)
+	if err != nil {
+		return nil, errLifecycleUnsafe
+	}
 	p := &labRecoveryReconcilePermitCore{runtime: c, service: service.core, store: x, disk: x.disk, owner: t.core, nonce: t.core.nonce, fence: t.core.fence,
 		recoveryID: a.Plan.RecoveryID, revision: x.record.core.Revision, recordSHA256: x.record.core.RecordSHA256, canonical: string(x.raw), originalRoot: root, unknownUpdatedAt: a.UpdatedAt}
 	canonical, owner, runtime, svc, disk := p.canonical, p.owner, c, service.core, x.disk
-	p.binding = func(candidate *labRecoveryReconcilePermitCore) bool { return candidate == p && candidate.store == x && candidate.runtime == runtime && candidate.service == svc &&
-		candidate.owner == owner && candidate.canonical == canonical && lifecycleRecoverySameDisk(candidate.disk, disk) }
+	p.binding = func(candidate *labRecoveryReconcilePermitCore) bool {
+		return candidate == p && candidate.store == x && candidate.runtime == runtime && candidate.service == svc &&
+			candidate.owner == owner && candidate.canonical == canonical && lifecycleRecoverySameDisk(candidate.disk, disk)
+	}
 	x.reconcilePermit = p
 	return &labRecoveryReconcilePermit{core: p}, nil
 }
 
 func (s *lifecycleRecoveryStore) recordRecoveryReconciled(t *lifecycleRecoveryOwnerToken, permit *labRecoveryReconcilePermit, custody *labRecoveryCleanupCustody, now time.Time) (out *labRecoveryTerminalReentryPermit, err error) {
-	if permit == nil || permit.core == nil || custody == nil { return nil, errLifecycleUnsafe }
+	if permit == nil || permit.core == nil || custody == nil {
+		return nil, errLifecycleUnsafe
+	}
 	fact, consumeErr := custody.consumeRecoveryReconciliation(permit, now)
-	if s == nil || s.core == nil { return nil, errLifecycleUnsafe }
+	if s == nil || s.core == nil {
+		return nil, errLifecycleUnsafe
+	}
 	x, p := s.core, permit.core
-	x.mu.Lock(); defer x.mu.Unlock()
+	x.mu.Lock()
+	defer x.mu.Unlock()
 	consumed := true
-	defer func() { if consumed && err != nil { x.poisoned = true; x.reconcilePermit = nil; x.terminalReentry = nil; x.absenceCustody = nil; x.live = nil } }()
-	base, e := x.verifiedBase(); if e != nil { return nil, e }; defer base.release()
-	if consumeErr != nil || p.used || x.reconcilePermit != p || p.binding == nil || !p.binding(p) { return nil, errLifecycleUnsafe }
-	p.used = true; x.reconcilePermit = nil
+	defer func() {
+		if consumed && err != nil {
+			x.poisoned = true
+			x.reconcilePermit = nil
+			x.terminalReentry = nil
+			x.absenceCustody = nil
+			x.live = nil
+		}
+	}()
+	base, e := x.verifiedBase()
+	if e != nil {
+		return nil, e
+	}
+	defer base.release()
+	if consumeErr != nil || p.used || x.reconcilePermit != p || p.binding == nil || !p.binding(p) {
+		return nil, errLifecycleUnsafe
+	}
+	p.used = true
+	x.reconcilePermit = nil
 	if x.token(t, false, now) != nil || p.owner != t.core || p.nonce != t.core.nonce || p.fence != t.core.fence ||
-		x.record.core.Revision != p.revision || x.record.core.RecordSHA256 != p.recordSHA256 || !bytes.Equal(x.raw, []byte(p.canonical)) { return nil, errLifecycleUnsafe }
+		x.record.core.Revision != p.revision || x.record.core.RecordSHA256 != p.recordSHA256 || !bytes.Equal(x.raw, []byte(p.canonical)) {
+		return nil, errLifecycleUnsafe
+	}
 	a := x.record.core.Recovery
 	checkpoint, e := lifecycleRecoveryCheckpoint(x.record.core, lifecycleRecoveryCheckpointUnknown)
 	var context *labRecoveryPlanValidationContext
@@ -498,23 +568,34 @@ func (s *lifecycleRecoveryStore) recordRecoveryReconciled(t *lifecycleRecoveryOw
 	}
 	if e != nil || a == nil || a.Phase != "RECOVERY_UNKNOWN" || a.Plan.RecoveryID != p.recoveryID || !reflect.DeepEqual(checkpoint, p.originalRoot) ||
 		contextErr != nil || context == nil || context.core == nil || !a.UpdatedAt.Equal(p.unknownUpdatedAt) ||
-		!lifecycleRecoveryCleanupValid(fact, *a, context.core.head, context.core.absenceOld, now) { return nil, errLifecycleUnsafe }
-	next, e := base.copyRecord(); if e != nil || next.core.Revision == ^uint64(0) { return nil, errLifecycleUnsafe }
+		!lifecycleRecoveryCleanupValid(fact, *a, context.core.head, context.core.absenceOld, now) {
+		return nil, errLifecycleUnsafe
+	}
+	next, e := base.copyRecord()
+	if e != nil || next.core.Revision == ^uint64(0) {
+		return nil, errLifecycleUnsafe
+	}
 	b := next.core.Recovery
 	b.Phase = "FAILED_RECONCILED"
 	b.Reconciliation = &lifecycleRecoveryReconciliation{Schema: lifecycleRecoveryReconciliationSchema, OriginalUnknownRoot: p.originalRoot,
 		OriginalTxnUpdatedAt: p.unknownUpdatedAt, Cleanup: fact, CommitRevision: next.core.Revision + 1, ReconciledAt: now}
 	b.UpdatedAt = now
 	next.core.RecoveryHistory = append(next.core.RecoveryHistory, *b)
-	if e = x.commitWithBase(base, next, now); e != nil { return nil, e }
+	if e = x.commitWithBase(base, next, now); e != nil {
+		return nil, e
+	}
 	root := x.record.core.RecordSHA256
 	terminalCanonical := string(x.raw)
 	reentry := &labRecoveryTerminalReentryPermitCore{runtime: p.runtime, service: p.service, store: x, disk: x.disk, terminalPlan: b.Plan.PlanSHA256, terminalRoot: root, terminalCanonical: terminalCanonical, cleanupSHA: fact.CleanupSHA256, fence: x.record.core.LastRecoveryFence}
-	reentry.binding = func(candidate *labRecoveryTerminalReentryPermitCore) bool { return candidate == reentry && candidate.runtime == p.runtime && candidate.service == p.service && candidate.store == x && candidate.terminalRoot == root && candidate.terminalCanonical == terminalCanonical && candidate.cleanupSHA == fact.CleanupSHA256 && lifecycleRecoverySameDisk(candidate.disk, x.disk) }
+	reentry.binding = func(candidate *labRecoveryTerminalReentryPermitCore) bool {
+		return candidate == reentry && candidate.runtime == p.runtime && candidate.service == p.service && candidate.store == x && candidate.terminalRoot == root && candidate.terminalCanonical == terminalCanonical && candidate.cleanupSHA == fact.CleanupSHA256 && lifecycleRecoverySameDisk(candidate.disk, x.disk)
+	}
 	absence := &labRecoveryAbsenceCustodyCore{runtime: p.runtime, service: p.service, store: x, disk: x.disk, cleanupSHA: fact.CleanupSHA256,
 		terminalRoot: root, terminalCanonical: terminalCanonical, reentry: reentry, oldIdentity: fact.Old.Identity}
-	absence.binding = func(candidate *labRecoveryAbsenceCustodyCore) bool { return candidate == absence && candidate.runtime == p.runtime && candidate.service == p.service && candidate.store == x && candidate.cleanupSHA == fact.CleanupSHA256 &&
-		candidate.terminalRoot == root && candidate.terminalCanonical == terminalCanonical && candidate.reentry == reentry && candidate.oldIdentity == fact.Old.Identity && candidate.planSHA == "" && candidate.recoveryID == "" && candidate.ownerNonce == "" && candidate.ownerFence == 0 && lifecycleRecoverySameDisk(candidate.disk, x.disk) }
+	absence.binding = func(candidate *labRecoveryAbsenceCustodyCore) bool {
+		return candidate == absence && candidate.runtime == p.runtime && candidate.service == p.service && candidate.store == x && candidate.cleanupSHA == fact.CleanupSHA256 &&
+			candidate.terminalRoot == root && candidate.terminalCanonical == terminalCanonical && candidate.reentry == reentry && candidate.oldIdentity == fact.Old.Identity && candidate.planSHA == "" && candidate.recoveryID == "" && candidate.ownerNonce == "" && candidate.ownerFence == 0 && lifecycleRecoverySameDisk(candidate.disk, x.disk)
+	}
 	x.absenceCustody, x.terminalReentry = absence, reentry
 	consumed = false
 	return &labRecoveryTerminalReentryPermit{core: reentry}, nil
@@ -576,9 +657,12 @@ func (s *lifecycleRecoveryStore) recordRecoveryAbsentReentry(t *lifecycleRecover
 // terminal root. The persisted terminal/cleanup DTO cannot recreate this
 // process-local reentry chain, and a cold opener has no terminalReentry core.
 func newLabRecoveryPlanV3(t *lifecycleRecoveryOwnerToken, permit *labRecoveryTerminalReentryPermit, recoveryID, initiator string, target ArtifactDescriptor, now, expires time.Time) (labRecoveryPlan, error) {
-	if permit == nil || permit.core == nil || permit.core.store == nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if permit == nil || permit.core == nil || permit.core.store == nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	p, x := permit.core, permit.core.store
-	x.mu.Lock(); defer x.mu.Unlock()
+	x.mu.Lock()
+	defer x.mu.Unlock()
 	if p.used || x.terminalReentry != p || p.binding == nil || !p.binding(p) || p.cleanupSHA == "" || x.absenceCustody == nil ||
 		x.absenceCustody.binding == nil || !x.absenceCustody.binding(x.absenceCustody) || x.absenceCustody.cleanupSHA != p.cleanupSHA ||
 		x.token(t, true, now) != nil || x.record.core.Recovery == nil ||
@@ -592,13 +676,21 @@ func newLabRecoveryPlanV3(t *lifecycleRecoveryOwnerToken, permit *labRecoveryTer
 	}
 	previous, err := decodeLifecycleV3Record([]byte(p.terminalCanonical))
 	if err != nil || previous.core.RecordSHA256 != p.terminalRoot || previous.core.Revision == ^uint64(0) || x.record.core.Revision != previous.core.Revision+1 ||
-		!lifecycleV3Transition(previous.core, x.record.core) { return labRecoveryPlan{}, errLifecycleUnsafe }
+		!lifecycleV3Transition(previous.core, x.record.core) {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	checkpoint, err := lifecycleRecoveryCheckpoint(x.record.core, lifecycleRecoveryCheckpointHistoryTail)
-	if err != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	a := x.record.core.Current.Active
-	if a == nil || a.Phase != "UNKNOWN" || a.Intent == nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if a == nil || a.Phase != "UNKNOWN" || a.Intent == nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	epoch, err := labRecoveryEpochSHA256(x.record.core.Current.Head, x.record.core.Provisioning)
-	if err != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	d := labRecoveryPlanDescriptor{Schema: labRecoveryPlanSchemaV3, Boundary: labRecoveryPlanBoundary, RecoveryID: recoveryID,
 		UnknownOperationID: a.Plan.OperationID, OriginalPlanSHA256: a.Plan.PlanSHA256, OriginalIntentSHA256: a.Intent.IntentSHA256,
 		DeclaredInitiatorRef: initiator, ExpectedRevision: x.record.core.Revision, ExpectedRecordSHA256: x.record.core.RecordSHA256,
@@ -607,7 +699,9 @@ func newLabRecoveryPlanV3(t *lifecycleRecoveryOwnerToken, permit *labRecoveryTer
 		CreatedAt: now, ExpiresAt: expires, Source: &labRecoveryPlanSource{Schema: labRecoveryPlanSourceSchema, Root: checkpoint}, StartMode: labRecoveryStartModeOldEpochAbsent}
 	d.PlanSHA256, err = labRecoveryPlanDigest(d)
 	context, contextErr := lifecycleRecoveryPlanContext(x.record.core, d)
-	if err != nil || contextErr != nil || context.validateDescriptor(d) != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil || contextErr != nil || context.validateDescriptor(d) != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	p.used = true
 	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d, reentry: p, store: x}}, nil
 }
@@ -615,22 +709,33 @@ func newLabRecoveryPlanV3(t *lifecycleRecoveryOwnerToken, permit *labRecoveryTer
 // Warm REVOKED_UNSTARTED reentry keeps the old owned epoch. Its permit is
 // minted only by D's retained live-kernel custody; no cold JSON path calls it.
 func newLabRecoveryPlanV2Reentry(t *lifecycleRecoveryOwnerToken, permit *labRecoveryTerminalReentryPermit, recoveryID, initiator string, target ArtifactDescriptor, now, expires time.Time) (labRecoveryPlan, error) {
-	if permit == nil || permit.core == nil || permit.core.store == nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if permit == nil || permit.core == nil || permit.core.store == nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	p, x := permit.core, permit.core.store
-	x.mu.Lock(); defer x.mu.Unlock()
+	x.mu.Lock()
+	defer x.mu.Unlock()
 	if p.used || p.cleanupSHA != "" || x.terminalReentry != p || p.binding == nil || !p.binding(p) || x.token(t, true, now) != nil ||
 		x.record.core.Recovery == nil || x.record.core.Recovery.Phase != "REVOKED_UNSTARTED" || x.record.core.Recovery.Plan.PlanSHA256 != p.terminalPlan ||
-		x.record.core.LastRecoveryFence != p.fence+1 { return labRecoveryPlan{}, errLifecycleUnsafe }
+		x.record.core.LastRecoveryFence != p.fence+1 {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	previous, err := decodeLifecycleV3Record([]byte(p.terminalCanonical))
 	if err != nil || previous.core.RecordSHA256 != p.terminalRoot || previous.core.Revision == ^uint64(0) || x.record.core.Revision != previous.core.Revision+1 || !lifecycleV3Transition(previous.core, x.record.core) {
 		return labRecoveryPlan{}, errLifecycleUnsafe
 	}
 	checkpoint, err := lifecycleRecoveryCheckpoint(x.record.core, lifecycleRecoveryCheckpointHistoryTail)
-	if err != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	a := x.record.core.Current.Active
-	if a == nil || a.Phase != "UNKNOWN" || a.Intent == nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if a == nil || a.Phase != "UNKNOWN" || a.Intent == nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	epoch, err := labRecoveryEpochSHA256(x.record.core.Current.Head, x.record.core.Provisioning)
-	if err != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	d := labRecoveryPlanDescriptor{Schema: labRecoveryPlanSchemaV2, Boundary: labRecoveryPlanBoundary, RecoveryID: recoveryID,
 		UnknownOperationID: a.Plan.OperationID, OriginalPlanSHA256: a.Plan.PlanSHA256, OriginalIntentSHA256: a.Intent.IntentSHA256,
 		DeclaredInitiatorRef: initiator, ExpectedRevision: x.record.core.Revision, ExpectedRecordSHA256: x.record.core.RecordSHA256,
@@ -639,7 +744,9 @@ func newLabRecoveryPlanV2Reentry(t *lifecycleRecoveryOwnerToken, permit *labReco
 		CreatedAt: now, ExpiresAt: expires, Source: &labRecoveryPlanSource{Schema: labRecoveryPlanSourceSchema, Root: checkpoint}}
 	d.PlanSHA256, err = labRecoveryPlanDigest(d)
 	context, contextErr := lifecycleRecoveryPlanContext(x.record.core, d)
-	if err != nil || contextErr != nil || context.validateDescriptor(d) != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil || contextErr != nil || context.validateDescriptor(d) != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	p.used = true
 	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d, reentry: p, store: x}}, nil
 }
@@ -655,10 +762,12 @@ func lifecycleRecoveryBindAbsenceToPlan(x *lifecycleRecoveryStoreCore, p *labRec
 	bound := &labRecoveryAbsenceCustodyCore{runtime: old.runtime, service: old.service, store: x, disk: x.disk, cleanupSHA: old.cleanupSHA,
 		terminalRoot: old.terminalRoot, terminalCanonical: old.terminalCanonical, planSHA: d.PlanSHA256, recoveryID: d.RecoveryID,
 		ownerNonce: owner.core.nonce, ownerFence: owner.core.fence, reentry: reentry, oldIdentity: old.oldIdentity}
-	bound.binding = func(candidate *labRecoveryAbsenceCustodyCore) bool { return candidate == bound && candidate.runtime == old.runtime && candidate.service == old.service && candidate.store == x &&
-		lifecycleRecoverySameDisk(candidate.disk, x.disk) && candidate.cleanupSHA == old.cleanupSHA && candidate.terminalRoot == old.terminalRoot &&
-		candidate.terminalCanonical == old.terminalCanonical && candidate.planSHA == d.PlanSHA256 && candidate.recoveryID == d.RecoveryID &&
-		candidate.ownerNonce == owner.core.nonce && candidate.ownerFence == owner.core.fence && candidate.reentry == reentry && candidate.oldIdentity == old.oldIdentity }
+	bound.binding = func(candidate *labRecoveryAbsenceCustodyCore) bool {
+		return candidate == bound && candidate.runtime == old.runtime && candidate.service == old.service && candidate.store == x &&
+			lifecycleRecoverySameDisk(candidate.disk, x.disk) && candidate.cleanupSHA == old.cleanupSHA && candidate.terminalRoot == old.terminalRoot &&
+			candidate.terminalCanonical == old.terminalCanonical && candidate.planSHA == d.PlanSHA256 && candidate.recoveryID == d.RecoveryID &&
+			candidate.ownerNonce == owner.core.nonce && candidate.ownerFence == owner.core.fence && candidate.reentry == reentry && candidate.oldIdentity == old.oldIdentity
+	}
 	x.absenceCustody = bound
 	return nil
 }
@@ -678,25 +787,45 @@ func lifecycleRecoveryPlanReentryValid(x *lifecycleRecoveryStoreCore, p *labReco
 // fresh two-port refusal observation while retaining the same warm source.
 // No serialized cleanup fact can satisfy this parameter.
 func (s *lifecycleRecoveryStore) armRecoveryAbsentStart(t *lifecycleRecoveryOwnerToken, custody *labRecoveryAbsentStartCustody, now time.Time) (*labRecoveryAbsentStartPermit, error) {
-	if s == nil || s.core == nil || custody == nil { return nil, errLifecycleUnsafe }
+	if s == nil || s.core == nil || custody == nil {
+		return nil, errLifecycleUnsafe
+	}
 	x := s.core
-	x.mu.Lock(); defer x.mu.Unlock()
-	base, err := x.verifiedBase(); if err != nil { return nil, err }; defer base.release()
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	base, err := x.verifiedBase()
+	if err != nil {
+		return nil, err
+	}
+	defer base.release()
 	if x.token(t, true, now) != nil || x.absenceCustody == nil || x.absenceCustody.binding == nil || !x.absenceCustody.binding(x.absenceCustody) ||
-		x.absentStartPermit != nil { return nil, errLifecycleUnsafe }
+		x.absentStartPermit != nil {
+		return nil, errLifecycleUnsafe
+	}
 	// Consumption performs the actual late refusal probes and is deliberately
 	// before every phase rejection: an admitted bad attempt is not replayable.
-	if err := custody.consumeRecoveryAbsentStart(x.absenceCustody, now); err != nil { return nil, errLifecycleUnsafe }
+	if err := custody.consumeRecoveryAbsentStart(x.absenceCustody, now); err != nil {
+		return nil, errLifecycleUnsafe
+	}
 	a := x.record.core.Recovery
 	if a == nil || a.Phase != "APPROVED" || a.Plan.Schema != labRecoveryPlanSchemaV3 || a.Plan.StartMode != labRecoveryStartModeOldEpochAbsent ||
 		a.Approval == nil || a.Revocation != nil || a.StopIntent != nil || a.StopBinding != nil || a.Quiescence != nil || a.StartIntent != nil || a.Failure != nil || a.Execution != nil ||
-		!now.Before(a.Approval.ExpiresAt) || !now.Before(a.Plan.ExpiresAt) { return nil, errLifecycleUnsafe }
-	next, err := base.copyRecord(); if err != nil { return nil, errLifecycleUnsafe }
+		!now.Before(a.Approval.ExpiresAt) || !now.Before(a.Plan.ExpiresAt) {
+		return nil, errLifecycleUnsafe
+	}
+	next, err := base.copyRecord()
+	if err != nil {
+		return nil, errLifecycleUnsafe
+	}
 	b := next.core.Recovery
 	i := lifecycleRecoveryNewIntent(b, "START", x.record.core.LastRecoveryFence, now)
 	b.StartIntent, b.Phase, b.UpdatedAt = &i, "START_ARMED", now
-	if lifecycleRecoveryReserve(next.core) != nil { return nil, errLifecycleUnsafe }
-	if err := x.commitWithBase(base, next, now); err != nil { return nil, err }
+	if lifecycleRecoveryReserve(next.core) != nil {
+		return nil, errLifecycleUnsafe
+	}
+	if err := x.commitWithBase(base, next, now); err != nil {
+		return nil, err
+	}
 	w := x.record.core
 	p := &labRecoveryAbsentStartPermitCore{store: x, absence: x.absenceCustody, recoveryID: b.Plan.RecoveryID, planSHA256: b.Plan.PlanSHA256,
 		intentSHA256: i.IntentSHA256, revision: w.Revision, recordSHA256: w.RecordSHA256, fence: w.LastRecoveryFence, deadline: b.Plan.ExpiresAt}
@@ -706,11 +835,17 @@ func (s *lifecycleRecoveryStore) armRecoveryAbsentStart(t *lifecycleRecoveryOwne
 
 func (p *labRecoveryAbsentStartPermit) consumeRecoveryAbsentStart(now time.Time) (labRecoveryAbsentStartFact, error) {
 	var zero labRecoveryAbsentStartFact
-	if p == nil || p.core == nil || p.core.store == nil { return zero, errLifecycleUnsafe }
+	if p == nil || p.core == nil || p.core.store == nil {
+		return zero, errLifecycleUnsafe
+	}
 	c, x := p.core, p.core.store
-	x.mu.Lock(); defer x.mu.Unlock()
-	if c.used || x.absentStartPermit != c { return zero, errLifecycleUnsafe }
-	c.used = true; x.absentStartPermit = nil
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	if c.used || x.absentStartPermit != c {
+		return zero, errLifecycleUnsafe
+	}
+	c.used = true
+	x.absentStartPermit = nil
 	if x.verify() != nil || x.trustedNow(now) != nil || c.absence == nil || c.absence != x.absenceCustody || c.absence.binding == nil || !c.absence.binding(c.absence) ||
 		x.record.core.Revision != c.revision || x.record.core.RecordSHA256 != c.recordSHA256 || x.record.core.LastRecoveryFence != c.fence ||
 		x.record.core.RecoveryOwner == nil || x.live == nil || !now.Before(x.record.core.RecoveryOwner.ExpiresAt) || now.Before(x.record.core.LastTrustedAt) || !now.Before(c.deadline) {

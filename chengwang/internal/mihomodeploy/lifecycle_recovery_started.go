@@ -14,9 +14,15 @@ const lifecycleRecoveryAbsentExecutionSchema = "chengwang.mihomo-recovery-execut
 const lifecycleRecoveryAbsentVerifiedExecutionSchema = "chengwang.mihomo-recovery-execution/v5"
 const lifecycleRecoveryAbsentCompletedExecutionSchema = "chengwang.mihomo-recovery-execution/v6"
 
-func lifecycleRecoveryExecutionStartedSchema(v string) bool { return v == lifecycleRecoveryExecutionSchema || v == lifecycleRecoveryAbsentExecutionSchema }
-func lifecycleRecoveryExecutionVerifiedSchema(v string) bool { return v == lifecycleRecoveryVerifiedExecutionSchema || v == lifecycleRecoveryAbsentVerifiedExecutionSchema }
-func lifecycleRecoveryExecutionCompletedSchema(v string) bool { return v == lifecycleRecoveryCompletedExecutionSchema || v == lifecycleRecoveryAbsentCompletedExecutionSchema }
+func lifecycleRecoveryExecutionStartedSchema(v string) bool {
+	return v == lifecycleRecoveryExecutionSchema || v == lifecycleRecoveryAbsentExecutionSchema
+}
+func lifecycleRecoveryExecutionVerifiedSchema(v string) bool {
+	return v == lifecycleRecoveryVerifiedExecutionSchema || v == lifecycleRecoveryAbsentVerifiedExecutionSchema
+}
+func lifecycleRecoveryExecutionCompletedSchema(v string) bool {
+	return v == lifecycleRecoveryCompletedExecutionSchema || v == lifecycleRecoveryAbsentCompletedExecutionSchema
+}
 
 func lifecycleRecoveryStartedToVerifiedSchema(v string) (string, bool) {
 	switch v {
@@ -112,10 +118,15 @@ func labRecoveryStartedCaptureSource(p *labRecoveryStartPermit, f labRecoverySta
 }
 
 func labRecoveryAbsentStartedCaptureSource(p *labRecoveryAbsentStartPermit, f labRecoveryAbsentStartFact, b labRecoveryStartedBinding, now time.Time) (*labRecoveryStartedSource, error) {
-	if labRecoveryStartedFinalAbsentGate(p, f, b, now) != nil { return nil, errLabRecoveryStart }
+	if labRecoveryStartedFinalAbsentGate(p, f, b, now) != nil {
+		return nil, errLabRecoveryStart
+	}
 	x := p.core.store
-	x.mu.Lock(); defer x.mu.Unlock()
-	if x.verify() != nil || x.trustedNow(now) != nil || x.record.core.Revision != b.Revision || x.record.core.RecordSHA256 != b.RecordSHA256 { return nil, errLabRecoveryStart }
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	if x.verify() != nil || x.trustedNow(now) != nil || x.record.core.Revision != b.Revision || x.record.core.RecordSHA256 != b.RecordSHA256 {
+		return nil, errLabRecoveryStart
+	}
 	s := &labRecoveryStartedSource{store: x, canonical: string(x.raw), startMode: labRecoveryStartModeOldEpochAbsent}
 	canonical := s.canonical
 	s.binding = func(candidate *labRecoveryStartedSource, owner *lifecycleRecoveryStoreCore) bool {
@@ -146,7 +157,9 @@ func lifecycleRecoveryStartedBinding(w *lifecycleV3Wire) (labRecoveryStartedBind
 }
 
 func lifecycleRecoveryAbsentStartedBindingMatches(w *lifecycleV3Wire, b labRecoveryStartedBinding) bool {
-	if w == nil || w.Recovery == nil || w.RecoveryOwner == nil { return false }
+	if w == nil || w.Recovery == nil || w.RecoveryOwner == nil {
+		return false
+	}
 	a := w.Recovery
 	h := w.Current.Head
 	return a.Phase == "START_ARMED" && a.Plan.Schema == labRecoveryPlanSchemaV3 && a.Plan.StartMode == labRecoveryStartModeOldEpochAbsent &&
@@ -238,10 +251,14 @@ func lifecycleRecoveryArmedPreimageScoped(w *lifecycleV3Wire, a lifecycleRecover
 		return nil, errLifecycleUnsafe
 	}
 	if e.Started.Binding.StartMode == labRecoveryStartModeOldEpochAbsent {
-		if !lifecycleRecoveryAbsentStartedBindingMatches(r.core, e.Started.Binding) { return nil, errLifecycleUnsafe }
+		if !lifecycleRecoveryAbsentStartedBindingMatches(r.core, e.Started.Binding) {
+			return nil, errLifecycleUnsafe
+		}
 	} else {
 		binding, err := lifecycleRecoveryStartedBinding(r.core)
-		if err != nil || !reflect.DeepEqual(binding, e.Started.Binding) { return nil, errLifecycleUnsafe }
+		if err != nil || !reflect.DeepEqual(binding, e.Started.Binding) {
+			return nil, errLifecycleUnsafe
+		}
 	}
 	return raw, nil
 }
@@ -350,7 +367,9 @@ func (s *lifecycleRecoveryStore) recordRecoveryStarted(t *lifecycleRecoveryOwner
 	if sourceErr == nil {
 		if source.startMode == labRecoveryStartModeOldEpochAbsent {
 			expected = fact.Binding
-			if !lifecycleRecoveryAbsentStartedBindingMatches(armed.core, expected) { sourceErr = errLifecycleUnsafe }
+			if !lifecycleRecoveryAbsentStartedBindingMatches(armed.core, expected) {
+				sourceErr = errLifecycleUnsafe
+			}
 		} else {
 			expected, sourceErr = lifecycleRecoveryStartedBinding(armed.core)
 		}
@@ -365,7 +384,9 @@ func (s *lifecycleRecoveryStore) recordRecoveryStarted(t *lifecycleRecoveryOwner
 	}
 	b := next.core.Recovery
 	executionSchema := lifecycleRecoveryExecutionSchema
-	if absent { executionSchema = lifecycleRecoveryAbsentExecutionSchema }
+	if absent {
+		executionSchema = lifecycleRecoveryAbsentExecutionSchema
+	}
 	b.Execution = &lifecycleRecoveryExecution{Schema: executionSchema, Started: fact, ArmedOwner: *armed.core.RecoveryOwner,
 		ArmedLastTrustedAt: armed.core.LastTrustedAt, ArmedLastRecoveryFence: armed.core.LastRecoveryFence,
 		ArmedRecoveryUpdatedAt: armed.core.Recovery.UpdatedAt, ArmedFailedQuiescence: armed.core.Recovery.FailedQuiescence,

@@ -121,10 +121,10 @@ type labRecoveryPlanBindingV3 struct {
 	OldEpochSHA256         string                `json:"oldEpochSHA256"`
 	TargetArtifact         ArtifactDescriptor    `json:"targetArtifact"`
 	Budgets                labRecoveryBudgets    `json:"budgets"`
-	CreatedAt              time.Time              `json:"createdAt"`
-	ExpiresAt              time.Time              `json:"expiresAt"`
-	Source                 labRecoveryPlanSource  `json:"source"`
-	StartMode              string                 `json:"startMode"`
+	CreatedAt              time.Time             `json:"createdAt"`
+	ExpiresAt              time.Time             `json:"expiresAt"`
+	Source                 labRecoveryPlanSource `json:"source"`
+	StartMode              string                `json:"startMode"`
 }
 
 func labRecoveryPlanDigest(d labRecoveryPlanDescriptor) (string, error) {
@@ -230,7 +230,9 @@ func lifecycleRecoveryPlanContextScoped(w *lifecycleV3Wire, d labRecoveryPlanDes
 			return nil, errLifecycleUnsafe
 		}
 		raw, err := lifecycleRecoveryCheckpointPreimageScoped(w, d.Source.Root, nil, scope)
-		if err != nil { return nil, errLifecycleUnsafe }
+		if err != nil {
+			return nil, errLifecycleUnsafe
+		}
 		r, err := decodeLifecycleV3RecordScoped(raw, scope)
 		if err != nil || r.core.Recovery == nil ||
 			len(r.core.RecoveryHistory) == 0 || !reflect.DeepEqual(*r.core.Recovery, r.core.RecoveryHistory[len(r.core.RecoveryHistory)-1]) ||
@@ -259,7 +261,9 @@ func lifecycleRecoveryPlanContextScoped(w *lifecycleV3Wire, d labRecoveryPlanDes
 			return nil, errLifecycleUnsafe
 		}
 		epoch, err := labRecoveryEpochSHA256(r.core.Current.Head, r.core.Provisioning)
-		if err != nil { return nil, errLifecycleUnsafe }
+		if err != nil {
+			return nil, errLifecycleUnsafe
+		}
 		return &labRecoveryPlanValidationContext{core: &labRecoveryPlanValidationCore{head: r.core.Current.Head, active: *r.core.Current.Active,
 			provisioning: r.core.Provisioning, revision: r.core.Revision, recordSHA256: r.core.RecordSHA256,
 			lastTrustedAt: r.core.LastTrustedAt, schema: labRecoveryPlanSchemaV3, epoch: epoch, absenceOld: &oldIdentity, targets: map[string]struct{}{}}}, nil

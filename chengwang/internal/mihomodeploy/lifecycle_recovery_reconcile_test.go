@@ -16,12 +16,18 @@ import (
 func lifecycleRecoveryReconciledRecordModel(t *testing.T) (lifecycleV3Record, []byte, lifecycleRecoveryRootCheckpoint) {
 	t.Helper()
 	s, _, owner, _, binding, now := lifecycleRecoveryModelArmed(t)
-	if s.recordRecoveryFailure(owner, "START_UNCERTAIN", nil, now) != nil { t.Fatal("MODEL unknown") }
+	if s.recordRecoveryFailure(owner, "START_UNCERTAIN", nil, now) != nil {
+		t.Fatal("MODEL unknown")
+	}
 	original := bytes.Clone(s.core.raw)
 	checkpoint, err := lifecycleRecoveryCheckpoint(s.core.record.core, lifecycleRecoveryCheckpointUnknown)
-	if err != nil { t.Fatal("MODEL unknown checkpoint") }
+	if err != nil {
+		t.Fatal("MODEL unknown checkpoint")
+	}
 	var w lifecycleV3Wire
-	if json.Unmarshal(original, &w) != nil { t.Fatal("MODEL original copy") }
+	if json.Unmarshal(original, &w) != nil {
+		t.Fatal("MODEL original copy")
+	}
 	reconciledAt := now.Add(time.Second)
 	exitCode, absent := 0, true
 	stream := labKernelStream{Bytes: 0, TotalBytes: 0, SHA256: labConfigHash(nil), Complete: true}
@@ -31,7 +37,7 @@ func lifecycleRecoveryReconciledRecordModel(t *testing.T) (lifecycleV3Record, []
 	}
 	cleanup := lifecycleRecoveryCleanupFact{Schema: lifecycleRecoveryCleanupSchema, RecoveryID: w.Recovery.Plan.RecoveryID,
 		FailureCode: w.Recovery.Failure.Code, Old: lifecycleRecoveryCleanedKernel{Identity: binding.ExpectedOldIdentity, Exit: exit},
-		Probes: []lifecycleRecoveryCleanupProbe{probe("OLD_CONTROLLER", 28412), probe("OLD_MIXED", 28411), probe("NEW_CONTROLLER", 28412), probe("NEW_MIXED", 28411)},
+		Probes:              []lifecycleRecoveryCleanupProbe{probe("OLD_CONTROLLER", 28412), probe("OLD_MIXED", 28411), probe("NEW_CONTROLLER", 28412), probe("NEW_MIXED", 28411)},
 		SourceReceiptSHA256: strings.Repeat("a", 64), ObservedAt: reconciledAt}
 	cleanup.CleanupSHA256, _ = lifecycleRecoveryCleanupHash(cleanup)
 	originalTxn := *w.Recovery
@@ -43,29 +49,41 @@ func lifecycleRecoveryReconciledRecordModel(t *testing.T) (lifecycleV3Record, []
 	w.Recovery.UpdatedAt = reconciledAt
 	w.RecoveryHistory = append(w.RecoveryHistory, *w.Recovery)
 	w.RecordSHA256, err = lifecycleV3RecordHash(w)
-	if err != nil { t.Fatal("MODEL root hash") }
+	if err != nil {
+		t.Fatal("MODEL root hash")
+	}
 	return lifecycleV3Record{core: &w}, original, checkpoint
 }
 
 func TestLifecycleRecoveryReconciledStrictlyRestoresOriginalUnknown(t *testing.T) {
 	final, original, checkpoint := lifecycleRecoveryReconciledRecordModel(t)
-	if validateLifecycleV3Record(final) != nil { t.Fatal("MODEL reconciled record rejected") }
+	if validateLifecycleV3Record(final) != nil {
+		t.Fatal("MODEL reconciled record rejected")
+	}
 	preimage, err := lifecycleRecoveryCheckpointPreimage(final.core, checkpoint, final.core.Recovery)
-	if err != nil || !bytes.Equal(preimage, original) { t.Fatal("MODEL original UNKNOWN not exact") }
+	if err != nil || !bytes.Equal(preimage, original) {
+		t.Fatal("MODEL original UNKNOWN not exact")
+	}
 	decoded, err := decodeLifecycleV3Record(preimage)
 	if err != nil || decoded.core.Recovery == nil || decoded.core.Recovery.Phase != "RECOVERY_UNKNOWN" || decoded.core.Recovery.Reconciliation != nil {
 		t.Fatal("MODEL original facts not restored")
 	}
 	terminal := *final.core.Recovery
 	terminal.Reconciliation.Cleanup.Probes[0].Probe.Result = "CONNECTION_ACCEPTED"
-	if validateLifecycleV3Record(lifecycleV3Record{core: final.core}) == nil { t.Fatal("MODEL cleanup tamper accepted") }
+	if validateLifecycleV3Record(lifecycleV3Record{core: final.core}) == nil {
+		t.Fatal("MODEL cleanup tamper accepted")
+	}
 }
 
 func TestLifecycleRecoveryReconcileCompatibilityAndAuthorityNegatives(t *testing.T) {
 	txn, err := json.Marshal(lifecycleRecoveryTxn{Phase: "RECOVERY_UNKNOWN", FailedQuiescence: []labQuiescenceObservation{}})
-	if err != nil || bytes.Contains(txn, []byte("reconciliation")) { t.Fatal("old txn nil bytes changed") }
+	if err != nil || bytes.Contains(txn, []byte("reconciliation")) {
+		t.Fatal("old txn nil bytes changed")
+	}
 	plan, err := json.Marshal(labRecoveryPlanDescriptor{Schema: labRecoveryPlanSchemaV2})
-	if err != nil || bytes.Contains(plan, []byte("startMode")) { t.Fatal("old plan nil bytes changed") }
+	if err != nil || bytes.Contains(plan, []byte("startMode")) {
+		t.Fatal("old plan nil bytes changed")
+	}
 	if !lifecycleRecoveryPhaseTransition("RECOVERY_UNKNOWN", "FAILED_RECONCILED") || lifecycleRecoveryPhaseTransition("RECOVERY_UNKNOWN", "PLANNED") {
 		t.Fatal("reconcile phase boundary")
 	}
@@ -86,7 +104,9 @@ func TestLifecycleRecoveryReconcileReserveRejectsFullHistoryBeforeAction(t *test
 	w.Recovery.Phase = "RECOVERY_UNKNOWN"
 	w.Recovery.Reconciliation = nil
 	w.RecoveryHistory = make([]lifecycleRecoveryTxn, maxLifecycleHistory)
-	if lifecycleRecoveryReconcileReserve(&w) == nil { t.Fatal("MODEL full history reserved physical action") }
+	if lifecycleRecoveryReconcileReserve(&w) == nil {
+		t.Fatal("MODEL full history reserved physical action")
+	}
 }
 
 func TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit(t *testing.T) {
@@ -319,39 +339,40 @@ func TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLim
 }
 
 func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.T) {
-	_, _, _, _, binding, now := lifecycleRecoveryModelArmed(t)
+	_, _, _, plan, binding, now := lifecycleRecoveryModelArmed(t)
+	target := plan.descriptor().TargetArtifact
 	old := binding.ExpectedOldIdentity
 	next := old
 	next.PID++
 	next.StartTicks++
-	next.ArtifactSHA256 = binding.TargetArtifact.Config.SHA256
-	next.ControllerPort = binding.TargetArtifact.ControllerPort
-	next.MixedPort = binding.TargetArtifact.MixedPort
+	next.ArtifactSHA256 = target.Config.SHA256
+	next.ControllerPort = target.ControllerPort
+	next.MixedPort = target.MixedPort
 	stream := labKernelStream{Bytes: 0, TotalBytes: 0, SHA256: labConfigHash(nil), Complete: true}
 	exitCode, group := 0, true
 	exit := labKernelExit{Started: true, WaitReturned: true, WaitErrorClass: "NONE", ExitCode: &exitCode,
 		GroupAbsent: &group, Stdout: stream, Stderr: stream}
 	cleaned := &lifecycleRecoveryCleanedKernel{Identity: next, Exit: exit}
 	attempt := lifecycleRecoveryMaxCleanupAttempt(false, next, stream, now)
-	if !lifecycleRecoveryCleanupAttemptValid(attempt, false, cleaned, old, binding.TargetArtifact, now) {
+	if !lifecycleRecoveryCleanupAttemptValid(attempt, false, cleaned, old, target, now) {
 		t.Fatal("MODEL complete source Attempt rejected")
 	}
-	if lifecycleRecoveryCleanupAttemptValid(attempt, false, nil, old, binding.TargetArtifact, now) {
+	if lifecycleRecoveryCleanupAttemptValid(attempt, false, nil, old, target, now) {
 		t.Fatal("MODEL complete owned Attempt accepted without New")
 	}
 	foreign := labRecoveryStartedCloneObservation(*attempt)
 	foreign.StartupIdentity.ArtifactSHA256 = strings.Repeat("f", 64)
-	if lifecycleRecoveryCleanupAttemptValid(&foreign, false, cleaned, old, binding.TargetArtifact, now) {
+	if lifecycleRecoveryCleanupAttemptValid(&foreign, false, cleaned, old, target, now) {
 		t.Fatal("MODEL foreign Attempt identity accepted")
 	}
 	sparse := labRecoveryStartObservation{Schema: labRecoveryStartObservationSchema, Outcome: "ENTRY_REJECTED",
 		FailureCode: "CONTEXT_OR_INPUT_REJECTED", StartupIdentity: &next}
-	if lifecycleRecoveryCleanupAttemptValid(&sparse, false, nil, old, binding.TargetArtifact, now) {
+	if lifecycleRecoveryCleanupAttemptValid(&sparse, false, nil, old, target, now) {
 		t.Fatal("MODEL sparse New-nil Attempt fields accepted")
 	}
 	wrongSchema := labRecoveryStartedCloneObservation(*attempt)
 	wrongSchema.Schema = labRecoveryAbsentStartObservationSchema
-	if lifecycleRecoveryCleanupAttemptValid(&wrongSchema, false, cleaned, old, binding.TargetArtifact, now) {
+	if lifecycleRecoveryCleanupAttemptValid(&wrongSchema, false, cleaned, old, target, now) {
 		t.Fatal("MODEL normal/absent Attempt schema crossed")
 	}
 
@@ -387,10 +408,10 @@ func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.
 			case "OWNED_REJECTED", "ISSUER_REJECTED", "FACT_REJECTED":
 				full(&v)
 			}
-			if !lifecycleRecoveryCleanupAttemptValid(&v, absent, cleaned, old, binding.TargetArtifact, now) {
+			if !lifecycleRecoveryCleanupAttemptValid(&v, absent, cleaned, old, target, now) {
 				t.Fatal("MODEL legal producer post-Start branch rejected: " + code)
 			}
-			if code != "START_REJECTED" && lifecycleRecoveryCleanupAttemptValid(&v, absent, nil, old, binding.TargetArtifact, now) {
+			if code != "START_REJECTED" && lifecycleRecoveryCleanupAttemptValid(&v, absent, nil, old, target, now) {
 				t.Fatal("MODEL post-Start owned branch accepted without New: " + code)
 			}
 		}
@@ -400,25 +421,25 @@ func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.
 		startup, verified := next, next
 		listenerAfter.StartupIdentity, listenerAfter.VerifiedIdentity = &startup, &verified
 		listenerAfter.ListenersBefore, listenerAfter.ListenersAfter = &before, &after
-		if !lifecycleRecoveryCleanupAttemptValid(&listenerAfter, absent, cleaned, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&listenerAfter, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL post-verification listener failure rejected")
 		}
 		lateBudget := owned(absent, "BUDGET_REJECTED")
 		full(&lateBudget)
-		if !lifecycleRecoveryCleanupAttemptValid(&lateBudget, absent, cleaned, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&lateBudget, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL late post-owner budget failure rejected")
 		}
 		partialBudget := owned(absent, "BUDGET_REJECTED")
 		startup = next
 		partialBudget.StartupIdentity = &startup
-		if lifecycleRecoveryCleanupAttemptValid(&partialBudget, absent, cleaned, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&partialBudget, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL impossible mid-pipeline budget failure accepted")
 		}
 		lateIdentity := owned(absent, "IDENTITY_REJECTED")
 		startup = next
 		lateIdentity.StartupIdentity = &startup
 		lateIdentity.ListenersBefore = &before
-		if !lifecycleRecoveryCleanupAttemptValid(&lateIdentity, absent, cleaned, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&lateIdentity, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL post-listener identity failure rejected")
 		}
 		mismatchedStartup := next
@@ -427,28 +448,28 @@ func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.
 		lateMismatch := labRecoveryStartedCloneObservation(lateIdentity)
 		lateMismatch.StartupIdentity, lateMismatch.VerifiedIdentity = &mismatchedStartup, &next
 		lateMismatch.StartObservation.PID, lateMismatch.StartObservation.StartTicks = &mismatchedStartup.PID, &mismatchedStartup.StartTicks
-		if !lifecycleRecoveryCleanupAttemptValid(&lateMismatch, absent, cleaned, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&lateMismatch, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL actual late identity mismatch rejected")
 		}
 		startupCleaned := *cleaned
 		startupCleaned.Identity = mismatchedStartup
-		if lifecycleRecoveryCleanupAttemptValid(&lateMismatch, absent, &startupCleaned, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&lateMismatch, absent, &startupCleaned, old, target, now) {
 			t.Fatal("MODEL late identity mismatch did not bind New to the actual verified cleanup identity")
 		}
 		foreignVerified := next
 		foreignVerified.ArtifactSHA256 = strings.Repeat("e", 64)
 		lateMismatch.VerifiedIdentity = &foreignVerified
-		if lifecycleRecoveryCleanupAttemptValid(&lateMismatch, absent, cleaned, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&lateMismatch, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL foreign late verified identity authorized cleanup")
 		}
 
 		started := owned(absent, "FACT_REJECTED")
 		full(&started)
 		started.Outcome, started.FailureCode = "STARTED", "NONE"
-		if !lifecycleRecoveryCleanupAttemptValid(&started, absent, cleaned, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&started, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL complete successful producer observation rejected")
 		}
-		if lifecycleRecoveryCleanupAttemptValid(&started, absent, nil, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&started, absent, nil, old, target, now) {
 			t.Fatal("MODEL STARTED/NONE accepted without New")
 		}
 
@@ -464,16 +485,16 @@ func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.
 		emptyStream := labKernelStream{SHA256: labConfigHash(nil), Complete: true}
 		typedFailure.StartObservation.Stdout, typedFailure.StartObservation.Stderr = &emptyStream, &emptyStream
 		if typedFailure.StartObservation.Stdout == nil || typedFailure.StartObservation.Stderr == nil ||
-			!lifecycleRecoveryCleanupAttemptValid(&typedFailure, absent, nil, old, binding.TargetArtifact, now) {
+			!lifecycleRecoveryCleanupAttemptValid(&typedFailure, absent, nil, old, target, now) {
 			t.Fatal("MODEL typed Started=false startup failure metadata rejected")
 		}
-		if lifecycleRecoveryCleanupAttemptValid(&typedFailure, absent, cleaned, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&typedFailure, absent, cleaned, old, target, now) {
 			t.Fatal("MODEL non-started typed failure accepted an identified New kernel")
 		}
 		preCommand := labRecoveryStartedCloneObservation(typedFailure)
 		preCommand.StartObservation.Attempted = false
 		preCommand.StartObservation.Stdout, preCommand.StartObservation.Stderr = nil, nil
-		if !lifecycleRecoveryCleanupAttemptValid(&preCommand, absent, nil, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&preCommand, absent, nil, old, target, now) {
 			t.Fatal("MODEL pre-command typed Started=false failure rejected")
 		}
 		for name, mutate := range map[string]func(*labKernelStartObservation){
@@ -483,37 +504,37 @@ func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.
 				v.WaitReturned, v.GroupAbsent, v.ExitCode, v.WaitErrorClass = &waited, &group, &code, "EXIT_STATUS"
 			},
 			"incomplete-stream": func(v *labKernelStartObservation) { v.Stdout.Complete = false },
-			"truncated-stream": func(v *labKernelStartObservation) { v.Stdout.Truncated, v.Stdout.TotalBytes = true, 1 },
+			"truncated-stream":  func(v *labKernelStartObservation) { v.Stdout.Truncated, v.Stdout.TotalBytes = true, 1 },
 			"nonempty-stream": func(v *labKernelStartObservation) {
 				v.Stdout.Bytes, v.Stdout.TotalBytes, v.Stdout.SHA256 = 1, 1, labConfigHash([]byte("x"))
 			},
 		} {
 			invalid := labRecoveryStartedCloneObservation(typedFailure)
 			mutate(invalid.StartObservation)
-			if lifecycleRecoveryCleanupAttemptValid(&invalid, absent, nil, old, binding.TargetArtifact, now) {
+			if lifecycleRecoveryCleanupAttemptValid(&invalid, absent, nil, old, target, now) {
 				t.Fatal("MODEL impossible typed Started=false producer shape accepted: " + name)
 			}
 		}
 		attemptedFalseWithStreams := labRecoveryStartedCloneObservation(preCommand)
 		attemptedFalseWithStreams.StartObservation.Stdout, attemptedFalseWithStreams.StartObservation.Stderr = &emptyStream, &emptyStream
-		if lifecycleRecoveryCleanupAttemptValid(&attemptedFalseWithStreams, absent, nil, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&attemptedFalseWithStreams, absent, nil, old, target, now) {
 			t.Fatal("MODEL pre-command typed failure accepted post-pipe streams")
 		}
 		plainFailure := typedFailure
 		plainFailure.StartObservation = nil
-		if !lifecycleRecoveryCleanupAttemptValid(&plainFailure, absent, nil, old, binding.TargetArtifact, now) {
+		if !lifecycleRecoveryCleanupAttemptValid(&plainFailure, absent, nil, old, target, now) {
 			t.Fatal("MODEL plain unowned START_REJECTED rejected")
 		}
 		lostOwned := owned(absent, "START_REJECTED")
 		lostOwned.StartErrorClass = &failed
-		if lifecycleRecoveryCleanupAttemptValid(&lostOwned, absent, nil, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&lostOwned, absent, nil, old, target, now) {
 			t.Fatal("MODEL started START_REJECTED erased its owned New kernel")
 		}
 
 		emptyStarted := owned(absent, "BUDGET_REJECTED")
 		emptyStarted.Outcome, emptyStarted.FailureCode = "STARTED", "NONE"
 		emptyStarted.StartObservation = nil
-		if lifecycleRecoveryCleanupAttemptValid(&emptyStarted, absent, nil, old, binding.TargetArtifact, now) {
+		if lifecycleRecoveryCleanupAttemptValid(&emptyStarted, absent, nil, old, target, now) {
 			t.Fatal("MODEL empty STARTED/NONE facts accepted")
 		}
 
@@ -543,16 +564,16 @@ func TestLifecycleRecoveryCleanupAttemptRejectsSparseOrForeignShapes(t *testing.
 				ns := old.NetNSInode
 				v.NamespaceInode = &ns
 			}
-			if !lifecycleRecoveryCleanupAttemptValid(v, absent, nil, old, binding.TargetArtifact, now) {
+			if !lifecycleRecoveryCleanupAttemptValid(v, absent, nil, old, target, now) {
 				t.Fatal("MODEL legal pre-Start branch rejected: " + v.FailureCode)
 			}
-			if lifecycleRecoveryCleanupAttemptValid(v, absent, cleaned, old, binding.TargetArtifact, now) {
+			if lifecycleRecoveryCleanupAttemptValid(v, absent, cleaned, old, target, now) {
 				t.Fatal("MODEL pre-Start branch accepted New: " + v.FailureCode)
 			}
 			if v.FailureCode == "NAMESPACE_REJECTED" {
 				expected := old.NetNSInode
 				v.NamespaceInode = &expected
-				if lifecycleRecoveryCleanupAttemptValid(v, absent, nil, old, binding.TargetArtifact, now) {
+				if lifecycleRecoveryCleanupAttemptValid(v, absent, nil, old, target, now) {
 					t.Fatal("MODEL expected namespace was mislabeled as NAMESPACE_REJECTED")
 				}
 			}

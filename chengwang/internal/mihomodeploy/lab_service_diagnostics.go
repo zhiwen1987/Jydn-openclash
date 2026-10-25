@@ -148,21 +148,21 @@ func (d *labServiceDiagnostics) recoveryCleanup(stage, recoveryID, code string, 
 		last = p.ObservedAt
 	}
 	type cleanupReceipt struct {
-		Schema      string                    `json:"schema"`
-		RecoveryID  string                    `json:"recoveryId"`
-		FailureCode string                    `json:"failureCode"`
-		OldIdentity labKernelIdentity         `json:"oldIdentity"`
-		OldExit     labKernelExit             `json:"oldExit"`
-		NewIdentity *labKernelIdentity        `json:"newIdentity,omitempty"`
-		NewExit     *labKernelExit            `json:"newExit,omitempty"`
-		UnstartedNew *labRecoveryUnstartedCleanupReceipt `json:"unstartedNew,omitempty"`
-		Probes      [4]labRecoveryCleanupProbe `json:"probes"`
-		OldStdoutRetainedSHA256 string          `json:"oldStdoutRetainedSHA256"`
-		OldStderrRetainedSHA256 string          `json:"oldStderrRetainedSHA256"`
-		NewStdoutRetainedSHA256 string          `json:"newStdoutRetainedSHA256,omitempty"`
-		NewStderrRetainedSHA256 string          `json:"newStderrRetainedSHA256,omitempty"`
-		Settled     bool                      `json:"settled"`
-		ObservedAt  time.Time                 `json:"observedAt"`
+		Schema                  string                              `json:"schema"`
+		RecoveryID              string                              `json:"recoveryId"`
+		FailureCode             string                              `json:"failureCode"`
+		OldIdentity             labKernelIdentity                   `json:"oldIdentity"`
+		OldExit                 labKernelExit                       `json:"oldExit"`
+		NewIdentity             *labKernelIdentity                  `json:"newIdentity,omitempty"`
+		NewExit                 *labKernelExit                      `json:"newExit,omitempty"`
+		UnstartedNew            *labRecoveryUnstartedCleanupReceipt `json:"unstartedNew,omitempty"`
+		Probes                  [4]labRecoveryCleanupProbe          `json:"probes"`
+		OldStdoutRetainedSHA256 string                              `json:"oldStdoutRetainedSHA256"`
+		OldStderrRetainedSHA256 string                              `json:"oldStderrRetainedSHA256"`
+		NewStdoutRetainedSHA256 string                              `json:"newStdoutRetainedSHA256,omitempty"`
+		NewStderrRetainedSHA256 string                              `json:"newStderrRetainedSHA256,omitempty"`
+		Settled                 bool                                `json:"settled"`
+		ObservedAt              time.Time                           `json:"observedAt"`
 	}
 	newStdoutRetainedSHA256, newStderrRetainedSHA256 := "", ""
 	if newExit != nil || unstarted != nil {

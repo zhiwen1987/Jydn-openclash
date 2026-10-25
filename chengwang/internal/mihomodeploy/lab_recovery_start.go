@@ -21,18 +21,18 @@ var errLabRecoveryStart = errors.New("owned laboratory recovery start is not pro
 // This detached binding comes only from the consumed permit and its current
 // locked WAL. It is a structural association, never authority to execute.
 type labRecoveryStartedBinding struct {
-	RecoveryID          string             `json:"recoveryId"`
-	RecoveryPlanSHA256  string             `json:"recoveryPlanSHA256"`
-	StartIntentSHA256   string             `json:"startIntentSHA256"`
-	Revision            uint64             `json:"revision"`
-	RecordSHA256        string             `json:"recordSHA256"`
-	TargetArtifact      ArtifactDescriptor `json:"targetArtifact"`
-	QuiescenceSHA256    string             `json:"quiescenceSHA256"`
-	ArmedAt             time.Time          `json:"armedAt"`
-	ExpiresAt           time.Time          `json:"expiresAt"`
-	ExpectedOldIdentity labKernelIdentity  `json:"expectedOldIdentity"`
-	StartMillis         uint32             `json:"startMillis"`
-	StartMode           string             `json:"startMode,omitempty"`
+	RecoveryID           string             `json:"recoveryId"`
+	RecoveryPlanSHA256   string             `json:"recoveryPlanSHA256"`
+	StartIntentSHA256    string             `json:"startIntentSHA256"`
+	Revision             uint64             `json:"revision"`
+	RecordSHA256         string             `json:"recordSHA256"`
+	TargetArtifact       ArtifactDescriptor `json:"targetArtifact"`
+	QuiescenceSHA256     string             `json:"quiescenceSHA256"`
+	ArmedAt              time.Time          `json:"armedAt"`
+	ExpiresAt            time.Time          `json:"expiresAt"`
+	ExpectedOldIdentity  labKernelIdentity  `json:"expectedOldIdentity"`
+	StartMillis          uint32             `json:"startMillis"`
+	StartMode            string             `json:"startMode,omitempty"`
 	AbsenceCleanupSHA256 string             `json:"absenceCleanupSHA256,omitempty"`
 }
 
@@ -66,10 +66,10 @@ type labRecoveryStartedFact struct {
 }
 
 type labRecoveryStartedIssuer struct {
-	mu      sync.Mutex
-	claimed map[*labRecoveryStartCore]bool
+	mu            sync.Mutex
+	claimed       map[*labRecoveryStartCore]bool
 	absentClaimed map[*labRecoveryAbsentStartPermitCore]bool
-	issued  map[*labRecoveryStartedEpochCore]bool
+	issued        map[*labRecoveryStartedEpochCore]bool
 }
 
 var processLabRecoveryStartedIssuer = labRecoveryStartedIssuer{
@@ -113,9 +113,14 @@ func (i *labRecoveryStartedIssuer) claim(p *labRecoveryStartCore) bool {
 }
 
 func (i *labRecoveryStartedIssuer) claimAbsent(p *labRecoveryAbsentStartPermitCore) bool {
-	if i == nil || p == nil { return false }
-	i.mu.Lock(); defer i.mu.Unlock()
-	if i.absentClaimed == nil || i.issued == nil || i.absentClaimed[p] || len(i.claimed)+len(i.absentClaimed) >= maxLabRecoveryStartedClaims { return false }
+	if i == nil || p == nil {
+		return false
+	}
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if i.absentClaimed == nil || i.issued == nil || i.absentClaimed[p] || len(i.claimed)+len(i.absentClaimed) >= maxLabRecoveryStartedClaims {
+		return false
+	}
 	i.absentClaimed[p] = true
 	return true
 }
@@ -134,8 +139,12 @@ func labRecoveryStartedBindingValid(b labRecoveryStartedBinding, now time.Time) 
 		b.StartMillis == labRecoveryFixedBudgets().StartMillis && lifecycleTime(b.ArmedAt) && lifecycleTime(b.ExpiresAt) && lifecycleTime(now) &&
 		b.ExpiresAt.After(b.ArmedAt) && b.ExpiresAt.Sub(b.ArmedAt) <= 5*time.Minute &&
 		!now.Before(b.ArmedAt) && now.Before(b.ExpiresAt) && !now.After(b.ArmedAt.Add(time.Duration(b.StartMillis)*time.Millisecond))
-	if !common { return false }
-	if b.StartMode == "" { return lifecycleNonzeroHash(b.QuiescenceSHA256) && b.AbsenceCleanupSHA256 == "" }
+	if !common {
+		return false
+	}
+	if b.StartMode == "" {
+		return lifecycleNonzeroHash(b.QuiescenceSHA256) && b.AbsenceCleanupSHA256 == ""
+	}
 	return b.StartMode == labRecoveryStartModeOldEpochAbsent && b.QuiescenceSHA256 == "" && lifecycleNonzeroHash(b.AbsenceCleanupSHA256)
 }
 
@@ -281,32 +290,45 @@ func labRecoveryStartedFactValid(f labRecoveryStartedFact, b labRecoveryStartedB
 
 func labRecoveryStartedBindingFromAbsentPermit(p *labRecoveryAbsentStartPermit, f labRecoveryAbsentStartFact, now time.Time) (labRecoveryStartedBinding, error) {
 	var zero labRecoveryStartedBinding
-	if p == nil || p.core == nil || p.core.store == nil { return zero, errLabRecoveryStart }
+	if p == nil || p.core == nil || p.core.store == nil {
+		return zero, errLabRecoveryStart
+	}
 	x := p.core.store
-	x.mu.Lock(); defer x.mu.Unlock()
-	if x.verify() != nil || x.trustedNow(now) != nil || x.absentStartPermit != nil || p.core.used == false { return zero, errLabRecoveryStart }
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	if x.verify() != nil || x.trustedNow(now) != nil || x.absentStartPermit != nil || p.core.used == false {
+		return zero, errLabRecoveryStart
+	}
 	w, a := x.record.core, x.record.core.Recovery
 	if x.live == nil || w.RecoveryOwner == nil || x.live.nonce != w.RecoveryOwner.OwnerNonce || x.live.fence != w.RecoveryOwner.Fence ||
 		w.Revision != f.Revision || w.RecordSHA256 != f.RecordSHA256 || w.LastRecoveryFence != p.core.fence || a == nil || a.Phase != "START_ARMED" ||
 		a.Plan.Schema != labRecoveryPlanSchemaV3 || a.Plan.StartMode != labRecoveryStartModeOldEpochAbsent || a.StartIntent == nil || a.StopIntent != nil || a.Quiescence != nil ||
 		a.Plan.RecoveryID != f.RecoveryID || a.Plan.PlanSHA256 != f.PlanSHA256 || a.StartIntent.IntentSHA256 != f.StartIntentSHA256 ||
 		!a.StartIntent.ArmedAt.Equal(f.ArmedAt) || !a.Plan.ExpiresAt.Equal(f.ExpiresAt) || !reflect.DeepEqual(a.Plan.TargetArtifact, f.TargetArtifact) ||
-		p.core.absence == nil || p.core.absence != x.absenceCustody || p.core.absence.binding == nil || !p.core.absence.binding(p.core.absence) { return zero, errLabRecoveryStart }
+		p.core.absence == nil || p.core.absence != x.absenceCustody || p.core.absence.binding == nil || !p.core.absence.binding(p.core.absence) {
+		return zero, errLabRecoveryStart
+	}
 	id := p.core.absence.oldIdentity
 	h := w.Current.Head
 	if id.PID != h.PID || id.StartTicks != h.StartTicks || id.NetNSInode != h.NetNSInode || id.ELFSHA256 != h.KernelSHA256 ||
-		id.ArtifactSHA256 != h.Artifact.Config.SHA256 || id.ControllerPort != h.ControllerPort || id.MixedPort != h.MixedPort { return zero, errLabRecoveryStart }
+		id.ArtifactSHA256 != h.Artifact.Config.SHA256 || id.ControllerPort != h.ControllerPort || id.MixedPort != h.MixedPort {
+		return zero, errLabRecoveryStart
+	}
 	b := labRecoveryStartedBinding{RecoveryID: f.RecoveryID, RecoveryPlanSHA256: f.PlanSHA256, StartIntentSHA256: f.StartIntentSHA256,
 		Revision: f.Revision, RecordSHA256: f.RecordSHA256, TargetArtifact: cloneArtifactDescriptor(f.TargetArtifact), ArmedAt: f.ArmedAt,
 		ExpiresAt: f.ExpiresAt, ExpectedOldIdentity: id, StartMillis: a.Plan.Budgets.StartMillis, StartMode: labRecoveryStartModeOldEpochAbsent,
 		AbsenceCleanupSHA256: p.core.absence.cleanupSHA}
-	if !labRecoveryStartedBindingValid(b, now) { return zero, errLabRecoveryStart }
+	if !labRecoveryStartedBindingValid(b, now) {
+		return zero, errLabRecoveryStart
+	}
 	return b, nil
 }
 
 func labRecoveryStartedFinalAbsentGate(p *labRecoveryAbsentStartPermit, f labRecoveryAbsentStartFact, expected labRecoveryStartedBinding, now time.Time) error {
 	current, err := labRecoveryStartedBindingFromAbsentPermit(p, f, now)
-	if err != nil || !reflect.DeepEqual(current, expected) { return errLabRecoveryStart }
+	if err != nil || !reflect.DeepEqual(current, expected) {
+		return errLabRecoveryStart
+	}
 	return nil
 }
 

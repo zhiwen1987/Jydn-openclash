@@ -97,24 +97,24 @@ type lifecycleRecoveryCleanedKernel struct {
 	Exit     labKernelExit     `json:"exit"`
 }
 type lifecycleRecoveryCleanupFact struct {
-	Schema             string                           `json:"schema"`
-	RecoveryID         string                           `json:"recoveryId"`
-	FailureCode        string                           `json:"failureCode"`
-	Old                lifecycleRecoveryCleanedKernel   `json:"old"`
-	New                *lifecycleRecoveryCleanedKernel  `json:"new,omitempty"`
-	Attempt            *labRecoveryStartObservation     `json:"attempt,omitempty"`
-	Probes             []lifecycleRecoveryCleanupProbe  `json:"probes"`
-	SourceReceiptSHA256 string                           `json:"sourceReceiptSHA256"`
-	ObservedAt          time.Time                        `json:"observedAt"`
-	CleanupSHA256       string                           `json:"cleanupSHA256"`
+	Schema              string                          `json:"schema"`
+	RecoveryID          string                          `json:"recoveryId"`
+	FailureCode         string                          `json:"failureCode"`
+	Old                 lifecycleRecoveryCleanedKernel  `json:"old"`
+	New                 *lifecycleRecoveryCleanedKernel `json:"new,omitempty"`
+	Attempt             *labRecoveryStartObservation    `json:"attempt,omitempty"`
+	Probes              []lifecycleRecoveryCleanupProbe `json:"probes"`
+	SourceReceiptSHA256 string                          `json:"sourceReceiptSHA256"`
+	ObservedAt          time.Time                       `json:"observedAt"`
+	CleanupSHA256       string                          `json:"cleanupSHA256"`
 }
 type lifecycleRecoveryReconciliation struct {
-	Schema                string                          `json:"schema"`
-	OriginalUnknownRoot   lifecycleRecoveryRootCheckpoint `json:"originalUnknownRoot"`
-	OriginalTxnUpdatedAt  time.Time                       `json:"originalTxnUpdatedAt"`
-	Cleanup               lifecycleRecoveryCleanupFact   `json:"cleanup"`
-	CommitRevision        uint64                          `json:"commitRevision"`
-	ReconciledAt          time.Time                       `json:"reconciledAt"`
+	Schema               string                          `json:"schema"`
+	OriginalUnknownRoot  lifecycleRecoveryRootCheckpoint `json:"originalUnknownRoot"`
+	OriginalTxnUpdatedAt time.Time                       `json:"originalTxnUpdatedAt"`
+	Cleanup              lifecycleRecoveryCleanupFact    `json:"cleanup"`
+	CommitRevision       uint64                          `json:"commitRevision"`
+	ReconciledAt         time.Time                       `json:"reconciledAt"`
 }
 
 // This typed terminal shape is structural data only. This first extension has
@@ -128,19 +128,19 @@ type lifecycleRecoveryCompletion struct {
 	CommittedAt    time.Time     `json:"committedAt"`
 }
 type lifecycleRecoveryTxn struct {
-	Plan             labRecoveryPlanDescriptor      `json:"plan"`
-	Phase            string                         `json:"phase"`
-	Approval         *lifecycleRecoveryApproval     `json:"approval"`
-	Revocation       *lifecycleRevocation           `json:"revocation"`
-	StopIntent       *lifecycleRecoveryActionIntent `json:"stopIntent"`
-	StopBinding      *labQuiescenceBinding          `json:"stopBinding"`
-	Quiescence       *labQuiescenceFact             `json:"quiescence"`
-	FailedQuiescence []labQuiescenceObservation     `json:"failedQuiescence"`
-	StartIntent      *lifecycleRecoveryActionIntent `json:"startIntent"`
-	Completion       *lifecycleRecoveryCompletion   `json:"completion"`
-	Failure          *lifecycleRecoveryFailure      `json:"failure"`
-	UpdatedAt        time.Time                      `json:"updatedAt"`
-	Execution        *lifecycleRecoveryExecution    `json:"execution,omitempty"`
+	Plan             labRecoveryPlanDescriptor        `json:"plan"`
+	Phase            string                           `json:"phase"`
+	Approval         *lifecycleRecoveryApproval       `json:"approval"`
+	Revocation       *lifecycleRevocation             `json:"revocation"`
+	StopIntent       *lifecycleRecoveryActionIntent   `json:"stopIntent"`
+	StopBinding      *labQuiescenceBinding            `json:"stopBinding"`
+	Quiescence       *labQuiescenceFact               `json:"quiescence"`
+	FailedQuiescence []labQuiescenceObservation       `json:"failedQuiescence"`
+	StartIntent      *lifecycleRecoveryActionIntent   `json:"startIntent"`
+	Completion       *lifecycleRecoveryCompletion     `json:"completion"`
+	Failure          *lifecycleRecoveryFailure        `json:"failure"`
+	UpdatedAt        time.Time                        `json:"updatedAt"`
+	Execution        *lifecycleRecoveryExecution      `json:"execution,omitempty"`
 	Reconciliation   *lifecycleRecoveryReconciliation `json:"reconciliation,omitempty"`
 }
 

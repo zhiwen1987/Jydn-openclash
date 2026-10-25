@@ -23,6 +23,7 @@ type recoveryAPIModelBackend struct {
 	headers []string
 	id      string
 }
+
 func newRecoveryAPIModel(scope authz.ResourceScope) *recoveryAPIModelBackend {
 	return &recoveryAPIModelBackend{scope: scope, view: mihomodeploy.LabRecoveryView{
 		Schema: mihomodeploy.LabRecoveryViewSchema, Boundary: mihomodeploy.LabBackendBoundary,

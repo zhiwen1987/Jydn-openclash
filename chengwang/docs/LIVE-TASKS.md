@@ -12,7 +12,7 @@
 | 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
 | 首次真实 Completion | 四模式限定隔离验收通过 | `4bbbe70` 的 11 CI 任务成功；9 ZIP／167 成员；四模式原 checker main 直接复演通过，无平台适配；四组 producer／fresh 一致；[聚合收据](evidence/sys06-4bbbe70-first-completion-acceptance-20261026.json) | 完整私有 WAL 独立读取、service rebind、API、普通发布、第二恢复不在此结论内；旧失败保留 |
 | 当前提交其他三套 CI | CI 终态成功／本轮未重复全量原件审计 | `4bbbe70` 基础门 `40226840817`、容量诊断 `40226840793`、旧 S2 `40226840772` 均 success | 与新 Completion 原件验收分开记账，不把状态观察冒充其他门的本轮原件复算 |
-| 失败恢复协调器与产品 API | `a9774e5` 真实编译失败；最小修正已合入待重验 | foundation 在 Go 前误用文件摘要作名称摘要；独立 full 诊断实际报两处缺 `newLabRecoveryCollectorAt`；已恢复正确名称 pin、补注册 session 派生目录并保旧 fixed 行为，688 顶层不变 | 新 Linux 编译／结构摘要／完整格式／回归；本轮没有诊断 top output/pass，不能填图 pin。API 与接续实验仍缺 |
+| 失败恢复协调器与产品 API | `a433cc9` 已越过旧阻断；MODEL 编译错误与格式修复待重验 | 47／25 模型门通过；普通／race 其他五包各746个 test run/pass，但 mihomodeploy 因 MODEL 错用 `binding.TargetArtifact` 构建失败；已改读夹具第四返回 plan，保58断言／7顶层，并转入完整144格式门的10文件／54hunk实际补丁 | 新 Linux 编译／结构摘要／格式／回归；仍无诊断 top output/pass，不能填图 pin。真实 API 连续恢复仍缺，688 顶层不变 |
 | 恢复后普通发布与第二次恢复 | 未验收 | 已有部分模型与外部源码，不能当作实际产品结果 | 完成新 head／epoch 接续、真实 API、普通发布与连续恢复的端到端证据 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
 
