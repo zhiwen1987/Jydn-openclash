@@ -10,5 +10,7 @@ func startOwnedRecoveryKernel(context.Context, *labKernelInput, *ArtifactStore, 
 	return nil, nil, labRecoveryStartObservation{Schema: labRecoveryStartObservationSchema,
 		Outcome: "ENTRY_REJECTED", FailureCode: "PLATFORM_UNSUPPORTED"}, errLabRecoveryStart
 }
-func labRecoveryStartedOwnerMatches(*ownedLabKernel, *labRecoveryStartedOwnerSeal, labKernelIdentity) bool { return false }
+func labRecoveryStartedOwnerMatches(*ownedLabKernel, *labRecoveryStartedOwnerSeal, labKernelIdentity) bool {
+	return false
+}
 func labRecoveryStartedOwnerCurrent(*ownedLabKernel, labKernelIdentity) bool { return false }

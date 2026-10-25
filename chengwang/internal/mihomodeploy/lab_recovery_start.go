@@ -36,21 +36,21 @@ type labRecoveryStartedBinding struct {
 // function; only StartObservation.Started reports whether Cmd.Start succeeded.
 // These fields do not assert Wait, complete stdout, authorization or new head.
 type labRecoveryStartObservation struct {
-	Schema            string                     `json:"schema"`
-	PermitConsumed    bool                       `json:"permitConsumed"`
-	StartInvoked      bool                       `json:"startInvoked"`
-	StartReturned     bool                       `json:"startReturned"`
-	StartErrorClass   *string                    `json:"startErrorClass"`
-	StartObservation  *labKernelStartObservation `json:"startObservation"`
-	StartupIdentity   *labKernelIdentity         `json:"startupIdentity"`
-	VerifiedIdentity  *labKernelIdentity         `json:"verifiedIdentity"`
-	NamespaceInode    *uint64                    `json:"namespaceInode"`
-	ListenersBefore   *bool                      `json:"listenersBefore"`
-	ListenersAfter    *bool                      `json:"listenersAfter"`
-	StartedAt         *time.Time                 `json:"startedAt"`
-	ReturnedAt        *time.Time                 `json:"returnedAt"`
-	Outcome           string                     `json:"outcome"`
-	FailureCode       string                     `json:"failureCode"`
+	Schema           string                     `json:"schema"`
+	PermitConsumed   bool                       `json:"permitConsumed"`
+	StartInvoked     bool                       `json:"startInvoked"`
+	StartReturned    bool                       `json:"startReturned"`
+	StartErrorClass  *string                    `json:"startErrorClass"`
+	StartObservation *labKernelStartObservation `json:"startObservation"`
+	StartupIdentity  *labKernelIdentity         `json:"startupIdentity"`
+	VerifiedIdentity *labKernelIdentity         `json:"verifiedIdentity"`
+	NamespaceInode   *uint64                    `json:"namespaceInode"`
+	ListenersBefore  *bool                      `json:"listenersBefore"`
+	ListenersAfter   *bool                      `json:"listenersAfter"`
+	StartedAt        *time.Time                 `json:"startedAt"`
+	ReturnedAt       *time.Time                 `json:"returnedAt"`
+	Outcome          string                     `json:"outcome"`
+	FailureCode      string                     `json:"failureCode"`
 }
 
 type labRecoveryStartedFact struct {
@@ -82,19 +82,25 @@ type labRecoveryStartedEpochCore struct {
 // Value copies alias one private registry entry. JSON is never a constructor.
 type labRecoveryStartedEpoch struct{ core *labRecoveryStartedEpochCore }
 
-func (labRecoveryStartedEpoch) String() string { return labRecoveryStartedDebug }
+func (labRecoveryStartedEpoch) String() string   { return labRecoveryStartedDebug }
 func (labRecoveryStartedEpoch) GoString() string { return labRecoveryStartedDebug }
-func (labRecoveryStartedEpoch) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, labRecoveryStartedDebug) }
+func (labRecoveryStartedEpoch) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, labRecoveryStartedDebug)
+}
 func (labRecoveryStartedEpoch) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"OBSERVED_START_NOT_AUTHORIZATION_OR_HEAD"}`), nil
 }
 func (*labRecoveryStartedEpoch) UnmarshalJSON([]byte) error { return errLabRecoveryStart }
 
 func (i *labRecoveryStartedIssuer) claim(p *labRecoveryStartCore) bool {
-	if i == nil || p == nil { return false }
+	if i == nil || p == nil {
+		return false
+	}
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	if i.claimed == nil || i.issued == nil || i.claimed[p] || len(i.claimed) >= maxLabRecoveryStartedClaims { return false }
+	if i.claimed == nil || i.issued == nil || i.claimed[p] || len(i.claimed) >= maxLabRecoveryStartedClaims {
+		return false
+	}
 	i.claimed[p] = true
 	return true
 }
@@ -124,30 +130,90 @@ func labRecoveryStartedIdentityValid(id labKernelIdentity, b labRecoveryStartedB
 }
 
 func labRecoveryStartedCloneStart(v labKernelStartObservation) labKernelStartObservation {
-	if v.Started != nil { n := *v.Started; v.Started = &n }
-	if v.PID != nil { n := *v.PID; v.PID = &n }
-	if v.StartTicks != nil { n := *v.StartTicks; v.StartTicks = &n }
-	if v.WaitReturned != nil { n := *v.WaitReturned; v.WaitReturned = &n }
-	if v.ExitCode != nil { n := *v.ExitCode; v.ExitCode = &n }
-	if v.Signal != nil { n := *v.Signal; v.Signal = &n }
-	if v.TermSent != nil { n := *v.TermSent; v.TermSent = &n }
-	if v.KillSent != nil { n := *v.KillSent; v.KillSent = &n }
-	if v.GroupAbsent != nil { n := *v.GroupAbsent; v.GroupAbsent = &n }
-	if v.Stdout != nil { n := *v.Stdout; v.Stdout = &n }
-	if v.Stderr != nil { n := *v.Stderr; v.Stderr = &n }
+	if v.Started != nil {
+		n := *v.Started
+		v.Started = &n
+	}
+	if v.PID != nil {
+		n := *v.PID
+		v.PID = &n
+	}
+	if v.StartTicks != nil {
+		n := *v.StartTicks
+		v.StartTicks = &n
+	}
+	if v.WaitReturned != nil {
+		n := *v.WaitReturned
+		v.WaitReturned = &n
+	}
+	if v.ExitCode != nil {
+		n := *v.ExitCode
+		v.ExitCode = &n
+	}
+	if v.Signal != nil {
+		n := *v.Signal
+		v.Signal = &n
+	}
+	if v.TermSent != nil {
+		n := *v.TermSent
+		v.TermSent = &n
+	}
+	if v.KillSent != nil {
+		n := *v.KillSent
+		v.KillSent = &n
+	}
+	if v.GroupAbsent != nil {
+		n := *v.GroupAbsent
+		v.GroupAbsent = &n
+	}
+	if v.Stdout != nil {
+		n := *v.Stdout
+		v.Stdout = &n
+	}
+	if v.Stderr != nil {
+		n := *v.Stderr
+		v.Stderr = &n
+	}
 	return v
 }
 
 func labRecoveryStartedCloneObservation(v labRecoveryStartObservation) labRecoveryStartObservation {
-	if v.StartErrorClass != nil { n := *v.StartErrorClass; v.StartErrorClass = &n }
-	if v.StartObservation != nil { n := labRecoveryStartedCloneStart(*v.StartObservation); v.StartObservation = &n }
-	if v.StartupIdentity != nil { n := *v.StartupIdentity; v.StartupIdentity = &n }
-	if v.VerifiedIdentity != nil { n := *v.VerifiedIdentity; v.VerifiedIdentity = &n }
-	if v.NamespaceInode != nil { n := *v.NamespaceInode; v.NamespaceInode = &n }
-	if v.ListenersBefore != nil { n := *v.ListenersBefore; v.ListenersBefore = &n }
-	if v.ListenersAfter != nil { n := *v.ListenersAfter; v.ListenersAfter = &n }
-	if v.StartedAt != nil { n := *v.StartedAt; v.StartedAt = &n }
-	if v.ReturnedAt != nil { n := *v.ReturnedAt; v.ReturnedAt = &n }
+	if v.StartErrorClass != nil {
+		n := *v.StartErrorClass
+		v.StartErrorClass = &n
+	}
+	if v.StartObservation != nil {
+		n := labRecoveryStartedCloneStart(*v.StartObservation)
+		v.StartObservation = &n
+	}
+	if v.StartupIdentity != nil {
+		n := *v.StartupIdentity
+		v.StartupIdentity = &n
+	}
+	if v.VerifiedIdentity != nil {
+		n := *v.VerifiedIdentity
+		v.VerifiedIdentity = &n
+	}
+	if v.NamespaceInode != nil {
+		n := *v.NamespaceInode
+		v.NamespaceInode = &n
+	}
+	if v.ListenersBefore != nil {
+		n := *v.ListenersBefore
+		v.ListenersBefore = &n
+	}
+	if v.ListenersAfter != nil {
+		n := *v.ListenersAfter
+		v.ListenersAfter = &n
+	}
+	if v.StartedAt != nil {
+		n := *v.StartedAt
+		v.StartedAt = &n
+	}
+	if v.ReturnedAt != nil {
+		n := *v.ReturnedAt
+		v.ReturnedAt = &n
+	}
 	return v
 }
 
@@ -159,10 +225,10 @@ func labRecoveryStartedCloneFact(f labRecoveryStartedFact) labRecoveryStartedFac
 
 func labRecoveryStartedFactHash(f labRecoveryStartedFact) (string, error) {
 	return lifecycleHash(struct {
-		Schema string `json:"schema"`
-		Binding labRecoveryStartedBinding `json:"binding"`
+		Schema      string                      `json:"schema"`
+		Binding     labRecoveryStartedBinding   `json:"binding"`
 		Observation labRecoveryStartObservation `json:"observation"`
-		ObservedAt time.Time `json:"observedAt"`
+		ObservedAt  time.Time                   `json:"observedAt"`
 	}{f.Schema, f.Binding, f.Observation, f.ObservedAt})
 }
 
@@ -178,12 +244,16 @@ func labRecoveryStartedFactValid(f labRecoveryStartedFact, b labRecoveryStartedB
 		!labRecoveryStartedIdentityValid(*o.StartupIdentity, b) || o.NamespaceInode == nil || *o.NamespaceInode != b.ExpectedOldIdentity.NetNSInode ||
 		o.ListenersBefore == nil || !*o.ListenersBefore || o.ListenersAfter == nil || !*o.ListenersAfter ||
 		o.StartedAt == nil || o.ReturnedAt == nil || !lifecycleTime(*o.StartedAt) || !lifecycleTime(*o.ReturnedAt) ||
-		o.StartedAt.Before(b.ArmedAt) || o.ReturnedAt.Before(*o.StartedAt) || !f.ObservedAt.Equal(*o.ReturnedAt) { return false }
+		o.StartedAt.Before(b.ArmedAt) || o.ReturnedAt.Before(*o.StartedAt) || !f.ObservedAt.Equal(*o.ReturnedAt) {
+		return false
+	}
 	s := o.StartObservation
 	if !s.Attempted || s.Started == nil || !*s.Started || s.PID == nil || *s.PID != o.StartupIdentity.PID ||
 		s.StartTicks == nil || *s.StartTicks != o.StartupIdentity.StartTicks || s.WaitReturned == nil || *s.WaitReturned ||
 		s.WaitErrorClass != "NOT_WAITED" || s.ExitCode != nil || s.Signal != nil || s.GroupAbsent != nil ||
-		s.TermSent == nil || *s.TermSent || s.KillSent == nil || *s.KillSent || s.Stdout == nil || s.Stderr == nil { return false }
+		s.TermSent == nil || *s.TermSent || s.KillSent == nil || *s.KillSent || s.Stdout == nil || s.Stderr == nil {
+		return false
+	}
 	h, err := labRecoveryStartedFactHash(f)
 	return err == nil && lifecycleNonzeroHash(h) && h == f.StartedSHA256
 }
@@ -198,16 +268,25 @@ func (q *labRecoveryStartedEpoch) consumeStartedEpoch(b labRecoveryStartedBindin
 
 func (q *labRecoveryStartedEpoch) consume(b labRecoveryStartedBinding, now time.Time, strict bool) (labRecoveryStartedFact, error) {
 	var zero labRecoveryStartedFact
-	if q == nil || q.core == nil || q.core.issuer == nil { return zero, errLabRecoveryStart }
-	x := q.core; i := x.issuer
+	if q == nil || q.core == nil || q.core.issuer == nil {
+		return zero, errLabRecoveryStart
+	}
+	x := q.core
+	i := x.issuer
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	if !i.issued[x] { return zero, errLabRecoveryStart }
+	if !i.issued[x] {
+		return zero, errLabRecoveryStart
+	}
 	delete(i.issued, x) // every known entry is spent, including rejected attempts
 	if x.nonce == ([32]byte{}) || x.owner == nil || x.seal == nil || !labRecoveryStartedFactValid(x.fact, b, now) ||
-		!labRecoveryStartedOwnerMatches(x.owner, x.seal, *x.fact.Observation.StartupIdentity) { return zero, errLabRecoveryStart }
+		!labRecoveryStartedOwnerMatches(x.owner, x.seal, *x.fact.Observation.StartupIdentity) {
+		return zero, errLabRecoveryStart
+	}
 	if strict {
-		if !labRecoveryStartedBindingValid(b, now) || now.Sub(x.fact.ObservedAt) > 30*time.Second || !labRecoveryStartedOwnerCurrent(x.owner, *x.fact.Observation.StartupIdentity) { return zero, errLabRecoveryStart }
+		if !labRecoveryStartedBindingValid(b, now) || now.Sub(x.fact.ObservedAt) > 30*time.Second || !labRecoveryStartedOwnerCurrent(x.owner, *x.fact.Observation.StartupIdentity) {
+			return zero, errLabRecoveryStart
+		}
 	}
 	return labRecoveryStartedCloneFact(x.fact), nil
 }
@@ -217,23 +296,32 @@ func (q *labRecoveryStartedEpoch) consume(b labRecoveryStartedBinding, now time.
 // the full current WAL. It grants no ongoing authorization outside this step.
 func labRecoveryStartedBindingFromPermit(p *labRecoveryStartPermit, f labRecoveryStartFact, now time.Time) (labRecoveryStartedBinding, error) {
 	var zero labRecoveryStartedBinding
-	if p == nil || p.core == nil || p.core.store == nil { return zero, errLabRecoveryStart }
+	if p == nil || p.core == nil || p.core.store == nil {
+		return zero, errLabRecoveryStart
+	}
 	x := p.core.store
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if x.verify() != nil || x.trustedNow(now) != nil || x.permit != nil || !reflect.DeepEqual(p.core.fact, f) { return zero, errLabRecoveryStart }
-	w := x.record.core; a := w.Recovery
+	if x.verify() != nil || x.trustedNow(now) != nil || x.permit != nil || !reflect.DeepEqual(p.core.fact, f) {
+		return zero, errLabRecoveryStart
+	}
+	w := x.record.core
+	a := w.Recovery
 	if x.live == nil || x.live.store != x || w.RecoveryOwner == nil || x.live.nonce != w.RecoveryOwner.OwnerNonce ||
 		x.live.fence != w.RecoveryOwner.Fence || w.RecoveryOwner.Fence != p.core.fence || !now.Before(w.RecoveryOwner.ExpiresAt) ||
 		a == nil || a.Phase != "START_ARMED" || a.Revocation != nil || a.Quiescence == nil || a.StartIntent == nil || a.Approval == nil ||
 		!now.Before(a.Approval.ExpiresAt) || w.Revision != f.Revision || w.RecordSHA256 != f.RecordSHA256 || w.LastRecoveryFence != p.core.fence ||
 		a.Plan.RecoveryID != f.RecoveryID || a.Plan.PlanSHA256 != f.RecoveryPlanSHA256 || a.StartIntent.IntentSHA256 != f.StartIntentSHA256 ||
 		!a.StartIntent.ArmedAt.Equal(f.ArmedAt) || !a.Plan.ExpiresAt.Equal(f.ExpiresAt) || !reflect.DeepEqual(a.Plan.TargetArtifact, f.TargetArtifact) ||
-		a.Quiescence.QuiescenceSHA256 != f.QuiescenceSHA256 { return zero, errLabRecoveryStart }
+		a.Quiescence.QuiescenceSHA256 != f.QuiescenceSHA256 {
+		return zero, errLabRecoveryStart
+	}
 	b := labRecoveryStartedBinding{f.RecoveryID, f.RecoveryPlanSHA256, f.StartIntentSHA256, f.Revision, f.RecordSHA256,
 		cloneArtifactDescriptor(f.TargetArtifact), f.QuiescenceSHA256, f.ArmedAt, f.ExpiresAt,
 		a.Quiescence.Binding.ExpectedOldIdentity, a.Plan.Budgets.StartMillis}
-	if !labRecoveryStartedBindingValid(b, now) { return zero, errLabRecoveryStart }
+	if !labRecoveryStartedBindingValid(b, now) {
+		return zero, errLabRecoveryStart
+	}
 	return b, nil
 }
 
@@ -243,6 +331,8 @@ func labRecoveryStartedBindingFromPermit(p *labRecoveryStartPermit, f labRecover
 // credential revocation; the coordinator must still serialize its own gates.
 func labRecoveryStartedFinalGate(p *labRecoveryStartPermit, f labRecoveryStartFact, expected labRecoveryStartedBinding, now time.Time) error {
 	current, err := labRecoveryStartedBindingFromPermit(p, f, now)
-	if err != nil || !reflect.DeepEqual(current, expected) { return errLabRecoveryStart }
+	if err != nil || !reflect.DeepEqual(current, expected) {
+		return errLabRecoveryStart
+	}
 	return nil
 }
