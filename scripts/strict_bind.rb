@@ -35,8 +35,8 @@ module StrictBind
     full_target=target=='REJECT' ? 'REJECT' : (kind=='node' ? StrictCustom::NODE : StrictCustom::POOL)+target.to_s
     raise 'private_target_missing' unless unlock || full_target=='REJECT' || allowed.include?(full_target)
     before=r.api('/proxies')['proxies'];outer=before.fetch(business)
-    wrapper=(unlock ? (old_binding['kind']=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP) : (kind=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP))+business
-    fence=old_binding ? (old_binding['kind']=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP)+business : wrapper
+    wrapper=unlock ? (old_binding['kind']=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP) : (kind=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP)
+    fence=old_binding ? (old_binding['kind']=='node' ? StrictCustom::SINGLE : StrictCustom::GROUP) : wrapper
     raise 'strict_entry_not_installed' unless before[wrapper] && before[fence] && outer['all'].include?(fence)
     backup='/root/openclash-backups/strict-bind-'+Time.now.to_i.to_s+'-'+Process.pid.to_s;r.sh('mkdir','-m','700',backup)
     {'source'=>source,'runtime'=>runtime,'private'=>ROOT+'/strict-custom-private.yaml','locks'=>path}.each do |name,file|
@@ -45,7 +45,9 @@ module StrictBind
     original_menu=old_binding ? old_binding.fetch('original_menu') : outer['all']
     previous=old_binding ? old_binding['previous_selected'] : outer['now']
     if unlock;locks['bindings'].delete(business)
-    else;locks['bindings'][business]={'kind'=>kind,'target'=>target,'original_menu'=>original_menu,'previous_selected'=>previous}
+    else
+      locks['bindings'].each_value{|binding|binding['target']=target;binding['kind']=kind}
+      locks['bindings'][business]={'kind'=>kind,'target'=>target,'original_menu'=>original_menu,'previous_selected'=>previous}
     end
     # Compile and validate before changing active routing or durable inputs.
     %w[source runtime].each do |label|
@@ -60,17 +62,28 @@ module StrictBind
     r.atomic(backup+'/validation.yaml',YAML.dump(validation))
     ok=system('/etc/openclash/core/clash_meta','-t','-d','/etc/openclash','-f',backup+'/validation.yaml',out:backup+'/validation.log',err:backup+'/validation.log')
     raise 'native_validation_failed_no_routing_changed' unless ok
-    # Fence first, then drain this business. Never close unrelated connections.
-    r.api('/proxies/'+r.uri(fence),'PUT',{'name'=>'REJECT'});r.api('/proxies/'+r.uri(business),'PUT',{'name'=>fence})
+    # The global selection affects every subscriber. Unlock fences only this outer.
+    affected=[business]
+    unless unlock
+      policy['business_groups'].each do |name|
+        seen=[];current=name
+        while before[current] && before[current]['now'] && !seen.include?(current)
+          seen<<current;current=before[current]['now']
+          if [wrapper,fence].include?(current);affected<<name;break;end
+        end
+      end
+      r.api('/proxies/'+r.uri(wrapper),'PUT',{'name'=>'REJECT'})
+    end
+    r.api('/proxies/'+r.uri(business),'PUT',{'name'=>'REJECT'})
     closed=0
     3.times do
-      rows=(r.api('/connections')['connections'] || []).select{|v|v.fetch('chains',[]).include?(business)}
+      rows=(r.api('/connections')['connections'] || []).select{|v|(v.fetch('chains',[]) & affected).any?}
       break if rows.empty?
       rows.each do |v|
         r.api('/connections/'+r.uri(v.fetch('id')),'DELETE');closed+=1
       end
     end
-    raise 'old_connections_not_drained_left_closed' unless (r.api('/connections')['connections'] || []).none?{|v|v.fetch('chains',[]).include?(business)}
+    raise 'old_connections_not_drained_left_closed' unless (r.api('/connections')['connections'] || []).none?{|v|(v.fetch('chains',[]) & affected).any?}
     r.atomic(path,YAML.dump(locks));r.atomic(path+'.good',YAML.dump(locks))
     %w[source runtime].each do |label|
       file=label=='source' ? source : runtime;r.atomic(file,File.binread(backup+'/'+label+'.candidate'))
@@ -84,7 +97,7 @@ module StrictBind
       current=r.api('/proxies/'+r.uri(business));raise 'persistent_allowlist_not_applied' unless current['all'].sort==[wrapper,'REJECT'].sort
       r.api('/proxies/'+r.uri(business),'PUT',{'name'=>wrapper});r.api('/proxies/'+r.uri(wrapper),'PUT',{'name'=>full_target})
     end
-    {'business'=>business,'persistent_locked'=>!unlock,'private_target'=>unlock ? nil : full_target,'connections_closed'=>closed,'backup'=>backup}
+    {'business'=>business,'persistent_locked'=>!unlock,'private_target'=>unlock ? nil : full_target,'affected_businesses'=>affected.uniq,'connections_closed'=>closed,'backup'=>backup}
   end
 end
 if __FILE__==$0

@@ -258,10 +258,10 @@ DASHBOARD_PROXY_GROUP_ORDER = (
     *DASHBOARD_ADVANCED_GROUPS,
 )
 
-# Independent strict selectors are appended; existing cards keep their order.
+# One shared selector is appended; existing cards keep their order.
 from strict_catalog import choices as strict_choices, policy as strict_policy
-DASHBOARD_PROXY_GROUP_ORDER += tuple(
+DASHBOARD_PROXY_GROUP_ORDER += tuple(dict.fromkeys(
     choice for name in BUSINESS_STRATEGY_GROUPS
     if name in strict_policy()["business_groups"]
     for choice in strict_choices(name)
-)
+))

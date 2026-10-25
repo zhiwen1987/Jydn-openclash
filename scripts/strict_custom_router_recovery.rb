@@ -30,16 +30,19 @@ module StrictRouterRecovery
     temp=path+'.strict-tmp';File.open(temp,'w',mode){|f|f.write(bytes);f.flush;f.fsync};File.chmod(mode,temp);File.rename(temp,path)
   end
   def self.verify(b)
-    raise 'unexpected_recovery_directory' unless b.start_with?('/root/openclash-backups/strict-custom-20261026-') && File.directory?(b)
+    raise 'unexpected_recovery_directory' unless b.start_with?('/root/openclash-backups/shared-custom-20261026-') && File.directory?(b)
     raise 'wrong_router_identity' unless File.read('/sys/class/net/br-lan/address').strip=='00:0c:29:2d:96:e8'
     m=YAML.load_file(b+'/manifest.yaml')
-    %w[source runtime overwrite].each{|k|raise 'backup_integrity_failed' unless hash(b+'/'+k+'.before')==m['files'][k]['sha256']}
+    m['files'].each{|k,item|next if item['missing'];raise 'backup_integrity_failed' unless hash(b+'/'+k+'.before')==item['sha256']}
     m
   end
-  def self.restore_choices(choices)
+  def self.restore_choices(choices,migrate=false)
     proxies=api('/proxies')['proxies'];skipped=[]
     choices.each do |name,selected|
       next if ['GLOBAL','🧪 节点能力检测','🔬 节点归属校验'].include?(name)
+      if migrate && selected.is_a?(String)
+        selected='🔐 自定义节点' if selected.start_with?('🔐 自定义节点 · ','🔐 自定义节点组 · ')
+      end
       item=proxies[name];next unless item && item['type']=='Selector'
       if selected && item.fetch('all',[]).include?(selected)
         api('/proxies/'+uri(name),'PUT',{'name'=>selected}) if item['now']!=selected
@@ -50,11 +53,11 @@ module StrictRouterRecovery
   end
   def self.restore(b)
     m=verify(b);a=YAML.load_file(b+'/activated_router.yaml')
-    %w[source runtime overwrite].each do |k|
+    a['owned_sha256'].keys.each do |k|
       item=m['files'][k];current=hash(item['path'])
       raise 'concurrent_configuration_edit' unless [item['sha256'],a['owned_sha256'][k]].include?(current)
     end
-    %w[source runtime overwrite].each{|k|item=m['files'][k];atomic(item['path'],File.binread(b+'/'+k+'.before'),a['modes'][k])}
+    a['owned_sha256'].keys.each{|k|item=m['files'][k];atomic(item['path'],File.binread(b+'/'+k+'.before'),a['modes'][k])}
     begin;api('/configs?force=true','PUT',{'path'=>m['files']['runtime']['path']})
     rescue StandardError;sh('/etc/init.d/openclash','restart')
     end
@@ -75,7 +78,7 @@ module StrictRouterRecovery
       if age>600;restore(b);break;end
       if File.file?(b+'/PUBLISHING') && age<180;sleep 5;next;end
       begin
-        p=api('/proxies')['proxies'];n=p.keys.count{|k|k.start_with?('🔐 自定义节点 · ','🔐 自定义节点组 · ')}
+        p=api('/proxies')['proxies'];n=p.keys.count{|k|k=='🔐 自定义节点' || k.start_with?('🔐 自定义节点 · ','🔐 自定义节点组 · ')}
         raise 'strict_groups_missing' unless n==a['strict_group_count']
         failures=0
       rescue StandardError;failures+=1

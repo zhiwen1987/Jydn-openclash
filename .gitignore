@@ -13,3 +13,4 @@ node-geo-report*.yaml
 strict-custom-private.yaml
 strict-custom-locks.yaml*
 reports/strict-custom-*/
+reports/shared-custom-*/

@@ -3,7 +3,7 @@ import getpass,json,shlex,sys,datetime,base64,importlib.util
 from pathlib import Path
 import paramiko
 ROOT=Path(__file__).resolve().parents[1]
-CASE=ROOT/'reports/strict-custom-20261026'
+CASE=ROOT/'reports/shared-custom-20261026'
 def connection(host,user,password,sock=None):
  c=paramiko.SSHClient();c.load_system_host_keys();c.set_missing_host_key_policy(paramiko.RejectPolicy())
  c.connect(host,username=user,password=password,sock=sock,timeout=12,allow_agent=False,look_for_keys=False);return c
@@ -18,6 +18,7 @@ def main():
    phase=input('Strict phase (preflight/backup/stage/build/lab/activate_server/activate_router/accept/rollback/exit): ').strip()
    if phase=='exit':break
    if not phase.replace('_','').isalpha():continue
+   owner=None
    try:
     results={}
     hosts=[('router',r),('server',s)]
@@ -42,6 +43,11 @@ def main():
       payload='require "yaml"\nARGS=YAML.load('+json.dumps(json.dumps(args),ensure_ascii=False)+')\nBUNDLE=YAML.load('+json.dumps(json.dumps(bundle),ensure_ascii=False)+')\n'+ruby
       cmd='ruby -'
      else:cmd='sudo -n python3 -'
+     owner=None
+     if name=='router' and phase in ['activate_router','rollback']:
+      lock_code='import fcntl,sys; f=open("/root/dpanel/compose/lan-center/data/failover/routing-owner.lock","a"); fcntl.flock(f,fcntl.LOCK_EX); print("ready",flush=True); sys.stdin.read()'
+      owner=s.exec_command('sudo -n python3 -u -c '+shlex.quote(lock_code),timeout=120)
+      if owner[1].readline().strip()!='ready':raise RuntimeError('Routing writer lock unavailable')
      inp,out,err=c.exec_command(cmd,timeout=1200);inp.write(payload);inp.channel.shutdown_write()
      value=None
      if name=='router':
@@ -57,6 +63,7 @@ def main():
        if item.get('_progress'):print(json.dumps(item,ensure_ascii=False),flush=True)
        else:value=item
      error=err.read();status=out.channel.recv_exit_status()
+     if owner is not None:owner[0].channel.shutdown_write();owner[1].read();owner[2].read();owner=None
      if status:raise RuntimeError(name+' phase failed '+str(status)+' '+error.decode('utf-8','replace')[-600:])
      results[name]=value
     if phase=='stage':
@@ -75,6 +82,8 @@ def main():
     (CASE/(phase+'.json')).write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
     if phase=='backup':(CASE/'location.json').write_text(json.dumps({k:results[k]['backup'] for k in results}),encoding='utf-8')
     print(json.dumps(results,ensure_ascii=False),flush=True)
-   except Exception as e:print(json.dumps({'phase_failed':phase,'detail':str(e)[:700]},ensure_ascii=False),flush=True)
+   except Exception as e:
+    if owner is not None:owner[0].channel.close()
+    print(json.dumps({'phase_failed':phase,'detail':str(e)[:700]},ensure_ascii=False),flush=True)
  finally:r.close();s.close();sp=None;rp=None
 if __name__=='__main__':main()

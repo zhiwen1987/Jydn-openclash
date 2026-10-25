@@ -5,12 +5,23 @@ require 'yaml'
 module StrictCustom
   NODE = '🔐 自建节点 · '
   POOL = '🔐 自建节点池 · '
-  SINGLE = '🔐 自定义节点 · '
-  GROUP = '🔐 自定义节点组 · '
-  PREFIXES = [NODE, POOL, SINGLE, GROUP].freeze
+  LEGACY_SINGLE = '🔐 自定义节点 · '
+  LEGACY_GROUP = '🔐 自定义节点组 · '
+  SINGLE = '🔐 自定义节点'
+  GROUP = SINGLE # legacy command kind; both target the single shared entry
+  PREFIXES = [NODE, POOL, LEGACY_SINGLE, LEGACY_GROUP].freeze
   TYPES = %w[ss ssr vmess vless trojan socks5 http snell hysteria hysteria2 tuic wireguard].freeze
   ID = /\A[a-zA-Z0-9][a-zA-Z0-9_-]{0,47}\z/
-  def self.owned?(name);name.is_a?(String) && PREFIXES.any?{|p|name.start_with?(p)};end
+  def self.owned?(name);name.is_a?(String) && (name==SINGLE || PREFIXES.any?{|p|name.start_with?(p)});end
+  def self.legacy_entry?(name)
+    name.is_a?(String) && (name.start_with?(LEGACY_SINGLE) && name!=SINGLE || name.start_with?(LEGACY_GROUP) && name!=GROUP)
+  end
+  def self.canonical(name)
+    return name unless name.is_a?(String)
+    return SINGLE if name.start_with?(LEGACY_SINGLE)
+    return GROUP if name.start_with?(LEGACY_GROUP)
+    name
+  end
   def self.load(path)
     YAML.safe_load(File.read(path), permitted_classes: [], aliases: true)
   end
@@ -34,7 +45,7 @@ module StrictCustom
       raise 'private_pool_members_invalid' unless ids.is_a?(Array) && ids.uniq==ids && ids.all?{|id|parsed.key?(id)}
       raise 'private_pool_mode_invalid' unless %w[select fallback].include?(mode)
       members=ids.map{|id|NODE+id}
-      group={'name'=>POOL+item['id'],'type'=>mode,'proxies'=>mode=='select' ? ['REJECT']+members : members+['REJECT']}
+      group={'name'=>POOL+item['id'],'type'=>mode,'hidden'=>true,'proxies'=>mode=='select' ? ['REJECT']+members : members+['REJECT']}
       if mode=='fallback'
         group.merge!('url'=>'https://cp.cloudflare.com/generate_204','interval'=>60,'timeout'=>5000,'lazy'=>true)
       end
@@ -69,7 +80,8 @@ module StrictCustom
       provider['exclude-filter']=old.empty? ? '^'+NODE : '('+old+')|^'+NODE unless old.include?(NODE)
     end
     groups=original.reject{|g|owned?(g['name'])}
-    generated=[];applied=[];private_names=nodes.map{|n|n['name']}
+    applied=[];private_names=nodes.map{|n|n['name']}
+    generated=[{'name'=>SINGLE,'type'=>'select','proxies'=>['REJECT']+private_names+pools.map{|v|v['name']}}]
     groups.each do |g|
       # Private raw nodes never enter public include-all pools.
       if g['include-all']==true || g['include-all-proxies']==true
@@ -79,21 +91,16 @@ module StrictCustom
         end
       end
       if g['proxies'].is_a?(Array)
-        g['proxies'].map!{|n|n.is_a?(String) && n.start_with?(NODE) && !private_names.include?(n) ? 'REJECT' : n}
+        g['proxies'].map!{|n|n.is_a?(String) && n.start_with?(NODE) && !private_names.include?(n) ? 'REJECT' : canonical(n)}
         g['proxies'].uniq!
       end
       next unless targets.include?(g['name']) && g['type']=='select'
       raise 'business_menu_invalid' unless g['proxies'].is_a?(Array) && !g['proxies'].empty?
-      single=SINGLE+g['name'];pool=GROUP+g['name']
+      single=SINGLE;pool=GROUP
       # Append; never replace the original default or current public choices.
       g['proxies']=(g['proxies']+[single,pool]).uniq
-      generated<<{'name'=>single,'type'=>'select','proxies'=>['REJECT']+private_names}
-      generated<<{'name'=>pool,'type'=>'select','proxies'=>['REJECT']+pools.map{|v|v['name']}}
       if binding=locks['bindings'][g['name']]
         wrapper=binding['kind']=='node' ? single : pool
-        wanted=binding['target']=='REJECT' ? 'REJECT' : (binding['kind']=='node' ? NODE : POOL)+binding['target']
-        inner=generated.find{|v|v['name']==wrapper};wanted='REJECT' unless inner['proxies'].include?(wanted)
-        inner['proxies']=([wanted,'REJECT']).uniq
         # Hard allowlist survives lost cache and cannot be bypassed by auto writers.
         g['proxies']=[wrapper,'REJECT']
       end
@@ -101,8 +108,8 @@ module StrictCustom
     end
     added=generated+pools;names=added.to_h{|g|[g['name'],true]}
     # A removed source or pool is an explicit rejection tombstone, never DIRECT.
-    original.select{|g|owned?(g['name']) && !names[g['name']]}.each do |g|
-      added<<{'name'=>g['name'],'type'=>'select','proxies'=>['REJECT']}
+    original.select{|g|owned?(g['name']) && !legacy_entry?(g['name']) && !names[g['name']]}.each do |g|
+      added<<{'name'=>g['name'],'type'=>'select','hidden'=>true,'proxies'=>['REJECT']}
     end
     config['proxy-groups']=groups+added
     dns_count=0

@@ -24,9 +24,11 @@ tests={
   assert(y['rules']==before['rules'],'rule changes');assert(y['dns']['nameserver']==before['dns']['nameserver'],'upstream changes')
   before['proxy-groups'].first(2).each{|g|now=y['proxy-groups'].find{|x|x['name']==g['name']};assert(now['proxies'].first(g['proxies'].length)==g['proxies'],'existing menu changes')}
  end,
- 'independent_business_entries'=>lambda do
+ 'shared_entries_independent_business_choices'=>lambda do
   y=fixture;StrictCustom.apply(y,POLICY,PRIVATE);g=y['proxy-groups'].to_h{|v|[v['name'],v]}
-  assert(g['Google']['proxies'].include?(StrictCustom::SINGLE+'Google'),'Google missing');assert(!g['Gemini']['proxies'].include?(StrictCustom::SINGLE+'Google'),'cross business coupling')
+  assert(g['Google']['proxies'].include?(StrictCustom::SINGLE),'Google missing');assert(g['Gemini']['proxies'].include?(StrictCustom::SINGLE),'Gemini shared entry missing')
+  assert(g.keys.count{|name|name==StrictCustom::SINGLE}==1,'duplicated shared entry')
+  assert(g.keys.none?{|name|StrictCustom.legacy_entry?(name)},'legacy entry remains')
  end,
  'only_approved_members'=>lambda do
   y=fixture;StrictCustom.apply(y,POLICY,PRIVATE);StrictCustom.validate(y)
@@ -70,10 +72,20 @@ tests={
 tests.each{|name,test|test.call;puts 'PASS '+name}
 locks={'schema'=>1,'bindings'=>{'Google'=>{'kind'=>'node','target'=>'own-a','original_menu'=>['PublicPool','DIRECT']}}}
 y=fixture;StrictCustom.apply(y,POLICY,PRIVATE,locks);g=y['proxy-groups'].to_h{|v|[v['name'],v]}
-assert(g['Google']['proxies']==[StrictCustom::SINGLE+'Google','REJECT'],'durable outer escapes')
-assert(g[StrictCustom::SINGLE+'Google']['proxies']==[StrictCustom::NODE+'own-a','REJECT'],'durable target escapes')
+assert(g['Google']['proxies']==[StrictCustom::SINGLE,'REJECT'],'durable outer escapes')
+assert(g[StrictCustom::SINGLE]['proxies'].first=='REJECT' && g[StrictCustom::SINGLE]['proxies'].include?(StrictCustom::NODE+'own-a'),'durable shared target escapes')
 assert(g['Gemini']['proxies'].first=='PublicPool','durable lock affects Gemini');puts 'PASS persistent_allowlist_without_cache'
 StrictCustom.apply(y,POLICY,nil,locks);g=y['proxy-groups'].to_h{|v|[v['name'],v]}
-assert(g['Google']['proxies']==[StrictCustom::SINGLE+'Google','REJECT'] && g[StrictCustom::SINGLE+'Google']['proxies']==['REJECT'],'missing durable target escapes')
+assert(g['Google']['proxies']==[StrictCustom::SINGLE,'REJECT'] && g[StrictCustom::SINGLE]['proxies']==['REJECT'],'missing durable target escapes')
 puts 'PASS persistent_missing_node_rejects'
-puts 'strict_custom_tests='+(tests.length+2).to_s
+y=fixture
+%w[Google Gemini].each do |name|
+ old_single=StrictCustom::LEGACY_SINGLE+name;old_group=StrictCustom::LEGACY_GROUP+name
+ y['proxy-groups'].find{|g|g['name']==name}['proxies'] += [old_single,old_group]
+ y['proxy-groups'] += [{'name'=>old_single,'type'=>'select','proxies'=>['REJECT']},{'name'=>old_group,'type'=>'select','proxies'=>['REJECT']}]
+end
+rules=copy(y['rules']);StrictCustom.apply(y,POLICY);assert(y['rules']==rules,'migration changed rules')
+assert(y['proxy-groups'].none?{|g|StrictCustom.legacy_entry?(g['name']) || Array(g['proxies']).any?{|n|StrictCustom.legacy_entry?(n)}},'migration retained old entries')
+assert(y['proxy-groups'].count{|g|g['name']==StrictCustom::SINGLE}==1,'migration did not keep exactly one')
+puts 'PASS remove_legacy_groups_and_references'
+puts 'strict_custom_tests='+(tests.length+3).to_s
