@@ -1,0 +1,128 @@
+{
+  "acceptedPreviousRuntimeSource": "40c6b4e2f1f65f9d16aeec8e3a6538277d63d62a",
+  "apiEnabled": false,
+  "baseline": "0136f522a3f60f66f90cc53ca67412f4f500b612",
+  "coordinatorWired": false,
+  "counts": {
+    "applySources": 131,
+    "compatSources": 123,
+    "cpuModels": 262,
+    "formatterSources": 106,
+    "foundationSources": 112,
+    "foundationTestFiles": 40,
+    "mandatoryDeclarations": 585,
+    "newSources": 7,
+    "newTopDeclarations": 46,
+    "packages": 6,
+    "prior539And528And407Preserved": true,
+    "serviceSources": 138,
+    "unknownSources": 144
+  },
+  "fullProjectComplete": false,
+  "fullRecoveryAccepted": false,
+  "implementation": [
+    "current snapshot and RBAC recovery authority with store-bound independent approval",
+    "single actual permit consumption and final current WAL check before original owned Start",
+    "source-only short lease fixture uses fresh open and actual structural write/readback transitions"
+  ],
+  "mainMerged": false,
+  "pointInTimeRevocationNotAtomicWithOS": true,
+  "previousAcceptedArchive": "0136f522a3f60f66f90cc53ca67412f4f500b612",
+  "privateIssuerPermanentClaimsBudget": 64,
+  "production": false,
+  "productionReady": false,
+  "registryPublished": false,
+  "schema": "chengwang.next7-development-source/v1",
+  "scope": "SOURCE_AND_CPU_CHECKS_NOT_GO_OR_NATIVE_RECOVERY_ACCEPTANCE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "dfb03135c77d752fb6774ac95ea1e86363fa575c8ba4504f5a567cf2cfa9dbd4",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py": "4236689c14f4833b727cbb0632bf8b28c88cc936fdbff8920bc5f5d02f465a3a",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py": "171d021fddce95d2fa433d412a575a51e993d1a8157fe0a2d3a9c56744c517c1",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py": "c5290e449302f3bd516ea47a75ff2b4b7c9683da3472b30a8c5286d8fcf38458",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_service.py": "2f7da8d7ce024019b48ebf5b147002b833dd561ec39bfee7a02921546650c69c",
+    "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh": "d946c674a80fbc2208eeb0fb25288522f65bc50d0734b5027ad9a4ae5087f119",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py": "e6e71aac0c9a742d585ca1e409d46af8a2cbaf656f892b518f99ca35f697983f",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py": "1aa8fb96916c1dcc16a1f72e9bc96610637ec7eb02dc3b15304cc74a40470a06",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py": "f0ea94a891647861bfbd6b1780c0e29f9c6105389722fbdd1b474d9b360cfed8",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py": "5e9bd967c0af51de4fe4ee78f390f0cc81b505bb5b63721117f59a7cd6516369",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "3920915f921dc9d695f355a906064c57d14f80e9454bf5601903644fe15fba2e",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority.go": "e447a5f18307e66c2dde98844d3f07399b86d3f440b7d736bbc69e16cadef75b",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority_test.go": "0a3b1fd62c94c58f7fd13730886867b66f0a390c9a450c8ff01da22455df7db6",
+    "chengwang/internal/mihomodeploy/lab_recovery_start.go": "39304c0e9ab3d50e953f0b0933f2c1838582d8eea8c2d19240da15a0466259bf",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go": "5ec60f9a84320eb4233791c034ed637b5dae747408398c48552dba1d843c2e0b",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux_test.go": "61ec493356022693d76f38ccce68e8a871d43299f58349edd9997fea7f790e8d",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_test.go": "743569f21c19ffeb7b384d7f74c32293715569fe6c2fe6979332e0cf7dda3751",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_unsupported.go": "9f16972afce44c7502d0e0be0aaf8c8a0d8bac1ded154a718d6ff70ceb01b908"
+  },
+  "validation": {
+    "failedStagingCheckPreserved": true,
+    "goExecuted": false,
+    "modelsRepeatedForEOFOnlyChange": false,
+    "nativeStartExecuted": false,
+    "old79BodiesAndCapacity256AndTimeout180Preserved": true,
+    "priorModelReceiptRetainedWithExactSingleEOFDelta": true,
+    "receipts": [
+      {
+        "kind": "peer",
+        "path": "D:/CodexData/workspace/mihomo-next7-current-peer-20261025/attempt-2/result.json",
+        "sha256": "8499fcb79cf5c0143b6d29efdb3aef21d1304d8f7436c2e027c32a9af32aa2d9"
+      },
+      {
+        "kind": "peerEofDelta",
+        "path": "D:/CodexData/workspace/mihomo-next7-current-peer-20261025/eof-delta/result.json",
+        "sha256": "d69e0c0c59fdaa90bc610967d8f6fabc30269faeca6205aa1e25980a22820c83"
+      },
+      {
+        "kind": "peerManual",
+        "path": "D:/CodexData/workspace/mihomo-next7-current-peer-20261025/closeout.json",
+        "sha256": "9532a76a00c0edeca8f630227e409a3cfe1da623895ddd2441099a3125124b5d"
+      },
+      {
+        "kind": "cpu",
+        "path": "D:/CodexData/workspace/mihomo-next7-cpu-models-pe9t30k5/result.json",
+        "sha256": "85be04ca5c03b098656b4073c8ef2d5c4f444d436109858793375caf4e098269"
+      },
+      {
+        "kind": "rootFreeze",
+        "path": "D:/CodexData/workspace/next7-eof-correction-pj7u3v23/root-freeze-after.json",
+        "sha256": "577d01e01692e4d9d426a0dafca0dad30f9bea00e3bbd5f620822c47591eda46"
+      },
+      {
+        "kind": "originalRootFreeze",
+        "path": "D:/CodexData/workspace/next7-root-freeze-20261025.json",
+        "sha256": "4fadf24f8a52b79ba27d8dad5561d04eaf499af97cd6b3ecc56351667a246e91"
+      },
+      {
+        "kind": "eofCorrection",
+        "path": "D:/CodexData/workspace/next7-eof-correction-pj7u3v23/result.json",
+        "sha256": "32eb5f4a65b55c708553551e91fb78098f18acee9007037949ced984dec9b238"
+      },
+      {
+        "kind": "authoritySource",
+        "path": "D:/CodexData/workspace/mihomo-recovery-authority-source-20261025-c/result.json",
+        "sha256": "07984ec02b60e75f6bb276608b09f6dbf14eb0753685f052a9ed615eb8d2d544"
+      },
+      {
+        "kind": "startSourceV3",
+        "path": "D:/CodexData/workspace/mihomo-recovery-start-source-20261025-b/delta-v3/source-final-v3.json",
+        "sha256": "bfeb240e5aff7dac55c0f261cb71551582d339899b18ce5fe4254525a27e1785"
+      },
+      {
+        "kind": "bindingsProposal",
+        "path": "D:/CodexData/workspace/mihomo-next7-bindings-proposal-0aed153-20261025-a/result.json",
+        "sha256": "aa7d606a67e124b804ca3f9ace642e09c4b8443c505f7a94ade2e5c866ae93ef"
+      },
+      {
+        "kind": "acceptedFoundation",
+        "path": "D:/CodexData/workspace/mihomo-40c6b4e-foundation-audit-20261025-agent/closeout.json",
+        "sha256": "d473456283f11b6440c9803fdd36ca626dd304589336c7ca3719d7282ebfc131"
+      },
+      {
+        "kind": "acceptedOtherFive",
+        "path": "D:/CodexData/workspace/mihomo-40c6b4e-nonfoundation-audit-20261025-agent/closeout.json",
+        "sha256": "47e3595033f88f7963467fe13af2e5dfb2fe8c03bde2ca2b253bae5ba681478b"
+      }
+    ],
+    "rootSourceStable": true
+  }
+}

@@ -4,6 +4,14 @@
 
 ## 本次已有代码
 
+### 2026-10-25 恢复授权／一次启动组件纳入585接线：尚未实际编译
+
+现将此前独立source-only的授权2源、一次启动5源纳入开发检查器和Linux验收源清单。必需声明由539增加46至585（授权27、启动通用10、Linux9），保539／528／407 checkpoint，foundation源112、测试文件40、formatter106，compat／apply／service／UNKNOWN绑定源123／131／138／144；原6包、13任务、256容量及180秒测试命令保持。接线和声明数不等于已编译或已启动进程。
+
+授权组件使用借用的当前SnapshotManager、完整范围／角色／独立主体复核及当前WAL绑定，STOP与START分别检查实际阶段、审批和一次permit；关闭只清自己的registry，不冒充拥有共享manager。启动入口只消费实际store发行permit一次，读私有ArtifactStore和ELF／命名空间／端口，准备后再核当前WAL、owner／fence／nonce／租约／CAS／撤销与完整初始绑定，最后只调用一次原Start；失败／超时持有实际owned句柄交由上层收尾，不自动Stop／重试／PUT。fresh凭据检查与OS调用间的原子串行、完整coordinator尚未接齐，不称原子撤销或自动恢复已完成。
+
+预审发现新Start短租约MODEL夹具曾协调改写已开store.raw／record，现快照校验会提前拦截并遮蔽目标lease-expiry分支。仅在该新测试中改为fresh严格open后实际acquire短lease、逐真实结构transition写入／读回，保留完整seal校验；旧79恢复方法体、539声明与产品Go验证不变。MODEL没有真实Stop／Start或凭据授权，issuer永久64条claim上限是显式failclosed预算，不是免维护生产能力。真正原生启动、record-only事实、collector／新head、closed journal、后续普通发布、再次恢复和API／完整E2E仍待后续实现与验收。
+
 ### 2026-10-25 40c6本阶段隔离验收完成：仍未上线或完成恢复闭环
 
 接受的运行源码为40c6b4e2f1f65f9d16aeec8e3a6538277d63d62a。基础40153931108实际13／13成功，诊断40153931092实际3／3成功；普通／race各1213语义、539必需、旧528／407与新11全部通过，原容量256分别6.59／79.92秒，格式差异为空。原完整foundation verify真实返回报告与CI producer／fresh的14147字节完全相同；本机原main随后因POSIX报告写入限制自然退出1，观察未改函数、平台或退出码，不称Windows运行了Linux CLI。

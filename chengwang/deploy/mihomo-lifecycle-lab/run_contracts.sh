@@ -133,6 +133,15 @@ files+=(
   internal/mihomodeploy/lifecycle_recovery_transitions.go
   internal/mihomodeploy/lifecycle_recovery_transitions_test.go
 )
+files+=(
+  internal/mihomodeploy/lab_recovery_authority.go
+  internal/mihomodeploy/lab_recovery_authority_test.go
+  internal/mihomodeploy/lab_recovery_start.go
+  internal/mihomodeploy/lab_recovery_start_linux.go
+  internal/mihomodeploy/lab_recovery_start_unsupported.go
+  internal/mihomodeploy/lab_recovery_start_test.go
+  internal/mihomodeploy/lab_recovery_start_linux_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?
