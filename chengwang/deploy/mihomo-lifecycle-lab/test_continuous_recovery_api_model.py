@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -56,41 +57,99 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         contract=json.loads((HERE/'continuous_recovery_api_contract.json').read_bytes())
         self.assertEqual(contract['goTimeoutSeconds'],210); self.assertEqual(contract['outerGoTimeoutSeconds'],240)
         self.assertFalse(set(contract['exactTags']) & set(contract['forbiddenTags']))
+        lifecycle=(HERE.parents[1]/'internal/mihomodeploy/lifecycle.go').read_text(encoding='utf8')
+        actual=re.search(r'^const lifecycleSchemaV2 = "([^"]+)"$',lifecycle,re.M)
+        self.assertIsNotNone(actual); self.assertEqual(actual.group(1),self.reader.WAL_SCHEMA)
+        harness=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go').read_text(encoding='utf8')
+        self.assertIn('initial.WALSchema != "'+self.reader.WAL_SCHEMA+'"',harness)
+        self.assertNotIn('chengwang.mihomo-lifecycle/v2',harness)
+        plan=(HERE.parents[1]/'internal/mihomodeploy/plan.go').read_text(encoding='utf8')
+        runtime=(HERE.parents[1]/'internal/serverruntime/runtime.go').read_text(encoding='utf8')
+        environment=re.search(r'LabEnvironment\s*=\s*"([^"]+)"',plan)
+        self.assertIsNotNone(environment); self.assertEqual(self.worker.PUBLIC_LAB_ENVIRONMENT,environment.group(1))
+        self.assertIn('log.Printf("chengwang listening (mode=%s)", c.Mode)',runtime)
         source=(HERE/'continuous_recovery_api_worker.py').read_text(encoding='utf8')
         self.assertIn('def capture(',source); self.assertNotIn('a.capture(',source); self.assertNotIn('apply_worker.capture',source)
         self.assertIn("cwd='/tmp/mihomo-apply-source'",source)
         self.assertIn('return outputs,report,forbidden',source)
+        self.assertIn("fence_outputs(outputs,forbidden,'REPORT_AND_HTTP_OUTPUTS'",source)
         self.assertIn("fence_outputs(outputs,forbidden,'ALL_GENERIC_AND_REPORT_OUTPUTS'",source)
         classes=('IDENTITY_PROFILE','HTTP_TOKENS','TLS_KEY','SERVICE_SECRET','CONFIG_A','CONFIG_B')
         self.assertEqual(self.worker.SECRET_INPUT_CLASSES,frozenset(classes))
         self.assertEqual(self.worker.SECRET_ENCODING_VARIANTS,frozenset(('RAW','B64','B64URL','HEX','JSON_QUOTED')))
+        self.assertEqual(self.worker.SECRET_ELEMENT_CLASSES,
+          frozenset(('WHOLE_FILE','JSON_SCHEMA','JSON_SCOPE_ENVIRONMENT','JSON_OTHER_SCALAR')))
         for input_class in classes:
             raw=('model-'+input_class.lower()+'-private-value').encode()
-            variants=self.worker.encoded_secret_variants(raw,input_class)
+            variants=self.worker.encoded_secret_variants(raw,input_class,'JSON_OTHER_SCALAR',False)
             self.assertEqual(len(variants),8)
-            for secret,actual_class,variant in variants:
-                with self.subTest(input_class=input_class,variant=variant),self.assertRaises(ValueError) as caught:
-                    self.worker.fence_outputs({'clean.json':b'clean','collision.json':b'x'+secret+b'y'},
-                      ((secret,actual_class,variant),),'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,True,31,'NONE',True)
-                message=str(caught.exception)
-                self.assertNotIn(raw.decode(),message)
-                detail=json.loads(message[message.index('{'):])
-                self.assertEqual(detail,{'phase':'ALL_GENERIC_AND_REPORT_OUTPUTS','formatExit':0,'goExit':0,
-                  'reportObserved':True,'httpCount':31,'reportFailureCode':'NONE','reportOutcomePass':True,
-                  'outputLogicalName':'collision.json',
-                  'secretInputClass':input_class,'encodingVariant':variant})
+            for secret,actual_class,element_class,variant,matches_public in variants:
+                for phase in ('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'):
+                    with self.subTest(input_class=input_class,variant=variant,phase=phase),self.assertRaises(ValueError) as caught:
+                        self.worker.fence_outputs({'clean.json':b'clean','collision.json':b'x'+secret+b'y'},
+                          ((secret,actual_class,element_class,variant,matches_public),),phase,0,0,True,31,'NONE',True)
+                    message=str(caught.exception)
+                    self.assertNotIn(raw.decode(),message)
+                    detail=json.loads(message[message.index('{'):])
+                    self.assertEqual(detail,{'phase':phase,'formatExit':0,'goExit':0,
+                      'reportObserved':True,'httpCount':31,'reportFailureCode':'NONE','reportOutcomePass':True,
+                      'outputLogicalName':'collision.json','secretInputClass':input_class,
+                      'secretElementClass':'JSON_OTHER_SCALAR','matchesPublicLabEnvironment':False,
+                      'encodingVariant':variant})
         self.assertIsNone(self.worker.fence_outputs({'clean.json':b'clean'},
-          ((b'model-private-value','CONFIG_A','RAW'),),'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,False,0,'UNKNOWN',False))
+          ((b'model-private-value','CONFIG_A','WHOLE_FILE','RAW',False),),
+          'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,False,0,'UNKNOWN',False))
+        with tempfile.TemporaryDirectory() as td:
+            profile=Path(td)/'credentials.json'
+            tokens=Path(td)/'http-secrets.private.json'
+            object_identities=Path(td)/'object-identities.json'
+            object_scopes=Path(td)/'object-scopes.json'
+            profile.write_text(json.dumps({'schema':'profile/v1','identities':[
+              {'principal':{'allowedScopes':[
+                {'environment':self.worker.PUBLIC_LAB_ENVIRONMENT,'role':'approver'},
+                {'environment':'different-lab'}]}},
+              {'metadata':{'environment':'unknown-nested-environment','schema':'nested/schema'}}]}),encoding='utf8')
+            tokens.write_text(json.dumps({'environment':self.worker.PUBLIC_LAB_ENVIRONMENT}),encoding='utf8')
+            object_identities.write_text(json.dumps({'identities':{'*':{'principal':{'allowedScopes':[
+              {'environment':self.worker.PUBLIC_LAB_ENVIRONMENT}]}}}}),encoding='utf8')
+            object_scopes.write_text(json.dumps({'identities':[{'principal':{'allowedScopes':{'*':
+              {'environment':self.worker.PUBLIC_LAB_ENVIRONMENT}}}}]}),encoding='utf8')
+            with mock.patch.object(self.worker,'SECRET_INPUTS',
+              (('IDENTITY_PROFILE',profile),('HTTP_TOKENS',tokens),
+               ('IDENTITY_PROFILE',object_identities),('IDENTITY_PROFILE',object_scopes))):
+                classified=self.worker.build_forbidden()
+            self.assertEqual(len(classified),104)
+            raw_entries={(secret,input_class,element,matches)
+              for secret,input_class,element,variant,matches in classified if variant=='RAW'}
+            self.assertIn((b'profile/v1','IDENTITY_PROFILE','JSON_SCHEMA',False),raw_entries)
+            self.assertIn((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT',True),raw_entries)
+            self.assertIn((b'different-lab','IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT',False),raw_entries)
+            self.assertIn((b'unknown-nested-environment','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False),raw_entries)
+            self.assertIn((b'nested/schema','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False),raw_entries)
+            self.assertIn((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'HTTP_TOKENS','JSON_OTHER_SCALAR',False),raw_entries)
+            self.assertIn((b'approver','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False),raw_entries)
+            object_marker_decoys=[entry for entry in classified if entry==(
+              self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_OTHER_SCALAR','RAW',False)]
+            self.assertEqual(len(object_marker_decoys),2)
+            for phase in ('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'):
+                with self.subTest(public_environment_phase=phase),self.assertRaises(ValueError) as caught:
+                    self.worker.fence_outputs({'continuous.json':b'mode='+self.worker.PUBLIC_LAB_ENVIRONMENT.encode()},
+                      ((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT','RAW',True),),
+                      phase,0,1,True,0,'INITIAL_STATE',False)
+                detail=json.loads(str(caught.exception)[str(caught.exception).index('{'):])
+                self.assertEqual(detail['secretElementClass'],'JSON_SCOPE_ENVIRONMENT')
+                self.assertIs(detail['matchesPublicLabEnvironment'],True)
         diagnostic_secret=b'CONFIG_B'
         with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
             self.worker.fence_outputs({'collision.json':diagnostic_secret},
-              ((diagnostic_secret,'CONFIG_B','RAW'),),'ALL_GENERIC_AND_REPORT_OUTPUTS',1,1,True,31,'NONE',False)
+              ((diagnostic_secret,'CONFIG_B','JSON_OTHER_SCALAR','RAW',False),),
+              'ALL_GENERIC_AND_REPORT_OUTPUTS',1,1,True,31,'NONE',False)
         unknown_code='model-private-unknown-code'
         self.assertEqual(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'}),('UNKNOWN',False))
         self.assertNotIn(unknown_code,str(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'})))
         known_code=b'HOOK_ARM'
         with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
-            self.worker.fence_outputs({'collision.json':known_code},((known_code,'CONFIG_A','RAW'),),
+            self.worker.fence_outputs({'collision.json':known_code},((known_code,'CONFIG_A','JSON_OTHER_SCALAR','RAW',False),),
               'ALL_GENERIC_AND_REPORT_OUTPUTS',0,1,True,4,'HOOK_ARM',False)
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); private=root/'private.json'; secret=b'model-report-absent-private-value'; private.write_bytes(secret)
@@ -250,7 +309,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         native=(('KERNEL_OS_START_ATTEMPT',1),('KERNEL_OS_START_RETURN',1),('RECOVERY_STOP_DISPATCH',1),('RECOVERY_START_DISPATCH',0),('SYNTAX_OS_START_ATTEMPT',0),('SYNTAX_OS_START_RETURN',0))
         pre=[{'sequence':100+i,'kind':kind,'core':core,'at':'2026-10-26T00:00:00Z'} for i,(kind,core) in enumerate(native,1)]
         post=pre+[{'sequence':100+i+len(pre),'kind':kind,'core':2,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate(('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
-        initial={'schema':'chengwang.mihomo-lab-acceptance-state/v1','sourceCommit':'a'*40,'walSchema':'chengwang.mihomo-lifecycle/v2','controlSHA256':'7'*64,'recordSHA256':'8'*64,
+        initial={'schema':'chengwang.mihomo-lab-acceptance-state/v1','sourceCommit':'a'*40,'walSchema':self.reader.WAL_SCHEMA,'controlSHA256':'7'*64,'recordSHA256':'8'*64,
           'head':copy.deepcopy(heads[0]),'activeOperationId':None,'activePhase':None,'activeIntentSHA256':None,'completed':[],'terminated':[],'unknownObservationCount':0,
           'privateWALValidated':True,'fullPrivateWALIndependentlyProven':False,'observedProcessMatchesHead':True,'production':False}
         return {'schema':'chengwang.mihomo-continuous-recovery-http-experiment/v1','scope':self.reader.SCOPE,'sourceCommit':'a'*40,'outcome':'PASS','failureCode':'NONE','http':http,'initial':initial,
@@ -272,6 +331,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
               lambda x:x['http'][0].__setitem__('statusCode',200.0),
               lambda x:x['http'][0].__setitem__('responseBodySHA256','0'*64),
               lambda x:x['callsAfter'].__setitem__('doInvocations',True),
+              lambda x:x['initial'].__setitem__('walSchema','chengwang.mihomo-lifecycle/v2'),
               lambda x:x.__setitem__('privateWALDecodedByTest',True),
               lambda x:x['heads'][5]['view'].__setitem__('headSHA256',x['heads'][3]['view']['headSHA256']),
               lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('action','PASS'),

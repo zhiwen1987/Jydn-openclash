@@ -511,7 +511,7 @@ func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testi
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	https := continuousRecoveryHTTPS{t: t, base: "https://" + address, client: client, tokens: inputs.tokens, report: &report}
 	initial, err := mihomodeploy.ReadIsolatedLabAcceptanceState()
-	if err != nil || initial.WALSchema != "chengwang.mihomo-lifecycle/v2" || initial.Head.Generation != 1 ||
+	if err != nil || initial.WALSchema != "chengwang.mihomo-lifecycle-record/v2" || initial.Head.Generation != 1 ||
 		initial.ActiveOperationID != nil || len(initial.Completed) != 0 || len(initial.Terminated) != 0 || !initial.PrivateWALValidated {
 		report.FailureCode = "INITIAL_STATE"
 		t.Fatal("continuous recovery initial actual state missing")

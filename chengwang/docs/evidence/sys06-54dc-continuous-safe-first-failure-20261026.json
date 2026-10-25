@@ -1,0 +1,145 @@
+{
+  "artifactMetadata": [
+    {
+      "bytes": 3142,
+      "digest": "sha256:f845aa352c05589f1b1a7a2217e5515890aece32b7f3c5d66841b89ec21cb50c",
+      "downloaded": false,
+      "id": 12618656035,
+      "name": "mihomo-continuous-recovery-candidate-40245238037-1"
+    },
+    {
+      "bytes": 5352,
+      "digest": "sha256:bda2cb2ee24e1ae9b1c4f70c16c8f5d1036fbe51495e99da1e9463ee7cb70efc",
+      "downloaded": false,
+      "id": 12618551434,
+      "name": "mihomo-continuous-recovery-api-originals-40245238037-1"
+    },
+    {
+      "bytes": 188,
+      "digest": "sha256:072cf2cd370c790fb4faf29ac5e206df5df752bec058eaa525ae5de03c01ed0c",
+      "downloaded": false,
+      "id": 12618237995,
+      "name": "mihomo-continuous-recovery-api-fresh-40245238037-1"
+    }
+  ],
+  "authenticatedGitHub": {
+    "conclusion": "failure",
+    "createdAt": "2026-10-25T23:32:33Z",
+    "event": "push",
+    "headSHA": "54dc57c0f4d4377e7221f4653fbdb1d3bb01aba8",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 121325317420,
+        "name": "source-models"
+      },
+      {
+        "conclusion": "success",
+        "id": 121325317424,
+        "name": "acquisition"
+      },
+      {
+        "conclusion": "failure",
+        "firstFailedStep": 7,
+        "firstFailedStepName": "Execute actual continuous Recovery HTTPS chain in fresh namespaces",
+        "id": 121325351393,
+        "name": "continuous-recovery-api",
+        "secondaryFailedStep": 9,
+        "secondaryFailedStepName": "Independently verify originals without Go or another kernel execution",
+        "uploadStepConclusion": "success"
+      },
+      {
+        "classification": "SECONDARY_TO_INCOMPLETE_UPSTREAM_PUBLIC_ORIGINALS",
+        "conclusion": "failure",
+        "id": 121325515469,
+        "name": "continuous-recovery-fresh"
+      }
+    ],
+    "repository": "zhiwen1987/Jydn-openclash",
+    "runAttempt": 1,
+    "runId": 40245238037,
+    "status": "completed",
+    "updatedAt": "2026-10-25T23:33:46Z"
+  },
+  "diagnosticValidation": {
+    "exactKeySet": true,
+    "fixedEnums": true,
+    "fixedGenericErrorAlsoObserved": true,
+    "invalidObjects": 0,
+    "matchedObjects": 1,
+    "stepExitOneMarkerObserved": true,
+    "strictTypes": true,
+    "uniqueObjects": 1
+  },
+  "executionBoundary": {
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "mergeOrPush": false,
+    "productionTouched": false,
+    "repositoryModified": false
+  },
+  "firstFailureAssessment": {
+    "basis": [
+      "The isolated private directories are required empty before execution.",
+      "The Go test exclusively creates the durable report from its deferred writer.",
+      "reportObserved is true with failureCode INITIAL_STATE and zero HTTP entries.",
+      "INITIAL_STATE is assigned after runtime listener and source hook observation but before the first HTTPS head request."
+    ],
+    "continuousRecoveryChainCompleted": false,
+    "firstHTTPSRequestReached": false,
+    "freshFailure": "SECONDARY",
+    "goCompiledAndTestEntered": true,
+    "goTestProcessExit": 1,
+    "gofmtDiffEmpty": "NOT_PROVEN",
+    "gofmtProcessExitZero": true,
+    "independentCheckerFailure": "SECONDARY",
+    "runtimeListenerAndHookObservedBeforeFailure": true,
+    "stage": "GO_TEST_ENTERED_INITIAL_ACCEPTANCE_STATE_VALIDATION"
+  },
+  "privacyBoundary": {
+    "artifactDownloaded": false,
+    "authenticatedMetadataAndJobLogUsed": true,
+    "collidedOutputBodyPersisted": false,
+    "privateRunnerDirectoriesAccessed": false,
+    "rawJobLogPersisted": false,
+    "secretDigestPersisted": false,
+    "secretOffsetPersisted": false,
+    "secretValuePersisted": false,
+    "signedURLPersisted": false,
+    "signedURLRequested": false,
+    "unfilteredPrivateOutputAccessed": false
+  },
+  "safeDiagnostic": {
+    "encodingVariant": "RAW",
+    "formatExit": 0,
+    "goExit": 1,
+    "httpCount": 0,
+    "outputLogicalName": "continuous.json",
+    "phase": "ALL_GENERIC_AND_REPORT_OUTPUTS",
+    "reportFailureCode": "INITIAL_STATE",
+    "reportObserved": true,
+    "reportOutcomePass": false,
+    "secretInputClass": "IDENTITY_PROFILE"
+  },
+  "schema": "chengwang.mihomo-continuous-safe-diagnostic-receipt/v1",
+  "secretFenceAssessment": {
+    "actualPublicLeakObserved": false,
+    "actualPublicLeakProven": false,
+    "basis": "fence_outputs executes before every write_new call and raised on continuous.json",
+    "exportReached": false,
+    "falsePositiveResolved": false,
+    "matchMeaning": "WOULD_BE_PUBLIC_GO_TEST_JSON_CONTAINS_PRIVATE_DERIVED_VARIANT_OF_AT_LEAST_8_BYTES",
+    "remainingClassificationNeed": "TRUSTED_RUNNER_FIXED_SOURCE_ELEMENT_CLASSIFICATION_WITHOUT_VALUE_DIGEST_OFFSET_OR_BODY"
+  },
+  "source": {
+    "checkerSHA256": "1d2ac7e01e85bb1e51968211b84601b41806ddfa69ffc4525f221497fbdc5652",
+    "commit": "54dc57c0f4d4377e7221f4653fbdb1d3bb01aba8",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-54dc57c-acceptance-vytqj8ej/repo",
+    "runnerSHA256": "8fa04057d24c3eeb83a6ecddcd36e6038a9ea38cefa6c02df373f6f74122e53a",
+    "trackedGitBlobs": 1414,
+    "tree": "db054005aef1737675cf135f8f653b69ea17777f",
+    "workerSHA256": "7aa327faaa01ccc39d455e3ad515563689ac301febd57cb025e1c8e6510a4d33",
+    "workflowSHA256": "45bca5ab3cf476037c85a642ddf38165427ca61c4b2849190219e94038a6f33c"
+  },
+  "status": "ACTUAL_FIRST_FAILURE_IDENTIFIED_SAFE_FIELDS_ONLY"
+}

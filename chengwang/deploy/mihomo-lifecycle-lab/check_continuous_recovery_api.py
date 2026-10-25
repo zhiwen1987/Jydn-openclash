@@ -13,6 +13,7 @@ import unicodedata
 
 SCOPE='ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION'
 BOUNDARY='OWNED_ISOLATED_MIHOMO_LIFECYCLE_NOT_PRODUCTION_OR_FULL_PAYLOAD_PROOF'
+WAL_SCHEMA='chengwang.mihomo-lifecycle-record/v2'
 TOP='TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery'
 TAGS=('linux','chengwang_mihomo_service','chengwang_mihomo_recovery_native','chengwang_mihomo_recovery_continuous_fault')
 FORBIDDEN=('chengwang_mihomo_faults','chengwang_mihomo_completion_native')
@@ -206,7 +207,7 @@ def candidate_list(value):
 
 def initial_acceptance(value,commit):
     keys(value,('schema','sourceCommit','walSchema','controlSHA256','recordSHA256','head','activeOperationId','activePhase','activeIntentSHA256','completed','terminated','unknownObservationCount','privateWALValidated','fullPrivateWALIndependentlyProven','observedProcessMatchesHead','production'))
-    need(value['schema']=='chengwang.mihomo-lab-acceptance-state/v1' and value['sourceCommit']==commit and value['walSchema']=='chengwang.mihomo-lifecycle/v2')
+    need(value['schema']=='chengwang.mihomo-lab-acceptance-state/v1' and value['sourceCommit']==commit and value['walSchema']==WAL_SCHEMA)
     digest(value['controlSHA256']); digest(value['recordSHA256']); view_head(value['head']); integer(value['unknownObservationCount'])
     need(value['activeOperationId'] is None and value['activePhase'] is None and value['activeIntentSHA256'] is None and value['completed']==[] and value['terminated']==[])
     need(value['privateWALValidated'] is True and value['fullPrivateWALIndependentlyProven'] is False and value['observedProcessMatchesHead'] is True and value['production'] is False)

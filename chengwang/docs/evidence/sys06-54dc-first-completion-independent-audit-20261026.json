@@ -1,0 +1,182 @@
+{
+  "allFourRawGoTestsPassed": true,
+  "apiRouteProven": false,
+  "artifactBytes": 112731,
+  "artifacts": [
+    {
+      "bytes": 315,
+      "id": 12618194459,
+      "members": 1,
+      "name": "mihomo-native-completion-positive-fresh-40245237910-1",
+      "sha256": "6dc6457f80441cea4756bc978d8dbe4fabcf9a09d3c81a1e32efe08d4762eaaf"
+    },
+    {
+      "bytes": 3142,
+      "id": 12618224377,
+      "members": 7,
+      "name": "mihomo-native-completion-candidate-40245237910-1",
+      "sha256": "0b9070711dbaaf192e72b189437c756cc34601d3b33ff2c927f842904c91f753"
+    },
+    {
+      "bytes": 26938,
+      "id": 12618232940,
+      "members": 39,
+      "name": "mihomo-native-completion-unknown-originals-40245237910-1",
+      "sha256": "656119adfeffb23c423806d48eb2466824066cc8e8ea1f0d9e15b0b9f3e5f88a"
+    },
+    {
+      "bytes": 27007,
+      "id": 12618476547,
+      "members": 39,
+      "name": "mihomo-native-completion-positive-originals-40245237910-1",
+      "sha256": "70fd53bc04bc8ad3a4af7529b19413f3b1e48a2797ceee4c05f49600c0efe4a0"
+    },
+    {
+      "bytes": 314,
+      "id": 12618491643,
+      "members": 1,
+      "name": "mihomo-native-completion-readback-fresh-40245237910-1",
+      "sha256": "7187d72324d0ce2dd76b48b1d1869b4368637df19d0af6bca7d14bf08303d6ac"
+    },
+    {
+      "bytes": 312,
+      "id": 12618626411,
+      "members": 1,
+      "name": "mihomo-native-completion-unknown-fresh-40245237910-1",
+      "sha256": "9aafe5157fd67ac35af203473896daf796dae8fd803ea06d236cc532feb914df"
+    },
+    {
+      "bytes": 27381,
+      "id": 12618681240,
+      "members": 39,
+      "name": "mihomo-native-completion-not-committed-originals-40245237910-1",
+      "sha256": "9df04b1f67c3615d820a98d072f08fae92118176b4eb4a78474b6e936143132f"
+    },
+    {
+      "bytes": 329,
+      "id": 12618706190,
+      "members": 1,
+      "name": "mihomo-native-completion-not-committed-fresh-40245237910-1",
+      "sha256": "b21765cfae7536e6418c65f2f715eaabf88be8263783426fbd79e99cde7fb2bb"
+    },
+    {
+      "bytes": 26993,
+      "id": 12618756009,
+      "members": 39,
+      "name": "mihomo-native-completion-readback-originals-40245237910-1",
+      "sha256": "e9aae851b53cb17adcc0691db9470bf541c1d3de24defcab3eb6a7477c0415b6"
+    }
+  ],
+  "diagnosticProjectionAcceptedAsProof": false,
+  "fullPrivateWALIndependentlyProven": false,
+  "goExecutedLocally": false,
+  "head": "54dc57c0f4d4377e7221f4653fbdb1d3bb01aba8",
+  "memberBytes": 236690,
+  "members": 167,
+  "modes": {
+    "not-committed": {
+      "checkerMainReplay": true,
+      "diskPhase": "START_ARMED",
+      "diskRevision": 18,
+      "freshByteEqual": true,
+      "goVersion": "go version go1.23.12 linux/amd64",
+      "memoryRevision": 18,
+      "packageSeconds": 10.882,
+      "publicWALIndexAndFsyncRechecked": true,
+      "reopenTransition": "START_ARMED_TO_RECOVERY_UNKNOWN",
+      "replaceForwardReadInjected": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportSHA256": "beaa5c96bdacce895ac9b9889679bf0a2090f630e54cbfb81436c0c944887049",
+      "runtimeAdopted": false,
+      "testSeconds": 10.88
+    },
+    "positive": {
+      "checkerMainReplay": true,
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "freshByteEqual": true,
+      "goVersion": "go version go1.23.12 linux/amd64",
+      "memoryRevision": 19,
+      "packageSeconds": 10.785,
+      "publicWALIndexAndFsyncRechecked": true,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "reportSHA256": "595f252599b6b1a187b0616582ae65dd32c0b9e99f96ed9b5994c62c823294c9",
+      "runtimeAdopted": true,
+      "testSeconds": 10.78
+    },
+    "readback": {
+      "checkerMainReplay": true,
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "freshByteEqual": true,
+      "goVersion": "go version go1.23.12 linux/amd64",
+      "memoryRevision": 18,
+      "packageSeconds": 8.044,
+      "publicWALIndexAndFsyncRechecked": true,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "reportSHA256": "7ec6d8717ade1f90f0a59031c5e9ae33ae6236d8002086b03219c1fbda3500ed",
+      "runtimeAdopted": false,
+      "testSeconds": 8.04
+    },
+    "unknown": {
+      "checkerMainReplay": true,
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "freshByteEqual": true,
+      "goVersion": "go version go1.23.12 linux/amd64",
+      "memoryRevision": 18,
+      "packageSeconds": 9.773,
+      "publicWALIndexAndFsyncRechecked": true,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "reportSHA256": "d69888caa1b7255f8f6d40570184285ab474824c4cf867c507942909acf5bcd7",
+      "runtimeAdopted": false,
+      "testSeconds": 9.77
+    }
+  },
+  "ordinaryPublishProven": false,
+  "originalCheckerMainReplayedAllFour": true,
+  "productionChanged": false,
+  "run": 40245237910,
+  "schema": "chengwang.native-completion-54dc-independent-audit/v1",
+  "scope": "NINE_ORIGINAL_ZIPS_PUBLIC_CHECKER_SOURCE_RUNTIME_GO_FSYNC_READBACK_AND_PUBLIC_TAIL_NOT_FULL_PRIVATE_WAL",
+  "secondRecoveryProven": false,
+  "serviceRebindProven": false,
+  "snapshotCleanReadback": true,
+  "snapshotTrackedPathsVerifiedByRoot": 1414,
+  "sourceBinding": {
+    "deliveryCount": 9,
+    "deliverySetSHA256": "dffd1b2597f33cdf87d85739d92948aa51fb052eaaadb0d000168107028b259b",
+    "indexTree": "db054005aef1737675cf135f8f653b69ea17777f",
+    "policySHA256": "fd9682a24a31d4087f72490771d9a7c00b648d8a7925f4805effc49a7b3a1385",
+    "schema": "chengwang.mihomo-native-completion-source-binding/v2",
+    "sourceCommit": "54dc57c0f4d4377e7221f4653fbdb1d3bb01aba8",
+    "sourceCount": 1414,
+    "sourceManifestSHA256": "873a7aefe752c298b63de88c41c54f1e5d27f3cf2e6dfc6eed4176659eb633dc",
+    "sourceSetSHA256": "372d062b2da3b5b320983ddc77eeb097f572a71efbe79d96b3f463983824ed7a",
+    "sourceTree": "db054005aef1737675cf135f8f653b69ea17777f"
+  },
+  "sourceRuntimeGoFsyncReadbackAndPublicTailRechecked": true,
+  "verdict": "ACCEPT_ACTUAL_FIRST_COMPLETION_FOUR_MODE_SCOPE_ONLY"
+}

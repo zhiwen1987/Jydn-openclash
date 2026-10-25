@@ -42,6 +42,9 @@ SECRET_INPUTS = (
     ('CONFIG_B',SERVICE/'local-b.config.private.yaml'))
 SECRET_INPUT_CLASSES = frozenset(name for name,_ in SECRET_INPUTS)
 SECRET_ENCODING_VARIANTS = frozenset(('RAW','B64','B64URL','HEX','JSON_QUOTED'))
+SECRET_ELEMENT_CLASSES = frozenset(('WHOLE_FILE','JSON_SCHEMA','JSON_SCOPE_ENVIRONMENT','JSON_OTHER_SCALAR'))
+PUBLIC_LAB_ENVIRONMENT = 'isolated-lab'
+FENCE_PHASES = frozenset(('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'))
 REPORT_FAILURE_CODES = frozenset(('ACK_HEAD','CANDIDATES','CLEANUP','CLEANUP_CALLS','CLEANUP_PORT',
   'DEPLOY_ACK','DEPLOY_APPROVAL','DEPLOY_EXECUTE','DEPLOY_INSPECT','DEPLOY_PLAN','DEPLOY_STATE','DEPLOY_UNKNOWN',
   'DISPATCH_COUNT','ENVELOPE','FAULT_CLOSE','FAULT_OBSERVATION','FIRST_RECOVERED_HEAD','FIRST_UNKNOWN_HEAD',
@@ -267,35 +270,42 @@ def append_jsonl(path, row, state, key):
     finally: os.close(fd)
     state[key]=sequence
 
-def encoded_secret_variants(body, input_class):
-    need(type(body) is bytes and body and input_class in SECRET_INPUT_CLASSES)
-    return ((body,input_class,'RAW'),
-      (base64.b64encode(body),input_class,'B64'),
-      (base64.b64encode(body).rstrip(b'='),input_class,'B64'),
-      (base64.urlsafe_b64encode(body),input_class,'B64URL'),
-      (base64.urlsafe_b64encode(body).rstrip(b'='),input_class,'B64URL'),
-      (body.hex().encode(),input_class,'HEX'),
-      (body.hex().upper().encode(),input_class,'HEX'),
-      (json.dumps(body.decode('utf8','ignore')).encode(),input_class,'JSON_QUOTED'))
+def encoded_secret_variants(body, input_class, element_class='WHOLE_FILE', matches_public_lab_environment=False):
+    need(type(body) is bytes and body and input_class in SECRET_INPUT_CLASSES and
+         element_class in SECRET_ELEMENT_CLASSES and type(matches_public_lab_environment) is bool)
+    return ((body,input_class,element_class,'RAW',matches_public_lab_environment),
+      (base64.b64encode(body),input_class,element_class,'B64',matches_public_lab_environment),
+      (base64.b64encode(body).rstrip(b'='),input_class,element_class,'B64',matches_public_lab_environment),
+      (base64.urlsafe_b64encode(body),input_class,element_class,'B64URL',matches_public_lab_environment),
+      (base64.urlsafe_b64encode(body).rstrip(b'='),input_class,element_class,'B64URL',matches_public_lab_environment),
+      (body.hex().encode(),input_class,element_class,'HEX',matches_public_lab_environment),
+      (body.hex().upper().encode(),input_class,element_class,'HEX',matches_public_lab_environment),
+      (json.dumps(body.decode('utf8','ignore')).encode(),input_class,element_class,'JSON_QUOTED',matches_public_lab_environment))
 
 def build_forbidden():
     secrets=[]
-    def scalar_values(value):
+    scope_environment_path=('identities',None,'principal','allowedScopes',None,'environment')
+    def scalar_values(value, input_class, path=()):
         if type(value) is dict:
-            for item in value.values(): yield from scalar_values(item)
+            for item_key,item in value.items(): yield from scalar_values(item,input_class,path+(item_key,))
         elif type(value) is list:
-            for item in value: yield from scalar_values(item)
-        elif type(value) in (str,int,float,bool): yield str(value).encode()
+            for item in value: yield from scalar_values(item,input_class,path+(None,))
+        elif type(value) in (str,int,float,bool):
+            body=str(value).encode()
+            element_class='JSON_SCHEMA' if path==('schema',) else (
+              'JSON_SCOPE_ENVIRONMENT' if input_class=='IDENTITY_PROFILE' and path==scope_environment_path else 'JSON_OTHER_SCALAR')
+            yield body,element_class,element_class=='JSON_SCOPE_ENVIRONMENT' and body==PUBLIC_LAB_ENVIRONMENT.encode()
     for input_class,path in SECRET_INPUTS:
         if not path.exists(): continue
-        body=source_file(path,1<<20); secrets.append((input_class,body))
+        body=source_file(path,1<<20); secrets.append((input_class,body,'WHOLE_FILE',False))
         try:
             value=json.loads(body)
-            secrets.extend((input_class,scalar) for scalar in scalar_values(value))
+            secrets.extend((input_class,scalar,element_class,matches_public)
+              for scalar,element_class,matches_public in scalar_values(value,input_class))
         except Exception: pass
     forbidden=[]
-    for input_class,body in secrets:
-        if body: forbidden.extend(encoded_secret_variants(body,input_class))
+    for input_class,body,element_class,matches_public in secrets:
+        if body: forbidden.extend(encoded_secret_variants(body,input_class,element_class,matches_public))
     return forbidden
 
 def report_diagnostic_status(report):
@@ -305,21 +315,23 @@ def report_diagnostic_status(report):
 
 def fence_outputs(outputs, forbidden, phase, format_exit, go_exit, report_observed, http_count,
                   report_failure_code, report_outcome_pass):
-    need(type(outputs) is dict and phase == 'ALL_GENERIC_AND_REPORT_OUTPUTS' and
+    need(type(outputs) is dict and phase in FENCE_PHASES and
          type(format_exit) is int and type(go_exit) is int and type(report_observed) is bool and
          type(http_count) is int and 0 <= http_count <= 4096 and
          report_failure_code in REPORT_FAILURE_CODES|{'UNKNOWN'} and type(report_outcome_pass) is bool)
     for name,body in outputs.items():
         need(type(name) is str and re.fullmatch(r'[a-z0-9][a-z0-9.-]{0,127}',name) is not None and type(body) is bytes)
-        for secret,input_class,variant in forbidden:
-            need(type(secret) is bytes and input_class in SECRET_INPUT_CLASSES and variant in SECRET_ENCODING_VARIANTS)
+        for secret,input_class,element_class,variant,matches_public in forbidden:
+            need(type(secret) is bytes and input_class in SECRET_INPUT_CLASSES and variant in SECRET_ENCODING_VARIANTS and
+                 element_class in SECRET_ELEMENT_CLASSES and type(matches_public) is bool)
             if len(secret) >= 8 and secret in body:
                 diagnostic=canonical({'phase':phase,'formatExit':format_exit,'goExit':go_exit,
                   'reportObserved':report_observed,'httpCount':http_count,'reportFailureCode':report_failure_code,
                   'reportOutcomePass':report_outcome_pass,'outputLogicalName':name,
-                  'secretInputClass':input_class,'encodingVariant':variant})
+                  'secretInputClass':input_class,'secretElementClass':element_class,
+                  'matchesPublicLabEnvironment':matches_public,'encodingVariant':variant})
                 message=b'isolated continuous Recovery capture rejected '+diagnostic
-                if any(len(value)>=8 and value in message for value,_,_ in forbidden):
+                if any(len(value)>=8 and value in message for value,_,_,_,_ in forbidden):
                     raise ValueError('isolated continuous Recovery capture rejected')
                 raise ValueError(message.decode('ascii'))
 
@@ -360,7 +372,7 @@ def capture(state, argv, name, err_name, timeout, command):
           'sourceBinding':copy.deepcopy(state['sourceBinding'])}
         append_jsonl(a.ROOT_PRIVATE/'continuous-commands.private.jsonl',row,state,'commandSequence')
 
-def safe_report_outputs(binding, forbidden):
+def safe_report_outputs(binding, forbidden, format_exit, go_exit):
     a=adapter(); w=a.shared(); raw=source_file(REPORT,2<<20); report=json.loads(raw)
     need(canonical(report)+b'\n'==raw and report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v1' and
          report['scope']==SCOPE and report['sourceCommit']==binding['sourceCommit'])
@@ -376,8 +388,9 @@ def safe_report_outputs(binding, forbidden):
       'scope':SCOPE,'sourceCommit':binding['sourceCommit'],'sourceBinding':binding,'entries':index,'production':False})+b'\n'
     for public,private in (('kernel.stdout',SERVICE/'kernel.stdout'),('kernel.stderr',SERVICE/'kernel.stderr')):
         outputs[public]=source_file(private,256<<10,empty=True)
-    for name,body in outputs.items():
-        need(all(secret not in body for secret,_,_ in forbidden if len(secret)>=8))
+    report_failure_code,report_outcome_pass=report_diagnostic_status(report)
+    fence_outputs(outputs,forbidden,'REPORT_AND_HTTP_OUTPUTS',format_exit,go_exit,True,len(report.get('http',[])),
+      report_failure_code,report_outcome_pass)
     receipts=[]
     for path in (REPORT,SERVICE/'kernel.stdout',SERVICE/'kernel.stderr'):
         info=path.lstat(); body=source_file(path,2<<20,empty=True); fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
@@ -426,7 +439,7 @@ def main(args):
     outcome='NO_REPORT'
     report=None
     if REPORT.exists():
-        public,report,_=safe_report_outputs(binding,forbidden); outputs.update(public); outcome=report.get('outcome')
+        public,report,_=safe_report_outputs(binding,forbidden,state['formatExit'],state['goExit']); outputs.update(public); outcome=report.get('outcome')
     outputs['execution.json']=canonical({'schema':'chengwang.mihomo-continuous-recovery-execution/v1','scope':SCOPE,
       'sourceCommit':actual,'sourceBinding':binding,'formatExit':state['formatExit'],'goExit':state['goExit'],
       'outcome':outcome,'fullPrivateWALIndependentlyProven':False,'production':False})+b'\n'

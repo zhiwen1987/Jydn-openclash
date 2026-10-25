@@ -1,0 +1,103 @@
+{
+  "allTrackedBytesMatchedGitBlobs": true,
+  "artifacts": [
+    {
+      "bytes": 275821,
+      "id": 12618258029,
+      "members": 14,
+      "name": "mihomo-foundation-contracts-40245237948-1",
+      "sha256": "559055ae70b0806ec1d599374dab94cab48ef4a49b2fe3dccaba6cc0eb1007da"
+    },
+    {
+      "bytes": 297012,
+      "id": 12618915598,
+      "members": 19,
+      "name": "mihomo-capacity-profile-40245237908-1",
+      "sha256": "202c5a6677a93d7d243019d5376f52bc22ddde24110c9b0e5fd3e5e1a5a019cd"
+    },
+    {
+      "bytes": 542434,
+      "id": 12618546885,
+      "members": 21,
+      "name": "mihomo-capacity-profile-full-40245237908-1",
+      "sha256": "91df8bcff3c432a0cb8f5a2de858f85426136fc7d833e79fec17008097e7a1d2"
+    }
+  ],
+  "diagnostic": {
+    "FULL_CONTRACTS": {
+      "capacitySeconds": null,
+      "capacityTerminal": null,
+      "dataRaceWarningObserved": false,
+      "failedTests": 0,
+      "formatClean": true,
+      "goExit": 1,
+      "packageAction": "fail",
+      "packageSeconds": 180.049,
+      "passingTests": 1623,
+      "profileDurationNanoseconds": 120154272072,
+      "skippedTests": 0,
+      "testEvents": 6598,
+      "timeout": "3m0s",
+      "unfinished": [
+        "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop"
+      ],
+      "verificationSHA256": "0a07ce45383e4b2a4a34bbbe9a1c1ba1f5f4fecbabeb7e45764a826d60c821f9",
+      "wholeCIPass": false
+    },
+    "SINGLE_CASE": {
+      "capacitySeconds": 64.24,
+      "capacityTerminal": "pass",
+      "dataRaceWarningObserved": false,
+      "failedTests": 0,
+      "formatClean": true,
+      "goExit": 0,
+      "packageAction": "pass",
+      "packageSeconds": 65.265,
+      "passingTests": 1,
+      "profileDurationNanoseconds": 60116016481,
+      "skippedTests": 0,
+      "testEvents": 8,
+      "verificationSHA256": "39349010229c7883edd37155a89ce1fe60a67a287fa3de80e9cf633dcbf27d72",
+      "wholeCIPass": false
+    }
+  },
+  "diagnosticRun": 40245237908,
+  "goExecutedLocally": false,
+  "head": "54dc57c0f4d4377e7221f4653fbdb1d3bb01aba8",
+  "members": 54,
+  "normal": {
+    "formatClean": true,
+    "mandatoryNamesSHA256": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280",
+    "mandatoryTests": 688,
+    "ordinary": {
+      "capacityAction": "pass",
+      "capacitySeconds": 4.62,
+      "events": 8008,
+      "failedTests": 0,
+      "packageAction": "pass",
+      "packageSeconds": 16.919,
+      "passingTests": 1992,
+      "skippedTests": 0
+    },
+    "race": {
+      "capacityAction": "pass",
+      "capacitySeconds": 54.59,
+      "events": 8008,
+      "failedTests": 0,
+      "packageAction": "pass",
+      "packageSeconds": 125.327,
+      "passingTests": 1992,
+      "skippedTests": 0
+    },
+    "sourceFiles": 158,
+    "testFiles": 58
+  },
+  "normalCheckerVerifyReplayed": true,
+  "normalRun": 40245237948,
+  "performanceImprovementAttributed": false,
+  "productionChanged": false,
+  "schema": "chengwang.54dc-normal-diagnostic-original-audit/v1",
+  "signedURLsPersisted": false,
+  "trackedPaths": 1414,
+  "verdict": "NORMAL_ACCEPT_DIAGNOSTIC_PROFILE_ACCEPT_FULL_REJECT_TIMEOUT"
+}
