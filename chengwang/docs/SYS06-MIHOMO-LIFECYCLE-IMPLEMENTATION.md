@@ -4,6 +4,14 @@
 
 ## 本次已有代码
 
+### 2026-10-25 40c6本阶段隔离验收完成：仍未上线或完成恢复闭环
+
+接受的运行源码为40c6b4e2f1f65f9d16aeec8e3a6538277d63d62a。基础40153931108实际13／13成功，诊断40153931092实际3／3成功；普通／race各1213语义、539必需、旧528／407与新11全部通过，原容量256分别6.59／79.92秒，格式差异为空。原完整foundation verify真实返回报告与CI producer／fresh的14147字节完全相同；本机原main随后因POSIX报告写入限制自然退出1，观察未改函数、平台或退出码，不称Windows运行了Linux CLI。
+
+compat／apply／service／candidate／UNKNOWN五类原完整门独立复算通过，producer／fresh原报告逐字一致；service与UNKNOWN的CPU／CLI sourceGitVerified范围差异仅在比较副本处理，原报告保留。实际1258个Gitblob及各ZIP摘要／CRC／成员／原件前后稳定已核。完整正常门12ZIP／208成员与独立诊断2ZIP／20成员分别留存；这些是有界实验公开证据，不独立证明完整私有WAL、私有配置来源、任意payload、互联网业务或服务端实际接收次数，controllerReceivedCount保持null。
+
+规范字节快照优化的本阶段性能阻断已通过完整原门解决；不保证稳定提速比例或任意负载性能。诊断三次单case174.51／93.87／122.54秒来自不同运行，profile只覆盖前约60秒，仍有本地符号化可能不完整警告，未独立重算pprof数值。下一7源及585声明接线仍只是外部准备，尚未纳入本阶段。完整恢复API／closed journal facade／collector／新head／后续普通发布／再次恢复及真实恢复E2E仍缺，整套产品、灰度与生产未完成。本次后续归档仅文档，不替代40c6运行源码证据。
+
 ### 2026-10-25 0aed153实际运行：普通／race全部539通过，格式修正待下一CI
 
 基础40153568233的原普通和race事件门均完整接受：各1213语义测试、539必需，旧528／407、新11及maxRevision子例全部通过，零未完成／未启动。原256历史容量普通6.50秒、race77.48秒，mihomodeploy包分别15.100秒／108.593秒，原180秒门保持。完整CI仍11成功／2失败，唯一实际阻断为4031字节非空gofmt.patch；工具formatExit0不代表格式清洁。独立收据mihomo-0aed153-foundation-audit-20261025-agent/result.json（b4397bbf…eaf2124）核1257Gitblob、105绑定源和13ZIP成员。已按原0aed Gitblob／hunk严格转入唯一store.go格式，不本机Go／gofmt，仍须新CI确认。
