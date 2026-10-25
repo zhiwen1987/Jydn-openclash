@@ -1,0 +1,164 @@
+{
+  "actualPriorDiagnosticConclusion": "success",
+  "actualPriorDiagnosticRunID": 40167848304,
+  "actualPriorNormalConclusion": "failure",
+  "actualPriorNormalRunID": 40167848337,
+  "actualPriorSourceCommit": "ead8a40bc4ef693ea54122ce74e70ec185729ac2",
+  "allOld591AndNewSixteenActuallyPassed": true,
+  "baseline": "ead8a40bc4ef693ea54122ce74e70ec185729ac2",
+  "fullProjectComplete": false,
+  "localGoOrFormatterExecuted": false,
+  "mainMerged": false,
+  "nativeRecoveryExperimentAccepted": false,
+  "newRuntimeAcceptance": false,
+  "oldModelsRepeatedForWhitespace": false,
+  "ordinaryAndRaceSemanticEach": 1473,
+  "original180Seconds256History2MiBLimitsPreserved": true,
+  "original607NamesExact": true,
+  "priorFailedNormalAndMissingFreshPreserved": true,
+  "production": false,
+  "receipts": [
+    {
+      "kind": "normalFoundationCloseout",
+      "path": "D:/CodexData/workspace/mihomo-ead8a40-foundation-audit-20261025-agent/closeout.json",
+      "sha256": "db4f4a33f445d6847fc6feee9c46a7a3c772485cbcdf21b70c73d29c84de9dc7"
+    },
+    {
+      "kind": "normalOtherScopesCloseout",
+      "path": "D:/CodexData/workspace/mihomo-ead8a40-nonfoundation-audit-20261025-agent/closeout.json",
+      "sha256": "24a65a387ff57abd42daa7c5a5a85e350f11ee3633db6196a1c68aed83f1dcc3"
+    },
+    {
+      "kind": "diagnosticCloseout",
+      "path": "D:/CodexData/workspace/mihomo-ead8a40-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "sha256": "7116cf14664e581ed79e38ef1d44ec26c00a1c49b2afbd49826da7d170b15bcb"
+    },
+    {
+      "kind": "actualFormatterTransfer",
+      "path": "D:/CodexData/workspace/mihomo-ead8a40-foundation-audit-20261025-agent/format-transfer/result.json",
+      "sha256": "633bd9a25bc029a264910197a4633a200c03e53ed879eb9a1c717e6eaa3f6952"
+    }
+  ],
+  "registryPublished": false,
+  "requiredEach": 607,
+  "requiredNamesSHA256": "b745efef5b96ad29ececc9f9e4bf465d23277de5c03ff805c8c675abb100da62",
+  "s2Integrated": false,
+  "schema": "chengwang.s1-607-actual-format-transfer/v1",
+  "scope": "ACTUAL_CI_FORMAT_TRANSFER_NOT_NEW_GO_OR_NATIVE_ACCEPTANCE",
+  "semanticChanges": false,
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "468cc965009fcd6f94fedf9861be30ffeca12aaeefcac4c8f94715989ea6874d",
+    "chengwang/docs/evidence/sys06-ead607-go-pass-format-failure-20261025.json": "158707d1ce5daee6bce1219df877219d86cccf6d09a54c7b4bb64ff33b8b4860",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_started.go": "3457df382d82dc7c54df308f6267d5b2fb3e43646d8232eb545a5a008c8c91f6",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_started_linux_test.go": "949d8626f3a37631201c975467515ff5f959de18511710eaca029172b23855f2",
+    "chengwang/internal/mihomodeploy/lifecycle_v3.go": "8533c24bb526484b40485253f8dddcadcbff8e1def50245e186bac46c5a80110"
+  },
+  "sourceTokensPreservedConservativelyNotGoAST": true,
+  "transfer": {
+    "RChanged": false,
+    "actualLocalGoOrGofmtRun": false,
+    "allOriginalHunkPositionsAndPreimagesExact": true,
+    "allSourceTokensPreservedConservativelyNotGoAST": true,
+    "applyPatchSHA256": "dfb4ba6c83aa6b6d95271fdc66e909228b5bda60c3517c5f5d210c1da6baa563",
+    "files": {
+      "chengwang/internal/mihomodeploy/lifecycle_recovery_started.go": {
+        "afterBytes": 13995,
+        "afterSHA256": "3457df382d82dc7c54df308f6267d5b2fb3e43646d8232eb545a5a008c8c91f6",
+        "beforeBytes": 13993,
+        "beforeGitBlob": "225163f4ff6e4b98544b22e3e373866fa34f77bd",
+        "beforeSHA256": "7f1b06fd13c4e418246e1b1c5b302aaf202bcadcda0f34c6d28f15a28bf77b21",
+        "conservativeLexicalTokensByteEqual": true,
+        "hunks": [
+          {
+            "newCount": 8,
+            "newStart": 21,
+            "oldCount": 8,
+            "oldStart": 21
+          }
+        ]
+      },
+      "chengwang/internal/mihomodeploy/lifecycle_recovery_started_linux_test.go": {
+        "afterBytes": 23196,
+        "afterSHA256": "949d8626f3a37631201c975467515ff5f959de18511710eaca029172b23855f2",
+        "beforeBytes": 22939,
+        "beforeGitBlob": "89f879d9570df094af7798509593648bedbc2764",
+        "beforeSHA256": "56b607df5db49f5dcd7bf50f914c8dce67205e0e833a0ef43427651222347d26",
+        "conservativeLexicalTokensByteEqual": true,
+        "hunks": [
+          {
+            "newCount": 22,
+            "newStart": 239,
+            "oldCount": 14,
+            "oldStart": 239
+          },
+          {
+            "newCount": 10,
+            "newStart": 261,
+            "oldCount": 8,
+            "oldStart": 253
+          },
+          {
+            "newCount": 12,
+            "newStart": 302,
+            "oldCount": 9,
+            "oldStart": 292
+          },
+          {
+            "newCount": 9,
+            "newStart": 324,
+            "oldCount": 9,
+            "oldStart": 311
+          },
+          {
+            "newCount": 18,
+            "newStart": 403,
+            "oldCount": 18,
+            "oldStart": 390
+          },
+          {
+            "newCount": 15,
+            "newStart": 441,
+            "oldCount": 12,
+            "oldStart": 428
+          },
+          {
+            "newCount": 8,
+            "newStart": 470,
+            "oldCount": 7,
+            "oldStart": 454
+          },
+          {
+            "newCount": 8,
+            "newStart": 481,
+            "oldCount": 7,
+            "oldStart": 464
+          }
+        ]
+      },
+      "chengwang/internal/mihomodeploy/lifecycle_v3.go": {
+        "afterBytes": 22868,
+        "afterSHA256": "8533c24bb526484b40485253f8dddcadcbff8e1def50245e186bac46c5a80110",
+        "beforeBytes": 22869,
+        "beforeGitBlob": "876a6cbd4e8b82b8dd472bc484621eec291b8c61",
+        "beforeSHA256": "64f4e912d53bcb621c4f3a86a5e2d40a7f2ea19f6ba82d821161a14f7b83fbda",
+        "conservativeLexicalTokensByteEqual": true,
+        "hunks": [
+          {
+            "newCount": 7,
+            "newStart": 106,
+            "oldCount": 7,
+            "oldStart": 106
+          }
+        ]
+      }
+    },
+    "hunkCount": 10,
+    "originalPatchBytes": 7705,
+    "originalPatchPath": "D:\\CodexData\\workspace\\mihomo-ead8a40-foundation-audit-20261025-agent\\mihomo-foundation-contracts-40167848337-1\\mihomo-foundation-contracts\\gofmt.patch",
+    "originalPatchSHA256": "0a327bf974e4b147c94c4de4baefddc9cf0c129e572bd45936c6df56630ac000",
+    "productionTouched": false,
+    "runID": 40167848337,
+    "scope": "ACTUAL_CI_FORMAT_HUNKS_ON_EXACT_GIT_BLOBS_NOT_LOCAL_FORMATTER",
+    "sourceCommit": "ead8a40bc4ef693ea54122ce74e70ec185729ac2"
+  }
+}

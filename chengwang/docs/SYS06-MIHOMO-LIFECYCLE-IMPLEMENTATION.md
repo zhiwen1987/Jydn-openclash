@@ -1,8 +1,16 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，ca正常13门及585必需用例限定通过；850曾普通／race各587及完整诊断通过但正常格式失败，最新f023格式已清洁却整套race预算耗尽，容量已过仍不能认全门通过，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：f40的591底座切片已通过正常及完整诊断、独立原件复核；后续ead的S1 607普通／race／诊断full均通过，但正常CI因真实格式差异仍失败，修正版必须再验。历史失败不被后来成功覆盖，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 2026-10-25 ead的607全部Go通过，但正常格式失败；按真实formatter修订
+
+ead8a40bc4ef693ea54122ce74e70ec185729ac2正常40167848337实际11成功／2失败：普通与race各1473语义／607必需完整PASS，原591及新16 S1、bfae schema／48结构／68槽、新旧UTF8反例均实际过；容量5.77／65.86秒PASS，包17.770／128.453秒结束，无超时。原gofmt进程exit0但patch7705B非空，严格格式门仍拒绝；不能把进程exit0当格式清洁或用Go通过改判normal。独立foundation b3f9f41b、其他五scope原门/fresh各自证明限定范围，原foundation fresh缺失保留。
+
+诊断40167848304实际5门success，完整7116cf14／原子067b9a26核4ZIP42成员／1285 Git blob、115源／42test／70包test／607及old591/587/585、新16与bfae／UTF8、原source/resource/namespace/argv与producer/fresh逐字一致；full容量87.55秒／包166.889秒。诊断的tag文件fmt0不能覆盖正常109文件格式门，不据单轮结果承诺长期稳定或native恢复成功。
+
+root仅转入实际7705B原patch的3源10hunk（v3／Started／Started Linux test），原patch SHA0a327bf974e4b147c94c4de4baefddc9cf0c129e572bd45936c6df56630ac000，transfer 633bd9a25bc029a264910197a4633a200c03e53ed879eb9a1c717e6eaa3f6952；每个原Gitblob/原hunk位置和词法token校验，非GoAST。新postimage逐字匹配实际formatter产物，不运行本机Go/gofmt或重复不变模型。仅格式修订仍须新Linux CI，不能继承ead的新提交接受；真实native Started、sole-close-owner交接、两代cleanup、S2／API／完整恢复与生产尚未完成。
 
 ### 2026-10-25 S1 Started持久化与607接线：源码集成，尚待本提交实际Linux验收
 

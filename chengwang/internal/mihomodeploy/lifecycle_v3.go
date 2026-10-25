@@ -106,7 +106,7 @@ type lifecycleRecoveryTxn struct {
 	Completion       *lifecycleRecoveryCompletion   `json:"completion"`
 	Failure          *lifecycleRecoveryFailure      `json:"failure"`
 	UpdatedAt        time.Time                      `json:"updatedAt"`
-	Execution        *lifecycleRecoveryExecution     `json:"execution,omitempty"`
+	Execution        *lifecycleRecoveryExecution    `json:"execution,omitempty"`
 }
 
 func (lifecycleV3Record) String() string   { return lifecycleRecoveryDebug }

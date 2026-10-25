@@ -239,22 +239,32 @@ func TestLifecycleRecoveryStartedExecutionCodecRejectsAlteredFactsAndPreimage(t 
 			r := lifecycleV3Copy(t, s.core.record)
 			e := r.core.Recovery.Execution
 			switch kind {
-			case "version": e.Schema = "chengwang.mihomo-recovery-execution/v2"
-			case "fact": e.Started.Observation.StartInvoked = false
-			case "revision": e.StartedCommitRevision = e.Started.Binding.Revision
-			case "time": e.RecordedAt = e.Started.ObservedAt.Add(-time.Nanosecond)
-			case "owner": e.ArmedOwner.OwnerNonce = strings.Repeat("9", 64)
-			case "clock": e.ArmedLastTrustedAt = e.ArmedLastTrustedAt.Add(-time.Nanosecond)
-			case "fence": e.ArmedLastRecoveryFence++
-			case "prefix": e.ArmedFailedQuiescence = nil
+			case "version":
+				e.Schema = "chengwang.mihomo-recovery-execution/v2"
+			case "fact":
+				e.Started.Observation.StartInvoked = false
+			case "revision":
+				e.StartedCommitRevision = e.Started.Binding.Revision
+			case "time":
+				e.RecordedAt = e.Started.ObservedAt.Add(-time.Nanosecond)
+			case "owner":
+				e.ArmedOwner.OwnerNonce = strings.Repeat("9", 64)
+			case "clock":
+				e.ArmedLastTrustedAt = e.ArmedLastTrustedAt.Add(-time.Nanosecond)
+			case "fence":
+				e.ArmedLastRecoveryFence++
+			case "prefix":
+				e.ArmedFailedQuiescence = nil
 			case "armedHash":
 				e.Started.Binding.RecordSHA256 = strings.Repeat("9", 64)
 				labRecoveryStartedModelReseal(t, &e.Started)
 			case "stream":
 				e.Started.Observation.StartObservation.Stdout.TotalBytes++
 				labRecoveryStartedModelReseal(t, &e.Started)
-			case "head": r.core.Current.Head.PID++
-			case "completion": r.core.Recovery.Phase = "COMPLETED"
+			case "head":
+				r.core.Current.Head.PID++
+			case "completion":
+				r.core.Recovery.Phase = "COMPLETED"
 			}
 			r.core.RecordSHA256, _ = lifecycleV3RecordHash(*r.core)
 			raw, _ := json.Marshal(r.core)
@@ -292,9 +302,12 @@ func TestLifecycleRecoveryStartedExecutionCannotUseGenericPublisherOrBeRemoved(t
 	for _, kind := range []string{"remove", "replace", "advanceHead"} {
 		r := lifecycleV3Copy(t, s.core.record)
 		switch kind {
-		case "remove": r.core.Recovery.Execution = nil
-		case "replace": r.core.Recovery.Execution.RecordedAt = now.Add(time.Second)
-		case "advanceHead": r.core.Current.Head.Generation++
+		case "remove":
+			r.core.Recovery.Execution = nil
+		case "replace":
+			r.core.Recovery.Execution.RecordedAt = now.Add(time.Second)
+		case "advanceHead":
+			r.core.Current.Head.Generation++
 		}
 		writes := d.writes
 		if s.core.commit(r, now) == nil || d.writes != writes {
@@ -311,9 +324,9 @@ func TestLifecycleRecoveryStartedExecutionCannotUseGenericPublisherOrBeRemoved(t
 }
 
 type lifecycleStartedReadbackFault struct {
-	disk *lifecycleModelDisk
+	disk        *lifecycleModelDisk
 	afterWrites int
-	custody bool
+	custody     bool
 }
 
 func (d *lifecycleStartedReadbackFault) verify() error {
@@ -390,18 +403,18 @@ func TestLifecycleRecoveryStartedExecutionNilMatchesOrderedOldTxnBytes(t *testin
 		a := s.core.record.core.Recovery
 		// Frozen old ordered shape, before the optional execution member existed.
 		old := struct {
-			Plan labRecoveryPlanDescriptor `json:"plan"`
-			Phase string `json:"phase"`
-			Approval *lifecycleRecoveryApproval `json:"approval"`
-			Revocation *lifecycleRevocation `json:"revocation"`
-			StopIntent *lifecycleRecoveryActionIntent `json:"stopIntent"`
-			StopBinding *labQuiescenceBinding `json:"stopBinding"`
-			Quiescence *labQuiescenceFact `json:"quiescence"`
-			FailedQuiescence []labQuiescenceObservation `json:"failedQuiescence"`
-			StartIntent *lifecycleRecoveryActionIntent `json:"startIntent"`
-			Completion *lifecycleRecoveryCompletion `json:"completion"`
-			Failure *lifecycleRecoveryFailure `json:"failure"`
-			UpdatedAt time.Time `json:"updatedAt"`
+			Plan             labRecoveryPlanDescriptor      `json:"plan"`
+			Phase            string                         `json:"phase"`
+			Approval         *lifecycleRecoveryApproval     `json:"approval"`
+			Revocation       *lifecycleRevocation           `json:"revocation"`
+			StopIntent       *lifecycleRecoveryActionIntent `json:"stopIntent"`
+			StopBinding      *labQuiescenceBinding          `json:"stopBinding"`
+			Quiescence       *labQuiescenceFact             `json:"quiescence"`
+			FailedQuiescence []labQuiescenceObservation     `json:"failedQuiescence"`
+			StartIntent      *lifecycleRecoveryActionIntent `json:"startIntent"`
+			Completion       *lifecycleRecoveryCompletion   `json:"completion"`
+			Failure          *lifecycleRecoveryFailure      `json:"failure"`
+			UpdatedAt        time.Time                      `json:"updatedAt"`
 		}{a.Plan, a.Phase, a.Approval, a.Revocation, a.StopIntent, a.StopBinding, a.Quiescence, a.FailedQuiescence, a.StartIntent, a.Completion, a.Failure, a.UpdatedAt}
 		oldBytes, err := json.Marshal(old)
 		currentBytes, currentErr := json.Marshal(a)
@@ -428,12 +441,15 @@ func TestLifecycleRecoveryStartedRecordRejectsNilAndMissingOriginWithoutRetry(t 
 			s, d, owner, q, now := lifecycleStartedRecordModel(t)
 			cap := q
 			switch kind {
-			case "nil": cap = nil
-			case "empty": cap = &labRecoveryStartedEpoch{}
+			case "nil":
+				cap = nil
+			case "empty":
+				cap = &labRecoveryStartedEpoch{}
 			case "copiedCore":
 				x := *q.core
 				cap = &labRecoveryStartedEpoch{core: &x}
-			case "missingOrigin": cap.core.source = nil
+			case "missingOrigin":
+				cap.core.source = nil
 			}
 			writes := d.writes
 			if s.recordRecoveryStarted(owner, cap, now) == nil || d.writes != writes {
@@ -454,7 +470,8 @@ func TestLifecycleRecoveryStartedRecordEveryAdmittedContextFailureSpendsCapabili
 			s, d, owner, q, now := lifecycleStartedRecordModel(t)
 			target, token := s, owner
 			switch kind {
-			case "nilStore": target = nil
+			case "nilStore":
+				target = nil
 			case "wrongToken":
 				copy := *owner.core
 				token = &lifecycleRecoveryOwnerToken{core: &copy}
@@ -464,7 +481,8 @@ func TestLifecycleRecoveryStartedRecordEveryAdmittedContextFailureSpendsCapabili
 				if target.core.record.core.Recovery.Phase != "OLD_EPOCH_QUIESCED" {
 					t.Fatal("MODEL wrong-phase test did not reach phase rejection")
 				}
-			case "custodyFailure": d.verifyErr = errLifecycleUnsafe
+			case "custodyFailure":
+				d.verifyErr = errLifecycleUnsafe
 			}
 			writes := d.writes
 			if target.recordRecoveryStarted(token, q, now) == nil || d.writes != writes {

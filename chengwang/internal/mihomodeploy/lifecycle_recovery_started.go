@@ -21,8 +21,8 @@ type lifecycleRecoveryExecution struct {
 	ArmedLastRecoveryFence uint64                     `json:"armedLastRecoveryFence"`
 	ArmedRecoveryUpdatedAt time.Time                  `json:"armedRecoveryUpdatedAt"`
 	ArmedFailedQuiescence  []labQuiescenceObservation `json:"armedFailedQuiescence"`
-	StartedCommitRevision uint64                     `json:"startedCommitRevision"`
-	RecordedAt            time.Time                  `json:"recordedAt"`
+	StartedCommitRevision  uint64                     `json:"startedCommitRevision"`
+	RecordedAt             time.Time                  `json:"recordedAt"`
 }
 
 // Captured only from the same actual START_ARMED WAL, immediately before the
