@@ -482,3 +482,259 @@ func TestLifecycleRecoveryImmutableHistoryAndOrdinaryUnknownSurviveNewOwner(t *t
 		t.Fatal("MODEL history mutated")
 	}
 }
+
+func TestLifecycleRecoveryValidatedSnapshotRejectsCoordinatedCanonicalReplacement(t *testing.T) {
+	s, d, _, _ := lifecycleRecoveryModelStore(t)
+	next, err := s.core.copyRecord()
+	if err != nil {
+		t.Fatal("MODEL copy")
+	}
+	next.core.Revision++
+	next = lifecycleV3Seal(t, next)
+	raw, err := encodeLifecycleV3Record(next)
+	if err != nil {
+		t.Fatal("MODEL replacement must be independently valid canonical bytes")
+	}
+	// Even a valid, rehashed record cannot replace the store's actually
+	// validated image just by coordinating disk and mutable private fields.
+	d.raw, s.core.raw, s.core.record = bytes.Clone(raw), bytes.Clone(raw), next
+	if _, err := s.core.verifiedBase(); err == nil || !s.core.poisoned || s.core.validated != nil || d.writes != 0 {
+		t.Fatal("MODEL coordinated replacement gained validation proof")
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotBindsNestedRecordNotJustOuterHash(t *testing.T) {
+	s, d, _, _ := lifecycleRecoveryModelStore(t)
+	before := bytes.Clone(s.core.raw)
+	oldHash := s.core.record.core.RecordSHA256
+	s.core.record.core.Current.Head.VerificationSHA256 = strings.Repeat("e", 64)
+	if s.core.record.core.RecordSHA256 != oldHash || !bytes.Equal(s.core.raw, before) {
+		t.Fatal("MODEL mutation precondition")
+	}
+	if _, err := s.core.verifiedBase(); err == nil || !s.core.poisoned || d.writes != 0 {
+		t.Fatal("MODEL equal outer hash hid nested mutation")
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotIssuerBindingRejectsRewrittenImageFields(t *testing.T) {
+	s, d, _, _ := lifecycleRecoveryModelStore(t)
+	next, err := s.core.copyRecord()
+	if err != nil {
+		t.Fatal("MODEL copy")
+	}
+	next.core.Revision++
+	next = lifecycleV3Seal(t, next)
+	raw, err := encodeLifecycleV3Record(next)
+	if err != nil {
+		t.Fatal("MODEL independently valid replacement")
+	}
+	// Rewriting the image's visible private metadata too must still fail its
+	// original issuer closure. This does not claim protection against arbitrary
+	// malicious code replacing executable functions inside this package.
+	s.core.validated.canonical = string(raw)
+	s.core.validated.rawSHA256 = labConfigHash(raw)
+	d.raw, s.core.raw, s.core.record = bytes.Clone(raw), bytes.Clone(raw), next
+	if _, err := s.core.verifiedBase(); err == nil || !s.core.poisoned || d.writes != 0 {
+		t.Fatal("MODEL rewritten image metadata replaced issuer evidence")
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotRejectsMissingCopiedAndForeignImage(t *testing.T) {
+	for _, kind := range []string{"missing", "copied", "foreign", "copied-store"} {
+		s, d, _, _ := lifecycleRecoveryModelStore(t)
+		switch kind {
+		case "missing":
+			s.core.validated = nil
+		case "copied":
+			copyImage := *s.core.validated
+			s.core.validated = &copyImage
+		case "foreign":
+			other, _, _, _ := lifecycleRecoveryModelStore(t)
+			s.core.validated = other.core.validated
+		case "copied-store":
+			copyStore := *s.core
+			s.core = &copyStore
+		}
+		if _, err := s.core.verifiedBase(); err == nil || !s.core.poisoned || d.writes != 0 {
+			t.Fatal("MODEL missing/copied/foreign image admitted")
+		}
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotRejectsOlderImageAndDurableRollback(t *testing.T) {
+	s, d, _, now := lifecycleRecoveryModelStore(t)
+	oldImage := s.core.validated
+	oldRaw := bytes.Clone(s.core.raw)
+	oldRecord, err := s.core.copyRecord()
+	if err != nil {
+		t.Fatal("MODEL copy")
+	}
+	if _, err := s.acquireRecoveryOwner(now, now.Add(time.Minute)); err != nil || s.core.validated == oldImage || s.core.validationGeneration <= oldImage.generation {
+		t.Fatal("MODEL actual successful publication did not advance image")
+	}
+	// A retained older issued image is not permission to roll the same store
+	// back, even when all ordinary durable/raw/typed values are restored.
+	s.core.validated = oldImage
+	s.core.raw, d.raw, s.core.record = bytes.Clone(oldRaw), bytes.Clone(oldRaw), oldRecord
+	before := d.writes
+	if _, err := s.core.verifiedBase(); err == nil || !s.core.poisoned || d.writes != before {
+		t.Fatal("MODEL older image revived after durable rollback")
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotReturnedCopiesDoNotAliasImage(t *testing.T) {
+	s, d, b, draft, _ := lifecycleRecoveryTransactionModel(t)
+	defer b.release()
+	image := s.core.validated
+	canonical := image.canonical
+	draft.core.SourceV2.ControlBytes[0] = '!'
+	b.core.record.core.Current.Owner.OwnerNonce = strings.Repeat("e", 64)
+	if image.canonical != canonical || string(s.core.raw) != canonical || string(d.raw) != canonical || s.core.record.core.Current.Owner.OwnerNonce == b.core.record.core.Current.Owner.OwnerNonce {
+		t.Fatal("MODEL returned typed/base record aliases store image")
+	}
+	if err := s.core.verify(); err != nil || s.core.validated != image {
+		t.Fatal("MODEL detached mutation changed trusted image")
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotRechecksMemoryAfterBaseAndPreparation(t *testing.T) {
+	for _, kind := range []string{"after-base", "after-preparation"} {
+		s, d, b, next, now := lifecycleRecoveryTransactionModel(t)
+		if kind == "after-base" {
+			s.core.record.core.Current.Owner.OwnerNonce = strings.Repeat("e", 64)
+			if _, err := prepareLifecycleCandidate(b, next, now); err == nil || d.writes != 0 {
+				t.Fatal("MODEL changed base metadata admitted to preparation")
+			}
+		} else {
+			p, err := prepareLifecycleCandidate(b, next, now)
+			if err != nil {
+				t.Fatal("MODEL prepare")
+			}
+			s.core.record.core.Current.Owner.OwnerNonce = strings.Repeat("e", 64)
+			if s.core.publishPrepared(p) == nil || d.writes != 0 || !s.core.poisoned {
+				t.Fatal("MODEL changed base metadata passed final precommit")
+			}
+		}
+		b.release()
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotFailedPublicationNeverAdoptsCandidate(t *testing.T) {
+	for _, kind := range []string{"not-committed", "unknown", "readback"} {
+		s, d, b, next, now := lifecycleRecoveryTransactionModel(t)
+		image, generation := s.core.validated, s.core.validationGeneration
+		p, err := prepareLifecycleCandidate(b, next, now)
+		if err != nil {
+			t.Fatal("MODEL prepare")
+		}
+		switch kind {
+		case "not-committed":
+			d.state, d.writeErr = lifecycleNotCommitted, errors.New("MODEL private write failure")
+		case "unknown":
+			d.state = lifecycleUnknown
+		case "readback":
+			d.corruptReadback = true
+		}
+		if s.core.publishPrepared(p) == nil || s.core.validationGeneration != generation || d.writes != 1 {
+			t.Fatal("MODEL unsuccessful publication advanced image")
+		}
+		if kind == "not-committed" {
+			if s.core.validated != image || s.core.poisoned {
+				t.Fatal("MODEL definite uncommitted error discarded valid old image")
+			}
+		} else if !s.core.poisoned || s.core.validated != nil {
+			t.Fatal("MODEL uncertain write retained reusable image")
+		}
+		b.release()
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotCloseAndRollbackInvalidateImage(t *testing.T) {
+	for _, kind := range []string{"close", "clock"} {
+		s, d, _, now := lifecycleRecoveryModelStore(t)
+		image := s.core.validated
+		if kind == "close" {
+			if s.close() != nil || !d.closed {
+				t.Fatal("MODEL close")
+			}
+		} else if s.core.trustedNow(now.Add(-time.Nanosecond)) == nil {
+			t.Fatal("MODEL rollback")
+		}
+		if s.core.validated != nil {
+			t.Fatal("MODEL ended store retained image")
+		}
+		s.core.validated = image
+		if _, err := s.core.verifiedBase(); err == nil || d.writes != 0 {
+			t.Fatal("MODEL ended store image revived")
+		}
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotReopenStillRejectsMalformedArchive(t *testing.T) {
+	s, d, owner, _, now := lifecycleRecoveryModelPlanned(t)
+	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+		t.Fatal("MODEL archive")
+	}
+	next, err := s.core.copyRecord()
+	if err != nil || len(next.core.RecoveryHistory) != 1 {
+		t.Fatal("MODEL archived copy")
+	}
+	next.core.RecoveryHistory[0].Plan.PlanSHA256 = strings.Repeat("e", 64)
+	next = lifecycleV3Seal(t, next)
+	raw, err := json.Marshal(next.core)
+	if err != nil {
+		t.Fatal("MODEL malformed archived wire")
+	}
+	d.raw = raw
+	before := d.writes
+	if _, err := openLifecycleRecoveryStore(d, now); err == nil || d.writes != before {
+		t.Fatal("MODEL reopen reused live cache instead of full validation")
+	}
+}
+
+func TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan(t *testing.T) {
+	s, d, first, now := lifecycleRecoveryModelStore(t)
+	owner := lifecycleRecoveryModelOwner(t, s, now)
+	original, err := lifecycleV3Source(s.core.record.core)
+	if err != nil {
+		t.Fatal("MODEL original source")
+	}
+	for n := 0; n < 4; n++ {
+		previous := s.core.validated
+		plan, err := newLabRecoveryPlan(original, fmt.Sprintf("labrec_%032x", n+2), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, now, now.Add(time.Minute))
+		if err != nil || s.beginRecovery(owner, &plan, s.core.record.core.Revision, s.core.record.core.RecordSHA256, now) != nil || s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+			t.Fatal("MODEL complete independently valid plan/revoke")
+		}
+		if s.core.validated == previous || len(s.core.record.core.RecoveryHistory) != n+1 || string(d.raw) != s.core.validated.canonical || string(s.core.raw) != s.core.validated.canonical {
+			t.Fatal("MODEL successful image did not preserve all archive bytes")
+		}
+	}
+	if _, err := decodeLifecycleV3Record(d.raw); err != nil {
+		t.Fatal("MODEL final bytes fail original complete external decoder")
+	}
+	t.Run("canonical_max_revision_reaches_overflow_guard", func(t *testing.T) {
+		maximal, err := s.core.copyRecord()
+		if err != nil {
+			t.Fatal("MODEL maximum revision copy")
+		}
+		maximal.core.Revision = ^uint64(0)
+		maximal = lifecycleV3Seal(t, maximal)
+		raw, err := encodeLifecycleV3Record(maximal)
+		if err != nil {
+			t.Fatal("MODEL maximum revision must be valid canonical input")
+		}
+		freshDisk := &lifecycleModelDisk{raw: bytes.Clone(raw), exists: true, state: lifecycleCommitted}
+		fresh, err := openLifecycleRecoveryStore(freshDisk, now)
+		if err != nil || fresh.core.validated == nil {
+			t.Fatal("MODEL maximum revision failed strict open/issuance")
+		}
+		base, err := fresh.core.verifiedBase()
+		if err != nil {
+			t.Fatal("MODEL maximum revision did not pass actual snapshot verification")
+		}
+		base.release()
+		if _, err := fresh.acquireRecoveryOwner(now.Add(time.Minute), now.Add(2*time.Minute)); err == nil || freshDisk.writes != 0 || fresh.core.poisoned || fresh.core.record.core.Revision != ^uint64(0) {
+			t.Fatal("MODEL maximum revision overflow guard did not reject before write")
+		}
+	})
+}

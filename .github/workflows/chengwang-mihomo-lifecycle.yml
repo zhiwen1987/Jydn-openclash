@@ -83,7 +83,23 @@ jobs:
           old=baseline['names'];assert old==sorted(set(old)) and len(old)==407 and all(type(n) is str for n in old)
           assert hashlib.sha256('\n'.join(old).encode()).hexdigest()==baseline['namesSHA256']=='9178e55615de9ba4573e912c2fc1a4748dc668fe5bb207116e51750dcc727e4c'
           assert set(old).issubset(declared) and len(declared)>407
-          assert len(declared)==528 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
+          snapshot_added={
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotBindsNestedRecordNotJustOuterHash',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotCloseAndRollbackInvalidateImage',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotFailedPublicationNeverAdoptsCandidate',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotIssuerBindingRejectsRewrittenImageFields',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotRechecksMemoryAfterBaseAndPreparation',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotRejectsCoordinatedCanonicalReplacement',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotRejectsMissingCopiedAndForeignImage',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotRejectsOlderImageAndDurableRollback',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotReopenStillRejectsMalformedArchive',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryValidatedSnapshotReturnedCopiesDoNotAliasImage',
+          }
+          assert snapshot_added.issubset(declared)
+          previous=sorted(set(declared)-snapshot_added)
+          assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
+          assert len(declared)==539 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='dca819005e498a5d36c6157e00dbd244ad7f705616690001b0bf830c7900009c'
           print('GO_TEST_DECLARATIONS='+str(len(declared))+' legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution

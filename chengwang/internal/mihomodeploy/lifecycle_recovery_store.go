@@ -26,8 +26,31 @@ type lifecycleRecoveryStoreCore struct {
 	// released on every exit and are never a cross-operation validation cache.
 	activeBase       *lifecycleVerifiedBaseCore
 	activePrepared   *lifecyclePreparedCandidateCore
+	// An exact, private canonical image already fully validated by open or a
+	// successful publication. This is not an action/owner/approval capability.
+	validated        *lifecycleValidatedSnapshot
+	validationGeneration uint64
 	poisoned, closed bool
 }
+
+// Strings detach the trusted bytes from all mutable disk/raw/draft slices.
+// The self identity rejects copied proof fields; the store binding prevents a
+// proof from another store (including a shallow-copied core) being adopted.
+// Only open's full decoder and publishPrepared's actual readback issue one.
+type lifecycleValidatedSnapshot struct {
+	store *lifecycleRecoveryStoreCore
+	identity *lifecycleValidatedSnapshot
+	canonical string
+	rawSHA256 string
+	generation uint64
+	binding func(*lifecycleValidatedSnapshot, *lifecycleRecoveryStoreCore) bool
+}
+
+func (lifecycleValidatedSnapshot) Format(s fmt.State, _ rune) {
+	_, _ = io.WriteString(s, lifecycleRecoveryDebug)
+}
+func (lifecycleValidatedSnapshot) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
+func (*lifecycleValidatedSnapshot) UnmarshalJSON([]byte) error { return errLifecycleUnsafe }
 type lifecycleRecoveryOwnerToken struct{ core *lifecycleRecoveryOwnerCore }
 type lifecycleRecoveryOwnerCore struct {
 	store *lifecycleRecoveryStoreCore
@@ -82,7 +105,7 @@ func (b *lifecycleVerifiedBase) issuedTo(x *lifecycleRecoveryStoreCore) bool {
 }
 func (b *lifecycleVerifiedBase) intact(x *lifecycleRecoveryStoreCore) bool {
 	return b.issuedTo(x) && !x.closed && !x.poisoned && x.record.core != nil && b.core.record.core != nil &&
-		len(b.core.raw) != 0 && labConfigHash(b.core.raw) == b.core.rawSHA256
+		len(b.core.raw) != 0 && labConfigHash(b.core.raw) == b.core.rawSHA256 && bytes.Equal(x.raw, b.core.raw) && reflect.DeepEqual(x.record.core, b.core.record.core)
 }
 func (b *lifecycleVerifiedBase) valid(x *lifecycleRecoveryStoreCore) bool {
 	return b.intact(x) && !b.core.used
@@ -222,6 +245,18 @@ func openLifecycleRecoveryStore(d lifecycleDisk, now time.Time) (*lifecycleRecov
 		return nil, errLifecycleUnsafe
 	}
 	x := &lifecycleRecoveryStoreCore{disk: d, record: r, raw: bytes.Clone(raw)}
+	// The actual disk bytes have just passed the complete external decoder,
+	// canonical comparison and all history/semantic checks. No caller-supplied
+	// boolean or digest can construct this owner-bound image through an API.
+	x.validationGeneration = 1
+	image := &lifecycleValidatedSnapshot{store:x, canonical:string(raw), rawSHA256:labConfigHash(raw), generation:x.validationGeneration}
+	image.identity = image
+	sealedCanonical, sealedDigest, sealedGeneration := image.canonical, image.rawSHA256, image.generation
+	image.binding = func(candidate *lifecycleValidatedSnapshot, owner *lifecycleRecoveryStoreCore) bool {
+		return candidate == image && owner == x && candidate.identity == image && candidate.store == owner &&
+			candidate.canonical == sealedCanonical && candidate.rawSHA256 == sealedDigest && candidate.generation == sealedGeneration && owner.validationGeneration == sealedGeneration
+	}
+	x.validated = image
 	s := &lifecycleRecoveryStore{core: x}
 	// Reopening never restores an owner, consumed-q provenance or StartPermit.
 	// Any armed physical action is uncertain; even a durable fact is not a new
@@ -251,6 +286,7 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 			x.quiescenceSHA = ""
 			x.activeBase = nil
 			x.activePrepared = nil
+			x.validated = nil
 		}
 		return errLifecycleUnsafe
 	}
@@ -276,18 +312,45 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 	}
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
+		x.validated = nil
 		return nil, err
 	}
 	raw, exists, err := x.disk.readControl()
 	if err != nil || !exists || !bytes.Equal(raw, x.raw) {
 		x.poisoned = true
+		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
-	r, err := decodeLifecycleV3Record(raw)
-	if err != nil || r.core.RecordSHA256 != x.record.core.RecordSHA256 || r.core.Revision != x.record.core.Revision {
+	// Reuse only this exact previously validated canonical image. All actual
+	// custody/read checks above still occur on every operation. A missing or
+	// changed image is rejected, never silently re-sealed from changed input.
+	image := x.validated
+	if image == nil || image.store != x || image.identity != image || image.binding == nil || !image.binding(image, x) || image.generation == 0 || image.generation != x.validationGeneration || len(image.canonical) == 0 ||
+		labConfigHash([]byte(image.canonical)) != image.rawSHA256 || !bytes.Equal(raw, []byte(image.canonical)) {
 		x.poisoned = true
+		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
+	// Bind every typed/nested field, including nil versus empty values, rather
+	// than trusting only a record digest/revision that private-state mutation
+	// could leave unchanged. This is consistency with known canonical bytes,
+	// not an alternate validator for external bytes or new candidates.
+	canonical, err := json.Marshal(x.record.core)
+	if err != nil || !bytes.Equal(canonical, []byte(image.canonical)) {
+		x.poisoned = true
+		x.validated = nil
+		return nil, errLifecycleUnsafe
+	}
+	// The source is already fully validated and exact-byte matched above.
+	// Typed decoding creates an independent base without repeating token,
+	// canonical and complete-history validation of this unchanged image.
+	var detached lifecycleV3Wire
+	if json.Unmarshal(raw, &detached) != nil {
+		x.poisoned = true
+		x.validated = nil
+		return nil, errLifecycleUnsafe
+	}
+	r := lifecycleV3Record{core:&detached}
 	b := &lifecycleVerifiedBase{core: &lifecycleVerifiedBaseCore{store: x, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: r}}
 	x.activeBase = b.core
 	return b, nil
@@ -303,16 +366,19 @@ func (x *lifecycleRecoveryStoreCore) publish(raw []byte) error {
 	defer func() { x.activePrepared = nil }()
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
+		x.validated = nil
 		return err
 	}
 	before, exists, err := x.disk.readControl()
 	if err != nil || !exists {
 		x.poisoned = true
+		x.validated = nil
 		return errLifecycleUnsafe
 	}
 	old, err := decodeLifecycleRecord(before)
 	if err != nil || old.wire.Schema != lifecycleSchemaV2 {
 		x.poisoned = true
+		x.validated = nil
 		return errLifecycleUnsafe
 	}
 	ownedRaw := bytes.Clone(raw)
@@ -332,7 +398,7 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	}
 	c := p.core
 	x.activePrepared = nil // an admitted publication attempt spends this entry
-	if x.closed || x.poisoned || !lifecycleRecoveryDiskPresent(x.disk) || c.record.core == nil ||
+	if x.closed || x.poisoned || x.validationGeneration == ^uint64(0) || !lifecycleRecoveryDiskPresent(x.disk) || c.record.core == nil ||
 		labConfigHash(c.raw) != c.rawSHA256 || labConfigHash(c.before) != c.beforeSHA256 ||
 		(c.base != nil && (x.activeBase != c.base || !c.base.used || c.base.store != x)) {
 		return errLifecycleUnsafe
@@ -345,22 +411,26 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	// A fresh actual custody/read/CAS check remains immediately before replace.
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
+		x.validated = nil
 		return err
 	}
 	before, exists, err := x.disk.readControl()
 	if err != nil || !exists || !bytes.Equal(before, c.before) ||
-		(c.base != nil && (!bytes.Equal(x.raw, c.before) || x.record.core == nil || x.record.core.Revision != c.base.record.core.Revision || x.record.core.RecordSHA256 != c.base.record.core.RecordSHA256)) {
+		(c.base != nil && (!bytes.Equal(x.raw, c.before) || x.record.core == nil || !reflect.DeepEqual(x.record.core, c.base.record.core))) {
 		x.poisoned = true
+		x.validated = nil
 		return errLifecycleUnsafe
 	}
 	state, err := x.disk.replaceControl(c.raw)
 	if state == lifecycleUnknown || (state != lifecycleNotCommitted && state != lifecycleCommitted) || (state == lifecycleCommitted && err != nil) {
 		x.poisoned = true
+		x.validated = nil
 		return errLifecycleCommitUnknown
 	}
 	if state != lifecycleCommitted {
 		if errors.Is(err, errLifecycleUnsafe) {
 			x.poisoned = true
+			x.validated = nil
 		}
 		if err != nil {
 			return err
@@ -370,12 +440,25 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	actual, exists, err := x.disk.readControl()
 	if err != nil || !exists || !bytes.Equal(actual, c.raw) || x.disk.verify() != nil {
 		x.poisoned = true
+		x.validated = nil
 		return errLifecycleCommitUnknown
 	}
 	// Every actual byte equals the fully validated prepared canonical bytes.
 	// Its typed record is an independent private decode, never caller input.
 	x.record = c.record
 	x.raw = bytes.Clone(c.raw)
+	// This issuance is after full candidate validation, actual replace,
+	// exact readback and post-read custody. Failed/unknown writes never adopt
+	// the candidate image; reopening always validates external bytes afresh.
+	x.validationGeneration++
+	image := &lifecycleValidatedSnapshot{store:x, canonical:string(actual), rawSHA256:labConfigHash(actual), generation:x.validationGeneration}
+	image.identity = image
+	sealedCanonical, sealedDigest, sealedGeneration := image.canonical, image.rawSHA256, image.generation
+	image.binding = func(candidate *lifecycleValidatedSnapshot, owner *lifecycleRecoveryStoreCore) bool {
+		return candidate == image && owner == x && candidate.identity == image && candidate.store == owner &&
+			candidate.canonical == sealedCanonical && candidate.rawSHA256 == sealedDigest && candidate.generation == sealedGeneration && owner.validationGeneration == sealedGeneration
+	}
+	x.validated = image
 	return nil
 }
 func (x *lifecycleRecoveryStoreCore) commit(next lifecycleV3Record, now time.Time) error {
@@ -507,6 +590,7 @@ func (s *lifecycleRecoveryStore) close() error {
 	x.quiescenceSHA = ""
 	x.activeBase = nil
 	x.activePrepared = nil
+	x.validated = nil
 	if !lifecycleRecoveryDiskPresent(x.disk) {
 		return errLifecycleUnsafe
 	}

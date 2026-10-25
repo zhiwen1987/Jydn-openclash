@@ -1,0 +1,94 @@
+{
+  "baseline": "a7273d22175f0b6fc0a3495937acee59f4b78918",
+  "diagnosticRunID": 40151267013,
+  "failedBaseline": "a7273d22175f0b6fc0a3495937acee59f4b78918",
+  "failedFoundationRunID": 40151266990,
+  "fullProjectComplete": false,
+  "fullRecoveryAccepted": false,
+  "implementation": [
+    "private owner-issued exact canonical image bound to store, generation and original immutable bytes",
+    "every operation retains actual custody/read/exact bytes and complete typed-memory consistency",
+    "external reopen and all new candidates retain full canonical and history validation",
+    "actual precommit CAS and post-replace exact readback remain; no authority is cached"
+  ],
+  "mainMerged": false,
+  "nextStageFilesExcluded": [
+    "chengwang/internal/mihomodeploy/lab_recovery_authority.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority_test.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_unsupported.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_test.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux_test.go"
+  ],
+  "oldFailurePreserved": true,
+  "production": false,
+  "productionReady": false,
+  "registryPublished": false,
+  "schema": "chengwang.validated-snapshot-development-source/v1",
+  "scope": "SOURCE_CPU_MODELS_NOT_GO_RACE_OR_RECOVERY_ACCEPTANCE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "3a8c59ab4922d4c5631abed93c4ab110886784d9db6faf32e4263b58c5a98df0",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "cee66afcdaf1c9cc65eb1bd213568d3e01a0da48b612ad71eeafccb6bca96c10",
+    "chengwang/docs/evidence/sys06-capacity-profile-actual-a727-20261025.json": "f9ac8fc779c8428accd22dc6b2f7009451cbea4e24482f8ac8d8e7f29e4914e7",
+    "chengwang/internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go": "cef9eb1430ea9deba897c1135594f33dc0727fb7c60315674012f02f9778cdb5",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": "ddeb4bc9b0df3ddf4ccacc3505ca6627df4590b17592cfdedce182913ca77bbe",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go": "e5f2a37f12b7b45fe09e184d447ab852519f2a322ac148a78b019d0b5dcaae83"
+  },
+  "validation": {
+    "actualGoExecuted": false,
+    "cpuModels": 262,
+    "maxRevisionNewSealBranchSourceCovered": true,
+    "old68BodiesAndCapacity256AndTimeout180Preserved": true,
+    "performanceImprovementProven": false,
+    "prior528AndLegacy407Preserved": true,
+    "receipts": [
+      {
+        "kind": "source",
+        "path": "D:/CodexData/workspace/mihomo-validated-snapshot-source-20261025-a/source-final-v2.json",
+        "sha256": "9d8b8c6d43f138bc847533fd1ef195567be17961639ae5c3ff242fcb13218b80"
+      },
+      {
+        "kind": "peer",
+        "path": "D:/CodexData/workspace/mihomo-validated-snapshot-peer-20261025/v2/result.json",
+        "sha256": "f183c72e04033b11650a0cc635b5005f011643e8ec96d2a1e0f2680a3893ff44"
+      },
+      {
+        "kind": "cpu",
+        "path": "D:/CodexData/workspace/mihomo-transaction-cpu-models-_g_cejg_/result.json",
+        "sha256": "f0a60c915eb5bf90517cf8953315aafefd83a97b37bf8aa2768e4a6da392f913"
+      },
+      {
+        "kind": "declarations",
+        "path": "D:/CodexData/workspace/mihomo-snapshot-declarations-hp1xdbeg/result.json",
+        "sha256": "69acb102dd1dc671d5d489878661d93a0338d80d3d9f0110d3447fcf3c4c83e1"
+      },
+      {
+        "kind": "formatTransfer",
+        "path": "D:/CodexData/workspace/a7273d2-ci-format-transfer-x7k7ztyp/per-file-transfers.json",
+        "sha256": "9c408ccfa8a9e6474819c8ab9171a40c6dc6e96f410c125d280c072a8815b928"
+      },
+      {
+        "kind": "profileActualAudit",
+        "path": "D:/CodexData/workspace/mihomo-capacity-profile-audit-20261025/result.json",
+        "sha256": "ceab9dcc38ba98527b24443aa8fdf2bd696591b4890422111316f5f76d477212"
+      },
+      {
+        "kind": "foundationActualAudit",
+        "path": "D:/CodexData/workspace/mihomo-a727-foundation-audit-20261025-agent/result.json",
+        "sha256": "41b3a743059f487383b6c51a9ee9f925704d6becd2fb4c44168d9b2c951f1e80"
+      },
+      {
+        "kind": "otherFourActualAudit",
+        "path": "D:/CodexData/workspace/mihomo-a727-nonfoundation-audit-20261025-agent/result.json",
+        "sha256": "6eb71f147496973eaf10e0532c7b830e302830d9a348eb1a6b2cf98f2871abb2"
+      },
+      {
+        "kind": "unknownActualAudit",
+        "path": "D:/CodexData/workspace/mihomo-a727-unknown-audit-20261025-agent/result.json",
+        "sha256": "15826d8541290e85899b6ae15e1c88a4e2f246693b26bae43b9b48528db3d7df"
+      }
+    ],
+    "requiredGoDeclarations": 539
+  }
+}

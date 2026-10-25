@@ -1,0 +1,107 @@
+{
+  "schema": "chengwang.capacity-profile-actual-audit/v1",
+  "sourceCommit": "a7273d22175f0b6fc0a3495937acee59f4b78918",
+  "diagnosticRunID": 40151267013,
+  "diagnosticRunConclusion": "failure",
+  "foundationRunID": 40151266990,
+  "foundationRunConclusion": "failure",
+  "receipts": [
+    {
+      "kind": "profile-independent-audit",
+      "path": "D:/CodexData/workspace/mihomo-capacity-profile-audit-20261025/result.json",
+      "sha256": "ceab9dcc38ba98527b24443aa8fdf2bd696591b4890422111316f5f76d477212"
+    },
+    {
+      "kind": "foundation-independent-audit",
+      "path": "D:/CodexData/workspace/mihomo-a727-foundation-audit-20261025-agent/result.json",
+      "sha256": "41b3a743059f487383b6c51a9ee9f925704d6becd2fb4c44168d9b2c951f1e80"
+    },
+    {
+      "kind": "four-scoped-original-gates",
+      "path": "D:/CodexData/workspace/mihomo-a727-nonfoundation-audit-20261025-agent/result.json",
+      "sha256": "6eb71f147496973eaf10e0532c7b830e302830d9a348eb1a6b2cf98f2871abb2"
+    },
+    {
+      "kind": "unknown-original-gate",
+      "path": "D:/CodexData/workspace/mihomo-a727-unknown-audit-20261025-agent/result.json",
+      "sha256": "15826d8541290e85899b6ae15e1c88a4e2f246693b26bae43b9b48528db3d7df"
+    }
+  ],
+  "profile": {
+    "trackedGitBlobsVerified": 1255,
+    "artifactMembersVerified": 20,
+    "producerFreshOriginalBytesEqual": true,
+    "originalCLIWindowsRejected": true,
+    "originalCLILocallyPassed": false,
+    "independentCPUPathAdapterAuditPassed": true,
+    "adapterScope": "original verify_raw module Path binding adapted to PurePosixPath; not the original Linux CLI",
+    "goExit": 0,
+    "casePassed": true,
+    "caseElapsedSeconds": 174.51,
+    "packageElapsedSeconds": 175.543,
+    "profileCaptureComplete": true,
+    "durationNanoseconds": 60199908610,
+    "profileBytes": 71169,
+    "profileSHA256": "80d05cd08cbbce42e67e34a5d9e226d6292398cedf4be59e2c90fb0e2394eab6",
+    "formatClean": false,
+    "gofmtPatchBytes": 7791,
+    "gofmtPatchSHA256": "539ef2c1b2b95d84db5eb1af81b3bf3d4a4dfacd5dac8ceef25786bd2d6f795f",
+    "nonemptyFormatPatchExplainsDiagnosticFailure": true,
+    "localSymbolizationIncompleteWarning": true,
+    "pprofNumericRecomputeProven": false,
+    "wholeCaseProfiled": false,
+    "majorFlatSamples": "racecall 22.18%; __tsan_read 16.94%; MemoryAccessRangeT 14.06%",
+    "cumulativeSamples": "verifiedBase 15.02%; decodeLifecycleV3Record 14.90%; encoding/json.Marshal 11.57%; regexp.MatchString 0.93%",
+    "costScope": "first approximately 60 seconds only; cumulative values overlap and cannot be added"
+  },
+  "foundation": {
+    "successJobs": 11,
+    "failedJobs": 2,
+    "formatClean": true,
+    "ordinarySemanticPassed": 1201,
+    "ordinaryRequiredPassed": 528,
+    "ordinaryLegacyPassed": 407,
+    "ordinaryCapacitySeconds": 16.9,
+    "raceRequiredPassed": 432,
+    "raceRequiredUnfinished": 1,
+    "raceRequiredNotStarted": 95,
+    "raceLegacyPassed": 328,
+    "raceLegacyNotStarted": 79,
+    "racePackageTimeoutSeconds": 180.041,
+    "raceCapacityPassed": false,
+    "raceNoTerminalCapacityEvent": true,
+    "originalEventsGateRejectedRace": true,
+    "absenceOfDataRaceWarningIsNotPass": true,
+    "fullCLIExit": 1
+  },
+  "formatRepair": {
+    "path": "chengwang/internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go",
+    "source": "strict actual CI hunk transfer",
+    "beforeSHA256": "bc81cb43dc92c59bc7a9d30e6f6ea73c1ac4b4aec112c0b1dded7b163b519d4e",
+    "afterSHA256": "cef9eb1430ea9deba897c1135594f33dc0727fb7c60315674012f02f9778cdb5",
+    "nextCIAcceptance": false
+  },
+  "otherScopedGates": {
+    "compatApplyServiceCandidateOriginalVerifyRawPassed": true,
+    "unknownOriginalVerifyRawPassed": true,
+    "unknownSourceBindings": 137,
+    "unknownPublicOriginals": 58,
+    "unknownCapturedBodies": 32,
+    "unknownActualHTTPRows": 14,
+    "unknownCallCounts": [0, 1, 1, 1],
+    "unknownHeadGeneration": 1,
+    "unknownAttempt": 1,
+    "unknownObservationCount": 1,
+    "controllerReceivedCount": null,
+    "fullPrivateWALProven": false,
+    "privateDisclosureFenceIndependentlyProven": false,
+    "wholeFoundationFailurePreserved": true,
+    "localFullLinuxCLIClaimed": false
+  },
+  "performanceFixProven": false,
+  "fullRecoveryAccepted": false,
+  "fullProjectComplete": false,
+  "productionReady": false,
+  "localGoExecuted": false,
+  "production": false
+}
