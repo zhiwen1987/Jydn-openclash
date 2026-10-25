@@ -83,7 +83,7 @@ jobs:
           old=baseline['names'];assert old==sorted(set(old)) and len(old)==407 and all(type(n) is str for n in old)
           assert hashlib.sha256('\n'.join(old).encode()).hexdigest()==baseline['namesSHA256']=='9178e55615de9ba4573e912c2fc1a4748dc668fe5bb207116e51750dcc727e4c'
           assert set(old).issubset(declared) and len(declared)>407
-          assert len(declared)==514 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b9622fa3d71185d954304deebe07877b0f66f0f27e4344ae74bcb66ab4e099e9'
+          assert len(declared)==518 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='5daa6f468aa455bb72019f9ad7708e7341cacf9e4cef0e7b13da073000ef235e'
           print('GO_TEST_DECLARATIONS='+str(len(declared))+' legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution

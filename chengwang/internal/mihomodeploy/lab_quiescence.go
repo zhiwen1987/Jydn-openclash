@@ -43,27 +43,27 @@ type labQuiescenceProbe struct {
 // Null means not observed. StopInvoked counts entry into the original stop
 // method, not a signal, server receipt, authorization, or restored service.
 type labQuiescenceObservation struct {
-	Schema          string               `json:"schema"`
-	StartupIdentity *labKernelIdentity   `json:"startupIdentity"`
-	StopInvoked     bool                 `json:"stopInvoked"`
-	StopReturned    bool                 `json:"stopReturned"`
-	StopErrorClass  *string              `json:"stopErrorClass"`
-	Stop            *labKernelExit       `json:"stop"`
-	NamespaceInode  *uint64              `json:"namespaceInode"`
-	ControllerProbe *labQuiescenceProbe  `json:"controllerProbe"`
-	MixedProbe      *labQuiescenceProbe  `json:"mixedProbe"`
-	StartedAt       *time.Time           `json:"startedAt"`
-	ReturnedAt      *time.Time           `json:"returnedAt"`
-	Outcome         string               `json:"outcome"`
-	FailureCode     string               `json:"failureCode"`
+	Schema          string              `json:"schema"`
+	StartupIdentity *labKernelIdentity  `json:"startupIdentity"`
+	StopInvoked     bool                `json:"stopInvoked"`
+	StopReturned    bool                `json:"stopReturned"`
+	StopErrorClass  *string             `json:"stopErrorClass"`
+	Stop            *labKernelExit      `json:"stop"`
+	NamespaceInode  *uint64             `json:"namespaceInode"`
+	ControllerProbe *labQuiescenceProbe `json:"controllerProbe"`
+	MixedProbe      *labQuiescenceProbe `json:"mixedProbe"`
+	StartedAt       *time.Time          `json:"startedAt"`
+	ReturnedAt      *time.Time          `json:"returnedAt"`
+	Outcome         string              `json:"outcome"`
+	FailureCode     string              `json:"failureCode"`
 }
 
 type labQuiescenceFact struct {
-	Schema           string                    `json:"schema"`
-	Binding          labQuiescenceBinding      `json:"binding"`
-	Observation      labQuiescenceObservation  `json:"observation"`
-	ObservedAt       time.Time                 `json:"observedAt"`
-	QuiescenceSHA256 string                    `json:"quiescenceSHA256"`
+	Schema           string                   `json:"schema"`
+	Binding          labQuiescenceBinding     `json:"binding"`
+	Observation      labQuiescenceObservation `json:"observation"`
+	ObservedAt       time.Time                `json:"observedAt"`
+	QuiescenceSHA256 string                   `json:"quiescenceSHA256"`
 }
 
 type labQuiescenceIssuer struct {
@@ -78,12 +78,12 @@ var processLabQuiescenceIssuer = labQuiescenceIssuer{
 }
 
 type labQuiescedEpochCore struct {
-	issuer *labQuiescenceIssuer
-	owner  *ownedLabKernel
+	issuer    *labQuiescenceIssuer
+	owner     *ownedLabKernel
 	ownerCore *ownedLabKernelCore
-	seal   *labQuiescenceOwnerSeal
-	nonce  [32]byte
-	fact   labQuiescenceFact
+	seal      *labQuiescenceOwnerSeal
+	nonce     [32]byte
+	fact      labQuiescenceFact
 }
 
 // Value copies alias this same one-use registry entry, not another capability.
@@ -187,21 +187,54 @@ func labQuiescenceStopClassValid(o labQuiescenceObservation) bool {
 }
 
 func labQuiescenceCloneObservation(v labQuiescenceObservation) labQuiescenceObservation {
-	if v.StartupIdentity != nil { n := *v.StartupIdentity; v.StartupIdentity = &n }
-	if v.StopErrorClass != nil { n := *v.StopErrorClass; v.StopErrorClass = &n }
-	if v.Stop != nil { n := labQuiescenceCloneExit(*v.Stop); v.Stop = &n }
-	if v.NamespaceInode != nil { n := *v.NamespaceInode; v.NamespaceInode = &n }
-	if v.ControllerProbe != nil { n := *v.ControllerProbe; v.ControllerProbe = &n }
-	if v.MixedProbe != nil { n := *v.MixedProbe; v.MixedProbe = &n }
-	if v.StartedAt != nil { n := *v.StartedAt; v.StartedAt = &n }
-	if v.ReturnedAt != nil { n := *v.ReturnedAt; v.ReturnedAt = &n }
+	if v.StartupIdentity != nil {
+		n := *v.StartupIdentity
+		v.StartupIdentity = &n
+	}
+	if v.StopErrorClass != nil {
+		n := *v.StopErrorClass
+		v.StopErrorClass = &n
+	}
+	if v.Stop != nil {
+		n := labQuiescenceCloneExit(*v.Stop)
+		v.Stop = &n
+	}
+	if v.NamespaceInode != nil {
+		n := *v.NamespaceInode
+		v.NamespaceInode = &n
+	}
+	if v.ControllerProbe != nil {
+		n := *v.ControllerProbe
+		v.ControllerProbe = &n
+	}
+	if v.MixedProbe != nil {
+		n := *v.MixedProbe
+		v.MixedProbe = &n
+	}
+	if v.StartedAt != nil {
+		n := *v.StartedAt
+		v.StartedAt = &n
+	}
+	if v.ReturnedAt != nil {
+		n := *v.ReturnedAt
+		v.ReturnedAt = &n
+	}
 	return v
 }
 
 func labQuiescenceCloneExit(v labKernelExit) labKernelExit {
-	if v.ExitCode != nil { n := *v.ExitCode; v.ExitCode = &n }
-	if v.Signal != nil { n := *v.Signal; v.Signal = &n }
-	if v.GroupAbsent != nil { n := *v.GroupAbsent; v.GroupAbsent = &n }
+	if v.ExitCode != nil {
+		n := *v.ExitCode
+		v.ExitCode = &n
+	}
+	if v.Signal != nil {
+		n := *v.Signal
+		v.Signal = &n
+	}
+	if v.GroupAbsent != nil {
+		n := *v.GroupAbsent
+		v.GroupAbsent = &n
+	}
 	return v
 }
 
@@ -213,7 +246,9 @@ func labQuiescenceFactHash(v labQuiescenceFact) (string, error) {
 		Observation labQuiescenceObservation `json:"observation"`
 		ObservedAt  time.Time                `json:"observedAt"`
 	}{v.Schema, v.Binding, v.Observation, v.ObservedAt})
-	if err != nil { return "", errLabQuiescence }
+	if err != nil {
+		return "", errLabQuiescence
+	}
 	return labConfigHash(raw), nil
 }
 
@@ -229,7 +264,10 @@ func labQuiescenceFactValid(v labQuiescenceFact, b labQuiescenceBinding, now tim
 		!v.ObservedAt.Equal(*o.ReturnedAt) {
 		return false
 	}
-	for _, row := range []struct { probe *labQuiescenceProbe; port uint16 }{{o.ControllerProbe, 28412}, {o.MixedProbe, 28411}} {
+	for _, row := range []struct {
+		probe *labQuiescenceProbe
+		port  uint16
+	}{{o.ControllerProbe, 28412}, {o.MixedProbe, 28411}} {
 		if row.probe == nil || row.probe.Port != row.port || !row.probe.Attempted || row.probe.Result != "CONNECTION_REFUSED" {
 			return false
 		}

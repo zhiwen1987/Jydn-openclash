@@ -1,9 +1,9 @@
 package mihomodeploy
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
 	"regexp"
 	"time"
 
@@ -84,14 +84,87 @@ func labRecoveryPlanDigest(d labRecoveryPlanDescriptor) (string, error) {
 type labRecoveryPlan struct{ core *labRecoveryPlanCore }
 type labRecoveryPlanCore struct{ descriptor labRecoveryPlanDescriptor }
 
-func (labRecoveryPlan) String() string   { return labRecoveryPlanDebug }
-func (labRecoveryPlan) GoString() string { return labRecoveryPlanDebug }
+// A context is local to one complete validation, never persisted or shared
+// across records/commits. Only actual canonical legacy bytes construct it.
+// Its decoded record is detached and read-only for the context's lifetime;
+// it is not a caller assertion that a record has already been validated. Each
+// validation is sequential; a context is never shared between goroutines.
+type labRecoveryPlanValidationContext struct{ core *labRecoveryPlanValidationCore }
+type labRecoveryPlanValidationCore struct {
+	original lifecycleRecord
+	epoch string
+	// Exact full descriptor JSON, including nil versus [] and every field.
+	// A RecordSHA256/Config.SHA256 alone cannot serve as a memoization key.
+	targets map[string]struct{}
+}
+
+func newLabRecoveryPlanValidationContext(raw []byte) (*labRecoveryPlanValidationContext, error) {
+	r, err := decodeLifecycleRecord(raw)
+	if err != nil || r.wire == nil || r.wire.Schema != lifecycleSchemaV2 || r.wire.V2 == nil || r.wire.Head == nil ||
+		r.wire.Active == nil || r.wire.Active.Phase != "UNKNOWN" || r.wire.Active.Attempt != 1 || r.wire.Active.Intent == nil {
+		return nil, errLifecycleUnsafe
+	}
+	epoch, err := labRecoveryEpochSHA256(*r.wire.Head, r.wire.V2.Provisioning)
+	if err != nil {
+		return nil, errLifecycleUnsafe
+	}
+	return &labRecoveryPlanValidationContext{core: &labRecoveryPlanValidationCore{original: r, epoch: epoch, targets: map[string]struct{}{}}}, nil
+}
+
+func (c *labRecoveryPlanValidationContext) validTarget(d ArtifactDescriptor) bool {
+	if c == nil || c.core == nil || c.core.targets == nil {
+		return false
+	}
+	raw, err := json.Marshal(d)
+	if err != nil {
+		return false
+	}
+	key := string(raw)
+	if _, ok := c.core.targets[key]; ok {
+		return true
+	}
+	if !lifecycleArtifactDescriptorValid(d) || !d.Config.Admissible {
+		return false
+	}
+	c.core.targets[key] = struct{}{}
+	return true
+}
+
+// All per-plan fields, times and the complete ordered digest are checked on
+// every entry. Only immutable source parsing/epoch derivation and an exact
+// repeated target descriptor's validation are shared within this one pass.
+func (c *labRecoveryPlanValidationContext) validateDescriptor(d labRecoveryPlanDescriptor) error {
+	if c == nil || c.core == nil || c.core.original.wire == nil || c.core.original.wire.Schema != lifecycleSchemaV2 || c.core.original.wire.Head == nil || c.core.original.wire.Active == nil ||
+		c.core.original.wire.Active.Phase != "UNKNOWN" || c.core.original.wire.Active.Attempt != 1 || c.core.original.wire.Active.Intent == nil || c.core.original.wire.V2 == nil || !lifecycleNonzeroHash(c.core.epoch) || c.core.targets == nil {
+		return errLifecycleUnsafe
+	}
+	w := c.core.original.wire
+	a := w.Active
+	if d.Schema != labRecoveryPlanSchema || d.Boundary != labRecoveryPlanBoundary || !labRecoveryID.MatchString(d.RecoveryID) || !planReference.MatchString(d.DeclaredInitiatorRef) ||
+		d.UnknownOperationID != a.Plan.OperationID || d.OriginalPlanSHA256 != a.Plan.PlanSHA256 || d.OriginalIntentSHA256 != a.Intent.IntentSHA256 ||
+		d.ExpectedRevision != w.Revision || d.ExpectedRecordSHA256 != w.RecordSHA256 || d.PreviousHeadSHA256 != w.Head.HeadSHA256 ||
+		d.PreviousHeadGeneration != w.Head.Generation || d.Provisioning != w.V2.Provisioning || d.OldEpochSHA256 != c.core.epoch || d.Budgets != labRecoveryFixedBudgets() ||
+		!lifecycleTime(d.CreatedAt) || !lifecycleTime(d.ExpiresAt) || d.CreatedAt.Before(w.LastTrustedAt) || !d.ExpiresAt.After(d.CreatedAt) || d.ExpiresAt.Sub(d.CreatedAt) > 5*time.Minute ||
+		d.TargetArtifact.ControllerPort != w.Head.ControllerPort || d.TargetArtifact.MixedPort != w.Head.MixedPort || !c.validTarget(d.TargetArtifact) {
+		return errLifecycleUnsafe
+	}
+	hash, err := labRecoveryPlanDigest(d)
+	if err != nil || !lifecycleNonzeroHash(d.PlanSHA256) || hash != d.PlanSHA256 {
+		return errLifecycleUnsafe
+	}
+	return nil
+}
+
+func (labRecoveryPlan) String() string             { return labRecoveryPlanDebug }
+func (labRecoveryPlan) GoString() string           { return labRecoveryPlanDebug }
 func (labRecoveryPlan) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, labRecoveryPlanDebug) }
 func (labRecoveryPlan) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"STRUCTURAL_RECOVERY_PLAN_NOT_AUTHORIZATION"}`), nil
 }
 func (p *labRecoveryPlan) UnmarshalJSON([]byte) error {
-	if p != nil { *p = labRecoveryPlan{} }
+	if p != nil {
+		*p = labRecoveryPlan{}
+	}
 	return errLifecycleUnsafe
 }
 
@@ -100,7 +173,9 @@ func (p *labRecoveryPlan) UnmarshalJSON([]byte) error {
 // intentionally absent: a reload within the same physical epoch is stable.
 func labRecoveryEpochSHA256(h lifecycleHead, p lifecycleProvisioning) (string, error) {
 	for _, s := range []string{h.DeviceRef, h.Scope.TenantID, h.Scope.SiteID, h.Scope.ObjectType, h.Scope.ObjectID, h.Scope.Environment} {
-		if !planReference.MatchString(s) { return "", errLifecycleUnsafe }
+		if !planReference.MatchString(s) {
+			return "", errLifecycleUnsafe
+		}
 	}
 	if h.Scope.ObjectType != LabObjectType || h.Scope.Environment != LabEnvironment || h.DeviceRef != h.Scope.ObjectID ||
 		!lifecycleNonzeroHash(h.KernelSHA256) || h.PID < 2 || h.PID > 1<<31-1 || h.StartTicks == 0 || h.StartTicks > 1<<63-1 ||
@@ -129,30 +204,30 @@ func newLabRecoveryPlan(original lifecycleRecord, recoveryID, initiator string, 
 	// detachment only. Old expiry/revocation cannot authorize or forbid a new
 	// independently approved recovery; its original facts remain bound intact.
 	raw, err := encodeLifecycleRecord(original)
-	if err != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
-	copy, err := decodeLifecycleRecord(raw)
-	if err != nil || copy.wire == nil || copy.wire.Schema != lifecycleSchemaV2 || copy.wire.V2 == nil || copy.wire.Head == nil ||
-		copy.wire.Active == nil || copy.wire.Active.Phase != "UNKNOWN" || copy.wire.Active.Attempt != 1 || copy.wire.Active.Intent == nil ||
-		!labRecoveryID.MatchString(recoveryID) || !planReference.MatchString(initiator) || !lifecycleTime(now) || !lifecycleTime(expires) ||
-		now.Before(copy.wire.LastTrustedAt) || !expires.After(now) || expires.Sub(now) > 5*time.Minute ||
-		!lifecycleArtifactDescriptorValid(target) || !target.Config.Admissible ||
-		target.ControllerPort != copy.wire.Head.ControllerPort || target.MixedPort != copy.wire.Head.MixedPort {
+	if err != nil {
 		return labRecoveryPlan{}, errLifecycleUnsafe
 	}
-	epoch, err := labRecoveryEpochSHA256(*copy.wire.Head, copy.wire.V2.Provisioning)
-	if err != nil { return labRecoveryPlan{}, errLifecycleUnsafe }
+	context, err := newLabRecoveryPlanValidationContext(raw)
+	if err != nil || !context.validTarget(target) {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	copy := context.core.original
 	a := copy.wire.Active
 	d := labRecoveryPlanDescriptor{labRecoveryPlanSchema, labRecoveryPlanBoundary, recoveryID, a.Plan.OperationID,
 		a.Plan.PlanSHA256, a.Intent.IntentSHA256, initiator, copy.wire.Revision, copy.wire.RecordSHA256,
-		copy.wire.Head.HeadSHA256, copy.wire.Head.Generation, copy.wire.V2.Provisioning, epoch,
+		copy.wire.Head.HeadSHA256, copy.wire.Head.Generation, copy.wire.V2.Provisioning, context.core.epoch,
 		cloneArtifactDescriptor(target), labRecoveryFixedBudgets(), now, expires, ""}
 	d.PlanSHA256, err = labRecoveryPlanDigest(d)
-	if err != nil || !lifecycleNonzeroHash(d.PlanSHA256) { return labRecoveryPlan{}, errLifecycleUnsafe }
+	if err != nil || context.validateDescriptor(d) != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d}}, nil
 }
 
 func (p *labRecoveryPlan) descriptor() labRecoveryPlanDescriptor {
-	if p == nil || p.core == nil { return labRecoveryPlanDescriptor{} }
+	if p == nil || p.core == nil {
+		return labRecoveryPlanDescriptor{}
+	}
 	d := p.core.descriptor
 	d.TargetArtifact = cloneArtifactDescriptor(d.TargetArtifact)
 	return d
@@ -161,15 +236,22 @@ func (p *labRecoveryPlan) descriptor() labRecoveryPlanDescriptor {
 func labRecoveryPlanFromDescriptor(d labRecoveryPlanDescriptor, original lifecycleRecord) (labRecoveryPlan, error) {
 	// Serialized structural declarations reconstruct no authority or owned
 	// capability. Every original-bound field must be derivable again.
-	if !lifecycleArtifactDescriptorValid(d.TargetArtifact) { return labRecoveryPlan{}, errLifecycleUnsafe }
+	raw, err := encodeLifecycleRecord(original)
+	if err != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
+	context, err := newLabRecoveryPlanValidationContext(raw)
+	if err != nil || context.validateDescriptor(d) != nil {
+		return labRecoveryPlan{}, errLifecycleUnsafe
+	}
 	d.TargetArtifact = cloneArtifactDescriptor(d.TargetArtifact)
-	p, err := newLabRecoveryPlan(original, d.RecoveryID, d.DeclaredInitiatorRef, d.TargetArtifact, d.CreatedAt, d.ExpiresAt)
-	if err != nil || !reflect.DeepEqual(p.descriptor(), d) { return labRecoveryPlan{}, errLifecycleUnsafe }
-	return p, nil
+	return labRecoveryPlan{core: &labRecoveryPlanCore{descriptor: d}}, nil
 }
 
 func (p *labRecoveryPlan) validAt(now time.Time) error {
-	if p == nil || p.core == nil || !lifecycleTime(now) { return errLifecycleUnsafe }
+	if p == nil || p.core == nil || !lifecycleTime(now) {
+		return errLifecycleUnsafe
+	}
 	d := p.descriptor()
 	if d.Schema != labRecoveryPlanSchema || d.Boundary != labRecoveryPlanBoundary || !lifecycleTime(d.CreatedAt) || !lifecycleTime(d.ExpiresAt) ||
 		now.Before(d.CreatedAt) || !now.Before(d.ExpiresAt) || !d.ExpiresAt.After(d.CreatedAt) || d.ExpiresAt.Sub(d.CreatedAt) > 5*time.Minute ||
@@ -177,6 +259,8 @@ func (p *labRecoveryPlan) validAt(now time.Time) error {
 		return errLifecycleUnsafe
 	}
 	hash, err := labRecoveryPlanDigest(d)
-	if err != nil || hash != d.PlanSHA256 { return errLifecycleUnsafe }
+	if err != nil || hash != d.PlanSHA256 {
+		return errLifecycleUnsafe
+	}
 	return nil
 }
