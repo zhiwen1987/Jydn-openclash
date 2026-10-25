@@ -1,0 +1,60 @@
+{
+  "allJobsPermissionsConcurrencyDispatchCommandsAndLimitsByteUnchanged": true,
+  "allOther117SourceDomainBytesUnchanged": true,
+  "baseline": "2b63a001f14b6cc72ddb8019cd77c2b373aa5e2f",
+  "diagnosticJobs": 5,
+  "fixedDevelopmentBranch": "codex/chengwang-mihomo-lifecycle-20261024",
+  "fullSystemComplete": false,
+  "goNativeHTTPOrWorkerExecuted": false,
+  "mainMerged": false,
+  "newRuntimeAcceptance": false,
+  "normalJobs": 13,
+  "production": false,
+  "registryPublished": false,
+  "requiredNamesSHA256": "327f5833d99a02a12170b894aec43da81432c85c6de78338b15532ab3572e79c",
+  "requiredTests": 611,
+  "schema": "chengwang.fixed-development-ci-trigger-coverage/v1",
+  "scope": "SOURCE_ONLY_TRIGGER_COVERAGE_REPAIR_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-capacity-profile.yml": "97b6709bba071c2eee75b58f148b268e3c32d74411491177ab8f93ac5941c54c",
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "bb0c951268fc12b9f4dc18c658bf38fd18ce8e713fcf380e735090db5eb02fb1",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "74d12b8fb4b4a68785fd40735fa1bac9bad4137e05019ba290c4ae4d3221a811"
+  },
+  "tradeoff": "Documentation-only pushes on this isolated branch now also consume CI; main and other branches remain excluded.",
+  "workflows": [
+    {
+      "afterSHA256": "bb0c951268fc12b9f4dc18c658bf38fd18ce8e713fcf380e735090db5eb02fb1",
+      "allRemainingBytesIdentical": true,
+      "beforeSHA256": "e505cf1bbc7093939e1072e0e335f60db39b90aed5114431f91fa11105c9b25c",
+      "path": ".github/workflows/chengwang-mihomo-lifecycle.yml",
+      "removedPaths": 11
+    },
+    {
+      "afterSHA256": "97b6709bba071c2eee75b58f148b268e3c32d74411491177ab8f93ac5941c54c",
+      "allRemainingBytesIdentical": true,
+      "beforeSHA256": "d853b370300feaa3983121bc620a2d545b72ecab333331405b822d5d3a08c7a5",
+      "path": ".github/workflows/chengwang-mihomo-capacity-profile.yml",
+      "removedPaths": 8
+    }
+  ],
+  "yamlQA": [
+    {
+      "dependencyGraphValid": true,
+      "duplicateKeysRejected": true,
+      "file": "D:\\CodexData\\workspace\\chengwang-mihomo-lifecycle-uv9npzyn\\r\\.github\\workflows\\chengwang-mihomo-lifecycle.yml",
+      "githubExpressionRuntimeProven": false,
+      "jobs": 13,
+      "sourceSHA256": "bb0c951268fc12b9f4dc18c658bf38fd18ce8e713fcf380e735090db5eb02fb1",
+      "yamlSyntax": true
+    },
+    {
+      "dependencyGraphValid": true,
+      "duplicateKeysRejected": true,
+      "file": "D:\\CodexData\\workspace\\chengwang-mihomo-lifecycle-uv9npzyn\\r\\.github\\workflows\\chengwang-mihomo-capacity-profile.yml",
+      "githubExpressionRuntimeProven": false,
+      "jobs": 5,
+      "sourceSHA256": "97b6709bba071c2eee75b58f148b268e3c32d74411491177ab8f93ac5941c54c",
+      "yamlSyntax": true
+    }
+  ]
+}

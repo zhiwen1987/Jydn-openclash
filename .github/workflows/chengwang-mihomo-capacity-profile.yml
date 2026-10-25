@@ -4,15 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/chengwang-mihomo-lifecycle-20261024]
-    paths:
-      - '.github/workflows/chengwang-mihomo-capacity-profile.yml'
-      - 'chengwang/deploy/mihomo-capacity-profile/**'
-      - 'chengwang/internal/mihomodeploy/lifecycle*.go'
-      - 'chengwang/internal/mihomodeploy/lab_recovery_plan*.go'
-      - 'chengwang/internal/mihomodeploy/lab_bootstrap_state.go'
-      - 'chengwang/go.mod'
-      - 'chengwang/go.sum'
-      - 'chengwang/vendor/**'
 
 permissions:
   contents: read

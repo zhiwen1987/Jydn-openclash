@@ -4,18 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/chengwang-mihomo-lifecycle-20261024]
-    paths:
-      - '.github/workflows/chengwang-mihomo-lifecycle.yml'
-      - 'chengwang/internal/adapter/mihomo/**'
-      - 'chengwang/internal/mihomodeploy/**'
-      - 'chengwang/internal/authn/**'
-      - 'chengwang/internal/api/**'
-      - 'chengwang/internal/serverruntime/**'
-      - 'chengwang/deploy/mihomo-lifecycle-lab/**'
-      - 'chengwang/tools/mihomo-runtime-candidate/**'
-      - 'chengwang/go.mod'
-      - 'chengwang/go.sum'
-      - 'chengwang/vendor/**'
 
 permissions:
   contents: read

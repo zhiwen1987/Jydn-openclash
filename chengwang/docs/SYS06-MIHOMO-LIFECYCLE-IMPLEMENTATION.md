@@ -4,6 +4,12 @@
 
 ## 本次已有代码
 
+### 2026-10-25 CI触发覆盖修复：固定开发分支每次提交均运行两套验收
+
+2b63a001f14b6cc72ddb8019cd77c2b373aa5e2f只修改新adapter测试的实际formatter空白，GitHub API仅出现正常40170650512，诊断未被触发。实际旧diagnostic paths只列lifecycle／lab_recovery_plan／bootstrap_state等，未覆盖已经纳入full suite的其他Go源；正常paths也遗漏六包中的authz。此为源码及实际触发记录支持的CI覆盖缺口，不能编造该提交的诊断运行或复用d041为新提交接受。
+
+两workflow的push均保唯一codex/chengwang-mihomo-lifecycle-20261024分支，移除paths筛选，让该独立开发分支每次提交都纳入正常与诊断验收。workflow_dispatch、permissions、concurrency、13/5 job全部执行内容、命令、固定工具链/镜像、隔离namespace、180秒/256历史/2MiB不变；不扩大main或生产写权限。改动会增加仅改文档时的开发CI开销，避免新目录或路径遗漏继续让同提交的完整验收缺席。行为依据[GitHub workflow path/branch filters](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)。新触发范围仍须YAML/分支约束及实际GitHub新提交运行验证，不能用源码检查当已触发。
+
 ### 2026-10-25 d041的611全部Go通过、正常仅格式失败：真实四hunk修订待新CI
 
 d0412c7ba0c4a4fefbdb8322ca021c10eebab195正常40169669618实际11成功／2失败：普通与race各1503语义／611必需全部PASS，旧607／新4 selected-target、S1及bfae属性通过；容量7.46／86.57秒、包21.772／165.872秒，非超时。实际gofmt.patch为4664B，仅新target test的4个map对齐hunk；normal严格格式失败、foundation fresh确无报告，未调用必拒完整C.verify。root独立f23e37b9核11ZIP206成员／1291blob与117源／43test／111fmt、5scope原函数/fresh、原件及来源末次稳定；首in_progress快照与终态均保留，不重跑成功门。
