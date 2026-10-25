@@ -128,6 +128,7 @@ func labNativeRecoveryWrite(name string, raw []byte) error {
 	for _, n := range []string{"tokens.private.json", "native-report.private.json", "legacy-control.private.json",
 		"planned-control.private.json", "approved-control.private.json", "stop-armed-control.private.json",
 		"quiesced-control.private.json", "start-armed-control.private.json", "started-control.private.json",
+		"verification-attempted-control.private.json", "verification-record.private.json",
 		"reopened-control.private.json", "new-kernel.stdout", "new-kernel.stderr"} {
 		if name == n {
 			allowed = true

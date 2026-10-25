@@ -33,11 +33,11 @@ func labNativeVerificationModeValid(mode string) bool {
 // The only injected behaviors are three fixed publication outcomes.
 type labNativeVerificationDisk struct {
 	labRuntimeDisk
-	mu sync.Mutex
-	mode string
-	armed bool
+	mu                                                              sync.Mutex
+	mode                                                            string
+	armed                                                           bool
 	replaceAttempts, forwardedWrites, postWriteReads, injectedReads int
-	underlyingCommitted bool
+	underlyingCommitted                                             bool
 }
 
 func (d *labNativeVerificationDisk) replaceControl(raw []byte) (lifecycleCommitState, error) {
@@ -82,46 +82,46 @@ func (d *labNativeVerificationDisk) readControl() ([]byte, bool, error) {
 }
 
 type labNativeVerificationRecord struct {
-	Schema string `json:"schema"`
-	Scope string `json:"scope"`
-	Mode string `json:"mode"`
-	AttemptedAt time.Time `json:"attemptedAt"`
-	ReturnedAt time.Time `json:"returnedAt"`
-	ReplaceAttempts int `json:"replaceAttempts"`
-	ForwardedWrites int `json:"forwardedWrites"`
-	PostWriteReads int `json:"postWriteReads"`
-	InjectedReads int `json:"injectedReads"`
-	UnderlyingCommitted bool `json:"underlyingCommitted"`
-	CapKnownBefore bool `json:"capKnownBefore"`
-	CapSpent bool `json:"capSpent"`
-	CapCopyRejected bool `json:"capCopyRejected"`
-	CapReplayRejected bool `json:"capReplayRejected"`
-	RecordReturnedError bool `json:"recordReturnedError"`
-	StorePoisoned bool `json:"storePoisoned"`
-	CandidateAdopted bool `json:"candidateAdopted"`
-	LiveOwnerCleared bool `json:"liveOwnerCleared"`
-	TransientProofCleared bool `json:"transientProofCleared"`
-	RetainedStartedCleared bool `json:"retainedStartedCleared"`
-	SourceRevision uint64 `json:"sourceRevision"`
-	SourceRecordSHA256 string `json:"sourceRecordSHA256"`
-	SourceControlSHA256 string `json:"sourceControlSHA256"`
-	MemoryRevision uint64 `json:"memoryRevision"`
-	MemoryRecordSHA256 string `json:"memoryRecordSHA256"`
-	DiskRevision uint64 `json:"diskRevision"`
-	DiskRecordSHA256 string `json:"diskRecordSHA256"`
-	DiskControlSHA256 string `json:"diskControlSHA256"`
-	ExecutionSchema string `json:"executionSchema"`
-	ReceiptPresent bool `json:"receiptPresent"`
-	ReceiptSHA256 *string `json:"receiptSHA256"`
-	ObservationSHA256 *string `json:"observationSHA256"`
-	VerificationCommitRevision *uint64 `json:"verificationCommitRevision"`
-	RecordedAt *time.Time `json:"recordedAt"`
-	S1PreimageSHA256 *string `json:"s1PreimageSHA256"`
-	SourceCurrentSHA256 string `json:"sourceCurrentSHA256"`
-	DiskCurrentSHA256 string `json:"diskCurrentSHA256"`
-	CompletionAbsent bool `json:"completionAbsent"`
-	NoNewPhysicalCalls bool `json:"noNewPhysicalCalls"`
-	FullPrivateReceiptIndependentlyProven bool `json:"fullPrivateReceiptIndependentlyProven"`
+	Schema                                string     `json:"schema"`
+	Scope                                 string     `json:"scope"`
+	Mode                                  string     `json:"mode"`
+	AttemptedAt                           time.Time  `json:"attemptedAt"`
+	ReturnedAt                            time.Time  `json:"returnedAt"`
+	ReplaceAttempts                       int        `json:"replaceAttempts"`
+	ForwardedWrites                       int        `json:"forwardedWrites"`
+	PostWriteReads                        int        `json:"postWriteReads"`
+	InjectedReads                         int        `json:"injectedReads"`
+	UnderlyingCommitted                   bool       `json:"underlyingCommitted"`
+	CapKnownBefore                        bool       `json:"capKnownBefore"`
+	CapSpent                              bool       `json:"capSpent"`
+	CapCopyRejected                       bool       `json:"capCopyRejected"`
+	CapReplayRejected                     bool       `json:"capReplayRejected"`
+	RecordReturnedError                   bool       `json:"recordReturnedError"`
+	StorePoisoned                         bool       `json:"storePoisoned"`
+	CandidateAdopted                      bool       `json:"candidateAdopted"`
+	LiveOwnerCleared                      bool       `json:"liveOwnerCleared"`
+	TransientProofCleared                 bool       `json:"transientProofCleared"`
+	RetainedStartedCleared                bool       `json:"retainedStartedCleared"`
+	SourceRevision                        uint64     `json:"sourceRevision"`
+	SourceRecordSHA256                    string     `json:"sourceRecordSHA256"`
+	SourceControlSHA256                   string     `json:"sourceControlSHA256"`
+	MemoryRevision                        uint64     `json:"memoryRevision"`
+	MemoryRecordSHA256                    string     `json:"memoryRecordSHA256"`
+	DiskRevision                          uint64     `json:"diskRevision"`
+	DiskRecordSHA256                      string     `json:"diskRecordSHA256"`
+	DiskControlSHA256                     string     `json:"diskControlSHA256"`
+	ExecutionSchema                       string     `json:"executionSchema"`
+	ReceiptPresent                        bool       `json:"receiptPresent"`
+	ReceiptSHA256                         *string    `json:"receiptSHA256"`
+	ObservationSHA256                     *string    `json:"observationSHA256"`
+	VerificationCommitRevision            *uint64    `json:"verificationCommitRevision"`
+	RecordedAt                            *time.Time `json:"recordedAt"`
+	S1PreimageSHA256                      *string    `json:"s1PreimageSHA256"`
+	SourceCurrentSHA256                   string     `json:"sourceCurrentSHA256"`
+	DiskCurrentSHA256                     string     `json:"diskCurrentSHA256"`
+	CompletionAbsent                      bool       `json:"completionAbsent"`
+	NoNewPhysicalCalls                    bool       `json:"noNewPhysicalCalls"`
+	FullPrivateReceiptIndependentlyProven bool       `json:"fullPrivateReceiptIndependentlyProven"`
 }
 
 // Forensic read of the same underlying owned disk after a publication

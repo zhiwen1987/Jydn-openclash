@@ -43,19 +43,21 @@ type lifecycleRecoveryObservedFact struct {
 }
 
 type lifecycleRecoveryVerification struct {
-	Schema                  string                       `json:"schema"`
-	Observation             lifecycleRecoveryObservedFact `json:"observation"`
-	ObservationSHA256        string                       `json:"observationSHA256"`
-	SourceOwner             lifecycleOwner               `json:"sourceOwner"`
-	SourceLastTrustedAt     time.Time                    `json:"sourceLastTrustedAt"`
-	SourceLastRecoveryFence uint64                       `json:"sourceLastRecoveryFence"`
-	SourceRecoveryUpdatedAt time.Time                    `json:"sourceRecoveryUpdatedAt"`
-	SourceFailedQuiescence  []labQuiescenceObservation    `json:"sourceFailedQuiescence"`
-	VerificationCommitRevision uint64                    `json:"verificationCommitRevision"`
-	RecordedAt             time.Time                    `json:"recordedAt"`
+	Schema                     string                        `json:"schema"`
+	Observation                lifecycleRecoveryObservedFact `json:"observation"`
+	ObservationSHA256          string                        `json:"observationSHA256"`
+	SourceOwner                lifecycleOwner                `json:"sourceOwner"`
+	SourceLastTrustedAt        time.Time                     `json:"sourceLastTrustedAt"`
+	SourceLastRecoveryFence    uint64                        `json:"sourceLastRecoveryFence"`
+	SourceRecoveryUpdatedAt    time.Time                     `json:"sourceRecoveryUpdatedAt"`
+	SourceFailedQuiescence     []labQuiescenceObservation    `json:"sourceFailedQuiescence"`
+	VerificationCommitRevision uint64                        `json:"verificationCommitRevision"`
+	RecordedAt                 time.Time                     `json:"recordedAt"`
 }
 
-type labRecoveryVerificationRecordCap struct{ core *labRecoveryVerificationRecordCore }
+type labRecoveryVerificationRecordCap struct {
+	core *labRecoveryVerificationRecordCore
+}
 type labRecoveryVerificationRecordCore struct {
 	collector *labRecoveryCollector
 	evidence  *labRecoveryObservedEvidenceCore
@@ -71,7 +73,7 @@ type labRecoveryVerificationRecordCore struct {
 }
 
 var processLabRecoveryVerificationIssuer = struct {
-	mu sync.Mutex
+	mu     sync.Mutex
 	issued map[*labRecoveryVerificationRecordCore]bool
 }{issued: map[*labRecoveryVerificationRecordCore]bool{}}
 
@@ -262,9 +264,9 @@ func lifecycleRecoveryVerificationPreimage(w *lifecycleV3Wire, a lifecycleRecove
 }
 
 type lifecycleVerificationPublication struct {
-	base *lifecycleVerifiedBaseCore
+	base      *lifecycleVerifiedBaseCore
 	canonical string
-	binding func(*lifecycleVerificationPublication, *lifecycleRecoveryStoreCore, *lifecycleVerifiedBaseCore) bool
+	binding   func(*lifecycleVerificationPublication, *lifecycleRecoveryStoreCore, *lifecycleVerifiedBaseCore) bool
 }
 
 func (x *lifecycleRecoveryStoreCore) verificationRecordTransition(base *lifecycleVerifiedBase, next lifecycleV3Record) bool {

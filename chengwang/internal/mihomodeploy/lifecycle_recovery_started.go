@@ -14,16 +14,16 @@ const lifecycleRecoveryExecutionSchema = "chengwang.mihomo-recovery-execution/v1
 // completion or fresh process authority. A later contract needs a new version.
 // Keeping the containing transaction's pointer nil preserves old V3 bytes.
 type lifecycleRecoveryExecution struct {
-	Schema                 string                     `json:"schema"`
-	Started                labRecoveryStartedFact     `json:"started"`
-	ArmedOwner             lifecycleOwner             `json:"armedOwner"`
-	ArmedLastTrustedAt     time.Time                  `json:"armedLastTrustedAt"`
-	ArmedLastRecoveryFence uint64                     `json:"armedLastRecoveryFence"`
-	ArmedRecoveryUpdatedAt time.Time                  `json:"armedRecoveryUpdatedAt"`
-	ArmedFailedQuiescence  []labQuiescenceObservation `json:"armedFailedQuiescence"`
-	StartedCommitRevision  uint64                     `json:"startedCommitRevision"`
-	RecordedAt             time.Time                  `json:"recordedAt"`
-	Verification          *lifecycleRecoveryVerification `json:"verification,omitempty"`
+	Schema                 string                         `json:"schema"`
+	Started                labRecoveryStartedFact         `json:"started"`
+	ArmedOwner             lifecycleOwner                 `json:"armedOwner"`
+	ArmedLastTrustedAt     time.Time                      `json:"armedLastTrustedAt"`
+	ArmedLastRecoveryFence uint64                         `json:"armedLastRecoveryFence"`
+	ArmedRecoveryUpdatedAt time.Time                      `json:"armedRecoveryUpdatedAt"`
+	ArmedFailedQuiescence  []labQuiescenceObservation     `json:"armedFailedQuiescence"`
+	StartedCommitRevision  uint64                         `json:"startedCommitRevision"`
+	RecordedAt             time.Time                      `json:"recordedAt"`
+	Verification           *lifecycleRecoveryVerification `json:"verification,omitempty"`
 }
 
 // Captured only from the same actual START_ARMED WAL, immediately before the

@@ -24,14 +24,14 @@ import (
 
 type lifecycleRecoveryStore struct{ core *lifecycleRecoveryStoreCore }
 type lifecycleRecoveryStoreCore struct {
-	mu            sync.Mutex
-	disk          lifecycleDisk
-	record        lifecycleV3Record
-	raw           []byte
-	live          *lifecycleRecoveryOwnerCore
-	quiescenceSHA string
-	permit        *labRecoveryStartCore
-	startedRecord *lifecycleStartedPublication
+	mu                 sync.Mutex
+	disk               lifecycleDisk
+	record             lifecycleV3Record
+	raw                []byte
+	live               *lifecycleRecoveryOwnerCore
+	quiescenceSHA      string
+	permit             *labRecoveryStartCore
+	startedRecord      *lifecycleStartedPublication
 	verificationRecord *lifecycleVerificationPublication
 	// Ephemeral custody from an actually consumed Started core and successful
 	// S1 disk publication. Never decoded or persisted; reopen starts with nil.

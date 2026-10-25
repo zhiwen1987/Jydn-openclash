@@ -44,8 +44,8 @@ func lifecycleVerifiedBoundsModel(t *testing.T) (*lifecycleRecoveryStore, *lifec
 		StartedSHA256: a.Execution.Started.StartedSHA256, SourceRevision: w.Revision, SourceRecordSHA256: w.RecordSHA256,
 		OwnerFence: w.RecoveryOwner.Fence, Artifact: cloneArtifactDescriptor(a.Plan.TargetArtifact),
 		StartupIdentity: *a.Execution.Started.Observation.StartupIdentity,
-		EntryAt: entry, Deadline: deadline, ObservedAt: observed,
-		SampleTimes: [2]labRecoverySampleWindow{{entry.Add(time.Nanosecond), entry.Add(2 * time.Nanosecond)}, {entry.Add(3 * time.Nanosecond), entry.Add(4 * time.Nanosecond)}},
+		EntryAt:         entry, Deadline: deadline, ObservedAt: observed,
+		SampleTimes:      [2]labRecoverySampleWindow{{entry.Add(time.Nanosecond), entry.Add(2 * time.Nanosecond)}, {entry.Add(3 * time.Nanosecond), entry.Add(4 * time.Nanosecond)}},
 		TranscriptSHA256: labConfigHash([]byte("MODEL transcript")), LocalPath: &marker, LocalMarkerSHA256: labConfigHash(markerRaw),
 	}
 	value.Readback.Schema = "chengwang.mihomo-selected-target-readback/v1"
@@ -145,7 +145,9 @@ func TestLifecycleRecoveryVerifiedBoundsObservationRequiresExactBoundSlicesAndDi
 		"wrong-selected-delta": func(v *lifecycleRecoveryObservedFact) {
 			v.LocalPath.Route.CountersAfter[0].ConnectIngress++
 		},
-		"missing-counter": func(v *lifecycleRecoveryObservedFact) { v.LocalPath.Route.CountersBefore = v.LocalPath.Route.CountersBefore[:2] },
+		"missing-counter": func(v *lifecycleRecoveryObservedFact) {
+			v.LocalPath.Route.CountersBefore = v.LocalPath.Route.CountersBefore[:2]
+		},
 		"counter-reordered": func(v *lifecycleRecoveryObservedFact) {
 			v.LocalPath.Route.CountersAfter[0], v.LocalPath.Route.CountersAfter[1] = v.LocalPath.Route.CountersAfter[1], v.LocalPath.Route.CountersAfter[0]
 		},
@@ -181,8 +183,12 @@ func TestLifecycleRecoveryVerifiedBoundsWindowIdentityAndSourceStayBound(t *test
 			v.EntryAt = s.core.record.core.Recovery.Execution.RecordedAt.Add(-time.Nanosecond)
 		},
 		"sample-before-entry": func(v *lifecycleRecoveryObservedFact) { v.SampleTimes[0].StartedAt = v.EntryAt.Add(-time.Nanosecond) },
-		"sample-overlap":      func(v *lifecycleRecoveryObservedFact) { v.SampleTimes[1].StartedAt = v.SampleTimes[0].CompletedAt.Add(-time.Nanosecond) },
-		"sample-reversed":     func(v *lifecycleRecoveryObservedFact) { v.SampleTimes[0].CompletedAt = v.SampleTimes[0].StartedAt.Add(-time.Nanosecond) },
+		"sample-overlap": func(v *lifecycleRecoveryObservedFact) {
+			v.SampleTimes[1].StartedAt = v.SampleTimes[0].CompletedAt.Add(-time.Nanosecond)
+		},
+		"sample-reversed": func(v *lifecycleRecoveryObservedFact) {
+			v.SampleTimes[0].CompletedAt = v.SampleTimes[0].StartedAt.Add(-time.Nanosecond)
+		},
 		"sample-after-observed": func(v *lifecycleRecoveryObservedFact) {
 			v.SampleTimes[1].CompletedAt = v.ObservedAt.Add(time.Nanosecond)
 		},
@@ -190,7 +196,7 @@ func TestLifecycleRecoveryVerifiedBoundsWindowIdentityAndSourceStayBound(t *test
 		"budget-extended": func(v *lifecycleRecoveryObservedFact) {
 			v.Deadline = v.EntryAt.Add(time.Duration(s.core.record.core.Recovery.Plan.Budgets.VerificationMillis)*time.Millisecond + time.Nanosecond)
 		},
-		"marker-before-get": func(v *lifecycleRecoveryObservedFact) { v.LocalPath.StartedAt = v.ObservedAt.Add(-time.Nanosecond) },
+		"marker-before-get":  func(v *lifecycleRecoveryObservedFact) { v.LocalPath.StartedAt = v.ObservedAt.Add(-time.Nanosecond) },
 		"marker-at-deadline": func(v *lifecycleRecoveryObservedFact) { v.LocalPath.ReturnedAt = v.Deadline },
 	} {
 		t.Run(name, func(t *testing.T) {

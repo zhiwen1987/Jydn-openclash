@@ -14,15 +14,15 @@ func TestLifecycleRecoveryVerificationVersionedCodecPreservesLegacyExecutionByte
 	// Exact old nine-field encoder, independently written rather than removing
 	// a new JSON key after serialization. No new v2 meaning is assigned to v1.
 	old := struct {
-		Schema string `json:"schema"`
-		Started labRecoveryStartedFact `json:"started"`
-		ArmedOwner lifecycleOwner `json:"armedOwner"`
-		ArmedLastTrustedAt time.Time `json:"armedLastTrustedAt"`
-		ArmedLastRecoveryFence uint64 `json:"armedLastRecoveryFence"`
-		ArmedRecoveryUpdatedAt time.Time `json:"armedRecoveryUpdatedAt"`
-		ArmedFailedQuiescence []labQuiescenceObservation `json:"armedFailedQuiescence"`
-		StartedCommitRevision uint64 `json:"startedCommitRevision"`
-		RecordedAt time.Time `json:"recordedAt"`
+		Schema                 string                     `json:"schema"`
+		Started                labRecoveryStartedFact     `json:"started"`
+		ArmedOwner             lifecycleOwner             `json:"armedOwner"`
+		ArmedLastTrustedAt     time.Time                  `json:"armedLastTrustedAt"`
+		ArmedLastRecoveryFence uint64                     `json:"armedLastRecoveryFence"`
+		ArmedRecoveryUpdatedAt time.Time                  `json:"armedRecoveryUpdatedAt"`
+		ArmedFailedQuiescence  []labQuiescenceObservation `json:"armedFailedQuiescence"`
+		StartedCommitRevision  uint64                     `json:"startedCommitRevision"`
+		RecordedAt             time.Time                  `json:"recordedAt"`
 	}{e.Schema, e.Started, e.ArmedOwner, e.ArmedLastTrustedAt, e.ArmedLastRecoveryFence, e.ArmedRecoveryUpdatedAt, e.ArmedFailedQuiescence, e.StartedCommitRevision, e.RecordedAt}
 	want, err := json.Marshal(old)
 	if err != nil {

@@ -14,7 +14,15 @@ native40190323755实际4门success，48508dd1核3ZIP53成员／166来源／32公
 
 三套19ZIP303成员已独立保管，root聚合PID5176exit0及[evidence/sys06-caa-s2-local-marker-acceptance-20261025.json](evidence/sys06-caa-s2-local-marker-acceptance-20261025.json)随下一真实源码统一归档。这里只关闭当前来源、时效、单次控制面观测与隔离回环路径；独立原始nonce／完整私有WAL、完整故障矩阵、互联网业务、持久S2回执、Completion、新head、产品恢复API、后续普通写、第二恢复及全系统／生产均未完成。原37f与全部历史FAIL不改判，生产／main／Registry未动。
 
-### 当前源码：Execution/v2持久S2回执，真实Go与四种原生场景仍待验收
+### 3dc实际结果：635普通与race通过，格式和私有证据写入接线失败
+
+3dc40e5f207f5f23966ad2eb461cb199c23b6c2b的normal40194798491实际11成功／2失败。4f3a9ef7核11ZIP206成员／1333Gitblob，普通和race各1884语义／635必需及全部旧集合全过，stderr空、Go退出0；真实格式差异17962B SHA54332da63a0d7866428646a88e7b167cc4a690fb04f9ab331b7d758b0fc3aab2非空，严格格式门FAIL，没有foundation producer／fresh接受。diag40194798548实际5门success，913f2788核4ZIP42成员及635全过；full采样120.315912883秒TIMER，容量85.44秒／包171.917秒，距原180秒仅约8秒；single60.152306842秒TIMER、容量65.59秒／包66.614秒。耗时仅本次观测，不当作已证明的性能根因，不放宽预算。
+
+native40194798493实际10门中2成功／8失败，aa30aea3核5ZIP180成员／169来源／1333blob；四模式均真实进入top，positive10.17秒、not-committed9.23秒、unknown10.21秒、readback8.29秒，均在post-attempt checkpoint处失败，四份格式差异6142B完全一致。固定源码中的已签发能力、record返回、精确replace／readback计数及poison／不adopt断言在该失败行之前，不能把这个到达证据升格为完整回执、检查点或冷开通过。只有32／33公件，缺record投影，四份fresh未生成；原reader对部分原件自然拒绝，保留失败，不用diag或普通Go成功抵消。
+
+已确认接缝是原labNativeRecoveryWrite的封闭文件名名单遗漏verification-attempted-control.private.json及verification-record.private.json。修订只新增这两个确切名字，原12名顺序及0600、O_EXCL、O_NOFOLLOW、固定目录／owner、fsync和2MiB门全保。另只转交本轮实际6源12hunk格式差异，逐Git前像、位置、有限Go1.23词法／可省分号护栏及独立后像核对；四native补丁与normal的native-test子段逐字相同，不以9源native格式代125源normal格式。源码修订不改业务字段、模式、权限、635名单或工作流；新的同提交普通／race／格式及四模式完整原件验收仍待，旧失败不改判。
+
+### 当前源码：Execution/v2持久S2回执，四种原生场景完整验收仍待修订后证明
 
 本轮新增一次性记录能力，只能由原collector成功消费真实观察证据后、在当前来源与权限短锁内签发；它绑定原证据指针、collector、store、磁盘、owner、S1完整canonical及调用方／服务context。原证据与记录能力均按原指针先消费、后作其他拒绝，不能由DTO、JSON、散列或通用publisher重造。磁盘记录阶段只持store锁，保持原CAS／fsync／精确回读与封闭发布入口；写入异常后毒化实例并撤销live／retained证明，不重发或重采同source。此前事实晚到最多记为RECOVERY_UNKNOWN，不代表记录瞬间仍有跨库原子权限，也不提供新物理动作许可。
 
