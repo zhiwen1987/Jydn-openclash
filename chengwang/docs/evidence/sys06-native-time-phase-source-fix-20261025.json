@@ -1,0 +1,165 @@
+{
+  "actualPriorCommit": "db4253778987aa4ba8a83a6ec871921a23f3439f",
+  "baseline": "db4253778987aa4ba8a83a6ec871921a23f3439f",
+  "defaultRequiredTests": 611,
+  "existingNativeModelNames": 16,
+  "fullSystemComplete": false,
+  "independentSourcePeer": {
+    "actualRuntimeAcceptanceProven": false,
+    "actualSourceUnionCount": 159,
+    "allOriginalReaderFunctionASTBodiesUnchanged": true,
+    "allStrictDispatchTimeIntervalGatesUnchanged": true,
+    "coordinatedOldPhaseReportAndIndexNegativeSourceReviewed": true,
+    "existingModel16NamesAndPinsUnchanged": true,
+    "newSnapshotLocalsNeverReassigned": true,
+    "noDeterminateSourceBlockerFound": true,
+    "noModelsGoNativeWorkerProductionOrRExecuted": true,
+    "observationOutcomeQUIESCEDUnchanged": true,
+    "oldDBFailureRawOrJudgmentChanged": false,
+    "onlyReaderPHASESQuiescedLiteralCorrected": true,
+    "producerFreezeSHA256": "789a0a8d6b1ec766bb7c0e294104215eb34a13cd7103f5bb0c4314afb5e46140",
+    "publicCount": 21,
+    "readerFreezeSHA256": "27fb2f94698be8333575fad5ad7540d581909c191677bf75d5c202d9eb519415",
+    "sampleSitesClockChecksAuthorityDispatchFactsAndFailureClosureUnchanged": true,
+    "scope": "INDEPENDENT_FOUR_SOURCE_TIMESTAMP_VALUE_SNAPSHOTS_AND_WAL_PHASE_LITERAL_PEER_NOT_GO_OR_NATIVE_ACCEPTANCE",
+    "sourceContractAtomAccepted": true,
+    "sourceFiles": {
+      "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py": {
+        "afterSHA256": "d80c43b9c10eb1bcdf7e7379107a7c8f0387b12bff5098c1a35afaea4e77812c",
+        "beforeSHA256": "0c0bfcc7f265dff982aa6b82b1ad898a8bfdc306129b5cf2c62d4d5ab83cb9ea",
+        "bytes": 62990
+      },
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_native_recovery.py": {
+        "afterSHA256": "1075552903b3f15994b60465ff6ad81348aca8ea13b5ed1e4b5936d45bbd62bb",
+        "beforeSHA256": "2dc7cd41edddec0d53c8a64abb1043d6594c9ade7e82d9e8d253b1fca25ff00e",
+        "bytes": 34968
+      },
+      "chengwang/internal/mihomodeploy/lab_quiescence_linux.go": {
+        "afterSHA256": "3b1c31f1ca4b8acec5f1da2d4c2a4532bf164f0b36804428538f73fe655f931a",
+        "beforeSHA256": "27377c7b9c72e752abe1a4d20b12bc4692841e45975902be367af009f14b1743",
+        "bytes": 8162
+      },
+      "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go": {
+        "afterSHA256": "f65b06a20622f89fde0ec789d8689a9d4338fbb29548889af165f21bc525f249",
+        "beforeSHA256": "cb51a081f87e4f0c250189c086a34a6064d2129508e104ad05939e592fe6fbbc",
+        "bytes": 8691
+      }
+    },
+    "twoGoFilesOnlyFourDistinctLocalValueSnapshots": true
+  },
+  "localGoGofmtWorkerOrNativeExecuted": false,
+  "machineClockChanged": false,
+  "mainMerged": false,
+  "nativePublicFiles": 21,
+  "nativeSources": 159,
+  "newRuntimeAcceptance": false,
+  "normalSources": 121,
+  "observationQUIESCEDDomainPreserved": true,
+  "originalSamplingPointsDispatchAndFailureClosuresPreserved": true,
+  "originalStrictTimeWindowNotWeakened": true,
+  "priorNativeGoPassButReaderFailureArchive": "chengwang/docs/evidence/sys06-db-native-reader-rejection-20261025.json",
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.native-time-snapshot-and-wal-phase-source-fix/v1",
+  "scope": "SOURCE_AND_TWO_AFFECTED_MODELS_NOT_NEW_NATIVE_ACCEPTANCE",
+  "sourceReceipts": [
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-db42537-native-time-snapshots-20261025-agent\\source-result.json",
+      "sha256": "789a0a8d6b1ec766bb7c0e294104215eb34a13cd7103f5bb0c4314afb5e46140"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-wal-phase-reader-fix-20261025-agent\\evidence\\source-final.json",
+      "sha256": "27fb2f94698be8333575fad5ad7540d581909c191677bf75d5c202d9eb519415"
+    },
+    {
+      "path": "D:\\CodexData\\workspace\\mihomo-native-time-phase-peer-20261025-agent\\v2\\result.json",
+      "sha256": "04722e08285b0bede479e9fecb31de58fce073eb3baba8ac8dfb250eaa338395"
+    }
+  ],
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py": "d80c43b9c10eb1bcdf7e7379107a7c8f0387b12bff5098c1a35afaea4e77812c",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_native_recovery.py": "1075552903b3f15994b60465ff6ad81348aca8ea13b5ed1e4b5936d45bbd62bb",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "914468e626b51db34e27e48972fca6723e79a0a4099d14cfd6337d01d4c72843",
+    "chengwang/docs/evidence/sys06-db-native-reader-rejection-20261025.json": "46ab6f16753b9040ec8fa1cea81f13be4b1689a930ccdf1cba7a73789ce68ef3",
+    "chengwang/internal/mihomodeploy/lab_quiescence_linux.go": "3b1c31f1ca4b8acec5f1da2d4c2a4532bf164f0b36804428538f73fe655f931a",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go": "f65b06a20622f89fde0ec789d8689a9d4338fbb29548889af165f21bc525f249"
+  },
+  "timeSnapshotFix": {
+    "actualGoExecuted": false,
+    "baseline": "db42537",
+    "diffSHA256": "4eb387e412272fc771ee9ddfbfe98afe8ad435714c04c4d5ce1c652dfc07b7ea",
+    "files": [
+      {
+        "afterBytes": 8162,
+        "afterSHA256": "3b1c31f1ca4b8acec5f1da2d4c2a4532bf164f0b36804428538f73fe655f931a",
+        "beforeBytes": 8112,
+        "beforeSHA256": "27377c7b9c72e752abe1a4d20b12bc4692841e45975902be367af009f14b1743",
+        "failureClosureUnchanged": true,
+        "onlyTwoTimestampSnapshotChanges": true,
+        "path": "chengwang/internal/mihomodeploy/lab_quiescence_linux.go"
+      },
+      {
+        "afterBytes": 8691,
+        "afterSHA256": "f65b06a20622f89fde0ec789d8689a9d4338fbb29548889af165f21bc525f249",
+        "beforeBytes": 8641,
+        "beforeSHA256": "cb51a081f87e4f0c250189c086a34a6064d2129508e104ad05939e592fe6fbbc",
+        "failureClosureUnchanged": true,
+        "onlyTwoTimestampSnapshotChanges": true,
+        "path": "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go"
+      }
+    ],
+    "gofmtExecuted": false,
+    "machineClockChanged": false,
+    "nativeExecuted": false,
+    "patchSHA256": "dee0f9f8ccd4192c027eb4ef8606323b4fb91e9a968b3e544e99f0ee07e82323",
+    "productionChanged": false,
+    "readerGateChanged": false,
+    "remaining": [
+      "independent source peer",
+      "root integration",
+      "new isolated Linux CI strict original time-window acceptance"
+    ],
+    "scope": "SOURCE_ONLY_DISTINCT_IMMUTABLE_OBSERVATION_TIMESTAMP_SNAPSHOTS",
+    "sourceChecksPassed": true
+  },
+  "walPhaseFix": {
+    "GoOrNativeExecuted": false,
+    "actualModelExit": 0,
+    "actualModelPID": 2392,
+    "actualModelsRun": 2,
+    "allOriginalCheckerFunctionBodiesASTExact": true,
+    "baseline": "db4253778987aa4ba8a83a6ec871921a23f3439f",
+    "coordinatedReportIndexQUIESCEDAliasRejected": true,
+    "full16LocalRerun": false,
+    "mandatoryReaderModelNames": 16,
+    "observationOutcomeStillQUIESCED": true,
+    "oldFailureOriginalsModified": false,
+    "patchSHA256": "52a4a9eed6bbad1c733454ce2d6255955f2e69b9b8ba3d6fd604faa6a0c6e5e5",
+    "production": false,
+    "publicCount": 21,
+    "realGitRerun": false,
+    "remaining": [
+      "A primitive time-pointer source fix",
+      "Independent peer/root integration and actual new Linux native acceptance"
+    ],
+    "scope": "SOURCE_LITERAL_AND_TWO_AFFECTED_PYTHON_MODELS_NOT_NATIVE_ACCEPTANCE",
+    "sourceCount": 159,
+    "sources": {
+      "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py": {
+        "beforeBytes": 62980,
+        "beforeSHA256": "0c0bfcc7f265dff982aa6b82b1ad898a8bfdc306129b5cf2c62d4d5ab83cb9ea",
+        "bytes": 62990,
+        "sha256": "d80c43b9c10eb1bcdf7e7379107a7c8f0387b12bff5098c1a35afaea4e77812c"
+      },
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_native_recovery.py": {
+        "beforeBytes": 34801,
+        "beforeSHA256": "2dc7cd41edddec0d53c8a64abb1043d6594c9ade7e82d9e8d253b1fca25ff00e",
+        "bytes": 34968,
+        "sha256": "1075552903b3f15994b60465ff6ad81348aca8ea13b5ed1e4b5936d45bbd62bb"
+      }
+    },
+    "strictDispatchTimeWindowUnchanged": true,
+    "testNamesAndPinsUnchanged": true,
+    "walQuiescedPhase": "OLD_EPOCH_QUIESCED"
+  }
+}

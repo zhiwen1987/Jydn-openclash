@@ -22,7 +22,7 @@ PACKAGE = 'chengwang/internal/mihomodeploy'
 PREFIX = 'chengwang/deploy/mihomo-lifecycle-lab/'
 TAGS = ('chengwang_mihomo_service', 'chengwang_mihomo_faults', 'chengwang_mihomo_recovery_native')
 STAGES = ('planned', 'approved', 'stop-armed', 'quiesced', 'start-armed', 'started')
-PHASES = ('PLANNED', 'APPROVED', 'STOP_ARMED', 'QUIESCED', 'START_ARMED', 'START_ARMED')
+PHASES = ('PLANNED', 'APPROVED', 'STOP_ARMED', 'OLD_EPOCH_QUIESCED', 'START_ARMED', 'START_ARMED')
 STREAM_KEYS = ('bytes', 'totalBytes', 'sha256', 'truncated', 'complete')
 IDENTITY_KEYS = ('pid', 'startTicks', 'netNSInode', 'elfSHA256', 'elfBytes', 'sourceCommit',
                  'artifactSHA256', 'controllerPort', 'mixedPort')

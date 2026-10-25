@@ -149,7 +149,8 @@ func startOwnedRecoveryKernel(lifetimeCtx context.Context, in *labKernelInput, s
 		return fail("ENTRY_REJECTED", "BUDGET_REJECTED")
 	}
 	now = time.Now().UTC()
-	o.StartedAt = &now
+	startedAt := now
+	o.StartedAt = &startedAt
 	o.StartInvoked = true
 	// Exactly one original call. In particular no Start retry, Stop, rollback,
 	// numeric PID adoption or phase-context cancellation of the child is added.
@@ -219,7 +220,8 @@ func startOwnedRecoveryKernel(lifetimeCtx context.Context, in *labKernelInput, s
 	start := kernel.startObservation()
 	o.StartObservation = &start
 	now = time.Now().UTC()
-	o.ReturnedAt = &now
+	returnedAt := now
+	o.ReturnedAt = &returnedAt
 	o.Outcome, o.FailureCode = "STARTED", "NONE"
 	core.fact = labRecoveryStartedFact{Schema: labRecoveryStartedFactSchema, Binding: labRecoveryStartedCloneBinding(b),
 		Observation: labRecoveryStartedCloneObservation(o), ObservedAt: now}

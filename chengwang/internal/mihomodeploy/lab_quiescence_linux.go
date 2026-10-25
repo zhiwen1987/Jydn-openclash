@@ -133,7 +133,8 @@ func quiesceOwnedLabKernel(ctx context.Context, old *ownedLabKernel, b labQuiesc
 	if !labQuiescenceBindingValid(b, now) {
 		return fail("ENTRY_REJECTED", "CLOCK_REJECTED")
 	}
-	observation.StartedAt = &now
+	startedAt := now
+	observation.StartedAt = &startedAt
 	observation.StopInvoked = true
 	labNativeRecoveryObserve(old.ownedLabKernelCore, "RECOVERY_STOP_DISPATCH")
 	stopped, stopErr := old.stop(ctx)
@@ -201,7 +202,8 @@ func quiesceOwnedLabKernel(ctx context.Context, old *ownedLabKernel, b labQuiesc
 	if !labQuiescenceBindingValid(b, now) || now.Before(*observation.StartedAt) {
 		return fail("FAILED", "CLOCK_REJECTED")
 	}
-	observation.ReturnedAt = &now
+	returnedAt := now
+	observation.ReturnedAt = &returnedAt
 	observation.Outcome = "QUIESCED"
 	observation.FailureCode = "NONE"
 	if captureLimitOnly {

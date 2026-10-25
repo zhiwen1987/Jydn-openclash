@@ -4,6 +4,16 @@
 
 ## 本次已有代码
 
+### 2026-10-25 db原生Go通过但独立reader拒绝；时间快照与WAL阶段修订待新CI
+
+db4253778987aa4ba8a83a6ec871921a23f3439f正常40178390753实际13success，独立def81fb5核12ZIP208成员／1310blob与1503语义／611必需各两模式全过、format0，原C.verify的16274B报告f668f9be与producer/fresh同；原Windows main仍在POSIXwriter边界exit1，不作本机LinuxCLI接受。diag40178390620实际5success，独立9ea364d0核4ZIP42及121／43／72／611，full120.313207556秒TIMER、single54.341532049秒自然早返，不能把single称采满60秒。
+
+native40178390657实际Go top PASS8.31秒、fmt0、attempt.exit0，三fixture关闭、五真实拒连、S1 Started及严格reopen18均有原件；但原whole reader及fresh仍FAIL，完整失败档为[evidence/sys06-db-native-reader-rejection-20261025.json](evidence/sys06-db-native-reader-rejection-20261025.json)，不得把Go成功等同独立接受。独立946dc4b0保2ZIP38成员、21公件、159来源与十个checkpoint，原时间窗口首拒及WAL组件阶段拒绝保留。
+
+实际两个primitive把StartedAt取为可变now地址，后续重赋now覆盖它，导致StartedAt和ReturnedAt同值而真实dispatch在之前。修订仅两个源各将开始／返回时间保存为独立快照，保持采样点、now刷新、失败closure、权限／有效期／caps／原生调用次数及reader严格时间窗口。reader另只把WAL阶段常量对齐原store的OLD_EPOCH_QUIESCED；观测结果QUIESCED是不同域，原样保留，新增协调篡改report/index为旧literal的拒绝反例。两受影响模型通过，16名字／159来源／21公件不变，旧raw不适配。
+
+作者789a0a8d／27fb2f94与独立04722e08为四源必要审阅；351个internal Go源的同类指针有界文本／人工检查32773978未发现其他确定同类问题，不等于编译器全程序别名证明。尚未执行本机Go/worker/native或调整机器时间，修复效果必须由新Linux原件、原reader与fresh证明；生产未动，完整S2／产品恢复API及系统闭环仍未完成。
+
 ### 2026-10-25 133底座双套接受、native清理探测失败；v2五端口实际观测候选
 
 133ef0ab1522f182486e5c3d7d377aab76e0fa70正常40177100131为13门success，独立8165eb68核12ZIP208成员／1308blob，普通及race各1503语义／611必需全部PASS、format0；原C.verify返回16274B报告128733f0与producer/fresh字节一致，Windows原main仍在未改POSIXwriter边界exit1，不称本机LinuxCLI通过。diag40177100066五门success，独立624c2d5e核4ZIP42成员／121/43/72及611全过，full实际120.286819940秒TIMER、容量83.67秒、包162.437秒；不推长期性能。以上不能覆盖native失败。

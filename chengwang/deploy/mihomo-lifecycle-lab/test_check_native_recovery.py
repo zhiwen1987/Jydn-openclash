@@ -479,13 +479,15 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
 
     def test_stage_index_and_reopen_relationships_cannot_claim_completion(self):
         raw, sources, commit = closed_fixture()
-        for kind in ('completed', 'reopen_phase', 'revision_gap', 'index_hash'):
+        for kind in ('completed', 'reopen_phase', 'revision_gap', 'index_hash', 'observation_phase_alias'):
             bad = dict(raw)
             report, index = C.decode(bad['native-report.json']), C.decode(bad['wal-readback-index.json'])
             if kind == 'completed':
                 report['stages'][-1]['phase'] = index['stages'][-2]['phase'] = 'COMPLETED'
             elif kind == 'reopen_phase':
                 report['reopened']['phase'] = index['stages'][-1]['phase'] = 'START_ARMED'
+            elif kind == 'observation_phase_alias':
+                report['stages'][3]['phase'] = index['stages'][4]['phase'] = 'QUIESCED'
             elif kind == 'revision_gap':
                 report['reopened']['revision'] += 1; index['stages'][-1]['revision'] += 1
             else: index['stages'][-1]['controlSHA256'] = 'a' * 64
