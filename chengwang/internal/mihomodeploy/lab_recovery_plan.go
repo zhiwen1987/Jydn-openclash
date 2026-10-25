@@ -89,10 +89,12 @@ type labRecoveryPlanCore struct{ descriptor labRecoveryPlanDescriptor }
 // Its decoded record is detached and read-only for the context's lifetime;
 // it is not a caller assertion that a record has already been validated. Each
 // validation is sequential; a context is never shared between goroutines.
-type labRecoveryPlanValidationContext struct{ core *labRecoveryPlanValidationCore }
+type labRecoveryPlanValidationContext struct {
+	core *labRecoveryPlanValidationCore
+}
 type labRecoveryPlanValidationCore struct {
 	original lifecycleRecord
-	epoch string
+	epoch    string
 	// Exact full descriptor JSON, including nil versus [] and every field.
 	// A RecordSHA256/Config.SHA256 alone cannot serve as a memoization key.
 	targets map[string]struct{}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +22,10 @@ type lifecycleRecoveryStoreCore struct {
 	live             *lifecycleRecoveryOwnerCore
 	quiescenceSHA    string
 	permit           *labRecoveryStartCore
+	// Issuance identities only, scoped to one locked operation. They are
+	// released on every exit and are never a cross-operation validation cache.
+	activeBase       *lifecycleVerifiedBaseCore
+	activePrepared   *lifecyclePreparedCandidateCore
 	poisoned, closed bool
 }
 type lifecycleRecoveryOwnerToken struct{ core *lifecycleRecoveryOwnerCore }
@@ -28,6 +33,56 @@ type lifecycleRecoveryOwnerCore struct {
 	store *lifecycleRecoveryStoreCore
 	nonce string
 	fence uint64
+}
+
+type lifecycleVerifiedBase struct{ core *lifecycleVerifiedBaseCore }
+type lifecycleVerifiedBaseCore struct {
+	store *lifecycleRecoveryStoreCore
+	raw []byte
+	rawSHA256 string
+	record lifecycleV3Record
+	used bool
+}
+type lifecyclePreparedCandidate struct{ core *lifecyclePreparedCandidateCore }
+type lifecyclePreparedCandidateCore struct {
+	store *lifecycleRecoveryStoreCore
+	base *lifecycleVerifiedBaseCore
+	before []byte
+	beforeSHA256 string
+	raw []byte
+	rawSHA256 string
+	record lifecycleV3Record
+}
+
+func (lifecycleVerifiedBase) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, lifecycleRecoveryDebug) }
+func (lifecycleVerifiedBase) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
+func (*lifecycleVerifiedBase) UnmarshalJSON([]byte) error { return errLifecycleUnsafe }
+func (lifecyclePreparedCandidate) Format(s fmt.State, _ rune) { _, _ = io.WriteString(s, lifecycleRecoveryDebug) }
+func (lifecyclePreparedCandidate) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
+func (*lifecyclePreparedCandidate) UnmarshalJSON([]byte) error { return errLifecycleUnsafe }
+
+func (b *lifecycleVerifiedBase) release() {
+	if b == nil || b.core == nil || b.core.store == nil { return }
+	x := b.core.store
+	if x.activeBase == b.core { x.activeBase = nil; x.activePrepared = nil }
+}
+func (b *lifecycleVerifiedBase) issuedTo(x *lifecycleRecoveryStoreCore) bool {
+	return b != nil && b.core != nil && x != nil && b.core.store == x && x.activeBase == b.core
+}
+func (b *lifecycleVerifiedBase) intact(x *lifecycleRecoveryStoreCore) bool {
+	return b.issuedTo(x) && !x.closed && !x.poisoned && x.record.core != nil && b.core.record.core != nil &&
+		len(b.core.raw) != 0 && labConfigHash(b.core.raw) == b.core.rawSHA256
+}
+func (b *lifecycleVerifiedBase) valid(x *lifecycleRecoveryStoreCore) bool {
+	return b.intact(x) && !b.core.used
+}
+func (b *lifecycleVerifiedBase) copyRecord() (lifecycleV3Record, error) {
+	if b == nil || b.core == nil || !b.valid(b.core.store) { return lifecycleV3Record{}, errLifecycleUnsafe }
+	// These exact bytes came from full external canonical/semantic validation.
+	// Typed decoding detaches all pointers/slices without validating them twice.
+	var w lifecycleV3Wire
+	if json.Unmarshal(b.core.raw, &w) != nil { return lifecycleV3Record{}, errLifecycleUnsafe }
+	return lifecycleV3Record{core: &w}, nil
 }
 
 func (lifecycleRecoveryStore) String() string   { return lifecycleRecoveryDebug }
@@ -179,36 +234,87 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 			x.live = nil
 			x.permit = nil
 			x.quiescenceSHA = ""
+			x.activeBase = nil
+			x.activePrepared = nil
 		}
 		return errLifecycleUnsafe
 	}
 	return nil
 }
 func (x *lifecycleRecoveryStoreCore) verify() error {
+	base, err := x.verifiedBase()
+	if err != nil { return err }
+	base.release()
+	return nil
+}
+func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, error) {
 	if x == nil || x.closed || x.record.core == nil || !lifecycleRecoveryDiskPresent(x.disk) {
-		return errLifecycleUnsafe
+		return nil, errLifecycleUnsafe
 	}
+	// Starting even a failed new operation invalidates an earlier capability.
+	x.activeBase = nil
+	x.activePrepared = nil
 	if x.poisoned {
-		return errLifecyclePoisoned
+		return nil, errLifecyclePoisoned
 	}
 	if err := x.disk.verify(); err != nil {
 		x.poisoned = true
-		return err
+		return nil, err
 	}
 	raw, exists, err := x.disk.readControl()
 	if err != nil || !exists || !bytes.Equal(raw, x.raw) {
 		x.poisoned = true
-		return errLifecycleUnsafe
+		return nil, errLifecycleUnsafe
 	}
 	r, err := decodeLifecycleV3Record(raw)
 	if err != nil || r.core.RecordSHA256 != x.record.core.RecordSHA256 || r.core.Revision != x.record.core.Revision {
 		x.poisoned = true
-		return errLifecycleUnsafe
+		return nil, errLifecycleUnsafe
 	}
-	return nil
+	b := &lifecycleVerifiedBase{core: &lifecycleVerifiedBaseCore{store: x, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: r}}
+	x.activeBase = b.core
+	return b, nil
 }
 func (x *lifecycleRecoveryStoreCore) publish(raw []byte) error {
-	state, err := x.disk.replaceControl(raw)
+	// This raw compatibility entry is used by V2 evolution. It is not an
+	// unchecked generic publisher or a fabricated V3 verified base.
+	if x == nil || x.closed || x.poisoned || !lifecycleRecoveryDiskPresent(x.disk) { return errLifecycleUnsafe }
+	x.activeBase = nil; x.activePrepared = nil
+	defer func() { x.activePrepared = nil }()
+	if err := x.disk.verify(); err != nil { x.poisoned = true; return err }
+	before, exists, err := x.disk.readControl()
+	if err != nil || !exists { x.poisoned = true; return errLifecycleUnsafe }
+	old, err := decodeLifecycleRecord(before)
+	if err != nil || old.wire.Schema != lifecycleSchemaV2 { x.poisoned = true; return errLifecycleUnsafe }
+	ownedRaw := bytes.Clone(raw)
+	r, err := decodeLifecycleV3Record(ownedRaw)
+	if err != nil || old.wire.Revision == ^uint64(0) || r.core.Revision != old.wire.Revision+1 ||
+		!bytes.Equal(r.core.SourceV2.ControlBytes, before) || r.core.LastTrustedAt.Before(old.wire.LastTrustedAt) ||
+		r.core.Recovery != nil || r.core.RecoveryOwner != nil || r.core.LastRecoveryFence != 0 || len(r.core.RetiredEpochs) != 0 || len(r.core.RecoveryHistory) != 0 {
+		return errLifecycleUnsafe
+	}
+	p := &lifecyclePreparedCandidate{core: &lifecyclePreparedCandidateCore{store: x, before: bytes.Clone(before), beforeSHA256: labConfigHash(before), raw: ownedRaw, rawSHA256: labConfigHash(ownedRaw), record: r}}
+	x.activePrepared = p.core
+	return x.publishPrepared(p)
+}
+func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandidate) error {
+	if x == nil || p == nil || p.core == nil || x.activePrepared != p.core || p.core.store != x { return errLifecycleUnsafe }
+	c := p.core
+	x.activePrepared = nil // an admitted publication attempt spends this entry
+	if x.closed || x.poisoned || !lifecycleRecoveryDiskPresent(x.disk) || c.record.core == nil ||
+		labConfigHash(c.raw) != c.rawSHA256 || labConfigHash(c.before) != c.beforeSHA256 ||
+		(c.base != nil && (x.activeBase != c.base || !c.base.used || c.base.store != x)) { return errLifecycleUnsafe }
+	// Defensive private metadata/raw consistency, not another semantic pass.
+	canonical, err := json.Marshal(c.record.core)
+	if err != nil || !bytes.Equal(canonical, c.raw) { return errLifecycleUnsafe }
+	// A fresh actual custody/read/CAS check remains immediately before replace.
+	if err := x.disk.verify(); err != nil { x.poisoned = true; return err }
+	before, exists, err := x.disk.readControl()
+	if err != nil || !exists || !bytes.Equal(before, c.before) ||
+		(c.base != nil && (!bytes.Equal(x.raw, c.before) || x.record.core == nil || x.record.core.Revision != c.base.record.core.Revision || x.record.core.RecordSHA256 != c.base.record.core.RecordSHA256)) {
+		x.poisoned = true; return errLifecycleUnsafe
+	}
+	state, err := x.disk.replaceControl(c.raw)
 	if state == lifecycleUnknown || (state != lifecycleNotCommitted && state != lifecycleCommitted) || (state == lifecycleCommitted && err != nil) {
 		x.poisoned = true
 		return errLifecycleCommitUnknown
@@ -223,34 +329,44 @@ func (x *lifecycleRecoveryStoreCore) publish(raw []byte) error {
 		return errLifecycleUnsafe
 	}
 	actual, exists, err := x.disk.readControl()
-	if err != nil || !exists || !bytes.Equal(actual, raw) || x.disk.verify() != nil {
+	if err != nil || !exists || !bytes.Equal(actual, c.raw) || x.disk.verify() != nil {
 		x.poisoned = true
 		return errLifecycleCommitUnknown
 	}
-	r, err := decodeLifecycleV3Record(actual)
-	if err != nil {
-		x.poisoned = true
-		return errLifecycleCommitUnknown
-	}
-	x.record = r
-	x.raw = bytes.Clone(raw)
+	// Every actual byte equals the fully validated prepared canonical bytes.
+	// Its typed record is an independent private decode, never caller input.
+	x.record = c.record
+	x.raw = bytes.Clone(c.raw)
 	return nil
 }
 func (x *lifecycleRecoveryStoreCore) commit(next lifecycleV3Record, now time.Time) error {
-	if err := x.verify(); err != nil {
-		return err
-	}
+	base, err := x.verifiedBase()
+	if err != nil { return err }
+	defer base.release()
+	return x.commitWithBase(base, next, now)
+}
+func (x *lifecycleRecoveryStoreCore) commitWithBase(base *lifecycleVerifiedBase, next lifecycleV3Record, now time.Time) error {
+	if !base.issuedTo(x) || base.core.used { return errLifecycleUnsafe }
+	p, err := prepareLifecycleCandidate(base, next, now)
+	if err != nil { return err }
+	return x.publishPrepared(p)
+}
+func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Record, now time.Time) (*lifecyclePreparedCandidate, error) {
+	if base == nil || base.core == nil || !base.issuedTo(base.core.store) || base.core.used { return nil, errLifecycleUnsafe }
+	x := base.core.store
+	base.core.used = true // invalid candidate/clock/CAS cannot reuse this base
+	if !base.intact(x) { return nil, errLifecycleUnsafe }
 	if err := x.trustedNow(now); err != nil {
-		return err
+		return nil, err
 	}
 	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 || !lifecycleV3Transition(x.record.core, next.core) {
-		return errLifecycleUnsafe
+		return nil, errLifecycleUnsafe
 	}
 	if next.core.LastRecoveryFence != x.record.core.LastRecoveryFence {
 		o := x.record.core.RecoveryOwner
 		n := next.core.RecoveryOwner
 		if (o != nil && now.Before(o.ExpiresAt)) || n == nil || !n.AcquiredAt.Equal(now) || !n.RenewedAt.Equal(now) || !n.ExpiresAt.After(now) || n.ExpiresAt.Sub(now) > 5*time.Minute {
-			return errLifecycleUnsafe
+			return nil, errLifecycleUnsafe
 		}
 	}
 	next.core.Revision = x.record.core.Revision + 1
@@ -258,9 +374,14 @@ func (x *lifecycleRecoveryStoreCore) commit(next lifecycleV3Record, now time.Tim
 	next.core.RecordSHA256, _ = lifecycleV3RecordHash(*next.core)
 	raw, err := encodeLifecycleV3Record(next)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return x.publish(raw)
+	var owned lifecycleV3Wire
+	if json.Unmarshal(raw, &owned) != nil { return nil, errLifecycleUnsafe }
+	c := &lifecyclePreparedCandidateCore{store: x, base: base.core, before: bytes.Clone(base.core.raw), beforeSHA256: base.core.rawSHA256, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: lifecycleV3Record{core: &owned}}
+	p := &lifecyclePreparedCandidate{core: c}
+	x.activePrepared = c
+	return p, nil
 }
 func (x *lifecycleRecoveryStoreCore) copyRecord() (lifecycleV3Record, error) {
 	return decodeLifecycleV3Record(x.raw)
@@ -288,9 +409,11 @@ func (s *lifecycleRecoveryStore) acquireRecoveryOwner(now, expires time.Time) (*
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return nil, err
 	}
+	defer base.release()
 	if err := x.trustedNow(now); err != nil {
 		return nil, err
 	}
@@ -305,13 +428,13 @@ func (s *lifecycleRecoveryStore) acquireRecoveryOwner(now, expires time.Time) (*
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
 		return nil, errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return nil, err
 	}
 	next.core.LastRecoveryFence++
 	next.core.RecoveryOwner = &lifecycleOwner{hex.EncodeToString(nonce[:]), next.core.LastRecoveryFence, now, now, expires}
-	if err := x.commit(next, now); err != nil {
+	if err := x.commitWithBase(base, next, now); err != nil {
 		return nil, err
 	}
 	t := &lifecycleRecoveryOwnerToken{core: &lifecycleRecoveryOwnerCore{x, next.core.RecoveryOwner.OwnerNonce, next.core.LastRecoveryFence}}
@@ -331,6 +454,8 @@ func (s *lifecycleRecoveryStore) close() error {
 	x.live = nil
 	x.permit = nil
 	x.quiescenceSHA = ""
+	x.activeBase = nil
+	x.activePrepared = nil
 	if !lifecycleRecoveryDiskPresent(x.disk) {
 		return errLifecycleUnsafe
 	}

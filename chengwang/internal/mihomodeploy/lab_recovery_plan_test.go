@@ -16,38 +16,62 @@ import (
 func TestLabRecoveryPlanValidationContextRequiresCanonicalSourceAndDetaches(t *testing.T) {
 	p, original, now := labRecoveryPlanModel(t)
 	raw, err := encodeLifecycleRecord(original)
-	if err != nil { t.Fatal("MODEL canonical source") }
+	if err != nil {
+		t.Fatal("MODEL canonical source")
+	}
 	context, err := newLabRecoveryPlanValidationContext(raw)
-	if err != nil || context.validateDescriptor(p.descriptor()) != nil { t.Fatal("MODEL context rejected valid source") }
+	if err != nil || context.validateDescriptor(p.descriptor()) != nil {
+		t.Fatal("MODEL context rejected valid source")
+	}
 	for _, bad := range [][]byte{nil, append(bytes.Clone(raw), ' '), bytes.Replace(raw, []byte(`"schema":`), []byte(`"unexpected":0,"schema":`), 1), bytes.Replace(raw, []byte(`"schema":`), []byte(`"schema":null,"schema":`), 1)} {
-		if _, err := newLabRecoveryPlanValidationContext(bad); err == nil { t.Fatal("MODEL invalid source became validated context") }
+		if _, err := newLabRecoveryPlanValidationContext(bad); err == nil {
+			t.Fatal("MODEL invalid source became validated context")
+		}
 	}
 	notUnknown, err := decodeLifecycleRecord(raw)
-	if err != nil { t.Fatal("MODEL source copy") }
+	if err != nil {
+		t.Fatal("MODEL source copy")
+	}
 	notUnknown.wire.Active.Phase = "DISPATCH_ARMED"
 	notUnknown = lifecycleTestSeal(t, notUnknown)
 	otherRaw, err := encodeLifecycleRecord(notUnknown)
-	if err != nil { t.Fatal("MODEL valid non-UNKNOWN legacy record") }
-	if _, err := newLabRecoveryPlanValidationContext(otherRaw); err == nil { t.Fatal("MODEL context accepted other phase") }
+	if err != nil {
+		t.Fatal("MODEL valid non-UNKNOWN legacy record")
+	}
+	if _, err := newLabRecoveryPlanValidationContext(otherRaw); err == nil {
+		t.Fatal("MODEL context accepted other phase")
+	}
 	// The source bytes/caller object may change after construction; the context
 	// must retain its own canonical decoded facts, not either mutable input.
 	raw[0] = '!'
 	original.wire.Active.Plan.OperationID = "MODEL_mutated_input"
-	if context.validateDescriptor(p.descriptor()) != nil { t.Fatal("MODEL context aliases source input") }
-	if _, err := labRecoveryPlanFromDescriptor(p.descriptor(), original); err == nil { t.Fatal("MODEL public reconstruction trusted stale context") }
-	if _, err := newLabRecoveryPlan(original, p.descriptor().RecoveryID, p.descriptor().DeclaredInitiatorRef, p.descriptor().TargetArtifact, now, now.Add(time.Minute)); err == nil { t.Fatal("MODEL public constructor skipped complete source validation") }
+	if context.validateDescriptor(p.descriptor()) != nil {
+		t.Fatal("MODEL context aliases source input")
+	}
+	if _, err := labRecoveryPlanFromDescriptor(p.descriptor(), original); err == nil {
+		t.Fatal("MODEL public reconstruction trusted stale context")
+	}
+	if _, err := newLabRecoveryPlan(original, p.descriptor().RecoveryID, p.descriptor().DeclaredInitiatorRef, p.descriptor().TargetArtifact, now, now.Add(time.Minute)); err == nil {
+		t.Fatal("MODEL public constructor skipped complete source validation")
+	}
 	var nilContext *labRecoveryPlanValidationContext
 	for _, invalid := range []*labRecoveryPlanValidationContext{nilContext, {}, {core: &labRecoveryPlanValidationCore{}}} {
-		if invalid.validateDescriptor(p.descriptor()) == nil { t.Fatal("MODEL unconstructed context accepted") }
+		if invalid.validateDescriptor(p.descriptor()) == nil {
+			t.Fatal("MODEL unconstructed context accepted")
+		}
 	}
 }
 
 func TestLabRecoveryPlanValidationContextMemoUsesCompleteArtifactBytes(t *testing.T) {
 	p, original, _ := labRecoveryPlanModel(t)
 	raw, err := encodeLifecycleRecord(original)
-	if err != nil { t.Fatal("MODEL canonical source") }
+	if err != nil {
+		t.Fatal("MODEL canonical source")
+	}
 	context, err := newLabRecoveryPlanValidationContext(raw)
-	if err != nil || context.validateDescriptor(p.descriptor()) != nil || len(context.core.targets) != 1 { t.Fatal("MODEL seed target validation") }
+	if err != nil || context.validateDescriptor(p.descriptor()) != nil || len(context.core.targets) != 1 {
+		t.Fatal("MODEL seed target validation")
+	}
 	for _, mutate := range []func(*ArtifactDescriptor){
 		func(d *ArtifactDescriptor) { d.Config.Capabilities = nil },
 		func(d *ArtifactDescriptor) { d.Config.Requirements = nil },
@@ -57,19 +81,29 @@ func TestLabRecoveryPlanValidationContextMemoUsesCompleteArtifactBytes(t *testin
 		func(d *ArtifactDescriptor) { d.Config.Bytes++ },
 		func(d *ArtifactDescriptor) { d.Schema = "MODEL_wrong_schema" },
 	} {
-		d := p.descriptor(); mutate(&d.TargetArtifact)
+		d := p.descriptor()
+		mutate(&d.TargetArtifact)
 		// Keep the original RecordSHA256/Config.SHA256 as an adversarial weak
 		// cache key; recompute the outer plan digest to reach target validation.
 		d = labRecoveryPlanModelReseal(t, d)
-		if context.validateDescriptor(d) == nil || len(context.core.targets) != 1 { t.Fatal("MODEL malformed descriptor hit digest-only memo") }
+		if context.validateDescriptor(d) == nil || len(context.core.targets) != 1 {
+			t.Fatal("MODEL malformed descriptor hit digest-only memo")
+		}
 	}
 	d := p.descriptor()
 	changed, err := newArtifactDescriptor(d.TargetArtifact.Config, strings.Repeat("f", 64), d.TargetArtifact.SourceSpecBytes+1, d.TargetArtifact.ControllerPort, d.TargetArtifact.MixedPort)
-	if err != nil { t.Fatal("MODEL coherent alternative artifact") }
-	d.TargetArtifact = changed; d = labRecoveryPlanModelReseal(t, d)
-	if context.validateDescriptor(d) != nil || len(context.core.targets) != 2 { t.Fatal("MODEL full distinct descriptor not independently validated") }
+	if err != nil {
+		t.Fatal("MODEL coherent alternative artifact")
+	}
+	d.TargetArtifact = changed
+	d = labRecoveryPlanModelReseal(t, d)
+	if context.validateDescriptor(d) != nil || len(context.core.targets) != 2 {
+		t.Fatal("MODEL full distinct descriptor not independently validated")
+	}
 	otherContext, err := newLabRecoveryPlanValidationContext(raw)
-	if err != nil || len(otherContext.core.targets) != 0 { t.Fatal("MODEL target memo leaked across validation passes") }
+	if err != nil || len(otherContext.core.targets) != 0 {
+		t.Fatal("MODEL target memo leaked across validation passes")
+	}
 }
 
 // MODEL ONLY: declared records, descriptors and budgets. These tests do not

@@ -1,0 +1,87 @@
+{
+  "schema": "chengwang.recovery-foundation-failed-run-followup/v1",
+  "sourceCommit": "a14f746fcce2d5e6623e9887cb2735062ab57923",
+  "runID": 40147159085,
+  "runURL": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40147159085",
+  "wholeCIConclusion": "failure",
+  "jobs": {"total": 13, "success": 11, "failure": 2},
+  "ordinary": {
+    "originalExitCode": 0,
+    "semanticPassed": 1191,
+    "semanticRun": 1191,
+    "topLevelPassed": 688,
+    "requiredTopLevelPassed": 518,
+    "legacy407Passed": 407,
+    "capacity256Passed": true,
+    "capacitySeconds": 39.22,
+    "packageSeconds": 50.048,
+    "testFailures": 0,
+    "skips": 0
+  },
+  "race": {
+    "originalExitCode": 1,
+    "semanticRun": 1076,
+    "semanticPassed": 1075,
+    "topLevelRun": 593,
+    "topLevelPassed": 592,
+    "requiredTopLevelPassed": 422,
+    "requiredTopLevelStartedButUnfinished": 1,
+    "requiredTopLevelNotStarted": 95,
+    "legacy407Passed": 328,
+    "legacy407NotStarted": 79,
+    "capacity256Passed": false,
+    "packageTimeoutSeconds": 180.05,
+    "testAssertionFailures": 0,
+    "skips": 0,
+    "dataRaceWarningsObserved": 0,
+    "failure": "PACKAGE_TIMEOUT_DURING_UNCHANGED_FULL_CAPACITY_TEST"
+  },
+  "format": {
+    "patchBytes": 12974,
+    "patchSHA256": "c05f7b92e1d906ca5c945684034956eda70231a2c5bf8466f6c2dcb8bba8790f",
+    "passed": false,
+    "actualPatchTransferredToWorktreeSources": 3,
+    "transferIsNewAcceptance": false,
+    "localGofmtExecuted": false
+  },
+  "independentScopedReplays": {
+    "apply": "PASS_ORIGINAL_GATE",
+    "service": "PASS_ORIGINAL_GATE",
+    "compat": "PASS_ORIGINAL_GATE",
+    "candidate": "PASS_ORIGINAL_GATE",
+    "unknown": "PASS_ORIGINAL_GATE",
+    "producerFreshBytesEqualWithinEachScope": true,
+    "wholeCIOverridden": false,
+    "cpuScope": "Original verify_raw and consumption functions on exact indexed Git source and retained original bytes; not a new Linux CLI or native execution",
+    "sourceGitVerifiedComparison": "Only comparison copies reconcile raw false versus Linux CLI true; original reports unchanged"
+  },
+  "receipts": [
+    {
+      "kind": "foundation-failure-diagnosis",
+      "path": "D:/CodexData/workspace/mihomo-a14f746-foundation-diagnosis-20261025-b/result.json",
+      "sha256": "803f78515c2bbfb661ef0c226694d0314ba9a9596a91691af7bd20a4857bdbaa"
+    },
+    {
+      "kind": "four-nonfoundation-original-gates",
+      "path": "D:/CodexData/workspace/mihomo-a14f746-nonfoundation-replay-20261025-b/result-v2.json",
+      "sha256": "c825a024f4c14e7f007f35fd3552b872d2f34320b0d11e17385d5a4f8c702468"
+    },
+    {
+      "kind": "unknown-original-gate",
+      "path": "D:/CodexData/workspace/mihomo-unknown-a14f746-independent-20261025-root/attempt-1/result.json",
+      "sha256": "c1a08bf932c992fd3d708130bcdc4b0fe23030cdbee48955a0abd398013a60de"
+    }
+  ],
+  "originalsRoot": "D:/CodexData/workspace/mihomo-ci-observed-a14f746-20261025",
+  "immutableSourceRoot": "D:/CodexData/workspace/mihomo-a14f746-acceptance-kqbtvluf/repo",
+  "indexedGitBlobsVerified": 1246,
+  "actualGoRunLocally": false,
+  "actualKernelRunLocally": false,
+  "nextStageAuthorityOrStartIncluded": false,
+  "fullRecoveryAccepted": false,
+  "fullProjectComplete": false,
+  "productionReady": false,
+  "production": false,
+  "mainMerged": false,
+  "registryPublished": false
+}

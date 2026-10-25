@@ -240,9 +240,11 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return err
 	}
+	defer base.release()
 	if err := x.token(t, true, now); err != nil {
 		return err
 	}
@@ -264,12 +266,12 @@ func (s *lifecycleRecoveryStore) beginRecovery(t *lifecycleRecoveryOwnerToken, p
 	if a := x.record.core.Recovery; a != nil && a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED" {
 		return errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return err
 	}
 	next.core.Recovery = &lifecycleRecoveryTxn{Plan: p.descriptor(), Phase: "PLANNED", FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now}
-	return x.commit(next, now)
+	return x.commitWithBase(base, next, now)
 }
 func (s *lifecycleRecoveryStore) recordRecoveryApproval(t *lifecycleRecoveryOwnerToken, a lifecycleRecoveryApproval, now time.Time) error {
 	if s == nil || s.core == nil {
@@ -278,9 +280,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryApproval(t *lifecycleRecoveryOwne
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return err
 	}
+	defer base.release()
 	if err := x.token(t, true, now); err != nil {
 		return err
 	}
@@ -288,14 +292,14 @@ func (s *lifecycleRecoveryStore) recordRecoveryApproval(t *lifecycleRecoveryOwne
 	if old == nil || old.Phase != "PLANNED" || old.Revocation != nil || !a.IssuedAt.Equal(now) || !now.Before(a.ExpiresAt) || !now.Before(old.Plan.ExpiresAt) {
 		return errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return err
 	}
 	next.core.Recovery.Approval = &a
 	next.core.Recovery.Phase = "APPROVED"
 	next.core.Recovery.UpdatedAt = now
-	return x.commit(next, now)
+	return x.commitWithBase(base, next, now)
 }
 func (s *lifecycleRecoveryStore) revokeRecovery(t *lifecycleRecoveryOwnerToken, actor, reason string, now time.Time) error {
 	if s == nil || s.core == nil {
@@ -304,9 +308,11 @@ func (s *lifecycleRecoveryStore) revokeRecovery(t *lifecycleRecoveryOwnerToken, 
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return err
 	}
+	defer base.release()
 	if err := x.token(t, false, now); err != nil {
 		return err
 	}
@@ -314,7 +320,7 @@ func (s *lifecycleRecoveryStore) revokeRecovery(t *lifecycleRecoveryOwnerToken, 
 	if a == nil || a.Revocation != nil || a.Phase == "COMPLETED" || a.Phase == "REVOKED_UNSTARTED" || !planReference.MatchString(actor) || (reason != "EXPLICIT_REVOKED" && reason != "AUTHORITY_CHANGED" && reason != "EXPIRED") || x.record.core.Revision == ^uint64(0) {
 		return errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return err
 	}
@@ -330,7 +336,7 @@ func (s *lifecycleRecoveryStore) revokeRecovery(t *lifecycleRecoveryOwnerToken, 
 			b.Failure = &lifecycleRecoveryFailure{reason, now}
 		}
 	}
-	if err := x.commit(next, now); err != nil {
+	if err := x.commitWithBase(base, next, now); err != nil {
 		return err
 	}
 	x.permit = nil
@@ -397,9 +403,11 @@ func (s *lifecycleRecoveryStore) armRecoveryStop(t *lifecycleRecoveryOwnerToken,
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return zero, err
 	}
+	defer base.release()
 	if err := x.token(t, true, now); err != nil {
 		return zero, err
 	}
@@ -407,7 +415,7 @@ func (s *lifecycleRecoveryStore) armRecoveryStop(t *lifecycleRecoveryOwnerToken,
 	if a == nil || a.Phase != "APPROVED" || a.Revocation != nil || a.Approval == nil || !now.Before(a.Approval.ExpiresAt) || !now.Before(a.Plan.ExpiresAt) || !lifecycleRecoveryIdentityMatches(expected, x.record.core.Current.Head) {
 		return zero, errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return zero, err
 	}
@@ -421,7 +429,7 @@ func (s *lifecycleRecoveryStore) armRecoveryStop(t *lifecycleRecoveryOwnerToken,
 	if lifecycleRecoveryReserve(next.core) != nil {
 		return zero, errLifecycleUnsafe
 	}
-	if err := x.commit(next, now); err != nil {
+	if err := x.commitWithBase(base, next, now); err != nil {
 		return zero, err
 	}
 	return binding, nil
@@ -433,9 +441,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryQuiescence(t *lifecycleRecoveryOw
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return err
 	}
+	defer base.release()
 	if err := x.token(t, false, now); err != nil {
 		return err
 	}
@@ -448,7 +458,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryQuiescence(t *lifecycleRecoveryOw
 	if err != nil {
 		return errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return err
 	}
@@ -465,7 +475,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryQuiescence(t *lifecycleRecoveryOw
 		}
 	}
 	// Record a happened physical fact even if its authorization later expired.
-	if err := x.commit(next, now); err != nil {
+	if err := x.commitWithBase(base, next, now); err != nil {
 		return err
 	}
 	if b.Phase == "OLD_EPOCH_QUIESCED" {
@@ -482,9 +492,11 @@ func (s *lifecycleRecoveryStore) recordRecoveryFailure(t *lifecycleRecoveryOwner
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return err
 	}
+	defer base.release()
 	if err := x.token(t, false, now); err != nil {
 		return err
 	}
@@ -495,7 +507,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryFailure(t *lifecycleRecoveryOwner
 	if code != "QUIESCENCE_REJECTED" && code != "SERVICE_CONTEXT_CANCELLED" && code != "AUTHORITY_CHANGED" && code != "EXPLICIT_REVOKED" && code != "EXPIRED" && code != "START_UNCERTAIN" {
 		return errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return err
 	}
@@ -508,7 +520,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryFailure(t *lifecycleRecoveryOwner
 	if observed != nil {
 		b.FailedQuiescence = append(b.FailedQuiescence, labQuiescenceCloneObservation(*observed))
 	}
-	if err := x.commit(next, now); err != nil {
+	if err := x.commitWithBase(base, next, now); err != nil {
 		return err
 	}
 	x.permit = nil
@@ -554,9 +566,11 @@ func (s *lifecycleRecoveryStore) armRecoveryStart(t *lifecycleRecoveryOwnerToken
 	x := s.core
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if err := x.verify(); err != nil {
+	base, err := x.verifiedBase()
+	if err != nil {
 		return nil, err
 	}
+	defer base.release()
 	if err := x.token(t, true, now); err != nil {
 		return nil, err
 	}
@@ -567,7 +581,7 @@ func (s *lifecycleRecoveryStore) armRecoveryStart(t *lifecycleRecoveryOwnerToken
 	if !labQuiescenceFactValid(*a.Quiescence, *a.StopBinding, now) {
 		return nil, errLifecycleUnsafe
 	}
-	next, err := x.copyRecord()
+	next, err := base.copyRecord()
 	if err != nil {
 		return nil, err
 	}
@@ -579,7 +593,7 @@ func (s *lifecycleRecoveryStore) armRecoveryStart(t *lifecycleRecoveryOwnerToken
 	if lifecycleRecoveryReserve(next.core) != nil {
 		return nil, errLifecycleUnsafe
 	}
-	if err := x.commit(next, now); err != nil {
+	if err := x.commitWithBase(base, next, now); err != nil {
 		return nil, err
 	}
 	w := x.record.core

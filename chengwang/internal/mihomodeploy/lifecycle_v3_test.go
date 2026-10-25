@@ -12,52 +12,86 @@ import (
 
 func TestLifecycleV3ValidationContextRechecksChangedCanonicalSource(t *testing.T) {
 	s, _, owner, _, now := lifecycleRecoveryModelPlanned(t)
-	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil { t.Fatal("MODEL seed history") }
+	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+		t.Fatal("MODEL seed history")
+	}
 	r := lifecycleV3Copy(t, s.core.record)
-	if validateLifecycleV3Record(r) != nil { t.Fatal("MODEL valid original pass") }
+	if validateLifecycleV3Record(r) != nil {
+		t.Fatal("MODEL valid original pass")
+	}
 	original, err := decodeLifecycleRecord(r.core.SourceV2.ControlBytes)
-	if err != nil { t.Fatal("MODEL source") }
+	if err != nil {
+		t.Fatal("MODEL source")
+	}
 	original.wire.Revision++
 	original = lifecycleTestSeal(t, original)
 	raw, err := encodeLifecycleRecord(original)
-	if err != nil { t.Fatal("MODEL independently valid replacement source") }
+	if err != nil {
+		t.Fatal("MODEL independently valid replacement source")
+	}
 	r.core.SourceV2 = lifecycleLegacySnapshot{lifecycleSchemaV2, labConfigHash(raw), original.wire.RecordSHA256, original.wire.Revision, raw}
 	r.core.Current = lifecycleLegacyLedger(original, raw)
 	r = lifecycleV3Seal(t, r)
 	context, err := lifecycleV3SourceContext(r.core)
-	if err != nil { t.Fatal("MODEL coherent source envelope did not reach binding check") }
-	if context.validateDescriptor(r.core.RecoveryHistory[0].Plan) == nil || validateLifecycleV3Record(r) == nil { t.Fatal("MODEL stale source context reused across records") }
+	if err != nil {
+		t.Fatal("MODEL coherent source envelope did not reach binding check")
+	}
+	if context.validateDescriptor(r.core.RecoveryHistory[0].Plan) == nil || validateLifecycleV3Record(r) == nil {
+		t.Fatal("MODEL stale source context reused across records")
+	}
 }
 
 func TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit(t *testing.T) {
 	s, _, owner, p, now := lifecycleRecoveryModelPlanned(t)
-	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil { t.Fatal("MODEL first archive") }
+	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+		t.Fatal("MODEL first archive")
+	}
 	original, err := lifecycleV3Source(s.core.record.core)
-	if err != nil { t.Fatal("MODEL source") }
+	if err != nil {
+		t.Fatal("MODEL source")
+	}
 	second, err := newLabRecoveryPlan(original, "labrec_"+strings.Repeat("2", 32), p.descriptor().DeclaredInitiatorRef, p.descriptor().TargetArtifact, now, now.Add(time.Minute))
-	if err != nil || s.beginRecovery(owner, &second, s.core.record.core.Revision, s.core.record.core.RecordSHA256, now) != nil || s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil { t.Fatal("MODEL valid second archive") }
+	if err != nil || s.beginRecovery(owner, &second, s.core.record.core.Revision, s.core.record.core.RecordSHA256, now) != nil || s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+		t.Fatal("MODEL valid second archive")
+	}
 	for _, kind := range []string{"digest", "time", "budget", "operation", "intent", "head", "epoch", "provisioning", "target"} {
 		r := lifecycleV3Copy(t, s.core.record)
 		context, err := lifecycleV3SourceContext(r.core)
-		if err != nil || context.validateDescriptor(r.core.RecoveryHistory[0].Plan) != nil { t.Fatal("MODEL first plan/memo seed") }
+		if err != nil || context.validateDescriptor(r.core.RecoveryHistory[0].Plan) != nil {
+			t.Fatal("MODEL first plan/memo seed")
+		}
 		d := r.core.RecoveryHistory[1].Plan
 		switch kind {
-		case "time": d.ExpiresAt = d.CreatedAt
-		case "budget": d.Budgets.StopMillis++
-		case "operation": d.UnknownOperationID = "MODEL_other_operation"
-		case "intent": d.OriginalIntentSHA256 = strings.Repeat("d", 64)
-		case "head": d.PreviousHeadSHA256 = strings.Repeat("d", 64)
-		case "epoch": d.OldEpochSHA256 = strings.Repeat("d", 64)
-		case "provisioning": d.Provisioning.MarkerSHA256 = strings.Repeat("d", 64)
-		case "target": d.TargetArtifact.SourceSpecBytes++
+		case "time":
+			d.ExpiresAt = d.CreatedAt
+		case "budget":
+			d.Budgets.StopMillis++
+		case "operation":
+			d.UnknownOperationID = "MODEL_other_operation"
+		case "intent":
+			d.OriginalIntentSHA256 = strings.Repeat("d", 64)
+		case "head":
+			d.PreviousHeadSHA256 = strings.Repeat("d", 64)
+		case "epoch":
+			d.OldEpochSHA256 = strings.Repeat("d", 64)
+		case "provisioning":
+			d.Provisioning.MarkerSHA256 = strings.Repeat("d", 64)
+		case "target":
+			d.TargetArtifact.SourceSpecBytes++
 		}
 		d = labRecoveryPlanModelReseal(t, d)
-		if kind == "digest" { d.PlanSHA256 = strings.Repeat("d", 64) }
-		if context.validateDescriptor(d) == nil { t.Fatal("MODEL per-plan check skipped after target cache hit") }
+		if kind == "digest" {
+			d.PlanSHA256 = strings.Repeat("d", 64)
+		}
+		if context.validateDescriptor(d) == nil {
+			t.Fatal("MODEL per-plan check skipped after target cache hit")
+		}
 		r.core.RecoveryHistory[1].Plan = d
 		r.core.Recovery.Plan = d
 		r = lifecycleV3Seal(t, r)
-		if validateLifecycleV3Record(r) == nil { t.Fatal("MODEL invalid history accepted in full record") }
+		if validateLifecycleV3Record(r) == nil {
+			t.Fatal("MODEL invalid history accepted in full record")
+		}
 	}
 }
 
