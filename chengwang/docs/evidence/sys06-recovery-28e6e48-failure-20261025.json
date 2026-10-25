@@ -1,0 +1,91 @@
+{
+  "schema": "chengwang.recovery-transaction-failed-run-followup/v1",
+  "sourceCommit": "28e6e48eeb4944bee202744a7d0e98aff898eace",
+  "runID": 40148979938,
+  "runURL": "https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40148979938",
+  "wholeCIConclusion": "failure",
+  "jobs": {"total": 13, "success": 11, "failure": 2},
+  "ordinary": {
+    "originalExitCode": 0,
+    "semanticPassed": 1201,
+    "requiredTopLevelPassed": 528,
+    "previous518AndNew10Passed": true,
+    "capacity256Passed": true,
+    "capacitySeconds": 17.37,
+    "skips": 0
+  },
+  "race": {
+    "originalExitCode": 1,
+    "semanticRun": 1086,
+    "semanticPassed": 1085,
+    "requiredTopLevelPassed": 432,
+    "previous518Passed": 422,
+    "new10Passed": 10,
+    "requiredTopLevelStartedButUnfinished": 1,
+    "requiredTopLevelNotStarted": 95,
+    "capacity256Passed": false,
+    "packageTimeoutSeconds": 180.047,
+    "testAssertionFailures": 0,
+    "skips": 0,
+    "dataRaceWarningsObserved": 0,
+    "failure": "PACKAGE_TIMEOUT_DURING_UNCHANGED_FULL_CAPACITY_TEST"
+  },
+  "format": {
+    "patchBytes": 25095,
+    "passed": false,
+    "actualPatchTransferredToWorktreeSources": 2,
+    "transferIsNewAcceptance": false,
+    "localGofmtExecuted": false
+  },
+  "stackEvidence": {
+    "sampledPath": "capacity -> revokeRecovery -> verifiedBase -> decodeV3 -> full history validation -> plan descriptor -> regexp",
+    "isCPUProfile": false,
+    "majorCPUCostProven": false,
+    "furtherSemanticOptimizationAuthorizedFromThisSampleAlone": false
+  },
+  "scopedOriginalReplays": {
+    "apply": "PASS_ORIGINAL_GATE",
+    "service": "PASS_ORIGINAL_GATE",
+    "compat": "PASS_ORIGINAL_GATE",
+    "candidate": "PASS_ORIGINAL_GATE",
+    "unknown": "PASS_ORIGINAL_GATE",
+    "producerFreshBytesEqualWithinEachScope": true,
+    "wholeCIOverridden": false,
+    "scope": "Pure CPU original raw verifiers on exact indexed source and original artifacts; not a new Linux CLI or native execution"
+  },
+  "receipts": [
+    {
+      "kind": "foundation-failure-diagnosis",
+      "path": "D:/CodexData/workspace/mihomo-28e6e48-foundation-diagnosis-20261025-c/result.json",
+      "sha256": "4ae37f6448d9505c6baa0c6a6590e68a5b127f4117a5a69280862b75eec9eb79"
+    },
+    {
+      "kind": "four-nonfoundation-original-gates",
+      "path": "D:/CodexData/workspace/mihomo-28e6e48-nonfoundation-replay-20261025-a/attempt-2/result-v2.json",
+      "sha256": "2e8562920f3b0c81035f4cd62689bcb05e3448e6eb515a5e9aa84846b10e037b"
+    },
+    {
+      "kind": "unknown-original-gate",
+      "path": "D:/CodexData/workspace/mihomo-unknown-28e6e48-independent-20261025-c/result.json",
+      "sha256": "09961141a69159e0d14c1f611f7205467599bea33ed9d7d3fce51288a69491d5"
+    }
+  ],
+  "originalsRoot": "D:/CodexData/workspace/mihomo-ci-observed-28e6e48-20261025",
+  "externalAuditCorrections": {
+    "firstIndexReaderFailureRetained": "External reader initially used LF on the actual NUL Git index; only that reader was corrected before original verifiers ran.",
+    "fourGateSummaryCorrectionRetained": "The first external summary used a service filename pattern and reported zero apply bodies. Version 2 corrects the summary to 16; the original full apply verifier already validated all 16 bodies. Successful verifiers were not rerun.",
+    "originalEvidenceAndVerifiersModified": false
+  },
+  "immutableSourceRoot": "D:/CodexData/workspace/mihomo-28e6e48-acceptance-gf0xdltx/repo",
+  "indexedGitBlobsVerified": 1248,
+  "actualGoRunLocally": false,
+  "actualKernelRunLocally": false,
+  "actualCPUProfilingExecuted": false,
+  "nextStageAuthorityOrStartIncluded": false,
+  "fullRecoveryAccepted": false,
+  "fullProjectComplete": false,
+  "productionReady": false,
+  "production": false,
+  "mainMerged": false,
+  "registryPublished": false
+}

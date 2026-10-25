@@ -1,0 +1,136 @@
+name: Chengwang Isolated Capacity CPU Diagnosis
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-mihomo-lifecycle-20261024]
+    paths:
+      - '.github/workflows/chengwang-mihomo-capacity-profile.yml'
+      - 'chengwang/deploy/mihomo-capacity-profile/**'
+      - 'chengwang/internal/mihomodeploy/lifecycle*.go'
+      - 'chengwang/internal/mihomodeploy/lab_recovery_plan*.go'
+      - 'chengwang/internal/mihomodeploy/lab_bootstrap_state.go'
+      - 'chengwang/go.mod'
+      - 'chengwang/go.sum'
+      - 'chengwang/vendor/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-capacity-profile-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  development-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require the fixed isolated development branch
+        env:
+          REQUEST_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$REQUEST_REF" = refs/heads/codex/chengwang-mihomo-lifecycle-20261024
+
+  profile:
+    needs: development-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Preserve original host and immutable source bindings
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-capacity-profile-public"
+          test ! -e "$root"
+          install -d -m 0755 "$root"
+          helper=chengwang/deploy/mihomo-capacity-profile/check_profile.py
+          python3 -B "$helper" host --out "$root/host-before.json"
+          python3 -B "$helper" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --out "$root/source-before.json"
+      - name: Diagnose the unchanged original race case in a private offline namespace
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          # This outer600s contains compilation and local pprof too. It does
+          # not replace/extend the original test's own unchanged180s timeout.
+          # Namespace init exit kills every descendant; no numeric PID adopt.
+          timeout --signal=TERM --kill-after=15s 600s \
+            sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-capacity-profile/run_profile.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-capacity-profile-public" "$go_root" "$GITHUB_SHA"
+      - name: Observe host after attempt and independently verify diagnostic originals
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-capacity-profile-public"
+          test -d "$root"
+          helper=chengwang/deploy/mihomo-capacity-profile/check_profile.py
+          python3 -B "$helper" host --out "$root/host-after.json"
+          python3 -B "$helper" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --out "$root/source-after.json"
+          python3 -B "$helper" verify --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$root" --report "$RUNNER_TEMP/mihomo-capacity-profile-verification.json"
+      - name: Preserve actual diagnostic originals even when the original test fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-capacity-profile-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mihomo-capacity-profile-public/host-before.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/host-after.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/source-before.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/source-after.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/sandbox.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/go-version.txt
+            ${{ runner.temp }}/mihomo-capacity-profile-public/gofmt.patch
+            ${{ runner.temp }}/mihomo-capacity-profile-public/gofmt.stderr
+            ${{ runner.temp }}/mihomo-capacity-profile-public/capacity.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/capacity.stderr
+            ${{ runner.temp }}/mihomo-capacity-profile-public/commands.jsonl
+            ${{ runner.temp }}/mihomo-capacity-profile-public/execution.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/profile-state.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/cpu-profile.json
+            ${{ runner.temp }}/mihomo-capacity-profile-public/pprof-top.txt
+            ${{ runner.temp }}/mihomo-capacity-profile-public/pprof-top.stderr
+            ${{ runner.temp }}/mihomo-capacity-profile-public/pprof-cum.txt
+            ${{ runner.temp }}/mihomo-capacity-profile-public/pprof-cum.stderr
+            ${{ runner.temp }}/mihomo-capacity-profile-verification.json
+          retention-days: 14
+          if-no-files-found: error
+
+  profile-fresh:
+    needs: [development-only, profile]
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-capacity-profile-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/capacity-originals
+      - name: Reconstruct profile bytes and exact case result without executing Go
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py verify \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/capacity-originals/mihomo-capacity-profile-public" \
+            --report "$RUNNER_TEMP/mihomo-capacity-profile-fresh.json"
+          cmp "$RUNNER_TEMP/capacity-originals/mihomo-capacity-profile-verification.json" \
+            "$RUNNER_TEMP/mihomo-capacity-profile-fresh.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-capacity-profile-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-capacity-profile-fresh.json
+          retention-days: 14
+          if-no-files-found: error

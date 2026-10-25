@@ -4,6 +4,18 @@
 
 ## 本次已有代码
 
+### 2026-10-25 独立CPU诊断源码已冻结，尚未实际采样
+
+新增5个诊断专用文件，未改既有13任务工作流、528必需名单、原容量测试正文、实际256常量或180秒门限。独立3任务工作流仅允许开发分支：Go1.23.12在私有net／mount／PID空间、UID10001、零能力、清环境及只读源码／GoRoot运行唯一原容量case。仅显式诊断标签启用TestMain；60秒定时器自身停止CPU采样、跟踪writer错误并Sync／Close保存原profile，不依赖180秒panic后的defer。外层600秒包含编译与本地工具，未替代或延长测试自己的180秒。
+
+原profile以有界base64 JSON、Go原事件、工具stdout／stderr、实际命令／PID／exit、全Git源码绑定和主机前后观测保管。PPROF只本地符号化，不开HTTP；完整原件校验与原case成功分字段，测试失败仍保持CI失败。fresh仅独立重读profile gzip／protobuf结构、源码与事件，不重新计算top／cum数值，pprofNumericRecomputeProven保持false。静态源码复核通过不代表已编译／采样；实际profile、格式、编译及case结果待新的Linux CI。下一授权／Start7源未纳本次，完整恢复和生产均未完成。
+
+### 2026-10-25 28e6e48实际验收：普通528通过，race仍超时，准备独立性能诊断
+
+真实Linux运行40148979938终态11成功／2失败。普通1201语义及528必需声明均通过，原256历史容量用例17.37秒PASS；race的10新反例全部通过，但必需432通过、1未完成、95未启动，容量用例仍触发包180.047秒超时，未观察断言失败／跳过／DATA RACE警告不等于race通过。实际25095字节格式差异已严格按本提交preimage转入2源，未本机执行gofmt。
+
+五类分项原门及fresh已独立离线复核通过；原基础失败没有被覆盖，见[evidence/sys06-recovery-28e6e48-failure-20261025.json](evidence/sys06-recovery-28e6e48-failure-20261025.json)。本轮超时采样位于verifiedBase的完整历史／descriptor正则校验，不能据一次stack断言主要CPU成本。下一步准备使用Go1.23.12标准runtime/pprof在独立隔离CI诊断，原256方法、180秒门限和完整普通／race门保持。当前未执行profiling，也没有新恢复可用或生产上线结论。
+
 ### 2026-10-25 锁内事务校验优化：源码冻结，待新Linux验收
 
 本次实际修改3源：恢复store、其测试和恢复transition。每次锁内操作从实际磁盘完整canonical／语义解码签发private一次base，复制时仅对已验证原字节作独立typed解码；完整新候选校验后形成独立prepared字节和记录。提交前仍重新核实际custody／磁盘原字节CAS，写后仍实际精确读回及custody验证，才采用private独立记录。不存在store跨操作验证缓存；临时发行身份在所有退出、关闭、时钟封锁时清理，已知失败消费不可通过恢复字节复活。generic raw publisher仍单独严格验证实际旧v2和显式演进，不借造v3 base。
