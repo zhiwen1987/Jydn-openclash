@@ -170,7 +170,7 @@ class SyntheticServiceEvidenceModels(unittest.TestCase):
 
     def test_complete_synthetic_originals_validate_only_bounded_public_claims(self):
         raw,sources=fixture();v=S.verify_raw(raw,sources,COMMIT)
-        self.assertEqual(len(raw),58);self.assertEqual(len(sources),138);self.assertEqual(v['outcome'],'PASS')
+        self.assertEqual(len(raw),58);self.assertEqual(len(sources),139);self.assertEqual(v['outcome'],'PASS')
         for key in ('sourceGitVerified','currentCredentialContentsIndependentlyProven','privateExpectedSourceIndependentlyProven',
             'fullPrivateWALIndependentlyProven','privateDisclosureFenceIndependentlyProven','fullPayloadProven','internetBusinessProven','production'):self.assertIs(v[key],False)
         self.assertIsNone(v['controllerReceivedCount'])

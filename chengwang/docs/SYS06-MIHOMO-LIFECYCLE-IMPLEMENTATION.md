@@ -1,8 +1,22 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，ca正常13门及585必需用例限定通过；最新850普通／race各587及完整诊断通过，但正常格式门失败，实际单空行补丁已转入，仍须新完整CI验收，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：产品执行 API 与真实服务实验已在隔离 Linux CI 执行，ca正常13门及585必需用例限定通过；850曾普通／race各587及完整诊断通过但正常格式失败，最新f023格式已清洁却整套race预算耗尽，容量已过仍不能认全门通过，未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
+
+### 2026-10-25 591可信深复制候选：完成源审，等待真实Linux验收
+
+本切片仅在verifiedBase与prepared-owned两个已可信入口以闭合typed深复制替代完整JSON解析；base.copyRecord保持原始raw解码，防止共同修改typed store/base后仍通过相等比较的内容进入草稿。实际disk／custody／canonical／外部strict hash／全部candidate与history语义、独立对象／CAS／exact readback均保留。43结构／285字段／90类型节点按字段显式复制，schema pin对未知形状和codec拒绝；sync.OnceValue仅缓存静态Go类型元数据。已知time／UTF8／RawMessage表示差异回到同入口原raw JSON复制，不缓存授权或共享可变业务引用。
+
+新增4个顶层Go声明覆盖dense快路径、nil／empty／sparecap、sibling隔离、表示回退、codec形状及原始草稿边界；必需名单591（bd98cdb360c8eb7fd8c90f0a7a2855a9d8135a3a832f77cfd115ac39c5078857），旧587／585／539／528／407保留。实际normal绑定113源／41测试文件／107格式输入，compat124／apply132／service139／unknown145。原六包、双Go命令、180秒、256历史与2MiB不放宽。来源f20ee3f6与770c344f、独立3Go peer7c877ae9／控制peer736e03e4，6项受影响的合成检查仅是模型证据。当前统一集成源码，不等于编译／gofmt／反射schema／新旧Go及性能已通过；f023失败保留，S1另行适配，完整产品与生产未完成。
+
+### 2026-10-25 f023格式清洁但整套180秒预算耗尽：容量通过不等于整套通过
+
+f023a4448b0503f0c88f151e654a356e4d428382正常40161745031仍11成功／2失败：fmt0、普通1275语义／587必需全PASS；race包180.036秒超时，547必需过／1未完／39未启动。容量115.62秒已PASS（prefix56.529567秒），尾部旧plan测试未完，不能把最后栈位置当其性能根因。其他五类原门成功，原normal fresh缺失与失败保留；独立59ce5dab核11ZIP206成员／1276blob稳定，未进行成功原main观察或临时门豁免。
+
+诊断40161745037为4success／full1failure；容量115.67秒PASS，包180.040秒超时，570必需过／1未完／16未启动，尾部旧ReloadPreparation刚运行时碰到deadline；new2／旧20含子项27全PASS。独立534549cc核4ZIP42成员、原完整120秒采样／资源／source与两模式fresh一致，fullGoAccepted仍false；single117.77秒不覆盖full。原Windows平台限制无adapter保留，未盲重跑或放宽180／256／2MiB。归档见[evidence/sys06-f023-format-clean-suite-budget-failure-20261025.json](evidence/sys06-f023-format-clean-suite-budget-failure-20261025.json)。
+
+下一优化仅外部开发中：盘点可信已验证record的三次完整JSON typed decode能否改为全字段深度脱离复制，并保每次实际disk／canonical一致性、外部strict decode／hash、全部candidate／history语义、独立base／prepared、publish一致性及CAS读回。浅复制／共享引用／缓存权限不接受；新字段漏拷必须fail closed。尚无该新源码集成或性能接受，S1仍仅独立候选，完整系统／生产未完成。
 
 ### 2026-10-25 850实际587全部Go及full诊断通过，正常格式失败仍保留
 

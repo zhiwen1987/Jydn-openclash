@@ -806,3 +806,53 @@ func TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan(t *testing.T) {
 		}
 	}
 }
+
+func TestLifecycleRecoveryTrustedCloneKeepsRawDraftBoundary(t *testing.T) {
+	// A base has two independent typed images, but intact alone does not bind
+	// coordinated changes in both images back to the unchanged canonical raw.
+	s, disk, base, _, _ := lifecycleRecoveryTransactionModel(t)
+	defer base.release()
+	originalRaw := bytes.Clone(base.core.raw)
+	var oracle lifecycleV3Wire
+	if json.Unmarshal(originalRaw, &oracle) != nil {
+		t.Fatal("MODEL original JSON draft oracle")
+	}
+	s.core.record.core.Current.Owner.OwnerNonce = "MODEL_coordinated_typed_change"
+	base.core.record.core.Current.Owner.OwnerNonce = "MODEL_coordinated_typed_change"
+	if !base.valid(s.core) {
+		t.Fatal("MODEL coordinated private mutation did not reach raw-copy boundary")
+	}
+	draft, err := base.copyRecord()
+	if err != nil || !reflect.DeepEqual(draft.core, &oracle) || !bytes.Equal(originalRaw, base.core.raw) || disk.writes != 0 {
+		t.Fatal("MODEL draft copied coordinated typed mutation instead of actual raw")
+	}
+	if draft.core.Current.Owner == base.core.record.core.Current.Owner || draft.core.Current.Owner == s.core.record.core.Current.Owner {
+		t.Fatal("MODEL original raw draft aliases a typed image")
+	}
+	// The verified-base optimization still creates a distinct object graph.
+	fresh, freshDisk, freshBase, _, _ := lifecycleRecoveryTransactionModel(t)
+	before := fresh.core.record.core.Current.Owner.OwnerNonce
+	freshBase.core.record.core.Current.Owner.OwnerNonce = "MODEL_base_only_change"
+	if fresh.core.record.core.Current.Owner.OwnerNonce != before || freshDisk.writes != 0 {
+		t.Fatal("MODEL verified-base typed clone aliases store")
+	}
+	freshBase.release()
+	// The prepared-owned optimization must remain independent of the draft,
+	// and publication must still reject metadata that no longer equals raw.
+	ready, readyDisk, readyBase, next, now := lifecycleRecoveryTransactionModel(t)
+	defer readyBase.release()
+	prepared, err := prepareLifecycleCandidate(readyBase, next, now)
+	if err != nil {
+		t.Fatal("MODEL actual candidate preparation")
+	}
+	ownedNonce := prepared.core.record.core.Current.Owner.OwnerNonce
+	next.core.Current.Owner.OwnerNonce = "MODEL_draft_only_change"
+	next.core.SourceV2.ControlBytes[0] = '!'
+	if prepared.core.record.core.Current.Owner.OwnerNonce != ownedNonce || prepared.core.record.core.SourceV2.ControlBytes[0] != '{' || readyDisk.writes != 0 {
+		t.Fatal("MODEL owned candidate aliases detached draft")
+	}
+	prepared.core.record.core.Current.Owner.OwnerNonce = "MODEL_prepared_metadata_change"
+	if ready.core.publishPrepared(prepared) == nil || readyDisk.writes != 0 {
+		t.Fatal("MODEL typed clone bypassed sealed-raw publication equality")
+	}
+}

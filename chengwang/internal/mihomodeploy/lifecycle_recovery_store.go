@@ -3,14 +3,23 @@ package mihomodeploy
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
+
+	"chengwang/internal/adapter/mihomo"
+	"chengwang/internal/authz"
 )
 
 type lifecycleRecoveryStore struct{ core *lifecycleRecoveryStoreCore }
@@ -343,15 +352,14 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 		return nil, errLifecycleUnsafe
 	}
 	// The source is already fully validated and exact-byte matched above.
-	// Typed decoding creates an independent base without repeating token,
+	// A closed typed copy creates an independent base without repeating token,
 	// canonical and complete-history validation of this unchanged image.
-	var detached lifecycleV3Wire
-	if json.Unmarshal(raw, &detached) != nil {
+	r, err := cloneTrustedLifecycleV3(x.record, raw)
+	if err != nil {
 		x.poisoned = true
 		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
-	r := lifecycleV3Record{core: &detached}
 	b := &lifecycleVerifiedBase{core: &lifecycleVerifiedBaseCore{store: x, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: r}}
 	x.activeBase = b.core
 	return b, nil
@@ -445,7 +453,7 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 		return errLifecycleCommitUnknown
 	}
 	// Every actual byte equals the fully validated prepared canonical bytes.
-	// Its typed record is an independent private decode, never caller input.
+	// Its typed record is an independent private copy, never caller input.
 	x.record = c.record
 	x.raw = bytes.Clone(c.raw)
 	// This issuance is after full candidate validation, actual replace,
@@ -508,11 +516,11 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	if err != nil {
 		return nil, err
 	}
-	var owned lifecycleV3Wire
-	if json.Unmarshal(raw, &owned) != nil {
+	owned, err := cloneTrustedLifecycleV3(next, raw)
+	if err != nil {
 		return nil, errLifecycleUnsafe
 	}
-	c := &lifecyclePreparedCandidateCore{store: x, base: base.core, before: bytes.Clone(base.core.raw), beforeSHA256: base.core.rawSHA256, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: lifecycleV3Record{core: &owned}}
+	c := &lifecyclePreparedCandidateCore{store: x, base: base.core, before: bytes.Clone(base.core.raw), beforeSHA256: base.core.rawSHA256, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: owned}
 	p := &lifecyclePreparedCandidate{core: c}
 	x.activePrepared = c
 	return p, nil
@@ -632,4 +640,356 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 		return len(b.RecoveryHistory) == len(a.RecoveryHistory)+1 && reflect.DeepEqual(b.RecoveryHistory[len(a.RecoveryHistory)], *y)
 	}
 	return len(b.RecoveryHistory) == len(a.RecoveryHistory)
+}
+
+// This is a copy contract, not a validation/owner/approval capability. The
+// two callers must first establish their existing exact canonical source or
+// fully validated candidate. Unknown fields/codecs fail closed before copying.
+// Every local struct is written as a complete positional literal: adding a
+// field requires an explicit copy update rather than a silent shallow alias.
+const lifecycleCloneSchemaSHA256 = "c9024a097ac3065a588a195e6cf947572ffd0cfd3103783054810da7b01a9d13"
+
+var errLifecycleCloneRepresentation = errors.New("trusted record copy requires original JSON representation")
+
+// Go type/tag/method metadata is immutable within this binary. Cache only its
+// closed-schema check, never a record, field value, owner or validation result.
+var lifecycleCloneTypeSchema = sync.OnceValue(func() bool {
+	return lifecycleCloneTypeSchemaFor(reflect.TypeOf(lifecycleV3Wire{}))
+})
+
+func lifecycleCloneTypeSchemaFor(root reflect.Type) bool {
+	digest, walked := lifecycleCloneTypeShape(root)
+	return walked && digest == lifecycleCloneSchemaSHA256
+}
+
+// This pure metadata walk deliberately exposes its completion independently
+// of the fixed Wire-domain digest, so codec/type negative controls cannot be
+// masked by merely giving a synthetic root a different type name.
+func lifecycleCloneTypeShape(root reflect.Type) (string, bool) {
+	if root == nil {
+		return "", false
+	}
+	seen := map[reflect.Type]bool{}
+	rows := []string{}
+	jsonM := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+	jsonU := reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+	textM := reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+	textU := reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+	var visit func(reflect.Type) bool
+	visit = func(t reflect.Type) bool {
+		if seen[t] {
+			return true
+		}
+		seen[t] = true
+		row := t.PkgPath() + "|" + t.String() + "|" + t.Kind().String() + "\n"
+		if t == reflect.TypeOf(time.Time{}) {
+			rows = append(rows, row)
+			return true // standard-library leaf; noncanonical representations fall back
+		}
+		knownCodec := t == reflect.TypeOf(json.RawMessage{}) ||
+			(t.Kind() == reflect.Pointer && (t.Elem() == reflect.TypeOf(time.Time{}) || t.Elem() == reflect.TypeOf(json.RawMessage{})))
+		if !knownCodec {
+			for _, codec := range []reflect.Type{jsonM, jsonU, textM, textU} {
+				if t.Implements(codec) || reflect.PointerTo(t).Implements(codec) {
+					return false
+				}
+			}
+		}
+		switch t.Kind() {
+		case reflect.Struct:
+			for i := 0; i < t.NumField(); i++ {
+				f := t.Field(i)
+				if f.PkgPath != "" || !visit(f.Type) {
+					return false
+				}
+				row += f.Name + "|" + f.Type.String() + "|" + string(f.Tag) + "|" + strconv.FormatBool(f.Anonymous) + "\n"
+			}
+		case reflect.Pointer, reflect.Slice:
+			if !visit(t.Elem()) {
+				return false
+			}
+		case reflect.String, reflect.Bool, reflect.Int, reflect.Int64, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		default:
+			return false // no generic maps, interfaces, functions or hidden graphs
+		}
+		rows = append(rows, row)
+		return true
+	}
+	if !visit(root) {
+		return "", false
+	}
+	sort.Strings(rows)
+	digest := sha256.Sum256([]byte(strings.Join(rows, "\n")))
+	return hex.EncodeToString(digest[:]), true
+}
+
+type lifecycleCloneState struct{ err error }
+
+func cloneTrustedLifecycleV3(in lifecycleV3Record, raw []byte) (lifecycleV3Record, error) {
+	if in.core == nil || !lifecycleCloneTypeSchema() {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	c := &lifecycleCloneState{}
+	out := c.wire(*in.core)
+	if c.err == errLifecycleCloneRepresentation {
+		// Match the exact old copy on known representation-changing leaves.
+		// This flag only requests the original operation; it grants no trust.
+		return lifecycleTrustedJSONCopy(raw)
+	}
+	// This compares every value/nil distinction, not just a digest or revision.
+	// It is not a substitute for any caller's original semantic/custody gates.
+	if c.err != nil || !reflect.DeepEqual(in.core, &out) {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	return lifecycleV3Record{core: &out}, nil
+}
+
+func lifecycleTrustedJSONCopy(raw []byte) (lifecycleV3Record, error) {
+	if len(raw) == 0 || len(raw) > maxLifecycleControlBytes {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	var out lifecycleV3Wire
+	if json.Unmarshal(raw, &out) != nil {
+		return lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	return lifecycleV3Record{core: &out}, nil
+}
+
+func (c *lifecycleCloneState) text(in string) string {
+	if !utf8.ValidString(in) {
+		c.err = errLifecycleCloneRepresentation // original JSON replaces invalid UTF-8
+	}
+	return in
+}
+
+func (c *lifecycleCloneState) timestamp(in time.Time) time.Time {
+	// The ordinary canonical UTC/no-monotonic leaf is a value. Other admitted
+	// offsets/named locations/monotonic values use the exact original raw copy.
+	if in.Location() != time.UTC || in != in.Round(0) {
+		c.err = errLifecycleCloneRepresentation
+	}
+	return in
+}
+
+func lifecycleClonePointer[T any](in *T, copyValue func(T) T) *T {
+	if in == nil {
+		return nil
+	}
+	out := copyValue(*in)
+	return &out // allocate per path; do not memoize shared input pointers
+}
+
+func lifecycleCloneSlice[T any](in []T, copyValue func(T) T) []T {
+	if in == nil {
+		return nil
+	}
+	out := make([]T, len(in)) // preserve nonnil empty; no shared spare capacity
+	for i := range in {
+		out[i] = copyValue(in[i])
+	}
+	return out
+}
+
+func lifecycleCloneScalar[T ~int | ~uint64 | ~bool](in T) T { return in }
+
+func lifecycleCloneBytes(in []byte) []byte {
+	if in == nil {
+		return nil
+	}
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
+}
+
+// Imported struct conversions are closed over their exact fields/types.
+// They avoid unkeyed imported literals (go vet) without allowing new fields.
+type lifecycleCloneScopeShape struct {
+	TenantID    string
+	SiteID      string
+	ObjectType  string
+	ObjectID    string
+	Environment string
+}
+
+type lifecycleCloneReloadShape struct {
+	State      mihomo.ReloadState `json:"state"`
+	Dispatched bool               `json:"dispatched"`
+	StatusCode int                `json:"statusCode"`
+}
+
+func (c *lifecycleCloneState) scope(v authz.ResourceScope) authz.ResourceScope {
+	return authz.ResourceScope(lifecycleCloneScopeShape{c.text(v.TenantID), c.text(v.SiteID), c.text(v.ObjectType), c.text(v.ObjectID), c.text(v.Environment)})
+}
+
+func (c *lifecycleCloneState) reload(v mihomo.ReloadResult) mihomo.ReloadResult {
+	return mihomo.ReloadResult(lifecycleCloneReloadShape{mihomo.ReloadState(c.text(string(v.State))), v.Dispatched, v.StatusCode})
+}
+
+func (c *lifecycleCloneState) requirement(v LabPolicyRequirement) LabPolicyRequirement {
+	return LabPolicyRequirement{c.text(v.Kind), c.text(v.Path)}
+}
+
+func (c *lifecycleCloneState) blocker(v LabConfigBlocker) LabConfigBlocker {
+	return LabConfigBlocker{LabConfigCode(c.text(string(v.Code))), c.text(v.Path)}
+}
+
+func (c *lifecycleCloneState) config(v LabConfigDescriptor) LabConfigDescriptor {
+	return LabConfigDescriptor{c.text(v.Schema), c.text(v.Scope), c.text(v.SHA256), v.Bytes, c.text(v.DraftSHA256), c.text(v.RequirementsSHA256), lifecycleCloneSlice(v.Capabilities, c.text), lifecycleCloneSlice(v.Requirements, c.requirement), v.Admissible, lifecycleCloneSlice(v.Blockers, c.blocker)}
+}
+
+func (c *lifecycleCloneState) artifact(v ArtifactDescriptor) ArtifactDescriptor {
+	return ArtifactDescriptor{c.text(v.Schema), c.text(v.RecordSHA256), c.config(v.Config), c.text(v.SourceSpecSHA256), v.SourceSpecBytes, v.ControllerPort, v.MixedPort}
+}
+
+func (c *lifecycleCloneState) target(v TargetBinding) TargetBinding {
+	return TargetBinding{c.text(v.DeviceRef), c.scope(v.Scope), v.Generation, c.text(v.HeadSHA256), c.text(v.KernelSHA256), v.PID, v.StartTicks, v.NetNSInode, v.ControllerPort, v.MixedPort}
+}
+
+func (c *lifecycleCloneState) backup(v BackupDescriptor) BackupDescriptor {
+	return BackupDescriptor{c.text(v.Schema), c.text(v.BackupSHA256), c.text(v.OperationID), c.artifact(v.Artifact), c.target(v.Target)}
+}
+
+func (c *lifecycleCloneState) plan(v PlanDescriptor) PlanDescriptor {
+	return PlanDescriptor{c.text(v.Schema), c.text(v.Boundary), c.text(v.OperationID), c.text(v.DeclaredInitiatorRef), c.target(v.Target), c.artifact(v.Artifact), c.backup(v.Backup), c.timestamp(v.CreatedAt), c.timestamp(v.ExpiresAt), c.text(v.PlanSHA256)}
+}
+
+func (c *lifecycleCloneState) material(v ApprovalMaterial) ApprovalMaterial {
+	return ApprovalMaterial{c.text(v.PlanSHA256), c.scope(v.Scope), c.text(v.InitiatorRef), c.text(v.ApproverRef), c.timestamp(v.IssuedAt), c.timestamp(v.ExpiresAt)}
+}
+
+func (c *lifecycleCloneState) head(v lifecycleHead) lifecycleHead {
+	return lifecycleHead{c.text(v.Schema), c.text(v.DeviceRef), c.scope(v.Scope), v.Generation, c.artifact(v.Artifact), c.text(v.KernelSHA256), v.PID, v.StartTicks, v.NetNSInode, v.ControllerPort, v.MixedPort, c.text(v.VerificationSHA256), c.timestamp(v.VerifiedAt), lifecycleClonePointer(v.PreviousHeadSHA256, c.text), c.text(v.HeadSHA256)}
+}
+
+func (c *lifecycleCloneState) owner(v lifecycleOwner) lifecycleOwner {
+	return lifecycleOwner{c.text(v.OwnerNonce), v.Fence, c.timestamp(v.AcquiredAt), c.timestamp(v.RenewedAt), c.timestamp(v.ExpiresAt)}
+}
+
+func (c *lifecycleCloneState) approval(v lifecycleApproval) lifecycleApproval {
+	return lifecycleApproval{c.material(v.Material), c.text(v.ApprovalID), lifecycleClonePointer(v.AuthoritySnapshotRef, c.text)}
+}
+
+func (c *lifecycleCloneState) revocation(v lifecycleRevocation) lifecycleRevocation {
+	return lifecycleRevocation{v.Revision, c.timestamp(v.At), c.text(v.Reason), c.text(v.ActorRef)}
+}
+
+func (c *lifecycleCloneState) intent(v lifecycleIntent) lifecycleIntent {
+	return lifecycleIntent{c.text(v.Schema), c.text(v.OperationID), c.text(v.PlanSHA256), c.text(v.ExpectedHeadSHA256), c.text(v.CandidateRecordSHA256), c.text(v.BackupSHA256), v.OwnerFence, c.timestamp(v.ArmedAt), c.text(v.IntentSHA256)}
+}
+
+func (c *lifecycleCloneState) gate(v labServiceGateFact) labServiceGateFact {
+	return labServiceGateFact{c.text(v.OperationID), c.text(v.PlanSHA256), c.text(v.IntentSHA256), c.text(v.Reason), c.timestamp(v.ObservedAt)}
+}
+
+func (c *lifecycleCloneState) result(v lifecycleResult) lifecycleResult {
+	return lifecycleResult{c.reload(v.Reload), c.timestamp(v.ObservedAt), c.text(v.Origin), lifecycleClonePointer(v.ServiceGate, c.gate)}
+}
+
+func (c *lifecycleCloneState) readback(v lifecycleReadback) lifecycleReadback {
+	return lifecycleReadback{c.text(v.Conclusion), c.text(v.EvidenceSHA256), c.timestamp(v.ObservedAt)}
+}
+
+func (c *lifecycleCloneState) active(v lifecycleActive) lifecycleActive {
+	if v.Recovery != nil {
+		// Existing lifecycle validation forbids this field. In particular a
+		// pointer to nil RawMessage must not gain authority by copying as null.
+		c.err = errLifecycleCloneRepresentation
+	}
+	return lifecycleActive{c.plan(v.Plan), c.text(v.Phase), lifecycleClonePointer(v.Approval, c.approval), lifecycleClonePointer(v.Revocation, c.revocation), v.Attempt, lifecycleClonePointer(v.Intent, c.intent), lifecycleClonePointer(v.Result, c.result), lifecycleClonePointer(v.Readback, c.readback), lifecycleCloneSlice(v.AuditProjection, c.text), nil}
+}
+
+func (c *lifecycleCloneState) tombstone(v lifecycleTombstone) lifecycleTombstone {
+	return lifecycleTombstone{c.text(v.OperationID), c.text(v.PlanSHA256), v.Attempt, lifecycleClonePointer(v.IntentSHA256, c.text), c.text(v.Phase), v.TerminalRevision}
+}
+
+func (c *lifecycleCloneState) provisioning(v lifecycleProvisioning) lifecycleProvisioning {
+	return lifecycleProvisioning{c.text(v.Schema), c.text(v.RuntimeID), c.text(v.MarkerSHA256)}
+}
+
+func (c *lifecycleCloneState) completion(v lifecycleCompletion) lifecycleCompletion {
+	return lifecycleCompletion{c.head(v.PreviousHead), c.head(v.Head), c.active(v.Active), c.owner(v.Owner), v.CommitRevision, c.timestamp(v.CommittedAt)}
+}
+
+func (c *lifecycleCloneState) observation(v lifecycleObservationRecord) lifecycleObservationRecord {
+	return lifecycleObservationRecord{c.text(v.OperationID), c.text(v.PlanSHA256), c.text(v.IntentSHA256), c.readback(v.Readback), v.CommitRevision}
+}
+
+func (c *lifecycleCloneState) terminal(v lifecycleTerminalArchive) lifecycleTerminalArchive {
+	return lifecycleTerminalArchive{c.head(v.Head), c.active(v.Active), c.owner(v.Owner), v.CommitRevision, c.timestamp(v.CommittedAt)}
+}
+
+func (c *lifecycleCloneState) source(v lifecycleLegacySnapshot) lifecycleLegacySnapshot {
+	return lifecycleLegacySnapshot{c.text(v.Schema), c.text(v.ControlSHA256), c.text(v.RecordSHA256), v.Revision, lifecycleCloneBytes(v.ControlBytes)}
+}
+
+func (c *lifecycleCloneState) anchor(v lifecycleEpochAnchor) lifecycleEpochAnchor {
+	return lifecycleEpochAnchor{c.text(v.Kind), c.head(v.InitialHead), lifecycleClonePointer(v.RecoveryID, c.text), c.text(v.SourceControlSHA256)}
+}
+
+func (c *lifecycleCloneState) ledger(v lifecycleEpochLedger) lifecycleEpochLedger {
+	return lifecycleEpochLedger{c.anchor(v.Anchor), c.head(v.Head), lifecycleClonePointer(v.Owner, c.owner), v.LastFence, lifecycleClonePointer(v.Active, c.active), lifecycleCloneSlice(v.Tombstones, c.tombstone), lifecycleCloneSlice(v.Completed, c.completion), lifecycleCloneSlice(v.Terminated, c.terminal), lifecycleCloneSlice(v.Observations, c.observation)}
+}
+
+func (c *lifecycleCloneState) retired(v lifecycleRetiredEpoch) lifecycleRetiredEpoch {
+	return lifecycleRetiredEpoch{c.ledger(v.Ledger), c.timestamp(v.RetiredAt), v.CommitRevision, c.text(v.RecoveryID), c.text(v.LedgerSHA256)}
+}
+
+func (c *lifecycleCloneState) budgets(v labRecoveryBudgets) labRecoveryBudgets {
+	return labRecoveryBudgets{v.StopMillis, v.StartMillis, v.VerificationMillis, v.CommitMillis}
+}
+
+func (c *lifecycleCloneState) recoveryPlan(v labRecoveryPlanDescriptor) labRecoveryPlanDescriptor {
+	return labRecoveryPlanDescriptor{c.text(v.Schema), c.text(v.Boundary), c.text(v.RecoveryID), c.text(v.UnknownOperationID), c.text(v.OriginalPlanSHA256), c.text(v.OriginalIntentSHA256), c.text(v.DeclaredInitiatorRef), v.ExpectedRevision, c.text(v.ExpectedRecordSHA256), c.text(v.PreviousHeadSHA256), v.PreviousHeadGeneration, c.provisioning(v.Provisioning), c.text(v.OldEpochSHA256), c.artifact(v.TargetArtifact), c.budgets(v.Budgets), c.timestamp(v.CreatedAt), c.timestamp(v.ExpiresAt), c.text(v.PlanSHA256)}
+}
+
+func (c *lifecycleCloneState) recoveryApproval(v lifecycleRecoveryApproval) lifecycleRecoveryApproval {
+	return lifecycleRecoveryApproval{c.text(v.Schema), c.text(v.RecoveryPlanSHA256), c.text(v.DeclaredApproverRef), c.timestamp(v.IssuedAt), c.timestamp(v.ExpiresAt), c.text(v.ApprovalSHA256)}
+}
+
+func (c *lifecycleCloneState) action(v lifecycleRecoveryActionIntent) lifecycleRecoveryActionIntent {
+	return lifecycleRecoveryActionIntent{c.text(v.Schema), c.text(v.Action), c.text(v.RecoveryID), c.text(v.RecoveryPlanSHA256), v.OwnerFence, c.timestamp(v.ArmedAt), c.text(v.IntentSHA256)}
+}
+
+func (c *lifecycleCloneState) failure(v lifecycleRecoveryFailure) lifecycleRecoveryFailure {
+	return lifecycleRecoveryFailure{c.text(v.Code), c.timestamp(v.At)}
+}
+
+func (c *lifecycleCloneState) recoveryCompletion(v lifecycleRecoveryCompletion) lifecycleRecoveryCompletion {
+	return lifecycleRecoveryCompletion{c.head(v.PreviousHead), c.head(v.Head), c.text(v.EvidenceSHA256), v.CommitRevision, c.timestamp(v.CommittedAt)}
+}
+
+func (c *lifecycleCloneState) identity(v labKernelIdentity) labKernelIdentity {
+	return labKernelIdentity{v.PID, v.StartTicks, v.NetNSInode, c.text(v.ELFSHA256), v.ELFBytes, c.text(v.SourceCommit), c.text(v.ArtifactSHA256), v.ControllerPort, v.MixedPort}
+}
+
+func (c *lifecycleCloneState) stream(v labKernelStream) labKernelStream {
+	return labKernelStream{v.Bytes, v.TotalBytes, c.text(v.SHA256), v.Truncated, v.Complete}
+}
+
+func (c *lifecycleCloneState) exit(v labKernelExit) labKernelExit {
+	return labKernelExit{v.Started, v.WaitReturned, c.text(v.WaitErrorClass), lifecycleClonePointer(v.ExitCode, lifecycleCloneScalar[int]), lifecycleClonePointer(v.Signal, lifecycleCloneScalar[int]), v.TermSent, v.KillSent, lifecycleClonePointer(v.GroupAbsent, lifecycleCloneScalar[bool]), c.stream(v.Stdout), c.stream(v.Stderr)}
+}
+
+func (c *lifecycleCloneState) binding(v labQuiescenceBinding) labQuiescenceBinding {
+	return labQuiescenceBinding{c.text(v.RecoveryID), c.text(v.RecoveryPlanSHA256), c.text(v.StopIntentSHA256), c.text(v.OldEpochSHA256), c.identity(v.ExpectedOldIdentity), c.timestamp(v.ArmedAt), c.timestamp(v.ExpiresAt)}
+}
+
+func (c *lifecycleCloneState) probe(v labQuiescenceProbe) labQuiescenceProbe {
+	return labQuiescenceProbe{v.Port, v.Attempted, c.text(v.Result)}
+}
+
+func (c *lifecycleCloneState) quiescenceObservation(v labQuiescenceObservation) labQuiescenceObservation {
+	return labQuiescenceObservation{c.text(v.Schema), lifecycleClonePointer(v.StartupIdentity, c.identity), v.StopInvoked, v.StopReturned, lifecycleClonePointer(v.StopErrorClass, c.text), lifecycleClonePointer(v.Stop, c.exit), lifecycleClonePointer(v.NamespaceInode, lifecycleCloneScalar[uint64]), lifecycleClonePointer(v.ControllerProbe, c.probe), lifecycleClonePointer(v.MixedProbe, c.probe), lifecycleClonePointer(v.StartedAt, c.timestamp), lifecycleClonePointer(v.ReturnedAt, c.timestamp), c.text(v.Outcome), c.text(v.FailureCode)}
+}
+
+func (c *lifecycleCloneState) fact(v labQuiescenceFact) labQuiescenceFact {
+	return labQuiescenceFact{c.text(v.Schema), c.binding(v.Binding), c.quiescenceObservation(v.Observation), c.timestamp(v.ObservedAt), c.text(v.QuiescenceSHA256)}
+}
+
+func (c *lifecycleCloneState) recovery(v lifecycleRecoveryTxn) lifecycleRecoveryTxn {
+	return lifecycleRecoveryTxn{c.recoveryPlan(v.Plan), c.text(v.Phase), lifecycleClonePointer(v.Approval, c.recoveryApproval), lifecycleClonePointer(v.Revocation, c.revocation), lifecycleClonePointer(v.StopIntent, c.action), lifecycleClonePointer(v.StopBinding, c.binding), lifecycleClonePointer(v.Quiescence, c.fact), lifecycleCloneSlice(v.FailedQuiescence, c.quiescenceObservation), lifecycleClonePointer(v.StartIntent, c.action), lifecycleClonePointer(v.Completion, c.recoveryCompletion), lifecycleClonePointer(v.Failure, c.failure), c.timestamp(v.UpdatedAt)}
+}
+
+func (c *lifecycleCloneState) wire(v lifecycleV3Wire) lifecycleV3Wire {
+	return lifecycleV3Wire{c.text(v.Schema), c.text(v.Boundary), v.Revision, c.text(v.RecordSHA256), c.timestamp(v.LastTrustedAt), c.provisioning(v.Provisioning), c.source(v.SourceV2), c.ledger(v.Current), lifecycleCloneSlice(v.RetiredEpochs, c.retired), lifecycleClonePointer(v.RecoveryOwner, c.owner), v.LastRecoveryFence, lifecycleClonePointer(v.Recovery, c.recovery), lifecycleCloneSlice(v.RecoveryHistory, c.recovery)}
 }

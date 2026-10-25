@@ -88,6 +88,7 @@ LAB_RECOVERY_EXECUTION_FILES = (
     'lab_recovery_start_linux_test.go',
 )
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_EXECUTION_FILES]
+FILES += ['chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go']
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',
@@ -105,6 +106,7 @@ TEST_FILES += [('chengwang/internal/api/mihomo_lab_test.go', 'chengwang/internal
 TEST_FILES += [('chengwang/internal/authz/policy_test.go', 'chengwang/internal/authz'), ('chengwang/internal/authz/image_trust_test.go', 'chengwang/internal/authz'), ('chengwang/internal/authz/image_trust_history_d8_test.go', 'chengwang/internal/authz'), ('chengwang/internal/authz/subscription_test.go', 'chengwang/internal/authz'), ('chengwang/internal/authz/lab_recovery_test.go', 'chengwang/internal/authz'), ('chengwang/internal/mihomodeploy/lab_quiescence_test.go', 'chengwang/internal/mihomodeploy'), ('chengwang/internal/mihomodeploy/lab_quiescence_linux_test.go', 'chengwang/internal/mihomodeploy'), ('chengwang/internal/mihomodeploy/lab_recovery_plan_test.go', 'chengwang/internal/mihomodeploy'), ('chengwang/internal/mihomodeploy/lifecycle_v3_test.go', 'chengwang/internal/mihomodeploy'), ('chengwang/internal/mihomodeploy/lifecycle_recovery_store_test.go', 'chengwang/internal/mihomodeploy'), ('chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go', 'chengwang/internal/mihomodeploy')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
     for name in ('lab_recovery_authority_test.go', 'lab_recovery_start_test.go', 'lab_recovery_start_linux_test.go')]
+TEST_FILES += [('chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go', 'chengwang/internal/mihomodeploy')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
     'chengwang/internal/api', 'chengwang/internal/serverruntime', 'chengwang/internal/authz'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,

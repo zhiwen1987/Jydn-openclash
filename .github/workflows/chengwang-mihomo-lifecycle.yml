@@ -87,7 +87,16 @@ jobs:
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealPreservesExternalDigestGate',
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan'}
           assert candidate_seal_added.issubset(declared)
-          previous585=sorted(set(declared)-candidate_seal_added)
+          trusted_clone_added={
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneCanonicalGraphAndShape',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneKeepsRawDraftBoundary',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneRepresentationFallbackMatchesRaw',
+            'chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneSplitsSiblingAliases',
+          }
+          assert trusted_clone_added.issubset(declared) and not trusted_clone_added.intersection(candidate_seal_added)
+          previous587=sorted(set(declared)-trusted_clone_added)
+          assert len(previous587)==587 and hashlib.sha256('\n'.join(previous587).encode()).hexdigest()=='14e88fa43dd23db1a77671ef4ae2b1bd36a0491b313ce7d5e3005bcc1d5d2951'
+          previous585=sorted(set(previous587)-candidate_seal_added)
           assert len(previous585)==585 and hashlib.sha256('\n'.join(previous585).encode()).hexdigest()=='8319dfde365203ae1ae268b1a5d0a3938719bcd0671586bc66840ce2a20863c3'
           added_test_paths={
             'chengwang/internal/mihomodeploy/lab_recovery_authority_test.go',
@@ -96,7 +105,7 @@ jobs:
           assert added_test_paths.issubset(dict(module.TEST_FILES))
           previous539=sorted(package+'::'+name for path,package in module.TEST_FILES if path not in added_test_paths
             for name in re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{',Path(path).read_text('utf8'),re.M)
-            if package+'::'+name not in candidate_seal_added)
+            if package+'::'+name not in candidate_seal_added and package+'::'+name not in trusted_clone_added)
           assert len(previous539)==539 and hashlib.sha256('\n'.join(previous539).encode()).hexdigest()=='dca819005e498a5d36c6157e00dbd244ad7f705616690001b0bf830c7900009c'
           assert set(previous539).issubset(declared)
           snapshot_added={
@@ -115,7 +124,7 @@ jobs:
           assert snapshot_added.issubset(declared)
           previous=sorted(set(previous539)-snapshot_added)
           assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
-          assert len(declared)==587 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='14e88fa43dd23db1a77671ef4ae2b1bd36a0491b313ce7d5e3005bcc1d5d2951'
+          assert len(declared)==591 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='bd98cdb360c8eb7fd8c90f0a7a2855a9d8135a3a832f77cfd115ac39c5078857'
           print('GO_TEST_DECLARATIONS='+str(len(declared))+' legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution

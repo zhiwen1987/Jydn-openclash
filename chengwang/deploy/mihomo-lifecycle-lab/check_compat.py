@@ -85,6 +85,7 @@ LAB_RECOVERY_EXECUTION_FILES = (
     'lab_recovery_start_linux_test.go',
 )
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_EXECUTION_FILES]
+FOUNDATION += ['chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go']
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -163,7 +164,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 123)
+    need(len(FILES) == len(set(FILES)) == 124)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw
