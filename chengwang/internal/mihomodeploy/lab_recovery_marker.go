@@ -56,6 +56,9 @@ func (s *labServiceFixtureCustody) current(service *LabService, authority *labRe
 	return s.currentLocked(c, authority)
 }
 
+// currentLocked requires the caller to hold c.mu. It never acquires service,
+// runtime, authority or recovery-store locks and is safe inside the single
+// service -> runtime -> authority -> store order.
 func (s *labServiceFixtureCustody) currentLocked(c *labServiceCore, authority *labRecoveryAuthority) bool {
 	return s != nil && c != nil && authority != nil && authority.core != nil && labServiceFixtureKnown(s, c) && s.binding != nil && s.binding(s, c) &&
 		c.fixtureCustody == s && !c.closing && !c.closed && !c.closeUncertain && !c.fixtureSettled &&

@@ -14,33 +14,33 @@ import (
 // memory only. Every actual publication remains a complete strict V3 record.
 // The recovery runtime retains exclusive ownership of the real disk and Close.
 type lifecycleCurrentEpochBackend struct {
-	identity *lifecycleCurrentEpochBackend
-	store *lifecycleRecoveryStoreCore
-	token *lifecycleRecoveryCurrentOwnerCore
+	identity   *lifecycleCurrentEpochBackend
+	store      *lifecycleRecoveryStoreCore
+	token      *lifecycleRecoveryCurrentOwnerCore
 	projection *lifecycleStore
-	binding func(*lifecycleCurrentEpochBackend) bool
+	binding    func(*lifecycleCurrentEpochBackend) bool
 }
 
 // Only commitCurrentEpoch installs this proof, under the shared actual store
 // mutex, after the unchanged ordinary commitTransition mutation guards pass.
 // No decoded value or caller-supplied hash can issue a publication proof.
 type lifecycleCurrentEpochPublication struct {
-	base *lifecycleVerifiedBaseCore
-	backend *lifecycleCurrentEpochBackend
+	base      *lifecycleVerifiedBaseCore
+	backend   *lifecycleCurrentEpochBackend
 	canonical string
-	binding func(*lifecycleCurrentEpochPublication, *lifecycleRecoveryStoreCore, *lifecycleVerifiedBaseCore) bool
+	binding   func(*lifecycleCurrentEpochPublication, *lifecycleRecoveryStoreCore, *lifecycleVerifiedBaseCore) bool
 }
 
 func (lifecycleCurrentEpochBackend) Format(s fmt.State, _ rune) {
 	_, _ = io.WriteString(s, "private current epoch adapter; not authorization")
 }
 func (lifecycleCurrentEpochBackend) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
-func (*lifecycleCurrentEpochBackend) UnmarshalJSON([]byte) error { return errLifecycleUnsafe }
+func (*lifecycleCurrentEpochBackend) UnmarshalJSON([]byte) error  { return errLifecycleUnsafe }
 func (lifecycleCurrentEpochPublication) Format(s fmt.State, _ rune) {
 	_, _ = io.WriteString(s, "private current epoch publication; not authorization")
 }
 func (lifecycleCurrentEpochPublication) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
-func (*lifecycleCurrentEpochPublication) UnmarshalJSON([]byte) error { return errLifecycleUnsafe }
+func (*lifecycleCurrentEpochPublication) UnmarshalJSON([]byte) error  { return errLifecycleUnsafe }
 
 func lifecycleCurrentProjection(w *lifecycleV3Wire) (lifecycleRecord, []byte, error) {
 	if w == nil || validateLifecycleEpochLedger(w.Current, w.LastTrustedAt, w.Revision) != nil {

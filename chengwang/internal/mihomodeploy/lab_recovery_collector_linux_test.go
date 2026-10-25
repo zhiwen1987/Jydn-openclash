@@ -164,3 +164,47 @@ func TestLabRecoveryCollectorCaptureNamesStayClosed(t *testing.T) {
 		t.Fatal("original capture paths changed")
 	}
 }
+
+// This test uses no Started registry item and mints no Completion capability.
+// It only proves that the locked helper never re-enters service.mu while the
+// ordinary wrapper does acquire that mutex before checking the same source.
+func TestLabRecoveryCollectorCurrentKernelLockBoundaryMODEL(t *testing.T) {
+	service := &labServiceCore{}
+	collector := &labRecoveryCollector{service: &LabService{core: service}}
+	service.mu.Lock()
+	lockedDone := make(chan bool, 1)
+	go func() { lockedDone <- collector.currentKernelLocked(service, nil) }()
+	select {
+	case accepted := <-lockedDone:
+		if accepted {
+			service.mu.Unlock()
+			t.Fatal("invalid source became current under service lock")
+		}
+	case <-time.After(time.Second):
+		service.mu.Unlock()
+		t.Fatal("locked helper re-entered service mutex")
+	}
+
+	wrapperDone := make(chan bool, 1)
+	go func() { wrapperDone <- collector.currentKernel(nil) }()
+	select {
+	case <-wrapperDone:
+		service.mu.Unlock()
+		t.Fatal("ordinary current check bypassed service mutex")
+	case <-time.After(25 * time.Millisecond):
+	}
+	service.mu.Unlock()
+	select {
+	case accepted := <-wrapperDone:
+		if accepted {
+			t.Fatal("invalid source became current after service release")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ordinary current check did not finish after service release")
+	}
+
+	foreign := &labServiceCore{}
+	if collector.currentKernelLocked(foreign, nil) {
+		t.Fatal("foreign service core accepted by locked helper")
+	}
+}

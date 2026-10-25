@@ -385,9 +385,9 @@ func (s *lifecycleRecoveryStore) recordRecoveryVerification(t *lifecycleRecovery
 		x.validated = nil
 		return err
 	}
-	canonical := string(x.raw)
-	custody := &labRecoveryVerifiedCustody{store: x, disk: x.disk, owner: core.owner, started: core.custody, record: core, canonical: canonical}
-	store, disk, owner, started, record, sealed := x, x.disk, core.owner, core.custody, core, canonical
+	recordedCanonical := string(x.raw)
+	custody := &labRecoveryVerifiedCustody{store: x, disk: x.disk, owner: core.owner, started: core.custody, record: core, canonical: recordedCanonical}
+	store, disk, owner, started, record, sealed := x, x.disk, core.owner, core.custody, core, recordedCanonical
 	custody.binding = func(candidate *labRecoveryVerifiedCustody, current *lifecycleRecoveryStoreCore) bool {
 		return candidate == custody && current == store && candidate.store == store && lifecycleRecoverySameDisk(candidate.disk, disk) &&
 			candidate.owner == owner && candidate.started == started && candidate.record == record && candidate.canonical == sealed

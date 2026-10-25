@@ -31,7 +31,8 @@ FULL_FMT=[*CAPACITY_FMT,
     'internal/mihomodeploy/lifecycle_current_epoch_test.go',
     'internal/mihomodeploy/lab_current_epoch_runtime.go',
     'internal/mihomodeploy/lab_current_epoch_runtime_test.go']
-FULL_REQUIRED_PIN='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
+FULL_REQUIRED_PIN='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
+FULL_OLD_660_PIN='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
 FULL_PREVIOUS_647_PIN='1e7db484a7eb5485b06037bd3ee1fb443201ab46799c17fefba9bcba9b0cca94'
 FULL_PREVIOUS_635_PIN='1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6'
 FULL_RECOVERY_COMPLETION_CURRENT_ADDED=frozenset({
@@ -48,6 +49,9 @@ FULL_RECOVERY_COMPLETION_CURRENT_ADDED=frozenset({
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCapabilitiesArePrivateAndOneStoreBound',
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCheckpointReconstructsExactVerifiedRoot',
 })
+FULL_LOCK_ORDER_ADDED=frozenset({
+    'chengwang/internal/mihomodeploy::TestLabRecoveryCollectorCurrentKernelLockBoundaryMODEL',
+})
 FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED=frozenset({
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionProspectiveMetadataUsesStrictS2Preimage',
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCustodyRejectsCopiesForeignResetAndReopen',
@@ -62,7 +66,7 @@ FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED=frozenset({
     'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeCheckpointRootIsStrictlyValidatedOnce',
     'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopesNeverShareValidationAcrossOperations',
     'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeDeepChainBudgetsFailClosed',
-})
+}) | FULL_LOCK_ORDER_ADDED
 FULL_PREVIOUS_627_PIN='3bd65c00bb45bbef41763cadf7b8b98c6c0ce2fbc8ec93b3bb8dfa6dd0880543'
 FULL_DURABLE_S2_ADDED=frozenset({
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerificationTypedFactRejectsUnissuedRecordCapability',
@@ -260,8 +264,11 @@ def full_source_contract(sources,manifest):
     need(all(path in files and files[path]['sha256']==sha(raw) and files[path]['bytes']==len(raw)for path,raw in sources.items()))
     required=checker.required_names(sources)
     names=sorted(package+'::'+name for package,items in required.items()for name in items)
-    need(set(required)==checker.PACKAGES and len(names)==660 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
-    need(FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED.issubset(names))
+    need(set(required)==checker.PACKAGES and len(names)==661 and sha('\n'.join(names).encode())==FULL_REQUIRED_PIN)
+    need(len(FULL_LOCK_ORDER_ADDED)==1 and FULL_LOCK_ORDER_ADDED.issubset(names))
+    previous660=sorted(set(names)-FULL_LOCK_ORDER_ADDED)
+    need(len(previous660)==660 and sha('\n'.join(previous660).encode())==FULL_OLD_660_PIN)
+    need(len(FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED)==14 and FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED.issubset(names))
     previous647=sorted(set(names)-FULL_RECOVERY_COMPLETION_CURRENT_FINAL_ADDED)
     need(len(previous647)==647 and sha('\n'.join(previous647).encode())==FULL_PREVIOUS_647_PIN)
     need(FULL_RECOVERY_COMPLETION_CURRENT_ADDED.issubset(names))
@@ -309,7 +316,7 @@ def full_source_contract(sources,manifest):
     # command, allowing only the fixed diagnostic tag and test filter.
     normal='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)+' > "$out/race.json" 2> "$out/race.stderr"'
     need(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh'].decode().splitlines().count(normal)==1)
-    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':660,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
+    return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':661,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,
         'noExampleOrFuzzDeclarationInBoundSixPackageTestSources':True}
@@ -317,7 +324,7 @@ def full_source_contract(sources,manifest):
 def full_events(raw,required,checker,go_exit,stderr=b''):
     # Diagnostic partial-reader: accept coherent failed/unfinished originals,
     # never translate them into C.events acceptance. Extra legitimate top or
-    # subtests are allowed just as in the original checker; 660 is a subset.
+    # subtests are allowed just as in the original checker; 661 is a subset.
     need(type(raw)is bytes and 0<len(raw)<=64<<20 and type(stderr)is bytes and integer(go_exit,-128,255))
     packages=checker.PACKAGES;begun=set();terminals={};states={};outputs={p:[]for p in packages}
     for line in raw.splitlines():
@@ -348,12 +355,12 @@ def full_events(raw,required,checker,go_exit,stderr=b''):
         for name in items:
             state=states.get((package,name));bucket={'pass':'passed','fail':'failed','skip':'skipped','run':'unfinished','pause':'unfinished',None:'notStarted'}[state]
             required_sets[bucket].append(package+'::'+name)
-    need(sum(map(len,required_sets.values()))==660)
+    need(sum(map(len,required_sets.values()))==661)
     for items in required_sets.values():items.sort()
     unfinished=sorted(p+'::'+n for (p,n),state in states.items()if state in ('run','pause'));need(len(unfinished)<=4096)
     failed=sorted(p+'::'+n for (p,n),state in states.items()if state=='fail');need(len(failed)<=4096)
     skipped=sorted(p+'::'+n for (p,n),state in states.items()if state=='skip');need(len(skipped)<=4096)
-    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==660
+    structurally_complete=begun==packages and set(terminals)==packages and all(v=='pass'for v in terminals.values()) and all(v=='pass'for v in states.values()) and len(required_sets['passed'])==661
     strict=None
     if structurally_complete:strict=checker.events(raw,required) # actual original strict gate, no exception-to-pass adapter
     if go_exit==0:need(begun==packages and set(terminals)==packages and all(v in ('pass','skip')for v in terminals.values()) and all(v in ('pass','skip')for v in states.values()))

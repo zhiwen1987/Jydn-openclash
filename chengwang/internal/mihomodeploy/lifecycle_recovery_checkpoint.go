@@ -11,7 +11,7 @@ const lifecycleRecoveryRootCheckpointSchema = "chengwang.mihomo-recovery-root-ch
 const (
 	lifecycleRecoveryCheckpointNone        = "NONE"
 	lifecycleRecoveryCheckpointHistoryTail = "HISTORY_TAIL"
-	lifecycleRecoveryCheckpointVerified     = "ACTIVE_VERIFIED"
+	lifecycleRecoveryCheckpointVerified    = "ACTIVE_VERIFIED"
 )
 
 // A checkpoint names an exact earlier V3 root without embedding that root.
@@ -20,19 +20,19 @@ const (
 // absent, the exact history tail, or derived from the completed transaction by
 // removing only the v3 completion source and terminal fields.
 type lifecycleRecoveryRootCheckpoint struct {
-	Schema                     string          `json:"schema"`
-	Revision                   uint64          `json:"revision"`
-	RecordSHA256               string          `json:"recordSHA256"`
-	LastTrustedAt              time.Time       `json:"lastTrustedAt"`
-	RecoveryOwner              *lifecycleOwner `json:"recoveryOwner"`
-	LastRecoveryFence          uint64          `json:"lastRecoveryFence"`
-	CurrentEpochPosition       uint64          `json:"currentEpochPosition"`
-	CurrentLedgerSHA256        string          `json:"currentLedgerSHA256"`
-	RetiredPrefixCount         uint64          `json:"retiredPrefixCount"`
-	RetiredPrefixSHA256        string          `json:"retiredPrefixSHA256"`
-	RecoveryHistoryPrefixCount uint64          `json:"recoveryHistoryPrefixCount"`
-	RecoveryHistoryPrefixSHA256 string         `json:"recoveryHistoryPrefixSHA256"`
-	RecoveryKind               string          `json:"recoveryKind"`
+	Schema                      string          `json:"schema"`
+	Revision                    uint64          `json:"revision"`
+	RecordSHA256                string          `json:"recordSHA256"`
+	LastTrustedAt               time.Time       `json:"lastTrustedAt"`
+	RecoveryOwner               *lifecycleOwner `json:"recoveryOwner"`
+	LastRecoveryFence           uint64          `json:"lastRecoveryFence"`
+	CurrentEpochPosition        uint64          `json:"currentEpochPosition"`
+	CurrentLedgerSHA256         string          `json:"currentLedgerSHA256"`
+	RetiredPrefixCount          uint64          `json:"retiredPrefixCount"`
+	RetiredPrefixSHA256         string          `json:"retiredPrefixSHA256"`
+	RecoveryHistoryPrefixCount  uint64          `json:"recoveryHistoryPrefixCount"`
+	RecoveryHistoryPrefixSHA256 string          `json:"recoveryHistoryPrefixSHA256"`
+	RecoveryKind                string          `json:"recoveryKind"`
 }
 
 func cloneLifecycleRecoveryRootCheckpoint(v lifecycleRecoveryRootCheckpoint) lifecycleRecoveryRootCheckpoint {

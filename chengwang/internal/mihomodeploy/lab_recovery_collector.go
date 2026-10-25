@@ -185,13 +185,28 @@ func labRecoveryObservationWindow(times [2]mihomo.LabSampleTimes, entry, observe
 	return true
 }
 
-func (c *labRecoveryCollector) currentKernel(source *labRecoveryStartedCustody) bool {
-	if c == nil || c.fixtureCustody == nil || !c.fixtureCustody.current(c.service, c.authority) || source == nil || source.started == nil || source.started.fact.Observation.StartupIdentity == nil || c.kernel == nil || source.started.owner == nil ||
+// currentKernelLocked requires the caller to hold service.mu. It performs no
+// service/runtime/store locking, but still proves the live fixture custody and
+// exact source-owned kernel/startup identity. It is not a cached liveness bit.
+func (c *labRecoveryCollector) currentKernelLocked(service *labServiceCore, source *labRecoveryStartedCustody) bool {
+	if c == nil || service == nil || c.service == nil || c.service.core != service || c.fixtureCustody == nil ||
+		!c.fixtureCustody.currentLocked(service, c.authority) || source == nil || source.started == nil ||
+		source.started.fact.Observation.StartupIdentity == nil || c.kernel == nil || source.started.owner == nil ||
 		c.kernel.ownedLabKernelCore != source.started.owner.ownedLabKernelCore {
 		return false
 	}
 	id := *source.started.fact.Observation.StartupIdentity
 	return labRecoveryStartedOwnerMatches(c.kernel, source.started.seal, id) && labRecoveryStartedOwnerCurrent(c.kernel, id)
+}
+
+func (c *labRecoveryCollector) currentKernel(source *labRecoveryStartedCustody) bool {
+	if c == nil || c.service == nil || c.service.core == nil {
+		return false
+	}
+	service := c.service.core
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	return c.currentKernelLocked(service, source)
 }
 
 // Cancellation joins the actual service lifetime and caller without extending

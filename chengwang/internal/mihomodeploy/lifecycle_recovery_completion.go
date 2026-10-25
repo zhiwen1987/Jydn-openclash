@@ -195,6 +195,12 @@ func (c *labRecoveryCollector) completionCap(ctx context.Context, headers []stri
 	if c == nil || artifactContext(ctx) != nil || c.service == nil || c.service.core == nil {
 		return nil, errLabRecoveryCollector
 	}
+	// Establish the only permitted order before authorizeComplete acquires the
+	// base authority and recovery store. Source-owned custody and kernel reads
+	// remain enabled; this point-in-time check dispatches no process or HTTP.
+	serviceCore := c.service.core
+	serviceCore.mu.Lock()
+	defer serviceCore.mu.Unlock()
 	now := time.Now().UTC()
 	guard, err := c.authority.authorizeComplete(headers, c.session, nil, now)
 	if err != nil {
@@ -202,7 +208,7 @@ func (c *labRecoveryCollector) completionCap(ctx context.Context, headers []stri
 	}
 	defer guard.release()
 	q := guard.custody
-	if q == nil || q.started == nil || !c.currentKernel(q.started) || artifactContext(c.service.core.ctx) != nil {
+	if q == nil || q.started == nil || !c.currentKernelLocked(serviceCore, q.started) || artifactContext(serviceCore.ctx) != nil {
 		return nil, errLabRecoveryCollector
 	}
 	w := guard.store.record.core
@@ -211,8 +217,8 @@ func (c *labRecoveryCollector) completionCap(ctx context.Context, headers []stri
 		return nil, errLabRecoveryCollector
 	}
 	core := &labRecoveryCompletionCapCore{collector: c, custody: q, store: guard.store, disk: guard.store.disk, owner: q.owner,
-		caller: ctx, service: c.service.core.ctx, canonical: q.canonical, deadline: deadline}
-	collector, custody, store, disk, owner, caller, service, canonical, sealedDeadline := c, q, guard.store, guard.store.disk, q.owner, ctx, c.service.core.ctx, q.canonical, deadline
+		caller: ctx, service: serviceCore.ctx, canonical: q.canonical, deadline: deadline}
+	collector, custody, store, disk, owner, caller, service, canonical, sealedDeadline := c, q, guard.store, guard.store.disk, q.owner, ctx, serviceCore.ctx, q.canonical, deadline
 	core.binding = func(candidate *labRecoveryCompletionCapCore) bool {
 		return candidate == core && candidate.collector == collector && candidate.custody == custody && candidate.store == store && candidate.owner == owner &&
 			candidate.canonical == canonical && candidate.deadline.Equal(sealedDeadline) && lifecycleRecoverySameDisk(candidate.disk, disk) &&
@@ -226,7 +232,7 @@ func (c *labRecoveryCollector) completionCap(ctx context.Context, headers []stri
 	// exact retained S2 once under that lock; a consumed or rejected cap never
 	// makes the custody mintable again.
 	if q.claimed || len(i.issued) >= labRecoveryObservationLimit || admittedAt.Before(now) || !admittedAt.Before(deadline) || !core.binding(core) ||
-		artifactContext(ctx) != nil || artifactContext(service) != nil || !c.currentKernel(q.started) {
+		artifactContext(ctx) != nil || artifactContext(service) != nil || !c.currentKernelLocked(serviceCore, q.started) {
 		return nil, errLabRecoveryCollector
 	}
 	q.claimed = true
@@ -334,7 +340,9 @@ func (x *lifecycleRecoveryStoreCore) completionFreshBeforeReplace(candidate *lif
 		artifactContext(p.cap.caller) == nil && artifactContext(p.cap.service) == nil
 }
 
-type lifecycleRecoveryCurrentHandoff struct{ core *lifecycleRecoveryCurrentHandoffCore }
+type lifecycleRecoveryCurrentHandoff struct {
+	core *lifecycleRecoveryCurrentHandoffCore
+}
 type lifecycleRecoveryCurrentHandoffCore struct {
 	store        *lifecycleRecoveryStoreCore
 	disk         lifecycleDisk
@@ -346,7 +354,9 @@ type lifecycleRecoveryCurrentHandoffCore struct {
 	binding      func(*lifecycleRecoveryCurrentHandoffCore) bool
 	used         bool
 }
-type lifecycleRecoveryCurrentOwnerToken struct{ core *lifecycleRecoveryCurrentOwnerCore }
+type lifecycleRecoveryCurrentOwnerToken struct {
+	core *lifecycleRecoveryCurrentOwnerCore
+}
 type lifecycleRecoveryCurrentOwnerCore struct {
 	store        *lifecycleRecoveryStoreCore
 	epochIndex   uint64
@@ -362,7 +372,9 @@ func (h *lifecycleRecoveryCurrentHandoff) UnmarshalJSON([]byte) error {
 	}
 	return errLifecycleUnsafe
 }
-func (lifecycleRecoveryCurrentOwnerToken) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
+func (lifecycleRecoveryCurrentOwnerToken) MarshalJSON() ([]byte, error) {
+	return nil, errLifecycleUnsafe
+}
 func (t *lifecycleRecoveryCurrentOwnerToken) UnmarshalJSON([]byte) error {
 	if t != nil {
 		t.core = nil
@@ -419,7 +431,18 @@ func (s *lifecycleRecoveryStore) recordRecoveryCompletion(t *lifecycleRecoveryOw
 	delete(i.issued, core)
 	i.mu.Unlock()
 	if !known || core.binding == nil || !core.binding(core) || s == nil || s.core == nil || core.store != s.core ||
-		artifactContext(core.caller) != nil || artifactContext(core.service) != nil {
+		artifactContext(core.caller) != nil || artifactContext(core.service) != nil || core.collector == nil ||
+		core.collector.service == nil || core.collector.service.core == nil {
+		return nil, errLifecycleUnsafe
+	}
+	// Keep the source-owned service stable before entering the store. The lock
+	// intentionally spans canonical reconstruction, disk CAS/fsync and readback;
+	// this blocks service inspection/close for the commit but prevents a store
+	// -> service edge. External authority remains a point-in-time check.
+	serviceCore := core.collector.service.core
+	serviceCore.mu.Lock()
+	defer serviceCore.mu.Unlock()
+	if !core.collector.currentKernelLocked(serviceCore, core.custody.started) {
 		return nil, errLifecycleUnsafe
 	}
 	x := s.core
@@ -432,7 +455,7 @@ func (s *lifecycleRecoveryStore) recordRecoveryCompletion(t *lifecycleRecoveryOw
 	defer base.release()
 	actualNow := time.Now().UTC()
 	if x.token(t, true, now) != nil || x.live != core.owner || !lifecycleRecoverySameDisk(x.disk, core.disk) || now.After(actualNow) ||
-		!now.Before(core.deadline) || !actualNow.Before(core.deadline) || !core.custody.matches(x) || !core.collector.currentKernel(core.custody.started) {
+		!now.Before(core.deadline) || !actualNow.Before(core.deadline) || !core.custody.matches(x) {
 		return nil, errLifecycleUnsafe
 	}
 	source, err := decodeLifecycleV3Record([]byte(core.canonical))
@@ -520,10 +543,10 @@ func (s *lifecycleRecoveryStore) recordRecoveryCompletion(t *lifecycleRecoveryOw
 	}
 	h := &lifecycleRecoveryCurrentHandoffCore{store: x, disk: x.disk, canonical: string(x.raw), epochIndex: uint64(len(x.record.core.RetiredEpochs)),
 		anchorSHA256: anchorSHA, headSHA256: x.record.core.Current.Head.HeadSHA256, owner: newOwner}
-	store, disk, sealed, epoch, anchor, head, owner := x, x.disk, h.canonical, h.epochIndex, h.anchorSHA256, h.headSHA256, h.owner
+	store, disk, sealed, epoch, anchor, sealedHeadSHA, owner := x, x.disk, h.canonical, h.epochIndex, h.anchorSHA256, h.headSHA256, h.owner
 	h.binding = func(candidate *lifecycleRecoveryCurrentHandoffCore) bool {
 		return candidate == h && candidate.store == store && lifecycleRecoverySameDisk(candidate.disk, disk) && candidate.canonical == sealed && candidate.epochIndex == epoch &&
-			candidate.anchorSHA256 == anchor && candidate.headSHA256 == head && reflect.DeepEqual(candidate.owner, owner)
+			candidate.anchorSHA256 == anchor && candidate.headSHA256 == sealedHeadSHA && reflect.DeepEqual(candidate.owner, owner)
 	}
 	return &lifecycleRecoveryCurrentHandoff{core: h}, nil
 }

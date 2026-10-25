@@ -84,15 +84,23 @@ func TestLifecycleCurrentEpochLedgerRejectsResealedCorruptProjection(t *testing.
 				t.Fatal(err)
 			}
 			switch kind {
-			case "nil-head": r.wire.Head = nil
-			case "nil-v2": r.wire.V2 = nil
-			case "foreign-schema": r.wire.Schema = lifecycleSchema
-			case "nil-tombstones": r.wire.Tombstones = nil
-			case "head-chain": r.wire.Head.Generation++
-			case "bad-fence": r.wire.LastFence++
+			case "nil-head":
+				r.wire.Head = nil
+			case "nil-v2":
+				r.wire.V2 = nil
+			case "foreign-schema":
+				r.wire.Schema = lifecycleSchema
+			case "nil-tombstones":
+				r.wire.Tombstones = nil
+			case "head-chain":
+				r.wire.Head.Generation++
+			case "bad-fence":
+				r.wire.LastFence++
 			}
 			r.wire.RecordSHA256, _ = lifecycleRecordHash(*r.wire)
-			if kind == "digest" { r.wire.RecordSHA256 = strings.Repeat("f", 64) }
+			if kind == "digest" {
+				r.wire.RecordSHA256 = strings.Repeat("f", 64)
+			}
 			if _, err := lifecycleCurrentLedgerFromProjection(r.wire, w.Current.Anchor); err == nil {
 				t.Fatal("MODEL corrupt projection accepted after outer reseal")
 			}
@@ -103,28 +111,39 @@ func TestLifecycleCurrentEpochLedgerRejectsResealedCorruptProjection(t *testing.
 func TestLifecycleCurrentEpochMutationRejectsOwnerAndRevisionBypass(t *testing.T) {
 	w := lifecycleCurrentEpochModel(t)
 	old, _, err := lifecycleCurrentProjection(w)
-	if err != nil || old.wire.Owner == nil { t.Fatal("MODEL owner missing", err) }
+	if err != nil || old.wire.Owner == nil {
+		t.Fatal("MODEL owner missing", err)
+	}
 	now := w.LastTrustedAt.Add(time.Second)
 	for _, kind := range []string{"valid-renew", "revision", "clock", "nonce", "fence-jump", "early-takeover", "owner-nil", "foreign-provisioning", "head-replacement"} {
 		t.Run(kind, func(t *testing.T) {
 			next, _, err := lifecycleCurrentProjection(w)
-			if err != nil { t.Fatal(err) }
+			if err != nil {
+				t.Fatal(err)
+			}
 			next.wire.Revision++
 			next.wire.LastTrustedAt = now
 			next.wire.Owner.RenewedAt = now
 			next.wire.Owner.ExpiresAt = next.wire.Owner.ExpiresAt.Add(time.Second)
 			switch kind {
-			case "revision": next.wire.Revision++
-			case "clock": next.wire.LastTrustedAt = w.LastTrustedAt.Add(-time.Second)
-			case "nonce": next.wire.Owner.OwnerNonce = strings.Repeat("c", 64)
-			case "fence-jump": next.wire.LastFence += 2
+			case "revision":
+				next.wire.Revision++
+			case "clock":
+				next.wire.LastTrustedAt = w.LastTrustedAt.Add(-time.Second)
+			case "nonce":
+				next.wire.Owner.OwnerNonce = strings.Repeat("c", 64)
+			case "fence-jump":
+				next.wire.LastFence += 2
 			case "early-takeover":
 				next.wire.LastFence++
 				next.wire.Owner.Fence++
 				next.wire.Owner.AcquiredAt = now
-			case "owner-nil": next.wire.Owner = nil
-			case "foreign-provisioning": next.wire.V2.Provisioning.RuntimeID = "foreign"
-			case "head-replacement": next.wire.Head.PID++
+			case "owner-nil":
+				next.wire.Owner = nil
+			case "foreign-provisioning":
+				next.wire.V2.Provisioning.RuntimeID = "foreign"
+			case "head-replacement":
+				next.wire.Head.PID++
 			}
 			accepted := lifecycleCurrentMutationValid(old.wire, next.wire, now, lifecycleNoNewEvidence)
 			if accepted != (kind == "valid-renew") {

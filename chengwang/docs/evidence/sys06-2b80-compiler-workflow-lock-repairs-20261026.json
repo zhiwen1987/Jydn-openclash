@@ -1,0 +1,125 @@
+{
+  "actualFailureEvidence": {
+    "diagnostic": {
+      "clonePin": "NOT_OBSERVED",
+      "fullArtifact": 12603169951,
+      "reflectionTopEntered": false,
+      "singleArtifact": 12604295540,
+      "structAndMutableSlotCounts": "NOT_OBSERVED"
+    },
+    "format": {
+      "actualPatchBytes": 14273,
+      "actualPatchFiles": 5,
+      "actualPatchHunks": 15,
+      "actualPatchSHA256": "4bc2d66860787726b9312af5ced35b056e37208f722418153af8f1aab1e37f9b",
+      "notFullNormalFmtClean": true
+    },
+    "native": {
+      "artifactId": 12603933657,
+      "compilerDiagnostics": 6,
+      "compilerEntered": true,
+      "originalStderrSHA256": "d906f94b71338899593db3b783aab727ceadadf6c11c547604de1be95b55a361",
+      "testRunEvents": 0,
+      "zipBytes": 50742,
+      "zipSHA256": "53c6fcbace755037469f057a56089508f5f015a807171638f0c4ee030eed5a89"
+    },
+    "normalContracts": {
+      "actualGoStepSkipped": true,
+      "expected": 539,
+      "githubLogSHA256": "0db17040e306287e46d6fbb9ba90fadb7a9bc70f960bb32ab8ff286c09da2367",
+      "heredocFailedAt": 156,
+      "job": 121209308193,
+      "previous539Actual": 564
+    }
+  },
+  "baseline": "2b80bc97cd183c9f2a6daef080927792a044ff31",
+  "cpuEvidence": {
+    "fiveSuites187": {
+      "path": "D:\\CodexData\\workspace\\persisted-s2-source-models-c6astgg4\\result.json",
+      "sha256": "29671d02ac0e305f654209cc73e20386e13a4fa873ba4eef2d57e1a8d34886ce"
+    },
+    "native16AndProfile661": {
+      "path": "D:\\CodexData\\workspace\\completion-661-native-profile-cpu-2378k_um\\result.json",
+      "sha256": "1b0f645fe40976f6a9d51fc48d0b2524b8406cd2256d6b25f30023c440e53c84"
+    },
+    "originalGitHubLogBoundInlineNegativeControls": 12
+  },
+  "exactCumulativeGoSourceGuard": {
+    "chengwang/internal/mihomodeploy/lab_bootstrap.go": "433b61a1a6666605a5500e8b2422fb5f6eaeef047caa28dc1a2a272a2312e9c3",
+    "chengwang/internal/mihomodeploy/lab_bootstrap_state.go": "472592e381a67f1850b1518d2b47698111dada600459cf8bec2f795f4719aad5",
+    "chengwang/internal/mihomodeploy/lab_current_epoch_runtime.go": "065470c48ef451637f7ed2ba583a92565549dfbb87ac5f2c42014d05cb9c8e00",
+    "chengwang/internal/mihomodeploy/lab_current_epoch_runtime_test.go": "df4fe6439b34ff55a5b89a645b64ed1117c21a151f216d181dc65b5962cc31b0",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority.go": "4a3debccea36e0e65fd26a44734407666948e8e547384680e3dc197fbfdf8593",
+    "chengwang/internal/mihomodeploy/lab_recovery_collector.go": "677380ec8f697d93e68596313509fd0952d9afeb09e8680798e0b36236f78aee",
+    "chengwang/internal/mihomodeploy/lab_recovery_collector_linux_test.go": "860b72f8e55a5ee20d120a0bab6941497d1bdf6e954e6075607e15701c137969",
+    "chengwang/internal/mihomodeploy/lab_recovery_marker.go": "e2fc0b6b780d1dacc12240f90e2df048d8ad1b8e1fcf700afaaad106d4500844",
+    "chengwang/internal/mihomodeploy/lab_recovery_plan.go": "3353da1790960c267c3dc7d800c0d7135f2c217ebaccb58fa7ecbf84d6fe4639",
+    "chengwang/internal/mihomodeploy/lab_service.go": "e059680c4f05d1b6b030b4de1f2caf5ff87a5e02ce52ced7cce2e8ed83e53515",
+    "chengwang/internal/mihomodeploy/lifecycle.go": "026bd6b1e38bc05024aa8c26bf3195784a4e8dd0df75d7d0fcca34c941c0eb1c",
+    "chengwang/internal/mihomodeploy/lifecycle_completion_shape_diagnostic_test.go": "bee7dbcf8f75554959fcc8b396c5966abf9b7c0980924afe86762cdd48cd4769",
+    "chengwang/internal/mihomodeploy/lifecycle_current_epoch.go": "1047c7d505f13d637a8c2466da4100fc11f13a4fdc473a859adeae787c6deb05",
+    "chengwang/internal/mihomodeploy/lifecycle_current_epoch_test.go": "f4e4f95d0c5625fbd2f4b04ad45cc6eff3fbf9c54b77eae8713e2b7190276dee",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_checkpoint.go": "74c08ebfe3c54374005a893e40fc207bad272fc97f193c7d74d76542bdf7c719",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_completion.go": "fc449c07081605ed57636d3a3dccf1fe3bdb3998e63d2459dcdca22c2cdf4b1e",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_completion_test.go": "f6027a5a8442cfa12c46328476cadbfc759d7bf29101560be62866594242ec2d",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_started.go": "869e2dd772abc87a3f1ffbf7003fd94f8d628da0af4a067cc675433dac79d7e4",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": "665d43cf0793842bcce3f47570e578e2b8809b838130f787c4307ae4ac550856",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_transitions.go": "515d7bed8e294f94271f44e65abf30308ee6a25b8aba2859bc3eeba73b43b9ef",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_verification.go": "f9b388cfc5b90465d9a7d69d60bca5884fd1131adf9f6cc7989b7a6712426891",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_verification_test.go": "88dcffa0f0d94cd8a9d26c95d6e363377a02392ac9dc5f41c53892edcc22b189",
+    "chengwang/internal/mihomodeploy/lifecycle_v3.go": "530b3414007699cd9851d6b74711d9f28c6c46fe7aa7cc27a2d6578cb6d89606",
+    "chengwang/internal/mihomodeploy/lifecycle_v3_decode_scope_test.go": "2068cab922e759b13e6fac76085edbf50b999668638f98e7d92663e8b595d72b"
+  },
+  "failedCommit": "2b80bc97cd183c9f2a6daef080927792a044ff31",
+  "failedRuns": {
+    "diagnostic": 40206777279,
+    "native": 40206777304,
+    "normal": 40206777289
+  },
+  "goExecutedLocally": false,
+  "mainMerged": false,
+  "mandatory": {
+    "allOlderSetsPreserved": true,
+    "count": 661,
+    "namesSHA256": "3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa",
+    "old660Preserved": true
+  },
+  "notProven": [
+    "new source Go compilation",
+    "new clone metadata pin or fixed property counts",
+    "actual Completion and four fault publications",
+    "concurrent real Completion Inspect Close",
+    "D product recovery API and service rebind",
+    "failure reconciliation and absent-epoch restart",
+    "subsequent ordinary publish and second recovery",
+    "complete system or production readiness"
+  ],
+  "production": false,
+  "registryPublished": false,
+  "schema": "chengwang.mihomo-2b80-source-repairs/v1",
+  "scope": "ACTUAL_LINUX_COMPILER_FAILURE_AND_SOURCE_REPAIR_NOT_RUNTIME_ACCEPTANCE",
+  "sourceRepairs": {
+    "compilerAndFormatReceiptSHA256": "4c45b3aeb475e723a4efb4bfb03228cc210a2b4d83ad3ba8bf9e8e02d086eba9",
+    "compilerRenameChanges": {
+      "completionCapturedHeadIdentifiers": 2,
+      "recordedCanonicalIdentifiers": 3
+    },
+    "lockOrderFreezeSHA256": "e51d2839180d649abac43bfd151fa7fa69ef9544be8c1ab90091d14061727ab4",
+    "lockTradeoff": "service mutex spans Completion validation and synchronous disk CAS/fsync/readback; callers can wait; external authorization remains point-in-time",
+    "workflowOriginalLogReplaySHA256": "f69d1cd2e54bd8edf71b389fdd8b9204f1c99b4f541265e31624c003d89c46d3"
+  },
+  "sourceSHA256": {
+    ".github/workflows/chengwang-mihomo-lifecycle.yml": "065c8766a9164b7a48f82b73aaa14144a8e76c0e47b070b0c301e967dc92c219",
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "3d446e21853769cbd1b626a4da3c6c0b8fe8f3dc864d3f7968fd4d02b74ad76e",
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "3f4d3fe28b42e8d18956c9f62c2bd542d561561bb2ad5045fc08b311d111aa72",
+    "chengwang/internal/mihomodeploy/lab_current_epoch_runtime_test.go": "df4fe6439b34ff55a5b89a645b64ed1117c21a151f216d181dc65b5962cc31b0",
+    "chengwang/internal/mihomodeploy/lab_recovery_collector.go": "677380ec8f697d93e68596313509fd0952d9afeb09e8680798e0b36236f78aee",
+    "chengwang/internal/mihomodeploy/lab_recovery_collector_linux_test.go": "860b72f8e55a5ee20d120a0bab6941497d1bdf6e954e6075607e15701c137969",
+    "chengwang/internal/mihomodeploy/lab_recovery_marker.go": "e2fc0b6b780d1dacc12240f90e2df048d8ad1b8e1fcf700afaaad106d4500844",
+    "chengwang/internal/mihomodeploy/lifecycle_current_epoch.go": "1047c7d505f13d637a8c2466da4100fc11f13a4fdc473a859adeae787c6deb05",
+    "chengwang/internal/mihomodeploy/lifecycle_current_epoch_test.go": "f4e4f95d0c5625fbd2f4b04ad45cc6eff3fbf9c54b77eae8713e2b7190276dee",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_checkpoint.go": "74c08ebfe3c54374005a893e40fc207bad272fc97f193c7d74d76542bdf7c719",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_completion.go": "fc449c07081605ed57636d3a3dccf1fe3bdb3998e63d2459dcdca22c2cdf4b1e",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_verification.go": "f9b388cfc5b90465d9a7d69d60bca5884fd1131adf9f6cc7989b7a6712426891"
+  }
+}

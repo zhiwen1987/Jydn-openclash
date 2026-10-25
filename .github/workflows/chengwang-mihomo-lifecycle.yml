@@ -156,6 +156,10 @@ jobs:
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCheckpointReconstructsExactVerifiedRoot',
           }
           assert len(recovery_completion_current_added)==12 and recovery_completion_current_added.issubset(declared)
+          recovery_lock_order_added={
+            'chengwang/internal/mihomodeploy::TestLabRecoveryCollectorCurrentKernelLockBoundaryMODEL',
+          }
+          assert len(recovery_lock_order_added)==1 and recovery_lock_order_added.issubset(declared)
           recovery_completion_current_final_added={
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionProspectiveMetadataUsesStrictS2Preimage',
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCompletionCustodyRejectsCopiesForeignResetAndReopen',
@@ -170,9 +174,11 @@ jobs:
             'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeCheckpointRootIsStrictlyValidatedOnce',
             'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopesNeverShareValidationAcrossOperations',
             'chengwang/internal/mihomodeploy::TestLifecycleV3DecodeScopeDeepChainBudgetsFailClosed',
-          }
-          assert len(recovery_completion_current_final_added)==13 and recovery_completion_current_final_added.issubset(declared)
+          } | recovery_lock_order_added
+          assert len(recovery_completion_current_final_added)==14 and recovery_completion_current_final_added.issubset(declared)
           assert not recovery_completion_current_final_added.intersection(recovery_completion_current_added)
+          previous660=sorted(set(declared)-recovery_lock_order_added)
+          assert len(previous660)==660 and hashlib.sha256('\n'.join(previous660).encode()).hexdigest()=='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
           previous647=sorted(set(declared)-recovery_completion_current_final_added)
           assert len(previous647)==647 and hashlib.sha256('\n'.join(previous647).encode()).hexdigest()=='1e7db484a7eb5485b06037bd3ee1fb443201ab46799c17fefba9bcba9b0cca94'
           previous635=sorted(set(previous647)-recovery_completion_current_added)
@@ -197,9 +203,10 @@ jobs:
             'chengwang/internal/mihomodeploy/lab_recovery_start_test.go',
             'chengwang/internal/mihomodeploy/lab_recovery_start_linux_test.go'}
           assert added_test_paths.issubset(dict(module.TEST_FILES))
-          previous539=sorted(package+'::'+name for path,package in module.TEST_FILES if path not in added_test_paths
-            for name in re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{',Path(path).read_text('utf8'),re.M)
-            if package+'::'+name not in candidate_seal_added and package+'::'+name not in trusted_clone_added and package+'::'+name not in s1_started_added and package+'::'+name not in selected_target_added and package+'::'+name not in s2_collector_added and package+'::'+name not in recovery_marker_added and package+'::'+name not in recovery_verification_added)
+          added_test_names={package+'::'+name for path,package in module.TEST_FILES if path in added_test_paths
+            for name in re.findall(r'^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)\s*\{',Path(path).read_text('utf8'),re.M)}
+          assert len(added_test_names)==46 and added_test_names.issubset(previous585)
+          previous539=sorted(set(previous585)-added_test_names)
           assert len(previous539)==539 and hashlib.sha256('\n'.join(previous539).encode()).hexdigest()=='dca819005e498a5d36c6157e00dbd244ad7f705616690001b0bf830c7900009c'
           assert set(previous539).issubset(declared)
           snapshot_added={
@@ -218,8 +225,8 @@ jobs:
           assert snapshot_added.issubset(declared)
           previous=sorted(set(previous539)-snapshot_added)
           assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
-          assert len(declared)==660 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='3093151172b8c18d088a7d217bcf0d9d16a1a85b710d121f9d7c12427fe46b16'
-          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
+          assert len(declared)==661 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
+          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous660_preserved=true previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |
