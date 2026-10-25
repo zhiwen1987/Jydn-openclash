@@ -2,6 +2,11 @@ name: Build OpenClash Template
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "modules/**"
+      - "monitoring/lan-center/strict-custom/**"
   push:
     branches:
       - main
@@ -11,6 +16,7 @@ on:
       - "rules/**"
       - "modules/**"
       - "scripts/**"
+      - "monitoring/lan-center/strict-custom/**"
 
 permissions:
   contents: write
@@ -31,7 +37,14 @@ jobs:
       - name: Test runtime empty-group filter
         run: ruby scripts/test_patch_runtime_groups.rb
 
+      - name: Test strict private selectors
+        run: ruby scripts/test_strict_custom.rb
+
+      - name: Test strict controller protections
+        run: python3 -m unittest discover -s monitoring/lan-center/strict-custom -p test_strict_control.py -v
+
   sync:
+    if: github.event_name != 'pull_request'
     needs: verify
     runs-on: ubuntu-latest
     steps:
