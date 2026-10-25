@@ -501,6 +501,21 @@ func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3Dec
 	if err != nil {
 		return err
 	}
+	// This context was decoded from this exact root's canonical SourceV2 and
+	// lives only for this complete validation. Reuse it for legacy v1 plans so
+	// an increasing history does not decode the same immutable source once per
+	// entry. Every descriptor is still checked in full; only an exact repeated
+	// target descriptor may use the context's existing byte-keyed target memo.
+	// V2 plans retain their own checkpoint reconstruction in the decode scope.
+	planContext := func(d labRecoveryPlanDescriptor) (*labRecoveryPlanValidationContext, error) {
+		if d.Schema == labRecoveryPlanSchema {
+			if d.Source != nil {
+				return nil, errLifecycleUnsafe
+			}
+			return context, nil
+		}
+		return lifecycleRecoveryPlanContextScoped(w, d, scope)
+	}
 	original := context.core.original
 	legacy := lifecycleLegacyLedger(original, w.SourceV2.ControlBytes)
 	if len(w.RetiredEpochs) == 0 {
@@ -525,8 +540,8 @@ func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3Dec
 	var histRevision uint64
 	var histAt time.Time
 	for _, a := range w.RecoveryHistory {
-		planContext, contextErr := lifecycleRecoveryPlanContextScoped(w, a.Plan, scope)
-		if recoveryIDs[a.Plan.RecoveryID] || contextErr != nil || validateLifecycleRecoveryTxn(a, planContext, w.LastTrustedAt, w.Revision) != nil ||
+		entryContext, contextErr := planContext(a.Plan)
+		if recoveryIDs[a.Plan.RecoveryID] || contextErr != nil || validateLifecycleRecoveryTxn(a, entryContext, w.LastTrustedAt, w.Revision) != nil ||
 			(a.Execution != nil && (a.Phase != "COMPLETED" || a.Execution.Schema != lifecycleRecoveryCompletedExecutionSchema || validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil)) ||
 			(a.Phase != "REVOKED_UNSTARTED" && a.Phase != "COMPLETED") || a.UpdatedAt.Before(histAt) {
 			return errLifecycleUnsafe
@@ -536,8 +551,8 @@ func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3Dec
 	}
 	if w.Recovery != nil {
 		a := *w.Recovery
-		planContext, contextErr := lifecycleRecoveryPlanContextScoped(w, a.Plan, scope)
-		if contextErr != nil || validateLifecycleRecoveryTxn(a, planContext, w.LastTrustedAt, w.Revision) != nil {
+		entryContext, contextErr := planContext(a.Plan)
+		if contextErr != nil || validateLifecycleRecoveryTxn(a, entryContext, w.LastTrustedAt, w.Revision) != nil {
 			return errLifecycleUnsafe
 		}
 		if validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil {

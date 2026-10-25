@@ -8,12 +8,13 @@ import (
 	"time"
 )
 
-// MODEL ONLY: this constructs one structural recovered ledger. It issues no
-// Completion, runtime handoff, owner token, or permission to touch a real disk.
+// MODEL ONLY: seed an explicitly planned recovery in the in-memory model store,
+// then construct one structural recovered ledger. Its model owner is not real
+// authorization, a Completion, runtime handoff or permission to touch a disk.
 func lifecycleCurrentEpochModel(t *testing.T) *lifecycleV3Wire {
 	t.Helper()
-	r, plan, _, _ := lifecycleV3Model(t)
-	w := r.core
+	s, _, _, plan, _ := lifecycleRecoveryModelPlanned(t)
+	w := s.core.record.core
 	l := w.Current
 	previous := l.Head.HeadSHA256
 	l.Head.Generation++

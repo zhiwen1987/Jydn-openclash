@@ -1,0 +1,83 @@
+{
+  "actualCI": {
+    "diagnostic": {
+      "conclusion": "failure",
+      "run": 40214747218
+    },
+    "native": {
+      "conclusion": "success",
+      "run": 40214747219
+    },
+    "normal": {
+      "conclusion": "failure",
+      "run": 40214747262
+    }
+  },
+  "actualDiagnostic": {
+    "capacityCaseCompleted": false,
+    "diagnosticCaptureIsNotGoSuccess": true,
+    "fullPackageTimeoutSeconds": 180.042,
+    "singlePackageTimeoutSeconds": 180.028
+  },
+  "actualFoundation": {
+    "clonePinNoLongerFirstBlocker": true,
+    "formatPatchBytes": 0,
+    "ordinary": {
+      "required": 661,
+      "requiredFail": 4,
+      "requiredPass": 657,
+      "requiredSkip": 0
+    },
+    "race": {
+      "fail": 4,
+      "notStarted": 110,
+      "packageTimeoutSeconds": 180.04,
+      "pass": 546,
+      "required": 661,
+      "unfinished": 1
+    }
+  },
+  "actualNativeAcceptanceScope": "OLD_S2_FOUR_MODES_ONLY_NOT_COMPLETION_API_OR_SECOND_RECOVERY",
+  "baseline": "944a4b94e30ad3805269f1a3ae41709602fa5436",
+  "completionNativeAcceptance": false,
+  "continuousRecoveryAcceptance": false,
+  "goExecutedLocally": false,
+  "gofmtExecutedLocally": false,
+  "historicalFailuresPreserved": true,
+  "mainMerged": false,
+  "nativeFourModeAuditSHA256": "9fda43aa45a99f41fa13927daae5664b8c092942d8c7ac6822c376abf24fbcdb",
+  "newRuntimeAcceptance": false,
+  "normalDiagnosticAuditSHA256": "99fc03e1e0b58040b8673ae9853a4354552823341788ae41da90a27e57f257f7",
+  "originalArchiveCount": 24,
+  "originalMemberCount": 440,
+  "productRecoveryAPIIntegrated": false,
+  "production": false,
+  "productionTouched": false,
+  "registryPublished": false,
+  "schema": "chengwang.944a-capacity-fixture-source-repairs/v1",
+  "scope": "HISTORICAL_LINUX_FAILURE_EVIDENCE_AND_SOURCE_REPAIR_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceCommitAudited": "944a4b94e30ad3805269f1a3ae41709602fa5436",
+  "sourceRepairs": {
+    "crossOperationCache": false,
+    "fixture": "SEED_PLANNED_RECOVERY_NOT_ONLY_EVOLUTION_ALL_TEST_ASSERTIONS_UNCHANGED",
+    "historyLimit": 256,
+    "lfCorrectedFreezeSHA256": "47306603365d64d59f855433beca5b1bac5a4ab6db63ac3c520252208fcfcdd5",
+    "mandatoryNamesOrCountChanged": false,
+    "maxWALBytes": 2097152,
+    "peerByteAndFixtureGuardSHA256": "3101f554c2385805ea5e6d8285a127fb862818e6f69c189000d6ec64577ae266",
+    "perPlanFieldsAndDigestStillChecked": true,
+    "performancePatchSHA256": "b7bb710d9452cc2b7a4b7473e227404ea1ffae6b1a5884e64a890a20a997f8f1",
+    "previousCRLFWorktreeHashNotUsedAsRootPin": true,
+    "rootIndependentSourceGuardSHA256": "add6493c05c6eeba81765bd2e3f943dac276fce5e4bbde27093b51404e29007d",
+    "testTimeoutSeconds": 180,
+    "v2CheckpointStillReconstructedIndependently": true,
+    "validation": "REUSE_CURRENT_ROOT_STRICT_LEGACY_SOURCE_CONTEXT_WITHIN_ONE_VALIDATION_ONLY"
+  },
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "93f18b4a777b2f2e569fb12f555d216e0bb3b22b59be18ae91f85a232fe3aaff",
+    "chengwang/internal/mihomodeploy/lifecycle_current_epoch_test.go": "99d9ac3bab9305512b3fa807c2dea894f1ed2cacaa33cb3701e14afe6e5f0a16",
+    "chengwang/internal/mihomodeploy/lifecycle_v3.go": "20bd9dd7fbfa385ad486e0807189e7ca78e999ed852af9a40470e9fd522100ec"
+  },
+  "sourceTrackedPathEntries": 1347,
+  "sourceUniqueGitBlobHashes": 1346
+}
