@@ -6,6 +6,10 @@
 
 ### 下一阶段源码：恢复协调器、reconciliation 与产品 API 已合入，Linux 验收待执行
 
+修正提交 `69c2fc29e63e6f3c8c0cd993757a225a74d58782` 已在真实 Linux 编译并进入 mihomodeploy 测试。full diagnostic `40231324060` 的 artifact12613366005为470958字节／21成员，SHA256 `484b95eea7b5d0b02cefb0092aaff83f287e98684565f0854310b53a4dcc4edf`；1379路径来源前后相同，root逐Git blob／SHA再核。唯一诊断 top 的实际 output／pass给出 digest `ee925968d830156c5a5c0c366e28722e278b1d54284712ebc28b47a8ed7e4d61`、63结构、457字段、86可变槽（67指针／19切片），另一个digest MODEL同值PASS。root原件审计收据 SHA256 `bb7d009d2d84217bf91ed75cfe6d1049789018e1237d61f46f2675d4640b7ba0`。
+
+据此只固定该实际图pin，并把现有属性覆盖门59→63、82→86及对应诊断文案同步；不删除任何复制／逐槽／canonical／来源校验，也不改变克隆算法、记录格式或权限。full仍为Go exit1、116顶层失败，此前空pin是已知阻断，不能推断全部失败均无第二原因；下一同提交实际回归才决定是否通过。该反射元数据不是产品API、真实恢复成功、完整私有WAL或生产证据。
+
 后续修正提交 `a433cc9750a0d22b401202cfc4ddddc7053c4294` 的真实首轮仍失败，但前两项阻断已排除。foundation `40230016584` 的 47／25 名称模型门通过；ordinary／race 每套其他五包各746个 test run／pass，mihomodeploy 在 MODEL 测试编译阶段报 `binding.TargetArtifact` 不存在。helper 第四返回本来是 `labRecoveryPlan`，第五才是仅含旧身份的 `labQuiescenceBinding`；当前仅保留第四返回并从 `plan.descriptor().TargetArtifact` 取该夹具目标，30处引用更正，旧身份、58断言、7顶层保持，没有向生产绑定结构加字段。独立预测与root实际组合 SHA256 均为 `b6c1638cacda580faf0ea42ef1837e92600b95331c6edf2e21f31f3eebf3321c`。
 
 本次完整144个Go格式目标实际产生78781字节补丁，SHA256 `bd6830e43564e289a22cef20f30bcde35cf208fc9a533ff8afcc06a9d80765a7`，10文件／54hunk。root逐Git前像严格重构后与独立formatter后像逐字节相同，再对唯一交叠MODEL文件叠加上述语义映射；其余9文件完全等于官方后像。未运行本机Go／gofmt；原编译失败与非空格式门不改判。独立 full diagnostic `40230016615` 同样没有结构诊断 run／output／pass，所以本轮仍无pin或结构计数，下一真实Linux结果必须重新取证。

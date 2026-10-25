@@ -4,6 +4,8 @@
 
 ## 最新核对：2026-10-26 SYS-06 首次真实 Completion 四模式通过限定隔离验收
 
+后续 `69c2fc2` 真实编译／图诊断已进入，唯一diagnostic output+pass与独立digest MODEL同值：`ee925968d830156c5a5c0c366e28722e278b1d54284712ebc28b47a8ed7e4d61`，63结构／457字段／86槽（67指针19切片）。21成员原ZIP470958字节SHA `484b95eea7b5d0b02cefb0092aaff83f287e98684565f0854310b53a4dcc4edf`、1379源前后及Git字节已独立核，root收据SHA `bb7d009d2d84217bf91ed75cfe6d1049789018e1237d61f46f2675d4640b7ba0`。当前据此固定pin、同步原属性门63／86，全部复制与逐槽检查保留；full Go exit1／116顶层失败的原判定保持，不把诊断通过当整体通过，也不预判其余失败原因。
+
 后续 `a433cc9` 实测：名称与collector旧阻断已排除，47／25 CPU门通过，ordinary／race各有其他五包746项run/pass；mihomodeploy因MODEL把`labQuiescenceBinding`误当目标计划而编译失败。当前保留helper第四返回plan取目标，保58断言／7顶层／688名单；正式144格式目标的78781字节／10文件／54hunk原补丁已逐前像转入，并与MODEL修复机械组合，唯一重叠后像SHA `b6c1638cacda580faf0ea42ef1837e92600b95331c6edf2e21f31f3eebf3321c`。此为源码修正，未冒称编译或实际恢复通过；诊断top仍无run/output/pass，pin继续空。
 
 后续 `a9774e5` 的真实首轮已失败：foundation 在 Go 前的25名称摘要误用整文件摘要；独立 full diagnostic 已调用 Go1.23.12，但两处缺少 `newLabRecoveryCollectorAt`，没有实际图诊断 output／pass，不能填 pin。原 full ZIP 240931字节／18成员与1377源已独立核，失败收据 SHA256 `17b0c6751da91d252d0e18779a81319f7e52a8170b1866c4a0594299fb866e8e`。最小修订恢复名称域并补exact session派生 collector stage，同stage贯穿全部证据sink；旧fixed兼容、688名单及空pin保持，须下一真实 Linux 重验。原格式0只覆盖10文件，不冒称完整144门。

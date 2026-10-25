@@ -738,10 +738,10 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 // fully validated candidate. Unknown fields/codecs fail closed before copying.
 // Every local struct is written as a complete positional literal: adding a
 // field requires an explicit copy update rather than a silent shallow alias.
-// Intentionally fail closed until the existing Linux reflection diagnostic
-// reports the exact expanded graph. A source-only candidate must not guess
-// this authority pin or silently retain the pre-reconciliation digest.
-const lifecycleCloneSchemaSHA256 = ""
+// Source-bound Linux Go1.23.12 diagnostic at commit 69c2fc2 observed 63 structs,
+// 457 fields and 86 mutable slots (67 pointers, 19 slices). Later graph changes
+// still fail closed until a new actual diagnostic supplies their exact pin.
+const lifecycleCloneSchemaSHA256 = "ee925968d830156c5a5c0c366e28722e278b1d54284712ebc28b47a8ed7e4d61"
 
 var errLifecycleCloneRepresentation = errors.New("trusted record copy requires original JSON representation")
 
