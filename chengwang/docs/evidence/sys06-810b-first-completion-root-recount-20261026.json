@@ -1,0 +1,170 @@
+{
+  "allFourRawGoTestsPassed": true,
+  "allOriginalFreshTextByteEqual": true,
+  "artifacts": [
+    {
+      "bytes": 26980,
+      "id": 12617385110,
+      "members": 39,
+      "name": "mihomo-native-completion-readback-originals-40241633618-1",
+      "sha256": "971fc1c7a543f8b3198ceadf192199819f689dc5e01d6b1f9b373fdf0a77f584"
+    },
+    {
+      "bytes": 329,
+      "id": 12617180231,
+      "members": 1,
+      "name": "mihomo-native-completion-not-committed-fresh-40241633618-1",
+      "sha256": "e8442c10d90b08d5b3aee06fa6856212d23692345d1656be8977db07ff79957e"
+    },
+    {
+      "bytes": 27359,
+      "id": 12617053870,
+      "members": 39,
+      "name": "mihomo-native-completion-not-committed-originals-40241633618-1",
+      "sha256": "71bdf36a757f1dc85c7d498d436e0db4483491e814e4c704bef85cd080e40e61"
+    },
+    {
+      "bytes": 312,
+      "id": 12617024052,
+      "members": 1,
+      "name": "mihomo-native-completion-unknown-fresh-40241633618-1",
+      "sha256": "d383045e5ff635ad8c0cb20414486c767a9ba390cdfbf08f89d531c65aa11143"
+    },
+    {
+      "bytes": 314,
+      "id": 12616999118,
+      "members": 1,
+      "name": "mihomo-native-completion-readback-fresh-40241633618-1",
+      "sha256": "286509d4abbed702517537c8574735dd8c569d58a4e6add05d9c3e0d9134feb7"
+    },
+    {
+      "bytes": 3140,
+      "id": 12616849249,
+      "members": 7,
+      "name": "mihomo-native-completion-candidate-40241633618-1",
+      "sha256": "42713e52a2345be189cf1bfe3182cc01c24340df908e8e055c1864a25e55b87d"
+    },
+    {
+      "bytes": 315,
+      "id": 12616743106,
+      "members": 1,
+      "name": "mihomo-native-completion-positive-fresh-40241633618-1",
+      "sha256": "a6f56c08c308050ce2f86ca54e792c98194f8f42f5c966b481f3aca875aa7a86"
+    },
+    {
+      "bytes": 26991,
+      "id": 12616353473,
+      "members": 39,
+      "name": "mihomo-native-completion-positive-originals-40241633618-1",
+      "sha256": "1f34b216bf3d0e0448af6f7fc0fded0aa11fe14768f4a5100c6d0ff6c6945e4c"
+    },
+    {
+      "bytes": 26922,
+      "id": 12616134035,
+      "members": 39,
+      "name": "mihomo-native-completion-unknown-originals-40241633618-1",
+      "sha256": "61d8bdd0003e5e19b01b9286520773fdd00fec6a8caf744dacbf33698358feb8"
+    }
+  ],
+  "commit": "810bce48cd40a38a3703c068eeb49583d68c485e",
+  "goExecutedLocally": false,
+  "independentFullCheckerAuditSHA256": "bdd0dec52fc8970371c17216e5710066903f92a8958709b36a970154a45e3b7a",
+  "memberInventorySHA256": "f4544133d85d3bb2ce1524ceb6de95f3d92c08a8bbc4eaa42fb1e92bba677ff7",
+  "members": 167,
+  "modes": {
+    "not-committed": {
+      "diskPhase": "START_ARMED",
+      "diskRevision": 18,
+      "memoryRevision": 18,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 10.903,
+      "reopenTransition": "START_ARMED_TO_RECOVERY_UNKNOWN",
+      "replaceForwardReadInjected": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportSHA256": "2edcdebf5d79494358cae0b0ef4b8b45ff4d62503117ef8db073ca09707789fe",
+      "runtimeAdopted": false,
+      "testSeconds": 10.9
+    },
+    "positive": {
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "memoryRevision": 19,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 10.873,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "reportSHA256": "a90b936336099c0d867bfdeb57c0c623869072621e803e754178947f4e01d58d",
+      "runtimeAdopted": true,
+      "testSeconds": 10.87
+    },
+    "readback": {
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "memoryRevision": 18,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 9.925,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "reportSHA256": "5a041b57fe00bd0cd3f8a0a947862e3057b1043c370cc9bcba764f07c39b694e",
+      "runtimeAdopted": false,
+      "testSeconds": 9.92
+    },
+    "unknown": {
+      "diskPhase": "COMPLETED",
+      "diskRevision": 19,
+      "memoryRevision": 18,
+      "nativeEvents": 19,
+      "originalFreshTextByteEqual": true,
+      "packageSeconds": 10.989,
+      "reopenTransition": "COMPLETED_UNCHANGED",
+      "replaceForwardReadInjected": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "reportSHA256": "5c467025fbbf84acd15d4839e1fbe8152a2b74946e97d165684ab58b79c02ba9",
+      "runtimeAdopted": false,
+      "testSeconds": 10.98
+    }
+  },
+  "ordinaryPublishProven": false,
+  "originalCheckerSourceBindingReplayed": true,
+  "originalFullCheckerReplayedByThisRecount": false,
+  "privateWALIndependentlyProven": false,
+  "productRecoveryAPIProven": false,
+  "productionChanged": false,
+  "run": 40241633618,
+  "schema": "chengwang.native-completion-root-recount/v1",
+  "scope": "RAW_ZIP_GO_COMMANDS_COUNTERS_AND_FULLTRACKED_SOURCE_NOT_FULL_PRIVATE_WAL_PROOF",
+  "secondRecoveryProven": false,
+  "sourceBinding": {
+    "deliveryCount": 9,
+    "deliverySetSHA256": "dffd1b2597f33cdf87d85739d92948aa51fb052eaaadb0d000168107028b259b",
+    "indexTree": "76c19f339ae785cc1b14bef07029da9a0690d3e8",
+    "policySHA256": "fd9682a24a31d4087f72490771d9a7c00b648d8a7925f4805effc49a7b3a1385",
+    "schema": "chengwang.mihomo-native-completion-source-binding/v2",
+    "sourceCommit": "810bce48cd40a38a3703c068eeb49583d68c485e",
+    "sourceCount": 1407,
+    "sourceManifestSHA256": "9f02bc56fee03e0d855611fd34dbe7708bee7ad2dc165c7ea2a1c55aa84fc9ef",
+    "sourceSetSHA256": "b8a08268d0c6fe5d8c2a77a9c67dae8b9f3f1a4980c7c51dba5e6c5f3e0ec189",
+    "sourceTree": "76c19f339ae785cc1b14bef07029da9a0690d3e8"
+  }
+}

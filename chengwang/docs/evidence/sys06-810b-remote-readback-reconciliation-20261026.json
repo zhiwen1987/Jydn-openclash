@@ -1,0 +1,29 @@
+{
+  "actualNewRuntimeAcceptance": false,
+  "commit": "810bce48cd40a38a3703c068eeb49583d68c485e",
+  "cpuModelGroups": {
+    "apply-service": 85,
+    "continuous-models": 6,
+    "contracts-compat": 60,
+    "native-completion-reader-models": 11,
+    "old-native": 17
+  },
+  "cpuModelTotal": 179,
+  "localGoOrGofmtExecuted": false,
+  "mainMerged": false,
+  "nativeAndContinuousFinalHeadFullTrackedSourceBindingsEqual": true,
+  "originalGitCLIReadbackExit": 128,
+  "originalIntegrator": "D:/CodexData/workspace/mihomo-format-model-source-fix-integrate-h7gejlr1",
+  "originalIntegratorFailurePreserved": true,
+  "production": false,
+  "pushExit": 0,
+  "registryPublished": false,
+  "remoteObservationSHA256": "34a41c990a10cdd07dde996f75931f2cc00740019db46cde1b15ebd7b0ff5c11",
+  "remoteReadbackMatches": true,
+  "remoteReadbackMechanism": "AUTHENTICATED_GITHUB_CONNECTOR_GIT_REF",
+  "schema": "chengwang.development-integration-remote-reconciliation/v1",
+  "sourceBeforeAfterSHA256Equal": true,
+  "sourceFilesIncludingAutoEvidence": 12,
+  "userOriginalHeadAndThreePinsPreserved": true,
+  "workingTreeClean": true
+}

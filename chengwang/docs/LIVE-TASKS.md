@@ -1,5 +1,9 @@
 # 澄网：项目任务清单
 
+本轮810b验收与后续诊断源码（2026-10-26）：normal原verify直接复演通过，158源、ordinary／race各688必需与1992语义、报告byte-equal；首次Completion的9 ZIP／167成员／1407源也经四mode原main与root原始计数复核限定接受。两类接受只针对810b，不代表恢复后service rebind、产品恢复API、普通发布或第二恢复。diag full仍180.049秒超时。连续实验因全输出secret fence拒绝导出，原件未公开Go退出／HTTP结果。当前仅worker+MODEL两源补充安全诊断，并关闭REPORT缺失时未构建inventory的继承旁路；无实际泄漏证据。6类输入／8种编码／最小长度8／导出前拒绝保持；诊断只允许固定类别、阶段、退出码、计数和39个已知Go失败码，未知值映射UNKNOWN，诊断自身再次过同一fence，命中则固定拒绝。模型覆盖REPORT缺失且输出含私密值时write_new=0。没有修改Go、预算或生产，下一exact-head Linux诊断仍需实际执行；不把候选、诊断投影或其他成功门当连续恢复通过。
+
+最新810b核对（2026-10-26）：提交`810bce48cd40a38a3703c068eeb49583d68c485e`已推送并经认证GitHub ref读回一致；最初Git CLI读回连接超时单独保留。normal run40241633602及fresh成功，原`check_contracts.verify`由root直接复演（无适配、无证据替换），158源、ordinary／race各688必需与1992语义通过，报告逐字节同CI；格式差异为空，race149.21秒。diag full仍在180.049秒超时，不能宣称稳定性能余量。旧S2与首次Completion新CI状态成功，完整原件复核另行记账。连续恢复run40241633594已过Linux模型阶段，但在通用输出secret fence阻止导出；原件缺Go退出与HTTP报告，结果仍未证明。仅增加非敏感碰撞诊断的候选正在独审，原泄漏拦截保持。生产、main、Registry未改，整套系统仍未完成；下方旧记录只适用于各自提交。
+
 最新97fa原件核对（2026-10-26）：normal普通／race的原事件检查器子门均688必需、1992语义通过、零skip；race包128.838秒，新增owner对照子例真实通过。原完整基础门仍因19882字节非空官方格式补丁失败；同提交diag full又在180.053秒超时（587通过／1运行中／100未起），不宣称稳定性能收益。continuous首轮在Go前的两个CPU模型因未模拟root文件归属而错误，实际Go／HTTP未进入。当前仅精确移入实际Linux Go1.23.12格式补丁的3源／15hunk，并修MODEL fstat仿真一源；生产worker UID/GID0、nlink、size及路径门逐字节保持，非root负例仍拒绝。旧S2与首次Completion只核两份positive：真实Go均通过，原reader均拒绝相同格式差异；内存替空格式的检查仅为诊断投影，不是原件接受，其他6个模式不外推。修订后仍需同提交Linux CI；产品API／连续恢复与整套系统未验收，生产、main和Registry未改。
 
 本次源码集成（基3c6d456，尚未Linux验收）：按冻结清单合入连续HTTPS链与兼容闭集37路径，并只修复N3对照MODEL缺RecoveryOwner前置的一份测试源；源审通过不代表Go／HTTP已运行。计划链为真实UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复，共31次产品HTTPS调用；目前仍为待运行计划。基础源码158／必需测试源58／完整格式源152，688必需名称摘要保持；完整包测试源91→去连续标签3项为88→去上一阶段4项为历史84；旧native来源196／格式28，Completion格式25。新默认hook互补闭合，实验不能从HTTP或环境启用，old+new故障双标签明确不支持。保持180秒、256次真实循环、2MiB、原publisher／validator及全部历史失败；未改生产、main或Registry。
@@ -16,9 +20,9 @@
 | --- | --- | --- | --- |
 | 固定双配置正常发布与 UNKNOWN 不重发 | 限定隔离验收通过 | 已接受 `2bba397` 的真实正常服务、响应丢失及独立复算；参见 SYS-06 文档 | 不等于全部故障、互联网业务或生产验收 |
 | 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
-| 首次真实 Completion | 9ad四模式限定隔离验收通过 | [新接受记录](evidence/sys06-9adbbe0-first-completion-acceptance-20261026.json)：run40234883944的11任务成功；9 ZIP／167成员、1381跟踪路径、四mode原checker直接复演与root原始Go／命令／落盘计数复算一致 | 完整私有WAL、service rebind、产品API、普通发布和第二恢复仍未证明；旧6018合同拒绝不覆盖 |
-| 当前提交其他三套 CI | 9ad诊断／旧S2状态成功；基础门失败 | 40234883995诊断与40234883895旧S2为success；40234883862基础门的13成员原件已核，ordinary全过但race超时 | 状态观察不冒充其他门原件复算；Completion成功不抵消基础门失败 |
-| 失败恢复协调器与产品 API | 9ad ordinary 688 PASS／0 FAIL；race超时 | [本次原件审计](evidence/sys06-9adbbe0-normal-contracts-original-audit-20261026.json)：ordinary 1990语义通过；race 584必需通过／零terminal失败／1运行时超时／103未起，包180.047秒；capacity实测88.85秒 | 不把alarm时仅运行约0.497秒的测试误当唯一热点；保持688名单、256实际循环、2MiB和180秒。真实API、普通发布和第二恢复仍待新独立harness |
+| 首次真实 Completion | 810b四模式限定隔离验收通过 | [独立原件审计](evidence/sys06-810b-first-completion-independent-audit-20261026.json)：run40241633618，9 ZIP／167成员／1407源；四mode原main与root原始Go／命令／落盘计数复算一致 | 完整私有WAL、service rebind、产品API、恢复后普通发布及第二恢复仍未证明；旧失败均保留 |
+| 当前提交其他三套 CI | 810b normal原verify接受；旧S2状态成功；diag full超时 | normal40241633602与fresh成功，root原verify报告byte-equal；旧S240241633593为success；diag40241633621的full180.049秒超时 | 状态观察不代替旧门原件复算；normal与Completion接受不抵消连续实验失败 |
+| 失败恢复协调器与产品 API | 810b normal限定接受，连续API尚未验收 | [normal原verify](evidence/sys06-810b-normal-original-verifier-20261026.json)：ordinary／race各688必需及1992语义通过，race149.21秒，format空 | diag full587通过／1运行中／100未起；不改180秒／256真实循环／2MiB。连续实验secret fence拒绝，需取得安全原件证明31请求及后续恢复 |
 | 恢复后普通发布与第二次恢复 | 未验收 | 已有部分模型与外部源码，不能当作实际产品结果 | 完成新 head／epoch 接续、真实 API、普通发布与连续恢复的端到端证据 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
 

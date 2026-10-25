@@ -1,5 +1,7 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
+本轮810b验收与后续诊断源码（2026-10-26）：normal原verify直接复演通过，158源、ordinary／race各688必需与1992语义、报告byte-equal；首次Completion的9 ZIP／167成员／1407源也经四mode原main与root原始计数复核限定接受。两类接受只针对810b，不代表恢复后service rebind、产品恢复API、普通发布或第二恢复。diag full仍180.049秒超时。连续实验因全输出secret fence拒绝导出，原件未公开Go退出／HTTP结果。当前仅worker+MODEL两源补充安全诊断，并关闭REPORT缺失时未构建inventory的继承旁路；无实际泄漏证据。6类输入／8种编码／最小长度8／导出前拒绝保持；诊断只允许固定类别、阶段、退出码、计数和39个已知Go失败码，未知值映射UNKNOWN，诊断自身再次过同一fence，命中则固定拒绝。模型覆盖REPORT缺失且输出含私密值时write_new=0。没有修改Go、预算或生产，下一exact-head Linux诊断仍需实际执行；不把候选、诊断投影或其他成功门当连续恢复通过。
+
 最新97fa原件核对（2026-10-26）：normal普通／race的原事件检查器子门均688必需、1992语义通过、零skip；race包128.838秒，新增owner对照子例真实通过。原完整基础门仍因19882字节非空官方格式补丁失败；同提交diag full又在180.053秒超时（587通过／1运行中／100未起），不宣称稳定性能收益。continuous首轮在Go前的两个CPU模型因未模拟root文件归属而错误，实际Go／HTTP未进入。当前仅精确移入实际Linux Go1.23.12格式补丁的3源／15hunk，并修MODEL fstat仿真一源；生产worker UID/GID0、nlink、size及路径门逐字节保持，非root负例仍拒绝。旧S2与首次Completion只核两份positive：真实Go均通过，原reader均拒绝相同格式差异；内存替空格式的检查仅为诊断投影，不是原件接受，其他6个模式不外推。修订后仍需同提交Linux CI；产品API／连续恢复与整套系统未验收，生产、main和Registry未改。
 
 本次源码集成（基3c6d456，尚未Linux验收）：按冻结清单合入连续HTTPS链与兼容闭集37路径，并只修复N3对照MODEL缺RecoveryOwner前置的一份测试源；源审通过不代表Go／HTTP已运行。计划链为真实UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复，共31次产品HTTPS调用；目前仍为待运行计划。基础源码158／必需测试源58／完整格式源152，688必需名称摘要保持；完整包测试源91→去连续标签3项为88→去上一阶段4项为历史84；旧native来源196／格式28，Completion格式25。新默认hook互补闭合，实验不能从HTTP或环境启用，old+new故障双标签明确不支持。保持180秒、256次真实循环、2MiB、原publisher／validator及全部历史失败；未改生产、main或Registry。

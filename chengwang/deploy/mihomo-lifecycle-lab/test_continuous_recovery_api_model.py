@@ -24,14 +24,22 @@ def load(name,file):
 
 class Shared:
     ROOT_ENV={}
+    def __init__(self): self.writes=[]
     def unprivileged(self,argv,environment): return list(argv)
     def namespace_values(self): return {'networkNamespace':'net:[2]','mountNamespace':'mnt:[2]','pidNamespace':'pid:[2]'}
+    def custody(self,consumed): return consumed['before'],None,consumed['directory']
+    def write_new(self,path,body,mode): self.writes.append((path,body,mode))
 
 class Adapter:
     def __init__(self,root):
         self.ROOT_PRIVATE=Path(root); self.PATHS={'module':'/tmp/mihomo-apply-source','goRoot':'/tmp/mihomo-apply-go'}
         self._shared=Shared()
     def shared(self): return self._shared
+    def prepare_namespace(self,*args):
+        return {'commit':'a'*40,'environment':{},'pending':[],'inputBefore':b'before','originalDirectory':'directory',
+          'consumed':{'before':b'before','directory':'directory'}}
+    def unchanged_public(self,state): pass
+    def sync_output(self,state): pass
 
 class Process:
     def __init__(self,timeout=False): self.pid=4242; self.returncode=None; self.timeout=timeout; self.waits=0
@@ -52,7 +60,58 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertIn('def capture(',source); self.assertNotIn('a.capture(',source); self.assertNotIn('apply_worker.capture',source)
         self.assertIn("cwd='/tmp/mihomo-apply-source'",source)
         self.assertIn('return outputs,report,forbidden',source)
-        self.assertIn('for body in outputs.values(): need(all(secret not in body',source)
+        self.assertIn("fence_outputs(outputs,forbidden,'ALL_GENERIC_AND_REPORT_OUTPUTS'",source)
+        classes=('IDENTITY_PROFILE','HTTP_TOKENS','TLS_KEY','SERVICE_SECRET','CONFIG_A','CONFIG_B')
+        self.assertEqual(self.worker.SECRET_INPUT_CLASSES,frozenset(classes))
+        self.assertEqual(self.worker.SECRET_ENCODING_VARIANTS,frozenset(('RAW','B64','B64URL','HEX','JSON_QUOTED')))
+        for input_class in classes:
+            raw=('model-'+input_class.lower()+'-private-value').encode()
+            variants=self.worker.encoded_secret_variants(raw,input_class)
+            self.assertEqual(len(variants),8)
+            for secret,actual_class,variant in variants:
+                with self.subTest(input_class=input_class,variant=variant),self.assertRaises(ValueError) as caught:
+                    self.worker.fence_outputs({'clean.json':b'clean','collision.json':b'x'+secret+b'y'},
+                      ((secret,actual_class,variant),),'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,True,31,'NONE',True)
+                message=str(caught.exception)
+                self.assertNotIn(raw.decode(),message)
+                detail=json.loads(message[message.index('{'):])
+                self.assertEqual(detail,{'phase':'ALL_GENERIC_AND_REPORT_OUTPUTS','formatExit':0,'goExit':0,
+                  'reportObserved':True,'httpCount':31,'reportFailureCode':'NONE','reportOutcomePass':True,
+                  'outputLogicalName':'collision.json',
+                  'secretInputClass':input_class,'encodingVariant':variant})
+        self.assertIsNone(self.worker.fence_outputs({'clean.json':b'clean'},
+          ((b'model-private-value','CONFIG_A','RAW'),),'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,False,0,'UNKNOWN',False))
+        diagnostic_secret=b'CONFIG_B'
+        with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
+            self.worker.fence_outputs({'collision.json':diagnostic_secret},
+              ((diagnostic_secret,'CONFIG_B','RAW'),),'ALL_GENERIC_AND_REPORT_OUTPUTS',1,1,True,31,'NONE',False)
+        unknown_code='model-private-unknown-code'
+        self.assertEqual(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'}),('UNKNOWN',False))
+        self.assertNotIn(unknown_code,str(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'})))
+        known_code=b'HOOK_ARM'
+        with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
+            self.worker.fence_outputs({'collision.json':known_code},((known_code,'CONFIG_A','RAW'),),
+              'ALL_GENERIC_AND_REPORT_OUTPUTS',0,1,True,4,'HOOK_ARM',False)
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); private=root/'private.json'; secret=b'model-report-absent-private-value'; private.write_bytes(secret)
+            adapter=Adapter(root); adapter.EXPORT_ALIAS=root/'export'; adapter.EXPORT_ALIAS.mkdir()
+            original_source_file=self.worker.source_file
+            def source_file(path,*args,**kwargs):
+                if Path(path)==private: return original_source_file(path,*args,**kwargs)
+                if Path(path).name=='continuous.stderr': return b'generic-prefix '+secret+b' generic-suffix'
+                return b''
+            with mock.patch.object(self.worker,'adapter',return_value=adapter), \
+                 mock.patch.object(self.worker,'SECRET_INPUTS',(('CONFIG_A',private),)), \
+                 mock.patch.object(self.worker,'REPORT',root/'report-does-not-exist.json'), \
+                 mock.patch.object(self.worker,'git_source',return_value=('a'*40,{'schema':'binding'},b'manifest')), \
+                 mock.patch.object(self.worker,'contract',return_value={'maxPublicBytes':1<<20}), \
+                 mock.patch.object(self.worker,'private_bases'),mock.patch.object(self.worker,'write_private'), \
+                 mock.patch.object(self.worker,'command_argv',return_value=('model',)), \
+                 mock.patch.object(self.worker,'capture',return_value=0),mock.patch.object(self.worker,'source_file',side_effect=source_file):
+                with self.assertRaises(ValueError) as caught:
+                    self.worker.main((str(root),str(adapter.EXPORT_ALIAS),'unused','unused','a'*40))
+            self.assertIn('"reportObserved":false',str(caught.exception)); self.assertIn('"httpCount":0',str(caught.exception))
+            self.assertNotIn(secret.decode(),str(caught.exception)); self.assertEqual(adapter.shared().writes,[])
 
     def test_producer_and_reader_independently_bind_full_tracked_git_set(self):
         with tempfile.TemporaryDirectory() as td:

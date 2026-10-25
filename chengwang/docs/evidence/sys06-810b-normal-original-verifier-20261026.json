@@ -1,0 +1,48 @@
+{
+  "artifact": 12616139133,
+  "artifactBytes": 277241,
+  "artifactSHA256": "fcdbd6337bfbfeb4bedf18fd9d1833b6c20923cc9a393beb424eb066bc2040ef",
+  "commit": "810bce48cd40a38a3703c068eeb49583d68c485e",
+  "evidenceSubstituted": false,
+  "fullNormalVerifierOutcome": "PASS",
+  "inputSHA256": {
+    "execution.json": "c68f01b56be8beb6b1f9116d8cd70cef812f73ddafd09264123996542b63c465",
+    "go-version.txt": "9f161eff18f3e12a2e622b6f0fd90d1f36e4b9b89d8516cfc67ce4442c478c6a",
+    "gofmt.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gofmt.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "host-after.json": "9f619573d9e2554562e939d08a180b55bb717b4571481ae9ef72625275528bcc",
+    "host-before.json": "9f619573d9e2554562e939d08a180b55bb717b4571481ae9ef72625275528bcc",
+    "ordinary.json": "95d3ba8e01c92735677d83bf6b7c6d1739735873a834b36ef75d16298be09948",
+    "ordinary.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "race.json": "c9881558b7740c05b191ccf943315ef7c6e65a85ffe3d1912e3df4e07cdc1865",
+    "race.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sandbox.json": "98079a953e157c0dc684369ad89a35d0f9b269f40bdcc3c6fefd68b25ab5390b"
+  },
+  "localGoExecuted": false,
+  "localKernelExecuted": false,
+  "originalCLICalled": false,
+  "originalVerifyFunctionCalledDirectly": true,
+  "platformAdapterUsed": false,
+  "production": false,
+  "replayedReportByteEqualPublishedReport": true,
+  "reportSHA256": "0a0f78a9f709522445c546a86d4e2242bec4a15f3e2a7b1e9d5ffec53fe14093",
+  "run": 40241633602,
+  "schema": "chengwang.normal-original-verifier-root-replay/v1",
+  "scope": "SOURCE_CONTRACTS_ONLY_NOT_LIFECYCLE_OR_DEPLOYMENT_ACCEPTANCE",
+  "sourceEntriesVerifiedByOriginal": 158,
+  "stablePerformanceMarginProven": false,
+  "suites": {
+    "ordinary.json": {
+      "allPassingSemanticTests": 1992,
+      "mandatoryNewTopLevelTests": 688,
+      "skips": 0
+    },
+    "race.json": {
+      "allPassingSemanticTests": 1992,
+      "mandatoryNewTopLevelTests": 688,
+      "skips": 0
+    }
+  },
+  "wholeContinuousRecoveryProven": false,
+  "zipMembers": 14
+}
