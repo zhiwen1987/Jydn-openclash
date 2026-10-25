@@ -311,7 +311,14 @@ def full_source_contract(sources,manifest):
         masked=re.sub(r'//[^\n]*|/\*[\s\S]*?\*/|`[^`]*`|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'',lambda m:''.join('\n'if c=='\n'else' 'for c in m[0]),text)
         need(re.search(r'\bfunc\s+(?:Example|Fuzz)\w*\s*\(',masked)is None)
         suite_test_sources[path]=sha(data)
-    need(len(suite_test_sources)==83 and all(any(p.rsplit('/',1)[0]==directory for p in suite_test_sources)for directory in package_dirs))
+    completion_source='chengwang/internal/mihomodeploy/lab_native_completion_linux_test.go'
+    need(completion_source in suite_test_sources and len(suite_test_sources)==84 and
+         all(any(p.rsplit('/',1)[0]==directory for p in suite_test_sources)for directory in package_dirs))
+    # Preserve the previously accepted complete 83-source set explicitly.  The
+    # four-tag Completion harness is source-bound but intentionally excluded
+    # from the unchanged ordinary six-package mandatory-name set below.
+    previous83={path:digest for path,digest in suite_test_sources.items()if path!=completion_source}
+    need(len(previous83)==83)
     # Bind the diagnosis's six-package command to the unchanged normal race
     # command, allowing only the fixed diagnostic tag and test filter.
     normal='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)+' > "$out/race.json" 2> "$out/race.stderr"'
@@ -319,6 +326,8 @@ def full_source_contract(sources,manifest):
     return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':661,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,
+        'previousCompletePackageTestSourceCount':len(previous83),'previousCompletePackageTestSourceSHA256':previous83,
+        'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
         'noExampleOrFuzzDeclarationInBoundSixPackageTestSources':True}
 
 def full_events(raw,required,checker,go_exit,stderr=b''):

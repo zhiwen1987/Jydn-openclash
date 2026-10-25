@@ -1,16 +1,26 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：7a89同提交三套CI及25ZIP／442成员已独立复核，普通／race各1936语义／661必需、完整格式0，旧S2真实内核四模式及各自producer／fresh一致均已核。带采样full包177.275秒，距原180秒仅余2.725秒；这是一次限定通过，不证明容量余量充分或长期稳定。37f／3dc／2b80／779f／944a等实际失败保持。Completion模型已实际编译／运行，但真实Completion、新head与普通epoch接续、产品恢复接口、第二恢复及完整系统／生产仍未验收，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：c1f9同提交三套CI及25ZIP／442成员已独立复核，普通／race各1937语义／661必需、完整格式0，旧S2真实内核四模式及各自producer／fresh一致均已核。普通race包176.367秒，距原180秒仅余3.633秒；这是一次限定通过，不证明容量余量充分或稳定提速。37f／3dc／2b80／779f／944a等实际失败保持。Completion模型已实际编译／运行，但真实Completion、新head与普通epoch接续、产品恢复接口、第二恢复及完整系统／生产仍未验收，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
 
-### 已核7a89限定基线；当前工作区继续准备真实Completion验收
+### 已核c1f9限定基线；当前工作区继续准备真实Completion验收
+
+当前工作区已接入独立的首次真实Completion隔离CI源码入口，尚未取得该入口的Go／gofmt／四模式运行结果。新标签要求实际S2 collector签发cap、一次性Completion耐久提交、positive opaque runtime交接；另在Completion提交点注入NotCommitted／Unknown／坏readback。旧S2的75／90秒及4core门不变，新场景单独使用105秒Go／120秒外层上限。完整六包测试源显式83→84，新四标签harness不冒充普通661项必需测试。
+
+执行器和fresh reader各自从实际HEAD、tree、index及每项Git blob／工作树字节派生完整tracked来源；运行时manifest不把本地synthetic数量或caller摘要当authority。来源模型、整数／布尔类型、四模式字段关联、冷开及并发序列模型是CPU证据，只有下一真实Linux原件才能证明新入口运行。未提交的S2冷开按原opener转RECOVERY_UNKNOWN／PROCESS_REOPENED并增加revision，保留原执行事实；三种已COMPLETED磁盘保持原字节。Completion前后native调用前缀必须相同，随后合法cleanup尾另行验证，不把清理动作误算为Completion期间新增动作。
+
+外部core／D协调器候选仍未集成。已发现的重试授权先后顺序及issuer关闭回收缺口正在修订；其源码冻结、MODEL或源审查结果不能算作产品恢复API、连续恢复、全部故障矩阵或生产验收。
+
+当前接受源码`c1f9c9c05458cbd270c723f6867daf7a5c1cc936`的normal40219892631、diag40219892585、native40219892587全部成功；[c1f9聚合收据](evidence/sys06-c1f9-isolated-acceptance-20261026.json)绑定1350跟踪路径及25ZIP／442成员。root直接重数普通／race／full三套Go JSON，各1937语义、661必需全部PASS、零跳过／未完成。原语义检查函数及独立Git／原件复算、producer／fresh字节比较与旧S2四模式均通过，但不证明新的真实Completion接口或普通发布接续。
+
+本次普通包22.668秒、race包176.367秒；single容量86.83秒、full容量55.85秒，full包116.722秒。与7a89相比各套耗时有升有降、没有受控重复实验，不把一次较短的profile包解释为因果提速或稳定余量充分；180秒／256历史／2MiB门未放宽。下面7a89和更早的接受／失败均保留为各自提交的历史证据。
 
 实际接受源码为`7a89f8ea988fffdfdc2809210187534cd7cda1fe`：normal40216287379、diag40216287272、native40216287334均成功；[聚合收据](evidence/sys06-7a89-isolated-acceptance-20261026.json)绑定1348跟踪路径及实际Git字节。root直接重数普通／race／full三套Go JSON，各1936语义、661必需全部PASS，零失败／跳过／未完成。普通／race包18.940／138.984秒，容量5.79／67.22秒；独立single容量72.08秒、full容量86.62秒、full包177.275秒。CPU采集60.233／120.291秒完整，不代表覆盖完整六包或全部测试时间，不能相加重叠累计热点。
 
 本次只关闭已有Completion／CurrentEpoch源码模型、四个夹具修复及旧S2四模式的隔离回归。完整私有WAL独立复算、从本批artifact重新复验候选gzip原字节、真实Completion到新head交接、恢复API、后续普通写、第二次恢复、全网业务与生产均未由此证明。本机复算使用原语义检查函数及单独Git绑定，部分平台文件身份／POSIX路径读取适配明确记录，不冒称本机运行了完整Linux CLI。9dd更早的已接受范围与全部失败历史继续保留。
 
-当前有限性能候选将同一Completion调用的严格checkpoint前像重构保留一次：Completion publication slot必须走专用transition，同时匹配base raw和cap canonical；不允许generic OR分支兜底。最终freshness、取消、CAS、来源custody、一次性消耗及失败poison门保留。它只是当前工作区源码修订，尚无新的Linux性能或真实Completion接受，不能用7a89的通过替代新源码验收。
+c1f9有限性能修订将同一Completion调用的严格checkpoint前像重构保留一次：Completion publication slot必须走专用transition，同时匹配base raw和cap canonical；不允许generic OR分支兜底。最终freshness、取消、CAS、来源custody、一次性消耗及失败poison门保留。其编译、Go模型及旧S2隔离回归已由c1f9关闭，真实Completion与稳定性能结论仍未成立。
 
 在9dd基线上，单一集成者已将21个Go源码文件的候选合入隔离开发工作区，并逐文件核对来源SHA256及diff检查。代码包含Execution/v3完成来源检查点、Plan/v2的后续epoch来源、完成权限及一次性交接、保留完整V3状态的普通发布适配、冷开只读诊断和按一次解码隔离的历史校验memo。这里的“合入工作区”不表示已提交、CI通过、产品流程可用或已部署。
 

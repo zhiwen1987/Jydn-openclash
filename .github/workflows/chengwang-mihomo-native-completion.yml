@@ -1,0 +1,228 @@
+# Isolated first Completion only: not API rebinding, ordinary publish, second recovery or production.
+name: Chengwang Isolated Native First Completion
+'on':
+  workflow_dispatch: null
+  push:
+    branches:
+      - codex/chengwang-mihomo-lifecycle-20261024
+permissions:
+  contents: read
+concurrency:
+  group: chengwang-native-completion-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  development-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Reject use outside the isolated development branch
+        env:
+          REQUEST_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$REQUEST_REF" = refs/heads/codex/chengwang-mihomo-lifecycle-20261024
+  source-models:
+    needs: development-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Run source and reader models only
+        run: |
+          set -euo pipefail
+          cd chengwang/deploy/mihomo-lifecycle-lab
+          python3 -B -m unittest -v test_native_completion_reader_model
+          git -C "$GITHUB_WORKSPACE" diff --exit-code
+          test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain=v1 --untracked-files=all)"
+  acquisition:
+    needs: development-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Consume only the fixed published candidate without executing it
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-native-completion-acquisition-gate"
+          test ! -e "$root"
+          install -d -m 0700 "$root" "$root/public"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz" 2> "$root/public/acquisition.stderr"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed" \
+            > "$root/public/consume.stdout" 2> "$root/public/consume.stderr"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$root/public/independent.json" > "$root/public/independent.stdout" 2> "$root/public/independent.stderr"
+          install -m 0600 "$root/consumed/consumption.json" "$root/public/consumption.json"
+          cmp "$root/public/consumption.json" "$root/public/independent.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-native-completion-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-completion-acquisition-gate/public/*
+          if-no-files-found: error
+          retention-days: 14
+  native-completion:
+    needs: [development-only, source-models, acquisition]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [positive, not-committed, unknown, readback]
+    env:
+      COMPLETION_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-native-completion-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-completion-acquisition-original
+      - name: Independently reacquire the fixed kernel and compare receipts
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-acquisition"
+          public="$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-public"
+          test ! -e "$root"; test ! -e "$public"
+          install -d -m 0700 "$root"; install -d -m 0755 "$public"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz" 2> "$root/acquisition.stderr"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed" > "$root/consume.stdout" 2> "$root/consume.stderr"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$public/consumption-independent.json" > "$root/independent.stdout" 2> "$root/independent.stderr"
+          install -m 0600 "$root/consumed/consumption.json" "$public/consumption.json"
+          cmp "$public/consumption.json" "$public/consumption-independent.json"
+          cmp "$RUNNER_TEMP/mihomo-native-completion-acquisition-original/consumption.json" "$public/consumption.json"
+          cmp "$RUNNER_TEMP/mihomo-native-completion-acquisition-original/independent.json" "$public/consumption-independent.json"
+      - name: Record host state and bind the exact run HEAD before execution
+        run: |
+          set -euo pipefail
+          public="$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-public"
+          python3 - "$public/host-before.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py \
+            --source-manifest "$GITHUB_WORKSPACE" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-source-before.private.json" \
+            > "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-binding-before.json"
+      - name: Execute one actual first Completion experiment in new namespaces
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          code=0
+          sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-lifecycle-lab/run_native_completion.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-public" "$go_root" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-acquisition/consumed" "$GITHUB_SHA" || code=$?
+          python3 - "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-attempt.exit" "$code" <<'PY'
+          import os,sys
+          with open(sys.argv[1],'x') as f:f.write(sys.argv[2]+'\n');f.flush();os.fsync(f.fileno())
+          PY
+          exit "$code"
+      - name: Always retain host-after and independently bind source-after
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          public="$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-public"
+          install -d -m 0755 "$public"
+          python3 - "$public/host-after.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py \
+            --source-manifest "$GITHUB_WORKSPACE" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-source-after.private.json" \
+            > "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-binding-after.json"
+          cmp "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-source-before.private.json" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-source-after.private.json"
+          cmp "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-binding-before.json" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-binding-after.json"
+      - name: Independently verify originals without another kernel execution
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-public" \
+            "$GITHUB_SHA" "$COMPLETION_MODE" \
+            > "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-verification.txt" \
+            2> "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-verification.stderr"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-native-completion-${{ matrix.mode }}-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |-
+            ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-public/*
+            ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-verification.txt
+            ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-verification.stderr
+            ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-attempt.exit
+            ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-acquisition/*.stdout
+            ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-acquisition/*.stderr
+          if-no-files-found: error
+          retention-days: 14
+  native-completion-fresh:
+    needs: [development-only, native-completion]
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [positive, not-committed, unknown, readback]
+    env:
+      COMPLETION_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-native-completion-${{ matrix.mode }}-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-original
+      - name: Recompute exact run-HEAD originals only; no Go, worker or kernel
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py \
+            "$GITHUB_WORKSPACE" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-original/mihomo-native-completion-$COMPLETION_MODE-public" \
+            "$GITHUB_SHA" "$COMPLETION_MODE" \
+            > "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-fresh.txt"
+          cmp "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-original/mihomo-native-completion-$COMPLETION_MODE-verification.txt" \
+            "$RUNNER_TEMP/mihomo-native-completion-$COMPLETION_MODE-fresh.txt"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-native-completion-${{ matrix.mode }}-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-completion-${{ matrix.mode }}-fresh.txt
+          if-no-files-found: error
+          retention-days: 14

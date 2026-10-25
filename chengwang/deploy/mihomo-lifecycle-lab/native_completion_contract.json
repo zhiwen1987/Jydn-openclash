@@ -1,0 +1,90 @@
+{
+  "schema": "chengwang.mihomo-native-completion-contract/v3",
+  "scope": "ACTUAL_FIRST_RECOVERY_COMPLETION_NOT_API_REBIND_ORDINARY_PUBLISH_SECOND_RECOVERY_OR_PRODUCTION",
+  "tags": [
+    "chengwang_mihomo_service",
+    "chengwang_mihomo_faults",
+    "chengwang_mihomo_recovery_native",
+    "chengwang_mihomo_completion_native"
+  ],
+  "goPackage": "./internal/mihomodeploy",
+  "topTests": ["TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup"],
+  "goTimeoutSeconds": 105,
+  "outerGoTimeoutSeconds": 120,
+  "modes": ["positive", "not-committed", "unknown", "readback"],
+  "privateRoot": "/tmp/chengwang-mihomo-recovery-private",
+  "identityRoot": "/tmp/chengwang-mihomo-service-identities",
+  "servicePrivateRoot": "/tmp/chengwang-mihomo-service-private",
+  "stateRoot": "/tmp/chengwang-mihomo-service-state",
+  "privateWALOriginals": [
+    "completion-s1.private.json",
+    "completion-s2.private.json",
+    "completion-attempted.private.json",
+    "completion-reopened.private.json"
+  ],
+  "privateSourceManifest": "completion-source.private.json",
+  "privateReport": "completion-report.private.json",
+  "recoveryCaptureStage": "recovery-s2",
+  "recoveryCaptureFiles": [
+    "transcript.json", "body-1.json", "body-2.json", "body-3.json", "body-4.json",
+    "body-5.json", "body-6.json", "body-7.json", "body-8.json", "verification.json", "local-marker.json"
+  ],
+  "completionSchemas": {
+    "report": "chengwang.mihomo-native-completion-experiment/v1",
+    "publication": "chengwang.mihomo-native-completion-publication/v1",
+    "execution": "chengwang.mihomo-recovery-execution/v3",
+    "source": "chengwang.mihomo-recovery-completion-source/v1",
+    "checkpoint": "chengwang.mihomo-recovery-root-checkpoint/v1"
+  },
+  "faultCounts": {
+    "positive": [1, 1, 1, 0, true],
+    "not-committed": [1, 0, 0, 0, false],
+    "unknown": [1, 1, 0, 0, true],
+    "readback": [1, 1, 1, 1, true]
+  },
+  "cleanupPorts": [28411, 28412, 28413, 28414, 28415],
+  "fixtureRoles": ["origin", "A", "B"],
+  "sourceManifest": {
+    "policyName": "native_completion_source_manifest.json",
+    "policySchema": "chengwang.mihomo-native-completion-source-policy/v2",
+    "generatedSchema": "chengwang.mihomo-native-completion-fulltracked-manifest/v2",
+    "bindingSchema": "chengwang.mihomo-native-completion-source-binding/v2",
+    "trackedSet": "ALL_GIT_HEAD_BLOBS",
+    "deliveryCount": 9,
+    "gitCommitRequired": true,
+    "gitTreeRequired": true,
+    "gitIndexMustMatchCommitTree": true,
+    "workingBytesMustMatchGitBlobs": true,
+    "oldTwentyOneSourceManifestAccepted": false
+  },
+  "completePackageTestSources": {
+    "previousCount": 83,
+    "candidateCount": 84,
+    "ordinaryMandatoryTopLevelCount": 661,
+    "completionHarnessExcludedFromOrdinaryMandatoryNames": true
+  },
+  "coldReopen": {
+    "coldReopenMatchedDiskMeaning": "POST_OPEN_DISK_EQUALS_REOPENED_STORE_RAW",
+    "positive": "COMPLETED_UNCHANGED",
+    "not-committed": "START_ARMED_TO_RECOVERY_UNKNOWN",
+    "unknown": "COMPLETED_UNCHANGED",
+    "readback": "COMPLETED_UNCHANGED"
+  },
+  "commandReceiptSchema": "chengwang.mihomo-native-completion-command-receipt/v3",
+  "commandClasses": ["SANDBOX", "GO_VERSION", "GOFMT", "GO_TEST"],
+  "commandReceiptLimit": 4,
+  "processEventLimit": 64,
+  "nativeEventLimit": 256,
+  "maxTrackedFileBytes": 67108864,
+  "maxPublicBytes": 16777216,
+  "oldS2WorkflowChanged": false,
+  "oldS2BudgetsChanged": false,
+  "oldV5ContractChanged": false,
+  "fullPrivateWALIndependentlyProven": false,
+  "httpRecoveryProven": false,
+  "serviceRebindProven": false,
+  "apiRouteProven": false,
+  "ordinaryPublishProven": false,
+  "secondRecoveryProven": false,
+  "production": false
+}
