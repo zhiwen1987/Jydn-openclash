@@ -39,6 +39,7 @@ when 'observe'
   tests[name]={'http_code'=>output.split.first,'seconds'=>output.split.last,'curl_ok'=>$?.success?}
  end
  now=r.api('/proxies')['proxies'];result={'identity'=>'00:0c:29:2d:96:e8','probes'=>tests,'rule_count'=>r.api('/rules')['rules'].length,'groups'=>now.values.count{|v|v.key?('all')},'mode'=>r.api('/configs')['mode'],'source_sha256'=>hash_file(source)}
+ entries=now.keys.select{|name|name.include?('自定义节点')};result['custom_entry_count']=entries.length;result['custom_entry_names_preview']=entries.first(3)
  r.atomic(b+'/observation-'+Time.now.to_i.to_s+'.yaml',YAML.dump(result));puts YAML.dump(result)
 when 'preflight'
  if ARGS['router'] && File.file?(ARGS['router']+'/stage/core-validation.log')
