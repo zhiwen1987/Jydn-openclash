@@ -1,0 +1,82 @@
+{
+  "actualNewRuntimeAcceptance": false,
+  "baseline": "0aed1531cbea64a890fb884dc0783dd961f454f6",
+  "diagnostic": {
+    "caseSeconds": 93.87,
+    "jobs": 3,
+    "localSymbolizationWarningRetained": true,
+    "numericPPROFRecomputeProven": false,
+    "producerFreshOriginalBytesEqual": true,
+    "profileCaptureComplete": true,
+    "runID": 40153568228,
+    "stablePerformanceGuarantee": false,
+    "wholeConclusion": "success"
+  },
+  "foundation": {
+    "capacityOrdinarySeconds": 6.5,
+    "capacityRaceSeconds": 77.48,
+    "failedJobs": 2,
+    "formatPatchBytes": 4031,
+    "goExitEach": 0,
+    "maxRevisionSubcaseEachPassed": true,
+    "old528And407AndNew11EachPassed": true,
+    "ordinaryPackageSeconds": 15.1,
+    "ordinarySemantic": 1213,
+    "originalCapacity256AndTimeout180Preserved": true,
+    "racePackageSeconds": 108.593,
+    "raceSemantic": 1213,
+    "requiredEach": 539,
+    "runID": 40153568233,
+    "successJobs": 11,
+    "wholeConclusion": "failure"
+  },
+  "fullProjectComplete": false,
+  "fullRecoveryAccepted": false,
+  "localFormatterExecuted": false,
+  "localGoExecuted": false,
+  "mainMerged": false,
+  "nextStageFilesExcluded": [
+    "chengwang/internal/mihomodeploy/lab_recovery_authority.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_authority_test.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_unsupported.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_test.go",
+    "chengwang/internal/mihomodeploy/lab_recovery_start_linux_test.go"
+  ],
+  "production": false,
+  "productionReady": false,
+  "receipts": [
+    {
+      "kind": "foundation",
+      "path": "D:/CodexData/workspace/mihomo-0aed153-foundation-audit-20261025-agent/result.json",
+      "sha256": "b4397bbf8d840bb4b670e1f2a84479c71c12632c2af9d4fedfb08c9cfeaf2124"
+    },
+    {
+      "kind": "profile",
+      "path": "D:/CodexData/workspace/mihomo-0aed153-profile-audit-20261025-agent/result.json",
+      "sha256": "3006d7d002e8c584240f1281f7863ba962569ade8134ba521675e3a374c5b7c1"
+    },
+    {
+      "kind": "formatTransfer",
+      "path": "D:/CodexData/workspace/0aed153-ci-format-transfer-jlw3etdz/per-file-transfers.json",
+      "sha256": "2c92d0081dd65d4db2931f4672c9ccd0379c3cc96281e818c77363512179511c"
+    }
+  ],
+  "registryPublished": false,
+  "schema": "chengwang.actual-ci-format-repair/v1",
+  "scope": "ACTUAL_CI_FORMAT_TRANSFER_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sourceSHA256": {
+    "chengwang/docs/SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md": "7fc9e58f2819d003379d494983bce8b8d86bfb9f754c10d4d675b9c39eafcd70",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": "225388bbe328fcb64ee5d5f46f47bf9716fd3344dfa08cd8b9055c34b455df73"
+  },
+  "transfer": [
+    {
+      "afterSHA256": "225388bbe328fcb64ee5d5f46f47bf9716fd3344dfa08cd8b9055c34b455df73",
+      "applyPatchPath": "D:\\CodexData\\workspace\\0aed153-ci-format-transfer-jlw3etdz\\apply-0.patch",
+      "beforeSHA256": "ddeb4bc9b0df3ddf4ccacc3505ca6627df4590b17592cfdedce182913ca77bbe",
+      "bytes": 25978,
+      "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go"
+    }
+  ]
+}

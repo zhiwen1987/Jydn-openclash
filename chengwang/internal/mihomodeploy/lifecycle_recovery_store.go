@@ -24,13 +24,13 @@ type lifecycleRecoveryStoreCore struct {
 	permit        *labRecoveryStartCore
 	// Issuance identities only, scoped to one locked operation. They are
 	// released on every exit and are never a cross-operation validation cache.
-	activeBase       *lifecycleVerifiedBaseCore
-	activePrepared   *lifecyclePreparedCandidateCore
+	activeBase     *lifecycleVerifiedBaseCore
+	activePrepared *lifecyclePreparedCandidateCore
 	// An exact, private canonical image already fully validated by open or a
 	// successful publication. This is not an action/owner/approval capability.
-	validated        *lifecycleValidatedSnapshot
+	validated            *lifecycleValidatedSnapshot
 	validationGeneration uint64
-	poisoned, closed bool
+	poisoned, closed     bool
 }
 
 // Strings detach the trusted bytes from all mutable disk/raw/draft slices.
@@ -38,19 +38,20 @@ type lifecycleRecoveryStoreCore struct {
 // proof from another store (including a shallow-copied core) being adopted.
 // Only open's full decoder and publishPrepared's actual readback issue one.
 type lifecycleValidatedSnapshot struct {
-	store *lifecycleRecoveryStoreCore
-	identity *lifecycleValidatedSnapshot
-	canonical string
-	rawSHA256 string
+	store      *lifecycleRecoveryStoreCore
+	identity   *lifecycleValidatedSnapshot
+	canonical  string
+	rawSHA256  string
 	generation uint64
-	binding func(*lifecycleValidatedSnapshot, *lifecycleRecoveryStoreCore) bool
+	binding    func(*lifecycleValidatedSnapshot, *lifecycleRecoveryStoreCore) bool
 }
 
 func (lifecycleValidatedSnapshot) Format(s fmt.State, _ rune) {
 	_, _ = io.WriteString(s, lifecycleRecoveryDebug)
 }
 func (lifecycleValidatedSnapshot) MarshalJSON() ([]byte, error) { return nil, errLifecycleUnsafe }
-func (*lifecycleValidatedSnapshot) UnmarshalJSON([]byte) error { return errLifecycleUnsafe }
+func (*lifecycleValidatedSnapshot) UnmarshalJSON([]byte) error  { return errLifecycleUnsafe }
+
 type lifecycleRecoveryOwnerToken struct{ core *lifecycleRecoveryOwnerCore }
 type lifecycleRecoveryOwnerCore struct {
 	store *lifecycleRecoveryStoreCore
@@ -249,7 +250,7 @@ func openLifecycleRecoveryStore(d lifecycleDisk, now time.Time) (*lifecycleRecov
 	// canonical comparison and all history/semantic checks. No caller-supplied
 	// boolean or digest can construct this owner-bound image through an API.
 	x.validationGeneration = 1
-	image := &lifecycleValidatedSnapshot{store:x, canonical:string(raw), rawSHA256:labConfigHash(raw), generation:x.validationGeneration}
+	image := &lifecycleValidatedSnapshot{store: x, canonical: string(raw), rawSHA256: labConfigHash(raw), generation: x.validationGeneration}
 	image.identity = image
 	sealedCanonical, sealedDigest, sealedGeneration := image.canonical, image.rawSHA256, image.generation
 	image.binding = func(candidate *lifecycleValidatedSnapshot, owner *lifecycleRecoveryStoreCore) bool {
@@ -350,7 +351,7 @@ func (x *lifecycleRecoveryStoreCore) verifiedBase() (*lifecycleVerifiedBase, err
 		x.validated = nil
 		return nil, errLifecycleUnsafe
 	}
-	r := lifecycleV3Record{core:&detached}
+	r := lifecycleV3Record{core: &detached}
 	b := &lifecycleVerifiedBase{core: &lifecycleVerifiedBaseCore{store: x, raw: bytes.Clone(raw), rawSHA256: labConfigHash(raw), record: r}}
 	x.activeBase = b.core
 	return b, nil
@@ -451,7 +452,7 @@ func (x *lifecycleRecoveryStoreCore) publishPrepared(p *lifecyclePreparedCandida
 	// exact readback and post-read custody. Failed/unknown writes never adopt
 	// the candidate image; reopening always validates external bytes afresh.
 	x.validationGeneration++
-	image := &lifecycleValidatedSnapshot{store:x, canonical:string(actual), rawSHA256:labConfigHash(actual), generation:x.validationGeneration}
+	image := &lifecycleValidatedSnapshot{store: x, canonical: string(actual), rawSHA256: labConfigHash(actual), generation: x.validationGeneration}
 	image.identity = image
 	sealedCanonical, sealedDigest, sealedGeneration := image.canonical, image.rawSHA256, image.generation
 	image.binding = func(candidate *lifecycleValidatedSnapshot, owner *lifecycleRecoveryStoreCore) bool {
