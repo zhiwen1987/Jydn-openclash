@@ -1,10 +1,32 @@
 # SYS-06：Mihomo 发布闭环的实现进度
 
-当前是独立开发分支：007同提交三套CI及独立原件收口，S2真实新内核控制面观察切片接受，普通／race619及119源格式0、完整诊断及原生原reader／producer-fresh一致均已核。本轮本地代理marker及627项必需声明已统一源码集成，首轮37f的mihomodeploy包实际编译失败，未进入新增marker及native用例，普通格式亦失败；删除无用导入及机械格式修订后仍须新Linux CI证明。完整S2、产品恢复接口及发布恢复闭环未完成，尚未部署到设备。历史失败保持原判。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
+当前是独立开发分支：caa同提交三套CI及独立原件收口，恢复后控制面与本地代理marker限定隔离验收通过，普通／race各1797语义／627必需及122源格式0、完整诊断及原生原reader／producer-fresh一致均已核。37f的实际编译与格式FAIL保持；完整S2、产品恢复接口及发布恢复闭环未完成，尚未部署到设备。完整目标仍是：完整工件 → 私有备份 → 范围批准 → 隔离灰度 → 实际重载 → 新鲜读回与数据面验证 → 失败回滚 → 重启恢复及审计。仅有 PUT、204、配置生成或测试通过，都不能把 SYS-06 标为完成。
 
 ## 本次已有代码
 
-### 37f实际编译失败：本地marker无用导入，精准修订仍待新CI
+### caa同提交真实验收：控制面与本地代理marker，完整恢复尚未闭环
+
+caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f的normal40190323838实际13门success，49e47c28核12ZIP208成员／1328Gitblob／128来源／47必需测试源／122格式输入；普通与race各1797语义／627必需含marker8及旧619全历史子集均过，格式补丁0。原C.verify返回PASS的17179B报告SHA05bc64fe7ca270bf29b3a7e6a67decc44daffb1bcb8b983786f7411368064800与producer／fresh逐字同；原Windows main仍POSIXwriter自然exit1，不称Windows完整LinuxCLI通过。其他四范围与candidate原检查器均按本提交通过，sourceGit标志比较副本与原pure flag分列，未改原函数。
+
+diag40190323767实际5门success，07bdc7da核4ZIP42成员、128／47／76来源及627全部PASS无skip／未完／未启动。full实际99.615426892秒M_RUN_RETURNED、容量50.49秒／包100.642秒；120秒只是上限，不能冒称采满。single实际60.204115250秒TIMER、容量65.05秒／包66.073秒；pprof原符号warning、非独立数值归因及原Windows严格边界保持。
+
+native40190323755实际4门success，48508dd1核3ZIP53成员／166来源／32公件／1328blob。真实Go top7.57秒、包7.578秒，native9源格式0；原strict reader核两轮8GET及UUID／投影、真实B路径三份101B正文同摘要、A计数3→3／B四项1→2／origin请求4→5及拒绝计数0，fixture复制、一用／重放／重采拒绝通过，S1磁盘字节及物理事件前缀不变。五口拒连、三fixture关闭、WAL8及reopen18 UNKNOWN齐；27005B producer／fresh报告SHA775bda147dfa154ca438cf44843946ee905a3cbb2c027fa6167770bdc386e051逐字同。
+
+三套19ZIP303成员已独立保管，root聚合PID5176exit0及[evidence/sys06-caa-s2-local-marker-acceptance-20261025.json](evidence/sys06-caa-s2-local-marker-acceptance-20261025.json)随下一真实源码统一归档。这里只关闭当前来源、时效、单次控制面观测与隔离回环路径；独立原始nonce／完整私有WAL、完整故障矩阵、互联网业务、持久S2回执、Completion、新head、产品恢复API、后续普通写、第二恢复及全系统／生产均未完成。原37f与全部历史FAIL不改判，生产／main／Registry未动。
+
+### 当前源码：Execution/v2持久S2回执，真实Go与四种原生场景仍待验收
+
+本轮新增一次性记录能力，只能由原collector成功消费真实观察证据后、在当前来源与权限短锁内签发；它绑定原证据指针、collector、store、磁盘、owner、S1完整canonical及调用方／服务context。原证据与记录能力均按原指针先消费、后作其他拒绝，不能由DTO、JSON、散列或通用publisher重造。磁盘记录阶段只持store锁，保持原CAS／fsync／精确回读与封闭发布入口；写入异常后毒化实例并撤销live／retained证明，不重发或重采同source。此前事实晚到最多记为RECOVERY_UNKNOWN，不代表记录瞬间仍有跨库原子权限，也不提供新物理动作许可。
+
+Execution/v1原9字段及nil新指针时的旧编码保持，末尾新增可省略Verification，仅execution/v2接受完整typed回执。v1带回执、v2缺回执、未知版本／字段、错误长度或nil切片都必须拒绝；两个内存数组显式转换为长度2和8的typed切片，未引入RawJSON或泛化Array回退。严格验证会恢复完整S1前像的版本、revision／hash、owner／fence、时钟、transaction时间及失败观察前缀，并运行原v1严格解码；原armed前像另行保留。旧二进制不能读取新v2数据，不允许通过删回执冒充安全回滚。
+
+封闭trusted clone已按实际类型扩为56结构／412字段／112类型节点、79可变字段槽，新增8个显式深拷贝方法；在物理Stop／Start之前容量预留包括完整S2事实及active／archive最坏封装，仍保2MiB、256历史、普通180秒以及每个native场景75／90秒、4core边界。Current、head、Completion和产品恢复API均不推进或开放，重开只保留事实并保持UNKNOWN，不能恢复内存能力。
+
+normal已接131来源／49必需测试源／125格式输入，必需声明635，名单SHA256为1be6eaf9abe7f03253410f6db950935f33162a30deee033c6cd401666ade36d6，旧627／619及全部历史集合精确保留。检查器187项CPU模型当前通过，PID40524；首轮tvqk7__f实际1fail／4error源于独立兼容来源镜像漏新3Go路径，已仅补显式来源数据行并保留原失败，未放宽判据。A的实际decoded工作流和11个破坏反例、B的typed边界与56结构图及源码同行都是有限源码／CPU证据，不代Go或真实持久化。
+
+native正在接正常append、NotCommitted、Unknown和坏readback四种封闭模式，各用独立CI进程／namespace及独立原件与fresh；真实已签发cap、到达replace／回读的计数、失败后不adopt／不重试及冷开事实均须分别证明。普通bounds不使用未发行DTO在前门被拒绝来冒充已到写入故障点；当前四模式仍属待完成的新验收，不借caa已接受的本地路径代证。
+
+### 历史37f实际编译失败：本地marker无用导入与普通格式失败
 
 37f4aa5e3b5834b6de671a297561e5734bea99f2为27文件统一源码集成，精确1327Gitblob。normal40189516666实际3成功／10失败，diag40189516609实际failure，native40189516618实际2成功／2失败；三路实际stderr均指出lab_recovery_marker.go第5行encoding/json导入未使用。full诊断与normal普通／race的122B stderr SHA2788975128e8bf925da9032ea8bc44d3166ad6594d85536d78d70e2f7ddd4c84。其余包确有153项必需测试通过，但mihomodeploy编译失败，474项未启动，含新增marker8及容量用例；没有新的marker／原生清理或数据面运行接受。CPU模型与源码同行检查没有覆盖编译器的未使用导入约束，不能把它们称作编译通过。
 

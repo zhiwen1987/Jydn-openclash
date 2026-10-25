@@ -99,6 +99,8 @@ LAB_RECOVERY_COLLECTOR_FILES = ('lab_recovery_collector.go', 'lab_recovery_colle
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_COLLECTOR_FILES]
 LAB_RECOVERY_MARKER_FILES = ('lab_recovery_marker.go', 'lab_recovery_marker_test.go', 'lab_recovery_marker_bounds_test.go')
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_MARKER_FILES]
+LAB_RECOVERY_VERIFICATION_FILES = ('lifecycle_recovery_verification.go', 'lifecycle_recovery_verification_test.go', 'lifecycle_recovery_verified_bounds_test.go')
+FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_RECOVERY_VERIFICATION_FILES]
 LAB_NATIVE_RECOVERY_FILES = ('lab_native_recovery_linux.go', 'lab_native_recovery_linux_test.go',
     'lab_native_recovery_observer_default.go', 'lab_native_recovery_observer_linux.go')
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in LAB_NATIVE_RECOVERY_FILES]
@@ -126,6 +128,8 @@ TEST_FILES += [('chengwang/internal/adapter/mihomo/lab_sample_times_test.go', 'c
 TEST_FILES += [('chengwang/internal/mihomodeploy/lab_recovery_collector_linux_test.go', 'chengwang/internal/mihomodeploy')]
 TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
     for name in ('lab_recovery_marker_test.go', 'lab_recovery_marker_bounds_test.go')]
+TEST_FILES += [('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
+    for name in ('lifecycle_recovery_verification_test.go', 'lifecycle_recovery_verified_bounds_test.go')]
 PACKAGES = {'chengwang/internal/adapter/mihomo', 'chengwang/internal/mihomodeploy', 'chengwang/internal/authn',
     'chengwang/internal/api', 'chengwang/internal/serverruntime', 'chengwang/internal/authz'}
 INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1 << 20,

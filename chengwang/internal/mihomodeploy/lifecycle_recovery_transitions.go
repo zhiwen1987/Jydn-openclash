@@ -385,6 +385,8 @@ func lifecycleRecoveryReserve(w *lifecycleV3Wire) error {
 	// observation are included; no later successful Start can enlarge this WAL
 	// budget. This is a size-only envelope, never a serialized physical fact.
 	a.Execution = lifecycleRecoveryStartedReserve(a)
+	a.Execution.Schema = lifecycleRecoveryVerifiedExecutionSchema
+	a.Execution.Verification = lifecycleRecoveryVerificationReserve(a)
 	if a.StopIntent == nil {
 		i := lifecycleRecoveryNewIntent(a, "STOP", ^uint64(0), a.Plan.ExpiresAt)
 		a.StopIntent = &i

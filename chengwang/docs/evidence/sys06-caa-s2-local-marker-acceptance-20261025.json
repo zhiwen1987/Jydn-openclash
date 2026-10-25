@@ -1,0 +1,1107 @@
+{
+  "actualLocalProxyMarkerAccepted": true,
+  "aggregateMemberCount": 303,
+  "aggregateZipCount": 19,
+  "diagnostic": {
+    "GoOrNativeExecutedLocally": false,
+    "acceptanceBoundary": "Preserve timeout180/capacity256/full627 with old619 and611 exact subsets; diagnostic evidence and actual CI are separate from native recovery, API/coordinator or production acceptance",
+    "actualJobConclusions": {
+      "development-only": "success",
+      "full": "success",
+      "full-fresh": "success",
+      "profile": "success",
+      "profile-fresh": "success"
+    },
+    "diagnosticRunConclusion": "success",
+    "facts": {
+      "FULL_CONTRACTS": {
+        "capacityTerminal": [
+          {
+            "Action": "pass",
+            "Elapsed": 50.49,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+            "Time": "2026-10-25T11:49:24.359305384Z"
+          }
+        ],
+        "formatPatchBytes": 0,
+        "formatStderrBytes": 0,
+        "packageTerminal": [
+          {
+            "Action": "pass",
+            "Elapsed": 2.233,
+            "Package": "chengwang/internal/adapter/mihomo",
+            "Time": "2026-10-25T11:47:47.702523243Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 1.079,
+            "Package": "chengwang/internal/authn",
+            "Time": "2026-10-25T11:47:51.236718547Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 2.651,
+            "Package": "chengwang/internal/api",
+            "Time": "2026-10-25T11:47:52.971924289Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 1.021,
+            "Package": "chengwang/internal/authz",
+            "Time": "2026-10-25T11:47:53.138265523Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 1.306,
+            "Package": "chengwang/internal/serverruntime",
+            "Time": "2026-10-25T11:47:53.422390092Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 100.642,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Time": "2026-10-25T11:49:30.799403343Z"
+          }
+        ],
+        "profileState": {
+          "closeSucceeded": true,
+          "complete": true,
+          "diagnosticMode": "FULL_CONTRACTS",
+          "durationNanoseconds": 99615426892,
+          "limitReached": false,
+          "profileBytes": 142730,
+          "profileSHA256": "639910864d0ac50c635a722107f905fd82c9087cfd8ad0351b6a29e3340a4017",
+          "schema": "chengwang.capacity-cpu-profile-state/v2",
+          "sourceCommit": "caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f",
+          "startedAt": "2026-10-25T11:47:50.174969833Z",
+          "stopReason": "M_RUN_RETURNED",
+          "stoppedAt": "2026-10-25T11:49:29.790396745Z",
+          "syncSucceeded": true,
+          "testTimeoutSeconds": 180,
+          "timerSeconds": 120,
+          "writerFailed": false
+        },
+        "sandboxIndependentBoundariesPassed": true,
+        "sourceAndHostBeforeAfterByteExact": true
+      },
+      "SINGLE_CASE": {
+        "capacityTerminal": [
+          {
+            "Action": "pass",
+            "Elapsed": 65.05,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+            "Time": "2026-10-25T11:48:57.845282638Z"
+          }
+        ],
+        "formatPatchBytes": 0,
+        "formatStderrBytes": 0,
+        "packageTerminal": [
+          {
+            "Action": "pass",
+            "Elapsed": 66.073,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Time": "2026-10-25T11:48:58.852222358Z"
+          }
+        ],
+        "profileState": {
+          "closeSucceeded": true,
+          "complete": true,
+          "durationNanoseconds": 60204115250,
+          "limitReached": false,
+          "profileBytes": 70046,
+          "profileSHA256": "e1abf5050e32da2e56e45c9f4ea7b96007225db570b406ccd9675f970f0b2d47",
+          "schema": "chengwang.capacity-cpu-profile-state/v1",
+          "sourceCommit": "caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f",
+          "startedAt": "2026-10-25T11:47:52.798194491Z",
+          "stopReason": "TIMER_60_SECONDS",
+          "stoppedAt": "2026-10-25T11:48:53.002309741Z",
+          "syncSucceeded": true,
+          "testTimeoutSeconds": 180,
+          "timerSeconds": 60,
+          "writerFailed": false
+        },
+        "sandboxIndependentBoundariesPassed": true,
+        "sourceAndHostBeforeAfterByteExact": true
+      }
+    },
+    "fullCapacityTerminalObserved": true,
+    "fullGoAccepted": true,
+    "fullRequiredCounts": {
+      "failed": 0,
+      "notStarted": 0,
+      "passed": 627,
+      "skipped": 0,
+      "unfinished": 0
+    },
+    "independentResult": {
+      "path": "D:\\CodexData\\workspace\\mihomo-caa58f2-full-profile-audit-20261025-agent\\cpu\\independent-result.json",
+      "sha256": "09d9ac7e97d0ea8012777fa2356201be58a4324801b8b61c515f874f6391fcfc"
+    },
+    "invalidUTF8NormalizationCounterexampleActualGoPass": true,
+    "localWholeVerifierPassed": false,
+    "mandatoryDeclarationBinding": {
+      "current": 627,
+      "currentNamesSHA256": "3bd65c00bb45bbef41763cadf7b8b98c6c0ce2fbc8ec93b3bb8dfa6dd0880543",
+      "markerNew8": 8,
+      "oldNamesSHA256": "14e88fa43dd23db1a77671ef4ae2b1bd36a0491b313ce7d5e3005bcc1d5d2951",
+      "oldSubset": 587,
+      "olderNamesSHA256": "8319dfde365203ae1ae268b1a5d0a3938719bcd0671586bc66840ce2a20863c3",
+      "olderSubset": 585,
+      "previous591": 591,
+      "previous591NamesSHA256": "bd98cdb360c8eb7fd8c90f0a7a2855a9d8135a3a832f77cfd115ac39c5078857",
+      "previous607": 607,
+      "previous607NamesSHA256": "b745efef5b96ad29ececc9f9e4bf465d23277de5c03ff805c8c675abb100da62",
+      "previous611": 611,
+      "previous611NamesSHA256": "327f5833d99a02a12170b894aec43da81432c85c6de78338b15532ab3572e79c",
+      "previous619": 619,
+      "previous619NamesSHA256": "8a2587e2dfbf54c6a56a3de75b8c728429e69c40d74bc654cb773a9cf96516ac",
+      "s2New8": 8
+    },
+    "newEightMarkerActualTerminalStates": {
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerBoundsCounterRolesAreExactAndOrdered": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerBoundsMatchedRequiresThreeCompleteBoundBodies": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerBoundsNonceAndMarkerDTOCannotIssueReceipt": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerBoundsSelectedAndUnselectedDeltasStayExact": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerBoundsTimesRolesFlagsAndNonnegativeCountersFailClosed": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerBoundsUnissuedCopiedCrossFixtureAndClosedReceiptsReject": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerClosedDiagnosticNamesAndDetachedProjection": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryMarkerUnissuedServiceAndReceiptCannotAuthorize": "pass"
+    },
+    "newEightS2ActualTerminalStates": {
+      "chengwang/internal/adapter/mihomo::TestLabSampleTimesDoesNotGrantStabilityOrFreshness": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabSampleTimesRejectsCorruptSamplesAndTimeOrders": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabSampleTimesUsesOpaqueCaptureAndReturnsDetachedValues": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorAbsoluteWindowRejectsFutureStaleAndReordering": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorCaptureNamesStayClosed": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorEntryAndSerializedEvidenceReject": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorModelS1CannotMintNativeCustody": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorSourceDeadlineUsesAllSixBounds": "pass"
+    },
+    "newFiveRecoveryCollectorActualTerminalStates": {
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorAbsoluteWindowRejectsFutureStaleAndReordering": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorCaptureNamesStayClosed": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorEntryAndSerializedEvidenceReject": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorModelS1CannotMintNativeCustody": "pass",
+      "chengwang/internal/mihomodeploy::TestLabRecoveryCollectorSourceDeadlineUsesAllSixBounds": "pass"
+    },
+    "newFourSelectedTargetActualTerminalStates": {
+      "chengwang/internal/adapter/mihomo::TestLabTargetReadbackClosedMappingAndReportOwnership": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabTargetReadbackMatchesEitherSelectedEpochWithoutOldNewClaim": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabTargetReadbackPreservesProjectionAndWitnessInstability": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabTargetReadbackRetainsOriginalInputDigestAndTimeGuards": "pass"
+    },
+    "newFourTrustedCloneActualTerminalStates": {
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneCanonicalGraphAndShape": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneKeepsRawDraftBoundary": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneRepresentationFallbackMatchesRaw": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryTrustedCloneSplitsSiblingAliases": "pass"
+    },
+    "newSixteenS1ActualTerminalStates": {
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedExecutionCannotUseGenericPublisherOrBeRemoved": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedExecutionCodecRejectsAlteredFactsAndPreimage": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedExecutionGenericEarlyReturnsCannotMintDTO": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedExecutionNilMatchesOrderedOldTxnBytes": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordConcurrentCopiesWriteExactlyOnce": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordEveryAdmittedContextFailureSpendsCapability": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordExpiryPreservesFactWithoutNewPermission": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordFailedActualReadbackNeverAdoptsCandidate": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordFailedPublicationDoesNotAdoptOrRetry": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordLateRevocationKeepsOriginalFailure": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordPersistsActualSourceWithoutAdvancingHead": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordRejectsCopiesJSONAndCrossStoreSource": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordRejectsNilAndMissingOriginWithoutRetry": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordReopenClockAndOwnerCannotMintPermission": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedRecordedReopenKeepsFactButNoLiveCapability": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryStartedReserveCoversFullBoundedRecordedFact": "pass"
+    },
+    "newThreeSampleTimesActualTerminalStates": {
+      "chengwang/internal/adapter/mihomo::TestLabSampleTimesDoesNotGrantStabilityOrFreshness": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabSampleTimesRejectsCorruptSamplesAndTimeOrders": "pass",
+      "chengwang/internal/adapter/mihomo::TestLabSampleTimesUsesOpaqueCaptureAndReturnsDetachedValues": "pass"
+    },
+    "newTwoCandidateSealActualTerminalStates": {
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealPreservesExternalDigestGate": "pass",
+      "chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan": "pass"
+    },
+    "originalAtomFunctionsUsedWithoutMutation": true,
+    "originalWindowsCLIAndPathRejectionsPreserved": true,
+    "pprofNumericRecomputeProven": false,
+    "pprofOriginalLocalSymbolWarningPreserved": true,
+    "prior20MandatoryAnd27IncludingSubtestsTerminalPass": true,
+    "productionTouched": false,
+    "profileScope": "mihomodeploy process only, fixed120 timer and actual profile-state duration; neither six-package CPU nor guaranteed full-case coverage",
+    "resourceCauseProven": false,
+    "resourceScope": "before/after Go CLI window including compilation and six packages; cgroup/kernel aggregates, not per-test cause",
+    "runID": 40190323767,
+    "schema": "chengwang.offline-diagnostic-closeout/v1",
+    "schemaAndFastPathPositiveActualGoPass": true,
+    "sourceCommit": "caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f"
+  },
+  "durableVerificationReceiptCompleted": false,
+  "fullPrivateWALIndependentlyProven": false,
+  "independentReceipts": [
+    {
+      "path": "D:/CodexData/workspace/mihomo-caa58f2-foundation-audit-20261025-agent/closeout/closeout.json",
+      "role": "normal",
+      "sha256": "49e47c2842304daf3d7a8a599caff8c42d32d7bb2b24ee3f02d988c9ed23d8a1"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-caa58f2-full-profile-audit-20261025-agent/closeout/closeout.json",
+      "role": "diagnostic",
+      "sha256": "07bdc7dad3e1a7ba29ec495704b810cd622df55c2947482c30b2ff00899a18a0"
+    },
+    {
+      "path": "D:/CodexData/workspace/mihomo-caa58f2-native-audit-20261025-agent/closeout/closeout.json",
+      "role": "native",
+      "sha256": "48508dd19315ef7ae3aee7870a5d67c76488e1f3f46b1d737d80882c05b6010c"
+    }
+  ],
+  "native": {
+    "actual16CIModelsPassed": true,
+    "actualCIConclusion": "success",
+    "actualFiveCleanupProbesRefused": true,
+    "actualFullGitBlobs": 1328,
+    "actualJobs": {
+      "acquisition": "success",
+      "development-only": "success",
+      "native": "success",
+      "native-fresh": "success"
+    },
+    "actualReopenPhase": "RECOVERY_UNKNOWN",
+    "actualReopenRevision": 18,
+    "actualSourceGitCheckedSeparately": true,
+    "actualWalIndexStages": 8,
+    "auditExitCode": 0,
+    "auditPID": 40132,
+    "auditSHA256": "08cab1f24decb4764d25a444d77e9b531ec23c150a93675e25f35da38b7fd7a6",
+    "durableS2ReceiptOrCompletionOrHeadAdvancementProven": false,
+    "exitCode": 0,
+    "fullPrivateWALOrCompleteSyscallTracingProven": false,
+    "generalFaultMatrixActuallyRun": false,
+    "goExit": 0,
+    "heavySlotReleasedAfterCloseout": true,
+    "internetBusinessOrProductionProven": false,
+    "localGoNativeWorkerHTTPOrProductionExecuted": false,
+    "localMarker": {
+      "actualFixtureCopyRejected": true,
+      "actualOriginWriteCompleteNotClaimedReadEOF": true,
+      "counterAfter": [
+        {
+          "connectIngress": 3,
+          "forwardInvocations": 3,
+          "originRequests": 3,
+          "rejected": 0,
+          "role": "A",
+          "tunnelRequests": 3
+        },
+        {
+          "connectIngress": 2,
+          "forwardInvocations": 2,
+          "originRequests": 2,
+          "rejected": 0,
+          "role": "B",
+          "tunnelRequests": 2
+        },
+        {
+          "connectIngress": 0,
+          "forwardInvocations": 0,
+          "originRequests": 5,
+          "rejected": 0,
+          "role": "origin",
+          "tunnelRequests": 0
+        }
+      ],
+      "counterBefore": [
+        {
+          "connectIngress": 3,
+          "forwardInvocations": 3,
+          "originRequests": 3,
+          "rejected": 0,
+          "role": "A",
+          "tunnelRequests": 3
+        },
+        {
+          "connectIngress": 1,
+          "forwardInvocations": 1,
+          "originRequests": 1,
+          "rejected": 0,
+          "role": "B",
+          "tunnelRequests": 1
+        },
+        {
+          "connectIngress": 0,
+          "forwardInvocations": 0,
+          "originRequests": 4,
+          "rejected": 0,
+          "role": "origin",
+          "tunnelRequests": 0
+        }
+      ],
+      "expectedMarkerBytes": 101,
+      "expectedMarkerSHA256": "4317d9ba059094ec0959714accb8909e1d721ab78dd7db15d87a40fe7b81972c",
+      "expectedRole": "B",
+      "markerBodyIndependentlyProven": false,
+      "oneUseCopyAndRecollectRejectionsNoExtraRoute": true,
+      "phase": "RECOVERY_NEW_EPOCH_MARKER",
+      "privateNonceIndependentlyProven": false,
+      "returnedAt": "2026-10-25T11:48:15.746940126Z",
+      "schema": "chengwang.mihomo-recovery-local-marker/v1",
+      "scope": "ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION",
+      "sourceNonceExpectedHashBindingObserved": true,
+      "startedAt": "2026-10-25T11:48:15.745509657Z",
+      "threeCompleteResponseDescriptorsMatch": true
+    },
+    "memberCount": 53,
+    "nativeExperimentAccepted": true,
+    "nativeFormatPatchBytes": 0,
+    "nativeFormatterSourceCountOnly": 9,
+    "nativeGoPackageSeconds": 7.578,
+    "nativeTopSeconds": 7.57,
+    "noCIRerun": true,
+    "olderFailuresReclassified": false,
+    "originalEightGETRoundProjectionAndUUIDWitnessRecomputed": true,
+    "originalFileIndex": {
+      "REVIEW.md": {
+        "bytes": 3055,
+        "sha256": "f55e353d8b9dc286d5afd9d2b6dfecd610a0d729669083fc38a5a497015f1449"
+      },
+      "artifacts-first-observed-original.json": {
+        "bytes": 795,
+        "sha256": "fa9b37f1619e1bea85463b066b066defe8738e461552367138436cde7ce17d25"
+      },
+      "artifacts-terminal-original.json": {
+        "bytes": 2313,
+        "sha256": "d549ab1e8358a0bf1d2ee48451b58431dc6f002e4f5910fead73007b9fed57c9"
+      },
+      "audit/exit.json": {
+        "bytes": 20,
+        "sha256": "ff8ae5796bcef71911ff9c5c3eaea341819c471f669549e252b830106edd4305"
+      },
+      "audit/original-cli.execution.json": {
+        "bytes": 757,
+        "sha256": "4228ead730fd18be838f8f919aeda32a6bdd6c98f7382fb3dd5defd0e32b95b4"
+      },
+      "audit/original-cli.stderr": {
+        "bytes": 59,
+        "sha256": "9f21db40817905109a46b57cf5c3264dbbcde7bcfe1bc7c9eceae095ecb2763c"
+      },
+      "audit/original-cli.stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "audit/original-posix-writer.rejection.stderr": {
+        "bytes": 807,
+        "sha256": "dd4a2eb6af4c9277aa824b361e86ecfb1d894645d9b28befe920c312fdc8ff0e"
+      },
+      "audit/original-verify-raw.json": {
+        "bytes": 27006,
+        "sha256": "db7c18d8f0ff7d21b6b92d082664e8f6d6c1244602788668fef6ba956a06dc3f"
+      },
+      "audit/pid.json": {
+        "bytes": 19,
+        "sha256": "17a7011cdfd80818f02c05873580cd0ad435253e5aa0fc1d9e36b0c0d5a19774"
+      },
+      "audit/result.json": {
+        "bytes": 29806,
+        "sha256": "08cab1f24decb4764d25a444d77e9b531ec23c150a93675e25f35da38b7fd7a6"
+      },
+      "audit/source-git-flag-comparison-only.json": {
+        "bytes": 27005,
+        "sha256": "775bda147dfa154ca438cf44843946ee905a3cbb2c027fa6167770bdc386e051"
+      },
+      "audit/start.json": {
+        "bytes": 345,
+        "sha256": "c9c268ac8900c04e32a9375040fe505a7aa823209cd4c255fe56848ff5a640c7"
+      },
+      "audit/stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "audit/stdout": {
+        "bytes": 233,
+        "sha256": "5f3f79fee8daefe8b585eff036d4d11650fbbec19b95a3fa2db03fe431c76ca7"
+      },
+      "jobs-first-observed-original.json": {
+        "bytes": 7235,
+        "sha256": "a34a7ff244a15be1bfc29132e6a3bee5ee04c2fad5ab55e18b1bdc623454768f"
+      },
+      "jobs-terminal-original.json": {
+        "bytes": 9968,
+        "sha256": "cc09abfdc79426685783c0965833f28a76f73706eb34dea7b9d18677007250b8"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1.custody.json": {
+        "bytes": 1748,
+        "sha256": "b4309f1024efb1ae5fac4968e5002f6888763a85938104d0d210f253d301b367"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1.original.zip": {
+        "bytes": 3140,
+        "sha256": "ae1c4f2865a89f9e5223677a75e73e819e99d78bfae9c3e5ff1001efa192a0dd"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/acquisition.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/consume.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/consume.stdout": {
+        "bytes": 71,
+        "sha256": "fc92030ebe55a982f6db0685a0e7160afb9ea78eb1290dacfb529709f7553161"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/consumption.json": {
+        "bytes": 2025,
+        "sha256": "bede66a897f4a8de2474b23090802a47b4784b236ef10d245b65af82769d5e68"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/independent.json": {
+        "bytes": 2025,
+        "sha256": "bede66a897f4a8de2474b23090802a47b4784b236ef10d245b65af82769d5e68"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/independent.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-candidate-consumption-40190323755-1/independent.stdout": {
+        "bytes": 71,
+        "sha256": "c02713ef417daa625b757c37498c29167327bd110faf1236d15b1b4c49fb7f35"
+      },
+      "mihomo-native-recovery-fresh-40190323755-1.custody.json": {
+        "bytes": 982,
+        "sha256": "f7932bbcda4635c7bb4184341afed9b47774c9cc23f4865722858d3bf5be4eb9"
+      },
+      "mihomo-native-recovery-fresh-40190323755-1.original.zip": {
+        "bytes": 10258,
+        "sha256": "8de2c62889b89aedb7b24c949d6f3ed97c877d9f941e57e54c89cdb13e3a6764"
+      },
+      "mihomo-native-recovery-fresh-40190323755-1/mihomo-native-recovery-fresh.json": {
+        "bytes": 27005,
+        "sha256": "775bda147dfa154ca438cf44843946ee905a3cbb2c027fa6167770bdc386e051"
+      },
+      "mihomo-native-recovery-originals-40190323755-1.custody.json": {
+        "bytes": 8233,
+        "sha256": "f3779fb8e8e6892dd72e65bce9b639d556ce3a897d8e43a7d5df1f766591a347"
+      },
+      "mihomo-native-recovery-originals-40190323755-1.original.zip": {
+        "bytes": 70816,
+        "sha256": "801258120f692e29a67d028eff0d68503068ff548ec021dd256e661f4c64e906"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-acquisition/acquisition.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-acquisition/consume.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-acquisition/consume.stdout": {
+        "bytes": 71,
+        "sha256": "fc92030ebe55a982f6db0685a0e7160afb9ea78eb1290dacfb529709f7553161"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-acquisition/independent.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-acquisition/independent.stdout": {
+        "bytes": 71,
+        "sha256": "c02713ef417daa625b757c37498c29167327bd110faf1236d15b1b4c49fb7f35"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-attempt.exit": {
+        "bytes": 2,
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-models/native-models.log": {
+        "bytes": 3401,
+        "sha256": "2a5b46be034a558e1cc5231ad0665ed4c3c450382eb59e91b183cfa4badcd951"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/commands.jsonl": {
+        "bytes": 2513,
+        "sha256": "70e626f9198ca08749fbc4ea175e1068379444d2722e71b807cb5f3e7ca74e67"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/consumption-independent.json": {
+        "bytes": 2025,
+        "sha256": "bede66a897f4a8de2474b23090802a47b4784b236ef10d245b65af82769d5e68"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/consumption.json": {
+        "bytes": 2025,
+        "sha256": "bede66a897f4a8de2474b23090802a47b4784b236ef10d245b65af82769d5e68"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/execution.json": {
+        "bytes": 303,
+        "sha256": "35bb6fcaf8f31ccad750ab1dc167101b4b4a34e8dcec22c97fcbd0e368f6de74"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/go-version.txt": {
+        "bytes": 33,
+        "sha256": "9f161eff18f3e12a2e622b6f0fd90d1f36e4b9b89d8516cfc67ce4442c478c6a"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/gofmt.patch": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/gofmt.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/host-after.json": {
+        "bytes": 199,
+        "sha256": "2b5e66a14ce303ef151b1bc4eaec7f6ca1bccda71b26a955bd1d8e275f689c2c"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/host-before.json": {
+        "bytes": 199,
+        "sha256": "2b5e66a14ce303ef151b1bc4eaec7f6ca1bccda71b26a955bd1d8e275f689c2c"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/native-report.json": {
+        "bytes": 19105,
+        "sha256": "d9d7841d367f566e6b63ac68e92f1fdf1164093c0f9aa562359ec7531acaf5a9"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/native.json": {
+        "bytes": 1400,
+        "sha256": "1af5cd9df2f26e1b65705f785d305f2e972ad16c44bc42c6161940393359a4dd"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/native.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/new-kernel.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/new-kernel.stdout": {
+        "bytes": 386,
+        "sha256": "79b506d09a6f70088d2b67582e822d9494a40f0595adaa41bb98b27b00bebd13"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/old-kernel.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/old-kernel.stdout": {
+        "bytes": 386,
+        "sha256": "324216e1a94465ea82951e4dee063d4e3421a070f4a61fc6966b604164dabbd8"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/process-events.jsonl": {
+        "bytes": 2623,
+        "sha256": "3fdd1bb25a12123ad14c6f7cbed5a77068b69c7bd578d4c14894bcd12e4ef7ac"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-1.json": {
+        "bytes": 35,
+        "sha256": "f1486df032b731d14280c07c89b76a21a380062b6fc53ea3e2a3c7a4a42b14e5"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-2.json": {
+        "bytes": 1153,
+        "sha256": "165c5e6fe41b2aedcb0a599614cdc9ca54c0625da7ecc3f38c74160f8a2a5b23"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-3.json": {
+        "bytes": 2913,
+        "sha256": "927cda1e4d64b50b2871d69cb67f5e2c8f2282953eb6bbd8c2d64d8a05366acf"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-4.json": {
+        "bytes": 202,
+        "sha256": "7316740b3e84d7e8597c5c4cc48818f78ce9d31abef9b57dc35da0d53eafc5fc"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-5.json": {
+        "bytes": 35,
+        "sha256": "f1486df032b731d14280c07c89b76a21a380062b6fc53ea3e2a3c7a4a42b14e5"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-6.json": {
+        "bytes": 1153,
+        "sha256": "165c5e6fe41b2aedcb0a599614cdc9ca54c0625da7ecc3f38c74160f8a2a5b23"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-7.json": {
+        "bytes": 2913,
+        "sha256": "927cda1e4d64b50b2871d69cb67f5e2c8f2282953eb6bbd8c2d64d8a05366acf"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-body-8.json": {
+        "bytes": 202,
+        "sha256": "7316740b3e84d7e8597c5c4cc48818f78ce9d31abef9b57dc35da0d53eafc5fc"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-local-marker.json": {
+        "bytes": 1679,
+        "sha256": "c92f4a7a5f66ac715311aac296fef4ac3471c34f083cf2d76b817a4e85f9b341"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-transcript.json": {
+        "bytes": 5771,
+        "sha256": "8e4088e5115b947478fb381edcbdc165bfcd8423d5e2d6cc9c8ceef6591a626e"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/recovery-s2-verification.json": {
+        "bytes": 4902,
+        "sha256": "81312490f1d55d80876aa3face87f58dbccb1a0e71b04b2f55eb919fd971f475"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/sandbox.json": {
+        "bytes": 1580,
+        "sha256": "310e773abbb89b6e77569dcf15d62cbeed8343f08dcf4d08f6c9e71b6fc2c86d"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/source-after.json": {
+        "bytes": 26089,
+        "sha256": "b1760288d56e1408eb9dcb7e7b34fa0c3e442821f5921e2eab572a7409a322d9"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/source-before.json": {
+        "bytes": 26089,
+        "sha256": "b1760288d56e1408eb9dcb7e7b34fa0c3e442821f5921e2eab572a7409a322d9"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-public/wal-readback-index.json": {
+        "bytes": 3090,
+        "sha256": "480beac3d4442137055d7fb89026d2432dd1abb267561169870eff1065947a7a"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-source-after.json": {
+        "bytes": 26089,
+        "sha256": "b1760288d56e1408eb9dcb7e7b34fa0c3e442821f5921e2eab572a7409a322d9"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-source-after.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-source-before.json": {
+        "bytes": 26089,
+        "sha256": "b1760288d56e1408eb9dcb7e7b34fa0c3e442821f5921e2eab572a7409a322d9"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-source-before.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-verification.json": {
+        "bytes": 27005,
+        "sha256": "775bda147dfa154ca438cf44843946ee905a3cbb2c027fa6167770bdc386e051"
+      },
+      "mihomo-native-recovery-originals-40190323755-1/mihomo-native-recovery-verification.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "native-v5.exit.json": {
+        "bytes": 20,
+        "sha256": "ff8ae5796bcef71911ff9c5c3eaea341819c471f669549e252b830106edd4305"
+      },
+      "native-v5.pid.json": {
+        "bytes": 19,
+        "sha256": "3c303fdb23043aa6628e2b19348a67b66960ee2552e58890325c2336cd668323"
+      },
+      "native-v5.result.json": {
+        "bytes": 104,
+        "sha256": "86db62da686e960f62d6c65fc35895d091908013a1cd2d9c92c60c338f416ebf"
+      },
+      "native-v5.start.json": {
+        "bytes": 478,
+        "sha256": "1d3b382ef8600911a9e9fce6510946118cd2095212df1230753a45060bb4c016"
+      },
+      "native-v5.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "native-v5.stdout": {
+        "bytes": 438,
+        "sha256": "1d0a498c7db3c7ac1780370520649f61b9499e7e9a0a243cdb0bafb0c67ec681"
+      },
+      "run-first-observed-original.json": {
+        "bytes": 12772,
+        "sha256": "96f65daf6a44d3413fb14a2b0036f010b421106d2c7641ca709ded1630a09950"
+      },
+      "run-terminal-original.json": {
+        "bytes": 12775,
+        "sha256": "fc542d5e6fc27eb12fff379a256682aabd5660d7188a93c4280e3247097e488c"
+      }
+    },
+    "originalVerifyRawSourceGitVerifiedFlagRemainsFalse": true,
+    "originalWholeVerifyRawAccepted": true,
+    "originalWindowsCLIRejectedAtPOSIXWriter": true,
+    "physicalNativeEventPrefixUnchangedByCollector": true,
+    "pid": 10312,
+    "producerFreshComparisonBytes": 27005,
+    "producerFreshComparisonSHA256": "775bda147dfa154ca438cf44843946ee905a3cbb2c027fa6167770bdc386e051",
+    "publicFiles": 32,
+    "runID": 40190323755,
+    "sameS1ImageBeforeAfter": true,
+    "scope": "ACTUAL_POST_S1_EIGHT_GET_AND_LOOPBACK_PROXY_MARKER_ACCEPTED_NOT_DURABLE_RECEIPT_COMPLETION_INTERNET_OR_PRODUCTION",
+    "sourceAndOriginalsStableAfterAudit": true,
+    "sourceCommit": "caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f",
+    "sourceFilesActuallyBound": 166,
+    "sourceGitTrueSetOnlyInExplicitComparisonCopy": true,
+    "threeFixtureShutdownServeRecordsAccepted": true,
+    "zipCount": 3
+  },
+  "normal": {
+    "APISizeDigestCRCAndMaterializedBytesVerified": true,
+    "actualNativeMarkerAcceptedByThisNormalAudit": false,
+    "allSourceAndOriginalBytesStable": true,
+    "archiveCount": 12,
+    "archiveMemberCount": 208,
+    "archives": [
+      {
+        "bytes": 6634,
+        "members": 1,
+        "name": "mihomo-contracts-fresh-40190323838-1",
+        "sha256": "1ee47f804760c9c3b1b638f6bec0d5672a2ab1a781f8bb92f2f0905bcc3aba37"
+      },
+      {
+        "bytes": 7653,
+        "members": 1,
+        "name": "mihomo-compat-fresh-40190323838-1",
+        "sha256": "0b97d6af5fd4e52315e4b9656bb7283aea5a03c5fef6d80e8f374a9862f5ccd4"
+      },
+      {
+        "bytes": 57575,
+        "members": 61,
+        "name": "mihomo-unknown-originals-40190323838-1",
+        "sha256": "357e93443b1fef7d0ab7fd4d59b88794f4e8e976b7e7d0e42b607734657b0b49"
+      },
+      {
+        "bytes": 34095,
+        "members": 39,
+        "name": "mihomo-apply-originals-40190323838-1",
+        "sha256": "04f42cdd1542036470af52a4681783b14d3832a5fdfdf9e0ccf55a27acfe79b1"
+      },
+      {
+        "bytes": 248031,
+        "members": 14,
+        "name": "mihomo-foundation-contracts-40190323838-1",
+        "sha256": "f369e953aed5ef5d5e6c07cb2fd4542c5d8fe8c67fcfe3be131781be3797299c"
+      },
+      {
+        "bytes": 9660,
+        "members": 1,
+        "name": "mihomo-service-fresh-40190323838-1",
+        "sha256": "ba8039b5f6891307c91cd6e2add8e1d5c9ea9b4f54b7867e123ff5dd637346ed"
+      },
+      {
+        "bytes": 54322,
+        "members": 61,
+        "name": "mihomo-service-originals-40190323838-1",
+        "sha256": "07442a76f42b46ca3cc729eb535ea9f73bca0d0bf968d51cbf84a67b8699e94f"
+      },
+      {
+        "bytes": 9990,
+        "members": 1,
+        "name": "mihomo-unknown-fresh-40190323838-1",
+        "sha256": "33f7132d1445db1faeb103e8a834846724910849af4b243c9611becd996f8ca0"
+      },
+      {
+        "bytes": 2372,
+        "members": 2,
+        "name": "mihomo-candidate-consumption-40190323838-1",
+        "sha256": "a15028f93ae296ec4944aa2d2927d2113b700e5154d6f5bf95aaa30d0b6c636d"
+      },
+      {
+        "bytes": 9000,
+        "members": 1,
+        "name": "mihomo-apply-fresh-40190323838-1",
+        "sha256": "45ec9ce6efd349db957e3e7a7fb7d490534a0b82497fc9216983e65efa00392e"
+      },
+      {
+        "bytes": 19302,
+        "members": 25,
+        "name": "mihomo-compat-originals-40190323838-1",
+        "sha256": "325bc773a42daa68eabcffc26a97cf5b32089709176fa3843b62eeefa3f7f964"
+      },
+      {
+        "bytes": 1197,
+        "members": 1,
+        "name": "mihomo-candidate-fresh-40190323838-1",
+        "sha256": "c8f649a94680c36d183d6e4f3e88c16bada5891b8932bbcf8dcb3fce8eebfcf9"
+      }
+    ],
+    "boundSources": 128,
+    "exitCode": 0,
+    "failedJobs": 0,
+    "formatPatchBytes": 0,
+    "formatterFiles": 122,
+    "foundationAuditSHA256": "c3f15656dcbb1c9c814a76f6b46024ed9637a5a85f13ced33f55c4ef4aa04836",
+    "foundationOriginalVerifyReturnedPASS": true,
+    "foundationProducerFreshAndOriginalVerifyByteEqual": true,
+    "foundationReportBytes": 17179,
+    "foundationReportSHA256": "05bc64fe7ca270bf29b3a7e6a67decc44daffb1bcb8b983786f7411368064800",
+    "fullPrivateWALIndependentlyProven": false,
+    "fullSystemOrDurableCompletionAccepted": false,
+    "functionsPathPlatformOrGatesReplaced": false,
+    "localGoOrGofmtInvoked": false,
+    "localNativeOrHTTPInvoked": false,
+    "modelsRerun": false,
+    "ordinaryAndRace": {
+      "ordinary": {
+        "allPriorGroupsPassed": true,
+        "capacity": [
+          {
+            "Action": "run",
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+            "Time": "2026-10-25T11:48:03.003371151Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 6.08,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+            "Time": "2026-10-25T11:48:09.083738624Z"
+          }
+        ],
+        "capacityObservedTimeline": {
+          "capacityRunOrTerminal": [
+            {
+              "Action": "run",
+              "Package": "chengwang/internal/mihomodeploy",
+              "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "Time": "2026-10-25T11:48:03.003371151Z"
+            },
+            {
+              "Action": "pass",
+              "Elapsed": 6.08,
+              "Package": "chengwang/internal/mihomodeploy",
+              "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "Time": "2026-10-25T11:48:09.083738624Z"
+            }
+          ],
+          "packageStart": [
+            {
+              "Action": "start",
+              "Package": "chengwang/internal/mihomodeploy",
+              "Time": "2026-10-25T11:47:51.280321766Z"
+            }
+          ],
+          "packageTerminal": [
+            {
+              "Action": "pass",
+              "Elapsed": 18.598,
+              "Package": "chengwang/internal/mihomodeploy",
+              "Time": "2026-10-25T11:48:09.878232845Z"
+            }
+          ],
+          "scope": "EVENT_TIMESTAMP_DIFFERENCES_NOT_FULL_CASE_CPU_OR_REDECLARED_TIMEOUT",
+          "secondsCapacityRunToPackageTerminal": 6.874861,
+          "secondsPackageStartToCapacityRun": 11.72305
+        },
+        "marker8Passed": 8,
+        "maxRevision": [
+          {
+            "Action": "run",
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan/canonical_max_revision_reaches_overflow_guard",
+            "Time": "2026-10-25T11:48:02.590598164Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan/canonical_max_revision_reaches_overflow_guard",
+            "Time": "2026-10-25T11:48:02.594945254Z"
+          }
+        ],
+        "old619Passed": 619,
+        "ownerExpiry": [
+          {
+            "Action": "run",
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLabRecoveryStartedBindingComesFromConsumedCurrentWAL/ownerExpiredDuringPreparation",
+            "Time": "2026-10-25T11:47:56.892014385Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.03,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLabRecoveryStartedBindingComesFromConsumedCurrentWAL/ownerExpiredDuringPreparation",
+            "Time": "2026-10-25T11:47:56.923785368Z"
+          }
+        ],
+        "packageTerminal": [
+          {
+            "Action": "pass",
+            "Elapsed": 0.572,
+            "Package": "chengwang/internal/adapter/mihomo",
+            "Time": "2026-10-25T11:47:48.335784464Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.02,
+            "Package": "chengwang/internal/authn",
+            "Time": "2026-10-25T11:47:51.300525158Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.384,
+            "Package": "chengwang/internal/api",
+            "Time": "2026-10-25T11:47:52.184031622Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.005,
+            "Package": "chengwang/internal/authz",
+            "Time": "2026-10-25T11:47:52.282766935Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.079,
+            "Package": "chengwang/internal/serverruntime",
+            "Time": "2026-10-25T11:47:52.356737534Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 18.598,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Time": "2026-10-25T11:48:09.878232845Z"
+          }
+        ],
+        "required627Passed": 627,
+        "semanticPassed": 1797,
+        "semanticStarted": 1797
+      },
+      "race": {
+        "allPriorGroupsPassed": true,
+        "capacity": [
+          {
+            "Action": "run",
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+            "Time": "2026-10-25T11:49:29.60478576Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 72.58,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+            "Time": "2026-10-25T11:50:42.183120414Z"
+          }
+        ],
+        "capacityObservedTimeline": {
+          "capacityRunOrTerminal": [
+            {
+              "Action": "run",
+              "Package": "chengwang/internal/mihomodeploy",
+              "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "Time": "2026-10-25T11:49:29.60478576Z"
+            },
+            {
+              "Action": "pass",
+              "Elapsed": 72.58,
+              "Package": "chengwang/internal/mihomodeploy",
+              "Test": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+              "Time": "2026-10-25T11:50:42.183120414Z"
+            }
+          ],
+          "packageStart": [
+            {
+              "Action": "start",
+              "Package": "chengwang/internal/mihomodeploy",
+              "Time": "2026-10-25T11:48:29.115683227Z"
+            }
+          ],
+          "packageTerminal": [
+            {
+              "Action": "pass",
+              "Elapsed": 142.041,
+              "Package": "chengwang/internal/mihomodeploy",
+              "Time": "2026-10-25T11:50:51.156741903Z"
+            }
+          ],
+          "scope": "EVENT_TIMESTAMP_DIFFERENCES_NOT_FULL_CASE_CPU_OR_REDECLARED_TIMEOUT",
+          "secondsCapacityRunToPackageTerminal": 81.551956,
+          "secondsPackageStartToCapacityRun": 60.489102
+        },
+        "marker8Passed": 8,
+        "maxRevision": [
+          {
+            "Action": "run",
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan/canonical_max_revision_reaches_overflow_guard",
+            "Time": "2026-10-25T11:49:25.383553742Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.04,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLifecycleRecoveryValidatedSnapshotRefreshPreservesEveryArchivedPlan/canonical_max_revision_reaches_overflow_guard",
+            "Time": "2026-10-25T11:49:25.428644338Z"
+          }
+        ],
+        "old619Passed": 619,
+        "ownerExpiry": [
+          {
+            "Action": "run",
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLabRecoveryStartedBindingComesFromConsumedCurrentWAL/ownerExpiredDuringPreparation",
+            "Time": "2026-10-25T11:48:58.734362674Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 0.32,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Test": "TestLabRecoveryStartedBindingComesFromConsumedCurrentWAL/ownerExpiredDuringPreparation",
+            "Time": "2026-10-25T11:48:59.051130794Z"
+          }
+        ],
+        "packageTerminal": [
+          {
+            "Action": "pass",
+            "Elapsed": 2.628,
+            "Package": "chengwang/internal/adapter/mihomo",
+            "Time": "2026-10-25T11:48:25.726343115Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 1.081,
+            "Package": "chengwang/internal/authn",
+            "Time": "2026-10-25T11:48:30.197114493Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 1.034,
+            "Package": "chengwang/internal/authz",
+            "Time": "2026-10-25T11:48:32.32522672Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 3.197,
+            "Package": "chengwang/internal/api",
+            "Time": "2026-10-25T11:48:32.564694369Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 1.458,
+            "Package": "chengwang/internal/serverruntime",
+            "Time": "2026-10-25T11:48:32.749141244Z"
+          },
+          {
+            "Action": "pass",
+            "Elapsed": 142.041,
+            "Package": "chengwang/internal/mihomodeploy",
+            "Time": "2026-10-25T11:50:51.156741903Z"
+          }
+        ],
+        "required627Passed": 627,
+        "semanticPassed": 1797,
+        "semanticStarted": 1797
+      }
+    },
+    "originalCandidateReceiptPassed": true,
+    "originalWindowsMainExitCode": 1,
+    "originalWindowsPOSIXWriterAccepted": false,
+    "otherFourOriginalScopedGatesPassed": true,
+    "otherScopesReceiptSHA256": "f22d52779ca37bf25ad8a6d205b8c44ba86df7d76cd504c2679fee5e699cb9c1",
+    "productionTouched": false,
+    "runID": 40190323838,
+    "schema": "chengwang.normal627-accepted-original-closeout/v1",
+    "scope": "NORMAL_SOURCE_CONTRACTS_AND_ORIGINAL_SCOPED_EXPERIMENTS_NOT_NATIVE_MARKER_FULL_SYSTEM_OR_PRODUCTION_ACCEPTANCE",
+    "sourceCommit": "caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f",
+    "sourceGitBlobs": 1328,
+    "successfulJobs": 13,
+    "testFiles": 47,
+    "wholeCIConclusion": "success",
+    "wholeCIStatus": "completed"
+  },
+  "normalModelAndGoAccepted": true,
+  "original37fFailuresPreserved": true,
+  "productionDeployed": false,
+  "recoveryAPIAndSubsequentWriteOrSecondRecoveryProven": false,
+  "recoveryCompletionAndNewHeadProven": false,
+  "remaining": [
+    "Durable source-bound verification receipt",
+    "Completion and new epoch head",
+    "Product recovery API and coordinator",
+    "Subsequent normal write and second recovery",
+    "Complete fault matrix and all remaining system modules",
+    "Authorized gray release and production readback"
+  ],
+  "schema": "chengwang.s2-local-proxy-marker-acceptance/v1",
+  "scope": "ISOLATED_POST_START_CONTROL_READBACK_AND_LOOPBACK_PROXY_PATH_NOT_COMPLETE_RECOVERY_OR_PRODUCTION",
+  "sourceCommit": "caa58f24ec5aa0eacbb1064be3dfe2d36b2b9f4f",
+  "sourceGitBlobs": 1328,
+  "sourceGitComparisonFlagsKeptSeparate": true,
+  "wholeSystemCompleted": false,
+  "windowsPOSIXWriterAccepted": false
+}

@@ -18,7 +18,11 @@ SCOPE = 'ACTUAL_OWNED_KERNEL_RECOVERY_STARTED_RECORD_NOT_HTTP_COMPLETION_OR_PROD
 ROOT = Path('/tmp/chengwang-mihomo-recovery-private')
 TAGS = ('chengwang_mihomo_service', 'chengwang_mihomo_faults', 'chengwang_mihomo_recovery_native')
 TOP = 'TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup'
-STAGES = ('planned', 'approved', 'stop-armed', 'quiesced', 'start-armed', 'started')
+STAGES = ('planned', 'approved', 'stop-armed', 'quiesced', 'start-armed', 'started', 'verification-attempted')
+VARIANTS = ('positive', 'not-committed', 'unknown', 'readback')
+OUTPUT_MODES = {'mihomo-native-recovery-public': 'positive',
+                **{'mihomo-native-recovery-'+mode+'-public': mode for mode in VARIANTS[1:]}}
+RECORD_PUBLIC = 'recovery-s2-record.json'
 RECOVERY_CAPTURE = ('transcript.json', *(f'body-{i}.json' for i in range(1, 9)), 'verification.json', 'local-marker.json')
 RECOVERY_PUBLIC = tuple('recovery-s2-'+name for name in RECOVERY_CAPTURE)
 FMT = tuple('internal/mihomodeploy/'+name for name in (
@@ -30,7 +34,7 @@ PREEXISTING = ('host-before.json', 'host-after.json', 'consumption.json', 'consu
 PRODUCED = ('native-report.json', 'wal-readback-index.json', 'old-kernel.stdout', 'old-kernel.stderr',
             'new-kernel.stdout', 'new-kernel.stderr', 'sandbox.json', 'execution.json',
             'go-version.txt', 'gofmt.patch', 'gofmt.stderr', 'native.json', 'native.stderr',
-            'commands.jsonl', 'process-events.jsonl', *RECOVERY_PUBLIC)
+            'commands.jsonl', 'process-events.jsonl', *RECOVERY_PUBLIC, RECORD_PUBLIC)
 _ADAPTER = None
 _STATE = None
 
@@ -67,7 +71,7 @@ def adapter():
 def contract():
     s = adapter(); w = s.adapter().shared()
     value = w.decode(w.file_bytes(Path(__file__).absolute().with_name('native_recovery_contract.json'), 64 << 10)[0])
-    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v4', scope=SCOPE,
+    expected = dict(schema='chengwang.mihomo-native-recovery-contract/v5', scope=SCOPE,
         tags=list(TAGS), goPackage='./internal/mihomodeploy', topTests=[TOP],
         goTimeoutSeconds=75, outerGoTimeoutSeconds=90, privateRoot=str(ROOT),
         identityRoot=str(s.IDENTITIES), servicePrivateRoot=str(s.ROOT), stateRoot=str(s.STATE),
@@ -82,6 +86,10 @@ def contract():
         recoveryLocalMarkerPhase='RECOVERY_NEW_EPOCH_MARKER',
         recoveryLocalMarkerScope='ACTUAL_LOOPBACK_PROXY_MARKER_NOT_INTERNET_BUSINESS_OR_AUTHORIZATION',
         localMarkerBodyIndependentlyProven=False,
+        verificationModes=list(VARIANTS), verificationRecordPublic=RECORD_PUBLIC,
+        verificationRecordSchema='chengwang.mihomo-native-verification-record/v1',
+        verificationRecordScope='REDACTED_ACTUAL_WAL_FACT_NOT_AUTHORIZATION_OR_COMPLETE_PRIVATE_RECEIPT',
+        verificationRecordMaxBytes=64 << 10,
         eventCheckpoints=list(CHECKPOINTS), eventCheckpointKeys=['stage', 'count', 'lastSequence', 'eventsSHA256'],
         eventPrefixEncoding='Go-json.Marshal([]labNativeRecoveryCall)-sequence-kind-core-at-no-newline',
         commandReceiptSchema='chengwang.mihomo-native-command-receipt/v1', commandReceiptKeys=list(COMMAND_KEYS),
@@ -199,7 +207,7 @@ def private_outputs(commit):
     s = adapter(); w = s.adapter().shared(); forbidden = disclosure_inputs()
     raw = s.private_file(ROOT/'native-report.private.json', 1 << 20)
     report = w.decode(raw)
-    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v4' and
+    need(report['schema'] == 'chengwang.mihomo-native-recovery-experiment/v5' and
          report['scope'] == SCOPE and report['sourceCommit'] == commit and
          report['outcome'] in ('PASS', 'FAIL') and type(report['nativeCalls']) is list and len(report['nativeCalls']) <= 256)
     # Public evidence does not include owner nonce/raw WAL. The Go test's
@@ -227,7 +235,7 @@ def private_outputs(commit):
             row['headSHA256'] = value['current']['head']['headSHA256']
         index.append(row)
     outputs = {'native-report.json': raw, 'wal-readback-index.json': w.canonical(dict(
-        schema='chengwang.mihomo-native-wal-readback-index/v1', scope=SCOPE, sourceCommit=commit,
+        schema='chengwang.mihomo-native-wal-readback-index/v2', scope=SCOPE, sourceCommit=commit,
         stages=index, fullPrivateWALIndependentlyProven=False, production=False))}
     for public, path in [('old-kernel.stdout', s.ROOT/'kernel.stdout'), ('old-kernel.stderr', s.ROOT/'kernel.stderr'),
                          ('new-kernel.stdout', ROOT/'new-kernel.stdout'), ('new-kernel.stderr', ROOT/'new-kernel.stderr')]:
@@ -249,6 +257,13 @@ def private_outputs(commit):
         capture_bytes += len(data)
         need(capture_bytes <= 2 << 20)
         outputs[public] = data
+    record_path = ROOT/'verification-record.private.json'
+    if record_path.exists():
+        data = s.private_file(record_path, 64 << 10)
+        need(capture_bytes + len(data) <= 2 << 20)
+        outputs[RECORD_PUBLIC] = data
+    else:
+        need(report['outcome'] == 'FAIL')
     for data in outputs.values():
         s.disclosure(data, forbidden)
     return outputs, forbidden, report
@@ -279,7 +294,7 @@ def compile_failure_originals(state, facts):
                              ('gofmt.stderr', 'gofmt.stderr'), ('native.json', 'apply.json'), ('native.stderr', 'apply.stderr')]:
         outputs[public] = w.file_bytes(a.ROOT_PRIVATE/original, 8 << 20, empty=True)[0]
     outputs['sandbox.json'] = w.canonical(facts)
-    outputs['execution.json'] = w.canonical(dict(schema='chengwang.mihomo-native-recovery-execution/v1', scope=SCOPE,
+    outputs['execution.json'] = w.canonical(dict(schema='chengwang.mihomo-native-recovery-execution/v2', scope=SCOPE, verificationMode=state['verificationMode'],
         sourceCommit=state['commit'], formatExit=state['formatExit'], goExit=state['goExit'],
         captureState='INCOMPLETE_EMPTY_PRIVATE_RUNTIME_ROOTS_NOT_ACCEPTED', production=False))
     a.unchanged_public(state)
@@ -293,27 +308,33 @@ def compile_failure_originals(state, facts):
 def main(args):
     global _STATE
     s = adapter(); a = s.adapter(); w = a.shared(); c = contract()
-    if len(args) == 3 and args[0] == '--sandbox':
+    if len(args) == 4 and args[0] == '--sandbox':
+        need(args[3] in VARIANTS)
         facts = a.sandbox(args[1], args[2])
         s.bases(False); native_base(False)
         facts['serviceBases'] = [str(s.ROOT), str(s.IDENTITIES), str(s.STATE)]
-        facts['schema'] = 'chengwang.mihomo-native-recovery-sandbox/v1'
+        facts['schema'] = 'chengwang.mihomo-native-recovery-sandbox/v2'
+        facts['verificationMode'] = args[3]
         print(w.canonical(facts).decode('ascii'), end='')
         return 0
     need(len(args) == 5)
+    mode = OUTPUT_MODES.get(Path(args[1]).name)
+    need(mode in VARIANTS)
     state = a.prepare_namespace(*args); _STATE = state
+    state['verificationMode'] = mode
     s.bases(True); native_base(True)
     worker = a.PATHS['module']+'/deploy/mihomo-lifecycle-lab/native_recovery_worker.py'
-    code = capture_actual(state, [w.tool('python3'), '-B', worker, '--sandbox', state['commit'], state['moduleSHA256']],
+    code = capture_actual(state, [w.tool('python3'), '-B', worker, '--sandbox', state['commit'], state['moduleSHA256'], mode],
                      'sandbox.private.json', 'sandbox.private.stderr', 30)
     need(code == 0 and w.file_bytes(a.ROOT_PRIVATE/'sandbox.private.stderr', 4096, empty=True)[0] == b'')
     facts = w.decode(w.file_bytes(a.ROOT_PRIVATE/'sandbox.private.json', 64 << 10)[0])
-    need(facts['schema'] == 'chengwang.mihomo-native-recovery-sandbox/v1')
+    need(facts['schema'] == 'chengwang.mihomo-native-recovery-sandbox/v2' and facts['verificationMode'] == mode)
     need(capture_actual(state, [a.PATHS['goRoot']+'/bin/go', 'version'], 'go-version.txt', 'go-version.private.stderr', 15) == 0)
     need(w.file_bytes(a.ROOT_PRIVATE/'go-version.private.stderr', 4096, empty=True)[0] == b'')
     state['formatExit'] = capture_actual(state, [a.PATHS['goRoot']+'/bin/gofmt', '-d', *FMT], 'gofmt.patch', 'gofmt.stderr', 30)
     argv = [a.PATHS['goRoot']+'/bin/go', 'test', '-json', '-count=1', '-shuffle=off', '-p=1',
-            '-tags='+','.join(TAGS), '-run=^'+TOP+'$', '-timeout=75s', './internal/mihomodeploy']
+            '-tags='+','.join(TAGS), '-run=^'+TOP+'$', '-timeout=75s', './internal/mihomodeploy',
+            '-args', '-chengwang-native-verification-mode='+mode]
     state['goExit'] = capture_actual(state, argv, 'apply.json', 'apply.stderr', c['outerGoTimeoutSeconds'])
     after, _, directory = w.custody(state['consumed'])
     need(after == state['inputBefore'] and directory == state['originalDirectory'])
@@ -321,6 +342,7 @@ def main(args):
     if not (ROOT/'native-report.private.json').exists():
         return compile_failure_originals(state, facts)
     outputs, forbidden, report = private_outputs(state['commit'])
+    need(report['verificationMode'] == mode)
     commands = command_outputs()
     for raw in commands.values():
         s.disclosure(raw, forbidden)
@@ -331,7 +353,7 @@ def main(args):
         s.disclosure(data, forbidden)
         outputs[public] = data
     outputs['sandbox.json'] = w.canonical(facts)
-    outputs['execution.json'] = w.canonical(dict(schema='chengwang.mihomo-native-recovery-execution/v1', scope=SCOPE,
+    outputs['execution.json'] = w.canonical(dict(schema='chengwang.mihomo-native-recovery-execution/v2', scope=SCOPE, verificationMode=mode,
         sourceCommit=state['commit'], formatExit=state['formatExit'], goExit=state['goExit'],
         captureState='CAPTURED_NOT_INDEPENDENT_ACCEPTANCE', production=False))
     need(set(outputs) <= set(PRODUCED) and sum(map(len, outputs.values())) <= c['maxPublicBytes'])

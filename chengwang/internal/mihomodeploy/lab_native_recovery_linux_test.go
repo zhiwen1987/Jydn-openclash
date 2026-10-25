@@ -9,8 +9,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"os"
 	"reflect"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -20,8 +22,184 @@ import (
 	"chengwang/internal/authz"
 )
 
+var labNativeVerificationMode = flag.String("chengwang-native-verification-mode", "positive", "fixed isolated verification publication variant")
+
+func labNativeVerificationModeValid(mode string) bool {
+	return mode == "positive" || mode == "not-committed" || mode == "unknown" || mode == "readback"
+}
+
+// This test-only forwarding owner retains the actual namespace-owned disk.
+// It is installed before cap admission and never swaps that disk afterward.
+// The only injected behaviors are three fixed publication outcomes.
+type labNativeVerificationDisk struct {
+	labRuntimeDisk
+	mu sync.Mutex
+	mode string
+	armed bool
+	replaceAttempts, forwardedWrites, postWriteReads, injectedReads int
+	underlyingCommitted bool
+}
+
+func (d *labNativeVerificationDisk) replaceControl(raw []byte) (lifecycleCommitState, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.armed {
+		return d.labRuntimeDisk.replaceControl(raw)
+	}
+	d.replaceAttempts++
+	if d.replaceAttempts != 1 {
+		return lifecycleNotCommitted, errLabNativeRecovery
+	}
+	if d.mode == "not-committed" {
+		return lifecycleNotCommitted, errLabNativeRecovery
+	}
+	d.forwardedWrites++
+	state, err := d.labRuntimeDisk.replaceControl(raw)
+	d.underlyingCommitted = state == lifecycleCommitted && err == nil
+	if !d.underlyingCommitted {
+		return state, err
+	}
+	if d.mode == "unknown" {
+		return lifecycleUnknown, errLabNativeRecovery
+	}
+	return state, err
+}
+
+func (d *labNativeVerificationDisk) readControl() ([]byte, bool, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	raw, exists, err := d.labRuntimeDisk.readControl()
+	if d.armed && d.underlyingCommitted {
+		d.postWriteReads++
+		if d.mode == "readback" && d.injectedReads == 0 && err == nil && exists {
+			d.injectedReads++
+			// Corrupt only the publisher's actual post-write return, not the
+			// disk file. Cold reopen must independently find the real bytes.
+			return append(bytes.Clone(raw), ' '), exists, nil
+		}
+	}
+	return raw, exists, err
+}
+
+type labNativeVerificationRecord struct {
+	Schema string `json:"schema"`
+	Scope string `json:"scope"`
+	Mode string `json:"mode"`
+	AttemptedAt time.Time `json:"attemptedAt"`
+	ReturnedAt time.Time `json:"returnedAt"`
+	ReplaceAttempts int `json:"replaceAttempts"`
+	ForwardedWrites int `json:"forwardedWrites"`
+	PostWriteReads int `json:"postWriteReads"`
+	InjectedReads int `json:"injectedReads"`
+	UnderlyingCommitted bool `json:"underlyingCommitted"`
+	CapKnownBefore bool `json:"capKnownBefore"`
+	CapSpent bool `json:"capSpent"`
+	CapCopyRejected bool `json:"capCopyRejected"`
+	CapReplayRejected bool `json:"capReplayRejected"`
+	RecordReturnedError bool `json:"recordReturnedError"`
+	StorePoisoned bool `json:"storePoisoned"`
+	CandidateAdopted bool `json:"candidateAdopted"`
+	LiveOwnerCleared bool `json:"liveOwnerCleared"`
+	TransientProofCleared bool `json:"transientProofCleared"`
+	RetainedStartedCleared bool `json:"retainedStartedCleared"`
+	SourceRevision uint64 `json:"sourceRevision"`
+	SourceRecordSHA256 string `json:"sourceRecordSHA256"`
+	SourceControlSHA256 string `json:"sourceControlSHA256"`
+	MemoryRevision uint64 `json:"memoryRevision"`
+	MemoryRecordSHA256 string `json:"memoryRecordSHA256"`
+	DiskRevision uint64 `json:"diskRevision"`
+	DiskRecordSHA256 string `json:"diskRecordSHA256"`
+	DiskControlSHA256 string `json:"diskControlSHA256"`
+	ExecutionSchema string `json:"executionSchema"`
+	ReceiptPresent bool `json:"receiptPresent"`
+	ReceiptSHA256 *string `json:"receiptSHA256"`
+	ObservationSHA256 *string `json:"observationSHA256"`
+	VerificationCommitRevision *uint64 `json:"verificationCommitRevision"`
+	RecordedAt *time.Time `json:"recordedAt"`
+	S1PreimageSHA256 *string `json:"s1PreimageSHA256"`
+	SourceCurrentSHA256 string `json:"sourceCurrentSHA256"`
+	DiskCurrentSHA256 string `json:"diskCurrentSHA256"`
+	CompletionAbsent bool `json:"completionAbsent"`
+	NoNewPhysicalCalls bool `json:"noNewPhysicalCalls"`
+	FullPrivateReceiptIndependentlyProven bool `json:"fullPrivateReceiptIndependentlyProven"`
+}
+
+// Forensic read of the same underlying owned disk after a publication
+// failure. This does not clear poison, adopt bytes or mint live authority.
+func labNativeVerificationCheckpoint(r *labNativeRecoveryRunner, disk labRuntimeDisk) (lifecycleV3Record, error) {
+	if r == nil || disk == nil || disk.verify() != nil {
+		return lifecycleV3Record{}, errLabNativeRecovery
+	}
+	raw, exists, err := disk.readControl()
+	if err != nil || !exists || disk.verify() != nil {
+		return lifecycleV3Record{}, errLabNativeRecovery
+	}
+	w, err := decodeLifecycleV3Record(raw)
+	original, originalErr := decodeLifecycleRecord(r.legacy)
+	if err != nil || originalErr != nil || w.core.Recovery == nil || w.core.Recovery.Execution == nil || w.core.Recovery.Completion != nil ||
+		!bytes.Equal(w.core.SourceV2.ControlBytes, r.legacy) || !reflect.DeepEqual(w.core.Current, lifecycleLegacyLedger(original, r.legacy)) || len(w.core.RetiredEpochs) != 0 {
+		return lifecycleV3Record{}, errLabNativeRecovery
+	}
+	if err := labNativeRecoveryWrite("verification-attempted-control.private.json", raw); err != nil {
+		return lifecycleV3Record{}, err
+	}
+	r.stages = append(r.stages, labNativeRecoveryCheckpoint{"verification-attempted", labConfigHash(raw), w.core.RecordSHA256, w.core.Revision, w.core.Recovery.Phase})
+	return w, nil
+}
+
+func labNativeVerificationReopen(legacy []byte, execution lifecycleRecoveryExecution) (labNativeRecoveryCheckpoint, error) {
+	var zero labNativeRecoveryCheckpoint
+	d, fresh, err := openLabRuntimeDisk()
+	if err != nil || d == nil || fresh {
+		if d != nil {
+			_ = d.close()
+		}
+		return zero, errLabNativeRecovery
+	}
+	s, err := openLifecycleRecoveryStore(d, time.Now().UTC())
+	if err != nil {
+		_ = d.close()
+		return zero, err
+	}
+	defer s.close()
+	x := s.core
+	raw, exists, err := x.disk.readControl()
+	if err != nil || !exists || !bytes.Equal(raw, x.raw) || x.verify() != nil {
+		return zero, errLabNativeRecovery
+	}
+	w, err := decodeLifecycleV3Record(raw)
+	if err != nil || w.core.Recovery == nil || w.core.Recovery.Phase != "RECOVERY_UNKNOWN" || w.core.Recovery.Completion != nil ||
+		w.core.Recovery.Execution == nil || !reflect.DeepEqual(*w.core.Recovery.Execution, execution) ||
+		!bytes.Equal(w.core.SourceV2.ControlBytes, legacy) || x.live != nil || x.permit != nil || x.quiescenceSHA != "" ||
+		x.retainedStarted != nil || x.verificationRecord != nil {
+		return zero, errLabNativeRecovery
+	}
+	processLabRecoveryVerificationIssuer.mu.Lock()
+	for core := range processLabRecoveryVerificationIssuer.issued {
+		if core.store == x {
+			processLabRecoveryVerificationIssuer.mu.Unlock()
+			return zero, errLabNativeRecovery
+		}
+	}
+	processLabRecoveryVerificationIssuer.mu.Unlock()
+	if _, err := s.armRecoveryStart(nil, time.Now().UTC()); err == nil {
+		return zero, errLabNativeRecovery
+	}
+	if err := s.recordRecoveryVerification(nil, nil, time.Now().UTC()); err == nil {
+		return zero, errLabNativeRecovery
+	}
+	if err := labNativeRecoveryWrite("reopened-control.private.json", raw); err != nil {
+		return zero, err
+	}
+	if err := s.close(); err != nil || !x.closed {
+		return zero, errLabNativeRecovery
+	}
+	return labNativeRecoveryCheckpoint{"reopened", labConfigHash(raw), w.core.RecordSHA256, w.core.Revision, w.core.Recovery.Phase}, nil
+}
+
 type labNativeRecoveryReport struct {
 	Schema                              string                             `json:"schema"`
+	VerificationMode                    string                             `json:"verificationMode"`
 	Scope                               string                             `json:"scope"`
 	SourceCommit                        string                             `json:"sourceCommit"`
 	Outcome                             string                             `json:"outcome"`
@@ -65,6 +243,10 @@ type labNativeRecoveryReport struct {
 	ControlCopiedStartedRejected        bool                               `json:"controlCopiedStartedRejected"`
 	ControlCopiedProofRejected          bool                               `json:"controlCopiedProofRejected"`
 	LocalCopiedFixtureRejected          bool                               `json:"localCopiedFixtureRejected"`
+	VerificationRecord                  *labNativeVerificationRecord       `json:"verificationRecord"`
+	VerificationEvents                  []labNativeRecoveryEventCheckpoint `json:"verificationEvents"`
+	ReopenedExecutionPreserved          bool                               `json:"reopenedExecutionPreserved"`
+	ReopenedRecordCapabilityAbsent      bool                               `json:"reopenedRecordCapabilityAbsent"`
 	HTTPRecoveryProven                  bool                               `json:"httpRecoveryProven"`
 	CompletionProven                    bool                               `json:"completionProven"`
 	FullPrivateWALIndependentlyProven   bool                               `json:"fullPrivateWALIndependentlyProven"`
@@ -126,7 +308,11 @@ func labNativeRecoveryCount(events []labNativeRecoveryCall, kind string, core ui
 }
 
 func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T) {
-	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v4",
+	mode := *labNativeVerificationMode
+	if !labNativeVerificationModeValid(mode) {
+		t.Fatal("unknown native verification variant")
+	}
+	report := labNativeRecoveryReport{Schema: "chengwang.mihomo-native-recovery-experiment/v5", VerificationMode: mode,
 		Scope: labNativeRecoveryScope, SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"),
 		Outcome: "FAIL", FailureCode: "NOT_COMPLETED", Stages: []labNativeRecoveryCheckpoint{}, Syntax: []labKernelStartObservation{},
 		NativeCalls: []labNativeRecoveryCall{}, EventCheckpoints: []labNativeRecoveryEventCheckpoint{}, ClosedPorts: []uint16{},
@@ -387,6 +573,24 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 	report.ControlEvents = append(report.ControlEvents, labNativeRecoveryEventCheckpoint{
 		Stage: "before-control-plane", Count: len(controlCallsBefore), LastSequence: controlCallsBefore[len(controlCallsBefore)-1].Sequence, EventsSHA256: labConfigHash(controlRawBefore)})
 	report.ControlBeforeSHA256 = labConfigHash(controlBefore)
+	// Install a forwarding wrapper around the actual still-owned disk before
+	// admission. The record cap binds this identity, not a later replacement.
+	service.core.mu.Lock()
+	service.core.runtime.core.mu.Lock()
+	runner.store.core.mu.Lock()
+	actualDisk := service.core.runtime.core.disk
+	if actualDisk == nil || !lifecycleRecoverySameDisk(actualDisk, runner.store.core.disk) {
+		runner.store.core.mu.Unlock()
+		service.core.runtime.core.mu.Unlock()
+		service.core.mu.Unlock()
+		t.Fatal("actual disk custody differs before record-cap admission")
+	}
+	publicationDisk := &labNativeVerificationDisk{labRuntimeDisk: actualDisk, mode: mode}
+	service.core.runtime.core.disk = publicationDisk
+	runner.store.core.disk = publicationDisk
+	runner.store.core.mu.Unlock()
+	service.core.runtime.core.mu.Unlock()
+	service.core.mu.Unlock()
 	// Copy the actually issued fixture seal, not an invented fixture or a
 	// synthetic issuer entry. Restore its exact source pointer before using
 	// the genuine service; no network call or registry mutation is made here.
@@ -424,7 +628,7 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		t.Fatal("copied observation core became a source-issued proof")
 	}
 	report.ControlCopiedProofRejected = true
-	controlValue, err := collector.consume(controlCtx, headers["initiator"], observed)
+	controlValue, recordCap, err := collector.consumeForRecord(controlCtx, headers["initiator"], observed)
 	if err != nil || controlValue.SourceRevision != w.core.Revision || controlValue.SourceRecordSHA256 != w.core.RecordSHA256 ||
 		controlValue.StartedSHA256 != report.StartedSHA256 || controlValue.StartupIdentity != runner.newIdentity ||
 		!reflect.DeepEqual(controlValue.Artifact, execution.Started.Binding.TargetArtifact) || controlValue.VerificationSHA256 == "" ||
@@ -433,7 +637,7 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 		controlValue.Schema != "chengwang.mihomo-recovery-control-observation/v2" || controlValue.LocalPath == nil ||
 		!labRecoveryMarkerValueValid(*controlValue.LocalPath) || controlValue.LocalPath.ExpectedRole != "B" ||
 		controlValue.LocalPath.StartedAt.Before(controlValue.ObservedAt) || !controlValue.LocalPath.ReturnedAt.Before(controlValue.Deadline) ||
-		controlValue.LocalMarkerSHA256 == "" {
+		controlValue.LocalMarkerSHA256 == "" || recordCap == nil || recordCap.core == nil {
 		report.FailureCode = "CONTROL_CONSUME"
 		t.Fatal("actual one-use observation did not bind current S1 and selected target")
 	}
@@ -477,6 +681,119 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 	}
 	report.ControlEvents = append(report.ControlEvents, labNativeRecoveryEventCheckpoint{
 		Stage: "after-control-plane", Count: len(controlCallsAfter), LastSequence: controlCallsAfter[len(controlCallsAfter)-1].Sequence, EventsSHA256: labConfigHash(controlRawAfter)})
+	// The collection-only invariant above remains separate. Only now does
+	// the actual original one-use source cap attempt a durable append.
+	processLabRecoveryVerificationIssuer.mu.Lock()
+	knownBefore := processLabRecoveryVerificationIssuer.issued[recordCap.core]
+	processLabRecoveryVerificationIssuer.mu.Unlock()
+	if !knownBefore {
+		t.Fatal("genuine observation did not issue its actual record cap")
+	}
+	copiedRecordCore := *recordCap.core
+	if err := runner.store.recordRecoveryVerification(runner.owner, &labRecoveryVerificationRecordCap{core: &copiedRecordCore}, time.Now().UTC()); err == nil {
+		t.Fatal("copied genuine record core became a registered capability")
+	}
+	processLabRecoveryVerificationIssuer.mu.Lock()
+	stillKnown := processLabRecoveryVerificationIssuer.issued[recordCap.core]
+	processLabRecoveryVerificationIssuer.mu.Unlock()
+	if !stillKnown {
+		t.Fatal("copied record core spent its genuine source")
+	}
+	point := func(stage string) labNativeRecoveryEventCheckpoint {
+		calls, ok := labNativeRecoveryReadCalls()
+		encoded, encodeErr := json.Marshal(calls)
+		if !ok || encodeErr != nil || len(calls) == 0 {
+			t.Fatal("record publication event snapshot unavailable")
+		}
+		return labNativeRecoveryEventCheckpoint{stage, len(calls), calls[len(calls)-1].Sequence, labConfigHash(encoded)}
+	}
+	report.VerificationEvents = append(report.VerificationEvents, point("before-verification-record"))
+	publicationDisk.mu.Lock()
+	publicationDisk.armed = true
+	publicationDisk.mu.Unlock()
+	attemptedAt := time.Now().UTC()
+	recordErr := runner.store.recordRecoveryVerification(runner.owner, recordCap, attemptedAt)
+	returnedAt := time.Now().UTC()
+	if (mode == "positive") != (recordErr == nil) {
+		t.Fatal("record variant did not observe its fixed publication result")
+	}
+	processLabRecoveryVerificationIssuer.mu.Lock()
+	spent := !processLabRecoveryVerificationIssuer.issued[recordCap.core]
+	processLabRecoveryVerificationIssuer.mu.Unlock()
+	if !spent || runner.store.recordRecoveryVerification(runner.owner, recordCap, time.Now().UTC()) == nil {
+		t.Fatal("actual publication cap was not irreversibly consumed")
+	}
+	publicationDisk.mu.Lock()
+	replaceAttempts, forwardedWrites, postWriteReads, injectedReads, underlyingCommitted := publicationDisk.replaceAttempts, publicationDisk.forwardedWrites, publicationDisk.postWriteReads, publicationDisk.injectedReads, publicationDisk.underlyingCommitted
+	publicationDisk.mu.Unlock()
+	if replaceAttempts != 1 || (mode == "not-committed" && (forwardedWrites != 0 || underlyingCommitted || postWriteReads != 0)) ||
+		(mode != "not-committed" && (forwardedWrites != 1 || !underlyingCommitted)) ||
+		(mode == "unknown" && postWriteReads != 0) ||
+		(mode == "readback" && (postWriteReads != 1 || injectedReads != 1)) ||
+		(mode == "positive" && (postWriteReads != 1 || injectedReads != 0)) {
+		t.Fatal("actual fixed write/readback injection point was not reached exactly")
+	}
+	runner.store.core.mu.Lock()
+	memory := runner.store.core.record
+	memoryRevision, memorySHA := memory.core.Revision, memory.core.RecordSHA256
+	poisoned, clearedOwner := runner.store.core.poisoned, runner.store.core.live == nil
+	proofCleared := runner.store.core.verificationRecord == nil
+	startedCleared := runner.store.core.retainedStarted == nil
+	adopted := !bytes.Equal(runner.store.core.raw, controlBefore)
+	runner.store.core.mu.Unlock()
+	if !proofCleared || !startedCleared || (mode == "positive" && (poisoned || clearedOwner || !adopted)) ||
+		(mode != "positive" && (!poisoned || !clearedOwner || adopted)) {
+		t.Fatal("publication result adopted an uncertain candidate or restored a capability")
+	}
+	diskRecord, err := labNativeVerificationCheckpoint(runner, actualDisk)
+	if err != nil {
+		t.Fatal("actual post-attempt disk checkpoint unavailable")
+	}
+	diskExecution := diskRecord.core.Recovery.Execution
+	currentBefore, err := json.Marshal(w.core.Current)
+	currentAfter, currentErr := json.Marshal(diskRecord.core.Current)
+	if err != nil || currentErr != nil || !bytes.Equal(currentBefore, currentAfter) || diskRecord.core.Recovery.Completion != nil {
+		t.Fatal("verification publication changed Current or completed recovery")
+	}
+	projection := &labNativeVerificationRecord{Schema: "chengwang.mihomo-native-verification-record/v1", Scope: "REDACTED_ACTUAL_WAL_FACT_NOT_AUTHORIZATION_OR_COMPLETE_PRIVATE_RECEIPT", Mode: mode,
+		AttemptedAt: attemptedAt, ReturnedAt: returnedAt, ReplaceAttempts: replaceAttempts, ForwardedWrites: forwardedWrites, PostWriteReads: postWriteReads, InjectedReads: injectedReads,
+		UnderlyingCommitted: underlyingCommitted, CapKnownBefore: knownBefore, CapSpent: spent, CapCopyRejected: true, CapReplayRejected: true, RecordReturnedError: recordErr != nil,
+		StorePoisoned: poisoned, CandidateAdopted: adopted, LiveOwnerCleared: clearedOwner, TransientProofCleared: proofCleared, RetainedStartedCleared: startedCleared,
+		SourceRevision: w.core.Revision, SourceRecordSHA256: w.core.RecordSHA256, SourceControlSHA256: labConfigHash(controlBefore), MemoryRevision: memoryRevision, MemoryRecordSHA256: memorySHA,
+		DiskRevision: diskRecord.core.Revision, DiskRecordSHA256: diskRecord.core.RecordSHA256, DiskControlSHA256: runner.stages[len(runner.stages)-1].ControlSHA256,
+		ExecutionSchema: diskExecution.Schema, ReceiptPresent: diskExecution.Verification != nil, SourceCurrentSHA256: labConfigHash(currentBefore), DiskCurrentSHA256: labConfigHash(currentAfter), CompletionAbsent: true}
+	if mode == "not-committed" {
+		if diskExecution.Verification != nil || diskExecution.Schema != lifecycleRecoveryExecutionSchema || diskRecord.core.Revision != w.core.Revision || projection.DiskControlSHA256 != projection.SourceControlSHA256 {
+			t.Fatal("definite precommit failure changed the real disk")
+		}
+	} else {
+		v := diskExecution.Verification
+		preimage, preimageErr := lifecycleRecoveryVerificationPreimage(diskRecord.core, *diskRecord.core.Recovery)
+		if v == nil || diskExecution.Schema != lifecycleRecoveryVerifiedExecutionSchema || preimageErr != nil || !bytes.Equal(preimage, controlBefore) ||
+			!reflect.DeepEqual(v.Observation, lifecycleRecoveryObservedFromValue(controlValue)) || v.VerificationCommitRevision != w.core.Revision+1 {
+			t.Fatal("actual persisted typed fact did not bind the complete S1 image")
+		}
+		receiptBytes, receiptErr := json.Marshal(v)
+		if receiptErr != nil {
+			t.Fatal("actual persisted receipt hash unavailable")
+		}
+		receiptSHA, observationSHA, revision, recordedAt, sourceSHA := labConfigHash(receiptBytes), v.ObservationSHA256, v.VerificationCommitRevision, v.RecordedAt, labConfigHash(preimage)
+		projection.ReceiptSHA256, projection.ObservationSHA256, projection.VerificationCommitRevision, projection.RecordedAt, projection.S1PreimageSHA256 = &receiptSHA, &observationSHA, &revision, &recordedAt, &sourceSHA
+	}
+	afterRecordCalls, recordBounded := labNativeRecoveryReadCalls()
+	if !recordBounded || !reflect.DeepEqual(controlCallsAfter, afterRecordCalls) {
+		t.Fatal("record-only append dispatched a physical operation")
+	}
+	projection.NoNewPhysicalCalls = true
+	report.VerificationEvents = append(report.VerificationEvents, point("after-verification-record"))
+	report.VerificationRecord = projection
+	projectionRaw, projectionErr := json.Marshal(projection)
+	if projectionErr != nil || labNativeRecoveryWrite("verification-record.private.json", projectionRaw) != nil {
+		t.Fatal("redacted actual record projection unavailable")
+	}
+	// Only the execution actually read from disk is expected at cold reopen.
+	// It is v1 for NotCommitted and v2 for committed/uncertain outcomes.
+	execution = *diskExecution
 	// Owned-metadata negative control only: these are the actual retired
 	// closed legacy object and the actual migrated new disk owner. No disk,
 	// record, capability or public setter is constructed for this case.
@@ -573,12 +890,14 @@ func TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup(t *testing.T
 	if _, err := runner.captureEvents("before-reopen"); err != nil {
 		t.Fatal("actual reopen event baseline unavailable")
 	}
-	reopened, err := labNativeRecoveryReopen(runner.legacy, execution)
+	reopened, err := labNativeVerificationReopen(runner.legacy, execution)
 	if err != nil {
 		report.FailureCode = "ACTUAL_REOPEN"
 		t.Fatal("actual strict disk reopen did not preserve Started and fail closed")
 	}
 	report.Reopened = &reopened
+	report.ReopenedExecutionPreserved = true
+	report.ReopenedRecordCapabilityAbsent = true
 	if _, err := runner.captureEvents("after-reopen"); err != nil {
 		t.Fatal("actual reopen event readback unavailable")
 	}

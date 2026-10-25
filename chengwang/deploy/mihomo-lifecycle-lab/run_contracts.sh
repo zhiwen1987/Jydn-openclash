@@ -165,6 +165,9 @@ files+=(
   internal/mihomodeploy/lab_recovery_marker.go
   internal/mihomodeploy/lab_recovery_marker_test.go
   internal/mihomodeploy/lab_recovery_marker_bounds_test.go
+  internal/mihomodeploy/lifecycle_recovery_verification.go
+  internal/mihomodeploy/lifecycle_recovery_verification_test.go
+  internal/mihomodeploy/lifecycle_recovery_verified_bounds_test.go
 )
 files+=(
   internal/mihomodeploy/lab_native_recovery_linux.go

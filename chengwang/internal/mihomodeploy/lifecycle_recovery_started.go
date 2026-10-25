@@ -23,6 +23,7 @@ type lifecycleRecoveryExecution struct {
 	ArmedFailedQuiescence  []labQuiescenceObservation `json:"armedFailedQuiescence"`
 	StartedCommitRevision  uint64                     `json:"startedCommitRevision"`
 	RecordedAt             time.Time                  `json:"recordedAt"`
+	Verification          *lifecycleRecoveryVerification `json:"verification,omitempty"`
 }
 
 // Captured only from the same actual START_ARMED WAL, immediately before the
@@ -80,7 +81,7 @@ func lifecycleRecoveryExecutionFieldsValid(a lifecycleRecoveryTxn, at time.Time,
 	if e == nil {
 		return true
 	}
-	if e.Schema != lifecycleRecoveryExecutionSchema || (a.Phase != "START_ARMED" && a.Phase != "RECOVERY_UNKNOWN") || a.Completion != nil || a.StartIntent == nil || a.Quiescence == nil || a.StopBinding == nil || a.Approval == nil ||
+	if !lifecycleRecoveryVerificationFieldsValid(a, at, revision) || (a.Phase != "START_ARMED" && a.Phase != "RECOVERY_UNKNOWN") || a.Completion != nil || a.StartIntent == nil || a.Quiescence == nil || a.StopBinding == nil || a.Approval == nil ||
 		e.ArmedFailedQuiescence == nil || len(e.ArmedFailedQuiescence) > len(a.FailedQuiescence) || !reflect.DeepEqual(e.ArmedFailedQuiescence, a.FailedQuiescence[:len(e.ArmedFailedQuiescence)]) ||
 		!lifecycleTime(e.RecordedAt) || e.RecordedAt.Before(e.Started.ObservedAt) || e.RecordedAt.After(a.UpdatedAt) || e.RecordedAt.After(at) ||
 		e.StartedCommitRevision <= e.Started.Binding.Revision || e.StartedCommitRevision > revision ||
@@ -157,6 +158,9 @@ func validateLifecycleRecoveryExecution(w *lifecycleV3Wire, a lifecycleRecoveryT
 		return errLifecycleUnsafe
 	}
 	_, err := lifecycleRecoveryArmedPreimage(w, a)
+	if err == nil && a.Execution.Verification != nil {
+		_, err = lifecycleRecoveryVerificationPreimage(w, a)
+	}
 	return err
 }
 

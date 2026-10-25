@@ -240,3 +240,193 @@ jobs:
           path: ${{ runner.temp }}/mihomo-native-recovery-fresh.json
           if-no-files-found: error
           retention-days: 14
+  native-faults:
+    needs:
+      - development-only
+      - acquisition
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Reject unsupported record-fault mode
+        run: |
+          set -euo pipefail
+          case "$RECOVERY_MODE" in
+            not-committed|unknown|readback) ;;
+            *) exit 1 ;;
+          esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-native-candidate-consumption-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-acquisition-original
+      - name: Independently reacquire fixed kernel and compare acquisition-job original receipts
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-acquisition"
+          public="$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-public"
+          test ! -e "$root"
+          test ! -e "$public"
+          install -d -m 0700 "$root"
+          install -d -m 0755 "$public"
+          curl --fail --silent --show-error --location --retry 0 --max-time 120 --max-filesize 67108864 \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1-v1.19.32.gz \
+            -o "$root/candidate.gz" 2> "$root/acquisition.stderr"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/consume_pin.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --output "$root/consumed" > "$root/consume.stdout" 2> "$root/consume.stderr"
+          python3 -B chengwang/tools/mihomo-runtime-candidate/check_consumption.py --repo "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" --archive "$root/candidate.gz" --evidence "$root/consumed" \
+            --report "$public/consumption-independent.json" > "$root/independent.stdout" 2> "$root/independent.stderr"
+          install -m 0600 "$root/consumed/consumption.json" "$public/consumption.json"
+          cmp "$public/consumption.json" "$public/consumption-independent.json"
+
+          cmp "$RUNNER_TEMP/mihomo-native-acquisition-original/consumption.json" "$public/consumption.json"
+          cmp "$RUNNER_TEMP/mihomo-native-acquisition-original/independent.json" "$public/consumption-independent.json"
+      - name: Record actual host state before isolated native attempt
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-public/host-before.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+      - name: Bind actual committed sources outside public directory before attempt
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --source-manifest "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-source-before.json" \
+            2> "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-source-before.stderr"
+      - name: Execute actual owned kernel Started-record experiment in new namespaces
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          code=0
+          sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-lifecycle-lab/run_native_recovery.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-public" "$go_root" \
+            "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-acquisition/consumed" "$GITHUB_SHA" || code=$?
+          python3 - "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-attempt.exit" "$code" <<'PY'
+          import os,sys
+          with open(sys.argv[1],'x') as f:
+              f.write(sys.argv[2]+'\n');f.flush();os.fsync(f.fileno())
+          PY
+          exit "$code"
+      - name: Always retain host-after and independent source-after regardless of native result
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-public"
+          install -d -m 0755 "$root"
+          python3 - "$root/host-after.json" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          value={key:os.readlink('/proc/self/ns/'+kind) for key,kind in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]}
+          value['resolvSHA256']=hashlib.sha256(Path('/etc/resolv.conf').read_bytes()).hexdigest()
+          with open(sys.argv[1],'x') as f:json.dump(value,f,sort_keys=True);f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --source-manifest "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-source-after.json" \
+            2> "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-source-after.stderr"
+          install -m 0600 "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-source-before.json" "$root/source-before.json"
+          install -m 0600 "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-source-after.json" "$root/source-after.json"
+          cmp "$root/source-before.json" "$root/source-after.json"
+      - name: Independently verify original native evidence without executing another kernel
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --variant "$RECOVERY_MODE" \
+            --evidence "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-public" \
+            --report "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-verification.json" \
+            2> "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-verification.stderr"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-native-recovery-${{ matrix.mode }}-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |-
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-public/*
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-models/*.log
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-verification.json
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-source-before.json
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-source-after.json
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-attempt.exit
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-source-before.stderr
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-source-after.stderr
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-verification.stderr
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-acquisition/*.stdout
+            ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-acquisition/*.stderr
+          if-no-files-found: error
+          retention-days: 14
+    name: Native verification record fault (${{ matrix.mode }})
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - not-committed
+          - unknown
+          - readback
+    env:
+      RECOVERY_MODE: ${{ matrix.mode }}
+  native-faults-fresh:
+    needs:
+      - development-only
+      - native-faults
+    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Reject unsupported record-fault mode
+        run: |
+          set -euo pipefail
+          case "$RECOVERY_MODE" in
+            not-committed|unknown|readback) ;;
+            *) exit 1 ;;
+          esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mihomo-native-recovery-${{ matrix.mode }}-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-original
+      - name: Recompute originals only; no Go, worker or kernel execution
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --variant "$RECOVERY_MODE" \
+            --evidence "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-original/mihomo-native-recovery-${RECOVERY_MODE}-public" \
+            --report "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-fresh.json"
+          cmp "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-original/mihomo-native-recovery-${RECOVERY_MODE}-verification.json" \
+            "$RUNNER_TEMP/mihomo-native-recovery-${RECOVERY_MODE}-fresh.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-native-recovery-${{ matrix.mode }}-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-native-recovery-${{ matrix.mode }}-fresh.json
+          if-no-files-found: error
+          retention-days: 14
+    name: Fresh native record-fault originals (${{ matrix.mode }})
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - not-committed
+          - unknown
+          - readback
+    env:
+      RECOVERY_MODE: ${{ matrix.mode }}

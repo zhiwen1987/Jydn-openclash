@@ -32,6 +32,7 @@ type lifecycleRecoveryStoreCore struct {
 	quiescenceSHA string
 	permit        *labRecoveryStartCore
 	startedRecord *lifecycleStartedPublication
+	verificationRecord *lifecycleVerificationPublication
 	// Ephemeral custody from an actually consumed Started core and successful
 	// S1 disk publication. Never decoded or persisted; reopen starts with nil.
 	retainedStarted *labRecoveryStartedCustody
@@ -299,6 +300,7 @@ func (x *lifecycleRecoveryStoreCore) trustedNow(now time.Time) error {
 			x.live = nil
 			x.permit = nil
 			x.startedRecord = nil
+			x.verificationRecord = nil
 			x.quiescenceSHA = ""
 			x.activeBase = nil
 			x.activePrepared = nil
@@ -519,7 +521,7 @@ func prepareLifecycleCandidate(base *lifecycleVerifiedBase, next lifecycleV3Reco
 	if err := x.trustedNow(now); err != nil {
 		return nil, err
 	}
-	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 || (!lifecycleV3Transition(x.record.core, next.core) && !x.startedRecordTransition(base, next)) {
+	if next.core == nil || x.record.core.Revision == ^uint64(0) || next.core.Revision != x.record.core.Revision || next.core.RecordSHA256 != x.record.core.RecordSHA256 || (!lifecycleV3Transition(x.record.core, next.core) && !x.startedRecordTransition(base, next) && !x.verificationRecordTransition(base, next)) {
 		return nil, errLifecycleUnsafe
 	}
 	if next.core.LastRecoveryFence != x.record.core.LastRecoveryFence {
@@ -615,6 +617,7 @@ func (s *lifecycleRecoveryStore) close() error {
 	x.live = nil
 	x.permit = nil
 	x.startedRecord = nil
+	x.verificationRecord = nil
 	x.retainedStarted = nil
 	x.quiescenceSHA = ""
 	x.activeBase = nil
@@ -686,7 +689,7 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 // fully validated candidate. Unknown fields/codecs fail closed before copying.
 // Every local struct is written as a complete positional literal: adding a
 // field requires an explicit copy update rather than a silent shallow alias.
-const lifecycleCloneSchemaSHA256 = "bfaed3e6c2938709025876729e2635a27d3e65096ca778687be9a60585ff4012"
+const lifecycleCloneSchemaSHA256 = "07ec45b0a74f30b021af573f7b55f87b7dbcf28178e8fc5ea197dcde5a67ba99"
 
 var errLifecycleCloneRepresentation = errors.New("trusted record copy requires original JSON representation")
 
@@ -1042,7 +1045,39 @@ func (c *lifecycleCloneState) startedFact(v labRecoveryStartedFact) labRecoveryS
 }
 
 func (c *lifecycleCloneState) execution(v lifecycleRecoveryExecution) lifecycleRecoveryExecution {
-	return lifecycleRecoveryExecution{c.text(v.Schema), c.startedFact(v.Started), c.owner(v.ArmedOwner), c.timestamp(v.ArmedLastTrustedAt), v.ArmedLastRecoveryFence, c.timestamp(v.ArmedRecoveryUpdatedAt), lifecycleCloneSlice(v.ArmedFailedQuiescence, c.quiescenceObservation), v.StartedCommitRevision, c.timestamp(v.RecordedAt)}
+	return lifecycleRecoveryExecution{c.text(v.Schema), c.startedFact(v.Started), c.owner(v.ArmedOwner), c.timestamp(v.ArmedLastTrustedAt), v.ArmedLastRecoveryFence, c.timestamp(v.ArmedRecoveryUpdatedAt), lifecycleCloneSlice(v.ArmedFailedQuiescence, c.quiescenceObservation), v.StartedCommitRevision, c.timestamp(v.RecordedAt), lifecycleClonePointer(v.Verification, c.verification)}
+}
+
+func (c *lifecycleCloneState) verificationSample(v labRecoverySampleWindow) labRecoverySampleWindow {
+	return labRecoverySampleWindow{c.timestamp(v.StartedAt), c.timestamp(v.CompletedAt)}
+}
+
+func (c *lifecycleCloneState) verificationReadback(v mihomo.LabTargetReadbackReport) mihomo.LabTargetReadbackReport {
+	return mihomo.LabTargetReadbackReport{c.text(v.Schema), mihomo.LabTargetReadbackConclusion(c.text(string(v.Conclusion))), v.SampleCount, v.RequestsObserved, c.text(v.TargetProjectionSHA256), lifecycleClonePointer(v.ObservedProjectionSHA256, c.text), v.DataplaneProven, v.FullPayloadProven, v.AuthorizationProven, v.Production}
+}
+
+func (c *lifecycleCloneState) localBody(v labLocalBody) labLocalBody {
+	return labLocalBody{c.text(v.SHA256), v.Bytes, v.Complete}
+}
+
+func (c *lifecycleCloneState) localCounter(v labLocalCounter) labLocalCounter {
+	return labLocalCounter{c.text(v.Role), v.ConnectIngress, v.TunnelRequests, v.ForwardInvocations, v.OriginRequests, v.Rejected}
+}
+
+func (c *lifecycleCloneState) localRoute(v labLocalRoute) labLocalRoute {
+	return labLocalRoute{c.text(v.Phase), c.text(v.NonceSHA256), lifecycleClonePointer(v.ClientResponse, c.localBody), lifecycleClonePointer(v.ProxyResponse, c.localBody), lifecycleClonePointer(v.OriginResponse, c.localBody), lifecycleCloneSlice(v.CountersBefore, c.localCounter), lifecycleCloneSlice(v.CountersAfter, c.localCounter), v.Matched}
+}
+
+func (c *lifecycleCloneState) localMarker(v labRecoveryLocalMarkerValue) labRecoveryLocalMarkerValue {
+	return labRecoveryLocalMarkerValue{c.text(v.Schema), c.text(v.Scope), c.text(v.ExpectedRole), c.text(v.ExpectedMarkerSHA256), v.ExpectedMarkerBytes, c.timestamp(v.StartedAt), c.timestamp(v.ReturnedAt), v.HandlerCompleted, v.ClientNaturalEOF, v.ProxyNaturalEOF, v.OriginWriteComplete, v.LocalProxyMarkerProven, c.localRoute(v.Route)}
+}
+
+func (c *lifecycleCloneState) verificationObserved(v lifecycleRecoveryObservedFact) lifecycleRecoveryObservedFact {
+	return lifecycleRecoveryObservedFact{c.text(v.Schema), c.text(v.RecoveryID), c.text(v.PlanSHA256), c.text(v.StartIntentSHA256), c.text(v.StartedSHA256), v.SourceRevision, c.text(v.SourceRecordSHA256), v.OwnerFence, c.artifact(v.Artifact), c.identity(v.StartupIdentity), c.timestamp(v.EntryAt), c.timestamp(v.Deadline), lifecycleCloneSlice(v.SampleTimes, c.verificationSample), c.timestamp(v.ObservedAt), c.verificationReadback(v.Readback), c.text(v.TranscriptSHA256), lifecycleCloneSlice(v.BodySHA256s, c.text), c.text(v.VerificationSHA256), lifecycleClonePointer(v.LocalPath, c.localMarker), c.text(v.LocalMarkerSHA256)}
+}
+
+func (c *lifecycleCloneState) verification(v lifecycleRecoveryVerification) lifecycleRecoveryVerification {
+	return lifecycleRecoveryVerification{c.text(v.Schema), c.verificationObserved(v.Observation), c.text(v.ObservationSHA256), c.owner(v.SourceOwner), c.timestamp(v.SourceLastTrustedAt), v.SourceLastRecoveryFence, c.timestamp(v.SourceRecoveryUpdatedAt), lifecycleCloneSlice(v.SourceFailedQuiescence, c.quiescenceObservation), v.VerificationCommitRevision, c.timestamp(v.RecordedAt)}
 }
 
 func (c *lifecycleCloneState) recovery(v lifecycleRecoveryTxn) lifecycleRecoveryTxn {

@@ -72,7 +72,7 @@ func lifecycleClonePropertyDense(t *testing.T) lifecycleV3Record {
 	w := &lifecycleV3Wire{}
 	next, seen := 0, map[reflect.Type]bool{}
 	lifecycleClonePropertyFill(t, reflect.ValueOf(w).Elem(), &next, seen)
-	if len(seen) != 48 {
+	if len(seen) != 56 {
 		t.Fatal("MODEL reachable structural schema changed")
 	}
 	return lifecycleV3Record{core: w}
@@ -231,13 +231,13 @@ func TestLifecycleRecoveryTrustedCloneCanonicalGraphAndShape(t *testing.T) {
 	c := &lifecycleCloneState{}
 	direct := c.wire(*in.core)
 	if c.err != nil || !reflect.DeepEqual(in.core, &direct) || !lifecycleCloneTypeSchema() || !lifecycleCloneTypeSchemaFor(reflect.TypeOf(lifecycleV3Wire{})) {
-		t.Fatal("MODEL canonical 48-struct fast path or known STD pointer shape rejected")
+		t.Fatal("MODEL canonical 56-struct fast path or known STD pointer shape rejected")
 	}
 	out := lifecycleClonePropertyCopied(t, in)
 	before := lifecycleClonePropertyRaw(t, in.core)
 	var slots []lifecycleClonePropertySlot
 	lifecycleClonePropertySlots(reflect.ValueOf(in.core).Elem(), nil, map[string]bool{}, &slots)
-	if len(slots) != 68 {
+	if len(slots) != 79 {
 		t.Fatal("MODEL mutable type-field coverage changed")
 	}
 	for _, slot := range slots {

@@ -187,7 +187,7 @@ def recovery_fixture(raw, report, index, hashed):
     raw['recovery-s2-local-marker.json'] = C.recovery_go_bytes(local, GET.G)
     observed = dict(schema='chengwang.mihomo-recovery-control-observation/v2', recoveryId='labrec_'+'3'*32,
                     planSHA256=hashed('recovery plan'), startIntentSHA256=hashed('start intent'), startedSHA256=report['startedSHA256'],
-                    sourceRevision=report['stages'][-1]['revision'], sourceRecordSHA256=report['stages'][-1]['recordSHA256'],
+                    sourceRevision=report['stages'][5]['revision'], sourceRecordSHA256=report['stages'][5]['recordSHA256'],
                     ownerFence=1, artifact=artifact, startupIdentity=copy.deepcopy(report['newIdentity']),
                     entryAt='2026-10-25T00:00:14.55Z', deadline='2026-10-25T00:00:14.95Z',
                     sampleTimes=[dict(startedAt='2026-10-25T00:00:14.6Z', completedAt='2026-10-25T00:00:14.65Z'),
@@ -199,7 +199,7 @@ def recovery_fixture(raw, report, index, hashed):
     raw['recovery-s2-verification.json'] = verification
     report['controlPlane'] = copy.deepcopy(observed)
     report['controlPlane']['verificationSHA256'] = C.sha(verification)
-    report['controlBeforeSHA256'] = report['controlAfterSHA256'] = report['stages'][-1]['controlSHA256']
+    report['controlBeforeSHA256'] = report['controlAfterSHA256'] = report['stages'][5]['controlSHA256']
     report['controlProofReplayRejected'] = report['controlRecollectRejected'] = True
     report['controlCopiedStartedRejected'] = report['controlCopiedProofRejected'] = True
     report['localCopiedFixtureRejected'] = True
@@ -214,6 +214,12 @@ def edit_recovery_value(raw, change):
     report = C.decode(raw['native-report.json'])
     report['controlPlane'] = copy.deepcopy(value)
     report['controlPlane']['verificationSHA256'] = C.sha(raw['recovery-s2-verification.json'])
+    if C.RECORD_PUBLIC in raw and raw[C.RECORD_PUBLIC]:
+        record = C.decode(raw[C.RECORD_PUBLIC])
+        if record['receiptPresent']:
+            record['observationSHA256'] = C.sha(C.recovery_go_bytes(report['controlPlane'], GET.G))
+        raw[C.RECORD_PUBLIC] = C.recovery_go_bytes(record, GET.G)
+        report['verificationRecord'] = record
     raw['native-report.json'] = C.canonical(report)
 
 
@@ -228,7 +234,47 @@ def edit_marker_value(raw, change):
     edit_recovery_value(raw, rebind)
 
 
-def closed_fixture():
+def record_fixture(raw, report, index, hashed, variant):
+    # Metadata-only protocol model. No private owner nonce, disk, registered
+    # cap, fake WAL writer or live source object is constructed here.
+    source, disk = report['stages'][5], report['stages'][6]
+    durable, positive = variant != 'not-committed', variant == 'positive'
+    current = hashed('unchanged Current')
+    value = dict(schema='chengwang.mihomo-native-verification-record/v1',
+                 scope='REDACTED_ACTUAL_WAL_FACT_NOT_AUTHORIZATION_OR_COMPLETE_PRIVATE_RECEIPT',
+                 mode=variant, attemptedAt='2026-10-25T00:00:14.91Z', returnedAt='2026-10-25T00:00:14.94Z',
+                 replaceAttempts=1, forwardedWrites=int(durable), postWriteReads=int(variant in ('positive','readback')),
+                 injectedReads=int(variant=='readback'), underlyingCommitted=durable, capKnownBefore=True,
+                 capSpent=True, capCopyRejected=True, capReplayRejected=True, recordReturnedError=not positive,
+                 storePoisoned=not positive, candidateAdopted=positive, liveOwnerCleared=not positive,
+                 transientProofCleared=True, retainedStartedCleared=True, sourceRevision=source['revision'],
+                 sourceRecordSHA256=source['recordSHA256'], sourceControlSHA256=source['controlSHA256'],
+                 memoryRevision=(disk if positive else source)['revision'],
+                 memoryRecordSHA256=(disk if positive else source)['recordSHA256'],
+                 diskRevision=disk['revision'], diskRecordSHA256=disk['recordSHA256'], diskControlSHA256=disk['controlSHA256'],
+                 executionSchema='chengwang.mihomo-recovery-execution/'+('v2' if durable else 'v1'),
+                 receiptPresent=durable, receiptSHA256=hashed('private receipt not disclosed') if durable else None,
+                 observationSHA256=C.sha(C.recovery_go_bytes(report['controlPlane'],GET.G)) if durable else None,
+                 verificationCommitRevision=source['revision']+1 if durable else None,
+                 recordedAt='2026-10-25T00:00:14.91Z' if durable else None,
+                 s1PreimageSHA256=source['controlSHA256'] if durable else None,
+                 sourceCurrentSHA256=current, diskCurrentSHA256=current, completionAbsent=True,
+                 noNewPhysicalCalls=True, fullPrivateReceiptIndependentlyProven=False)
+    raw[C.RECORD_PUBLIC] = C.recovery_go_bytes(value,GET.G)
+    report['verificationRecord'] = value
+    report['verificationEvents'] = [dict(stage=stage,count=14,lastSequence=14,eventsSHA256=C.event_prefix_sha(report['nativeCalls'],14))
+                                    for stage in ('before-verification-record','after-verification-record')]
+    report['reopenedExecutionPreserved'] = report['reopenedRecordCapabilityAbsent'] = True
+
+
+def edit_record_projection(raw, change):
+    value = C.decode(raw[C.RECORD_PUBLIC]);change(value)
+    raw[C.RECORD_PUBLIC] = C.recovery_go_bytes(value,GET.G)
+    edit_json(raw,'native-report.json',lambda report:report.update(verificationRecord=value))
+
+
+def closed_fixture(variant='positive'):
+    assert variant in C.VARIANTS
     # Entirely SYNTHETIC. Public strings/counters exercise protocol validation;
     # no process, permit, Start, Wait, socket, credential or WAL is constructed.
     sources = fixture_sources()
@@ -255,7 +301,7 @@ def closed_fixture():
     receipt_raw = C.canonical(receipt)
     custody = dict(elf=dict(sha256=elf['sha256'], bytes=elf['bytes'], mode='0500', uid=1000, gid=1000),
                    receipt=dict(sha256=C.sha(receipt_raw), bytes=len(receipt_raw), mode='0400', uid=1000, gid=1000))
-    sandbox = dict(schema='chengwang.mihomo-native-recovery-sandbox/v1', sourceCommit=commit, uid=10001, gid=10001,
+    sandbox = dict(schema='chengwang.mihomo-native-recovery-sandbox/v2', verificationMode=variant, sourceCommit=commit, uid=10001, gid=10001,
                    effectiveCaps='0000000000000000', noNewPrivileges=True, **ns,
                    environmentKeys=list(C.ENV), interfaceNames=['lo'], defaultV4Routes=[], defaultV6Routes=[],
                    sourceModuleSHA256=C.sha(sources['chengwang/go.mod']), sourceReadOnly=True, goReadOnly=True,
@@ -309,6 +355,9 @@ def closed_fixture():
         if i:
             row.update(phase='RECOVERY_UNKNOWN' if stage == 'reopened' else C.PHASES[i - 1], headSHA256=unknown['headSHA256'])
         index.append(row)
+    if variant == 'not-committed':
+        index[-2] = dict(index[-3], stage='verification-attempted')
+        index[-1]['revision'] = index[-2]['revision']+1
     checkpoint = lambda row: {k: row[k] for k in ('stage', 'controlSHA256', 'recordSHA256', 'revision', 'phase')}
     syntax = dict(attempted=True, started=True, pid=125, startTicks=None, waitReturned=True, waitErrorClass='NONE',
                   exitCode=0, signal=None, termSent=False, killSent=False, groupAbsent=True,
@@ -316,14 +365,14 @@ def closed_fixture():
     fixtures = [dict(role=role, shutdownReturned=True, serveReturned=True,
                      forcedConnectionsClosed=0, errorClass='NONE') for role in ('origin', 'A', 'B')]
     probes = [dict(port=port, attempted=True, result='CONNECTION_REFUSED') for port in (28411, 28412, 28413, 28414, 28415)]
-    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v4', scope=C.SCOPE, sourceCommit=commit,
+    report = dict(schema='chengwang.mihomo-native-recovery-experiment/v5', verificationMode=variant, scope=C.SCOPE, sourceCommit=commit,
                   outcome='PASS', failureCode='NONE', originalUnknown=unknown,
                   fault=dict(schema='chengwang.mihomo-reload-response-loss-observation/v1', state='INJECTED', claimed=True,
                              underlyingRoundTrips=1, statusCode=204, bodyBytes=0, eofObserved=True, closeSucceeded=True,
                              injected=True, failureCode=None), reloadBefore=dict(reloadInvocations=0, doInvocations=0),
                   reloadUnknown=dict(reloadInvocations=1, doInvocations=1), reloadFinal=dict(reloadInvocations=1, doInvocations=1),
                   oldIdentity=old, newIdentity=new, bootstrapStart=started(old), oldCore=1, newCore=2, quiescence=q,
-                  start=start, startedSHA256=hashed('started fact'), stages=[checkpoint(row) for row in index[1:7]],
+                  start=start, startedSHA256=hashed('started fact'), stages=[checkpoint(row) for row in index[1:-1]],
                   replayRejected=True, recoverySelfApprovalDenied=True, reopened=checkpoint(index[-1]), oldCleanup=oldexit,
                   newCleanup=newexit, syntax=[syntax], nativeCalls=native, eventCheckpoints=checkpoints,
                   dualOwnerCloseRejectedTwice=True, countersBounded=True, closedPorts=[28411, 28412, 28413, 28414, 28415],
@@ -333,9 +382,9 @@ def closed_fixture():
                   internetBusinessProven=False, production=False)
     commands = []
     cw, gr = '/tmp/mihomo-apply-source', '/tmp/mihomo-apply-go'
-    argv = [["/usr/bin/python3", '-B', cw + '/deploy/mihomo-lifecycle-lab/native_recovery_worker.py', '--sandbox', commit, C.sha(sources['chengwang/go.mod'])],
+    argv = [["/usr/bin/python3", '-B', cw + '/deploy/mihomo-lifecycle-lab/native_recovery_worker.py', '--sandbox', commit, C.sha(sources['chengwang/go.mod']), variant],
             [gr + '/bin/go', 'version'], [gr + '/bin/gofmt', '-d', *C.FMT],
-            [gr + '/bin/go', 'test', '-json', '-count=1', '-shuffle=off', '-p=1', '-tags=' + ','.join(C.TAGS), '-run=^' + C.TOP + '$', '-timeout=75s', './internal/mihomodeploy']]
+            [gr + '/bin/go', 'test', '-json', '-count=1', '-shuffle=off', '-p=1', '-tags=' + ','.join(C.TAGS), '-run=^' + C.TOP + '$', '-timeout=75s', './internal/mihomodeploy', '-args', '-chengwang-native-verification-mode='+variant]]
     for i, name in enumerate(C.COMMAND_CLASSES):
         commands.append(dict(schema='chengwang.mihomo-native-command-receipt/v1', sequence=i + 1, sourceCommit=commit,
                              commandClass=name, argv=argv[i], cwd=cw, timeoutSeconds=[30, 15, 30, 90][i], exitCode=0,
@@ -352,15 +401,16 @@ def closed_fixture():
     raw.update({'host-before.json': C.canonical(host), 'host-after.json': C.canonical(host),
                 'consumption.json': receipt_raw, 'consumption-independent.json': receipt_raw,
                 'native-report.json': C.canonical(report),
-                'wal-readback-index.json': C.canonical(dict(schema='chengwang.mihomo-native-wal-readback-index/v1',
+                'wal-readback-index.json': C.canonical(dict(schema='chengwang.mihomo-native-wal-readback-index/v2',
                     scope=C.SCOPE, sourceCommit=commit, stages=index, fullPrivateWALIndependentlyProven=False, production=False)),
                 'old-kernel.stdout': oldraw, 'new-kernel.stdout': newraw, 'sandbox.json': C.canonical(sandbox),
-                'execution.json': C.canonical(dict(schema='chengwang.mihomo-native-recovery-execution/v1', scope=C.SCOPE,
+                'execution.json': C.canonical(dict(schema='chengwang.mihomo-native-recovery-execution/v2', scope=C.SCOPE, verificationMode=variant,
                     sourceCommit=commit, formatExit=0, goExit=0, captureState='CAPTURED_NOT_INDEPENDENT_ACCEPTANCE', production=False)),
                 'go-version.txt': b'go version go1.23.12 linux/amd64\n', 'native.json': wire(go_fixture()),
                 'commands.jsonl': wire(commands), 'process-events.jsonl': wire(process),
                 'source-before.json': C.canonical(manifest), 'source-after.json': C.canonical(manifest)})
     recovery_fixture(raw, report, index, hashed)
+    record_fixture(raw, report, index, hashed, variant)
     raw['native-report.json'] = C.canonical(report)
     return raw, sources, commit
 
@@ -716,6 +766,71 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
             edit_marker_value(bad, mutation)
             with self.subTest(marker=name), self.assertRaises(ValueError):
                 C.verify_raw(bad, sources, commit)
+        # These four models assert separate closed predicates. They never
+        # mint a known cap or claim actual post-write reachability; only the
+        # dedicated native CI processes can supply that evidence.
+        for mode in C.VARIANTS:
+            variant_raw, variant_sources, variant_commit = closed_fixture(mode)
+            self.assertEqual(C.verify_raw(variant_raw, variant_sources, variant_commit, mode)['outcome'], 'PASS')
+            changes = {
+                'replace_front_gate': lambda v:v.update(replaceAttempts=0),
+                'replace_twice': lambda v:v.update(replaceAttempts=2),
+                'forwarded_write': lambda v:v.update(forwardedWrites=1-v['forwardedWrites']),
+                'readback_unreached': lambda v:v.update(postWriteReads=1-v['postWriteReads']),
+                'readback_injection': lambda v:v.update(injectedReads=1-v['injectedReads']),
+                'delegate_not_committed': lambda v:v.update(underlyingCommitted=not v['underlyingCommitted']),
+                'unknown_cap': lambda v:v.update(capKnownBefore=False),
+                'unspent_cap': lambda v:v.update(capSpent=False),
+                'copy_accepted': lambda v:v.update(capCopyRejected=False),
+                'replay_accepted': lambda v:v.update(capReplayRejected=False),
+                'wrong_return_status': lambda v:v.update(recordReturnedError=not v['recordReturnedError']),
+                'wrong_poison': lambda v:v.update(storePoisoned=not v['storePoisoned']),
+                'wrong_adopt': lambda v:v.update(candidateAdopted=not v['candidateAdopted']),
+                'wrong_owner_state': lambda v:v.update(liveOwnerCleared=not v['liveOwnerCleared']),
+                'transient_restored': lambda v:v.update(transientProofCleared=False),
+                'started_restored': lambda v:v.update(retainedStartedCleared=False),
+                'source_revision': lambda v:v.update(sourceRevision=v['sourceRevision']+1),
+                'memory_revision': lambda v:v.update(memoryRevision=v['memoryRevision']+1),
+                'disk_revision': lambda v:v.update(diskRevision=v['diskRevision']+1),
+                'wrong_execution_version': lambda v:v.update(executionSchema='chengwang.mihomo-recovery-execution/future'),
+                'false_durable_claim': lambda v:v.update(receiptPresent=not v['receiptPresent']),
+                'current_advanced': lambda v:v.update(diskCurrentSHA256='a'*64),
+                'completion': lambda v:v.update(completionAbsent=False),
+                'physical_dispatch': lambda v:v.update(noNewPhysicalCalls=False),
+                'full_private_receipt': lambda v:v.update(fullPrivateReceiptIndependentlyProven=True),
+                'returned_before_attempt': lambda v:v.update(returnedAt='2026-10-25T00:00:14.9Z'),
+                'extra_secret_field': lambda v:v.update(sourceOwner={'ownerNonce':'MODEL_NOT_DISCLOSABLE'}),
+            }
+            if mode != 'not-committed':
+                changes.update(observation_digest=lambda v:v.update(observationSHA256='a'*64),
+                               preimage_digest=lambda v:v.update(s1PreimageSHA256='b'*64),
+                               receipt_revision=lambda v:v.update(verificationCommitRevision=v['verificationCommitRevision']+1),
+                               recorded_time=lambda v:v.update(recordedAt='2026-10-25T00:00:14.92Z'))
+            else:
+                changes['fabricated_receipt'] = lambda v:v.update(receiptSHA256='a'*64)
+            for name, change in changes.items():
+                bad = dict(variant_raw);edit_record_projection(bad,change)
+                with self.subTest(variant=mode,record=name), self.assertRaises(ValueError):
+                    C.verify_raw(bad,variant_sources,variant_commit,mode)
+            for name in ('mode_mismatch','missing_original','execution_mode','sandbox_mode','go_mode','reopen_cap','reopen_fact','event_prefix'):
+                bad=dict(variant_raw)
+                if name=='mode_mismatch':
+                    edit_record_projection(bad,lambda v:v.update(mode=next(x for x in C.VARIANTS if x!=mode)))
+                elif name=='missing_original':del bad[C.RECORD_PUBLIC]
+                elif name=='execution_mode':edit_json(bad,'execution.json',lambda v:v.update(verificationMode='invalid'))
+                elif name=='sandbox_mode':edit_json(bad,'sandbox.json',lambda v:v.update(verificationMode='invalid'))
+                elif name=='go_mode':
+                    rows=[C.decode(line)for line in bad['commands.jsonl'].splitlines()]
+                    rows[-1]['argv'][-1]='-chengwang-native-verification-mode=invalid'
+                    bad['commands.jsonl']=wire(rows)
+                elif name=='reopen_cap':edit_json(bad,'native-report.json',lambda v:v.update(reopenedRecordCapabilityAbsent=False))
+                elif name=='reopen_fact':edit_json(bad,'native-report.json',lambda v:v.update(reopenedExecutionPreserved=False))
+                else:edit_json(bad,'native-report.json',lambda v:v['verificationEvents'][1].update(count=15,lastSequence=15,eventsSHA256=C.event_prefix_sha(v['nativeCalls'],15)))
+                with self.subTest(variant=mode,record=name),self.assertRaises(ValueError):
+                    C.verify_raw(bad,variant_sources,variant_commit,mode)
+            other=next(x for x in C.VARIANTS if x!=mode)
+            with self.subTest(variant=mode,requested=other),self.assertRaises(ValueError):
+                C.verify_raw(variant_raw,variant_sources,variant_commit,other)
         for name in ('missing', 'raw_tamper', 'legacy_control_schema', 'summary_marker_hash', 'summary_marker_payload', 'copied_fixture'):
             bad = dict(raw)
             if name == 'missing': del bad['recovery-s2-local-marker.json']
