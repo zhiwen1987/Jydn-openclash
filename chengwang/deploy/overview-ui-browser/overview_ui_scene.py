@@ -290,32 +290,55 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
         if native is not None:
             need(value['phase'] == 'NATIVE_OPEN' and attempted is None and completed is None
                  and type(native) is dict and set(native) == {'schema', 'stage', 'firstFault', 'initialTargets', 'postTargets', 'firstTargetFault'}
-                 and native['schema'] == 'chengwang.native-open-failure/v1'
+                 and native['schema'] == 'chengwang.native-open-failure/v2'
                  and type(native['stage']) is str and native['stage'] in NATIVE_OPEN_STAGES
                  and (native['firstFault'] is None or type(native['firstFault']) is str and native['firstFault'] in NATIVE_FAULTS))
+            type_keys = {'page', 'serviceWorker', 'sharedWorker', 'tab', 'browser', 'other', 'invalid'}
+            initial_predicates = {'PASS', 'EMPTY_OR_BOUNDS', 'ROW_INVALID', 'ID_INVALID', 'TYPE_INVALID',
+                'ID_DUPLICATE', 'PROTECTED_NON_PAGE', 'PAGE_COUNT', 'INITIAL_PAGE_URL'}
+            post_predicates = {'PASS', 'EMPTY_OR_BOUNDS', 'ROW_INVALID', 'ID_INVALID', 'TYPE_INVALID',
+                'ID_DUPLICATE', 'SELECTED_NOT_PAGE', 'SELECTED_EQUALS_INITIAL', 'INITIAL_NOT_PAGE', 'UNAUTHORIZED_PROTECTED'}
             target = native['initialTargets']
-            need(type(target) is dict and set(target) == {'shape', 'total', 'pages', 'blankPages'}
+            target_keys = {'shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique', 'guardPredicate'}
+            need(type(target) is dict and set(target) == target_keys
                  and type(target['shape']) is str and target['shape'] in ('UNOBSERVED', 'INVALID', 'ARRAY'))
             if target['shape'] == 'ARRAY':
                 need(all(type(target[name]) is int for name in ('total', 'pages', 'blankPages'))
-                     and 0 <= target['blankPages'] <= target['pages'] <= target['total'] <= 64)
-            else: need(all(target[name] is None for name in ('total', 'pages', 'blankPages')))
+                     and 0 <= target['blankPages'] <= target['pages'] <= target['total'] <= 64
+                     and type(target['types']) is dict and set(target['types']) == type_keys
+                     and all(type(count) is int and 0 <= count <= target['total'] for count in target['types'].values())
+                     and sum(target['types'].values()) == target['total'] and target['types']['page'] == target['pages']
+                     and all(type(target[name]) is bool for name in ('rowsValid', 'idsValid', 'idsUnique'))
+                     and type(target['guardPredicate']) is str and target['guardPredicate'] in initial_predicates)
+            else:
+                need(all(target[name] is None for name in target_keys - {'shape', 'guardPredicate'})
+                     and target['guardPredicate'] == ('UNOBSERVED' if target['shape'] == 'UNOBSERVED' else 'INPUT_INVALID'))
             post = native['postTargets']
-            post_keys = {'shape', 'total', 'pages', 'blankPages', 'initialPresent', 'selectedPresent', 'selectedKind', 'extraProtectedCount'}
+            post_keys = {'shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique',
+                'guardPredicate', 'initialPresent', 'initialKind', 'selectedPresent', 'selectedKind', 'extraProtectedCount'}
             need(type(post) is dict and set(post) == post_keys
                  and type(post['shape']) is str and post['shape'] in ('UNOBSERVED', 'INVALID', 'ARRAY'))
             if post['shape'] == 'ARRAY':
                 need(all(type(post[name]) is int for name in ('total', 'pages', 'blankPages', 'extraProtectedCount'))
                      and 0 <= post['blankPages'] <= post['pages'] <= post['total'] <= 64
                      and 0 <= post['extraProtectedCount'] <= post['total']
+                     and type(post['types']) is dict and set(post['types']) == type_keys
+                     and all(type(count) is int and 0 <= count <= post['total'] for count in post['types'].values())
+                     and sum(post['types'].values()) == post['total'] and post['types']['page'] == post['pages']
+                     and all(type(post[name]) is bool for name in ('rowsValid', 'idsValid', 'idsUnique'))
+                     and type(post['guardPredicate']) is str and post['guardPredicate'] in post_predicates
                      and type(post['initialPresent']) is bool and type(post['selectedPresent']) is bool
-                     and type(post['selectedKind']) is str
-                     and post['selectedKind'] in ('page', 'service_worker', 'shared_worker', 'tab', 'browser', 'other', 'ABSENT')
+                     and type(post['initialKind']) is str and type(post['selectedKind']) is str
+                     and post['initialKind'] in ('page', 'service_worker', 'shared_worker', 'tab', 'browser', 'OTHER', 'INVALID', 'ABSENT')
+                     and post['selectedKind'] in ('page', 'service_worker', 'shared_worker', 'tab', 'browser', 'OTHER', 'INVALID', 'ABSENT')
+                     and (post['initialKind'] == 'ABSENT') == (not post['initialPresent'])
                      and (post['selectedKind'] == 'ABSENT') == (not post['selectedPresent'])
                      and (not post['initialPresent'] or post['total'] > 0)
                      and (not post['selectedPresent'] or post['total'] > 0)
                      and (post['selectedKind'] != 'page' or post['pages'] > 0))
-            else: need(all(post[name] is None for name in post_keys - {'shape'}))
+            else:
+                need(all(post[name] is None for name in post_keys - {'shape', 'guardPredicate'})
+                     and post['guardPredicate'] == ('UNOBSERVED' if post['shape'] == 'UNOBSERVED' else 'INPUT_INVALID'))
             target_fault = native['firstTargetFault']
             need(type(target_fault) is dict and set(target_fault) == {'phase', 'kind'})
             if target_fault['phase'] is None: need(target_fault['kind'] is None)

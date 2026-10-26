@@ -1,8 +1,18 @@
 # 澄网：项目任务清单
 
-最近核对：2026-10-24 15:50（Asia/Shanghai；本段为本地验后更新）。78实际CI父门与订阅读回成功，UI40072726996旧16任务成功、新能力8任务失败。四份v2首拒绝均DOCUMENT/r1/EVENT_FINISH_TIME，原始时间未导出。按固定Chromium官方导航主链纠正额外end>=header假设为end>=start，其余门和独立checker保留，188辅助项通过；待统一提交和真实复测，不称故障已修复。实际总览隔离分支已形成代码与严格门，117不同辅助项／68shell／10TS解析通过；36顶层Go＋3子项／39前端产品声明仍未实际编译运行，新HTTP／新总览浏览器未通过，分支待同步并单独提交推送。生产、main及用户三原scripts保持。
+最近核对：2026-10-26（Asia/Shanghai；本段为本地验后更新）。能力页历史状态继续保留在下方，不由总览结果代证。总览最新源码绑定真实浏览器证据为 run `40103042172`、commit `8e30ffbbea478831dcb16537c22da60842d95d02`：Playwright 两种配置的 producer 与 fresh replay 均成功；Chrome/CDP 两种配置均在首个 UI checkpoint 前失败。本次集成提交引入 `125dec6d27005eed60ebb50efeb8cbc5c55627ac` 的六源 afterimage，仅增加失败路径有界诊断；候选已过 236 项纯 CPU 检查与独立同行复核，但尚未运行真实浏览器或产品服务器。生产、main 及用户三原 scripts 保持。
 
 **当前处于开发与隔离验收，未完成整套系统，未进入本轮生产切换。**
+
+## 总览真实浏览器最新证据与诊断候选
+
+| 范围 | 当前事实 | 边界／下一步 |
+| --- | --- | --- |
+| Playwright | run `40103042172` 的默认关闭、显式开启 producer 与各自 fresh replay 均成功 | 仅对 `8e30ffb` 的总览场景成立，不代证能力页或整套系统 |
+| Chrome/CDP | 两个 producer 均在首个 UI checkpoint 前失败；默认关闭停在 `CDP_POST_TARGETS`，显式开启停在 `CDP_INITIAL_TARGETS` | 不是 UI/CSS 故障结论；历史失败目录与原件必须保留 |
+| 失败诊断候选 | `125dec6` 只发布 closed enum、有界整数、布尔值及 7 类目标类型直方图；不发布或哈希 ID、URL/origin、调试地址、headers/token、原异常或 session 数据 | 候选仅有纯 CPU 236/236 与独立复核；本次提交后仍需 exact-commit 隔离 Linux CI 才能取得新 CDP 原件 |
+
+归档：[候选冻结回执](evidence/p2-overview-cdp-diagnostic-freeze-20261026.md) · [独立同行复核](evidence/p2-overview-cdp-diagnostic-peer-20261026.md) · [候选源码绑定 CPU 报告](evidence/p2-overview-cdp-diagnostic-cpu-20261026.json)。CPU 报告明确记录 `realBrowserProven=false`、`realProductServerProven=false`、`production=false` 与 `authorization=BLOCKED`。
 
 ## 当前阶段：能力页真实浏览器验收
 

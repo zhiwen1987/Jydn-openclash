@@ -11,6 +11,11 @@ const chrome = { pid: 123, startTicks: 456 }
 const exit = (engine = 'chrome-cdp') => ({ schema: 'chengwang.subscription-ui-chrome-exit/v1', engine, fixtureId, pid: chrome.pid, startTicks: chrome.startTicks, exitCode: 0, joined: true, forced: false })
 const created = (id, type = 'page') => ({ targetInfo: { targetId: id, type } })
 const make = () => { const faults = [], guard = new TargetGuard((code, detail) => faults.push({ code, ...detail })); return { guard, faults } }
+const targetTypes = (changes = {}) => ({ page: 0, serviceWorker: 0, sharedWorker: 0, tab: 0, browser: 0, other: 0, invalid: 0, ...changes })
+const initialUnavailable = shape => ({ shape, total: null, pages: null, blankPages: null, types: null,
+  rowsValid: null, idsValid: null, idsUnique: null, guardPredicate: shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID' })
+const postUnavailable = shape => ({ ...initialUnavailable(shape), initialPresent: null, initialKind: null,
+  selectedPresent: null, selectedKind: null, extraProtectedCount: null })
 // Explicit controlled launch identity; an observed later snapshot is not enough.
 const baseline = g => { g.freezeInitial([{ targetId: 'initial', type: 'page', url: 'about:blank' }]); g.setBaseline([{ targetId: 'owned', type: 'page' }, { targetId: 'initial', type: 'page' }], 'owned') }
 function closer(overrides = {}) {
@@ -59,33 +64,51 @@ test('n30 session module has no business routes mock hooks or insecure launch sw
 test('n31 closed event and fault lists contain no duplicate or arbitrary text channel', () => {
   assert.equal(new Set(SESSION_EVENTS).size, SESSION_EVENTS.length); assert.equal(new Set(SESSION_FAULTS).size, SESSION_FAULTS.length); assert(SESSION_EVENTS.includes('Network.loadingFailed')); assert(SESSION_EVENTS.includes('Network.responseReceivedExtraInfo')); assert(SESSION_EVENTS.includes('Network.directUDPSocketCreated')); assert(SESSION_FAULTS.every(v => /^[A-Z_]+$/.test(v)))
   assert.equal(new Set(NATIVE_OPEN_STAGES).size,NATIVE_OPEN_STAGES.length); assert(NATIVE_OPEN_STAGES.every(v=>/^[A-Z_]+$/.test(v)))
-  const unseen={shape:'UNOBSERVED',total:null,pages:null,blankPages:null}
+  const unseen=initialUnavailable('UNOBSERVED')
   assert.deepEqual(nativeOpenObservation('CDP_PORT_WAIT','STARTUP_REJECTED',unseen).initialTargets,unseen)
-  assert.deepEqual(projectInitialTargets([]),{shape:'ARRAY',total:0,pages:0,blankPages:0})
-  assert.deepEqual(projectInitialTargets([{type:'page',url:'about:blank',targetId:'PRIVATE-ID'},{type:'service_worker',url:'PRIVATE-URL'}]),{shape:'ARRAY',total:2,pages:1,blankPages:1})
-  const invalid={shape:'INVALID',total:null,pages:null,blankPages:null}
+  assert.deepEqual(projectInitialTargets([]),{shape:'ARRAY',total:0,pages:0,blankPages:0,types:targetTypes(),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'EMPTY_OR_BOUNDS'})
+  const protectedInitial=projectInitialTargets([{type:'page',url:'about:blank',targetId:'PRIVATE-ID'},{type:'service_worker',url:'PRIVATE-URL',targetId:'PRIVATE-WORKER'}])
+  assert.deepEqual(protectedInitial,{shape:'ARRAY',total:2,pages:1,blankPages:1,types:targetTypes({page:1,serviceWorker:1}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'PROTECTED_NON_PAGE'})
+  for(const [rows,predicate] of [
+    [[{type:'page',url:'about:blank',targetId:'../PRIVATE'}],'ID_INVALID'],
+    [[{type:'PRIVATE-TYPE',targetId:'PRIVATE-ID'}],'TYPE_INVALID'],
+    [[{type:'PRIVATE-TYPE',targetId:'PRIVATE-ID'},{type:'page',url:'about:blank',targetId:'PRIVATE-ID'}],'TYPE_INVALID'],
+    [[{type:'page',url:'about:blank',targetId:'PRIVATE-ID'},{type:'page',url:'about:blank',targetId:'PRIVATE-ID'}],'ID_DUPLICATE'],
+    [[{type:'page',url:'about:blank',targetId:'PRIVATE-A'},{type:'page',url:'about:blank',targetId:'PRIVATE-B'}],'PAGE_COUNT'],
+    [[{type:'page',url:'PRIVATE-URL',targetId:'PRIVATE-ID'}],'INITIAL_PAGE_URL'],
+  ]) assert.equal(projectInitialTargets(rows).guardPredicate,predicate)
+  const invalid=initialUnavailable('INVALID')
   let getterCalls=0
   const hostile={get type(){getterCalls++;throw Error('PRIVATE-GETTER')}}
-  for(const rows of [null,{},Array(65).fill({type:'page',url:'PRIVATE-URL'}),[hostile],[{type:'page',get url(){getterCalls++;return 'PRIVATE-URL'}}],Array(1)])assert.deepEqual(projectInitialTargets(rows),invalid)
+  for(const rows of [null,{},Array(65).fill({type:'page',url:'PRIVATE-URL'})])assert.deepEqual(projectInitialTargets(rows),invalid)
+  for(const rows of [[hostile],[{type:'page',get url(){getterCalls++;return 'PRIVATE-URL'}}],Array(1)]){
+    const projected=projectInitialTargets(rows);assert.equal(projected.shape,'ARRAY');assert.equal(projected.guardPredicate,'ROW_INVALID');assert.equal(projected.types.invalid,1)
+  }
   assert.equal(getterCalls,0)
   const safe=nativeOpenObservation('CDP_INITIAL_TARGETS','EXTRA_TARGET',projectInitialTargets([{type:'page',url:'PRIVATE-URL',targetId:'PRIVATE-ID'}]))
   assert(!JSON.stringify(safe).includes('PRIVATE'))
-  for(const patch of [{shape:'ARRAY',total:true,pages:0,blankPages:0},{shape:'ARRAY',total:1,pages:2,blankPages:0},{...unseen,total:0},{...unseen,url:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_INITIAL_TARGETS',null,patch))
+  for(const patch of [{...projectInitialTargets([]),total:true},{...projectInitialTargets([]),total:1,pages:2},{...unseen,total:0},{...unseen,url:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_INITIAL_TARGETS',null,patch))
   assert.throws(()=>nativeOpenObservation('PRIVATE-STAGE',null,unseen)); assert.throws(()=>nativeOpenObservation('CDP_PORT_WAIT','PRIVATE-FAULT',unseen))
-  const postUnseen={shape:'UNOBSERVED',total:null,pages:null,blankPages:null,initialPresent:null,selectedPresent:null,selectedKind:null,extraProtectedCount:null}
-  const postInvalid={...postUnseen,shape:'INVALID'}, none={phase:null,kind:null}
+  const postUnseen=postUnavailable('UNOBSERVED')
+  const postInvalid=postUnavailable('INVALID'), none={phase:null,kind:null}
   assert.deepEqual(nativeOpenObservation('CDP_PORT_WAIT',null,unseen).postTargets,postUnseen)
   const rows=[{targetId:'PRIVATE-INITIAL',type:'page',url:'about:blank'},{targetId:'PRIVATE-OWNED',type:'page',url:'about:blank'},{targetId:'PRIVATE-EXTRA',type:'service_worker',url:'PRIVATE-URL'}]
   const post=projectPostTargets(rows,'PRIVATE-INITIAL','PRIVATE-OWNED')
-  assert.deepEqual(post,{shape:'ARRAY',total:3,pages:2,blankPages:2,initialPresent:true,selectedPresent:true,selectedKind:'page',extraProtectedCount:1})
-  assert.deepEqual(projectPostTargets([],'PRIVATE-INITIAL','PRIVATE-OWNED'),{...post,total:0,pages:0,blankPages:0,initialPresent:false,selectedPresent:false,selectedKind:'ABSENT',extraProtectedCount:0})
+  assert.deepEqual(post,{shape:'ARRAY',total:3,pages:2,blankPages:2,types:targetTypes({page:2,serviceWorker:1}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'UNAUTHORIZED_PROTECTED',initialPresent:true,initialKind:'page',selectedPresent:true,selectedKind:'page',extraProtectedCount:1})
+  const malformedSelected=projectPostTargets([{targetId:'PRIVATE-INITIAL',type:'page'},{targetId:'PRIVATE-OWNED',type:'PRIVATE-TYPE'}],'PRIVATE-INITIAL','PRIVATE-OWNED')
+  assert.equal(malformedSelected.guardPredicate,'TYPE_INVALID');assert.equal(malformedSelected.selectedKind,'INVALID');assert.equal(malformedSelected.types.invalid,1)
+  assert.equal(projectPostTargets([{targetId:'PRIVATE-INITIAL',type:'page'},{targetId:'PRIVATE-OWNED',type:'PRIVATE-TYPE'},{targetId:'PRIVATE-OWNED',type:'page'}],'PRIVATE-INITIAL','PRIVATE-OWNED').guardPredicate,'TYPE_INVALID')
+  assert.deepEqual(projectPostTargets([],'PRIVATE-INITIAL','PRIVATE-OWNED'),{shape:'ARRAY',total:0,pages:0,blankPages:0,types:targetTypes(),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'EMPTY_OR_BOUNDS',initialPresent:false,initialKind:'ABSENT',selectedPresent:false,selectedKind:'ABSENT',extraProtectedCount:0})
   for(const kind of ['page','service_worker','shared_worker','tab','browser','worker']){
     const r=projectPostTargets([{targetId:'PRIVATE-OWNED',type:kind,url:'about:blank'}],'PRIVATE-INITIAL','PRIVATE-OWNED')
-    assert.equal(r.selectedKind,kind==='worker'?'other':kind);assert.equal(r.initialPresent,false);assert.equal(r.selectedPresent,true);assert.equal(r.extraProtectedCount,0)
+    assert.equal(r.selectedKind,kind==='worker'?'OTHER':kind);assert.equal(r.initialPresent,false);assert.equal(r.selectedPresent,true);assert.equal(r.extraProtectedCount,0);assert.notEqual(r.guardPredicate,'PASS')
   }
   const hostileID={type:'page',url:'about:blank',get targetId(){getterCalls++;return 'PRIVATE-OWNED'}}
   const hostileExtra={targetId:'PRIVATE-OWNED',type:'page',url:'about:blank',get title(){getterCalls++;return 'PRIVATE'}}
-  for(const r of [null,{},Array(65).fill(rows[0]),Array(1),[hostile],[hostileID],[hostileExtra],[rows[0],rows[0]],[{targetId:'PRIVATE-OWNED',type:'page'}]])assert.deepEqual(projectPostTargets(r,'PRIVATE-INITIAL','PRIVATE-OWNED'),postInvalid)
+  for(const r of [null,{},Array(65).fill(rows[0])])assert.deepEqual(projectPostTargets(r,'PRIVATE-INITIAL','PRIVATE-OWNED'),postInvalid)
+  for(const r of [Array(1),[hostile],[hostileID],[hostileExtra],[rows[0],rows[0]]]){
+    const projected=projectPostTargets(r,'PRIVATE-INITIAL','PRIVATE-OWNED');assert.equal(projected.shape,'ARRAY');assert.notEqual(projected.guardPredicate,'PASS')
+  }
   assert.equal(getterCalls,0)
   const fault=projectFirstTargetFault('EXTRA_TARGET',{phase:'ARMED',targetKind:'service_worker'})
   assert.deepEqual(fault,{phase:'ARMED',kind:'service_worker'})
@@ -94,7 +117,7 @@ test('n31 closed event and fault lists contain no duplicate or arbitrary text ch
   assert.equal(getterCalls,0)
   const observation=nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,post,fault)
   assert(!JSON.stringify(observation).includes('PRIVATE'));assert.deepEqual(observation.firstTargetFault,fault)
-  for(const change of [{total:true},{pages:4},{blankPages:3},{initialPresent:1},{selectedPresent:null},{selectedKind:'PRIVATE'},{selectedPresent:false},{extraProtectedCount:4},{privateID:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,{...post,...change},fault))
+  for(const change of [{total:true},{pages:4},{blankPages:3},{types:{...post.types,extra:0}},{types:{...post.types,page:1}},{rowsValid:1},{idsValid:null},{idsUnique:'true'},{initialPresent:1},{initialKind:'PRIVATE'},{selectedPresent:null},{selectedKind:'PRIVATE'},{selectedPresent:false},{extraProtectedCount:4},{guardPredicate:'PRIVATE'},{privateID:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,{...post,...change},fault))
   // Preserve accessors for this case rather than invoking them in a spread.
   const accessorPost={...post};Object.defineProperty(accessorPost,'total',{get(){getterCalls++;return 3},enumerable:true})
   assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,accessorPost,fault))
@@ -150,7 +173,7 @@ test('n35 actual CDP initializer freezes before create and installs selected lis
   const result = await initializeCDPTargets(send, g, id => { assert.equal(id, 'selected-session'); installed = true })
   assert.deepEqual(calls, ['Target.getTargets', 'Target.createTarget', 'Target.attachToTarget', 'Target.getTargets', 'Target.setDiscoverTargets'])
   assert.deepEqual(result, { targetId: 'owned', sessionId: 'selected-session' }); assert.equal(g.phase, 'ARMED')
-  assert.deepEqual(g.postTargets,{shape:'ARRAY',total:2,pages:2,blankPages:2,initialPresent:true,selectedPresent:true,selectedKind:'page',extraProtectedCount:0})
+  assert.deepEqual(g.postTargets,{shape:'ARRAY',total:2,pages:2,blankPages:2,types:targetTypes({page:2}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'PASS',initialPresent:true,initialKind:'page',selectedPresent:true,selectedKind:'page',extraProtectedCount:0})
   const {guard:stalled}=make();let reads=0
   await assert.rejects(initializeCDPTargets(async method=>{
     if(method==='Target.getTargets'){if(reads++)throw Error('PRIVATE-RPC');return{targetInfos:[{targetId:'initial',type:'page',url:'about:blank'}]}}

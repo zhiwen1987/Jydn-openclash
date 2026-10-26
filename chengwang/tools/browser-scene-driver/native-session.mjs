@@ -44,30 +44,53 @@ export const NATIVE_OPEN_STAGES = Object.freeze([
   'PW_PACKAGE', 'PW_LAUNCH', 'PW_ATTACH', 'PW_TARGETS', 'BROWSER_VERSION',
   'PROCESS_IDENTITY', 'DOMAINS_ENABLE', 'NETWORK_ENABLE', 'LOCALE', 'OPEN_COMPLETE',
 ])
-export function projectInitialTargets(rows) {
-  const invalid = () => ({ shape: 'INVALID', total: null, pages: null, blankPages: null })
-  try {
-    if (!Array.isArray(rows) || rows.length > 64) return invalid()
-    let pages = 0, blankPages = 0
-    for (let i = 0; i < rows.length; i++) {
-      const row = Object.getOwnPropertyDescriptor(rows, String(i))?.value
-      if (!row || typeof row !== 'object' || Array.isArray(row)) return invalid()
-      const type = Object.getOwnPropertyDescriptor(row, 'type')
-      if (!type || !Object.hasOwn(type, 'value') || !targetType(type.value)) return invalid()
-      if (type.value === 'page') {
-        pages++
-        const url = Object.getOwnPropertyDescriptor(row, 'url')
-        if (!url || !Object.hasOwn(url, 'value') || typeof url.value !== 'string') return invalid()
-        if (url.value === 'about:blank') blankPages++
-      }
-    }
-    return { shape: 'ARRAY', total: rows.length, pages, blankPages }
-  } catch { return invalid() }
+const typeKeys = ['page', 'serviceWorker', 'sharedWorker', 'tab', 'browser', 'other', 'invalid']
+const initialKeys = ['shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique', 'guardPredicate']
+const postKeys = ['shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique', 'guardPredicate', 'initialPresent', 'initialKind', 'selectedPresent', 'selectedKind', 'extraProtectedCount']
+const initialPredicates = ['UNOBSERVED', 'INPUT_INVALID', 'PASS', 'EMPTY_OR_BOUNDS', 'ROW_INVALID', 'ID_INVALID', 'TYPE_INVALID', 'ID_DUPLICATE', 'PROTECTED_NON_PAGE', 'PAGE_COUNT', 'INITIAL_PAGE_URL']
+const postPredicates = ['UNOBSERVED', 'INPUT_INVALID', 'PASS', 'EMPTY_OR_BOUNDS', 'ROW_INVALID', 'ID_INVALID', 'TYPE_INVALID', 'ID_DUPLICATE', 'SELECTED_NOT_PAGE', 'SELECTED_EQUALS_INITIAL', 'INITIAL_NOT_PAGE', 'UNAUTHORIZED_PROTECTED']
+const publicKinds = ['page', 'service_worker', 'shared_worker', 'tab', 'browser', 'OTHER', 'INVALID', 'ABSENT']
+const emptyTypes = () => ({ page: 0, serviceWorker: 0, sharedWorker: 0, tab: 0, browser: 0, other: 0, invalid: 0 })
+const typeProjection = value => {
+  if (!targetType(value)) return { bucket: 'invalid', kind: 'INVALID' }
+  if (value === 'service_worker') return { bucket: 'serviceWorker', kind: value }
+  if (value === 'shared_worker') return { bucket: 'sharedWorker', kind: value }
+  if (['page', 'tab', 'browser'].includes(value)) return { bucket: value, kind: value }
+  return { bucket: 'other', kind: 'OTHER' }
 }
-const postKeys = ['shape', 'total', 'pages', 'blankPages', 'initialPresent', 'selectedPresent', 'selectedKind', 'extraProtectedCount']
+const emptyInitialTargets = shape => ({ shape, total: null, pages: null, blankPages: null, types: null,
+  rowsValid: null, idsValid: null, idsUnique: null, guardPredicate: shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID' })
+export function projectInitialTargets(rows) {
+  try {
+    if (!Array.isArray(rows) || rows.length > 64) return emptyInitialTargets('INVALID')
+    const types = emptyTypes(), observedIds = new Set(), guardIds = new Set()
+    let pages = 0, blankPages = 0, rowsValid = true, idsValid = true, idsUnique = true
+    let guardPredicate = rows.length === 0 ? 'EMPTY_OR_BOUNDS' : 'PASS', initialPageURL = false
+    for (let i = 0; i < rows.length; i++) {
+      const slot = Object.getOwnPropertyDescriptor(rows, String(i)), row = slot && Object.hasOwn(slot, 'value') ? dataRecord(slot.value) : null
+      if (!row) { rowsValid = false; idsValid = false; idsUnique = false; types.invalid++; if (guardPredicate === 'PASS') guardPredicate = 'ROW_INVALID'; continue }
+      const idOK = targetId(row.targetId), duplicate = idOK && observedIds.has(row.targetId), type = typeProjection(row.type)
+      types[type.bucket]++
+      if (!idOK) { idsValid = false; if (guardPredicate === 'PASS') guardPredicate = 'ID_INVALID' }
+      else { if (duplicate) idsUnique = false; observedIds.add(row.targetId) }
+      if (guardPredicate === 'PASS' && type.kind === 'INVALID') guardPredicate = 'TYPE_INVALID'
+      if (guardPredicate === 'PASS' && guardIds.has(row.targetId)) guardPredicate = 'ID_DUPLICATE'
+      if (idOK && type.kind !== 'INVALID' && !guardIds.has(row.targetId)) guardIds.add(row.targetId)
+      if (type.kind === 'page') {
+        pages++
+        if (typeof row.url === 'string' && row.url === 'about:blank') { blankPages++; initialPageURL = pages === 1 }
+      } else if (protectedTypes.has(type.kind) && guardPredicate === 'PASS') guardPredicate = 'PROTECTED_NON_PAGE'
+    }
+    if (guardPredicate === 'PASS' && pages !== 1) guardPredicate = 'PAGE_COUNT'
+    if (guardPredicate === 'PASS' && !initialPageURL) guardPredicate = 'INITIAL_PAGE_URL'
+    return { shape: 'ARRAY', total: rows.length, pages, blankPages, types, rowsValid, idsValid, idsUnique, guardPredicate }
+  } catch { return emptyInitialTargets('INVALID') }
+}
 const targetPhases = ['BUFFERING', 'ARMED', 'CLOSING', 'CLOSED']
 const targetFaults = ['EXTRA_TARGET', 'INVALID_TARGET_STATE', 'SESSION_DETACHED']
-const emptyPostTargets = shape => ({ shape, total: null, pages: null, blankPages: null, initialPresent: null, selectedPresent: null, selectedKind: null, extraProtectedCount: null })
+const emptyPostTargets = shape => ({ shape, total: null, pages: null, blankPages: null, types: null,
+  rowsValid: null, idsValid: null, idsUnique: null, guardPredicate: shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID',
+  initialPresent: null, initialKind: null, selectedPresent: null, selectedKind: null, extraProtectedCount: null })
 // Read own data descriptors only: a diagnostic must not invoke a getter or
 // expose the private identities used for the two membership comparisons.
 function dataRecord(value, keys = null) {
@@ -77,25 +100,40 @@ function dataRecord(value, keys = null) {
   if (names.some(key => !Object.hasOwn(descriptors[key], 'value'))) return null
   return Object.fromEntries(names.map(key => [key, descriptors[key].value]))
 }
+function validateTypes(value, total, pages) {
+  const types = dataRecord(value, typeKeys)
+  return types !== null && typeKeys.every(key => integer(types[key], 0, total))
+    && typeKeys.reduce((sum, key) => sum + types[key], 0) === total && types.page === pages
+}
 export function projectPostTargets(rows, initial, selected) {
   try {
     if (!Array.isArray(rows) || rows.length > 64 || !targetId(initial) || !targetId(selected)) return emptyPostTargets('INVALID')
-    const seen = new Set(); let pages = 0, blankPages = 0, initialPresent = false, selectedPresent = false, selectedKind = 'ABSENT', extraProtectedCount = 0
+    const observedIds = new Set(), guardIds = new Set(), kinds = new Map(), types = emptyTypes()
+    let pages = 0, blankPages = 0, rowsValid = true, idsValid = true, idsUnique = true
+    let guardPredicate = rows.length === 0 ? 'EMPTY_OR_BOUNDS' : 'PASS'
+    let initialPresent = false, initialKind = 'ABSENT', selectedPresent = false, selectedKind = 'ABSENT', extraProtectedCount = 0
     for (let i = 0; i < rows.length; i++) {
       const slot = Object.getOwnPropertyDescriptor(rows, String(i))
-      if (!slot || !Object.hasOwn(slot, 'value')) return emptyPostTargets('INVALID')
-      const row = dataRecord(slot.value)
-      if (!row || !targetId(row.targetId) || !targetType(row.type) || seen.has(row.targetId)) return emptyPostTargets('INVALID')
-      seen.add(row.targetId)
-      if (row.type === 'page') {
-        if (typeof row.url !== 'string') return emptyPostTargets('INVALID')
-        pages++; if (row.url === 'about:blank') blankPages++
-      }
-      if (row.targetId === initial) initialPresent = true
-      if (row.targetId === selected) { selectedPresent = true; selectedKind = ['page', 'service_worker', 'shared_worker', 'tab', 'browser'].includes(row.type) ? row.type : 'other' }
-      if (protectedTypes.has(row.type) && row.targetId !== initial && row.targetId !== selected) extraProtectedCount++
+      const row = slot && Object.hasOwn(slot, 'value') ? dataRecord(slot.value) : null
+      if (!row) { rowsValid = false; idsValid = false; idsUnique = false; types.invalid++; if (guardPredicate === 'PASS') guardPredicate = 'ROW_INVALID'; continue }
+      const idOK = targetId(row.targetId), duplicate = idOK && observedIds.has(row.targetId), type = typeProjection(row.type)
+      types[type.bucket]++
+      if (!idOK) { idsValid = false; if (guardPredicate === 'PASS') guardPredicate = 'ID_INVALID' }
+      else { if (duplicate) idsUnique = false; observedIds.add(row.targetId) }
+      if (guardPredicate === 'PASS' && type.kind === 'INVALID') guardPredicate = 'TYPE_INVALID'
+      if (guardPredicate === 'PASS' && guardIds.has(row.targetId)) guardPredicate = 'ID_DUPLICATE'
+      if (idOK && type.kind !== 'INVALID' && !guardIds.has(row.targetId)) { guardIds.add(row.targetId); kinds.set(row.targetId, type.kind) }
+      if (type.kind === 'page') { pages++; if (typeof row.url === 'string' && row.url === 'about:blank') blankPages++ }
+      if (idOK && row.targetId === initial) { initialPresent = true; initialKind = type.kind }
+      if (idOK && row.targetId === selected) { selectedPresent = true; selectedKind = type.kind }
+      if (idOK && protectedTypes.has(type.kind) && row.targetId !== initial && row.targetId !== selected) extraProtectedCount++
     }
-    return { shape: 'ARRAY', total: rows.length, pages, blankPages, initialPresent, selectedPresent, selectedKind, extraProtectedCount }
+    if (guardPredicate === 'PASS' && kinds.get(selected) !== 'page') guardPredicate = 'SELECTED_NOT_PAGE'
+    if (guardPredicate === 'PASS' && selected === initial) guardPredicate = 'SELECTED_EQUALS_INITIAL'
+    if (guardPredicate === 'PASS' && kinds.get(initial) !== 'page') guardPredicate = 'INITIAL_NOT_PAGE'
+    if (guardPredicate === 'PASS' && [...kinds].some(([id, kind]) => protectedTypes.has(kind) && id !== initial && id !== selected)) guardPredicate = 'UNAUTHORIZED_PROTECTED'
+    return { shape: 'ARRAY', total: rows.length, pages, blankPages, types, rowsValid, idsValid, idsUnique, guardPredicate,
+      initialPresent, initialKind, selectedPresent, selectedKind, extraProtectedCount }
   } catch { return emptyPostTargets('INVALID') }
 }
 export function projectFirstTargetFault(code, detail) {
@@ -108,26 +146,35 @@ export function projectFirstTargetFault(code, detail) {
 }
 export function nativeOpenObservation(stage, firstFault, initialTargets, postTargets = emptyPostTargets('UNOBSERVED'), firstTargetFault = { phase: null, kind: null }) {
   need(NATIVE_OPEN_STAGES.includes(stage) && (firstFault === null || SESSION_FAULTS.includes(firstFault)))
-  const initial = dataRecord(initialTargets, ['shape', 'total', 'pages', 'blankPages'])
+  const initial = dataRecord(initialTargets, initialKeys)
   need(initial)
-  const { shape, total, pages, blankPages } = initial
+  const { shape, total, pages, blankPages, types, rowsValid, idsValid, idsUnique, guardPredicate } = initial
   need(['UNOBSERVED', 'INVALID', 'ARRAY'].includes(shape))
-  if (shape === 'ARRAY') need(integer(total, 0, 64) && integer(pages, 0, total) && integer(blankPages, 0, pages))
-  else need(total === null && pages === null && blankPages === null)
+  if (shape === 'ARRAY') need(integer(total, 0, 64) && integer(pages, 0, total) && integer(blankPages, 0, pages)
+    && validateTypes(types, total, pages) && [rowsValid, idsValid, idsUnique].every(v => typeof v === 'boolean')
+    && initialPredicates.slice(2).includes(guardPredicate))
+  else need([total, pages, blankPages, types, rowsValid, idsValid, idsUnique].every(v => v === null)
+    && guardPredicate === (shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID'))
   const post = dataRecord(postTargets, postKeys), targetFault = dataRecord(firstTargetFault, ['phase', 'kind'])
   need(post && ['UNOBSERVED', 'INVALID', 'ARRAY'].includes(post.shape) && targetFault)
   if (post.shape === 'ARRAY') {
     need(integer(post.total, 0, 64) && integer(post.pages, 0, post.total) && integer(post.blankPages, 0, post.pages)
+      && validateTypes(post.types, post.total, post.pages)
+      && [post.rowsValid, post.idsValid, post.idsUnique].every(v => typeof v === 'boolean')
+      && postPredicates.slice(2).includes(post.guardPredicate)
       && typeof post.initialPresent === 'boolean' && typeof post.selectedPresent === 'boolean'
-      && ['page', 'service_worker', 'shared_worker', 'tab', 'browser', 'other', 'ABSENT'].includes(post.selectedKind)
+      && publicKinds.includes(post.initialKind) && publicKinds.includes(post.selectedKind)
+      && (post.initialKind === 'ABSENT') === !post.initialPresent
       && (post.selectedKind === 'ABSENT') === !post.selectedPresent
       && integer(post.extraProtectedCount, 0, post.total)
       && (!post.initialPresent || post.total > 0) && (!post.selectedPresent || post.total > 0)
       && (post.selectedKind !== 'page' || post.pages > 0))
-  } else need(postKeys.slice(1).every(key => post[key] === null))
+  } else need(postKeys.filter(key => !['shape', 'guardPredicate'].includes(key)).every(key => post[key] === null)
+    && post.guardPredicate === (post.shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID'))
   need(targetFault.phase === null ? targetFault.kind === null : targetFaults.includes(firstFault)
     && targetPhases.includes(targetFault.phase) && (targetFault.kind === null || protectedTypes.has(targetFault.kind)))
-  return { schema: 'chengwang.native-open-failure/v1', stage, firstFault, initialTargets: { shape, total, pages, blankPages }, postTargets: post, firstTargetFault: targetFault }
+  return { schema: 'chengwang.native-open-failure/v2', stage, firstFault,
+    initialTargets: { shape, total, pages, blankPages, types, rowsValid, idsValid, idsUnique, guardPredicate }, postTargets: post, firstTargetFault: targetFault }
 }
 
 // The real PW session and CPU protocol tests share this registration path.
@@ -289,7 +336,7 @@ export async function openNativeSession(o, hooks) {
   need((exact(hooks, ['onEvent', 'onFault']) || exact(hooks, ['onEvent', 'onFault', 'onDiagnostic'])) && typeof hooks.onEvent === 'function' && typeof hooks.onFault === 'function'
     && (!Object.hasOwn(hooks, 'onDiagnostic') || typeof hooks.onDiagnostic === 'function'))
   let phase = 'STARTING', firstFault = null, context, page, transport, browserSendRaw, pageSendRaw, childResult = null, child
-  let openStage = 'ENVIRONMENT', initialTargets = { shape: 'UNOBSERVED', total: null, pages: null, blankPages: null }
+  let openStage = 'ENVIRONMENT', initialTargets = emptyInitialTargets('UNOBSERVED')
   let firstTargetFault = { phase: null, kind: null }
   const fault = (code, detail = { phase, targetKind: null }) => {
     need(SESSION_FAULTS.includes(code))
