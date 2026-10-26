@@ -1,0 +1,96 @@
+{
+  "conclusion": {
+    "notProven": [
+      "The actual status code or HTTP error class of the sixth response.",
+      "The private scalar that matched the report.",
+      "Any completed continuous recovery chain."
+    ],
+    "primaryBusinessFailure": "Go test reached six HTTP responses and failed HTTP_RESULT on the source-derived sixth request.",
+    "primaryEvidenceExportFailure": "The first report fence rejected a JSON-quoted IDENTITY_PROFILE JSON_OTHER_SCALAR match before public export.",
+    "secondaryFailures": [
+      "Independent verification failed after the actual execution/export failure."
+    ]
+  },
+  "evidenceBoundary": {
+    "artifactDownloaded": false,
+    "localGoOrProductRun": false,
+    "privateDirectoryRead": false,
+    "privateValueDigestOffsetOrBodyObserved": false,
+    "productionTouched": false,
+    "rawJobLogPersisted": false,
+    "signedURLObservedOrPersisted": false,
+    "workflowRerunRequested": false
+  },
+  "github": {
+    "firstFailingStep": "Execute actual continuous Recovery HTTPS chain in fresh namespaces",
+    "firstFailingStepNumber": 7,
+    "hostAfterStepConclusion": "success",
+    "independentVerifyStepConclusion": "failure",
+    "jobConclusion": "failure",
+    "jobID": 121331353673,
+    "jobName": "continuous-recovery-api",
+    "jobStatus": "completed",
+    "repository": "zhiwen1987/Jydn-openclash",
+    "runID": 40247242017
+  },
+  "safeDiagnostic": {
+    "encodingVariant": "JSON_QUOTED",
+    "formatExit": 0,
+    "goExit": 1,
+    "httpCount": 6,
+    "matchesPublicLabEnvironment": false,
+    "outputLogicalName": "continuous-recovery-report.json",
+    "phase": "REPORT_AND_HTTP_OUTPUTS",
+    "reportFailureCode": "HTTP_RESULT",
+    "reportObserved": true,
+    "reportOutcomePass": false,
+    "secretElementClass": "JSON_OTHER_SCALAR",
+    "secretInputClass": "IDENTITY_PROFILE"
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-safe-diagnostic-receipt/v1",
+  "source": {
+    "commit": "f9f0dcc1e42118bf7451ec98ce2c0efb951504cf",
+    "harness": {
+      "bytes": 30676,
+      "gitOID": "3231c6bf7b72b7518559a0a3c2d3118e11158f11",
+      "path": "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go",
+      "sha256": "d368d8c26c62c636d4945fe44aa52245037132688ebfbd3deb1b9d9b7e4e581b"
+    },
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-f9f0dcc-acceptance-ys0vu2hg/repo",
+    "trackedPaths": 1418,
+    "tree": "2a8ede606a3374b06b954d0c52fd539b22084f32",
+    "worker": {
+      "bytes": 31219,
+      "gitOID": "eff883673757ced7b71f04b63d459bd5c28b365f",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "sha256": "2bcedb632921ab9057c4cd8fc240f5b8516d95f9e4d1ce2f7394e304efe6e30e"
+    },
+    "workflow": {
+      "bytes": 12137,
+      "gitOID": "f472dc5f92c98b7859b2794a50c664605c3bca74",
+      "path": ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+      "sha256": "45bca5ab3cf476037c85a642ddf38165427ca61c4b2849190219e94038a6f33c"
+    }
+  },
+  "sourceDerivedLocalization": {
+    "actualErrorClassKnown": false,
+    "actualStatusCodeKnown": false,
+    "basis": "INITIAL_HEAD, FIRST_CANDIDATES, then FIRST_UNKNOWN CREATE, APPROVE, EXECUTE, INSPECT",
+    "expectedStatusCode": 200,
+    "kind": "INFERENCE_FROM_FIXED_REQUEST_ORDER",
+    "method": "GET",
+    "responseBodyObserved": false,
+    "role": "auditor",
+    "sixthHTTPCase": "FIRST_UNKNOWN_INSPECT"
+  },
+  "status": "ACTUAL_ISOLATED_CI_FAILURE_SAFELY_CLASSIFIED",
+  "validation": {
+    "diagnosticMarkerCount": 1,
+    "exactTwelveKeyObjects": 1,
+    "fallbackDiagnostics": 0,
+    "oldTenKeyParserUsed": false,
+    "parseRejects": 0,
+    "sourceEnumsAndTypesValidated": true,
+    "uniqueValidatedObjects": 1
+  }
+}

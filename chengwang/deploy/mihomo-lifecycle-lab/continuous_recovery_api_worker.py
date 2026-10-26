@@ -42,8 +42,21 @@ SECRET_INPUTS = (
     ('CONFIG_B',SERVICE/'local-b.config.private.yaml'))
 SECRET_INPUT_CLASSES = frozenset(name for name,_ in SECRET_INPUTS)
 SECRET_ENCODING_VARIANTS = frozenset(('RAW','B64','B64URL','HEX','JSON_QUOTED'))
-SECRET_ELEMENT_CLASSES = frozenset(('WHOLE_FILE','JSON_SCHEMA','JSON_SCOPE_ENVIRONMENT','JSON_OTHER_SCALAR'))
+SECRET_ELEMENT_CLASSES = frozenset(('WHOLE_FILE','JSON_SCHEMA','JSON_SCOPE_ENVIRONMENT','JSON_IDENTITY_ROLE','JSON_OTHER_SCALAR'))
 PUBLIC_LAB_ENVIRONMENT = 'isolated-lab'
+PUBLIC_IDENTITY_ROLE_LABELS = {
+    b'viewer':'VIEWER',b'operator':'OPERATOR',b'approver':'APPROVER',b'auditor':'AUDITOR',b'admin':'ADMIN'}
+PUBLIC_IDENTITY_ROLE_ENUMS = frozenset((*PUBLIC_IDENTITY_ROLE_LABELS.values(),'UNKNOWN','NOT_APPLICABLE'))
+HTTP_ERROR_CLASSES = frozenset(('NONE','RESPONSE_NOT_OBSERVED','BODY'))
+HTTP_DIAGNOSTIC_ERROR_CLASSES = HTTP_ERROR_CLASSES|{'UNKNOWN'}
+HTTP_DIAGNOSTIC_CASES = frozenset((
+  'INITIAL_HEAD','FIRST_CANDIDATES','FIRST_UNKNOWN_CREATE','FIRST_UNKNOWN_APPROVE','FIRST_UNKNOWN_EXECUTE',
+  'FIRST_UNKNOWN_INSPECT','FIRST_UNKNOWN_HEAD','FIRST_RECOVERY_CREATE','FIRST_RECOVERY_INSPECT_PLANNED',
+  'FIRST_RECOVERY_APPROVE','FIRST_RECOVERY_EXECUTE','FIRST_RECOVERY_INSPECT_COMPLETED','FIRST_RECOVERED_HEAD',
+  'ACK_CANDIDATES','ORDINARY_ACK_CREATE','ORDINARY_ACK_APPROVE','ORDINARY_ACK_EXECUTE','ORDINARY_ACK_INSPECT',
+  'ORDINARY_ACK_HEAD','SECOND_CANDIDATES','SECOND_UNKNOWN_CREATE','SECOND_UNKNOWN_APPROVE','SECOND_UNKNOWN_EXECUTE',
+  'SECOND_UNKNOWN_INSPECT','SECOND_UNKNOWN_HEAD','SECOND_RECOVERY_CREATE','SECOND_RECOVERY_INSPECT_PLANNED',
+  'SECOND_RECOVERY_APPROVE','SECOND_RECOVERY_EXECUTE','SECOND_RECOVERY_INSPECT_COMPLETED','SECOND_RECOVERED_HEAD'))
 FENCE_PHASES = frozenset(('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'))
 REPORT_FAILURE_CODES = frozenset(('ACK_HEAD','CANDIDATES','CLEANUP','CLEANUP_CALLS','CLEANUP_PORT',
   'DEPLOY_ACK','DEPLOY_APPROVAL','DEPLOY_EXECUTE','DEPLOY_INSPECT','DEPLOY_PLAN','DEPLOY_STATE','DEPLOY_UNKNOWN',
@@ -270,21 +283,25 @@ def append_jsonl(path, row, state, key):
     finally: os.close(fd)
     state[key]=sequence
 
-def encoded_secret_variants(body, input_class, element_class='WHOLE_FILE', matches_public_lab_environment=False):
+def encoded_secret_variants(body, input_class, element_class='WHOLE_FILE', matches_public_lab_environment=False,
+                            matches_public_identity_role=False, public_identity_role='NOT_APPLICABLE'):
     need(type(body) is bytes and body and input_class in SECRET_INPUT_CLASSES and
-         element_class in SECRET_ELEMENT_CLASSES and type(matches_public_lab_environment) is bool)
-    return ((body,input_class,element_class,'RAW',matches_public_lab_environment),
-      (base64.b64encode(body),input_class,element_class,'B64',matches_public_lab_environment),
-      (base64.b64encode(body).rstrip(b'='),input_class,element_class,'B64',matches_public_lab_environment),
-      (base64.urlsafe_b64encode(body),input_class,element_class,'B64URL',matches_public_lab_environment),
-      (base64.urlsafe_b64encode(body).rstrip(b'='),input_class,element_class,'B64URL',matches_public_lab_environment),
-      (body.hex().encode(),input_class,element_class,'HEX',matches_public_lab_environment),
-      (body.hex().upper().encode(),input_class,element_class,'HEX',matches_public_lab_environment),
-      (json.dumps(body.decode('utf8','ignore')).encode(),input_class,element_class,'JSON_QUOTED',matches_public_lab_environment))
+         element_class in SECRET_ELEMENT_CLASSES and type(matches_public_lab_environment) is bool and
+         type(matches_public_identity_role) is bool and public_identity_role in PUBLIC_IDENTITY_ROLE_ENUMS)
+    metadata=(matches_public_lab_environment,matches_public_identity_role,public_identity_role)
+    return ((body,input_class,element_class,'RAW',*metadata),
+      (base64.b64encode(body),input_class,element_class,'B64',*metadata),
+      (base64.b64encode(body).rstrip(b'='),input_class,element_class,'B64',*metadata),
+      (base64.urlsafe_b64encode(body),input_class,element_class,'B64URL',*metadata),
+      (base64.urlsafe_b64encode(body).rstrip(b'='),input_class,element_class,'B64URL',*metadata),
+      (body.hex().encode(),input_class,element_class,'HEX',*metadata),
+      (body.hex().upper().encode(),input_class,element_class,'HEX',*metadata),
+      (json.dumps(body.decode('utf8','ignore')).encode(),input_class,element_class,'JSON_QUOTED',*metadata))
 
 def build_forbidden():
     secrets=[]
     scope_environment_path=('identities',None,'principal','allowedScopes',None,'environment')
+    identity_role_path=('identities',None,'principal','roles',None)
     def scalar_values(value, input_class, path=()):
         if type(value) is dict:
             for item_key,item in value.items(): yield from scalar_values(item,input_class,path+(item_key,))
@@ -293,45 +310,70 @@ def build_forbidden():
         elif type(value) in (str,int,float,bool):
             body=str(value).encode()
             element_class='JSON_SCHEMA' if path==('schema',) else (
-              'JSON_SCOPE_ENVIRONMENT' if input_class=='IDENTITY_PROFILE' and path==scope_environment_path else 'JSON_OTHER_SCALAR')
-            yield body,element_class,element_class=='JSON_SCOPE_ENVIRONMENT' and body==PUBLIC_LAB_ENVIRONMENT.encode()
+              'JSON_SCOPE_ENVIRONMENT' if input_class=='IDENTITY_PROFILE' and path==scope_environment_path else (
+              'JSON_IDENTITY_ROLE' if input_class=='IDENTITY_PROFILE' and path==identity_role_path else 'JSON_OTHER_SCALAR'))
+            public_role=PUBLIC_IDENTITY_ROLE_LABELS.get(body,'UNKNOWN') if element_class=='JSON_IDENTITY_ROLE' else 'NOT_APPLICABLE'
+            yield (body,element_class,element_class=='JSON_SCOPE_ENVIRONMENT' and body==PUBLIC_LAB_ENVIRONMENT.encode(),
+              element_class=='JSON_IDENTITY_ROLE' and body in PUBLIC_IDENTITY_ROLE_LABELS,public_role)
     for input_class,path in SECRET_INPUTS:
         if not path.exists(): continue
-        body=source_file(path,1<<20); secrets.append((input_class,body,'WHOLE_FILE',False))
+        body=source_file(path,1<<20); secrets.append((input_class,body,'WHOLE_FILE',False,False,'NOT_APPLICABLE'))
         try:
             value=json.loads(body)
-            secrets.extend((input_class,scalar,element_class,matches_public)
-              for scalar,element_class,matches_public in scalar_values(value,input_class))
+            secrets.extend((input_class,scalar,element_class,matches_environment,matches_role,public_role)
+              for scalar,element_class,matches_environment,matches_role,public_role in scalar_values(value,input_class))
         except Exception: pass
     forbidden=[]
-    for input_class,body,element_class,matches_public in secrets:
-        if body: forbidden.extend(encoded_secret_variants(body,input_class,element_class,matches_public))
+    for input_class,body,element_class,matches_environment,matches_role,public_role in secrets:
+        if body: forbidden.extend(encoded_secret_variants(
+          body,input_class,element_class,matches_environment,matches_role,public_role))
     return forbidden
 
 def report_diagnostic_status(report):
-    if type(report) is not dict: return 'UNKNOWN',False
+    if type(report) is not dict: return 'UNKNOWN',False,None,False,None,None
     code=report.get('failureCode'); outcome=report.get('outcome')
-    return code if type(code) is str and code in REPORT_FAILURE_CODES else 'UNKNOWN',type(outcome) is str and outcome=='PASS'
+    last_case=status=error_class=None; status_observed=False
+    rows=report.get('http')
+    if rows is not None and (type(rows) is not list or rows):
+        last_case=error_class='UNKNOWN'
+        if type(rows) is list and type(rows[-1]) is dict:
+            candidate=rows[-1].get('case')
+            if type(candidate) is str and candidate in HTTP_DIAGNOSTIC_CASES: last_case=candidate
+            candidate=rows[-1].get('statusCode')
+            if type(candidate) is int and 100<=candidate<=599: status=candidate; status_observed=True
+            candidate=rows[-1].get('errorClass')
+            if type(candidate) is str and candidate in HTTP_ERROR_CLASSES: error_class=candidate
+    return (code if type(code) is str and code in REPORT_FAILURE_CODES else 'UNKNOWN',
+      type(outcome) is str and outcome=='PASS',last_case,status_observed,status,error_class)
 
 def fence_outputs(outputs, forbidden, phase, format_exit, go_exit, report_observed, http_count,
-                  report_failure_code, report_outcome_pass):
+                  report_failure_code, report_outcome_pass, last_http_case=None, last_http_status_observed=False,
+                  last_http_status_code=None, last_http_error_class=None):
     need(type(outputs) is dict and phase in FENCE_PHASES and
          type(format_exit) is int and type(go_exit) is int and type(report_observed) is bool and
          type(http_count) is int and 0 <= http_count <= 4096 and
-         report_failure_code in REPORT_FAILURE_CODES|{'UNKNOWN'} and type(report_outcome_pass) is bool)
+         report_failure_code in REPORT_FAILURE_CODES|{'UNKNOWN'} and type(report_outcome_pass) is bool and
+         (last_http_case is None or last_http_case in HTTP_DIAGNOSTIC_CASES|{'UNKNOWN'}) and
+         type(last_http_status_observed) is bool and last_http_status_observed is (last_http_status_code is not None) and
+         (last_http_status_code is None or type(last_http_status_code) is int and 100<=last_http_status_code<=599) and
+         (last_http_error_class is None or last_http_error_class in HTTP_DIAGNOSTIC_ERROR_CLASSES))
     for name,body in outputs.items():
         need(type(name) is str and re.fullmatch(r'[a-z0-9][a-z0-9.-]{0,127}',name) is not None and type(body) is bytes)
-        for secret,input_class,element_class,variant,matches_public in forbidden:
+        for secret,input_class,element_class,variant,matches_environment,matches_role,public_role in forbidden:
             need(type(secret) is bytes and input_class in SECRET_INPUT_CLASSES and variant in SECRET_ENCODING_VARIANTS and
-                 element_class in SECRET_ELEMENT_CLASSES and type(matches_public) is bool)
+                 element_class in SECRET_ELEMENT_CLASSES and type(matches_environment) is bool and
+                 type(matches_role) is bool and public_role in PUBLIC_IDENTITY_ROLE_ENUMS)
             if len(secret) >= 8 and secret in body:
                 diagnostic=canonical({'phase':phase,'formatExit':format_exit,'goExit':go_exit,
                   'reportObserved':report_observed,'httpCount':http_count,'reportFailureCode':report_failure_code,
-                  'reportOutcomePass':report_outcome_pass,'outputLogicalName':name,
+                  'reportOutcomePass':report_outcome_pass,'lastHTTPCase':last_http_case,
+                  'lastHTTPStatusObserved':last_http_status_observed,'lastHTTPStatusCode':last_http_status_code,
+                  'lastHTTPErrorClass':last_http_error_class,'outputLogicalName':name,
                   'secretInputClass':input_class,'secretElementClass':element_class,
-                  'matchesPublicLabEnvironment':matches_public,'encodingVariant':variant})
+                  'matchesPublicLabEnvironment':matches_environment,'matchesPublicIdentityRole':matches_role,
+                  'publicIdentityRole':public_role,'encodingVariant':variant})
                 message=b'isolated continuous Recovery capture rejected '+diagnostic
-                if any(len(value)>=8 and value in message for value,_,_,_,_ in forbidden):
+                if any(len(value)>=8 and value in message for value,_,_,_,_,_,_ in forbidden):
                     raise ValueError('isolated continuous Recovery capture rejected')
                 raise ValueError(message.decode('ascii'))
 
@@ -388,9 +430,9 @@ def safe_report_outputs(binding, forbidden, format_exit, go_exit):
       'scope':SCOPE,'sourceCommit':binding['sourceCommit'],'sourceBinding':binding,'entries':index,'production':False})+b'\n'
     for public,private in (('kernel.stdout',SERVICE/'kernel.stdout'),('kernel.stderr',SERVICE/'kernel.stderr')):
         outputs[public]=source_file(private,256<<10,empty=True)
-    report_failure_code,report_outcome_pass=report_diagnostic_status(report)
+    report_failure_code,report_outcome_pass,last_http_case,last_http_status_observed,last_http_status,last_http_error=report_diagnostic_status(report)
     fence_outputs(outputs,forbidden,'REPORT_AND_HTTP_OUTPUTS',format_exit,go_exit,True,len(report.get('http',[])),
-      report_failure_code,report_outcome_pass)
+      report_failure_code,report_outcome_pass,last_http_case,last_http_status_observed,last_http_status,last_http_error)
     receipts=[]
     for path in (REPORT,SERVICE/'kernel.stdout',SERVICE/'kernel.stderr'):
         info=path.lstat(); body=source_file(path,2<<20,empty=True); fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
@@ -443,9 +485,10 @@ def main(args):
     outputs['execution.json']=canonical({'schema':'chengwang.mihomo-continuous-recovery-execution/v1','scope':SCOPE,
       'sourceCommit':actual,'sourceBinding':binding,'formatExit':state['formatExit'],'goExit':state['goExit'],
       'outcome':outcome,'fullPrivateWALIndependentlyProven':False,'production':False})+b'\n'
-    report_failure_code,report_outcome_pass=report_diagnostic_status(report)
+    report_failure_code,report_outcome_pass,last_http_case,last_http_status_observed,last_http_status,last_http_error=report_diagnostic_status(report)
     fence_outputs(outputs,forbidden,'ALL_GENERIC_AND_REPORT_OUTPUTS',state['formatExit'],state['goExit'],
-      report is not None,len(report.get('http',[])) if report is not None else 0,report_failure_code,report_outcome_pass)
+      report is not None,len(report.get('http',[])) if report is not None else 0,report_failure_code,report_outcome_pass,
+      last_http_case,last_http_status_observed,last_http_status,last_http_error)
     need(sum(map(len,outputs.values()))<=c['maxPublicBytes']); a.unchanged_public(state)
     for name,body in outputs.items(): w.write_new(a.EXPORT_ALIAS/name,body,0o644)
     a.sync_output(state); a.unchanged_public(state); need(not state['pending'])

@@ -63,6 +63,24 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         harness=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go').read_text(encoding='utf8')
         self.assertIn('initial.WALSchema != "'+self.reader.WAL_SCHEMA+'"',harness)
         self.assertNotIn('chengwang.mihomo-lifecycle/v2',harness)
+        self.assertIn('h.call(stage+"_INSPECT", "viewer", http.MethodGet',harness)
+        self.assertNotIn('h.call(stage+"_INSPECT", "auditor", http.MethodGet',harness)
+        deployment_inspects=[row for row in self.reader.HTTP_CASES if row[0] in
+          ('FIRST_UNKNOWN_INSPECT','ORDINARY_ACK_INSPECT','SECOND_UNKNOWN_INSPECT')]
+        recovery_inspects=[row for row in self.reader.HTTP_CASES if '_RECOVERY_INSPECT_' in row[0]]
+        self.assertEqual(len(deployment_inspects),3); self.assertTrue(all(row[1]=='viewer' for row in deployment_inspects))
+        self.assertEqual(len(recovery_inspects),4); self.assertTrue(all(row[1]=='auditor' for row in recovery_inspects))
+        self.assertEqual(frozenset(row[0] for row in self.reader.HTTP_CASES),self.worker.HTTP_DIAGNOSTIC_CASES)
+        authz=(HERE.parents[1]/'internal/authz/model.go').read_text(encoding='utf8')
+        role_pairs=re.findall(r'Role(Viewer|Operator|Approver|Auditor|Admin)\s+Role\s*=\s*"([^"]+)"',authz)
+        self.assertEqual({value.encode():name.upper() for name,value in role_pairs},self.worker.PUBLIC_IDENTITY_ROLE_LABELS)
+        policy_test=(HERE.parents[1]/'internal/authz/policy_test.go').read_text(encoding='utf8')
+        viewer=re.search(r'RoleViewer:\s*\{([^}]*)\}',policy_test,re.S); auditor=re.search(r'RoleAuditor:\s*\{([^}]*)\}',policy_test,re.S)
+        self.assertIsNotNone(viewer); self.assertIsNotNone(auditor)
+        self.assertIn('ActionReadResource: true',viewer.group(1)); self.assertNotIn('ActionReadResource',auditor.group(1))
+        recovery_policy=(HERE.parents[1]/'internal/authz/lab_recovery.go').read_text(encoding='utf8')
+        recovery_read=re.search(r'case ActionReadLabRecovery:(.*?)case ActionPrepareLabRecovery',recovery_policy,re.S)
+        self.assertIsNotNone(recovery_read); self.assertIn('RoleAuditor',recovery_read.group(1))
         plan=(HERE.parents[1]/'internal/mihomodeploy/plan.go').read_text(encoding='utf8')
         runtime=(HERE.parents[1]/'internal/serverruntime/runtime.go').read_text(encoding='utf8')
         environment=re.search(r'LabEnvironment\s*=\s*"([^"]+)"',plan)
@@ -78,16 +96,17 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertEqual(self.worker.SECRET_INPUT_CLASSES,frozenset(classes))
         self.assertEqual(self.worker.SECRET_ENCODING_VARIANTS,frozenset(('RAW','B64','B64URL','HEX','JSON_QUOTED')))
         self.assertEqual(self.worker.SECRET_ELEMENT_CLASSES,
-          frozenset(('WHOLE_FILE','JSON_SCHEMA','JSON_SCOPE_ENVIRONMENT','JSON_OTHER_SCALAR')))
+          frozenset(('WHOLE_FILE','JSON_SCHEMA','JSON_SCOPE_ENVIRONMENT','JSON_IDENTITY_ROLE','JSON_OTHER_SCALAR')))
         for input_class in classes:
             raw=('model-'+input_class.lower()+'-private-value').encode()
-            variants=self.worker.encoded_secret_variants(raw,input_class,'JSON_OTHER_SCALAR',False)
+            variants=self.worker.encoded_secret_variants(raw,input_class,'JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE')
             self.assertEqual(len(variants),8)
-            for secret,actual_class,element_class,variant,matches_public in variants:
+            for secret,actual_class,element_class,variant,matches_environment,matches_role,public_role in variants:
                 for phase in ('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'):
                     with self.subTest(input_class=input_class,variant=variant,phase=phase),self.assertRaises(ValueError) as caught:
                         self.worker.fence_outputs({'clean.json':b'clean','collision.json':b'x'+secret+b'y'},
-                          ((secret,actual_class,element_class,variant,matches_public),),phase,0,0,True,31,'NONE',True)
+                          ((secret,actual_class,element_class,variant,matches_environment,matches_role,public_role),),
+                          phase,0,0,True,31,'NONE',True)
                     message=str(caught.exception)
                     self.assertNotIn(raw.decode(),message)
                     detail=json.loads(message[message.index('{'):])
@@ -95,9 +114,12 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                       'reportObserved':True,'httpCount':31,'reportFailureCode':'NONE','reportOutcomePass':True,
                       'outputLogicalName':'collision.json','secretInputClass':input_class,
                       'secretElementClass':'JSON_OTHER_SCALAR','matchesPublicLabEnvironment':False,
+                      'matchesPublicIdentityRole':False,'publicIdentityRole':'NOT_APPLICABLE',
+                      'lastHTTPCase':None,'lastHTTPStatusObserved':False,
+                      'lastHTTPStatusCode':None,'lastHTTPErrorClass':None,
                       'encodingVariant':variant})
         self.assertIsNone(self.worker.fence_outputs({'clean.json':b'clean'},
-          ((b'model-private-value','CONFIG_A','WHOLE_FILE','RAW',False),),
+          ((b'model-private-value','CONFIG_A','WHOLE_FILE','RAW',False,False,'NOT_APPLICABLE'),),
           'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,False,0,'UNKNOWN',False))
         with tempfile.TemporaryDirectory() as td:
             profile=Path(td)/'credentials.json'
@@ -105,11 +127,11 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
             object_identities=Path(td)/'object-identities.json'
             object_scopes=Path(td)/'object-scopes.json'
             profile.write_text(json.dumps({'schema':'profile/v1','identities':[
-              {'principal':{'allowedScopes':[
+              {'principal':{'roles':['viewer','model-unknown-role'],'allowedScopes':[
                 {'environment':self.worker.PUBLIC_LAB_ENVIRONMENT,'role':'approver'},
                 {'environment':'different-lab'}]}},
-              {'metadata':{'environment':'unknown-nested-environment','schema':'nested/schema'}}]}),encoding='utf8')
-            tokens.write_text(json.dumps({'environment':self.worker.PUBLIC_LAB_ENVIRONMENT}),encoding='utf8')
+              {'metadata':{'environment':'unknown-nested-environment','schema':'nested/schema','roles':['viewer']}}]}),encoding='utf8')
+            tokens.write_text(json.dumps({'environment':self.worker.PUBLIC_LAB_ENVIRONMENT,'roles':['viewer']}),encoding='utf8')
             object_identities.write_text(json.dumps({'identities':{'*':{'principal':{'allowedScopes':[
               {'environment':self.worker.PUBLIC_LAB_ENVIRONMENT}]}}}}),encoding='utf8')
             object_scopes.write_text(json.dumps({'identities':[{'principal':{'allowedScopes':{'*':
@@ -118,38 +140,69 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
               (('IDENTITY_PROFILE',profile),('HTTP_TOKENS',tokens),
                ('IDENTITY_PROFILE',object_identities),('IDENTITY_PROFILE',object_scopes))):
                 classified=self.worker.build_forbidden()
-            self.assertEqual(len(classified),104)
-            raw_entries={(secret,input_class,element,matches)
-              for secret,input_class,element,variant,matches in classified if variant=='RAW'}
-            self.assertIn((b'profile/v1','IDENTITY_PROFILE','JSON_SCHEMA',False),raw_entries)
-            self.assertIn((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT',True),raw_entries)
-            self.assertIn((b'different-lab','IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT',False),raw_entries)
-            self.assertIn((b'unknown-nested-environment','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False),raw_entries)
-            self.assertIn((b'nested/schema','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False),raw_entries)
-            self.assertIn((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'HTTP_TOKENS','JSON_OTHER_SCALAR',False),raw_entries)
-            self.assertIn((b'approver','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False),raw_entries)
+            self.assertEqual(len(classified),136)
+            raw_entries={(secret,input_class,element,matches_environment,matches_role,public_role)
+              for secret,input_class,element,variant,matches_environment,matches_role,public_role in classified if variant=='RAW'}
+            self.assertIn((b'profile/v1','IDENTITY_PROFILE','JSON_SCHEMA',False,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT',True,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((b'different-lab','IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT',False,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((b'viewer','IDENTITY_PROFILE','JSON_IDENTITY_ROLE',False,True,'VIEWER'),raw_entries)
+            self.assertIn((b'model-unknown-role','IDENTITY_PROFILE','JSON_IDENTITY_ROLE',False,False,'UNKNOWN'),raw_entries)
+            self.assertIn((b'unknown-nested-environment','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((b'nested/schema','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'HTTP_TOKENS','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((b'viewer','HTTP_TOKENS','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE'),raw_entries)
+            self.assertIn((b'approver','IDENTITY_PROFILE','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE'),raw_entries)
             object_marker_decoys=[entry for entry in classified if entry==(
-              self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_OTHER_SCALAR','RAW',False)]
+              self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_OTHER_SCALAR','RAW',False,False,'NOT_APPLICABLE')]
             self.assertEqual(len(object_marker_decoys),2)
+            role_path_decoys=[entry for entry in classified if entry==(
+              b'viewer','IDENTITY_PROFILE','JSON_OTHER_SCALAR','RAW',False,False,'NOT_APPLICABLE')]
+            self.assertEqual(len(role_path_decoys),1)
             for phase in ('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'):
                 with self.subTest(public_environment_phase=phase),self.assertRaises(ValueError) as caught:
                     self.worker.fence_outputs({'continuous.json':b'mode='+self.worker.PUBLIC_LAB_ENVIRONMENT.encode()},
-                      ((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT','RAW',True),),
+                      ((self.worker.PUBLIC_LAB_ENVIRONMENT.encode(),'IDENTITY_PROFILE','JSON_SCOPE_ENVIRONMENT','RAW',
+                        True,False,'NOT_APPLICABLE'),),
                       phase,0,1,True,0,'INITIAL_STATE',False)
                 detail=json.loads(str(caught.exception)[str(caught.exception).index('{'):])
                 self.assertEqual(detail['secretElementClass'],'JSON_SCOPE_ENVIRONMENT')
                 self.assertIs(detail['matchesPublicLabEnvironment'],True)
+            role_variant=[entry for entry in classified if entry[0]==b'"viewer"' and entry[1]=='IDENTITY_PROFILE' and
+              entry[2]=='JSON_IDENTITY_ROLE' and entry[3]=='JSON_QUOTED'][0]
+            with self.assertRaises(ValueError) as caught:
+                self.worker.fence_outputs({'continuous-recovery-report.json':b'role='+role_variant[0]},(role_variant,),
+                  'REPORT_AND_HTTP_OUTPUTS',0,1,True,6,'HTTP_RESULT',False,'FIRST_UNKNOWN_INSPECT',True,403,'NONE')
+            detail=json.loads(str(caught.exception)[str(caught.exception).index('{'):])
+            self.assertEqual(detail['secretElementClass'],'JSON_IDENTITY_ROLE')
+            self.assertIs(detail['matchesPublicIdentityRole'],True); self.assertEqual(detail['publicIdentityRole'],'VIEWER')
+            self.assertEqual(detail['lastHTTPCase'],'FIRST_UNKNOWN_INSPECT'); self.assertIs(detail['lastHTTPStatusObserved'],True)
+            self.assertEqual(detail['lastHTTPStatusCode'],403); self.assertEqual(detail['lastHTTPErrorClass'],'NONE')
         diagnostic_secret=b'CONFIG_B'
         with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
             self.worker.fence_outputs({'collision.json':diagnostic_secret},
-              ((diagnostic_secret,'CONFIG_B','JSON_OTHER_SCALAR','RAW',False),),
+              ((diagnostic_secret,'CONFIG_B','JSON_OTHER_SCALAR','RAW',False,False,'NOT_APPLICABLE'),),
               'ALL_GENERIC_AND_REPORT_OUTPUTS',1,1,True,31,'NONE',False)
         unknown_code='model-private-unknown-code'
-        self.assertEqual(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'}),('UNKNOWN',False))
+        self.assertEqual(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'}),
+          ('UNKNOWN',False,None,False,None,None))
         self.assertNotIn(unknown_code,str(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'})))
+        self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL',
+          'http':[{'case':'FIRST_UNKNOWN_INSPECT','statusCode':403,'errorClass':'NONE'}]}),
+          ('HTTP_RESULT',False,'FIRST_UNKNOWN_INSPECT',True,403,'NONE'))
+        for invalid in (True,403.0,99,600):
+            with self.subTest(invalid_status=invalid):
+                self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL',
+                  'http':[{'case':'model-unknown-case','statusCode':invalid,'errorClass':'model-unknown-error'}]}),
+                  ('HTTP_RESULT',False,'UNKNOWN',False,None,'UNKNOWN'))
+        self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL','http':{}}),
+          ('HTTP_RESULT',False,'UNKNOWN',False,None,'UNKNOWN'))
+        self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL','http':[]}),
+          ('HTTP_RESULT',False,None,False,None,None))
         known_code=b'HOOK_ARM'
         with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
-            self.worker.fence_outputs({'collision.json':known_code},((known_code,'CONFIG_A','JSON_OTHER_SCALAR','RAW',False),),
+            self.worker.fence_outputs({'collision.json':known_code},
+              ((known_code,'CONFIG_A','JSON_OTHER_SCALAR','RAW',False,False,'NOT_APPLICABLE'),),
               'ALL_GENERIC_AND_REPORT_OUTPUTS',0,1,True,4,'HOOK_ARM',False)
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); private=root/'private.json'; secret=b'model-report-absent-private-value'; private.write_bytes(secret)

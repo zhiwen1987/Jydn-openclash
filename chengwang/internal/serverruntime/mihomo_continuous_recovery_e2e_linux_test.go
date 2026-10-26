@@ -227,7 +227,7 @@ func (h continuousRecoveryHTTPS) deploy(stage string, candidate mihomodeploy.Lab
 		h.fail("DEPLOY_STATE", "continuous recovery unexpected deployment state")
 	}
 	var inspected mihomodeploy.LabDeploymentView
-	h.call(stage+"_INSPECT", "auditor", http.MethodGet, prefix+"/"+planned.OperationID, nil, http.StatusOK, &inspected)
+	h.call(stage+"_INSPECT", "viewer", http.MethodGet, prefix+"/"+planned.OperationID, nil, http.StatusOK, &inspected)
 	if inspected.OperationID != executed.OperationID || inspected.Phase != executed.Phase || inspected.Revision != executed.Revision ||
 		inspected.PlanSHA256 != executed.PlanSHA256 || inspected.HeadSHA256 != executed.HeadSHA256 || inspected.HeadGeneration != executed.HeadGeneration {
 		h.fail("DEPLOY_INSPECT", "continuous recovery deployment readback mismatch")
