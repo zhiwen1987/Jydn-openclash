@@ -1,0 +1,74 @@
+{
+  "schema": "chengwang.external-root-apply-manifest/v1",
+  "status": "READY_FOR_ROOT_REVIEW",
+  "formalTargetRoot": "D:/CodexData/workspace/chengwang-overview-browser-3acoku9y/r",
+  "requiredBaseCommit": "23fe731c072ac50aaaf9ef9479c0eaf0c1c1885e",
+  "candidateCommit": "86869327a9d6272bb702c612ed6de12142d005ce",
+  "candidateRoot": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-86869327-frozen",
+  "candidateClean": true,
+  "files": [
+    {
+      "target": "D:/CodexData/workspace/chengwang-overview-browser-3acoku9y/r/chengwang/tools/browser-scene-driver/native-session.mjs",
+      "relativePath": "chengwang/tools/browser-scene-driver/native-session.mjs",
+      "preimage": {"bytes":46977,"sha256":"977c004f2fbfb55c39b55fd20dfbd2bccfb920426636f35693bfde58687705a2","gitBlob":"378076a54cf33702c145bdc731ef7451a6eb3426","lf":true},
+      "afterimage": {"bytes":47033,"sha256":"b621e801e0a7209b1e8c6015c33a338af4ddad4c55c61997aa2675849dda6196","gitBlob":"babcfbb69bc8364604c3a074d0b8a64c7f2426a4","lf":true},
+      "chunk": "0001-native-session.apply_patch"
+    },
+    {
+      "target": "D:/CodexData/workspace/chengwang-overview-browser-3acoku9y/r/chengwang/tools/browser-scene-driver/test-native-session.mjs",
+      "relativePath": "chengwang/tools/browser-scene-driver/test-native-session.mjs",
+      "preimage": {"bytes":38633,"sha256":"72f4d834d8b6449531d225feead1fdc2eee5f733406b2d207ca008da281e3307","gitBlob":"f00e2e2042696ffa6caa3728038436307356c400","lf":true},
+      "afterimage": {"bytes":38838,"sha256":"d0123f49df9a96f10ae9c898243bc0da6c84fd23b5fbadaa5de04c76d775276e","gitBlob":"718c2254f023570e67fbcb6acc65ff985667b9d5","lf":true},
+      "chunk": "0002-native-session-test.apply_patch"
+    }
+  ],
+  "chunks": [
+    {"order":1,"name":"0001-native-session.apply_patch","bytes":614,"sha256":"cc50b93755c031b5e0a17cc56f823f5f8c1854887ce7ee2f9772e04f776ad3f8"},
+    {"order":2,"name":"0002-native-session-test.apply_patch","bytes":1520,"sha256":"f3098dd1984ebaf212017db5b4318ef95b95a27e6042cd0d50499e04f2486488"}
+  ],
+  "validation": {
+    "successfulRoot": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-apply-verify-v2-20261027",
+    "baseCommit": "23fe731c072ac50aaaf9ef9479c0eaf0c1c1885e",
+    "appliedWith": "apply_patch",
+    "finalDiffTextEqualsCandidate": true,
+    "bothAfterimageBytesEqualCandidate": true,
+    "bothAfterimageGitBlobsEqualCandidate": true,
+    "allLF": true,
+    "diffCheckExit": 0,
+    "focusedNodeTests": {"tests":37,"pass":37,"fail":0,"skipped":0},
+    "preservedRejectedAttempt": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-apply-verify-v1-20261027",
+      "reasonClass": "WORKTREE_CRLF_AFTER_DEFAULT_WINDOWS_CHECKOUT",
+      "canonicalGitBlobDiffMatched": true,
+      "rawAfterimageBytesMatched": false,
+      "eligible": false
+    }
+  },
+  "unchangedPins": [
+    {"segment":"TargetGuard","bytes":3748,"sha256":"48fd0312843f8f17c19a8924160d45e772841d9a74a1fee46cdef358642c2a19","baseEqualsCandidate":true},
+    {"segment":"initializeCDPTargets","bytes":2419,"sha256":"6a86e1b3e8a89f94a87775b6f01f2e35e18a3b6ca84100d03c87c88b7cde45e1","baseEqualsCandidate":true},
+    {"segment":"finishNativeSession","bytes":2148,"sha256":"10dd5368fd7fe5481c0eaa82027bd05fcc3b36c6395e4607092f8bf370fd9d1d","baseEqualsCandidate":true},
+    {"segment":"publicSessionSurfaceToEOF","bytes":3816,"sha256":"98850d02d98fd461aa9cdbd9b376bb055d042c523aebd36b8086b9f8b22605b0","baseEqualsCandidate":true}
+  ],
+  "unchangedContract": {
+    "targetAuthorization": true,
+    "targetGuard": true,
+    "rpcMethodsAndOrder": true,
+    "retryAndWaitBudgets": true,
+    "timeouts": true,
+    "diagnosticSchemas": true,
+    "pageAndBusinessCode": true,
+    "playwrightSharedArgs": true
+  },
+  "independentPeer": {
+    "verdict": "ACCEPT_FOR_ROOT_INTEGRATION",
+    "requestedModel": "GPT-5.6-sol/high",
+    "actualModelIdentity": "UNKNOWN",
+    "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-86869327-peer56h-20261027/PEER-REVIEW.json",
+    "bytes": 4797,
+    "sha256": "198240a212014487066981c6d65cc79191b1e70e47de16ce22348cd0f539f75e",
+    "blockers": 0
+  },
+  "scope": "Only the direct chrome-cdp spawn receives the Chromium component-extension background-page suppression flag; n30 asserts unique exact placement.",
+  "runtimeBoundary": "Not proven. Root must integrate and run the exact final commit in isolated Linux browser CI. Extra protected targets must still fail closed."
+}

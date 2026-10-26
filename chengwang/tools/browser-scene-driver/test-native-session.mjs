@@ -69,7 +69,15 @@ test('n26 missing exit can be polled but malformed exit never treated as missing
 test('n27 launcher signal exit or timeout cannot produce success close', async () => { for (const result of [Promise.resolve({ code: 0, signal: 'SIGTERM' }), Promise.resolve({ code: 1, signal: null }), new Promise(() => {})]) { const x = closer({ launcherResult: result }); await assert.rejects(finishNativeSession(x.o, chrome, x.mechanisms)) } })
 test('n28 live residual process and proc permission failure both reject close', async () => { for (const noLive of [async () => false, async () => { throw Error('synthetic-proc-denied') }]) { const x = closer({ noLive }); await assert.rejects(finishNativeSession(x.o, chrome, x.mechanisms)) } })
 test('n29 playwright close has null launcher record and still requires no residue', async () => { const x = closer({ launcherResult: null, readExit: async () => exit('playwright') }); x.o = options('playwright'); const r = await finishNativeSession(x.o, chrome, x.mechanisms); assert.equal(r.launcherExit, null); assert(x.calls.includes('proc')) })
-test('n30 session module has no business routes mock hooks or insecure launch switches', () => { const s = readFileSync(new URL('./native-session.mjs', import.meta.url), 'utf8'); assert(!s.includes('/api/v1/')); for (const forbidden of ['ignoreHTTPSErrors: true', 'bypassCSP: true', 'setIgnoreCertificateErrors', '--ignore-certificate-errors', '.route(', 'dispatchEvent(', 'fakeTransport']) assert(!s.includes(forbidden)); assert(s.includes('inspectPublicTLS')); assert(s.includes('configureNativeLocale')); assert(s.includes('noLiveChrome(o, chrome)')); assert(s.includes("phase = 'CLOSED'")) })
+test('n30 session module has no business routes mock hooks or insecure launch switches', () => {
+  const s = readFileSync(new URL('./native-session.mjs', import.meta.url), 'utf8')
+  assert(!s.includes('/api/v1/'))
+  for (const forbidden of ['ignoreHTTPSErrors: true', 'bypassCSP: true', 'setIgnoreCertificateErrors', '--ignore-certificate-errors', '.route(', 'dispatchEvent(', 'fakeTransport']) assert(!s.includes(forbidden))
+  for (const required of ['inspectPublicTLS', 'configureNativeLocale', 'noLiveChrome(o, chrome)', "phase = 'CLOSED'"]) assert(s.includes(required))
+  const componentFlag = '--disable-component-extensions-with-background-pages'
+  assert.equal(s.split(componentFlag).length, 2)
+  assert(s.includes(`child = spawn(o.launcher, [...args, '${componentFlag}', '--headless=new'`))
+})
 test('n31 closed event and fault lists contain no duplicate or arbitrary text channel', () => {
   assert.equal(new Set(SESSION_EVENTS).size, SESSION_EVENTS.length); assert.equal(new Set(SESSION_FAULTS).size, SESSION_FAULTS.length); assert(SESSION_EVENTS.includes('Network.loadingFailed')); assert(SESSION_EVENTS.includes('Network.responseReceivedExtraInfo')); assert(SESSION_EVENTS.includes('Network.directUDPSocketCreated')); assert(SESSION_FAULTS.every(v => /^[A-Z_]+$/.test(v)))
   assert.equal(new Set(NATIVE_OPEN_STAGES).size,NATIVE_OPEN_STAGES.length); assert(NATIVE_OPEN_STAGES.every(v=>/^[A-Z_]+$/.test(v)))

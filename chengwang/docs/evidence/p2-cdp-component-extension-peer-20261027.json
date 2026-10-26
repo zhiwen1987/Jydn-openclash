@@ -1,0 +1,111 @@
+{
+  "schema": "chengwang.overview-cdp-component-extension-peer-review/v1",
+  "reviewedAt": "2026-10-27T01:55:47+08:00",
+  "requestedModel": "GPT-5.6-sol/high",
+  "actualModelIdentity": "UNKNOWN",
+  "actualModelIdentityReason": "The runtime exposes no independently verifiable model and reasoning-effort identity to this reviewer.",
+  "verdict": "ACCEPT_FOR_ROOT_INTEGRATION",
+  "scope": "READ_ONLY_TWO_FILE_CANDIDATE_REVIEW",
+  "reviewed": {
+    "repository": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-86869327-frozen",
+    "baseCommit": "23fe731c072ac50aaaf9ef9479c0eaf0c1c1885e",
+    "baseTree": "b52acdb00478b1ce6ecc9b67e85eeb543b795088",
+    "candidateCommit": "86869327a9d6272bb702c612ed6de12142d005ce",
+    "candidateTree": "c1308c20390b485c79b1a849f2785a579a9fe301",
+    "candidateClean": true,
+    "changedPathCount": 2,
+    "insertions": 10,
+    "deletions": 2,
+    "diffCheck": "PASS",
+    "files": [
+      {
+        "path": "chengwang/tools/browser-scene-driver/native-session.mjs",
+        "baseGitBlob": "378076a54cf33702c145bdc731ef7451a6eb3426",
+        "candidateGitBlob": "babcfbb69bc8364604c3a074d0b8a64c7f2426a4",
+        "candidateBytes": 47033,
+        "candidateSha256": "b621e801e0a7209b1e8c6015c33a338af4ddad4c55c61997aa2675849dda6196"
+      },
+      {
+        "path": "chengwang/tools/browser-scene-driver/test-native-session.mjs",
+        "baseGitBlob": "f00e2e2042696ffa6caa3728038436307356c400",
+        "candidateGitBlob": "718c2254f023570e67fbcb6acc65ff985667b9d5",
+        "candidateBytes": 38838,
+        "candidateSha256": "d0123f49df9a96f10ae9c898243bc0da6c84fd23b5fbadaa5de04c76d775276e"
+      }
+    ]
+  },
+  "artifacts": {
+    "researchReceipt": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-23fe731-20261027/RESEARCH-RECEIPT.md",
+      "bytes": 3726,
+      "sha256": "b8b443146529c3a894c2d97c69332cdd8e09d9ad7f8e536860ef0f936042536e"
+    },
+    "sourceBoundCpuReport": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-86869327-audit/overview-synthetic.json",
+      "bytes": 6186,
+      "sha256": "b0294538e599ae2e2dfd72a033cc6672d1036dcff42851f7ab21265d6d642b9a",
+      "sourceCommit": "86869327a9d6272bb702c612ed6de12142d005ce",
+      "outcome": "PASS",
+      "totalTests": 236,
+      "skipped": 0,
+      "realBrowserProven": false,
+      "realProductServerProven": false,
+      "production": false,
+      "authorization": "BLOCKED"
+    },
+    "nativeSessionCpuTranscript": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-86869327-audit/cpu-transcripts/native-session.tap",
+      "bytes": 7916,
+      "sha256": "4bc8aa4853d089854af57c3b775bb3d77e24947117815b51f4157facdd07b033",
+      "tests": 37,
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "findings": [],
+  "verified": {
+    "onlyTwoFilesChanged": true,
+    "runtimeChange": "The direct chrome-cdp spawn adds exactly one --disable-component-extensions-with-background-pages argument immediately before --headless=new.",
+    "flagOccurrencesInRuntimeSource": 1,
+    "flagPresentInSharedArgs": false,
+    "playwrightSharedArgsChanged": false,
+    "playwrightLaunchCallChanged": false,
+    "testAssertsUniqueRuntimeOccurrence": true,
+    "testAssertsDirectSpawnPlacement": true,
+    "targetGuardChanged": false,
+    "initializeCDPTargetsChanged": false,
+    "rpcChanged": false,
+    "retryOrWaitChanged": false,
+    "timeoutChanged": false,
+    "authorizationChanged": false,
+    "schemaOrDiagnosticsChanged": false,
+    "uiChanged": false,
+    "researchSupportsFlagForPinnedChrome": true
+  },
+  "riskAssessment": {
+    "sourceRisk": "LOW_AND_SCOPED",
+    "remainingRisk": "The flag is a source-backed causal repair hypothesis. CPU tests cannot prove that pinned Chrome 157 suppresses the two observed component-extension service workers or that both Chrome-CDP profiles complete.",
+    "rollback": "Revert the single candidate commit or remove the one direct-spawn argument; no schema, persisted state, or authorization migration is involved."
+  },
+  "ciGap": {
+    "status": "REQUIRED",
+    "requiredEvidence": "After root integrates the exact candidate, run isolated exact-commit Chrome-CDP CI for both profiles and independently verify target diagnostics, UI checkpoints, normal close, and fresh replay artifacts.",
+    "mustNotClaimBeforeCI": [
+      "real browser fix proven",
+      "Chrome-CDP acceptance complete",
+      "business availability",
+      "production readiness"
+    ]
+  },
+  "executionBoundary": {
+    "formalR2Touched": false,
+    "browserRun": false,
+    "productServerRun": false,
+    "ciRun": false,
+    "npmRun": false,
+    "goRun": false,
+    "productionChanged": false,
+    "candidateModified": false
+  }
+}

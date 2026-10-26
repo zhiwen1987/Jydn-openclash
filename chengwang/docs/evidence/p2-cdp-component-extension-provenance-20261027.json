@@ -1,0 +1,39 @@
+{
+  "schema": "chengwang.external-root-handoff-provenance/v1",
+  "subject": "APPLY-MANIFEST.json pre-peer to final transition",
+  "prePeer": {
+    "previouslyObservedPath": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-root-handoff-v1-20261027/APPLY-MANIFEST.json",
+    "previouslyObservedBytes": 4116,
+    "previouslyObservedSHA256": "70bfd8e565ec8dd86da9b67bb00f9e9e9507ca085e2da637a98d2b785015503f",
+    "wasSeparatelySavedBeforeFinalMutation": false,
+    "existingByteExactCopyFoundBeforeRecovery": false,
+    "status": "NON_FINAL_PRE_PEER_SNAPSHOT"
+  },
+  "recovery": {
+    "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-root-handoff-provenance-v1-20261027/APPLY-MANIFEST.pre-peer-recovered.json",
+    "bytes": 4116,
+    "sha256": "70bfd8e565ec8dd86da9b67bb00f9e9e9507ca085e2da637a98d2b785015503f",
+    "byteExactToPreviouslyObservedHash": true,
+    "method": "Deterministically reversed the single later apply_patch addition of the independentPeer object from the still-present final manifest. The recovered bytes were accepted only after matching the previously observed SHA-256 and byte count.",
+    "classification": "POST_HOC_BYTE_EXACT_RECOVERY_NOT_AN_ORIGINAL_SEPARATE_SAVE"
+  },
+  "final": {
+    "path": "D:/CodexData/workspace/chengwang-overview-cdp-component-extension-fix-root-handoff-v1-20261027/APPLY-MANIFEST.json",
+    "bytes": 4517,
+    "sha256": "64a6969968c6ea58c98cd10ab87259a5b25de7a1cb350e2817918b4e1e710e3a",
+    "status": "FINAL_WITH_INDEPENDENT_PEER_POINTER"
+  },
+  "transition": {
+    "operation": "One apply_patch update added independentPeer metadata after the peer receipt became available.",
+    "sourceChunksChanged": false,
+    "sourceCandidateChanged": false,
+    "formalR2Changed": false,
+    "finalRewrittenDuringThisProvenanceTask": false
+  },
+  "boundaries": {
+    "sessionOrRolloutSearchUsed": false,
+    "oldDraftDeleted": false,
+    "finalPackageModified": false,
+    "formalRepositoryModified": false
+  }
+}
