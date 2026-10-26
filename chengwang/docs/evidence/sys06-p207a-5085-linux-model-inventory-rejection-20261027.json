@@ -1,0 +1,111 @@
+{
+  "schema": "chengwang.p207a-dedicated-run-original-audit/v1",
+  "recordedAt": "2026-10-26T17:24:35.3217974Z",
+  "status": "SOURCE_MODEL_INVENTORY_READER_REJECTED_GO_NOT_STARTED",
+  "run": {
+    "id": 40367880744,
+    "attempt": 1,
+    "name": "Chengwang Subscription Refresh Closed Lane",
+    "event": "push",
+    "branch": "codex/chengwang-p207a-refresh-20261027",
+    "headSHA": "5085b2e485bf6fc070215e835cdcb3451a27b270",
+    "parentProductHead": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-10-26T17:21:42Z",
+    "updatedAt": "2026-10-26T17:21:54Z"
+  },
+  "headDiff": {
+    "changedPaths": [
+      "chengwang/docs/evidence/sys06-p207a-initial-trigger-not-created-20261027.json"
+    ],
+    "productSourceChanged": false,
+    "workflowChanged": false
+  },
+  "jobs": {
+    "sourceModels": {
+      "id": 121730408675,
+      "status": "completed",
+      "conclusion": "failure",
+      "failedStep": 3,
+      "failedStepName": "Run and independently pin closed-gate CPU models",
+      "uploadArtifactStepConclusion": "success"
+    },
+    "sourceAndGo": {
+      "id": 121730510877,
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    "fresh": {
+      "id": 121730511224,
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  },
+  "artifact": {
+    "id": 12671950436,
+    "name": "p207a-source-models-40367880744-1",
+    "bytes": 959,
+    "sha256": "2bd70ad80fe9fc1920061a6ea4569ceb1220feb5a3ba0e1ec3176f0ca5139fd8",
+    "headSHA": "5085b2e485bf6fc070215e835cdcb3451a27b270",
+    "members": 1,
+    "crcAccepted": true,
+    "pathsAccepted": true,
+    "uncompressedBytes": 5301,
+    "custodyBytes": 477,
+    "custodySHA256": "a8b10124e22e64622088b28fb79ab42ef8fd890fd7566762fb8f982677e72ccf"
+  },
+  "sourceModelsLog": {
+    "relativePath": "p207a-source-models-40367880744-1/source-models.log",
+    "bytes": 5301,
+    "sha256": "a3ece1a3e7ceca88d52a1afcbdcac7f0cdbe528d18a0eb80b7ba7fa7220459e1",
+    "actualTestRows": 39,
+    "actualOKRows": 39,
+    "ranCount": 39,
+    "suiteTerminal": "OK",
+    "failedTests": 0,
+    "skippedTests": 0
+  },
+  "firstRefusal": {
+    "class": "WORKFLOW_INLINE_MODEL_INVENTORY_REGEX_MISMATCH",
+    "workflowLines": [72, 73, 74],
+    "expectedASTCount": 39,
+    "expectedNamesSHA256": "83990a795e696af0e5962fadef2f6360f739df38e7af067a965e3cc29fdf90d1",
+    "shippedRegexObservedCount": 0,
+    "actualVerboseShape": "test_method (module.Class.test_method) ... ok",
+    "shippedRegexExpectedShape": "test_method (module.Class) ... ok",
+    "diagnosticFullMethodShapeCount": 39,
+    "diagnosticSetEqualsASTInventory": true,
+    "goFailure": false,
+    "formatFailure": false,
+    "sourceContractFailure": false
+  },
+  "evidenceBoundary": {
+    "sourceModelRuntimeProven": true,
+    "sourceModelInventoryGateAccepted": false,
+    "goStarted": false,
+    "ordinary481Proven": false,
+    "raceImplementedByWorkflow": false,
+    "raceProven": false,
+    "formatProven": false,
+    "sourceBeforeAfterProven": false,
+    "freshStarted": false,
+    "freshRawGoEventsReplayDesigned": false,
+    "freshBoundedReportReadbackDesigned": true,
+    "production": false
+  },
+  "initialNoRunReceiptRetained": {
+    "path": "D:/CodexData/workspace/mihomo-p207a-refresh-trigger-audit-20261027-native56h-v1/AUDIT-RECEIPT.json",
+    "sha256": "9c6bfa45b955ec66dc4b59da8148de88de17fb66e3e0a0590cdf15ce948a8c5e"
+  },
+  "actionsNotTaken": [
+    "job_log_read",
+    "rerun",
+    "cancel",
+    "source_change",
+    "local_go",
+    "local_gofmt",
+    "service_runtime",
+    "production_change"
+  ]
+}

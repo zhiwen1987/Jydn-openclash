@@ -1,0 +1,138 @@
+{
+  "schema": "chengwang.real-overview-ui-browser-original-audit/v1",
+  "status": "PARTIAL_PLAYWRIGHT_ACCEPTANCE_CHROME_CDP_REJECTED_DIAGNOSTIC_ONLY",
+  "auditedAt": "2026-10-26T17:47:53Z",
+  "run": {
+    "runID": 40370667458,
+    "attempt": 1,
+    "workflow": "Chengwang Real Overview Evidence UI Browser",
+    "workflowPath": ".github/workflows/chengwang-overview-ui-browser.yml",
+    "branch": "codex/chengwang-overview-browser-20261024",
+    "sourceHead": "23fe731c072ac50aaaf9ef9479c0eaf0c1c1885e",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "jobs": {
+    "playwrightEvidenceDisabled": "success",
+    "playwrightEvidenceEnabledUnknown": "success",
+    "chromeCDPEvidenceDisabled": "failure_at_real_tls_browser_operation",
+    "chromeCDPEvidenceEnabledUnknown": "failure_at_real_tls_browser_operation",
+    "freshPlaywrightEvidenceDisabled": "success",
+    "freshPlaywrightEvidenceEnabledUnknown": "success",
+    "freshChromeCDPEvidenceDisabled": "failure_at_independent_reconstruction",
+    "freshChromeCDPEvidenceEnabledUnknown": "failure_at_independent_reconstruction"
+  },
+  "artifacts": [
+    {"name":"overview-ui-evidence_disabled-chrome-cdp-40370667458-1","bytes":177270,"sha256":"b16f3f849fea34cce238fed65c537adbcaa918907891abcf19e0bff60ebeb52f","memberCount":41,"uncompressedBytes":560616,"custodyBytes":6413,"custodySHA256":"5405380d486efbdd8e43389bce12b44f78ddaea528fb97cae0095c105e13e39f"},
+    {"name":"overview-ui-evidence_enabled_unknown-chrome-cdp-40370667458-1","bytes":177285,"sha256":"1b8e92f352e4aa3919fddbf9b840b300854437b895fc7151c48c4ace39409f57","memberCount":41,"uncompressedBytes":560640,"custodyBytes":6424,"custodySHA256":"78eeb7d8fd8852098a709ab2be1b9f0aba76252de6e0d92f7189b7fb835cc94e"},
+    {"name":"overview-ui-evidence_disabled-playwright-40370667458-1","bytes":1648264,"sha256":"e8dc83dd948b3f30eba1006c313d10f136e2f124fefbff65967aa9bc05b3a585","memberCount":56,"uncompressedBytes":2571117,"custodyBytes":8633,"custodySHA256":"0fcdbb038df368dcb1c582edf82be5aa253afce227605599ccc793e2b1c685a7"},
+    {"name":"overview-ui-evidence_enabled_unknown-playwright-40370667458-1","bytes":1964858,"sha256":"773f65afb7fe871fa4041dcb4bfdb2fb0234661021af87b801202e9a64ca9503","memberCount":56,"uncompressedBytes":2958669,"custodyBytes":8641,"custodySHA256":"0ef3a1f724f7c0404e5276b9bec7f2dc3325466235dfc6a8e57aa6c4b961a313"},
+    {"name":"overview-ui-fresh-evidence_disabled-chrome-cdp-40370667458-1","bytes":4238,"sha256":"04a31a146881db1b44b17ccdef503c76e63c3a21f9b837feaab7705589d871a9","memberCount":5,"uncompressedBytes":8021,"custodyBytes":1091,"custodySHA256":"ac32fff3ce4db753817c3151ffb0da1ffae9ae60e27da971627676d67367c6c8"},
+    {"name":"overview-ui-fresh-evidence_enabled_unknown-chrome-cdp-40370667458-1","bytes":4232,"sha256":"fd096893714df5a0ec793b74cfa7c1e6eaee20b2ed5ae88f9d2b01c5864268f9","memberCount":5,"uncompressedBytes":8021,"custodyBytes":1097,"custodySHA256":"d3715cc939a7035a67e8a011adfe0c9a10eafb48c0cdd6c50402038343334572"},
+    {"name":"overview-ui-fresh-evidence_disabled-playwright-40370667458-1","bytes":6279,"sha256":"216f0634ffce838f96b2bb91e0a148e75d6c2411f0d178ac5287a3f453c4c1f7","memberCount":6,"uncompressedBytes":11753,"custodyBytes":1226,"custodySHA256":"2c1b0765ea1c69e41943d09f4c05d2d0a61f965fdcf71c468fefccca83680f49"},
+    {"name":"overview-ui-fresh-evidence_enabled_unknown-playwright-40370667458-1","bytes":6192,"sha256":"710c4ce485651cb9858565051190cc97618004b581b2a3d182130b8cb499f131","memberCount":6,"uncompressedBytes":11151,"custodyBytes":1233,"custodySHA256":"04d9dfd590542506cda9f3c60353e2620c097f4d00adbef64937ab17185d5ace"}
+  ],
+  "sourceBinding": {
+    "exactLocalRepository": "D:/CodexData/workspace/chengwang-overview-browser-3acoku9y/r",
+    "headExact": true,
+    "clean": true,
+    "checkerGitBlobSHA1": "c1ef8079b14ba455ea00ee629f8f4f39ff16538e",
+    "checkerRemoteBlobExact": true,
+    "overviewCPUClosure": {"tests":236,"passed":236,"skipped":0,"scope":"CPU_CONTRACTS_ONLY_NOT_REAL_BROWSER_ACCEPTANCE"}
+  },
+  "playwright": {
+    "acceptanceScope": "OVERVIEW_READONLY_ERROR_UNKNOWN_UI_FLOW",
+    "authorization": "BLOCKED",
+    "production": false,
+    "evidenceDisabled": {
+      "outcome": "PASS",
+      "rawCounters": {"assetErrors":0,"captureErrors":6,"consoleErrors":6,"consoleWarnings":0,"cspErrors":0,"failedRequests":6,"forbiddenRequests":0,"runtimeErrors":0},
+      "unexpectedCaptureErrors": 0,
+      "unexpectedConsoleErrors": 0,
+      "unexpectedFailedRequests": 0,
+      "coverageGapCount": 6,
+      "errorBodyCompleteness": false,
+      "reportBytes": 3713,
+      "reportSHA256": "56c08a5acd5411e53d6e2e478b53cc7317b1cf80d392b741a34ca99babf4e10f",
+      "offlineOriginalCLIByteExact": true,
+      "freshByteExact": true
+    },
+    "evidenceEnabledUnknown": {
+      "outcome": "PASS",
+      "rawCounters": {"assetErrors":0,"captureErrors":0,"consoleErrors":0,"consoleWarnings":0,"cspErrors":0,"failedRequests":0,"forbiddenRequests":0,"runtimeErrors":0},
+      "unexpectedCaptureErrors": 0,
+      "unexpectedConsoleErrors": 0,
+      "unexpectedFailedRequests": 0,
+      "coverageGapCount": 0,
+      "errorBodyCompleteness": null,
+      "reportBytes": 3111,
+      "reportSHA256": "6d52899c4f1f4547cde95ba06548efca60be0080dddea3914644c57a5f46c590",
+      "offlineOriginalCLIByteExact": true,
+      "freshByteExact": true
+    },
+    "offlineChildExecutables": {
+      "pathScope": "CHILD_PROCESS_ONLY",
+      "openssl": {"bytes":1004516,"sha256":"6e6a931dbf6029e3033c26f40fbda7e191ed84576d50aa9c3fee0471e94fd62b"},
+      "git": {"bytes":44872,"sha256":"3b64043b9e4dc225225f43ff9c1173b57493ff72e5b729accfae051eb160cca3"}
+    }
+  },
+  "chromeCDP": {
+    "accepted": false,
+    "acceptance": "REJECTED_DIAGNOSTIC_ONLY",
+    "bothProfilesSameDiagnosticBuckets": true,
+    "initialTargets": {"total":2,"pages":1,"blankPages":1,"types":{"browser":0,"invalid":0,"other":1,"page":1,"serviceWorker":0,"sharedWorker":0,"tab":0}},
+    "postTargets": {"total":5,"pages":2,"blankPages":2,"extraProtectedCount":2,"types":{"browser":0,"invalid":0,"other":1,"page":2,"serviceWorker":2,"sharedWorker":0,"tab":0}},
+    "extraWorkers": {
+      "total": 2,
+      "types": {"serviceWorker":2,"sharedWorker":0},
+      "urlSchemes": {"ABOUT":0,"CHROME_EXTENSION":2,"CHROME_INTERNAL":0,"DATA_BLOB":0,"DEVTOOLS":0,"EMPTY":0,"HTTP":0,"HTTPS":0,"INVALID":0,"OTHER":0},
+      "openerRelations": {"BOTH":0,"INITIAL":0,"INVALID":0,"MISSING":2,"OTHER":0,"SELECTED":0},
+      "contextToInitial": {"BOTH_MISSING":0,"DIFFERENT":0,"INVALID":0,"MATCH":2,"REFERENCE_MISSING":0,"WORKER_MISSING":0},
+      "contextToSelected": {"BOTH_MISSING":0,"DIFFERENT":0,"INVALID":0,"MATCH":2,"REFERENCE_MISSING":0,"WORKER_MISSING":0},
+      "anyContextMatchesInitial": true,
+      "anyContextMatchesSelected": true,
+      "anyContextMissing": false,
+      "anyInvalidField": false,
+      "anyOpenerMatchesInitial": false,
+      "anyOpenerMatchesSelected": false,
+      "anyOpenerMissing": true
+    },
+    "failure": {
+      "stage": "DRIVER_BARRIER",
+      "phase": "NATIVE_OPEN",
+      "nativeStage": "CDP_POST_TARGETS",
+      "firstFault": "STARTUP_REJECTED",
+      "controllerExitCode": 1,
+      "serverExitCode": 0,
+      "captureErrors": 1,
+      "recordCount": 0,
+      "checkpointCount": 0,
+      "capturedOriginalCount": 0,
+      "noLiveOwnedProcesses": true
+    },
+    "evidenceDisabledFailureSHA256": "476a9f0f5c41ddaea20cfd53a76016f36cb31d77e896f0932b971d4132d0d4f6",
+    "evidenceEnabledUnknownFailureSHA256": "fb07e67535692e4fe227c3c0d4e0423f2d1a96e03b83d15bee2a1847dc12dc46",
+    "freshAcceptedReportPresent": false
+  },
+  "otherWorkflowMetadataOnly": {
+    "Chengwang Subscription Product Readback Lab": "completed_success",
+    "Chengwang M2b Candidate Static Gate": "completed_success",
+    "Chengwang Native Probe Readback Lab": "completed_success",
+    "Chengwang Probe Browser Acceptance": "completed_success",
+    "Chengwang Image Binding Gate": "in_progress",
+    "acceptedByThisReceipt": false
+  },
+  "safety": {
+    "jobLogsRead": false,
+    "sessionOrRolloutSearched": false,
+    "signedURLInArgumentsOrOutput": false,
+    "localBrowserRun": false,
+    "systemPATHChanged": false,
+    "trustStoreChanged": false,
+    "clockChanged": false,
+    "dependencyInstalled": false,
+    "sourceModified": false,
+    "productionTouched": false,
+    "workflowRerun": false
+  }
+}

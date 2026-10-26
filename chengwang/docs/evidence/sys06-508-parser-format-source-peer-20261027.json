@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:\\CodexData\\workspace\\mihomo-480c-parser-format-fix-20261027-implementation56h-v1",
+    "sourceType": "patch_file",
+    "base": "5085b2e485bf6fc070215e835cdcb3451a27b270 (17 preimages byte-equal to authoring base 480c8693d0b12cc910d17b693ea84cbb9d47acb6)",
+    "head": "17-path source candidate represented by immutable full-index patch",
+    "changedFiles": [
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/subscription-refresh/check_source_contract.py",
+      "chengwang/deploy/subscription-refresh/source_contract.json",
+      "chengwang/deploy/subscription-refresh/test_source_contract.py",
+      "chengwang/internal/api/subscriptions.go",
+      "chengwang/internal/authn/snapshot_manager.go",
+      "chengwang/internal/authn/snapshot_manager_linux_test.go",
+      "chengwang/internal/authn/store.go",
+      "chengwang/internal/serverruntime/runtime.go",
+      "chengwang/internal/subscription/control.go",
+      "chengwang/internal/subscription/refresh.go",
+      "chengwang/internal/subscription/refresh_test.go",
+      "chengwang/internal/subscriptionctl/contract.go",
+      "chengwang/internal/subscriptionctl/refresh.go",
+      "chengwang/internal/subscriptionctl/service.go",
+      "chengwang/internal/subscriptionctl/service_linux_test.go",
+      "chengwang/internal/subscriptionpolicy/catalog.go"
+    ],
+    "sha256": "721f12d72fe4ebd6eb6d99fb2047f7158467c4c7d21e2c6becdda8a28ecdee17"
+  },
+  "recommendation": "hold_for_evidence",
+  "workflowLabel": "hold_for_evidence",
+  "impact": {
+    "rating": "high",
+    "rationale": "The delta changes thirteen privileged authentication/subscription Go files to their official formatter afterimages and changes the dedicated source-model inventory gate. An incorrect transfer or permissive parser could invalidate Linux acceptance evidence."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "No source-visible defect was found: all thirteen Go afterimages match the official Linux normal formatter patch, parser positives and negatives are strict, and exact closures recompute. Exact-head Go/gofmt/CI execution remains absent."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "342/342 pure-CPU models pass, the actual 39-row Linux log replays byte-exactly, official format afterimages and all source pins are closed. Compilation, formatting recheck, ordinary Go execution, and fresh readback have not run on the integrated head.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The change is a source-only formatter/parser/pin delta with no migration or persistent state. Root can revert the single integration commit before any promotion."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "The exact patch, 17 paths, 508 preimage compatibility, 19 authoritative chunk identities, official 13-file formatter transformation, parser control flow, actual Linux log, source contract, historical pins, and declared CPU suites were independently inspected."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The 508 dedicated P207A lane actually failed before Go on the old inventory regex, while independent 480 Linux evidence produced the exact thirteen-file gofmt patch transferred here."
+  },
+  "statusQuoRisk": {
+    "rating": "high",
+    "rationale": "Without this delta, the dedicated lane deterministically rejects 39 passing source models as observed zero and never starts Go; the known thirteen-file format drift also blocks formatter acceptance."
+  },
+  "autoMergeExclusions": [
+    "privileged_boundary",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "affectedRuntimeRoots": [
+    ".github/workflows/chengwang-subscription-refresh.yml source-model inventory and exact source pins",
+    "chengwang/deploy/subscription-refresh source-model parser, models, and source contract",
+    "thirteen internal/api, authn, serverruntime, subscription, subscriptionctl, and subscriptionpolicy Go formatter targets",
+    "normal/profile/native/Completion/continuous source and formatter consumers"
+  ],
+  "importantCallers": [
+    "source-models -> source-and-go -> fresh workflow chain",
+    "verify_source_model_log and source_model_inventory",
+    "check_source_contract.py changedGoSources and module closure",
+    "normal/profile/native/Completion/continuous exact-source readers",
+    "root sequential application of root-apply-chunks-v3"
+  ],
+  "riskDrivers": [
+    "Thirteen large Go textual diffs are formatting-only by provenance but have not been recompiled at the integrated head",
+    "Dedicated ordinary format/compile/test/fresh evidence has not run after integration",
+    "Race and privacy-safe typed failure diagnosis remain separate open work"
+  ],
+  "protectiveFactors": [
+    "Applying the exact 276556-byte official Linux normal gofmt patch to 480 yields all thirteen candidate Go blobs exactly",
+    "The independent diagnostic patch has the same ordered changes per path and canonical section digest",
+    "Parser accepts standard module.Class.test_method plus required legacy module.Class and binds trailing method to the leading name",
+    "Mismatched method, duplicate, skip, extra, and missing result cases are rejected; actual 39-row Linux log replays exactly",
+    "Source names remain 39 with digest 83990a..., Go tops remain 486/481, and no budget or test-name change occurs",
+    "OLD_V5, BOUND_CREDENTIALS_V2, Completion policy, privacy upload allowlists, and capture-first/final-strict behavior remain unchanged"
+  ],
+  "materialBoundaries": [
+    {
+      "id": "official_format_transfer",
+      "invariant": "Candidate Go bytes must be exactly the formatter outputs observed on the immutable 480 Linux source, without semantic additions.",
+      "runtimeRoot": "thirteen changed Go paths",
+      "counterexample": "Manually approximating only the two initially highlighted files or altering a formatter hunk could leave drift or introduce semantics.",
+      "legitimateControl": "The exact official normal gofmt.patch applies cleanly to 480 and its resulting blobs equal all thirteen candidate files; normal and diagnostic evidence agree on ordered changes.",
+      "result": "supported"
+    },
+    {
+      "id": "source_model_inventory",
+      "invariant": "The gate accepts all and only the exact 39 successful expected unittest rows across standard Class.method and required legacy Class-only forms.",
+      "runtimeRoot": "verify_source_model_log and workflow source-models step",
+      "counterexample": "Ignoring the trailing method, accepting a mismatched method, or count-only checking could substitute or duplicate results.",
+      "legitimateControl": "The regex backreference binds an optional trailing method to the leading test name, recognized rows must equal the exact sorted expected set and total result-line count, and duplicate/skip/extra/missing/mismatch negatives fail.",
+      "result": "supported"
+    },
+    {
+      "id": "actual_linux_log_replay",
+      "invariant": "The parser fix must accept the captured run 40367880744 log without inventing rows.",
+      "runtimeRoot": "frozen source-models.log",
+      "counterexample": "A synthetic-only parser could still reject the actual unittest rendering or accept an alias.",
+      "legitimateControl": "The frozen 5301-byte log produces exactly 39 unique names with the pinned digest and passes final Ran/OK/no-skip checks.",
+      "result": "supported"
+    },
+    {
+      "id": "source_and_legacy_pins",
+      "invariant": "All format-induced content hashes propagate while historical trust anchors and test/budget semantics remain fixed.",
+      "runtimeRoot": "source_contract plus normal/profile/native/Completion readers",
+      "counterexample": "Updating only the dedicated changedGo map could make downstream readers stale or silently rewrite OLD_V5.",
+      "legitimateControl": "Exact source contract recomputes module825, changed24, tops486/481, foundation689/previous688; 342 CPU models pass and OLD_V5/BOUND/Completion policy pins are unchanged.",
+      "result": "supported"
+    },
+    {
+      "id": "privacy_and_capture",
+      "invariant": "Parser repair must not weaken runner-local raw streams, exact upload allowlists, or capture-first/final-strict ordering.",
+      "runtimeRoot": "dedicated workflow",
+      "counterexample": "Restoring raw failure uploads or early formatting rejection could leak output or suppress Go evidence.",
+      "legitimateControl": "Workflow delta changes parser invocation and hashes only; existing privacy/capture negatives remain in the passing 39-model suite.",
+      "result": "supported"
+    },
+    {
+      "id": "exact_head_execution",
+      "invariant": "Integrated Linux head must format cleanly, compile, pass ordinary 481-top execution, and fresh-read identically.",
+      "runtimeRoot": "dedicated source-and-go and fresh jobs",
+      "counterexample": "Static formatter provenance cannot prove compile or build-tag selection.",
+      "legitimateControl": "Pinned workflow/readers are present but the post-integration run has not occurred.",
+      "result": "unresolved"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Immutable artifacts",
+      "status": "passed",
+      "protects": "Patch, manifest, SOURCE receipt, chunk manifest, sums, and FSYNC hashes match the FINAL freeze."
+    },
+    {
+      "name": "Official formatter afterimages",
+      "status": "passed",
+      "protects": "Exact official normal gofmt.patch applied to 480 produces all 13 candidate Go blobs."
+    },
+    {
+      "name": "Strict 508 diff identity",
+      "status": "passed",
+      "protects": "The validated 508 chunk application recomputes a 292905-byte full-index diff with the exact patch SHA."
+    },
+    {
+      "name": "Parser actual-log replay",
+      "status": "passed",
+      "protects": "Frozen run 40367880744 log yields 39 unique exact names and digest 83990a795e... without aliases."
+    },
+    {
+      "name": "Pure-CPU regression suites",
+      "status": "passed",
+      "protects": "39 subscription + 266 normal + 17 native + 12 Completion + 6 continuous + 2 profile = 342/342 pass with ResourceWarning treated as error."
+    },
+    {
+      "name": "Exact source contract",
+      "status": "passed",
+      "protects": "Module825, fixture20, changed24, source486, required481, added33, foundation689 and previous688 all recompute with new hashes."
+    },
+    {
+      "name": "Exact-head Linux format/compile/ordinary/fresh",
+      "status": "skipped",
+      "protects": "No Go, gofmt, build, runtime, CI, or fresh execution was performed by this peer."
+    },
+    {
+      "name": "Race and typed failure diagnosis",
+      "status": "unavailable",
+      "protects": "This delta does not add race or a typed privacy-safe failure report and makes no such claim."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "Whether the root-integrated exact head is format-clean, compiles, passes official Linux selection and all 481 required ordinary tops, and fresh-reads identically.",
+      "decisionCritical": true
+    },
+    {
+      "summary": "Whether separate race and privacy-safe typed failure diagnostics close later.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": [
+    {
+      "question": "Does the exact root-integrated head pass the dedicated format, official Linux selection, compile, ordinary 481-top execution, bounded artifact membership, and fresh readback?",
+      "action": "Apply the authoritative 19 chunks once to the verified 508 preimages, commit as root integrator, and run the pinned dedicated Linux workflow without changing budgets or names.",
+      "outcomes": {
+        "all_required_evidence_passes": "merge",
+        "any_gate_or_artifact_member_fails": "revise"
+      }
+    }
+  ]
+}

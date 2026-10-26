@@ -65,12 +65,12 @@ type resolverConfig struct {
 }
 
 type sourceConfig struct {
-	ReferenceID   string   `json:"referenceId"`
-	Revision      uint64   `json:"revision"`
-	SecretVersion string   `json:"secretVersion"`
-	URL           string   `json:"url"`
-	AllowedCNAMEs []string `json:"allowedCnames"`
-	CAPEM         string   `json:"caPEM"`
+	ReferenceID   string         `json:"referenceId"`
+	Revision      uint64         `json:"revision"`
+	SecretVersion string         `json:"secretVersion"`
+	URL           string         `json:"url"`
+	AllowedCNAMEs []string       `json:"allowedCnames"`
+	CAPEM         string         `json:"caPEM"`
 	Refresh       *refreshConfig `json:"refresh,omitempty"`
 }
 

@@ -6,8 +6,8 @@ import (
 	"context"
 	"time"
 
-	"chengwang/internal/authz"
 	"chengwang/internal/authn"
+	"chengwang/internal/authz"
 	"chengwang/internal/control"
 	"chengwang/internal/subscription"
 )
@@ -77,7 +77,7 @@ type Command struct {
 	ApprovalID       string
 	// Automated fields are package/service inputs from trusted refresh policy;
 	// the HTTP decoder never accepts them.
-	Automated             bool `json:"-"`
+	Automated              bool   `json:"-"`
 	ApprovalSourceRevision uint64 `json:"-"`
 	ApprovalMaxAgeSeconds  uint64 `json:"-"`
 	refreshReference       authn.SnapshotRef
@@ -184,15 +184,15 @@ type RefreshIdentityProvider interface {
 }
 
 type Config struct {
-	Scope         authz.ResourceScope
-	Store         *subscription.Store      `json:"-"`
-	RefreshStore  *subscription.RefreshStore `json:"-"`
-	RefreshRecovery *subscription.RefreshRecovery `json:"-"`
-	RefreshIdentity RefreshIdentityProvider `json:"-"`
-	RefreshIdentityID string `json:"-"`
-	Audit         control.EvidenceAppender `json:"-"`
-	Policies      PolicyProvider           `json:"-"`
-	WritesEnabled bool
+	Scope             authz.ResourceScope
+	Store             *subscription.Store           `json:"-"`
+	RefreshStore      *subscription.RefreshStore    `json:"-"`
+	RefreshRecovery   *subscription.RefreshRecovery `json:"-"`
+	RefreshIdentity   RefreshIdentityProvider       `json:"-"`
+	RefreshIdentityID string                        `json:"-"`
+	Audit             control.EvidenceAppender      `json:"-"`
+	Policies          PolicyProvider                `json:"-"`
+	WritesEnabled     bool
 }
 
 func (Config) String() string   { return "subscription application configuration" }

@@ -22,15 +22,15 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 773e1ea48bf19ab160d0daf8ac78ab973bd256dfb21a7d55d666ab89b3624b56
-  CHECKER_SHA256: 7367acc0ba39c1212318e9ed2bd2c45fafd67eab0c2a8caf0e86c660374cb3cc
-  MODEL_SHA256: af2813e9db64711e5395b981ff928db1faa7b85dedfd7247c5f4d8a9e97678f2
+  CONTRACT_SHA256: 815a9d380ef26f8a3ec10fdba0158e5ca6cb86ea36b1d134c76dc777cf694751
+  CHECKER_SHA256: ba47a9b16a719851a621c635889d700cee4058b104fb1abba6044d3794245bb4
+  MODEL_SHA256: b7de989d2b4d8a0f2d75bcf508808f28a775d10abb70147ee9593f90a2c39eec
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
   EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
   MODULE_COUNT: '825'
-  MODULE_SHA256: 1153aa09c830c0ffca50f46bb8b705dced39926732a5b69aba02fc5fac631d6a
+  MODULE_SHA256: 49e3d18586920b3cd5d255e9c75cab210c415d4e4bf02144170413e4857ab908
   FIXTURE_COUNT: '20'
   FIXTURE_SHA256: 4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf
   TEST_TOP_COUNT: '486'
@@ -38,7 +38,7 @@ env:
   RUN_TOP_COUNT: '481'
   RUN_TOPS_SHA256: 34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0
   CHANGED_GO_COUNT: '24'
-  CHANGED_GO_SHA256: 710f5a6bac3d309765d4ef26cea966e34786bd2b36e1aaff80558dbb39f0b322
+  CHANGED_GO_SHA256: 851b562120606420e31d3b20ce81e177e51edb8542b8deadbbf3b4eb4ed812cf
 
 jobs:
   source-models:
@@ -54,8 +54,9 @@ jobs:
           set -euo pipefail
           python3 -B -m unittest -v test_source_contract test_go_events test_go_list > source-models.log 2>&1
           python3 - <<'PY'
-          import ast,hashlib,re
+          import ast,hashlib
           from pathlib import Path
+          import check_source_contract as source_contract_checker
           files=('test_source_contract.py','test_go_events.py','test_go_list.py')
           names=[]
           for filename in files:
@@ -66,15 +67,7 @@ jobs:
           assert len(names)==len(set(names))==39
           assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='83990a795e696af0e5962fadef2f6360f739df38e7af067a965e3cc29fdf90d1'
           text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
-          observed=[]
-          for filename in files:
-              stem=filename.removesuffix('.py')
-              observed.extend(filename+'::'+name for name in re.findall(
-                  r'^(test_[A-Za-z0-9_]+) \((?:[A-Za-z0-9_]+\.)?'+re.escape(stem)+r'\.[A-Za-z0-9_]+\) \.\.\. ok$',text,re.M))
-          assert sorted(observed)==names and len(observed)==39
-          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==['39']
-          assert re.findall(r'^OK$',text,re.M)==['OK']
-          assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
+          source_contract_checker.verify_source_model_log(text,files,names)
           print('P207A_SOURCE_MODELS=PASS count=39 go_execution_proven=false')
           PY
       - if: always()

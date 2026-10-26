@@ -288,14 +288,22 @@ func RunWith(options Options) (result error) {
 		applicationConfig := subscriptionctl.Config{Scope: authz.ResourceScope{TenantID: c.TenantID, SiteID: c.SiteID, Environment: c.Mode, ObjectType: "subscription-store", ObjectID: c.ManagementObjectID}, Store: inventory, Audit: audit, Policies: policies, WritesEnabled: c.SubscriptionWritesEnabled}
 		if c.SubscriptionRefreshEnabled {
 			refreshPath, refreshPathErr := filepath.Abs(filepath.Join(c.DataDir, "subscription-refresh-v3"))
-			if refreshPathErr != nil { return errors.New("initialize subscription refresh storage failed") }
+			if refreshPathErr != nil {
+				return errors.New("initialize subscription refresh storage failed")
+			}
 			refreshStore, refreshOpenErr := subscription.OpenRefreshStore(refreshPath)
-			if refreshOpenErr != nil { return errors.New("initialize subscription refresh storage failed") }
+			if refreshOpenErr != nil {
+				return errors.New("initialize subscription refresh storage failed")
+			}
 			closers = append(closers, refreshStore.Close)
 			refreshRecovery, refreshRecoveryErr := refreshStore.TakeRecovery()
-			if refreshRecoveryErr != nil { return errors.New("initialize subscription refresh recovery failed") }
+			if refreshRecoveryErr != nil {
+				return errors.New("initialize subscription refresh recovery failed")
+			}
 			refreshIdentity, refreshIdentityErr := authn.OpenSnapshotManager(c.IdentitiesFile, time.Now().UTC())
-			if refreshIdentityErr != nil { return errors.New("initialize subscription refresh identity failed") }
+			if refreshIdentityErr != nil {
+				return errors.New("initialize subscription refresh identity failed")
+			}
 			closers = append(closers, refreshIdentity.Close)
 			applicationConfig.RefreshStore, applicationConfig.RefreshRecovery, applicationConfig.RefreshIdentity, applicationConfig.RefreshIdentityID = refreshStore, refreshRecovery, refreshIdentity, c.SubscriptionRefreshIdentityID
 		}

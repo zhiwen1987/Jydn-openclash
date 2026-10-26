@@ -161,6 +161,36 @@ def names_digest(names: list[str]) -> str:
     return sha("\n".join(names).encode("utf-8"))
 
 
+def source_model_inventory(text: str, files: tuple[str, ...]) -> list[str]:
+    need(type(text) is str and type(files) is tuple, "source model log inputs")
+    observed: list[str] = []
+    for filename in files:
+        need(type(filename) is str and re.fullmatch(r"test_[A-Za-z0-9_]+\.py", filename) is not None,
+             "source model filename")
+        stem = filename.removesuffix(".py")
+        pattern = re.compile(
+            r"^(?P<name>test_[A-Za-z0-9_]+) \((?:[A-Za-z0-9_]+\.)?" +
+            re.escape(stem) +
+            r"\.[A-Za-z0-9_]+(?:\.(?P=name))?\) \.\.\. ok$",
+            re.M,
+        )
+        observed.extend(filename + "::" + match.group("name") for match in pattern.finditer(text))
+    return observed
+
+
+def verify_source_model_log(text: str, files: tuple[str, ...], expected: list[str]) -> None:
+    need(type(expected) is list and expected == sorted(set(expected)), "source model expected names")
+    observed = source_model_inventory(text, files)
+    result_lines = re.findall(r"^test_[A-Za-z0-9_]+ \([^\r\n()]+\) \.\.\. ok$", text, re.M)
+    need(sorted(observed) == expected and len(observed) == len(expected), "source model result inventory")
+    need(len(result_lines) == len(expected), "source model extra/unrecognized result")
+    need(re.findall(r"^Ran ([0-9]+) tests in [0-9.]+s$", text, re.M) == [str(len(expected))],
+         "source model ran count")
+    need(re.findall(r"^OK$", text, re.M) == ["OK"], "source model final status")
+    need(re.search(r"^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=", text, re.M) is None,
+         "source model failure/skip")
+
+
 def map_digest(values: dict[str, str]) -> str:
     raw = b"".join(path.encode("utf-8") + b"\0" + value.encode("ascii") + b"\n" for path, value in values.items())
     return sha(raw)

@@ -12,23 +12,33 @@ import (
 const MaxControlCommands = 4096
 
 type StoreCapacity struct {
-	CommandsUsed int `json:"commandsUsed"`
-	CommandsMax int `json:"commandsMax"`
-	CandidatesUsed int `json:"candidatesUsed"`
-	CandidatesMax int `json:"candidatesMax"`
+	CommandsUsed    int `json:"commandsUsed"`
+	CommandsMax     int `json:"commandsMax"`
+	CandidatesUsed  int `json:"candidatesUsed"`
+	CandidatesMax   int `json:"candidatesMax"`
 	DomainAuditUsed int `json:"domainAuditUsed"`
-	DomainAuditMax int `json:"domainAuditMax"`
-	EncodedBytes int `json:"encodedBytes"`
+	DomainAuditMax  int `json:"domainAuditMax"`
+	EncodedBytes    int `json:"encodedBytes"`
 	EncodedBytesMax int `json:"encodedBytesMax"`
 }
 
 func (s *Store) Capacity(scope Scope) (StoreCapacity, error) {
-	if s == nil || s.storeCore == nil { return StoreCapacity{}, fail(CodeStoreClosed) }
-	s.mu.Lock(); defer s.mu.Unlock()
-	if err := s.usable(); err != nil { return StoreCapacity{}, err }
-	if !validScope(scope) { return StoreCapacity{}, fail(CodeInputInvalid) }
-	raw, err := storeEncode(s.state); if err != nil { return StoreCapacity{}, err }
-	return StoreCapacity{CommandsUsed: len(s.state.Commands), CommandsMax: MaxControlCommands, CandidatesUsed: len(s.state.Candidates), CandidatesMax: MaxCandidates, DomainAuditUsed: len(s.state.Audit), DomainAuditMax: MaxAuditEntries, EncodedBytes:len(raw), EncodedBytesMax:MaxStoreBytes}, nil
+	if s == nil || s.storeCore == nil {
+		return StoreCapacity{}, fail(CodeStoreClosed)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.usable(); err != nil {
+		return StoreCapacity{}, err
+	}
+	if !validScope(scope) {
+		return StoreCapacity{}, fail(CodeInputInvalid)
+	}
+	raw, err := storeEncode(s.state)
+	if err != nil {
+		return StoreCapacity{}, err
+	}
+	return StoreCapacity{CommandsUsed: len(s.state.Commands), CommandsMax: MaxControlCommands, CandidatesUsed: len(s.state.Candidates), CandidatesMax: MaxCandidates, DomainAuditUsed: len(s.state.Audit), DomainAuditMax: MaxAuditEntries, EncodedBytes: len(raw), EncodedBytesMax: MaxStoreBytes}, nil
 }
 
 const refreshCheckpointPrefix = "refresh-epoch-"
@@ -36,15 +46,31 @@ const refreshCheckpointPrefix = "refresh-epoch-"
 // LatestRefreshCheckpoint uses only fields understood by the strict v1
 // reader. Commands are append-only, so the last valid marker is authoritative.
 func (s *Store) LatestRefreshCheckpoint(scope Scope) (string, string, bool, error) {
-	if s == nil || s.storeCore == nil { return "", "", false, fail(CodeStoreClosed) }
-	s.mu.Lock(); defer s.mu.Unlock()
-	if err := s.usable(); err != nil { return "", "", false, err }
-	if !validScope(scope) { return "", "", false, fail(CodeInputInvalid) }
+	if s == nil || s.storeCore == nil {
+		return "", "", false, fail(CodeStoreClosed)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.usable(); err != nil {
+		return "", "", false, err
+	}
+	if !validScope(scope) {
+		return "", "", false, fail(CodeInputInvalid)
+	}
 	var id, epoch string
-	for _,d:=range s.state.Commands { c:=d.Record;if c.Scope!=scope||!c.Acknowledged||c.Result==nil||c.Result.State!="failed"||!strings.HasPrefix(c.Result.ReferenceID,refreshCheckpointPrefix){continue};e:=strings.TrimPrefix(c.Result.ReferenceID,refreshCheckpointPrefix);if !storeHexPattern.MatchString(e){return "","",false,fail(CodeStoreUnsafe)};id,epoch=c.ID,e }
-	return id,epoch,id!="",nil
+	for _, d := range s.state.Commands {
+		c := d.Record
+		if c.Scope != scope || !c.Acknowledged || c.Result == nil || c.Result.State != "failed" || !strings.HasPrefix(c.Result.ReferenceID, refreshCheckpointPrefix) {
+			continue
+		}
+		e := strings.TrimPrefix(c.Result.ReferenceID, refreshCheckpointPrefix)
+		if !storeHexPattern.MatchString(e) {
+			return "", "", false, fail(CodeStoreUnsafe)
+		}
+		id, epoch = c.ID, e
+	}
+	return id, epoch, id != "", nil
 }
-
 
 var controlIDPattern = regexp.MustCompile(`^cmd_[a-f0-9]{32}$`)
 var controlReferencePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)

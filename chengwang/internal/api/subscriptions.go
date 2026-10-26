@@ -363,7 +363,9 @@ func (s *server) subscriptionRefreshValid(value subscription.RefreshView, source
 	if value.ClockState != subscription.RefreshClockNormal && value.ClockState != subscription.RefreshClockFrozen || value.ClockState == subscription.RefreshClockNormal && value.ClockReason != "" || value.ClockState == subscription.RefreshClockFrozen && value.ClockReason == "" || value.AttemptKey != "" && !subscriptionKey.MatchString(value.AttemptKey) || value.Fence != "" && !subscriptionHash.MatchString(value.Fence) || value.CommandID != "" && !subscriptionCommandID.MatchString(value.CommandID) || value.CandidateID != "" && !subscriptionCandidateID.MatchString(value.CandidateID) || value.CandidateDigest != "" && !subscriptionDigest.MatchString(value.CandidateDigest) {
 		return false
 	}
-	if value.StoragePending!=(value.StorageRetryCount>0)||value.StoragePending!=(!value.StorageNextRetryAt.IsZero()){return false}
+	if value.StoragePending != (value.StorageRetryCount > 0) || value.StoragePending != (!value.StorageNextRetryAt.IsZero()) {
+		return false
+	}
 	switch value.State {
 	case subscription.RefreshIdle:
 		return value.AttemptCount == 0 && value.AttemptSequence == 0 && value.AttemptKey == "" && value.Fence == "" && value.Failure == "" && !value.NextAttemptAt.IsZero() && !value.AuditRecorded && !value.StateMayHaveChanged

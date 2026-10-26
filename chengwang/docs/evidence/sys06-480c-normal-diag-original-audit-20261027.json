@@ -1,0 +1,178 @@
+{
+  "schema": "chengwang.mihomo-normal-diagnostic-original-audit/v1",
+  "status": "REJECT_NORMAL_AND_FULL_DIAGNOSTIC_ACCEPT_LIMITED_ORDINARY_AND_SINGLE_PROFILE",
+  "auditedAt": "2026-10-26T17:36:40Z",
+  "sourceHead": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+  "runs": {
+    "foundation": {
+      "runID": 40367041645,
+      "conclusion": "failure",
+      "contractsJobID": 121727478290,
+      "contractsFreshJobID": 121730002663,
+      "artifact": {
+        "id": 12670408611,
+        "name": "mihomo-foundation-contracts-40367041645-1",
+        "bytes": 313715,
+        "sha256": "f3329479e6817d61b08bc750076857dc2cef01cae27e094e29b94467b37e4c53",
+        "memberCount": 13,
+        "uncompressedBytes": 3987955,
+        "custodyBytes": 2412,
+        "custodySHA256": "6b09272f686ec542158be28a485282c5aecda9797790170fd17e2388c5a1a720"
+      },
+      "goVersion": "go1.23.12 linux/amd64",
+      "execution": {
+        "formatExit": 0,
+        "ordinaryExit": 0,
+        "raceExit": 1
+      },
+      "ordinary": {
+        "acceptedWithinScope": true,
+        "semanticPass": 2016,
+        "mandatoryTopPass": 689,
+        "skips": 0,
+        "capacityElapsedSeconds": 6.69,
+        "packageElapsedSeconds": {
+          "adapter": 0.646,
+          "mihomodeploy": 24.039,
+          "authn": 0.043,
+          "api": 0.589,
+          "serverruntime": 0.122,
+          "authz": 0.009
+        },
+        "rawBytes": 1899703,
+        "rawSHA256": "a013bb9d7fd871863285b1ff9fb782841c72929321dfea02b914a7347504c5db"
+      },
+      "race": {
+        "accepted": false,
+        "goTimeoutSeconds": 180,
+        "packageFailure": "chengwang/internal/mihomodeploy",
+        "packageElapsedSeconds": 180.038,
+        "mandatoryPass": 625,
+        "mandatoryRunning": 1,
+        "mandatoryNotStarted": 63,
+        "semanticPass": 1893,
+        "semanticRunning": 2,
+        "unfinishedTop": "TestLifecycleRecoveryTrustedCloneCanonicalGraphAndShape",
+        "unfinishedSubtest": "nil-empty-mihomodeploy.lifecycleRecoveryExecution.ArmedFailedQuiescence",
+        "capacityElapsedSeconds": 79.63,
+        "dataRaceObserved": false,
+        "rawBytes": 1799278,
+        "rawSHA256": "60652c07d90cadbcf5ee98bca9b444fe9987098c9ad77dc7a8e9de037650f5b9"
+      },
+      "format": {
+        "clean": false,
+        "patchBytes": 276556,
+        "patchSHA256": "e3805b2f9f47abf9664142971d8574ab0f1c0e7f71f7de74ab05f78240c45c34",
+        "pathCount": 13
+      }
+    },
+    "diagnostic": {
+      "runID": 40367041519,
+      "conclusion": "failure",
+      "jobs": {
+        "single": {"id": 121727587332, "conclusion": "success"},
+        "singleFresh": {"id": 121728741888, "conclusion": "success"},
+        "full": {"id": 121727587232, "conclusion": "failure"},
+        "fullFresh": {"id": 121729687335, "conclusion": "success"}
+      },
+      "artifacts": [
+        {"id": 12671101649, "name": "mihomo-capacity-profile-40367041519-1", "bytes": 328007, "sha256": "ea5b15c4342685c444359c7a26a01aebeee01cadd15764a5c8b6a7c58433663b", "memberCount": 19, "uncompressedBytes": 807090, "custodyBytes": 3441, "custodySHA256": "3e03e44539129d1507bb3c0e3b8eac3524413d240685b3966c96a9dd0cb209d0"},
+        {"id": 12670683336, "name": "mihomo-capacity-profile-fresh-40367041519-1", "bytes": 1350, "sha256": "eef9a93c791d5cbc7ef250efa7b8eaed8498c7b282d077f873548b0995ebff15", "memberCount": 1, "uncompressedBytes": 2377, "custodyBytes": 505, "custodySHA256": "9f3332c64b6844fc1b988bb450588948a0b4ad18efba0931b83dd4a027927f28"},
+        {"id": 12670742313, "name": "mihomo-capacity-profile-full-40367041519-1", "bytes": 627628, "sha256": "8cf6dd7d9c46d387161d536028f2a27339d63ad3dd5c316c59727f457a756fc4", "memberCount": 21, "uncompressedBytes": 3188166, "custodyBytes": 3914, "custodySHA256": "ec777f6ab338e76421a3693353267cad9f85fcbc1be0b47bc7e8fd18f540b751"},
+        {"id": 12671865971, "name": "mihomo-capacity-profile-full-fresh-40367041519-1", "bytes": 21941, "sha256": "88bb434f143a183d196d9d38eda37b93fee7136c1fdeb7bddaf5977cb8092961", "memberCount": 1, "uncompressedBytes": 117586, "custodyBytes": 517, "custodySHA256": "d3d854ccfa36cce880d806612c816e959100517ede69751b96b61e057c9dd0a5"}
+      ],
+      "single": {
+        "acceptedWithinScope": true,
+        "goExit": 0,
+        "casePass": true,
+        "packagePass": true,
+        "timeoutObserved": false,
+        "dataRaceObserved": false,
+        "formatClean": true,
+        "testRun": 1,
+        "testPass": 1,
+        "caseElapsedSeconds": 79.74,
+        "profileDurationSeconds": 60.138829403,
+        "profileFunctionCount": 622,
+        "profileSampleCount": 2780,
+        "reportBytes": 2377,
+        "reportSHA256": "53e208fac9c6a6e48b23eb88bbe7bde792a96abb251099966fd7cf5ff5f5a6dd",
+        "freshByteIdentical": true
+      },
+      "full": {
+        "accepted": false,
+        "originalGoExit": 1,
+        "fullGoAccepted": false,
+        "formatClean": false,
+        "mandatoryPass": 633,
+        "mandatoryUnfinished": 1,
+        "mandatoryNotStarted": 55,
+        "mandatoryFail": 0,
+        "mandatorySkipped": 0,
+        "unfinishedTop": "TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit",
+        "capacityElapsedSeconds": 78.93,
+        "goPackageTimeoutSeconds": 180,
+        "packageElapsedSeconds": 180.051,
+        "profileStopReason": "TIMER_120_SECONDS",
+        "profileMeasuredSeconds": 120.278487943,
+        "profileDurationSeconds": 120.120313415,
+        "profileFunctionCount": 1408,
+        "profileSampleCount": 5053,
+        "reportBytes": 117586,
+        "reportSHA256": "c61086d70f940367b9282164fb08dedb6a962069d589b8ee0be2ab35736a8095",
+        "freshByteIdentical": true,
+        "freshReranGo": false
+      },
+      "format": {
+        "clean": false,
+        "patchBytes": 276556,
+        "patchSHA256": "b81a7946058ad7870a3a3a736574316b4ac2640a7e07ded264c6739a29714f20",
+        "pathCount": 13
+      },
+      "readerReplay": {
+        "originalFunctionsUsed": true,
+        "windowsPurePosixLexicalAdapter": true,
+        "singleReportByteExact": true,
+        "fullReportByteExact": true,
+        "originalCLIUnmodifiedAcceptedOnWindows": false
+      }
+    }
+  },
+  "formatSections": {
+    "normalAndDiagnosticPathSetsEqual": true,
+    "orderedChangeLinesEqualPerPath": true,
+    "canonicalSortedSectionSHA256": "3580c6f477f97b9f07f2a51e77a56c425dbd14b5499c29d2a6c5ad5adbb78bf7",
+    "paths": [
+      "internal/authn/store.go",
+      "internal/authn/snapshot_manager.go",
+      "internal/authn/snapshot_manager_linux_test.go",
+      "internal/serverruntime/runtime.go",
+      "internal/api/subscriptions.go",
+      "internal/subscription/control.go",
+      "internal/subscription/refresh.go",
+      "internal/subscription/refresh_test.go",
+      "internal/subscriptionctl/contract.go",
+      "internal/subscriptionctl/refresh.go",
+      "internal/subscriptionctl/service.go",
+      "internal/subscriptionctl/service_linux_test.go",
+      "internal/subscriptionpolicy/catalog.go"
+    ],
+    "externalCandidateOverlap": {
+      "candidate": "D:/CodexData/workspace/mihomo-480c-parser-format-fix-20261027-implementation56h-v1",
+      "authnStoreOrderedChangeLinesExact": true,
+      "authnStoreChangeLineCount": 20,
+      "serverruntimeOrderedChangeLinesExact": true,
+      "serverruntimeChangeLineCount": 16
+    }
+  },
+  "safety": {
+    "jobLogsRead": false,
+    "sessionOrRolloutSearched": false,
+    "signedURLInToolArguments": false,
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "ciRerun": false,
+    "sourceTreeModified": false,
+    "productionTouched": false
+  }
+}

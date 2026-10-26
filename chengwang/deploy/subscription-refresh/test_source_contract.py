@@ -271,6 +271,29 @@ class ClosedSourceContractModels(unittest.TestCase):
         self.assertEqual(result["baselinePackageTestTopCount"], 453)
         self.assertEqual(result["baselineRequiredRunTopCount"], 448)
 
+        files = ("test_source_contract.py", "test_go_events.py")
+        names = ["test_go_events.py::test_legacy", "test_source_contract.py::test_standard"]
+        valid = (
+            "test_standard (test_source_contract.ContractTests.test_standard) ... ok\n"
+            "test_legacy (compat.test_go_events.EventTests) ... ok\n"
+            "\n----------------------------------------------------------------------\n"
+            "Ran 2 tests in 0.001s\n\nOK\n"
+        )
+        C.verify_source_model_log(valid, files, names)
+        invalid = {
+            "mismatched method": valid.replace("ContractTests.test_standard", "ContractTests.test_other"),
+            "duplicate": valid.replace("test_legacy (compat", "test_standard (test_source_contract.ContractTests.test_standard) ... ok\n"
+                                       "test_legacy (compat"),
+            "skip": valid.replace("... ok\n", "... skipped 'not run'\n", 1),
+            "extra": valid.replace("\n----------------------------------------------------------------------\n",
+                                   "test_extra (test_other.OtherTests.test_extra) ... ok\n"
+                                   "\n----------------------------------------------------------------------\n"),
+            "missing": valid.replace("test_legacy (compat.test_go_events.EventTests) ... ok\n", ""),
+        }
+        for label, log in invalid.items():
+            with self.subTest(label=label), self.assertRaises(C.ContractError):
+                C.verify_source_model_log(log, files, names)
+
     def test_deleted_source_is_rejected(self) -> None:
         self.assert_rejected(lambda: (self.root / "chengwang/internal/authz/source.go").unlink())
 

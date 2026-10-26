@@ -195,11 +195,17 @@ func (manager *SnapshotManager) AuthenticateAuthorization(header string, now tim
 // of an id or of the returned reference is not HTTP authentication.
 func (manager *SnapshotManager) TrustedPrincipal(id string, now time.Time) (authz.Principal, SnapshotRef, error) {
 	core, err := manager.lock()
-	if err != nil { return authz.Principal{}, SnapshotRef{}, err }
+	if err != nil {
+		return authz.Principal{}, SnapshotRef{}, err
+	}
 	defer core.mu.Unlock()
-	if err := core.refresh(now); err != nil { return authz.Principal{}, SnapshotRef{}, err }
+	if err := core.refresh(now); err != nil {
+		return authz.Principal{}, SnapshotRef{}, err
+	}
 	principal, err := core.store.resolvePrincipal(id, now)
-	if err != nil { return authz.Principal{}, SnapshotRef{}, err }
+	if err != nil {
+		return authz.Principal{}, SnapshotRef{}, err
+	}
 	return principal, SnapshotRef{core: core.ref}, nil
 }
 

@@ -1,0 +1,139 @@
+{
+  "schema": "chengwang.mihomo-480c-native-completion-positive-audit/v1",
+  "status": "ACTUAL_POSITIVE_PRODUCERS_PASS_FORMAT_GATE_REJECTS",
+  "sourceCommit": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+  "scope": {
+    "nativeRun": 40367041459,
+    "nativeJob": 121727594163,
+    "completionRun": 40367041780,
+    "completionJob": 121727612447,
+    "modesAudited": ["native-positive", "completion-positive"],
+    "otherModesInferred": false
+  },
+  "transport": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/github_artifact_via_git_credential.py",
+    "helperBytes": 22535,
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "gitCredentialAndRedirectLocationStayedInProcess": true,
+    "signedURLPrintedOrPersisted": false,
+    "jobLogsRead": false,
+    "initialAttempt": {
+      "status": "REJECTED_BEFORE_NETWORK",
+      "closedOutput": "INTERNAL",
+      "safeCause": "destination root did not yet exist for strict Path.resolve",
+      "recovery": "precreated the two unique empty destination roots and reran the same pinned helper"
+    }
+  },
+  "native": {
+    "artifact": {
+      "id": 12671785081,
+      "name": "mihomo-native-recovery-originals-40367041459-1",
+      "bytes": 70529,
+      "sha256": "54bf212b33235f40771baa364def67de1624a2b056853329667beed9b852c6d9",
+      "headSHA": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+      "members": 45
+    },
+    "custody": {
+      "receiptPath": "native/mihomo-native-recovery-originals-40367041459-1.custody.json",
+      "receiptBytes": 7795,
+      "receiptSHA256": "7701011e6c53348c8d7e47a33c7d47815253132891bcf5ae0757965755edcb74",
+      "independentChecks": 187,
+      "failedChecks": 0,
+      "zipCRCPathDigestExtractedBytesStable": true,
+      "originalBytesStable": true
+    },
+    "producer": {
+      "formatExit": 0,
+      "goExit": 0,
+      "attemptExit": 1,
+      "goTopRun": 1,
+      "goTopPass": 1,
+      "goPackagePass": 1,
+      "goFail": 0,
+      "goSkip": 0,
+      "goStderrBytes": 0,
+      "reportOutcome": "PASS",
+      "reportFailureCode": "NONE"
+    },
+    "checker": {
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py",
+      "bytes": 93190,
+      "sha256": "adc9a9e6914f94bf8f5aa992fd3b81ae096cad8c9018756161794ff9aee52da9",
+      "firstRejectLine": 1373,
+      "firstRejectClass": "NONEMPTY_GO_FORMAT_OUTPUTS",
+      "sourceAndExecutionGatesBeforeRejectPassed": true
+    }
+  },
+  "completion": {
+    "artifact": {
+      "id": 12669978906,
+      "name": "mihomo-native-completion-positive-originals-40367041780-1",
+      "bytes": 27975,
+      "sha256": "9362193aa21ddace8d1f22b1a3ad3070e2ce07cf84b18544d3e72521ce5199ef",
+      "headSHA": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+      "members": 39
+    },
+    "custody": {
+      "receiptPath": "completion/mihomo-native-completion-positive-originals-40367041780-1.custody.json",
+      "receiptBytes": 7273,
+      "receiptSHA256": "4562a1e15ad64637204cd49154dac70fbfba1a45cb676a69964a07bc7c22a830",
+      "independentChecks": 163,
+      "failedChecks": 0,
+      "zipCRCPathDigestExtractedBytesStable": true,
+      "originalBytesStable": true
+    },
+    "producer": {
+      "formatExit": 0,
+      "goExit": 0,
+      "attemptExit": 1,
+      "goTopRun": 1,
+      "goTopPass": 1,
+      "goPackagePass": 1,
+      "goFail": 0,
+      "goSkip": 0,
+      "goStderrBytes": 0,
+      "reportOutcome": "PASS",
+      "reportFailureCode": "NONE",
+      "commands": ["SANDBOX", "GO_VERSION", "GOFMT", "GO_TEST"],
+      "allCommandExitCodesZero": true
+    },
+    "checker": {
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py",
+      "bytes": 43539,
+      "sha256": "64a5bae94b41a86415f71c686969ce7e25ad871aa35af724703c65805fdd6564",
+      "firstRejectLine": 690,
+      "firstRejectClass": "NONEMPTY_GOFMT_PATCH",
+      "sourceReportWALGoCommandAndExecutionGatesBeforeRejectPassed": true
+    }
+  },
+  "sharedFormatPatch": {
+    "byteEqualAcrossLanes": true,
+    "bytes": 3630,
+    "sha256": "d2e8b755bf85c1be5e0904da80641ced884e6a4bdcab9a65dcf22350f5170356",
+    "paths": [
+      "chengwang/internal/authn/store.go",
+      "chengwang/internal/serverruntime/runtime.go"
+    ],
+    "nativePath": "native/mihomo-native-recovery-originals-40367041459-1/mihomo-native-recovery-public/gofmt.patch",
+    "completionPath": "completion/mihomo-native-completion-positive-originals-40367041780-1/mihomo-native-completion-positive-public/gofmt.patch"
+  },
+  "conclusion": {
+    "firstFailureStage": "FORMAT_BYTE_GATE_AFTER_SUCCESSFUL_GO_AND_REPORT",
+    "compileFailure": false,
+    "sourceBindingFailure": false,
+    "runtimeBusinessFailure": false,
+    "positiveLaneAccepted": false,
+    "freshAccepted": false,
+    "otherModesAccepted": false,
+    "fixApplied": false
+  },
+  "notPerformed": [
+    "job log retrieval",
+    "workflow rerun",
+    "local Go or gofmt",
+    "source-tree modification",
+    "R or R2 modification",
+    "production access",
+    "other-mode artifact inference"
+  ]
+}

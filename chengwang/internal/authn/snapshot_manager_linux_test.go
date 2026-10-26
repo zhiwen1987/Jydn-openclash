@@ -65,12 +65,21 @@ func snapshotAuthenticate(t *testing.T, manager *SnapshotManager, token string, 
 func TestSnapshotManagerTrustedPrincipalRevalidatesRevocationWithoutToken(t *testing.T) {
 	manager, path, _, config, now := snapshotFixture(t)
 	principal, ref, err := manager.TrustedPrincipal("snapshot-principal", now)
-	if err != nil || principal.ID != "snapshot-principal" || ref == (SnapshotRef{}) { t.Fatal("trusted source resolve failed") }
+	if err != nil || principal.ID != "snapshot-principal" || ref == (SnapshotRef{}) {
+		t.Fatal("trusted source resolve failed")
+	}
 	config.Identities[0].Disabled = true
-	raw, err := json.Marshal(config); if err != nil { t.Fatal(err) }
+	raw, err := json.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
 	replaceSnapshotFile(t, path, append(raw, '\n'))
-	if _, err = manager.CurrentPrincipal(ref, principal.ID, now.Add(time.Second)); !errors.Is(err, ErrSnapshotStale) { t.Fatal("post-fetch style revocation did not invalidate source-issued reference") }
-	if _, _, err = manager.TrustedPrincipal(principal.ID, now.Add(2*time.Second)); err == nil { t.Fatal("disabled identity resolved after replacement") }
+	if _, err = manager.CurrentPrincipal(ref, principal.ID, now.Add(time.Second)); !errors.Is(err, ErrSnapshotStale) {
+		t.Fatal("post-fetch style revocation did not invalidate source-issued reference")
+	}
+	if _, _, err = manager.TrustedPrincipal(principal.ID, now.Add(2*time.Second)); err == nil {
+		t.Fatal("disabled identity resolved after replacement")
+	}
 }
 
 func TestSnapshotManagerStableBytesKeepReferenceAndRereadEveryTime(t *testing.T) {

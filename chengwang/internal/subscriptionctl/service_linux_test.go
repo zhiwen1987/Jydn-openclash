@@ -55,7 +55,12 @@ type ctlTestPolicy struct {
 	onFetch            func(context.Context, subscription.Scope, string) (subscription.FetchResult, error)
 	bindings           []subscription.RefreshBinding
 }
-func (p *ctlTestPolicy) RefreshBindings() ([]subscription.RefreshBinding,error){p.mu.Lock();defer p.mu.Unlock();return append([]subscription.RefreshBinding(nil),p.bindings...),nil}
+
+func (p *ctlTestPolicy) RefreshBindings() ([]subscription.RefreshBinding, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]subscription.RefreshBinding(nil), p.bindings...), nil
+}
 
 func (p *ctlTestPolicy) Describe(ref string) (PolicyDescriptor, error) {
 	p.mu.Lock()
@@ -92,9 +97,23 @@ type ctlTestEnv struct {
 	p      authz.Principal
 }
 
-type ctlTestRefreshIdentity struct{principal authz.Principal; trusted,current int; currentErr error}
-func (i *ctlTestRefreshIdentity) TrustedPrincipal(id string,now time.Time)(authz.Principal,authn.SnapshotRef,error){i.trusted++;return i.principal,authn.SnapshotRef{},nil}
-func (i *ctlTestRefreshIdentity) CurrentPrincipal(ref authn.SnapshotRef,id string,now time.Time)(authz.Principal,error){i.current++;if i.currentErr!=nil{return authz.Principal{},i.currentErr};return i.principal,nil}
+type ctlTestRefreshIdentity struct {
+	principal        authz.Principal
+	trusted, current int
+	currentErr       error
+}
+
+func (i *ctlTestRefreshIdentity) TrustedPrincipal(id string, now time.Time) (authz.Principal, authn.SnapshotRef, error) {
+	i.trusted++
+	return i.principal, authn.SnapshotRef{}, nil
+}
+func (i *ctlTestRefreshIdentity) CurrentPrincipal(ref authn.SnapshotRef, id string, now time.Time) (authz.Principal, error) {
+	i.current++
+	if i.currentErr != nil {
+		return authz.Principal{}, i.currentErr
+	}
+	return i.principal, nil
+}
 
 func ctlTestOpen(t *testing.T) *ctlTestEnv {
 	t.Helper()
@@ -248,33 +267,327 @@ func TestSubscriptionAutomatedFetchRequiresFreshRevisionBoundApproval(t *testing
 	}
 }
 
-func TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore(t *testing.T){
-	e:=ctlTestOpen(t);created:=e.create("checkpoint-source-key-01");approval:=e.approved(created.SourceID,"checkpoint-approve-key-1");binding:=subscription.RefreshBinding{SourceID:created.SourceID,ReferenceID:"reference",PolicyRevision:1,ApprovalID:approval.ApprovalID,ApprovalSourceRevision:approval.Revision,IntervalSeconds:60,ApprovalTTLSeconds:600,MaxStaleSeconds:300,MaxBackoffSeconds:600};e.policy.bindings=[]subscription.RefreshBinding{binding}
-	sidecar,err:=subscription.OpenRefreshStore(filepath.Join(e.root,"refresh-v3"));if err!=nil{t.Fatal(err)};defer sidecar.Close();recovery,err:=sidecar.TakeRecovery();if err!=nil{t.Fatal(err)};machine:=authz.Principal{ID:"subscription-refresh-machine",TenantID:"tenant-a",Roles:[]authz.Role{authz.RoleSubscriptionRefresher},AllowedScopes:[]authz.ResourceScope{{TenantID:"tenant-a",SiteID:"site-a",Environment:"lab",ObjectType:"subscription-source",ObjectID:created.SourceID}}};identity:=&ctlTestRefreshIdentity{principal:machine};config:=e.config();config.RefreshStore=sidecar;config.RefreshRecovery=recovery;config.RefreshIdentity=identity;config.RefreshIdentityID=machine.ID;service,err:=New(context.Background(),config);if err!=nil{t.Fatal(err)};if err=service.ConfigureRefresh(context.Background());err!=nil{t.Fatal(err)};epoch,id,_,ready,err:=sidecar.Checkpoint();if err!=nil||!ready||id==""{t.Fatal("sidecar checkpoint was not finalized")};mainID,mainEpoch,found,err:=e.store.LatestRefreshCheckpoint(service.scope);if err!=nil||!found||mainID!=id||mainEpoch!=epoch{t.Fatal("main and sidecar checkpoint differ")}
-	if err=sidecar.RotateCheckpoint(recovery,time.Now().UTC());err!=nil{t.Fatal(err)};if err=service.ConfigureRefresh(context.Background());err!=nil{t.Fatal("explicit checkpoint rotation did not converge",err)};rotated,newID,previous,ready,err:=sidecar.Checkpoint();if err!=nil||!ready||newID==id||previous!=""||rotated==epoch{t.Fatal("rotated checkpoint was not finalized")};scheduled,err:=sidecar.Refresh(service.scope,created.SourceID,time.Now().UTC());if err!=nil{t.Fatal(err)};service.now=func()time.Time{return scheduled.NextAttemptAt.Add(time.Second)};if err=service.RefreshOnce(context.Background());err!=nil{t.Fatal("automated refresh failed",err)};completed,err:=sidecar.Refresh(service.scope,created.SourceID,service.now());if err!=nil||completed.State!=subscription.RefreshCandidateQuarantined||completed.CommandID==""||completed.CommandOwnerID!=machine.ID||completed.CommandEpoch!=rotated{t.Fatal("issuer-bound automated mapping missing")};if err=sidecar.Close();err!=nil{t.Fatal(err)};reopened,err:=subscription.OpenRefreshStore(filepath.Join(e.root,"refresh-v3"));if err!=nil{t.Fatal(err)};defer reopened.Close();reopenedRecovery,err:=reopened.TakeRecovery();if err!=nil{t.Fatal(err)};reopenedConfig:=e.config();reopenedConfig.RefreshStore=reopened;reopenedConfig.RefreshRecovery=reopenedRecovery;reopenedConfig.RefreshIdentity=identity;reopenedConfig.RefreshIdentityID=machine.ID;reopenedService,err:=New(context.Background(),reopenedConfig);if err!=nil{t.Fatal(err)};reopenedService.now=service.now;if err=reopenedService.ConfigureRefresh(context.Background());err!=nil{t.Fatal("JSON reopen lost automated classification",err)}
-	restored,err:=subscription.OpenRefreshStore(filepath.Join(e.root,"restored-refresh-v3"));if err!=nil{t.Fatal(err)};defer restored.Close();restoredRecovery,err:=restored.TakeRecovery();if err!=nil{t.Fatal(err)};restoredConfig:=e.config();restoredConfig.RefreshStore=restored;restoredConfig.RefreshRecovery=restoredRecovery;restoredConfig.RefreshIdentity=identity;restoredConfig.RefreshIdentityID=machine.ID;restoredService,err:=New(context.Background(),restoredConfig);if err!=nil{t.Fatal(err)};err=restoredService.ConfigureRefresh(context.Background());ctlTestError(t,err,CodeConflict,false)
+func TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore(t *testing.T) {
+	e := ctlTestOpen(t)
+	created := e.create("checkpoint-source-key-01")
+	approval := e.approved(created.SourceID, "checkpoint-approve-key-1")
+	binding := subscription.RefreshBinding{SourceID: created.SourceID, ReferenceID: "reference", PolicyRevision: 1, ApprovalID: approval.ApprovalID, ApprovalSourceRevision: approval.Revision, IntervalSeconds: 60, ApprovalTTLSeconds: 600, MaxStaleSeconds: 300, MaxBackoffSeconds: 600}
+	e.policy.bindings = []subscription.RefreshBinding{binding}
+	sidecar, err := subscription.OpenRefreshStore(filepath.Join(e.root, "refresh-v3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sidecar.Close()
+	recovery, err := sidecar.TakeRecovery()
+	if err != nil {
+		t.Fatal(err)
+	}
+	machine := authz.Principal{ID: "subscription-refresh-machine", TenantID: "tenant-a", Roles: []authz.Role{authz.RoleSubscriptionRefresher}, AllowedScopes: []authz.ResourceScope{{TenantID: "tenant-a", SiteID: "site-a", Environment: "lab", ObjectType: "subscription-source", ObjectID: created.SourceID}}}
+	identity := &ctlTestRefreshIdentity{principal: machine}
+	config := e.config()
+	config.RefreshStore = sidecar
+	config.RefreshRecovery = recovery
+	config.RefreshIdentity = identity
+	config.RefreshIdentityID = machine.ID
+	service, err := New(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = service.ConfigureRefresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	epoch, id, _, ready, err := sidecar.Checkpoint()
+	if err != nil || !ready || id == "" {
+		t.Fatal("sidecar checkpoint was not finalized")
+	}
+	mainID, mainEpoch, found, err := e.store.LatestRefreshCheckpoint(service.scope)
+	if err != nil || !found || mainID != id || mainEpoch != epoch {
+		t.Fatal("main and sidecar checkpoint differ")
+	}
+	if err = sidecar.RotateCheckpoint(recovery, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if err = service.ConfigureRefresh(context.Background()); err != nil {
+		t.Fatal("explicit checkpoint rotation did not converge", err)
+	}
+	rotated, newID, previous, ready, err := sidecar.Checkpoint()
+	if err != nil || !ready || newID == id || previous != "" || rotated == epoch {
+		t.Fatal("rotated checkpoint was not finalized")
+	}
+	scheduled, err := sidecar.Refresh(service.scope, created.SourceID, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.now = func() time.Time { return scheduled.NextAttemptAt.Add(time.Second) }
+	if err = service.RefreshOnce(context.Background()); err != nil {
+		t.Fatal("automated refresh failed", err)
+	}
+	completed, err := sidecar.Refresh(service.scope, created.SourceID, service.now())
+	if err != nil || completed.State != subscription.RefreshCandidateQuarantined || completed.CommandID == "" || completed.CommandOwnerID != machine.ID || completed.CommandEpoch != rotated {
+		t.Fatal("issuer-bound automated mapping missing")
+	}
+	if err = sidecar.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := subscription.OpenRefreshStore(filepath.Join(e.root, "refresh-v3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	reopenedRecovery, err := reopened.TakeRecovery()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopenedConfig := e.config()
+	reopenedConfig.RefreshStore = reopened
+	reopenedConfig.RefreshRecovery = reopenedRecovery
+	reopenedConfig.RefreshIdentity = identity
+	reopenedConfig.RefreshIdentityID = machine.ID
+	reopenedService, err := New(context.Background(), reopenedConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopenedService.now = service.now
+	if err = reopenedService.ConfigureRefresh(context.Background()); err != nil {
+		t.Fatal("JSON reopen lost automated classification", err)
+	}
+	restored, err := subscription.OpenRefreshStore(filepath.Join(e.root, "restored-refresh-v3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restored.Close()
+	restoredRecovery, err := restored.TakeRecovery()
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredConfig := e.config()
+	restoredConfig.RefreshStore = restored
+	restoredConfig.RefreshRecovery = restoredRecovery
+	restoredConfig.RefreshIdentity = identity
+	restoredConfig.RefreshIdentityID = machine.ID
+	restoredService, err := New(context.Background(), restoredConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = restoredService.ConfigureRefresh(context.Background())
+	ctlTestError(t, err, CodeConflict, false)
 }
 
-func ctlTestRefreshWorker(t *testing.T)(*ctlTestEnv,*subscription.RefreshStore,*Service,subscription.SourceView,*ctlTestRefreshIdentity){
-	t.Helper();e:=ctlTestOpen(t);created:=e.create("v5-worker-source-key-01");approval:=e.approved(created.SourceID,"v5-worker-approve-key-1");binding:=subscription.RefreshBinding{SourceID:created.SourceID,ReferenceID:"reference",PolicyRevision:1,ApprovalID:approval.ApprovalID,ApprovalSourceRevision:approval.Revision,IntervalSeconds:60,ApprovalTTLSeconds:600,MaxStaleSeconds:300,MaxBackoffSeconds:600};e.policy.bindings=[]subscription.RefreshBinding{binding};sidecar,err:=subscription.OpenRefreshStore(filepath.Join(e.root,"refresh-v3"));if err!=nil{t.Fatal(err)};t.Cleanup(func(){_ = sidecar.Close()});recovery,err:=sidecar.TakeRecovery();if err!=nil{t.Fatal(err)};machine:=authz.Principal{ID:"subscription-refresh-machine",TenantID:"tenant-a",Roles:[]authz.Role{authz.RoleSubscriptionRefresher},AllowedScopes:[]authz.ResourceScope{{TenantID:"tenant-a",SiteID:"site-a",Environment:"lab",ObjectType:"subscription-source",ObjectID:created.SourceID}}};identity:=&ctlTestRefreshIdentity{principal:machine};config:=e.config();config.RefreshStore=sidecar;config.RefreshRecovery=recovery;config.RefreshIdentity=identity;config.RefreshIdentityID=machine.ID;service,err:=New(context.Background(),config);if err!=nil{t.Fatal(err)};if err=service.ConfigureRefresh(context.Background());err!=nil{t.Fatal(err)};scheduled,err:=sidecar.Refresh(service.scope,created.SourceID,time.Now().UTC());if err!=nil{t.Fatal(err)};service.now=func()time.Time{return scheduled.NextAttemptAt.Add(time.Second)};return e,sidecar,service,created,identity
+func ctlTestRefreshWorker(t *testing.T) (*ctlTestEnv, *subscription.RefreshStore, *Service, subscription.SourceView, *ctlTestRefreshIdentity) {
+	t.Helper()
+	e := ctlTestOpen(t)
+	created := e.create("v5-worker-source-key-01")
+	approval := e.approved(created.SourceID, "v5-worker-approve-key-1")
+	binding := subscription.RefreshBinding{SourceID: created.SourceID, ReferenceID: "reference", PolicyRevision: 1, ApprovalID: approval.ApprovalID, ApprovalSourceRevision: approval.Revision, IntervalSeconds: 60, ApprovalTTLSeconds: 600, MaxStaleSeconds: 300, MaxBackoffSeconds: 600}
+	e.policy.bindings = []subscription.RefreshBinding{binding}
+	sidecar, err := subscription.OpenRefreshStore(filepath.Join(e.root, "refresh-v3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = sidecar.Close() })
+	recovery, err := sidecar.TakeRecovery()
+	if err != nil {
+		t.Fatal(err)
+	}
+	machine := authz.Principal{ID: "subscription-refresh-machine", TenantID: "tenant-a", Roles: []authz.Role{authz.RoleSubscriptionRefresher}, AllowedScopes: []authz.ResourceScope{{TenantID: "tenant-a", SiteID: "site-a", Environment: "lab", ObjectType: "subscription-source", ObjectID: created.SourceID}}}
+	identity := &ctlTestRefreshIdentity{principal: machine}
+	config := e.config()
+	config.RefreshStore = sidecar
+	config.RefreshRecovery = recovery
+	config.RefreshIdentity = identity
+	config.RefreshIdentityID = machine.ID
+	service, err := New(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = service.ConfigureRefresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	scheduled, err := sidecar.Refresh(service.scope, created.SourceID, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.now = func() time.Time { return scheduled.NextAttemptAt.Add(time.Second) }
+	return e, sidecar, service, created, identity
 }
 
-func TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage(t *testing.T){
-	for _,stage:=range []string{"bind","reservation","complete"}{t.Run(stage,func(t *testing.T){e,sidecar,service,created,identity:=ctlTestRefreshWorker(t);beforeRevision:=e.source(created.SourceID).Revision;pending:=make(chan struct{});release:=make(chan struct{});waits:=0;service.refreshRetryWait=func(ctx context.Context,_ time.Duration)bool{waits++;if waits==4{close(pending);select{case<-release:return true;case<-ctx.Done():return false}};return true};calls:=0;service.refreshStoreCall=func(got string,operation func()error)error{if got==stage{calls++;if calls<=5{return subscription.ErrRefreshCommitNotCommitted}};return operation()};done:=make(chan error,1);go func(){done<-service.RefreshOnce(context.Background())}();<-pending
-		e.policy.mu.Lock();fetchesWhilePending:=e.policy.fetches;e.policy.mu.Unlock();if stage=="bind"&&fetchesWhilePending!=0||stage!="bind"&&fetchesWhilePending!=1{t.Fatal("worker replayed or skipped network before pending stage")};_,manualErr:=service.Execute(context.Background(),e.p,Command{Kind:Create,IdempotencyKey:"v5-manual-busy-key-01",Label:"busy"});ctlTestError(t,manualErr,CodeConflict,false);read,err:=service.ReadRefresh(context.Background(),e.p,created.SourceID);if err!=nil||!read.StoragePending||read.StorageRetryCount<4||read.StorageNextRetryAt.IsZero(){t.Fatal("read model did not expose safe storage pending state")};close(release);if err=<-done;err!=nil{t.Fatal("worker did not recover exact stage",err)};e.policy.mu.Lock();fetches:=e.policy.fetches;e.policy.mu.Unlock();if calls!=6||fetches!=1||identity.current!=2{t.Fatal("stage retry replayed fetch or freshness checks")};if got:=e.source(created.SourceID).Revision;got!=beforeRevision+1{t.Fatal("stage retry replayed or lost main mutation")};completed,err:=sidecar.SnapshotRefresh(service.scope,created.SourceID,service.now());if err!=nil||completed.State!=subscription.RefreshCandidateQuarantined{t.Fatal("stage retry did not complete quarantined")};read,err=service.ReadRefresh(context.Background(),e.p,created.SourceID);if err!=nil||read.StoragePending||read.StorageRetryCount!=0||!read.StorageNextRetryAt.IsZero(){t.Fatal("storage pending status did not clear")}
-	})}
+func TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage(t *testing.T) {
+	for _, stage := range []string{"bind", "reservation", "complete"} {
+		t.Run(stage, func(t *testing.T) {
+			e, sidecar, service, created, identity := ctlTestRefreshWorker(t)
+			beforeRevision := e.source(created.SourceID).Revision
+			pending := make(chan struct{})
+			release := make(chan struct{})
+			waits := 0
+			service.refreshRetryWait = func(ctx context.Context, _ time.Duration) bool {
+				waits++
+				if waits == 4 {
+					close(pending)
+					select {
+					case <-release:
+						return true
+					case <-ctx.Done():
+						return false
+					}
+				}
+				return true
+			}
+			calls := 0
+			service.refreshStoreCall = func(got string, operation func() error) error {
+				if got == stage {
+					calls++
+					if calls <= 5 {
+						return subscription.ErrRefreshCommitNotCommitted
+					}
+				}
+				return operation()
+			}
+			done := make(chan error, 1)
+			go func() { done <- service.RefreshOnce(context.Background()) }()
+			<-pending
+			e.policy.mu.Lock()
+			fetchesWhilePending := e.policy.fetches
+			e.policy.mu.Unlock()
+			if stage == "bind" && fetchesWhilePending != 0 || stage != "bind" && fetchesWhilePending != 1 {
+				t.Fatal("worker replayed or skipped network before pending stage")
+			}
+			_, manualErr := service.Execute(context.Background(), e.p, Command{Kind: Create, IdempotencyKey: "v5-manual-busy-key-01", Label: "busy"})
+			ctlTestError(t, manualErr, CodeConflict, false)
+			read, err := service.ReadRefresh(context.Background(), e.p, created.SourceID)
+			if err != nil || !read.StoragePending || read.StorageRetryCount < 4 || read.StorageNextRetryAt.IsZero() {
+				t.Fatal("read model did not expose safe storage pending state")
+			}
+			close(release)
+			if err = <-done; err != nil {
+				t.Fatal("worker did not recover exact stage", err)
+			}
+			e.policy.mu.Lock()
+			fetches := e.policy.fetches
+			e.policy.mu.Unlock()
+			if calls != 6 || fetches != 1 || identity.current != 2 {
+				t.Fatal("stage retry replayed fetch or freshness checks")
+			}
+			if got := e.source(created.SourceID).Revision; got != beforeRevision+1 {
+				t.Fatal("stage retry replayed or lost main mutation")
+			}
+			completed, err := sidecar.SnapshotRefresh(service.scope, created.SourceID, service.now())
+			if err != nil || completed.State != subscription.RefreshCandidateQuarantined {
+				t.Fatal("stage retry did not complete quarantined")
+			}
+			read, err = service.ReadRefresh(context.Background(), e.p, created.SourceID)
+			if err != nil || read.StoragePending || read.StorageRetryCount != 0 || !read.StorageNextRetryAt.IsZero() {
+				t.Fatal("storage pending status did not clear")
+			}
+		})
+	}
 }
 
-func TestSubscriptionRefreshV5BindRetryRevalidatesFreshGrantBeforeFetch(t *testing.T){
-	e,sidecar,service,created,identity:=ctlTestRefreshWorker(t);pending:=make(chan struct{});release:=make(chan struct{});waits:=0;service.refreshRetryWait=func(ctx context.Context,_ time.Duration)bool{waits++;if waits==4{close(pending);select{case<-release:return true;case<-ctx.Done():return false}};return true};calls:=0;service.refreshStoreCall=func(stage string,operation func()error)error{if stage=="bind"{calls++;if calls<=5{return subscription.ErrRefreshCommitNotCommitted}};return operation()};done:=make(chan error,1);go func(){done<-service.RefreshOnce(context.Background())}();<-pending;identity.currentErr=authn.ErrSnapshotStale;close(release);if err:=<-done;err!=nil{t.Fatal("fresh denial did not close attempt",err)};e.policy.mu.Lock();fetches:=e.policy.fetches;e.policy.mu.Unlock();if fetches!=0||identity.current!=1{t.Fatal("stale grant reached fetch or skipped fresh check")};view,err:=sidecar.SnapshotRefresh(service.scope,created.SourceID,service.now());if err!=nil||view.State!=subscription.RefreshFailed||view.Failure!=subscription.RefreshFailureUnavailable{t.Fatal("fresh denial was not retained as retriable closed failure")}
+func TestSubscriptionRefreshV5BindRetryRevalidatesFreshGrantBeforeFetch(t *testing.T) {
+	e, sidecar, service, created, identity := ctlTestRefreshWorker(t)
+	pending := make(chan struct{})
+	release := make(chan struct{})
+	waits := 0
+	service.refreshRetryWait = func(ctx context.Context, _ time.Duration) bool {
+		waits++
+		if waits == 4 {
+			close(pending)
+			select {
+			case <-release:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+		return true
+	}
+	calls := 0
+	service.refreshStoreCall = func(stage string, operation func() error) error {
+		if stage == "bind" {
+			calls++
+			if calls <= 5 {
+				return subscription.ErrRefreshCommitNotCommitted
+			}
+		}
+		return operation()
+	}
+	done := make(chan error, 1)
+	go func() { done <- service.RefreshOnce(context.Background()) }()
+	<-pending
+	identity.currentErr = authn.ErrSnapshotStale
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal("fresh denial did not close attempt", err)
+	}
+	e.policy.mu.Lock()
+	fetches := e.policy.fetches
+	e.policy.mu.Unlock()
+	if fetches != 0 || identity.current != 1 {
+		t.Fatal("stale grant reached fetch or skipped fresh check")
+	}
+	view, err := sidecar.SnapshotRefresh(service.scope, created.SourceID, service.now())
+	if err != nil || view.State != subscription.RefreshFailed || view.Failure != subscription.RefreshFailureUnavailable {
+		t.Fatal("fresh denial was not retained as retriable closed failure")
+	}
 }
 
-func TestSubscriptionRefreshV5PendingStageCancellationPreservesRunningReservation(t *testing.T){
-	e,sidecar,service,created,_:=ctlTestRefreshWorker(t);ctx,cancel:=context.WithCancel(context.Background());entered:=make(chan struct{});once:=sync.Once{};service.refreshStoreCall=func(stage string,operation func()error)error{if stage=="complete"{return subscription.ErrRefreshCommitNotCommitted};return operation()};service.refreshRetryWait=func(ctx context.Context,_ time.Duration)bool{once.Do(func(){close(entered)});<-ctx.Done();return false};done:=make(chan error,1);go func(){done<-service.RefreshOnce(ctx)}();<-entered;read,err:=service.ReadRefresh(context.Background(),e.p,created.SourceID);if err!=nil||!read.StoragePending{t.Fatal("pending completion was not readable")};cancel();err=<-done;ctlTestError(t,err,CodeCanceled,false);view,err:=sidecar.SnapshotRefresh(service.scope,created.SourceID,service.now());if err!=nil||view.State!=subscription.RefreshRunning||view.Reservation==nil||view.StateMayHaveChanged{t.Fatal("canceled known-not-committed stage fabricated terminal state")};if _,manualErr:=service.Execute(context.Background(),e.p,Command{Kind:Create,IdempotencyKey:"v5-manual-after-cancel",Label:"after cancel"});manualErr!=nil{t.Fatal("manual admission stayed stuck after cancellation",manualErr)};read,err=service.ReadRefresh(context.Background(),e.p,created.SourceID);if err!=nil||read.StoragePending{t.Fatal("canceled pending status did not clear")}
+func TestSubscriptionRefreshV5PendingStageCancellationPreservesRunningReservation(t *testing.T) {
+	e, sidecar, service, created, _ := ctlTestRefreshWorker(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	entered := make(chan struct{})
+	once := sync.Once{}
+	service.refreshStoreCall = func(stage string, operation func() error) error {
+		if stage == "complete" {
+			return subscription.ErrRefreshCommitNotCommitted
+		}
+		return operation()
+	}
+	service.refreshRetryWait = func(ctx context.Context, _ time.Duration) bool {
+		once.Do(func() { close(entered) })
+		<-ctx.Done()
+		return false
+	}
+	done := make(chan error, 1)
+	go func() { done <- service.RefreshOnce(ctx) }()
+	<-entered
+	read, err := service.ReadRefresh(context.Background(), e.p, created.SourceID)
+	if err != nil || !read.StoragePending {
+		t.Fatal("pending completion was not readable")
+	}
+	cancel()
+	err = <-done
+	ctlTestError(t, err, CodeCanceled, false)
+	view, err := sidecar.SnapshotRefresh(service.scope, created.SourceID, service.now())
+	if err != nil || view.State != subscription.RefreshRunning || view.Reservation == nil || view.StateMayHaveChanged {
+		t.Fatal("canceled known-not-committed stage fabricated terminal state")
+	}
+	if _, manualErr := service.Execute(context.Background(), e.p, Command{Kind: Create, IdempotencyKey: "v5-manual-after-cancel", Label: "after cancel"}); manualErr != nil {
+		t.Fatal("manual admission stayed stuck after cancellation", manualErr)
+	}
+	read, err = service.ReadRefresh(context.Background(), e.p, created.SourceID)
+	if err != nil || read.StoragePending {
+		t.Fatal("canceled pending status did not clear")
+	}
 }
 
-func TestSubscriptionRefreshV5UncertainStageIsNeverRetried(t *testing.T){
-	e,_,service,_,_:=ctlTestRefreshWorker(t);calls,waits:=0,0;service.refreshStoreCall=func(stage string,operation func()error)error{calls++;return &subscription.Failure{Code:subscription.CodeCommitUncertain}};service.refreshRetryWait=func(context.Context,time.Duration)bool{waits++;return true};err:=service.retryRefreshStoreStage(context.Background(),"bind",func()error{return nil});var failure *subscription.Failure;if !errors.As(err,&failure)||failure.Code!=subscription.CodeCommitUncertain||calls!=1||waits!=0{t.Fatal("uncertain sidecar stage was retried")};e.policy.mu.Lock();fetches:=e.policy.fetches;e.policy.mu.Unlock();if fetches!=0{t.Fatal("uncertain stage replayed network")}
+func TestSubscriptionRefreshV5UncertainStageIsNeverRetried(t *testing.T) {
+	e, _, service, _, _ := ctlTestRefreshWorker(t)
+	calls, waits := 0, 0
+	service.refreshStoreCall = func(stage string, operation func() error) error {
+		calls++
+		return &subscription.Failure{Code: subscription.CodeCommitUncertain}
+	}
+	service.refreshRetryWait = func(context.Context, time.Duration) bool { waits++; return true }
+	err := service.retryRefreshStoreStage(context.Background(), "bind", func() error { return nil })
+	var failure *subscription.Failure
+	if !errors.As(err, &failure) || failure.Code != subscription.CodeCommitUncertain || calls != 1 || waits != 0 {
+		t.Fatal("uncertain sidecar stage was retried")
+	}
+	e.policy.mu.Lock()
+	fetches := e.policy.fetches
+	e.policy.mu.Unlock()
+	if fetches != 0 {
+		t.Fatal("uncertain stage replayed network")
+	}
 }
 
 func TestSubscriptionControlPreparedAuditFailureNoDomainOrFetch(t *testing.T) {
