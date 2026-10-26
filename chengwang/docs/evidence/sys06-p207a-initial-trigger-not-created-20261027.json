@@ -1,0 +1,61 @@
+{
+  "schema": "chengwang.p207a-dedicated-trigger-audit/v1",
+  "recordedAt": "2026-10-26T17:19:17.4060294Z",
+  "status": "NO_DEDICATED_RUN_CREATED_NO_ARTIFACT_AVAILABLE",
+  "repository": "zhiwen1987/Jydn-openclash",
+  "branch": {
+    "name": "codex/chengwang-p207a-refresh-20261027",
+    "remoteExists": true,
+    "commit": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+    "protected": false
+  },
+  "workflow": {
+    "path": ".github/workflows/chengwang-subscription-refresh.yml",
+    "name": "Chengwang Subscription Refresh Closed Lane",
+    "gitBlobSHA1": "3d43d58f0528153572448c5b540abab35482aa5a",
+    "bytes": 13244,
+    "branchPattern": "codex/chengwang-p207a-refresh-*",
+    "branchPatternMatches": true,
+    "pathPatterns": [
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/**"
+    ],
+    "commitDiffContainsMatchingPaths": true,
+    "presentOnDedicatedBranch": true,
+    "presentOnDefaultBranch": false,
+    "defaultBranchContentsStatus": 404,
+    "workflowDispatchAvailable": false
+  },
+  "githubMetadata": {
+    "dedicatedBranchRunCount": 0,
+    "dedicatedRunID": null,
+    "dedicatedRunStatus": "ABSENT",
+    "artifactAvailable": false,
+    "commitCheckSuiteCount": 8,
+    "dedicatedBranchCheckSuiteCount": 0,
+    "githubActionsSuitesOnlyObservedOnBranch": "codex/chengwang-mihomo-lifecycle-20261024",
+    "qualifyingPushEventObserved": false,
+    "pushEventEndpointAvailableToAudit": false
+  },
+  "cause": {
+    "proven": false,
+    "boundedBlockingFact": "NO_ACTIONS_RUN_OR_CHECK_SUITE_CREATED_FOR_DEDICATED_REF",
+    "notAttributedTo": [
+      "EVENT_DELAY",
+      "YAML_SYNTAX",
+      "PATH_FILTER",
+      "GO_FAILURE"
+    ]
+  },
+  "actionsNotTaken": [
+    "push",
+    "workflow_dispatch",
+    "rerun",
+    "cancel",
+    "artifact_download",
+    "job_log_read",
+    "source_change",
+    "local_go",
+    "production_change"
+  ]
+}
