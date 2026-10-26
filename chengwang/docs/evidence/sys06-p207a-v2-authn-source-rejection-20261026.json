@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:/CodexData/workspace/mihomo-p207a-v2-candidate-2eb7717-20261026-221500",
+    "sourceType": "patch_file",
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "head": "afterimage:ece77d1f5ff1040ac72fdbd3a8865ad4c138f27a1bf6706ca00a62ebcac6ee9c",
+    "changedFiles": [
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/subscription-refresh/check_source_contract.py",
+      "chengwang/deploy/subscription-refresh/source_contract.json",
+      "chengwang/internal/api/server.go",
+      "chengwang/internal/api/subscriptions.go",
+      "chengwang/internal/api/subscriptions_test.go",
+      "chengwang/internal/authn/snapshot_manager.go",
+      "chengwang/internal/authn/snapshot_manager_linux_test.go",
+      "chengwang/internal/authn/store.go",
+      "chengwang/internal/authz/model.go",
+      "chengwang/internal/authz/policy.go",
+      "chengwang/internal/authz/subscription.go",
+      "chengwang/internal/authz/subscription_refresh_test.go",
+      "chengwang/internal/serverruntime/runtime.go",
+      "chengwang/internal/serverruntime/subscription_config.go",
+      "chengwang/internal/serverruntime/subscription_config_test.go",
+      "chengwang/internal/subscription/control.go",
+      "chengwang/internal/subscription/refresh.go",
+      "chengwang/internal/subscription/refresh_test.go",
+      "chengwang/internal/subscription/store.go",
+      "chengwang/internal/subscriptionctl/contract.go",
+      "chengwang/internal/subscriptionctl/refresh.go",
+      "chengwang/internal/subscriptionctl/service.go",
+      "chengwang/internal/subscriptionctl/service_linux_test.go",
+      "chengwang/internal/subscriptionpolicy/catalog.go",
+      "chengwang/internal/subscriptionpolicy/catalog_access.go",
+      "chengwang/internal/subscriptionpolicy/refresh_test.go"
+    ],
+    "sha256": "17a302ca5c70522eee191d5975a8874068c8bfab74e538fad6a5b4878167ba8b"
+  },
+  "recommendation": "revise",
+  "workflowLabel": "revise",
+  "impact": {
+    "rating": "high",
+    "rationale": "The patch adds default-off automated network fetch, machine authorization, durable scheduler state, and subscription candidate import. A defect can affect credential freshness, tenant/source isolation, replay safety, or persistent admission state."
+  },
+  "regressionLikelihood": {
+    "rating": "high",
+    "rationale": "A deterministic source-visible CI regression exists: the patched legacy required-name producer observes 689 names while its workflow still requires 688. The new contract is also self-attesting and does not prove the claimed exact 700-name closure."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "The immutable patch contains 12 new top-level tests and a seven-package Linux Go job, but neither Go nor gofmt ran. The new checker validates only manifest self-consistency and subset membership, and the existing lifecycle workflow would reject the added authn top before Go.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "managed",
+    "rationale": "Refresh remains default-off and can be disabled or reverted, while its v2 sidecar is separately versioned. Once enabled it creates persistent scheduler and command/candidate records, so rollback requires preserving those records and cannot be treated as stateless."
+  },
+  "confidence": {
+    "rating": "moderate",
+    "rationale": "Patch identity, all 27 afterimages, call paths, authorization, persistence, and checker behavior were inspected directly. Confidence is capped because Go compilation, gofmt, Linux tests, race tests, and runtime/network behavior were not executed."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The changed serverruntime path constructs the refresh store and SnapshotManager, configures the subscription service, and starts RunRefresh when the explicit refresh gate is enabled."
+  },
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without this patch automatic refresh remains unavailable and v1's replay and immutable-identity flaws remain unresolved, but the current default-off/manual path avoids introducing the new automated authority."
+  },
+  "autoMergeExclusions": [
+    "privileged_boundary",
+    "persistent_state",
+    "public_contract",
+    "architecture_specific_rollout"
+  ],
+  "affectedRuntimeRoots": [
+    "serverruntime.RunWith subscription initialization and worker lifecycle",
+    "authn.SnapshotManager secure identity reread and process-bound references",
+    "subscription.RefreshStore durable scheduler sidecar",
+    "subscriptionctl.Service automated Fetch and Import path",
+    "subscriptionpolicy.Catalog approved network policy and refresh bindings",
+    "authenticated read-only subscription refresh API"
+  ],
+  "importantCallers": [
+    "serverruntime.RunWith -> subscriptionctl.New -> ConfigureRefresh -> RunRefresh",
+    "RunRefresh -> RefreshOnce -> ExecuteRefresh -> execute -> executeDomain",
+    "executeDomain Fetch -> PolicyProvider.Fetch -> SnapshotManager.CurrentPrincipal -> Store.Import",
+    "API GET refresh routes -> ListRefreshes or ReadRefresh"
+  ],
+  "riskDrivers": [
+    "Machine authorization and an external HTTPS fetch now reach persistent candidate import.",
+    "The sidecar and command store coordinate replay and crash recovery across separate durable records.",
+    "The repository-owned source contract is mutable self-attestation and conflicts with the existing 688-name workflow."
+  ],
+  "protectiveFactors": [
+    "Feature enablement is default-off and additionally requires subscription writes, policy file, identity id, TLS, and exact scope.",
+    "Only the dedicated refresher role is authorized for ActionRefreshSubscription; human roles and break-glass are denied.",
+    "Attempt keys bind persistent global sequence, retained generation, full binding seal, source, and scope; UNKNOWN is terminal.",
+    "Approval, policy material, source revision, identity SnapshotRef, RBAC, and fetched result are rechecked before Import.",
+    "Imports create quarantined candidates and do not replace the accepted candidate."
+  ],
+  "materialBoundaries": [
+    {
+      "id": "machine_authority",
+      "invariant": "Only a current source-owned dedicated refresher principal with the exact grant set may execute automated refresh.",
+      "runtimeRoot": "authn SnapshotManager and subscriptionctl ExecuteRefresh",
+      "counterexample": "A disabled, expired, role-changed, scope-changed, copied, foreign, or stale principal reaches Fetch or Import.",
+      "legitimateControl": "TrustedPrincipal obtains a process-bound reference; CurrentPrincipal rereads the secured file before Fetch and again before Import, exactRefreshPrincipal checks the sole role and exact grants, and RBAC is re-evaluated.",
+      "result": "supported"
+    },
+    {
+      "id": "attempt_replay",
+      "invariant": "No binding change, deletion/re-addition, restart, or retry may reuse an earlier attempt or command identity.",
+      "runtimeRoot": "subscription RefreshStore and subscription Store ControlIdentity",
+      "counterexample": "A changed schedule, approval, policy revision, or re-added binding resets attempt count and replays a prior command result.",
+      "legitimateControl": "Retained per-source generation, global LastSequence, full binding HMAC, sequence-bound attempt key, and one-time running recovery make identities monotonic; UNKNOWN has no next attempt.",
+      "result": "supported"
+    },
+    {
+      "id": "fetch_import_boundary",
+      "invariant": "Network content may be imported only under the same approved source/policy/revision and a fresh machine observation, and remains quarantined.",
+      "runtimeRoot": "subscriptionctl executeDomain Fetch",
+      "counterexample": "Policy material, approval, source revision, or identity changes during Fetch and stale content is admitted.",
+      "legitimateControl": "Approval and policy seal are checked before and after Fetch; fetched scope/source metadata is checked; identity and RBAC are reread immediately before Store.Import; the store enforces revision CAS and creates only a quarantined candidate. Identity observation and Import are explicitly adjacent but non-atomic.",
+      "result": "supported"
+    },
+    {
+      "id": "remote_input",
+      "invariant": "HTTP callers cannot inject worker principal, resolver, URL, refresh authority, or automated command fields.",
+      "runtimeRoot": "API subscription decoder and subscriptionctl Command",
+      "counterexample": "A client supplies Automated, approval age, SnapshotRef, URL, resolver, or identity fields in a POST body.",
+      "legitimateControl": "The API uses per-kind exact key sets and constructs Command fields manually; automated and SnapshotRef fields are not accepted by any write route, and refresh routes are GET-only.",
+      "result": "supported"
+    },
+    {
+      "id": "capacity_history",
+      "invariant": "Capacity exhaustion fails before network and never deletes admission, audit, command, or rollback history.",
+      "runtimeRoot": "RefreshOnce capacity gate and durable subscription stores",
+      "counterexample": "A full command, candidate, or audit budget triggers a Fetch and then silently evicts old records or loses rollback history.",
+      "legitimateControl": "RefreshOnce checks all three capacities before Fetch and records terminal store_limit; no archive or deletion exists. This is an acknowledged temporary fail-closed bound, not the future long-duration archive design.",
+      "result": "supported"
+    },
+    {
+      "id": "source_closure",
+      "invariant": "Repository checks independently prove the old 688-name set plus exactly 12 new names, exact affected sources, and no undeclared tests.",
+      "runtimeRoot": "chengwang-subscription-refresh workflow and lifecycle source-contract workflow",
+      "counterexample": "A change edits source_contract.json to omit an affected source or substitute names, or adds the authn test and trips the unchanged legacy 688 assertion.",
+      "legitimateControl": "The immutable artifact's patch has exactly 12 added Test functions and its actual old/new union is 700, but the committed checker only checks declared subset membership and manifest hashes supplied by the same mutable manifest.",
+      "result": "contradicted"
+    },
+    {
+      "id": "global_http_identity",
+      "invariant": "The patch must not claim that the existing HTTP authenticator gains live identity-file revocation.",
+      "runtimeRoot": "serverruntime global identity Store and refresh-only SnapshotManager",
+      "counterexample": "Operators rely on file replacement to revoke active HTTP identities without restart.",
+      "legitimateControl": "The delivery explicitly limits live reread to the refresh worker SnapshotManager and states the global HTTP Store remains immutable until restart.",
+      "result": "supported"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Exact patch identity and afterimage replay",
+      "status": "passed",
+      "protects": "The 116136-byte patch SHA matched; git apply --check --cached and git diff --check passed; all 27 candidate bytes and hashes matched afterimage.json."
+    },
+    {
+      "name": "Candidate source checker",
+      "status": "passed",
+      "protects": "It proves the currently declared 26 source hashes and that 12 declared names occur in selected files; it does not prove independent closure or old-name preservation."
+    },
+    {
+      "name": "Independent old/new name replay",
+      "status": "failed",
+      "protects": "The patched legacy required_names result is 689, not the still-required 688; the one overlap is the new authn SnapshotManager test. The old/new union is 700, but no repository gate independently pins it."
+    },
+    {
+      "name": "Go, gofmt, race, Linux integration, runtime and network validation",
+      "status": "skipped",
+      "protects": "No compile, formatting, behavioral, crash, concurrent identity replacement, timer fairness, capacity, TLS, or network evidence exists for this artifact."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "Whether all changed Go packages compile and the 12 new tests pass on Go 1.23.12/Linux.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "Whether gofmt is clean across all changed and new Go sources.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "Whether concurrent identity replacement in the small post-CurrentPrincipal/pre-Import window meets the accepted point-in-time revocation contract.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": []
+}

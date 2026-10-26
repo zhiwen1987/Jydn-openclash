@@ -1,0 +1,174 @@
+{
+  "schema": "chengwang.mihomo-fdcd-normal-diag-original-audit/v1",
+  "status": "NORMAL_REJECTED_RACE_TIMEOUT_UNKNOWN_ACCEPTED_DIAGNOSTIC_ACCEPTED_AS_DIAGNOSTIC_ONLY",
+  "source": {
+    "commit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+    "snapshot": "D:/CodexData/workspace/mihomo-fdcdcea-acceptance-iuzup2xl/repo",
+    "trackedGitBlobs": 1527,
+    "snapshotPreviouslyVerifiedClean": true,
+    "goVersionObserved": "go1.23.12 linux/amd64"
+  },
+  "runs": {
+    "normal": {
+      "runId": 40332340022,
+      "runConclusion": "failure",
+      "contractsJobId": 121604760255,
+      "contractsConclusion": "failure",
+      "contractsFreshJobId": 121607153017,
+      "contractsFreshConclusion": "failure",
+      "unknownOriginalAndFreshConclusion": "success"
+    },
+    "diagnostic": {
+      "runId": 40332340093,
+      "runConclusion": "success",
+      "profileJobId": 121604828712,
+      "profileFreshJobId": 121605932561,
+      "fullJobId": 121604828489,
+      "fullFreshJobId": 121606535083,
+      "allFourConclusions": "success"
+    }
+  },
+  "materialization": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "acceptedPeerReceiptSHA256": "91300458503baeed3afe31ec863294b2e221de06dc7fd9ea5ef245bed5e0edf7",
+    "artifactMetadataHeadMatched": true,
+    "exactSizeAndDigestMatched": true,
+    "zipCRCPathCasefoldAndBudgetsChecked": true,
+    "exclusiveNoOverwriteAndFsyncUsed": true,
+    "downloadsWereSequentialAndAtMostOncePerArtifact": true,
+    "signedLocationInDownloadCLIOrFiles": false,
+    "artifacts": [
+      {"id":12654509580,"name":"mihomo-foundation-contracts-40332340022-1","bytes":251374,"sha256":"0fc46d3238cf3b81ea5fb6b5e1f2c99f7ad4caf14bb43e5d4fe710daf5b43e2c","members":13},
+      {"id":12655470444,"name":"mihomo-unknown-originals-40332340022-1","bytes":58702,"sha256":"2e4bb3cb477c4dfb72afc3150935e965ad955ec89f41be6132c129a4180cf300","members":61},
+      {"id":12654844026,"name":"mihomo-unknown-fresh-40332340022-1","bytes":11083,"sha256":"10f71d5dff8784a0234d6b9c34a7f61b3d40a0f6ba87320d47e44ce46662b241","members":1},
+      {"id":12654079253,"name":"mihomo-capacity-profile-40332340093-1","bytes":319204,"sha256":"6192c6b9006e2f783d57fd80f38ebec704c4413c1285f76b43e035ccb2c13a39","members":19},
+      {"id":12655317731,"name":"mihomo-capacity-profile-fresh-40332340093-1","bytes":1345,"sha256":"39b9f24f9dea3b5eb662d4fd127149a706fcc3e86dec63775e81a381e0de92d6","members":1},
+      {"id":12655840555,"name":"mihomo-capacity-profile-full-40332340093-1","bytes":565490,"sha256":"20a95d074f544a0dfc657639c625f0e15f8cef4102270846d304c21d5e5119b7","members":21},
+      {"id":12654844335,"name":"mihomo-capacity-profile-full-fresh-40332340093-1","bytes":21623,"sha256":"2e8ed0a09d3a442876452d38e61f94cd0533e427bef396f09c298014cdbac562","members":1}
+    ]
+  },
+  "normal": {
+    "accepted": false,
+    "formatExit": 0,
+    "ordinaryExit": 0,
+    "raceExit": 1,
+    "gofmtPatchBytes": 0,
+    "ordinary": {
+      "checkerEventsAccepted": true,
+      "mandatoryTopLevelTests": 688,
+      "passingSemanticTests": 2004,
+      "skips": 0
+    },
+    "race": {
+      "package": "chengwang/internal/mihomodeploy",
+      "packageTerminal": "fail",
+      "packageElapsedSeconds": 180.052,
+      "panic": "test timed out after 3m0s",
+      "testStarts": 1667,
+      "testTerminals": 1666,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "unfinishedCount": 1,
+      "unfinished": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsUnissuedCopiedAndForeignCapsCannotPublish",
+      "observedStack": [
+        "validateLifecycleV3ContentsScoped lifecycle_v3.go:603",
+        "validateLifecycleV3RecordScoped lifecycle_v3.go:520",
+        "encodeLifecycleV3RecordScoped lifecycle_v3.go:310",
+        "lifecycleV3Copy lifecycle_v3_test.go:193",
+        "lifecycleVerifiedBoundsModel lifecycle_recovery_verified_bounds_test.go:67"
+      ]
+    },
+    "checkerFresh": {
+      "linuxOriginalCheckerRejected": true,
+      "freshReportCreated": false,
+      "reasonClass": "RAW_CONTRACT_INPUT_REJECTED_AFTER_RACE_TIMEOUT",
+      "evidence": "execution requires raceExit=0 and the original event set must close; observed raceExit=1 with one unfinished test"
+    },
+    "keyInputs": {
+      "execution.json": {"bytes":143,"sha256":"107f682f798c219725d81b3c1e5a1c0c6ac647693f567be730ab7114626093ad"},
+      "ordinary.json": {"bytes":1887149,"sha256":"537d1337d41dea4d8b22dbc805d38d9115d58a400654ff396b5132745a2a14ca"},
+      "race.json": {"bytes":1554307,"sha256":"aa82c33f66563022d73aa401f8ed83b6d95fd542f11476a5e09d38c3856d4415"}
+    }
+  },
+  "unknown": {
+    "accepted": true,
+    "originalVerifyRawReplayed": true,
+    "windowsAdapterBoundary": "Only POSIX file-identity/writer operations were replaced by lexical stable reads; original verify_raw and canonical encoder were used unchanged.",
+    "sourceBindings": 183,
+    "sourceGitByteEqualityChecked": true,
+    "passingSemanticTests": 34,
+    "topLevelTests": 2,
+    "unchangedHeadAndNoResendObserved": true,
+    "formatClean": true,
+    "originalFreshByteEqual": true,
+    "reportBytes": 36845,
+    "reportSHA256": "14c0d6569dca538a09fbf2877a16c7c7e0ccf25cd05658d3455a20a48b3b11dc",
+    "production": false
+  },
+  "diagnosticSingle": {
+    "acceptedAsDiagnostic": true,
+    "originalVerifyRawReplayed": true,
+    "sourceBeforeAfterByteEqual": true,
+    "sourceFiles": 1527,
+    "captureVerified": true,
+    "originalCasePassed": true,
+    "originalGoExit": 0,
+    "packageTerminal": "pass",
+    "packageTimeoutObserved": false,
+    "formatClean": true,
+    "profileDurationNanoseconds": 60114696095,
+    "profileFunctions": 600,
+    "profileSampleRecords": 2676,
+    "originalFreshByteEqual": true,
+    "reportBytes": 2377,
+    "reportSHA256": "46337a579eeb4036ffc2ef252e45f60c0328574254d092eeb8b9efcbb51ec86d",
+    "wholeCIPass": false,
+    "production": false
+  },
+  "diagnosticFull": {
+    "acceptedAsDiagnostic": true,
+    "originalVerifyRawReplayed": true,
+    "sourceBeforeAfterByteEqual": true,
+    "sourceFiles": 1527,
+    "normalBoundSources": 161,
+    "captureVerified": true,
+    "fullGoAccepted": true,
+    "originalGoExit": 0,
+    "formatClean": true,
+    "requiredCounts": {"passed":688,"failed":0,"skipped":0,"unfinished":0,"notStarted":0},
+    "mandatoryNamesSHA256": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280",
+    "observedSemanticStates": 2004,
+    "allSixPackageTimeoutFlags": false,
+    "profileStopReason": "TIMER_120_SECONDS",
+    "profileDurationNanoseconds": 120151421819,
+    "profileMeasuredDurationNanoseconds": 120247804498,
+    "profileFunctions": 1356,
+    "profileSampleRecords": 4770,
+    "profileProcessPackage": "chengwang/internal/mihomodeploy",
+    "originalFreshByteEqual": true,
+    "reportBytes": 105978,
+    "reportSHA256": "860f92ca55a17904dc85d068268057a8abbad08a72dce672293c13e01f06d2e8",
+    "wholeSixPackageCPUProfileProven": false,
+    "wholeTestDurationProfileProven": false,
+    "normal13WorkflowAccepted": false,
+    "wholeCIPass": false,
+    "production": false
+  },
+  "boundaries": {
+    "singleSampleOnly": true,
+    "diagnosticSuccessDoesNotAcceptNormal": true,
+    "diagnosticTimingDoesNotProveStablePerformanceImprovement": true,
+    "new253ProtocolCapabilityNotAssessedByTheseTwoOldWireFlows": true,
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "ciRerun": false,
+    "repositoryModified": false,
+    "productionTouched": false
+  },
+  "incidentReceipt": {
+    "path": "DOWNLOAD-INCIDENT.json",
+    "bytes": 1294,
+    "sha256": "96c75ab5e89075aebc337a2c5f12bf8419782e5a4dae5ffbb27c6c53aab2d7bf"
+  }
+}

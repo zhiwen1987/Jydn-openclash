@@ -1,0 +1,202 @@
+{
+  "schema": "chengwang.p1-pair-artifact-audit/v1",
+  "status": "CAPTURE_VERIFIED_GO_REJECTED",
+  "recordedAt": "2026-10-26T14:42:40.9239242Z",
+  "run": {
+    "id": 40339488194,
+    "attempt": 1,
+    "controllerCommit": "1e35adc8a292e5e17385cd72250f238f4ca807b8",
+    "sourceCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "workflowJobsCompletedSuccess": true,
+    "workflowStatusIsGoAcceptance": false
+  },
+  "helper": {
+    "candidate": "mihomo-git-credential-artifact-helper-20261026-native56h-v3",
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "peerReceiptSHA256": "34a92ad72b41a66fb3b17a5ae7b5e2a6afa68307927041c323656f130e968bfa",
+    "jobLogsRead": false,
+    "signedURLInArgumentsOrOutput": false
+  },
+  "artifacts": [
+    {
+      "order": "AB",
+      "jobID": 121630073712,
+      "artifactID": 12658174188,
+      "name": "mihomo-p1-pair-AB-40339488194-1",
+      "bytes": 1933579,
+      "sha256": "8a15ca98a5aefacd89ae73b3e36553fde64f9ba37ba923fd3dcdec7faf1ca1fe",
+      "members": 93,
+      "allCRCVerified": true,
+      "pathAndCasefoldVerified": true,
+      "originalBytesStable": true,
+      "metadataSHA256": "db0854edeeb3b3d62d5fd6a3f2c84bd97cc9ef8636c96343fa0c35adc3244634",
+      "custodySHA256": "e9e300d1078da95078157090c50a8cf2323291460894da1c97840c23e8e753fb",
+      "comparison": {
+        "bytes": 22543,
+        "sha256": "eb24f6885a0cbc22f19b0672304516697a95be38f916a1e7a968bb6bc34fb303"
+      }
+    },
+    {
+      "order": "BA",
+      "jobID": 121630073235,
+      "artifactID": 12657504523,
+      "name": "mihomo-p1-pair-BA-40339488194-1",
+      "bytes": 1930495,
+      "sha256": "dae87187b6dc556bdde45c65b8b34b5897192b3f9e892ad66138f0f94b8a7f03",
+      "members": 93,
+      "allCRCVerified": true,
+      "pathAndCasefoldVerified": true,
+      "originalBytesStable": true,
+      "metadataSHA256": "95c58af6fa1b931301a4560c04e6bdb052063c42de5901ff1a69de74323eb113",
+      "custodySHA256": "1cc795b89a0f9ba36453da968202ba09914f27d4c29f51c54f5a24591dec7316",
+      "comparison": {
+        "bytes": 22556,
+        "sha256": "b2f9e4e91da567b5e8c914533d563f3c729ed0d37002ffafce1f00172efaee2f"
+      }
+    }
+  ],
+  "sourceBinding": {
+    "controllerRepositoryHeadExact": true,
+    "controllerRepositoryClean": true,
+    "measurementSourceHeadExact": true,
+    "measurementSourceClean": true,
+    "trackedGoFiles": 569,
+    "aggregateSHA256": "baa2fab6e35dc560be5e7c916b4e29aa8bfd18aa90a2974d6977b302415ab68a",
+    "allGoBytesFromExactMeasurementSource": true,
+    "goVersion": "go version go1.23.12 linux/amd64",
+    "goVersionSHA256": "9f161eff18f3e12a2e622b6f0fd90d1f36e4b9b89d8516cfc67ce4442c478c6a"
+  },
+  "freshReplay": {
+    "originalCLI": {
+      "attempted": true,
+      "exit": 1,
+      "closedOutput": "P1_PAIR=REJECTED raw_input_suppressed=true",
+      "reportCreated": false,
+      "failureClass": "WINDOWS_MISSING_OS_O_NOFOLLOW_IN_POSIX_REPORT_WRITER"
+    },
+    "adapter": "IN_MEMORY_ORIGINAL_VERIFY_AND_ENCODE_NO_CHECKER_WRITE",
+    "semanticFunctionsModified": false,
+    "AB": {
+      "verifyPassed": true,
+      "freshEqualsOriginal": true,
+      "bytes": 22543,
+      "sha256": "eb24f6885a0cbc22f19b0672304516697a95be38f916a1e7a968bb6bc34fb303"
+    },
+    "BA": {
+      "verifyPassed": true,
+      "freshEqualsOriginal": true,
+      "bytes": 22556,
+      "sha256": "b2f9e4e91da567b5e8c914533d563f3c729ed0d37002ffafce1f00172efaee2f"
+    }
+  },
+  "legs": [
+    {
+      "order": "AB",
+      "leg": "A",
+      "position": 1,
+      "mode": "ORIGINAL_DEFAULT_P",
+      "captureVerified": true,
+      "formatAccepted": true,
+      "ordinaryAccepted": true,
+      "ordinaryRequiredPass": 688,
+      "ordinaryMihomoSeconds": 23.648,
+      "ordinaryCapacitySeconds": 7.30,
+      "raceAccepted": false,
+      "goAccepted": false,
+      "raceExit": 1,
+      "raceMihomoSeconds": 180.034,
+      "raceCapacitySeconds": 82.09,
+      "raceCapacityState": "pass",
+      "raceStates": {"pass": 620, "run": 1, "notStarted": 67, "fail": 0, "skip": 0},
+      "timeoutObserved": true,
+      "dataRaceWarningObserved": false,
+      "outerTimedOut": false
+    },
+    {
+      "order": "AB",
+      "leg": "B",
+      "position": 2,
+      "mode": "ONLY_P_EQUALS_1_ADDED",
+      "captureVerified": true,
+      "formatAccepted": true,
+      "ordinaryAccepted": true,
+      "ordinaryRequiredPass": 688,
+      "ordinaryMihomoSeconds": 23.546,
+      "ordinaryCapacitySeconds": 7.29,
+      "raceAccepted": false,
+      "goAccepted": false,
+      "raceExit": 1,
+      "raceMihomoSeconds": 180.033,
+      "raceCapacitySeconds": 82.78,
+      "raceCapacityState": "pass",
+      "raceStates": {"pass": 618, "run": 1, "notStarted": 69, "fail": 0, "skip": 0},
+      "timeoutObserved": true,
+      "dataRaceWarningObserved": false,
+      "outerTimedOut": false
+    },
+    {
+      "order": "BA",
+      "leg": "B",
+      "position": 1,
+      "mode": "ONLY_P_EQUALS_1_ADDED",
+      "captureVerified": true,
+      "formatAccepted": true,
+      "ordinaryAccepted": true,
+      "ordinaryRequiredPass": 688,
+      "ordinaryMihomoSeconds": 24.593,
+      "ordinaryCapacitySeconds": 7.43,
+      "raceAccepted": false,
+      "goAccepted": false,
+      "raceExit": 1,
+      "raceMihomoSeconds": 180.036,
+      "raceCapacitySeconds": 85.31,
+      "raceCapacityState": "pass",
+      "raceStates": {"pass": 587, "run": 1, "notStarted": 100, "fail": 0, "skip": 0},
+      "timeoutObserved": true,
+      "dataRaceWarningObserved": false,
+      "outerTimedOut": false
+    },
+    {
+      "order": "BA",
+      "leg": "A",
+      "position": 2,
+      "mode": "ORIGINAL_DEFAULT_P",
+      "captureVerified": true,
+      "formatAccepted": true,
+      "ordinaryAccepted": true,
+      "ordinaryRequiredPass": 688,
+      "ordinaryMihomoSeconds": 24.105,
+      "ordinaryCapacitySeconds": 7.28,
+      "raceAccepted": false,
+      "goAccepted": false,
+      "raceExit": 1,
+      "raceMihomoSeconds": 180.040,
+      "raceCapacitySeconds": 85.99,
+      "raceCapacityState": "pass",
+      "raceStates": {"pass": 586, "run": 1, "notStarted": 101, "fail": 0, "skip": 0},
+      "timeoutObserved": true,
+      "dataRaceWarningObserved": false,
+      "outerTimedOut": false
+    }
+  ],
+  "conclusion": {
+    "allCapturesVerified": true,
+    "allOrdinaryAccepted": true,
+    "allRaceAccepted": false,
+    "allGoAccepted": false,
+    "p1RemovedTimeoutInThisCampaign": false,
+    "performanceCauseProven": false,
+    "sameRunnerSameLoadProven": false,
+    "stableBenefitProven": false,
+    "currentProductHeadAccepted": false,
+    "productionChanged": false
+  },
+  "prohibitionsObserved": {
+    "localGoOrGofmtRun": false,
+    "workflowRerunOrCancel": false,
+    "jobLogsRead": false,
+    "repositoryModified": false,
+    "productionTouched": false
+  }
+}

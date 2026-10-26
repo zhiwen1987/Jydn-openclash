@@ -1,0 +1,22 @@
+{
+  "schema": "codex.github-job-log-sensitive-location-incident/v1",
+  "recordedAt": "2026-10-26T21:53:00+08:00",
+  "scope": "fdcd contracts-fresh job-log corroboration only",
+  "action": "GitHub connector fetch_workflow_job_logs was called once for job 121607153017 after artifact materialization",
+  "observedToolOutputContainedSignedDownloadLocation": true,
+  "observedToolOutputContainedCredentialValue": false,
+  "toolSessionContainsReturnedLocation": true,
+  "thisIncidentFileContainsAnyURL": false,
+  "thisIncidentFileContainsAnyCredentialOrAuthorizationValue": false,
+  "locationCopiedOrRepeated": false,
+  "locationWrittenToDiskByAuditor": false,
+  "locationPassedToAnyChildProcess": false,
+  "additionalJobLogFetchAttemptedAfterIncident": false,
+  "liveDownloadOrCredentialHelperChildRemaining": false,
+  "liveChildCheck": {
+    "checkedAt": "2026-10-26T21:52:49.0255642+08:00",
+    "matchingPythonHelperProcessCount": 0
+  },
+  "response": "No value, URL, fragment, or digest of the temporary location is retained here. No further job-log or signed-location fetch was performed.",
+  "boundary": "The seven artifact downloads themselves used the accepted credential-helper-v2 in-process redirect channel and did not place signed locations in CLI arguments, files, or helper output."
+}

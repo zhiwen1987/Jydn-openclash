@@ -1,0 +1,73 @@
+{
+  "schema": "chengwang.source-only-candidate-receipt/v1",
+  "candidate": "mihomo-fdcdcea-trusted-base-copy-candidate-20261026-identity56h-v2",
+  "createdDate": "2026-10-26",
+  "role": "identity_truth_contract",
+  "base": {
+    "commit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+    "tree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-fdcdcea-acceptance-iuzup2xl/repo"
+  },
+  "correctionChain": {
+    "v1Preserved": true,
+    "v1PatchSHA256": "ef22a0d0e6ec3ca5908d7c35aec3115b19d35131225dd56c278e11e3b12c0564",
+    "v1Issue": "json.Marshal error rejected instead of preserving the old bound-raw JSON copy",
+    "v2Correction": "Marshal error and canonical-byte mismatch both use lifecycleTrustedJSONCopy on b.core.raw"
+  },
+  "scope": {
+    "changedTrackedPaths": [
+      "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go",
+      "chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go"
+    ],
+    "productChange": "Only lifecycleVerifiedBase.copyRecord uses cloneTrustedLifecycleV3, then exact canonical-raw comparison, with bound-raw JSON fallback for Marshal error or byte mismatch.",
+    "testChange": "Only subtests were added to existing trusted-clone property top-level tests.",
+    "historyPrefixCache": false,
+    "runtimeToggle": false,
+    "production": false,
+    "rootDocumentationWorktreeModified": false
+  },
+  "equivalence": {
+    "rawAuthoritative": true,
+    "marshalErrorFallbackCovered": "verified-base-marshal-error-falls-back-to-raw",
+    "marshalErrorFixture": "Coordinated issued-base UTC year 10000 typed value; base.valid true, clone succeeds, Marshal errors, old bound raw JSON succeeds",
+    "cloneErrorPolicy": "FAIL_CLOSED",
+    "cloneErrorReachabilityReview": "No current issued-valid-base value was found where clone errors and old bound-raw JSON succeeds; nil/schema/representation/closed-graph exits were checked.",
+    "performanceClaim": "NONE"
+  },
+  "staticChecks": {
+    "gitDiffCheck": "PASS",
+    "fullPatchApplyCheckAgainstExactBase": "PASS",
+    "fullPatchReverseCheckAgainstCandidate": "PASS",
+    "changedTrackedPathCount": 2,
+    "otherGoMismatchCountAgainstExactBase": 0,
+    "utf8Strict": true,
+    "lineEndings": "LF",
+    "requiredTopLevelCountBefore": 688,
+    "requiredTopLevelCountAfter": 688,
+    "requiredNamesSHA256": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280",
+    "trustedCloneTopLevelNamesBeforeAfterEqual": true,
+    "gofmt": "NOT_RUN_PENDING_LINUX"
+  },
+  "artifacts": {
+    "fullPatchSHA256": "c7d56c855ef657754a1a94aad3ab32e37b798b5755475eb5640d9e55fbe88007",
+    "v1ToV2ReviewDeltaSHA256": "dd7f71ef83c7a1c2823d7e494539fefa610c65ace1ac250b6c74a0367381d593",
+    "designErratumSHA256": "e0aad1392612d49c29f2eca16efbc4a43c8b31c9400ccf2efc8cf5e4d97cdfc8"
+  },
+  "notRun": {
+    "go": true,
+    "gofmt": true,
+    "build": true,
+    "runtime": true,
+    "race": true,
+    "ci": true,
+    "network": true
+  },
+  "requiredNextEvidence": [
+    "independent immutable v2 full and delta source review",
+    "root-only integration on the intended branch",
+    "Linux gofmt and complete unchanged 688-name ordinary/race acceptance",
+    "fresh source, custody, canonical, publication, and CAS acceptance",
+    "paired exact-source baseline/candidate Linux measurement before any performance conclusion"
+  ],
+  "conclusion": "SOURCE_CANDIDATE_ONLY_NOT_COMPILED_NOT_RUN_NOT_PERFORMANCE_ACCEPTED"
+}

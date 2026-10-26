@@ -1,0 +1,23 @@
+{
+  "schema": "chengwang.source-only-path-manifest/v1",
+  "candidate": "mihomo-fdcdcea-trusted-base-copy-candidate-20261026-identity56h-v2",
+  "baseCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+  "changedTrackedPaths": [
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go",
+    "chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go"
+  ],
+  "files": [
+    {"path":"artifacts/after/lifecycle_recovery_store.go","bytes":61175,"sha256":"3b6e3f1c63b982ea114afcb5b618aa52bf92d8666c76c2c8824073afe65afeb7"},
+    {"path":"artifacts/after/lifecycle_trusted_clone_properties_test.go","bytes":23800,"sha256":"02495da477fa2a77ecdcbe8de649724a2d2e8dfba9b2293f4c535789f1060756"},
+    {"path":"artifacts/before/lifecycle_recovery_store.go","bytes":60855,"sha256":"0367fd638cf3995843ae9ab69ccfa11e0be4ba9c78a352f1b987c967d0782b1c"},
+    {"path":"artifacts/before/lifecycle_trusted_clone_properties_test.go","bytes":18361,"sha256":"81e5779aa6f098498bd58c5451bfedbc9d5caf1837b237f6ba1b2f2a7575427e"},
+    {"path":"artifacts/delta-v1/chengwang/internal/mihomodeploy/lifecycle_recovery_store.go","bytes":61230,"sha256":"3141698a80dc7f993c00e5c890d70980625bd964f03087f2afdc7f66dd9989b7"},
+    {"path":"artifacts/delta-v1/chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go","bytes":22359,"sha256":"758ab70ef0671e372a2caf9b67a31a2c5771be196a02e19fc87738ba268b7bc7"},
+    {"path":"artifacts/delta-v2/chengwang/internal/mihomodeploy/lifecycle_recovery_store.go","bytes":61175,"sha256":"3b6e3f1c63b982ea114afcb5b618aa52bf92d8666c76c2c8824073afe65afeb7"},
+    {"path":"artifacts/delta-v2/chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go","bytes":23800,"sha256":"02495da477fa2a77ecdcbe8de649724a2d2e8dfba9b2293f4c535789f1060756"},
+    {"path":"artifacts/DESIGN-ERRATUM-v2.md","bytes":2617,"sha256":"e0aad1392612d49c29f2eca16efbc4a43c8b31c9400ccf2efc8cf5e4d97cdfc8"},
+    {"path":"artifacts/SOURCE-RECEIPT.json","bytes":3464,"sha256":"cf6d6b1b2f83156f2ac1c1681e1461700805183e46e0e57d967823a446aa29e0"},
+    {"path":"artifacts/trusted-base-copy-v2-full.patch","bytes":7795,"sha256":"c7d56c855ef657754a1a94aad3ab32e37b798b5755475eb5640d9e55fbe88007"},
+    {"path":"artifacts/v1-to-v2.patch","bytes":3138,"sha256":"dd7f71ef83c7a1c2823d7e494539fefa610c65ace1ac250b6c74a0367381d593"}
+  ]
+}

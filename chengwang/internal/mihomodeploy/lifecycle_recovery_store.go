@@ -138,12 +138,19 @@ func (b *lifecycleVerifiedBase) copyRecord() (lifecycleV3Record, error) {
 		return lifecycleV3Record{}, errLifecycleUnsafe
 	}
 	// These exact bytes came from full external canonical/semantic validation.
-	// Typed decoding detaches all pointers/slices without validating them twice.
-	var w lifecycleV3Wire
-	if json.Unmarshal(b.core.raw, &w) != nil {
+	// The closed typed clone detaches all pointers/slices without decoding the
+	// unchanged JSON again. Preserve the old raw-authoritative result if a
+	// private typed representation changed after issuance or needs JSON's
+	// representation normalization.
+	draft, err := cloneTrustedLifecycleV3(b.core.record, b.core.raw)
+	if err != nil {
 		return lifecycleV3Record{}, errLifecycleUnsafe
 	}
-	return lifecycleV3Record{core: &w}, nil
+	canonical, err := json.Marshal(draft.core)
+	if err != nil || !bytes.Equal(canonical, b.core.raw) {
+		return lifecycleTrustedJSONCopy(b.core.raw)
+	}
+	return draft, nil
 }
 
 func (lifecycleRecoveryStore) String() string   { return lifecycleRecoveryDebug }

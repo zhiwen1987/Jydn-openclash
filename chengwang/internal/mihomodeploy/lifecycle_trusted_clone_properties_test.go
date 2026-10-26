@@ -256,6 +256,112 @@ func TestLifecycleRecoveryTrustedCloneCanonicalGraphAndShape(t *testing.T) {
 	if !bytes.Equal(before, lifecycleClonePropertyRaw(t, in.core)) {
 		t.Fatal("MODEL clone mutations changed source graph")
 	}
+	t.Run("verified-base-copy-matches-original-json", func(t *testing.T) {
+		s, disk, base, _, _ := lifecycleRecoveryTransactionModel(t)
+		defer base.release()
+		raw := bytes.Clone(base.core.raw)
+		old := lifecycleClonePropertyOldCopy(t, raw)
+		draft, err := base.copyRecord()
+		if err != nil || draft.core == nil || !reflect.DeepEqual(draft.core, old.core) {
+			t.Fatal("MODEL verified-base clone differs from original JSON copy")
+		}
+		oldCanonical := lifecycleClonePropertyRaw(t, old.core)
+		draftCanonical := lifecycleClonePropertyRaw(t, draft.core)
+		oldHash, oldErr := lifecycleV3RecordHash(*old.core)
+		draftHash, draftErr := lifecycleV3RecordHash(*draft.core)
+		if oldErr != nil || draftErr != nil || oldHash != draftHash || !bytes.Equal(oldCanonical, draftCanonical) || !bytes.Equal(draftCanonical, raw) {
+			t.Fatal("MODEL verified-base clone changed canonical bytes or record hash")
+		}
+		if len(draft.core.SourceV2.ControlBytes) == 0 || len(draft.core.Current.Head.Artifact.Config.Capabilities) == 0 {
+			t.Fatal("MODEL detached-storage fixture incomplete")
+		}
+		sourceBytes := bytes.Clone(base.core.record.core.SourceV2.ControlBytes)
+		sourceCapability := base.core.record.core.Current.Head.Artifact.Config.Capabilities[0]
+		draft.core.SourceV2.ControlBytes[0] ^= 1
+		draft.core.Current.Head.Artifact.Config.Capabilities[0] = "MODEL_detached"
+		if !bytes.Equal(sourceBytes, base.core.record.core.SourceV2.ControlBytes) || base.core.record.core.Current.Head.Artifact.Config.Capabilities[0] != sourceCapability ||
+			!reflect.DeepEqual(s.core.record.core, base.core.record.core) || !bytes.Equal(raw, base.core.raw) || disk.writes != 0 {
+			t.Fatal("MODEL verified-base draft shares mutable storage or changed custody")
+		}
+	})
+	t.Run("verified-base-coordinated-typed-change-falls-back-to-raw", func(t *testing.T) {
+		s, disk, base, _, _ := lifecycleRecoveryTransactionModel(t)
+		defer base.release()
+		raw := bytes.Clone(base.core.raw)
+		old := lifecycleClonePropertyOldCopy(t, raw)
+		s.core.record.core.Current.Owner.OwnerNonce = "MODEL_coordinated_typed_change"
+		base.core.record.core.Current.Owner.OwnerNonce = "MODEL_coordinated_typed_change"
+		if !base.valid(s.core) {
+			t.Fatal("MODEL coordinated typed change did not reach raw fallback")
+		}
+		draft, err := base.copyRecord()
+		if err != nil || !reflect.DeepEqual(draft.core, old.core) || reflect.DeepEqual(draft.core, base.core.record.core) || !bytes.Equal(raw, base.core.raw) || disk.writes != 0 {
+			t.Fatal("MODEL coordinated typed change replaced the raw-authoritative draft")
+		}
+	})
+	t.Run("verified-base-marshal-error-falls-back-to-raw", func(t *testing.T) {
+		s, disk, base, _, _ := lifecycleRecoveryTransactionModel(t)
+		defer base.release()
+		raw := bytes.Clone(base.core.raw)
+		old := lifecycleClonePropertyOldCopy(t, raw)
+		outsideJSONTime := time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)
+		s.core.record.core.LastTrustedAt = outsideJSONTime
+		base.core.record.core.LastTrustedAt = outsideJSONTime
+		if !base.valid(s.core) {
+			t.Fatal("MODEL coordinated time change did not reach marshal-error fallback")
+		}
+		typed, cloneErr := cloneTrustedLifecycleV3(base.core.record, raw)
+		if cloneErr != nil {
+			t.Fatal("MODEL coordinated time change failed before marshal boundary")
+		}
+		if _, marshalErr := json.Marshal(typed.core); marshalErr == nil {
+			t.Fatal("MODEL coordinated time change did not exercise marshal error")
+		}
+		draft, err := base.copyRecord()
+		if err != nil || draft.core == nil {
+			t.Fatal("MODEL marshal error did not return the old raw-authoritative JSON copy")
+		}
+		oldHash, oldErr := lifecycleV3RecordHash(*old.core)
+		draftHash, draftErr := lifecycleV3RecordHash(*draft.core)
+		if oldErr != nil || draftErr != nil || oldHash != draftHash ||
+			!reflect.DeepEqual(draft.core, old.core) || !bytes.Equal(lifecycleClonePropertyRaw(t, draft.core), raw) || !bytes.Equal(base.core.raw, raw) || disk.writes != 0 {
+			t.Fatal("MODEL marshal error changed the old raw-authoritative JSON copy")
+		}
+	})
+	t.Run("verified-base-capability-boundaries", func(t *testing.T) {
+		t.Run("foreign-store", func(t *testing.T) {
+			_, _, base, draft, now := lifecycleRecoveryTransactionModel(t)
+			defer base.release()
+			foreign, disk, _, _ := lifecycleRecoveryModelStore(t)
+			if foreign.core.commitWithBase(base, draft, now) == nil || disk.writes != 0 {
+				t.Fatal("MODEL foreign store accepted issued base or wrote disk")
+			}
+		})
+		t.Run("spent-base", func(t *testing.T) {
+			_, disk, base, _, _ := lifecycleRecoveryTransactionModel(t)
+			defer base.release()
+			base.core.used = true
+			if _, err := base.copyRecord(); err == nil || disk.writes != 0 {
+				t.Fatal("MODEL spent base produced a draft or wrote disk")
+			}
+		})
+		t.Run("generation-binding", func(t *testing.T) {
+			s, disk, _, _ := lifecycleRecoveryModelStore(t)
+			s.core.validationGeneration++
+			if _, err := s.core.verifiedBase(); err == nil || !s.core.poisoned || disk.writes != 0 {
+				t.Fatal("MODEL changed validation generation issued a base or wrote disk")
+			}
+		})
+		t.Run("disk-change-after-copy", func(t *testing.T) {
+			s, disk, base, draft, now := lifecycleRecoveryTransactionModel(t)
+			defer base.release()
+			disk.raw = append(bytes.Clone(disk.raw), ' ')
+			writes := disk.writes
+			if s.core.commitWithBase(base, draft, now) == nil || !s.core.poisoned || disk.writes != writes {
+				t.Fatal("MODEL changed disk image published or escaped poisoning")
+			}
+		})
+	})
 	for _, slot := range slots {
 		t.Run("nil-empty-"+slot.name, func(t *testing.T) {
 			// Only allocate the selected path, rather than cloning the complete

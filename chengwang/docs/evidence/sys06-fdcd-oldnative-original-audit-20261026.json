@@ -1,0 +1,357 @@
+{
+  "artifacts": {
+    "count": 9,
+    "metadata": {
+      "candidate": {
+        "digest": "sha256:49652fd0793d3cd0eb8f37b9083e41604d42bede24091373cf8249d603fc4b14",
+        "expired": false,
+        "id": 12655103611,
+        "name": "mihomo-native-candidate-consumption-40332339926-1",
+        "size_in_bytes": 3140,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "not-committed-fresh": {
+        "digest": "sha256:0158d39a4c57014bdf1171894bfb3b4c94ac4364b725b03e075bd0ad81fcc11d",
+        "expired": false,
+        "id": 12653744839,
+        "name": "mihomo-native-recovery-not-committed-fresh-40332339926-1",
+        "size_in_bytes": 12102,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "not-committed-originals": {
+        "digest": "sha256:42517f0bd40128d601ad958b4fd45a91565dfec49a14053a5ffeaad637f6edc0",
+        "expired": false,
+        "id": 12655331709,
+        "name": "mihomo-native-recovery-not-committed-originals-40332339926-1",
+        "size_in_bytes": 81510,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "positive-fresh": {
+        "digest": "sha256:df7bed2419b34c2976c75ebf307b543d065926c0bc00ce2b80f7a9243430deb7",
+        "expired": false,
+        "id": 12654709243,
+        "name": "mihomo-native-recovery-fresh-40332339926-1",
+        "size_in_bytes": 12072,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "positive-originals": {
+        "digest": "sha256:6e997bf91faa012ab0d4f154bb914d5e6e0f208860a49c678c99d8e63d7cd835",
+        "expired": false,
+        "id": 12655671097,
+        "name": "mihomo-native-recovery-originals-40332339926-1",
+        "size_in_bytes": 81575,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "readback-fresh": {
+        "digest": "sha256:eb44c287b9b0a53bba9fadf3f70fae70065ec5864c82be5cc0164243f62b3f4b",
+        "expired": false,
+        "id": 12654564306,
+        "name": "mihomo-native-recovery-readback-fresh-40332339926-1",
+        "size_in_bytes": 12085,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "readback-originals": {
+        "digest": "sha256:bf7c6439e98e37029c3d5f66a82f1e187bcc0379c5979324e671e02fae7c88f1",
+        "expired": false,
+        "id": 12654479344,
+        "name": "mihomo-native-recovery-readback-originals-40332339926-1",
+        "size_in_bytes": 81457,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "unknown-fresh": {
+        "digest": "sha256:e59aa579e9bb04fa6ba1de813be4ce84778448d1e9210dc8bfb59be11db0fd39",
+        "expired": false,
+        "id": 12655158485,
+        "name": "mihomo-native-recovery-unknown-fresh-40332339926-1",
+        "size_in_bytes": 12081,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      },
+      "unknown-originals": {
+        "digest": "sha256:ea44c98be7486f3d72ff47e27ca92932899725f7d7f38fbb34b5d3b57f90657c",
+        "expired": false,
+        "id": 12654579295,
+        "name": "mihomo-native-recovery-unknown-originals-40332339926-1",
+        "size_in_bytes": 81367,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332339926
+        }
+      }
+    },
+    "originalsOfflineCustodyReceiptSHA256": "9d542a164a0d7dcb8f36d415fd7f947f6943cb430a44a47b2d69f1210d323444",
+    "zipMembers": 192
+  },
+  "assessment": "ACCEPT_EXACT_HEAD_ISOLATED_NATIVE_S2_EVIDENCE",
+  "candidate": {
+    "bytes": 2025,
+    "independentByteEqual": true,
+    "production": false,
+    "runtimeExecuted": false,
+    "sha256": "cb4b646fe5c6eb82804793b6da3d6f52abc5e8d925ff1adf8967a8e4c227b346",
+    "state": "PINNED_GZIP_EXPANDED_NOT_EXECUTED"
+  },
+  "method": {
+    "ciRerun": false,
+    "localGoOrGofmtExecuted": false,
+    "pureCheckerVerifyRawUsed": true,
+    "repositoryModified": false,
+    "windowsPOSIXWriterMainUsed": false
+  },
+  "modes": {
+    "not-committed": {
+      "actualRecoveryResponseBodies": 8,
+      "attemptExit": 0,
+      "closedPortsCount": 5,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "controllerReceivedCount": null,
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 32188,
+        "sha256": "9c5eabaeab9268453cab4e8a7142c93897be450b572d15066188ac57e5bb4c27"
+      },
+      "functionalCheckerReplay": "PASS",
+      "go": {
+        "events": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0
+      },
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "outcome": "PASS",
+        "verificationMode": "not-committed"
+      },
+      "scope": {
+        "completionProven": false,
+        "fullPrivateWALIndependentlyProven": false,
+        "httpRecoveryProven": false,
+        "production": false
+      },
+      "sourceBeforeAfterByteEqual": true,
+      "sourceCount": 199
+    },
+    "positive": {
+      "actualRecoveryResponseBodies": 8,
+      "attemptExit": 0,
+      "closedPortsCount": 5,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "controllerReceivedCount": null,
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 32177,
+        "sha256": "08bc956d0d5def8a1ffb69b0617c95ac3b6655c13261c8a5c0ee34023f446f73"
+      },
+      "functionalCheckerReplay": "PASS",
+      "go": {
+        "events": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0
+      },
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "outcome": "PASS",
+        "verificationMode": "positive"
+      },
+      "scope": {
+        "completionProven": false,
+        "fullPrivateWALIndependentlyProven": false,
+        "httpRecoveryProven": false,
+        "production": false
+      },
+      "sourceBeforeAfterByteEqual": true,
+      "sourceCount": 199
+    },
+    "readback": {
+      "actualRecoveryResponseBodies": 8,
+      "attemptExit": 0,
+      "closedPortsCount": 5,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "controllerReceivedCount": null,
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 32177,
+        "sha256": "272e7c02a760b1c06c193c5ac1dc80b309a20bad00bf70baa21c20e0e19a4b67"
+      },
+      "functionalCheckerReplay": "PASS",
+      "go": {
+        "events": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0
+      },
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "outcome": "PASS",
+        "verificationMode": "readback"
+      },
+      "scope": {
+        "completionProven": false,
+        "fullPrivateWALIndependentlyProven": false,
+        "httpRecoveryProven": false,
+        "production": false
+      },
+      "sourceBeforeAfterByteEqual": true,
+      "sourceCount": 199
+    },
+    "unknown": {
+      "actualRecoveryResponseBodies": 8,
+      "attemptExit": 0,
+      "closedPortsCount": 5,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "controllerReceivedCount": null,
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 32175,
+        "sha256": "2a037ea90ac0eb7c590199cd8e3a7f211e646bdcf591559629da0c3c6446c545"
+      },
+      "functionalCheckerReplay": "PASS",
+      "go": {
+        "events": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0
+      },
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "outcome": "PASS",
+        "verificationMode": "unknown"
+      },
+      "scope": {
+        "completionProven": false,
+        "fullPrivateWALIndependentlyProven": false,
+        "httpRecoveryProven": false,
+        "production": false
+      },
+      "sourceBeforeAfterByteEqual": true,
+      "sourceCount": 199
+    }
+  },
+  "reviewerRole": "implementation56h",
+  "runId": 40332339926,
+  "schema": "chengwang.mihomo-native-recovery-exact-head-independent-audit/v2",
+  "scope": {
+    "completion": false,
+    "fullPrivateWAL": false,
+    "httpRecovery": false,
+    "oldNativeS2Only": true,
+    "ordinaryPublish": false,
+    "production": false,
+    "secondRecovery": false
+  },
+  "snapshot": {
+    "clean": true,
+    "path": "D:\\CodexData\\workspace\\mihomo-fdcdcea-acceptance-iuzup2xl\\repo",
+    "trackedGitBlobPathsVerifiedByRoot": 1527
+  },
+  "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+  "transport": {
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "serial": true,
+    "signedRedirectPersistedOrLogged": false
+  }
+}

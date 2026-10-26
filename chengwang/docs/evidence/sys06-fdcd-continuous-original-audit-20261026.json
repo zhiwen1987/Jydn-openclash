@@ -1,0 +1,190 @@
+{
+  "artifactCount": 4,
+  "artifactMemberCount": 72,
+  "artifacts": [
+    {
+      "bytes": 2718,
+      "id": 12654209795,
+      "members": 6,
+      "name": "mihomo-continuous-fault-model-40332339997-1",
+      "sha256": "ba2b1ff6850bb8bab5edc928b4206826956a1f95d6686bef0cb044ee9580e21d"
+    },
+    {
+      "bytes": 5111,
+      "id": 12654579251,
+      "members": 8,
+      "name": "mihomo-continuous-bound-credentials-model-40332339997-1",
+      "sha256": "356dc165429c4d1647ffcd38ecf92fb379afc66b0ac513dc5d3df0375a680831"
+    },
+    {
+      "bytes": 55481,
+      "id": 12654499420,
+      "members": 57,
+      "name": "mihomo-continuous-recovery-api-originals-40332339997-1",
+      "sha256": "9d8192c134a1d656996263866ec5ae0abb5f1b9e49d4db7c9a799cd666f4c0a7"
+    },
+    {
+      "bytes": 646,
+      "id": 12655731265,
+      "members": 1,
+      "name": "mihomo-continuous-recovery-api-fresh-40332339997-1",
+      "sha256": "562008f9a0f074663364a277d1224d07e4f68c7d6e0bd5104e922e5c5c257e39"
+    }
+  ],
+  "fresh": {
+    "accepted": true,
+    "byteEqualToOriginalVerification": true,
+    "bytes": 871,
+    "sha256": "1056991f58d14820a51059fa01c2e6a35b81bb94c93bf5abb5442979292e2bb9"
+  },
+  "helperBoundary": {
+    "boundedOfflineCustodyFallback": true,
+    "downloadHelper": "github_artifact_via_git_credential.py v2",
+    "httpOfflineMaterializer": "REJECTED_UNSUPPORTED_DOT_EXIT_SUFFIX",
+    "signedURLPersistedOrLogged": false
+  },
+  "https": {
+    "accepted": true,
+    "attemptExit": 0,
+    "commandCount": 4,
+    "contractSchema": "chengwang.mihomo-continuous-recovery-contract/v2",
+    "deliveryPathCount": 33,
+    "faultObservationSchema": "chengwang.mihomo-continuous-recovery-response-loss/v2",
+    "formatPatchBytes": 0,
+    "formatPathCount": 19,
+    "formatStderrBytes": 0,
+    "go": {
+      "count": 1,
+      "eachOneRunOnePass": true,
+      "eventSHA256": "645b366e2d7bf7c6f96a0adb546864c11776ffc759ba87cb0ce9f9a7d79992d4",
+      "fail": 0,
+      "nameSetSHA256": "440eec64aa0ec1657157ad3cce69150849b5e8bb0ffab68d235342a21511ae83",
+      "names": [
+        "TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery"
+      ],
+      "packagePass": true,
+      "skip": 0
+    },
+    "goStderrBytes": 0,
+    "httpIndexEntries": 31,
+    "httpIndexSchema": "chengwang.mihomo-continuous-recovery-http-originals/v2",
+    "httpResponses": 31,
+    "lossObservationExact": true,
+    "originalCheckerByteExact": true,
+    "originalVerificationBytes": 871,
+    "originalVerificationSHA256": "1056991f58d14820a51059fa01c2e6a35b81bb94c93bf5abb5442979292e2bb9",
+    "passObservationExactNull": true,
+    "privacyBoundary": "Exported originals and zero attempt exit prove both source-ordered fence calls returned; private inventory contents were not exported or independently decoded.",
+    "privacyFencesReachedBeforeExport": true,
+    "privateFsyncEntries": 3,
+    "processEventCount": 16,
+    "reportOutcome": "PASS",
+    "reportSchema": "chengwang.mihomo-continuous-recovery-http-experiment/v3",
+    "sourceOwnedCancelKillPairObserved": true
+  },
+  "models": {
+    "accepted": true,
+    "boundAuthn": {
+      "count": 27,
+      "eachOneRunOnePass": true,
+      "eventSHA256": "75c90e0f0800ad013c594785ce056d5f4da3ee2608cd34e863edf48d7624dd67",
+      "fail": 0,
+      "nameSetSHA256": "6dd87037378086eda87c0a79d5e964cb2fc7bf92ff8e005d33e5f6ddfb04aa45",
+      "names": [
+        "TestContinuousRecoveryBoundCredentialsV2MODEL",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/activity_windows_and_duplicate_hashes_fail_closed",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/activity_windows_and_duplicate_hashes_fail_closed/disabled",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/activity_windows_and_duplicate_hashes_fail_closed/expired",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/activity_windows_and_duplicate_hashes_fail_closed/future",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/atomic_replacement_invalidates_and_reverted_bytes_do_not_revive_refs",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/errors_remain_static_and_do_not_expose_credential_material",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/one_stable_snapshot_seeds_API_store_and_freshness_manager",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/disabled-null",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/disabled-string",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/duplicate-hash",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/duplicate-key",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/duplicate-token-id",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/expires-at-null",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/expires-at-number",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/extra",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/legacy-v1",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/missing",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/not-before-bool",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/not-before-null",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/swapped-selector",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/unknown-field",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/schema_exact-five_pair_and_field_failures_reject/unknown-schema",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/source_binding_rows_are_returned_by_value",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/strict_filesystem_custody_is_shared_by_the_v2_parser",
+        "TestContinuousRecoveryBoundCredentialsV2MODEL/trusted-file_hash_reassignment_remains_subject_to_the_fixed_row_role"
+      ],
+      "packagePass": true,
+      "skip": 0
+    },
+    "boundRuntime": {
+      "count": 9,
+      "eachOneRunOnePass": true,
+      "eventSHA256": "2123cd94a0e8e70087ac3406ccf0c8bb19f03ffee2d8c5a4a3a77332562f154b",
+      "fail": 0,
+      "nameSetSHA256": "42d6e94881ecdd88f0bd7d035c4d5d40bb68d417daa27e421b0f1a79c7186d8e",
+      "names": [
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/RunWith_closes_claimed_manager_on_pre-transfer_TLS_failure_and_cannot_rearm",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/foreign_scope_path_and_schema_fail_without_fallback",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/foreign_scope_path_and_schema_fail_without_fallback/disabled",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/foreign_scope_path_and_schema_fail_without_fallback/foreign-mode",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/foreign_scope_path_and_schema_fail_without_fallback/foreign-path",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/foreign_scope_path_and_schema_fail_without_fallback/foreign-scope",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/one_source_arm_claims_one_exact_bundle",
+        "TestContinuousRecoveryBoundCredentialsSourceArmMODEL/unarmed_exact_build_retains_legacy_selection"
+      ],
+      "packagePass": true,
+      "skip": 0
+    },
+    "exitAllZero": true,
+    "fault": {
+      "count": 7,
+      "eachOneRunOnePass": true,
+      "eventSHA256": "68700cbc66e44a2032e474d8b2eeaec8eed505749c2850ce9d0dd6e82deb213b",
+      "fail": 0,
+      "nameSetSHA256": "f8e0a3e921949425286743773e998f7182741b1c01f80f726c13468771314ef4",
+      "names": [
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/completed-archive-allows-one-fresh-second-recovery-begin",
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/create-stage-is-exact-bounded-diagnostic-only",
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-publication-failure-retains-completed-facade",
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-rejects-changed-archive-before-publication",
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/source-owned-kill-origins-project-without-changing-legacy-events",
+        "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/terminal-replacement-rejects-execution-injection-and-unpaired-history"
+      ],
+      "packagePass": true,
+      "skip": 0
+    },
+    "originProjectionChildObserved": true,
+    "stderrAllEmpty": true
+  },
+  "overallAccepted": true,
+  "runId": 40332339997,
+  "schema": "chengwang.mihomo-continuous-recovery-exact-head-original-audit/v2",
+  "scope": {
+    "completeOSSyscallAudit": false,
+    "explicitProcessKillSitesOnly": true,
+    "fullPrivateWALIndependentlyProven": false,
+    "internetBusinessProven": false,
+    "production": false
+  },
+  "snapshot": {
+    "clean": true,
+    "trackedBlobs": 1527,
+    "tree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95"
+  },
+  "sourceBinding": {
+    "beforeAfterEqual": true,
+    "deliveryCount": 33,
+    "sha256": "1d1792c92e11edbe3da7e5b8cb5efe2b9ad4fca905392b27b440f39947cbf927",
+    "sourceCount": 1527,
+    "treeIndexExact": true
+  },
+  "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66"
+}

@@ -1,5 +1,11 @@
 # 澄网：项目任务清单
 
+trusted-base-copy v2 开发集成（2026-10-26）：[独立源码审查](evidence/sys06-trusted-base-copy-v2-source-peer-20261026.json)允许进入隔离 Linux；产品仅改变已验证 base 的 draft 复制，在 canonical Marshal 错误或字节不等时回退绑定 raw，保留旧授权、完整历史、磁盘 custody、CAS 和读回。既有 raw-authoritative 与 year10000 反例保留，原688名称不变；仍须提交后的303项CPU、最终源码绑定、Go/gofmt、完整race及31HTTPS/旧链原件验收。不修改180秒、256历史或2MiB限制，不声称性能收益；P207A v2未集成，v3后端与闭集门正在外部并行修订，长期归档仍未完成。
+
+fdcdcea 实际验收更新（2026-10-26）：开发提交 `fdcdcea3f469670ed0edc08d180f991e150a3a66` 已由 root 完成 303 项 CPU 门及最终源码绑定；本提交 continuous 的 Go MODEL（fault 7、bound authn 27、bound runtime 9）与真实 31 步 HTTPS、原 checker 和 fresh 原件均限定接受，[continuous 原件](evidence/sys06-fdcd-continuous-original-audit-20261026.json)。同 HEAD 的[旧 native S2](evidence/sys06-fdcd-oldnative-original-audit-20261026.json)四模式 9 ZIP／192 成员及[首次 Completion](evidence/sys06-fdcd-first-completion-original-audit-20261026.json)四模式 9 ZIP／167 成员也分别限定接受。normal ordinary 的 688 个必需顶层测试、2004 个语义状态接受，但 race 包在 180.052 秒超时且有 1 个未完成测试，故 normal 整体仍拒绝；single/full diagnostic 仅按诊断接受，不能替代 normal，[normal/diag 原件](evidence/sys06-fdcd-normal-diag-original-audit-20261026.json)。P207A v1 因确定性 attempt identity 重用及运行期身份快照不刷新问题退回，v2 外部源码候选已冻结，独审已发现主库兼容与源码闭集阻断，尚未进入 Go 验收；长期容量归档尚未实现；P1 独立测量已在专用分支提交 `1e35adc8a292e5e17385cd72250f238f4ca807b8` 启动，固定测量源为 `2eb7717a7a9d32308fbb90c45b2c183c1acb53d8`；run40339488194 的 pair-AB job121630073712 与 pair-BA job121630073235 已终态 success；[独立原件复算](evidence/sys06-p1-pair-original-audit-20261026.json)已确认四腿 capture 完整、格式和 ordinary 接受，但 race 均约180秒超时，goAccepted=false；-p=1未在本次样本消除超时，不代证 fdcd 产品链或 normal。以上不证明完整私有 WAL、互联网业务、生产灰度或整套系统完成；production、main、Registry 未动。
+
+审计通道事故（不改变上述原件判定）：一次 GitHub job-log 工具返回中含临时签名下载位置，工具记录已持久；该位置未复制到项目文件或子进程 argv，也未在本证据中保留。此后全面禁止读取 job log、session 或 rollout；只允许已审的进程内凭据／重定向物化通道。去敏原件见[下载事故记录](evidence/sys06-fdcd-download-incident-20261026.json)。
+
 固定来源候选冻结与单一集成（2026-10-26）：基2eb的14源补丁已获implementation与policy独立source允许，单一集成器及输入清单的v3复核亦允许进入实际stage。新raw事件与legacy四字段DTO分型，三个显式Kill调用点经六个固定hook记录来源，continuous投影同锁逐项对应；nested response-loss v2／outer report v3／contract v2，HTTP index v2。continuous格式19／delivery33、profile单项4／完整28按原清单精确插入三个既有Go源；旧job-owned格式子集与OLD_V5/BOUND pins不动。worker三条隐私函数原字节不变，safe_report_outputs仅固定schema更新；kernel六处hook名称反向替换后整文件等于2eb，OS行为／锁／授权未改。仍须统一提交后的303项CPU、两个源码绑定、新Go/gofmt、31HTTPS/端口清理/fresh和所有旧链回归。普通race180秒问题及性能稳定收益未证明；高风险prefix优化未实施，独立-p1诊断候选仅在复审，不取代原验收。
 
 2eb补验及修订决策：首次Completion四模式9 ZIP／167成员已[独立接受](evidence/sys06-2eb-first-completion-original-audit-20261026.json)，不抵消continuous或normal拒绝。[P1源码复盘](evidence/sys06-2eb-cleanup-source-postmortem-20261026.json)及[旧review勘误](evidence/sys06-2eb-cleanup-review-erratum-20261026.json)已保留：旧5904种排列只验证了自设偏序，不能证明它涵盖真实cmd.Cancel路径；旧source允许结论按此纠正。下一候选采用source-owned固定来源的CANCEL/STOP/IDENTITY kill观测，raw与legacy DTO分型、同锁逐项投影，continuous nested observation v2／outer report v3／contract v2；旧wire、31 HTTP、CASE_ACTOR、private inventory与fence不得被任意改写。仍仅证明已插桩源码调用，不承诺覆盖Go WaitDelay内部所有OS调用。此候选正在外部实现，尚未集成／Go运行；高风险history-prefix复用仅完成可行性调查，未实施，不声称修复性能。
@@ -65,12 +71,14 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 任务 | 当前状态 | 已核实的进展 | 尚缺什么 |
 | --- | --- | --- | --- |
 | 固定双配置正常发布与 UNKNOWN 不重发 | 限定隔离验收通过 | 已接受 `2bba397` 的真实正常服务、响应丢失及独立复算；参见 SYS-06 文档 | 不等于全部故障、互联网业务或生产验收 |
-| 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
-| 首次真实 Completion | 1c1fa28四模式限定隔离验收通过 | [1c独立审计](evidence/sys06-1c-first-completion-original-audit-20261026.json)：run40315108103，9 ZIP／167成员；原checker与fresh字节一致 | 不代证service rebind、产品API、普通发布、第二恢复或完整私有WAL |
-| 当前提交其他三套 CI | 505 normal及diag single/full原件接受 | [505原件](evidence/sys06-505-normal-diag-audit-20261026.json)：ordinary/race各1992 semantic，full 688/688、0fail/skip/unfinished；包128.994秒 | 只接受本次样本，不证明稳定性能、业务API或生产 |
-| 失败恢复协调器与产品 API | 1c1fa28限定隔离验收通过 | [两MODEL和31 HTTPS原件](evidence/sys06-1c-continuous-original-audit-20261026.json)及[root复算](evidence/sys06-1c-root-original-replay-20261026.json)接受；原verification与fresh字节相等；同HEAD旧S2和首次Completion另有独立原件接受 | 不代证完整故障矩阵、私有WAL、公网业务或生产；下一源码仍须重新绑定并验收 |
-| 恢复后普通发布与第二次恢复 | 1c1fa28连续31链限定隔离验收通过 | 实际UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复，Go、原checker与fresh均通过 | 清理调用最终核心归属的P1增强仍待集成及运行；完整故障、容量余量与生产仍缺 |
-| 连续恢复后的清理调用归属 | 独立源码候选／CPU通过，尚未集成或运行Go | 外部cleanup-core v2在1463源完整overlay上6项MODEL通过；旧稀疏overlay缺fixture失败记录保留 | 验证最终第二恢复核心的清理归属与源码保证的偏序；不得把首恢复RecoveredCore误当最终核心；需独审、Go及真实Linux证据 |
+| 旧 native S2 | fdcdcea 四模式限定隔离验收通过 | [fdcd S2 原件](evidence/sys06-fdcd-oldnative-original-audit-20261026.json)：9 ZIP／192 成员，四模式原 checker 核心函数链与 fresh 字节一致，Go／命令均通过 | 仅证明旧 S2；不代证 Completion、HTTP 恢复、普通发布、第二恢复、完整私有 WAL 或生产 |
+| 首次真实 Completion | fdcdcea 四模式限定隔离验收通过 | [fdcd Completion 原件](evidence/sys06-fdcd-first-completion-original-audit-20261026.json)：9 ZIP／167 成员，四模式原 checker main、fresh、Go、命令、WAL index 与 fsync 限定核对通过 | 不代证 service rebind、产品 API、普通发布、第二恢复或完整私有 WAL |
+| 当前提交 normal／diagnostic | ordinary 接受；normal 整体拒绝；diagnostic 仅诊断接受 | [fdcd normal/diag 原件](evidence/sys06-fdcd-normal-diag-original-audit-20261026.json)：ordinary 688 必需／2004 语义通过；race 180.052 秒超时、1 项未完成；single/full diagnostic 原件通过 | diagnostic 不替代 normal；稳定性能余量、完整 race 闭包及生产仍缺 |
+| 失败恢复协调器与产品 API | fdcdcea 连续链限定隔离验收通过 | [fdcd continuous 原件](evidence/sys06-fdcd-continuous-original-audit-20261026.json)：fault 7、bound authn 27、bound runtime 9；实际 31 HTTPS、原 checker、fresh 及 source binding 通过 | 不代证完整故障矩阵、完整私有 WAL、互联网业务、全部 OS syscall 或生产 |
+| 恢复后普通发布与第二次恢复 | fdcdcea 31 步连续链限定隔离验收通过 | 同一原件记录 UNKNOWN→恢复→普通 ACK→第二 UNKNOWN→第二恢复的真实 HTTPS 链，31 响应及 index 闭合 | 单次隔离样本不证明容量稳定、完整故障覆盖或生产可用 |
+| P207A 订阅刷新 | v2 独审发现阻断，未集成 | 已发现主 v1 库新增持久字段破坏旧 strict reader 读取，以及源码清单未闭合；正式两路审查收尾中，候选冻结 | 先修兼容／迁移及精确源码／测试集合；长期活动槽、审计checkpoint、sealed archive、备份与崩溃恢复仍未完成 |
+| P1 配对测量 | 原件完整；四腿 Go 均拒绝 | [原件审计](evidence/sys06-p1-pair-original-audit-20261026.json)：AB／BA 共2ZIP／186成员；原 verify/encoded 复算与Linux报告逐字节一致，569 Go源绑定；四腿格式与ordinary688均接受 | 四次race180.033–180.040秒超时，-p=1未消除本次失败；不代证fd产品修复、稳定收益或因果；Windows CLI报告写出器闭锁如实保留 |
+| 连续恢复后的清理调用归属 | fdcdcea 31 链限定隔离验收通过 | source-owned CANCEL／STOP／IDENTITY 固定来源观测与最终 finalCore 清理归属已由同一实际 31 链原件接受 | 仅覆盖显式插桩调用点；不证明全部 OS syscall、完整私有 WAL 或生产 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
 
 详见 [SYS-06 实施与逐次证据](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)。新源码的 CPU 模型、Linux CI 终态、原件复算和产品／生产验收分别记录。平台9槽；root加8子代理同时running已有[实际列表证据](evidence/eight-child-concurrency-observed-20261026.json)，不是配置推断。执行子代理沿用 GPT-5.6-sol / high；当前活跃数量另查实时代理列表，不能把历史峰值当当前运行数。

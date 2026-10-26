@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:/CodexData/workspace/mihomo-p207a-v2-candidate-2eb7717-20261026-221500",
+    "sourceType": "patch_file",
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "head": "working-tree afterimage described by afterimage.json SHA256 ece77d1f5ff1040ac72fdbd3a8865ad4c138f27a1bf6706ca00a62ebcac6ee9c",
+    "changedFiles": [
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/subscription-refresh/check_source_contract.py",
+      "chengwang/deploy/subscription-refresh/source_contract.json",
+      "chengwang/internal/api/server.go",
+      "chengwang/internal/api/subscriptions.go",
+      "chengwang/internal/api/subscriptions_test.go",
+      "chengwang/internal/authn/snapshot_manager.go",
+      "chengwang/internal/authn/snapshot_manager_linux_test.go",
+      "chengwang/internal/authn/store.go",
+      "chengwang/internal/authz/model.go",
+      "chengwang/internal/authz/policy.go",
+      "chengwang/internal/authz/subscription.go",
+      "chengwang/internal/authz/subscription_refresh_test.go",
+      "chengwang/internal/serverruntime/runtime.go",
+      "chengwang/internal/serverruntime/subscription_config.go",
+      "chengwang/internal/serverruntime/subscription_config_test.go",
+      "chengwang/internal/subscription/control.go",
+      "chengwang/internal/subscription/refresh.go",
+      "chengwang/internal/subscription/refresh_test.go",
+      "chengwang/internal/subscription/store.go",
+      "chengwang/internal/subscriptionctl/contract.go",
+      "chengwang/internal/subscriptionctl/refresh.go",
+      "chengwang/internal/subscriptionctl/service.go",
+      "chengwang/internal/subscriptionctl/service_linux_test.go",
+      "chengwang/internal/subscriptionpolicy/catalog.go",
+      "chengwang/internal/subscriptionpolicy/catalog_access.go",
+      "chengwang/internal/subscriptionpolicy/refresh_test.go"
+    ],
+    "sha256": "17a302ca5c70522eee191d5975a8874068c8bfab74e538fad6a5b4878167ba8b"
+  },
+  "recommendation": "revise",
+  "workflowLabel": "revise",
+  "impact": {
+    "rating": "high",
+    "rationale": "The patch changes durable authorization, scheduler, command, candidate, and audit state. Its main-store v1 wire change deterministically prevents rollback to the old strict decoder after the first automated command."
+  },
+  "regressionLikelihood": {
+    "rating": "high",
+    "rationale": "The legacy incompatibility is reached by the advertised happy path because Automated=true serializes a new field into subscription-store/v1. Capacity and source-contract weaknesses are also source-visible rather than speculative."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "The afterimage, strict patch reversal, 12 declared new Go tops, generation/restart/clock tests, and relevant-package CI lane are useful. They do not test old-binary reopening of an automated main store, semantic sidecar truth tables, two-store crash cuts, durable reservation, or the exact combined 700-top/source closure.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "hard",
+    "rationale": "Once an automated command has written the new field, an old binary cannot reopen the v1 main store without an explicit migration or byte rewrite. Independent sidecar/main-store rollback can also lose or replay cross-store truth because no common checkpoint or anti-rollback root exists."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "The primary compatibility defect follows directly from the new JSON field, unchanged v1 schema, and old DisallowUnknownFields decoder. Other findings are tied to exact source branches; Go/runtime evidence remains explicitly unrun."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The patch is the named immutable P207A v2 delivery, its size and SHA-256 match, all 27 afterimage hashes match, reverse apply and diff-check pass, and the source-only verifier reports PASS."
+  },
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without this patch automatic refresh remains unavailable, but current manual subscription and Accepted LKV behavior remain established. That does not justify accepting a rollback-breaking durable wire change."
+  },
+  "autoMergeExclusions": [
+    "migration",
+    "persistent_state",
+    "public_contract",
+    "architecture_specific_rollout"
+  ],
+  "affectedRuntimeRoots": [
+    "serverruntime.RunWith subscription construction and worker lifecycle",
+    "subscriptionctl.ConfigureRefresh/RunRefresh/ExecuteRefresh",
+    "subscription.RefreshStore sidecar",
+    "subscription Store control command and candidate persistence",
+    "authenticated subscription refresh read API",
+    "dedicated subscription refresh CI lane"
+  ],
+  "importantCallers": [
+    "serverruntime.RunWith -> subscription.OpenStore/OpenRefreshStore -> subscriptionctl.New/ConfigureRefresh",
+    "subscriptionctl.RunRefresh -> RecoverRefreshOnce/RefreshOnce",
+    "subscriptionctl.refreshOnce -> RefreshStore.Claim -> Store.Capacity -> ExecuteRefresh -> RefreshStore.Complete",
+    "subscriptionctl.ExecuteRefresh -> Service.execute -> executeDomain(Fetch)",
+    "old binary OpenStore -> storeDecode with DisallowUnknownFields"
+  ],
+  "riskDrivers": [
+    "ControlCommand.Automated is persisted under the unchanged subscription-store/v1 schema",
+    "sidecar and main store commit independently without a joint checkpoint or reservation",
+    "restart recovery entitlement is selected by an exported recovering boolean",
+    "semantic state combinations are incompletely validated",
+    "capacity is only a non-reserving snapshot",
+    "source contract hashes only changed files and asserts baseline count 688 without reconstructing the exact combined set"
+  ],
+  "protectiveFactors": [
+    "sidecar uses a separately versioned strict canonical JSON file and secure store disk writer",
+    "binding generation and global attempt sequence prevent normal forward delete/re-add key reuse",
+    "running recovery is bounded once per OpenRefreshStore instance",
+    "UNKNOWN is terminal and has no next-attempt timestamp",
+    "main-store deterministic command and import identities support forward crash replay",
+    "Accepted LKV is not mutated by quarantined candidate creation",
+    "unknown sidecar schemas are rejected"
+  ],
+  "materialBoundaries": [
+    {
+      "id": "legacy-main-store-wire",
+      "invariant": "A P207A automated attempt must not make subscription-store/v1 unreadable by the old strict decoder when the feature is disabled or rolled back.",
+      "runtimeRoot": "subscription ControlCommand persistence and OpenStore decoder",
+      "counterexample": "ControlCommand adds automated,omitempty and ExecuteRefresh persists Automated=true while storeSchema remains chengwang.subscription-store/v1; the old ControlCommand lacks the field and storeDecode uses DisallowUnknownFields.",
+      "legitimateControl": "Keep v1 bytes unchanged, or introduce an explicit main-store schema migration plus backup/rollback tooling and old/new compatibility tests. A sidecar alone is insufficient.",
+      "result": "contradicted"
+    },
+    {
+      "id": "forward-attempt-identity",
+      "invariant": "Normal binding change, delete/re-add, restart, and sequence exhaustion must not reuse an attempt key or fence.",
+      "runtimeRoot": "subscription.RefreshStore Reconcile/Claim/OpenRefreshStore",
+      "counterexample": "No forward-path reuse was found: ledger generation is retained across deletion, LastSequence is global and persisted, the key binds generation/sequence/seal, and MaxUint64 blocks.",
+      "legitimateControl": "Retain the current ledger and sequence checks and run the declared Linux tests on the integrated exact head.",
+      "result": "supported"
+    },
+    {
+      "id": "rollback-anti-replay",
+      "invariant": "Restoring stale scheduler bytes, alone or with a stale main-store backup, must not revive a consumed attempt identity or silently advertise a candidate absent from the main store.",
+      "runtimeRoot": "independent subscription-refresh-v2 and subscriptions store directories",
+      "counterexample": "The sidecar has no checkpoint tied to the current main-store root and no external monotonic anchor. Restoring an older canonical sidecar restores IdentityKey, generation and LastSequence; restoring both stores can replay a previously consumed network attempt, while restoring only main can leave a terminal sidecar pointing at a missing candidate.",
+      "legitimateControl": "Add a common durable checkpoint/epoch or explicit coordinated backup/restore refusal and crash-cut/rollback tests before durability acceptance.",
+      "result": "contradicted"
+    },
+    {
+      "id": "restart-claim-authority",
+      "invariant": "Only a source-owned post-open recovery capability may resume a persisted running attempt; a live caller flag must not choose restart authority.",
+      "runtimeRoot": "RefreshStore.Claim and subscriptionctl.refreshOnce",
+      "counterexample": "Claim is exported and accepts recovering bool. The in-memory recovery map limits use to one persisted running record, but the first caller supplying true selects and consumes the restart entitlement.",
+      "legitimateControl": "Return or retain an opaque one-use recovery capability from OpenRefreshStore and keep ordinary live Claim unable to request recovery.",
+      "result": "contradicted"
+    },
+    {
+      "id": "semantic-sidecar-validation",
+      "invariant": "Every accepted canonical sidecar must represent a producer-reachable state with exact per-state fields and ledger high-water consistency.",
+      "runtimeRoot": "refreshDecode and validateRefreshSnapshot",
+      "counterexample": "Validation checks broad field syntax but permits impossible combinations such as succeeded_noop with no NextAttemptAt, candidate_quarantined without candidate/audit evidence, idle carrying completion metadata, or a ledger LastIssuedSequence unrelated to the active attempt.",
+      "legitimateControl": "Add an exact state/field truth table, bind active AttemptSequence to its ledger high-water, and include malformed canonical JSON negative tests.",
+      "result": "contradicted"
+    },
+    {
+      "id": "capacity-before-network",
+      "invariant": "A claimed automatic attempt must own enough command, candidate and audit capacity before Fetch so concurrent manual work cannot consume it.",
+      "runtimeRoot": "subscriptionctl.refreshOnce and subscription Store",
+      "counterexample": "Store.Capacity releases the main-store mutex before ExecuteRefresh. A concurrent manual command can consume the checked slot before RecordControlPrepared or Import; there is no durable reservation spanning sidecar and main store.",
+      "legitimateControl": "Implement the acknowledged durable reservation/active-command slice. Until then describe the check as advisory preflight and do not treat it as a capacity guarantee.",
+      "result": "contradicted"
+    },
+    {
+      "id": "accepted-lkv-manual-history",
+      "invariant": "Automatic refresh may add only a quarantined candidate and must not delete manual command records, audit history, UNKNOWN, approvals, or the current Accepted LKV.",
+      "runtimeRoot": "subscription Store Import/control records",
+      "counterexample": "No deletion or admission path was added. The candidate test checks AcceptedCandidateID remains unchanged, and fixed capacity fails closed rather than compacting records.",
+      "legitimateControl": "Preserve these semantics in the later retention/checkpoint slice and prove them under near-limit and crash-cut Linux tests.",
+      "result": "supported"
+    },
+    {
+      "id": "closed-source-and-700-top-contract",
+      "invariant": "The dedicated lane must bind every runtime dependency and reconstruct the exact prior 688 plus 12 new top-level tests.",
+      "runtimeRoot": "deploy/subscription-refresh/check_source_contract.py and workflow",
+      "counterexample": "The verifier hashes only 27 changed files, asserts baselineGoTopCount==688 as metadata, and checks the 12 names are a subset of tops found in seven test files. It does not enumerate the prior 688, prove total 700, or bind unchanged persistence dependencies such as store_linux.go.",
+      "legitimateControl": "Derive a full dependency manifest and exact combined top set from the integrated head, then run the same exact package list and formatting/source checks.",
+      "result": "contradicted"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Delivery identity and afterimage",
+      "status": "passed",
+      "protects": "Patch is 116136 bytes with the supplied SHA-256; DELIVERY.md and afterimage.json hashes match; all 27 candidate file byte counts/SHA-256 values match and are LF-only."
+    },
+    {
+      "name": "Strict reverse apply and whitespace",
+      "status": "passed",
+      "protects": "git apply --check --reverse --binary succeeds on the candidate and git diff --check exits zero."
+    },
+    {
+      "name": "Repository source-only verifier",
+      "status": "passed",
+      "protects": "check_source_contract.py reports PASS for its declared 27-source/12-new-top model; this does not establish its missing full closure."
+    },
+    {
+      "name": "Independent new-top comparison",
+      "status": "passed",
+      "protects": "Across the seven declared test files, baseline 81 tops become 93 with exactly the declared 12 additions and no removals."
+    },
+    {
+      "name": "Old strict-decoder rollback proof",
+      "status": "failed",
+      "protects": "Static comparison proves old ControlCommand has no automated field while old storeDecode disallows unknown fields under the same v1 schema."
+    },
+    {
+      "name": "Go compile, gofmt, unit/race, Linux filesystem and runtime",
+      "status": "skipped",
+      "protects": "Forbidden by task constraints and explicitly not claimed."
+    },
+    {
+      "name": "Two-store crash cuts, stale backup restore, near-limit concurrency and long-run fairness",
+      "status": "skipped",
+      "protects": "Not implemented or executed; these are required before controlled Linux validation."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "The candidate has not compiled or run on Linux; the exact 12 new Go tops, secure filesystem paths, timers, race behavior and close ordering remain unproven.",
+      "decisionCritical": true
+    },
+    {
+      "summary": "Long-duration RefreshCommands/checkpoint/archive, durable reservation, migration backup/rollback, and retention thresholds are explicitly absent; >4096/no-op and near-16MiB automation cannot be accepted as indefinitely operable.",
+      "decisionCritical": true
+    },
+    {
+      "summary": "Real 1/2/32-source fairness, blocking Fetch identity replacement, TLS/API restart, filesystem fault injection and two-store crash-cut outcomes are untested.",
+      "decisionCritical": true
+    }
+  ],
+  "evidencePlan": []
+}

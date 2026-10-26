@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:/CodexData/workspace/mihomo-fdcdcea-acceptance-iuzup2xl/repo",
+    "sourceType": "patch_file",
+    "base": "fdcdcea3f469670ed0edc08d180f991e150a3a66 tree c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+    "head": "immutable candidate after-images store sha256 3141698a80dc7f993c00e5c890d70980625bd964f03087f2afdc7f66dd9989b7; test sha256 758ab70ef0671e372a2caf9b67a31a2c5771be196a02e19fc87738ba268b7bc7",
+    "changedFiles": [
+      "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go",
+      "chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go"
+    ],
+    "sha256": "ef22a0d0e6ec3ca5908d7c35aec3115b19d35131225dd56c278e11e3b12c0564"
+  },
+  "recommendation": "revise",
+  "workflowLabel": "revise",
+  "impact": {
+    "rating": "high",
+    "rationale": "The production change is in the recovery-store draft-copy path immediately before preparation and publication of persistent recovery state; an error can reject a legitimate recovery transition or construct state different from the validated raw authority."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "Ordinary canonical equality and raw-mismatch fallback are supported, but a concrete coordinated private typed mutation reaches a new marshal-error rejection that the prior raw-only copy accepts. The precondition is narrow, but this repository explicitly tests coordinated private mutation as a consistency boundary."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "Existing and added source tests cover ordinary equality, byte mismatch, detachment, nil/empty/capacity, representation, ownership, generation, disk and CAS boundaries, but omit clone-success plus json.Marshal failure; no exact-candidate Go/gofmt/Linux check ran.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The unintegrated candidate changes no persisted schema, migration, dependency or runtime switch; revising or omitting it preserves the old path, and a two-file revert would restore it if integrated."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "The immutable patch and supplied hashes were independently bound; changed symbols, callers, clone graph and source/FMT/name closure were statically traced. Runtime acceptance remains intentionally unclaimed."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "copyRecord is used by owned internal/mihomodeploy recovery begin/revoke and candidate-preparation paths, so the production delta is live rather than test-only."
+  },
+  "statusQuoRisk": {
+    "rating": "unknown",
+    "rationale": "The old raw-only copy is behaviorally safe and the candidate claims no measured performance benefit; no paired same-flags Linux measurement establishes the cost of retaining it."
+  },
+  "autoMergeExclusions": [
+    "privileged_boundary",
+    "persistent_state",
+    "other"
+  ],
+  "affectedRuntimeRoots": [
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go:lifecycleVerifiedBase.copyRecord",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go:lifecycleRecoveryStoreCore.commitFreshRecoveryBegin",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go:lifecycleRecoveryStoreCore.commitFreshRecoveryRevoke",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go:prepareLifecycleCandidateAfterVerifiedBase"
+  ],
+  "importantCallers": [
+    "lifecycleRecoveryStoreCore.verifiedBase",
+    "lifecycleRecoveryStoreCore.commit",
+    "lifecycleRecoveryStoreCore.commitWithBase",
+    "lifecycleRecoveryStoreCore.commitFreshRecoveryBegin",
+    "lifecycleRecoveryStoreCore.commitFreshRecoveryRevoke"
+  ],
+  "riskDrivers": [
+    "Confirmed new rejection when a valid issued base has a cloneable typed image that cannot be JSON-marshaled while its bound raw bytes remain valid.",
+    "The path feeds persistent lifecycle recovery preparation and publication.",
+    "No exact-candidate Go, gofmt, ordinary, race or Linux execution evidence exists."
+  ],
+  "protectiveFactors": [
+    "Existing ownership, active-base, poison, raw digest, raw byte, typed equality and one-use gates are unchanged.",
+    "Byte mismatch falls back to lifecycleTrustedJSONCopy of the bound raw authority.",
+    "The closed clone allocates pointer/slice/byte storage and preserves nil versus empty with current schema coverage.",
+    "No public capability, callback, environment switch, schema change, migration, dependency or prefix cache is added.",
+    "Both changed files are in normal source/gofmt declarations and the unchanged workflow pins 688 top-level names."
+  ],
+  "materialBoundaries": [
+    {
+      "id": "raw_authoritative_equivalence",
+      "invariant": "After verified-base validity gates pass, copyRecord must return the same detached record as decoding bound raw bytes, including coordinated private typed-image changes.",
+      "runtimeRoot": "lifecycleVerifiedBase.copyRecord",
+      "counterexample": "Set both store and base LastTrustedAt after issuance to time.Date(10000,1,1,0,0,0,0,time.UTC). b.valid remains true and cloneTrustedLifecycleV3 succeeds because the value is UTC without monotonic data; json.Marshal then fails for the out-of-range year. The old implementation decodes unchanged valid raw, while the candidate returns errLifecycleUnsafe.",
+      "legitimateControl": "Because raw already passed custody, digest, exact-byte and prior canonical/semantic validation, both json.Marshal error and byte inequality can safely fall back to lifecycleTrustedJSONCopy(b.core.raw), restoring the old result.",
+      "result": "contradicted"
+    },
+    {
+      "id": "authority_and_publication",
+      "invariant": "The optimization must not bypass ownership, active-base, poison, used-base, disk custody, generation, preparation, CAS or publication checks.",
+      "runtimeRoot": "lifecycleRecoveryStoreCore.commitWithBase and prepareLifecycleCandidateAfterVerifiedBase",
+      "counterexample": "A foreign store, spent base, changed validation generation, or disk image changed after copy attempts publication.",
+      "legitimateControl": "b.valid/issuedTo, validated binding, disk reread, base.used, prepare and publish checks remain outside and unchanged; added subtests target those rejection sites.",
+      "result": "supported"
+    },
+    {
+      "id": "detached_private_graph",
+      "invariant": "The draft must not share mutable pointers, slices, bytes, aliases, spare capacity, nil/empty distinctions or RawMessage storage with store/base.",
+      "runtimeRoot": "cloneTrustedLifecycleV3 called by lifecycleVerifiedBase.copyRecord",
+      "counterexample": "Mutating returned ControlBytes, capabilities, sibling pointers or hidden slice capacity changes the trusted source graph.",
+      "legitimateControl": "Closed clone helpers allocate per pointer/slice path and copy bytes; schema excludes maps/interfaces/functions; existing properties cover 63 structs, 86 mutable slots, aliases and representation fallbacks.",
+      "result": "supported"
+    },
+    {
+      "id": "source_and_format_closure",
+      "invariant": "Both changed files remain in normal source, gofmt and unchanged required top-name contracts.",
+      "runtimeRoot": "run_contracts.sh and check_contracts.py",
+      "counterexample": "A changed file is omitted from source/FMT, or added top-level tests silently change the 688-name set.",
+      "legitimateControl": "Static inspection found both paths in normal gofmt/source declarations, the test in TEST_FILES, and workflow pins count 688 plus b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280; new cases are subtests.",
+      "result": "supported"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Immutable artifact identity",
+      "status": "passed",
+      "protects": "Patch 6382B SHA ef22a0d0e6ec3ca5908d7c35aec3115b19d35131225dd56c278e11e3b12c0564; manifest d95c09d88b55ee2ee35221905c7a54432f171678cc50a0183262e8307d656c33; SOURCE d545545d54bbcb9a5b0030bf909bb88fa755bb38575ce211a57a25cd2bfab2d0; erratum 92660ae9f948e0bbc6a57f05ac68b4db4be72e0dda034c15bf1b60c73c2193ff."
+    },
+    {
+      "name": "Exact two-path source and signature review",
+      "status": "passed",
+      "protects": "Production delta is copyRecord, test delta is subtests, helper signatures match, and bytes/json imports already exist."
+    },
+    {
+      "name": "Normal source/FMT and required-name closure",
+      "status": "passed",
+      "protects": "Both paths are in normal source/gofmt declarations, the test file is selected, and workflow retains exact 688 names/hash."
+    },
+    {
+      "name": "Marshal-error equivalence counterexample",
+      "status": "failed",
+      "protects": "Shows a UTC year-10000 typed value makes new Marshal reject before fallback while old bound-raw Unmarshal succeeds."
+    },
+    {
+      "name": "Candidate Go compile, gofmt, ordinary 688 and race/full Linux",
+      "status": "skipped",
+      "protects": "Must verify syntax, formatting, fixtures, all tops, race and platform integration after revision."
+    },
+    {
+      "name": "Paired same-flags performance measurement",
+      "status": "skipped",
+      "protects": "Required before any performance conclusion; candidate correctly claims none."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "Exact candidate has not been compiled, formatted or run on Linux.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "No paired exact-source same-flags order-swapped measurement establishes performance benefit.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": []
+}

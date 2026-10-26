@@ -1,0 +1,444 @@
+{
+  "artifacts": {
+    "count": 9,
+    "metadata": {
+      "candidate": {
+        "digest": "sha256:f59f5e7678956300f09a6da9fc28b9505d810906c365fc2f827e9af25782d41d",
+        "expired": false,
+        "id": 12654389056,
+        "name": "mihomo-native-completion-candidate-40332340025-1",
+        "size_in_bytes": 3140,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "not-committed-fresh": {
+        "digest": "sha256:125b06f06c12bccfb2636db170dcf5752c0429677e3c0314587f50e9529362e5",
+        "expired": false,
+        "id": 12655395568,
+        "name": "mihomo-native-completion-not-committed-fresh-40332340025-1",
+        "size_in_bytes": 329,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "not-committed-originals": {
+        "digest": "sha256:751d0fcce142ae14eaf45f22e8d3412515105395e18d31e90de04594e62eb377",
+        "expired": false,
+        "id": 12653764962,
+        "name": "mihomo-native-completion-not-committed-originals-40332340025-1",
+        "size_in_bytes": 27383,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "positive-fresh": {
+        "digest": "sha256:6f04e7c5ba79375b87eb621286dfb0086ba4a817347bf6e4f023705f1fcaa53c",
+        "expired": false,
+        "id": 12655238342,
+        "name": "mihomo-native-completion-positive-fresh-40332340025-1",
+        "size_in_bytes": 315,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "positive-originals": {
+        "digest": "sha256:42efc3743370e4152a5b1b780ee71099f014ef968b1a35455021415f8b80ca30",
+        "expired": false,
+        "id": 12655375570,
+        "name": "mihomo-native-completion-positive-originals-40332340025-1",
+        "size_in_bytes": 27018,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "readback-fresh": {
+        "digest": "sha256:a77378f75130ec30e7bc362095486eadd5ca77f067401704e79bf4fcf9c669c8",
+        "expired": false,
+        "id": 12654404165,
+        "name": "mihomo-native-completion-readback-fresh-40332340025-1",
+        "size_in_bytes": 314,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "readback-originals": {
+        "digest": "sha256:1dacdef284b4ad4907b8abd13bb7a2141c794db69be5df86baa8d6da77cf75e6",
+        "expired": false,
+        "id": 12655292543,
+        "name": "mihomo-native-completion-readback-originals-40332340025-1",
+        "size_in_bytes": 27022,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "unknown-fresh": {
+        "digest": "sha256:0eda208a9188a75b8971bb06c211af2f8e12ba0187d631082a0762e8109171eb",
+        "expired": false,
+        "id": 12654309089,
+        "name": "mihomo-native-completion-unknown-fresh-40332340025-1",
+        "size_in_bytes": 312,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      },
+      "unknown-originals": {
+        "digest": "sha256:8dbaae0d380c71300e5bf40c34f054a6e7f346da8e7af9aec672b7bd87c8053d",
+        "expired": false,
+        "id": 12654144154,
+        "name": "mihomo-native-completion-unknown-originals-40332340025-1",
+        "size_in_bytes": 26964,
+        "workflow_run": {
+          "head_sha": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+          "id": 40332340025
+        }
+      }
+    },
+    "originalsOfflineCustodyReceiptSHA256": "79579ec77273db8dccf13a9cec70903dfa664987d36ad168f45979f8cf59cd12",
+    "zipMembers": 167
+  },
+  "assessment": "ACCEPT_EXACT_HEAD_ISOLATED_FIRST_COMPLETION_EVIDENCE",
+  "candidate": {
+    "consumptionBytes": 2025,
+    "consumptionSHA256": "cb4b646fe5c6eb82804793b6da3d6f52abc5e8d925ff1adf8967a8e4c227b346",
+    "independentByteEqual": true,
+    "production": false,
+    "runtimeExecuted": false,
+    "schema": "chengwang.mihomo-candidate-consumption/v1",
+    "state": "PINNED_GZIP_EXPANDED_NOT_EXECUTED",
+    "stderrEmpty": true
+  },
+  "method": {
+    "ciRerun": false,
+    "freshVerificationByteEqualEachMode": true,
+    "independentGoCommandProcessWALFsyncScopeCrossChecks": true,
+    "localGoOrGofmtExecuted": false,
+    "originalCheckerMainDirectReplayEachMode": true,
+    "repositoryModified": false
+  },
+  "modes": {
+    "not-committed": {
+      "attemptExit": 0,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "completionSafeFacts": {
+        "apiRouteProven": false,
+        "coldReopenMatchedDisk": true,
+        "diskPhase": "START_ARMED",
+        "noCompletionNativeCalls": true,
+        "ordinaryPublishProven": false,
+        "production": false,
+        "recoveryHistoryCount": 0,
+        "retiredEpochCount": 0,
+        "secondRecoveryProven": false,
+        "serviceRebindProven": false
+      },
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 143,
+        "sha256": "589822b89518454e313f5b841c68fd3a4b837f1386bdf64aa38884d35dcfaea6"
+      },
+      "fsync": {
+        "directoryFsyncObserved": true,
+        "entries": 10
+      },
+      "go": {
+        "eventCount": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "top": "TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup"
+      },
+      "originalCheckerMainReplay": "PASS",
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "mode": "not-committed",
+        "outcome": "PASS"
+      },
+      "sourceBinding": {
+        "deliveryCount": 9,
+        "deliverySetSHA256": "c0d7f4aaf0f63a72d5df4c2eef7128f20d9e01d83d9020bb7c5769386fad8b82",
+        "indexTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+        "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+        "sourceCount": 1527,
+        "sourceManifestSHA256": "50f37d20ea9234c1fa829d8a82e2530edeb16f8acc7e95018f3e5ca33012bf2d",
+        "sourceSetSHA256": "ebf7924eafc5de7046fcff650cd8902d68de1ce5eadee16fb69eb45cb2d3d34f",
+        "sourceTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95"
+      },
+      "walIndex": {
+        "entries": 4,
+        "fullPrivateWALIndependentlyProven": false
+      }
+    },
+    "positive": {
+      "attemptExit": 0,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "completionSafeFacts": {
+        "apiRouteProven": false,
+        "coldReopenMatchedDisk": true,
+        "diskPhase": "COMPLETED",
+        "noCompletionNativeCalls": true,
+        "ordinaryPublishProven": false,
+        "production": false,
+        "recoveryHistoryCount": 1,
+        "retiredEpochCount": 1,
+        "secondRecoveryProven": false,
+        "serviceRebindProven": false
+      },
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 138,
+        "sha256": "a5b63f612751137a1f22cae91b88e63c9757dca78cee8b25eeed7c6b0800fc76"
+      },
+      "fsync": {
+        "directoryFsyncObserved": true,
+        "entries": 10
+      },
+      "go": {
+        "eventCount": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "top": "TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup"
+      },
+      "originalCheckerMainReplay": "PASS",
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "mode": "positive",
+        "outcome": "PASS"
+      },
+      "sourceBinding": {
+        "deliveryCount": 9,
+        "deliverySetSHA256": "c0d7f4aaf0f63a72d5df4c2eef7128f20d9e01d83d9020bb7c5769386fad8b82",
+        "indexTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+        "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+        "sourceCount": 1527,
+        "sourceManifestSHA256": "50f37d20ea9234c1fa829d8a82e2530edeb16f8acc7e95018f3e5ca33012bf2d",
+        "sourceSetSHA256": "ebf7924eafc5de7046fcff650cd8902d68de1ce5eadee16fb69eb45cb2d3d34f",
+        "sourceTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95"
+      },
+      "walIndex": {
+        "entries": 4,
+        "fullPrivateWALIndependentlyProven": false
+      }
+    },
+    "readback": {
+      "attemptExit": 0,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "completionSafeFacts": {
+        "apiRouteProven": false,
+        "coldReopenMatchedDisk": true,
+        "diskPhase": "COMPLETED",
+        "noCompletionNativeCalls": true,
+        "ordinaryPublishProven": false,
+        "production": false,
+        "recoveryHistoryCount": 1,
+        "retiredEpochCount": 1,
+        "secondRecoveryProven": false,
+        "serviceRebindProven": false
+      },
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 138,
+        "sha256": "860fb666a976864579b80a3d2bb12d37488291a2dcd1d342ef045f5b6604eb19"
+      },
+      "fsync": {
+        "directoryFsyncObserved": true,
+        "entries": 10
+      },
+      "go": {
+        "eventCount": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "top": "TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup"
+      },
+      "originalCheckerMainReplay": "PASS",
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "mode": "readback",
+        "outcome": "PASS"
+      },
+      "sourceBinding": {
+        "deliveryCount": 9,
+        "deliverySetSHA256": "c0d7f4aaf0f63a72d5df4c2eef7128f20d9e01d83d9020bb7c5769386fad8b82",
+        "indexTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+        "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+        "sourceCount": 1527,
+        "sourceManifestSHA256": "50f37d20ea9234c1fa829d8a82e2530edeb16f8acc7e95018f3e5ca33012bf2d",
+        "sourceSetSHA256": "ebf7924eafc5de7046fcff650cd8902d68de1ce5eadee16fb69eb45cb2d3d34f",
+        "sourceTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95"
+      },
+      "walIndex": {
+        "entries": 4,
+        "fullPrivateWALIndependentlyProven": false
+      }
+    },
+    "unknown": {
+      "attemptExit": 0,
+      "commands": {
+        "allExitZero": true,
+        "count": 4
+      },
+      "completionSafeFacts": {
+        "apiRouteProven": false,
+        "coldReopenMatchedDisk": true,
+        "diskPhase": "COMPLETED",
+        "noCompletionNativeCalls": true,
+        "ordinaryPublishProven": false,
+        "production": false,
+        "recoveryHistoryCount": 1,
+        "retiredEpochCount": 1,
+        "secondRecoveryProven": false,
+        "serviceRebindProven": false
+      },
+      "fresh": {
+        "byteEqual": true,
+        "bytes": 137,
+        "sha256": "5d90be22fa95a159bd9d40698ac17bf9edca0f545e72bfeee73855b8c4366fb0"
+      },
+      "fsync": {
+        "directoryFsyncObserved": true,
+        "entries": 10
+      },
+      "go": {
+        "eventCount": 8,
+        "fail": 0,
+        "packagePass": 1,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "top": "TestLabRecoveryCompletionNativeFirstTransitionAndOwnedCleanup"
+      },
+      "originalCheckerMainReplay": "PASS",
+      "processEvents": {
+        "classes": [
+          "SANDBOX",
+          "GO_VERSION",
+          "GOFMT",
+          "GO_TEST"
+        ],
+        "count": 16,
+        "exitCodes": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "report": {
+        "failureCode": "NONE",
+        "mode": "unknown",
+        "outcome": "PASS"
+      },
+      "sourceBinding": {
+        "deliveryCount": 9,
+        "deliverySetSHA256": "c0d7f4aaf0f63a72d5df4c2eef7128f20d9e01d83d9020bb7c5769386fad8b82",
+        "indexTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+        "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+        "sourceCount": 1527,
+        "sourceManifestSHA256": "50f37d20ea9234c1fa829d8a82e2530edeb16f8acc7e95018f3e5ca33012bf2d",
+        "sourceSetSHA256": "ebf7924eafc5de7046fcff650cd8902d68de1ce5eadee16fb69eb45cb2d3d34f",
+        "sourceTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95"
+      },
+      "walIndex": {
+        "entries": 4,
+        "fullPrivateWALIndependentlyProven": false
+      }
+    }
+  },
+  "reviewerRole": "implementation56h",
+  "schema": "chengwang.mihomo-first-completion-exact-head-independent-audit/v2",
+  "scope": {
+    "continuousRecoveryAPIOrSecondRecoveryProvenByThisArtifactSet": false,
+    "fullPrivateWALIndependentlyProven": false,
+    "internet": false,
+    "oldNativeRun40332339926IndependentlyAuditedHere": false,
+    "privateWALRecheckedInsideSourceProducer": true,
+    "production": false
+  },
+  "snapshot": {
+    "clean": true,
+    "path": "D:\\CodexData\\workspace\\mihomo-fdcdcea-acceptance-iuzup2xl\\repo",
+    "trackedGitBlobPathsVerifiedByRoot": 1527
+  },
+  "sourceCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+  "sourceTree": "c7a0c8e01ce6ae082d5a3a624994a7230f9c9c95",
+  "transport": {
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "serial": true,
+    "signedRedirectPersistedOrLogged": false
+  },
+  "workflow": {
+    "attempt": 1,
+    "headBound": true,
+    "runId": 40332340025
+  }
+}
