@@ -31,17 +31,26 @@ import (
 
 const continuousRecoveryReportPath = labServiceE2EPrivate + "/continuous-recovery-report.private.json"
 
+type continuousRecoveryCaseActor string
+
+const (
+	continuousRecoveryCaseActorViewer   continuousRecoveryCaseActor = "CASE_ACTOR_VIEWER"
+	continuousRecoveryCaseActorAdmin    continuousRecoveryCaseActor = "CASE_ACTOR_ADMIN"
+	continuousRecoveryCaseActorApprover continuousRecoveryCaseActor = "CASE_ACTOR_APPROVER"
+	continuousRecoveryCaseActorAuditor  continuousRecoveryCaseActor = "CASE_ACTOR_AUDITOR"
+)
+
 type continuousRecoveryHTTPOriginal struct {
-	Sequence           int    `json:"sequence"`
-	Case               string `json:"case"`
-	Role               string `json:"role"`
-	Method             string `json:"method"`
-	Path               string `json:"path"`
-	RequestBodySHA256  string `json:"requestBodySHA256"`
-	StatusCode         *int   `json:"statusCode"`
-	ResponseBodySHA256 string `json:"responseBodySHA256"`
-	ResponseBodyB64    []byte `json:"responseBodyB64"`
-	ErrorClass         string `json:"errorClass"`
+	Sequence           int                         `json:"sequence"`
+	Case               string                      `json:"case"`
+	CaseActor          continuousRecoveryCaseActor `json:"caseActor"`
+	Method             string                      `json:"method"`
+	Path               string                      `json:"path"`
+	RequestBodySHA256  string                      `json:"requestBodySHA256"`
+	StatusCode         *int                        `json:"statusCode"`
+	ResponseBodySHA256 string                      `json:"responseBodySHA256"`
+	ResponseBodyB64    []byte                      `json:"responseBodyB64"`
+	ErrorClass         string                      `json:"errorClass"`
 }
 
 type continuousRecoveryHeadState struct {
@@ -97,14 +106,39 @@ func continuousRecoveryHash(raw []byte) string {
 	return hex.EncodeToString(digest[:])
 }
 
+func continuousRecoveryCaseIdentity(name string) (authz.Role, continuousRecoveryCaseActor, bool) {
+	switch name {
+	case "INITIAL_HEAD", "FIRST_CANDIDATES", "FIRST_UNKNOWN_INSPECT", "FIRST_UNKNOWN_HEAD",
+		"FIRST_RECOVERED_HEAD", "ACK_CANDIDATES", "ORDINARY_ACK_INSPECT", "ORDINARY_ACK_HEAD",
+		"SECOND_CANDIDATES", "SECOND_UNKNOWN_INSPECT", "SECOND_UNKNOWN_HEAD", "SECOND_RECOVERED_HEAD":
+		return authz.RoleViewer, continuousRecoveryCaseActorViewer, true
+	case "FIRST_UNKNOWN_CREATE", "FIRST_UNKNOWN_EXECUTE", "FIRST_RECOVERY_CREATE", "FIRST_RECOVERY_EXECUTE",
+		"ORDINARY_ACK_CREATE", "ORDINARY_ACK_EXECUTE", "SECOND_UNKNOWN_CREATE", "SECOND_UNKNOWN_EXECUTE",
+		"SECOND_RECOVERY_CREATE", "SECOND_RECOVERY_EXECUTE":
+		return authz.RoleAdmin, continuousRecoveryCaseActorAdmin, true
+	case "FIRST_UNKNOWN_APPROVE", "FIRST_RECOVERY_APPROVE", "ORDINARY_ACK_APPROVE",
+		"SECOND_UNKNOWN_APPROVE", "SECOND_RECOVERY_APPROVE":
+		return authz.RoleApprover, continuousRecoveryCaseActorApprover, true
+	case "FIRST_RECOVERY_INSPECT_PLANNED", "FIRST_RECOVERY_INSPECT_COMPLETED",
+		"SECOND_RECOVERY_INSPECT_PLANNED", "SECOND_RECOVERY_INSPECT_COMPLETED":
+		return authz.RoleAuditor, continuousRecoveryCaseActorAuditor, true
+	default:
+		return "", "", false
+	}
+}
+
 func (h continuousRecoveryHTTPS) fail(code, message string) {
 	h.t.Helper()
 	h.report.FailureCode = code
 	h.t.Fatal(message)
 }
 
-func (h continuousRecoveryHTTPS) call(name, role, method, path string, body any, want int, result any) {
+func (h continuousRecoveryHTTPS) call(name, method, path string, body any, want int, result any) {
 	h.t.Helper()
+	role, actor, ok := continuousRecoveryCaseIdentity(name)
+	if !ok {
+		h.fail("REPORT_CONTRACT", "continuous recovery request case rejected")
+	}
 	var payload []byte
 	if body != nil {
 		var err error
@@ -117,17 +151,15 @@ func (h continuousRecoveryHTTPS) call(name, role, method, path string, body any,
 	if err != nil {
 		h.fail("REQUEST_BUILD", "continuous recovery HTTPS request failed")
 	}
-	if role != "anonymous" {
-		token := h.tokens[role]
-		if token == "" {
-			h.fail("IDENTITY_INPUT", "continuous recovery role token missing")
-		}
-		request.Header.Set("Authorization", "Bearer "+token)
+	token := h.tokens[string(role)]
+	if token == "" {
+		h.fail("IDENTITY_INPUT", "continuous recovery role token missing")
 	}
+	request.Header.Set("Authorization", "Bearer "+token)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	row := continuousRecoveryHTTPOriginal{Sequence: len(h.report.HTTP) + 1, Case: name, Role: role,
+	row := continuousRecoveryHTTPOriginal{Sequence: len(h.report.HTTP) + 1, Case: name, CaseActor: actor,
 		Method: method, Path: path, RequestBodySHA256: continuousRecoveryHash(payload), ErrorClass: "NONE"}
 	response, err := h.client.Do(request)
 	if err != nil {
@@ -164,7 +196,7 @@ func (h continuousRecoveryHTTPS) call(name, role, method, path string, body any,
 func (h continuousRecoveryHTTPS) head(stage string) mihomodeploy.LabHeadView {
 	h.t.Helper()
 	var view mihomodeploy.LabHeadView
-	h.call(stage+"_HEAD", "viewer", http.MethodGet, "/api/v1/lab/mihomo/head", nil, http.StatusOK, &view)
+	h.call(stage+"_HEAD", http.MethodGet, "/api/v1/lab/mihomo/head", nil, http.StatusOK, &view)
 	h.report.Heads = append(h.report.Heads, continuousRecoveryHeadState{Stage: stage, View: view})
 	return view
 }
@@ -172,7 +204,7 @@ func (h continuousRecoveryHTTPS) head(stage string) mihomodeploy.LabHeadView {
 func (h continuousRecoveryHTTPS) candidate(stage string) mihomodeploy.LabCandidateView {
 	h.t.Helper()
 	var view mihomodeploy.LabCandidateListView
-	h.call(stage+"_CANDIDATES", "viewer", http.MethodGet, "/api/v1/lab/mihomo/candidates", nil, http.StatusOK, &view)
+	h.call(stage+"_CANDIDATES", http.MethodGet, "/api/v1/lab/mihomo/candidates", nil, http.StatusOK, &view)
 	if view.WriteBlocked || len(view.Candidates) != 2 {
 		h.fail("CANDIDATES", "continuous recovery candidates unavailable")
 	}
@@ -195,19 +227,19 @@ func (h continuousRecoveryHTTPS) deploy(stage string, candidate mihomodeploy.Lab
 	h.t.Helper()
 	prefix := "/api/v1/lab/mihomo/deployments"
 	var planned mihomodeploy.LabDeploymentView
-	h.call(stage+"_CREATE", "admin", http.MethodPost, prefix,
+	h.call(stage+"_CREATE", http.MethodPost, prefix,
 		mihomodeploy.LabCreateRequest{CandidateRecordSHA256: candidate.RecordSHA256, TTLSeconds: 300}, http.StatusCreated, &planned)
 	if planned.Phase != "PLANNED" || planned.CandidateRecordSHA256 != candidate.RecordSHA256 || planned.Transport != nil {
 		h.fail("DEPLOY_PLAN", "continuous recovery deployment plan mismatch")
 	}
 	var approved mihomodeploy.LabDeploymentView
-	h.call(stage+"_APPROVE", "approver", http.MethodPost, prefix+"/"+planned.OperationID+"/approvals",
+	h.call(stage+"_APPROVE", http.MethodPost, prefix+"/"+planned.OperationID+"/approvals",
 		mihomodeploy.LabApprovalRequest{PlanSHA256: planned.PlanSHA256, Revision: planned.Revision}, http.StatusOK, &approved)
 	if approved.Phase != "APPROVED" || approved.PlanSHA256 != planned.PlanSHA256 || approved.Transport != nil {
 		h.fail("DEPLOY_APPROVAL", "continuous recovery deployment approval mismatch")
 	}
 	var executed mihomodeploy.LabDeploymentView
-	h.call(stage+"_EXECUTE", "admin", http.MethodPost, prefix+"/"+planned.OperationID+"/execute",
+	h.call(stage+"_EXECUTE", http.MethodPost, prefix+"/"+planned.OperationID+"/execute",
 		mihomodeploy.LabExecuteRequest{PlanSHA256: approved.PlanSHA256, Revision: approved.Revision}, http.StatusOK, &executed)
 	if executed.OperationID != planned.OperationID || executed.PlanSHA256 != planned.PlanSHA256 || executed.Transport == nil ||
 		executed.Transport.Origin != "ADAPTER" || !executed.Transport.Result.Dispatched || executed.Transport.Result.State != expected {
@@ -227,7 +259,7 @@ func (h continuousRecoveryHTTPS) deploy(stage string, candidate mihomodeploy.Lab
 		h.fail("DEPLOY_STATE", "continuous recovery unexpected deployment state")
 	}
 	var inspected mihomodeploy.LabDeploymentView
-	h.call(stage+"_INSPECT", "viewer", http.MethodGet, prefix+"/"+planned.OperationID, nil, http.StatusOK, &inspected)
+	h.call(stage+"_INSPECT", http.MethodGet, prefix+"/"+planned.OperationID, nil, http.StatusOK, &inspected)
 	if inspected.OperationID != executed.OperationID || inspected.Phase != executed.Phase || inspected.Revision != executed.Revision ||
 		inspected.PlanSHA256 != executed.PlanSHA256 || inspected.HeadSHA256 != executed.HeadSHA256 || inspected.HeadGeneration != executed.HeadGeneration {
 		h.fail("DEPLOY_INSPECT", "continuous recovery deployment readback mismatch")
@@ -240,7 +272,7 @@ func (h continuousRecoveryHTTPS) recover(stage string, unknown mihomodeploy.LabD
 	h.t.Helper()
 	prefix := "/api/v1/lab/mihomo/recoveries"
 	var planned mihomodeploy.LabRecoveryView
-	h.call(stage+"_CREATE", "admin", http.MethodPost, prefix, mihomodeploy.LabRecoveryCreateRequest{
+	h.call(stage+"_CREATE", http.MethodPost, prefix, mihomodeploy.LabRecoveryCreateRequest{
 		UnknownOperationID: unknown.OperationID, OriginalPlanSHA256: unknown.PlanSHA256, Revision: unknown.Revision, TTLSeconds: 300,
 	}, http.StatusCreated, &planned)
 	if planned.Phase != "PLANNED" || planned.UnknownOperationID != unknown.OperationID ||
@@ -248,19 +280,19 @@ func (h continuousRecoveryHTTPS) recover(stage string, unknown mihomodeploy.LabD
 		h.fail("RECOVERY_PLAN", "continuous recovery plan mismatch")
 	}
 	var inspected mihomodeploy.LabRecoveryView
-	h.call(stage+"_INSPECT_PLANNED", "auditor", http.MethodGet, prefix+"/"+planned.RecoveryID, nil, http.StatusOK, &inspected)
+	h.call(stage+"_INSPECT_PLANNED", http.MethodGet, prefix+"/"+planned.RecoveryID, nil, http.StatusOK, &inspected)
 	if inspected.RecoveryID != planned.RecoveryID || inspected.Phase != planned.Phase || inspected.Revision != planned.Revision ||
 		inspected.PlanSHA256 != planned.PlanSHA256 || inspected.UnknownOperationID != unknown.OperationID {
 		h.fail("RECOVERY_INSPECT", "continuous recovery planned readback mismatch")
 	}
 	var approved mihomodeploy.LabRecoveryView
-	h.call(stage+"_APPROVE", "approver", http.MethodPost, prefix+"/"+planned.RecoveryID+"/approvals",
+	h.call(stage+"_APPROVE", http.MethodPost, prefix+"/"+planned.RecoveryID+"/approvals",
 		mihomodeploy.LabRecoveryApprovalRequest{PlanSHA256: planned.PlanSHA256, Revision: planned.Revision}, http.StatusOK, &approved)
 	if approved.Phase != "APPROVED" || approved.PlanSHA256 != planned.PlanSHA256 || approved.RecoveryID != planned.RecoveryID {
 		h.fail("RECOVERY_APPROVAL", "continuous recovery independent approval mismatch")
 	}
 	var completed mihomodeploy.LabRecoveryView
-	h.call(stage+"_EXECUTE", "admin", http.MethodPost, prefix+"/"+planned.RecoveryID+"/execute",
+	h.call(stage+"_EXECUTE", http.MethodPost, prefix+"/"+planned.RecoveryID+"/execute",
 		mihomodeploy.LabRecoveryExecuteRequest{PlanSHA256: approved.PlanSHA256, Revision: approved.Revision}, http.StatusOK, &completed)
 	if completed.Phase != "COMPLETED" || completed.RecoveryID != planned.RecoveryID || completed.PlanSHA256 != planned.PlanSHA256 ||
 		completed.UnknownOperationID != unknown.OperationID || completed.OriginalPlanSHA256 != unknown.PlanSHA256 ||
@@ -268,7 +300,7 @@ func (h continuousRecoveryHTTPS) recover(stage string, unknown mihomodeploy.LabD
 		h.fail("RECOVERY_COMPLETE", "continuous recovery completion mismatch")
 	}
 	var final mihomodeploy.LabRecoveryView
-	h.call(stage+"_INSPECT_COMPLETED", "auditor", http.MethodGet, prefix+"/"+planned.RecoveryID, nil, http.StatusOK, &final)
+	h.call(stage+"_INSPECT_COMPLETED", http.MethodGet, prefix+"/"+planned.RecoveryID, nil, http.StatusOK, &final)
 	if final.RecoveryID != completed.RecoveryID || final.Phase != completed.Phase || final.Revision != completed.Revision ||
 		final.HeadSHA256 != completed.HeadSHA256 || final.HeadGeneration != completed.HeadGeneration || !final.HeadAdvanced {
 		h.fail("RECOVERY_READBACK", "continuous recovery completion readback mismatch")
@@ -337,7 +369,7 @@ func continuousRecoveryCleanupCalls(before, after []mihomodeploy.LabContinuousRe
 }
 
 func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool {
-	if report == nil || report.Schema != "chengwang.mihomo-continuous-recovery-http-experiment/v1" ||
+	if report == nil || report.Schema != "chengwang.mihomo-continuous-recovery-http-experiment/v2" ||
 		report.Scope != "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION" ||
 		len(report.SourceCommit) != 40 || report.Outcome != "PASS" || report.FailureCode != "NONE" ||
 		report.Initial == nil || len(report.HTTP) != 31 || len(report.Heads) != 6 || len(report.Operations) != 3 ||
@@ -356,8 +388,9 @@ func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool
 		return false
 	}
 	for index, item := range report.HTTP {
-		roleValid := item.Role == "viewer" || item.Role == "admin" || item.Role == "approver" || item.Role == "auditor"
-		if item.Sequence != index+1 || !roleValid || (item.Method != http.MethodGet && item.Method != http.MethodPost) ||
+		_, actor, known := continuousRecoveryCaseIdentity(item.Case)
+		if item.Sequence != index+1 || !known || item.CaseActor != actor ||
+			(item.Method != http.MethodGet && item.Method != http.MethodPost) ||
 			len(item.Path) == 0 || item.Path[0] != '/' || len(item.RequestBodySHA256) != 64 || item.StatusCode == nil ||
 			*item.StatusCode < 200 || *item.StatusCode >= 300 || len(item.ResponseBodySHA256) != 64 ||
 			len(item.ResponseBodyB64) == 0 || !json.Valid(item.ResponseBodyB64) || item.ErrorClass != "NONE" {
@@ -373,7 +406,7 @@ func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool
 }
 
 func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testing.T) {
-	report := continuousRecoveryReport{Schema: "chengwang.mihomo-continuous-recovery-http-experiment/v1",
+	report := continuousRecoveryReport{Schema: "chengwang.mihomo-continuous-recovery-http-experiment/v2",
 		Scope:        "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION",
 		SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"), Outcome: "FAIL", FailureCode: "NOT_COMPLETED",
 		HTTP: []continuousRecoveryHTTPOriginal{}, Heads: []continuousRecoveryHeadState{},

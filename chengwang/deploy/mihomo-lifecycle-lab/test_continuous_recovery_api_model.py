@@ -1,5 +1,7 @@
+import ast
 import base64
 import copy
+import hashlib
 import importlib.util
 import json
 import os
@@ -12,6 +14,38 @@ from unittest import mock
 
 HERE=Path(__file__).resolve().parent
 _REAL_FSTAT=os.fstat
+EXPECTED_CASE_CONTRACT=(
+  ('INITIAL_HEAD','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('FIRST_CANDIDATES','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+  ('FIRST_UNKNOWN_CREATE','Admin','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+  ('FIRST_UNKNOWN_APPROVE','Approver','CASE_ACTOR_APPROVER','POST',None,200),
+  ('FIRST_UNKNOWN_EXECUTE','Admin','CASE_ACTOR_ADMIN','POST',None,200),
+  ('FIRST_UNKNOWN_INSPECT','Viewer','CASE_ACTOR_VIEWER','GET',None,200),
+  ('FIRST_UNKNOWN_HEAD','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('FIRST_RECOVERY_CREATE','Admin','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/recoveries',201),
+  ('FIRST_RECOVERY_INSPECT_PLANNED','Auditor','CASE_ACTOR_AUDITOR','GET',None,200),
+  ('FIRST_RECOVERY_APPROVE','Approver','CASE_ACTOR_APPROVER','POST',None,200),
+  ('FIRST_RECOVERY_EXECUTE','Admin','CASE_ACTOR_ADMIN','POST',None,200),
+  ('FIRST_RECOVERY_INSPECT_COMPLETED','Auditor','CASE_ACTOR_AUDITOR','GET',None,200),
+  ('FIRST_RECOVERED_HEAD','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('ACK_CANDIDATES','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+  ('ORDINARY_ACK_CREATE','Admin','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+  ('ORDINARY_ACK_APPROVE','Approver','CASE_ACTOR_APPROVER','POST',None,200),
+  ('ORDINARY_ACK_EXECUTE','Admin','CASE_ACTOR_ADMIN','POST',None,200),
+  ('ORDINARY_ACK_INSPECT','Viewer','CASE_ACTOR_VIEWER','GET',None,200),
+  ('ORDINARY_ACK_HEAD','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('SECOND_CANDIDATES','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+  ('SECOND_UNKNOWN_CREATE','Admin','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+  ('SECOND_UNKNOWN_APPROVE','Approver','CASE_ACTOR_APPROVER','POST',None,200),
+  ('SECOND_UNKNOWN_EXECUTE','Admin','CASE_ACTOR_ADMIN','POST',None,200),
+  ('SECOND_UNKNOWN_INSPECT','Viewer','CASE_ACTOR_VIEWER','GET',None,200),
+  ('SECOND_UNKNOWN_HEAD','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('SECOND_RECOVERY_CREATE','Admin','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/recoveries',201),
+  ('SECOND_RECOVERY_INSPECT_PLANNED','Auditor','CASE_ACTOR_AUDITOR','GET',None,200),
+  ('SECOND_RECOVERY_APPROVE','Approver','CASE_ACTOR_APPROVER','POST',None,200),
+  ('SECOND_RECOVERY_EXECUTE','Admin','CASE_ACTOR_ADMIN','POST',None,200),
+  ('SECOND_RECOVERY_INSPECT_COMPLETED','Auditor','CASE_ACTOR_AUDITOR','GET',None,200),
+  ('SECOND_RECOVERED_HEAD','Viewer','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200))
 
 class StatView:
     def __init__(self,value,uid,gid): self.value=value; self.st_uid=uid; self.st_gid=gid
@@ -63,21 +97,66 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         harness=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go').read_text(encoding='utf8')
         self.assertIn('initial.WALSchema != "'+self.reader.WAL_SCHEMA+'"',harness)
         self.assertNotIn('chengwang.mihomo-lifecycle/v2',harness)
-        self.assertIn('h.call(stage+"_INSPECT", "viewer", http.MethodGet',harness)
-        self.assertNotIn('h.call(stage+"_INSPECT", "auditor", http.MethodGet',harness)
+        self.assertIn('h.call(stage+"_INSPECT", http.MethodGet',harness)
+        self.assertNotRegex(harness,r'h\.call\([^\n]*"(?:viewer|operator|approver|auditor|admin)"')
+        self.assertEqual(len(re.findall(r'h\.call\(',harness)),11)
         deployment_inspects=[row for row in self.reader.HTTP_CASES if row[0] in
           ('FIRST_UNKNOWN_INSPECT','ORDINARY_ACK_INSPECT','SECOND_UNKNOWN_INSPECT')]
         recovery_inspects=[row for row in self.reader.HTTP_CASES if '_RECOVERY_INSPECT_' in row[0]]
-        self.assertEqual(len(deployment_inspects),3); self.assertTrue(all(row[1]=='viewer' for row in deployment_inspects))
-        self.assertEqual(len(recovery_inspects),4); self.assertTrue(all(row[1]=='auditor' for row in recovery_inspects))
-        self.assertEqual(frozenset(row[0] for row in self.reader.HTTP_CASES),self.worker.HTTP_DIAGNOSTIC_CASES)
+        self.assertEqual(len(deployment_inspects),3); self.assertTrue(all(row[1]=='CASE_ACTOR_VIEWER' for row in deployment_inspects))
+        self.assertEqual(len(recovery_inspects),4); self.assertTrue(all(row[1]=='CASE_ACTOR_AUDITOR' for row in recovery_inspects))
+        expected_public=tuple((case,actor,method,path,status) for case,_,actor,method,path,status in EXPECTED_CASE_CONTRACT)
+        self.assertEqual(self.reader.HTTP_CASES,expected_public)
+        self.assertEqual(self.worker.HTTP_PUBLIC_CASES,expected_public)
+        self.assertEqual(self.worker.BOUNDARY,self.reader.BOUNDARY)
+        self.assertEqual(frozenset(row[0] for row in expected_public),self.worker.HTTP_DIAGNOSTIC_CASES)
+        coordinated=list(expected_public)
+        coordinated[2]=(coordinated[2][0],*expected_public[3][1:])
+        coordinated[3]=(coordinated[3][0],*expected_public[2][1:])
+        self.assertNotEqual(tuple(coordinated),expected_public)
+        self.assertEqual({actor:sum(row[1]==actor for row in self.reader.HTTP_CASES) for actor in
+          ('CASE_ACTOR_VIEWER','CASE_ACTOR_ADMIN','CASE_ACTOR_APPROVER','CASE_ACTOR_AUDITOR')},
+          {'CASE_ACTOR_VIEWER':12,'CASE_ACTOR_ADMIN':10,'CASE_ACTOR_APPROVER':5,'CASE_ACTOR_AUDITOR':4})
+        self.assertEqual(sum(row[4]==201 for row in self.reader.HTTP_CASES),5)
+        self.assertEqual(sum(row[4]==200 for row in self.reader.HTTP_CASES),26)
         authz=(HERE.parents[1]/'internal/authz/model.go').read_text(encoding='utf8')
         role_pairs=re.findall(r'Role(Viewer|Operator|Approver|Auditor|Admin)\s+Role\s*=\s*"([^"]+)"',authz)
         self.assertEqual({value.encode():name.upper() for name,value in role_pairs},self.worker.PUBLIC_IDENTITY_ROLE_LABELS)
+        roles={name:value for name,value in role_pairs}
+        actor_roles={'CASE_ACTOR_VIEWER':'Viewer','CASE_ACTOR_ADMIN':'Admin',
+          'CASE_ACTOR_APPROVER':'Approver','CASE_ACTOR_AUDITOR':'Auditor'}
+        def case_identity(source):
+            identity=re.search(r'func continuousRecoveryCaseIdentity\(name string\).*?\n}',source,re.S)
+            self.assertIsNotNone(identity); observed={}
+            for cases,role,actor in re.findall(r'case (.*?):\n\s*return authz\.Role(\w+), continuousRecoveryCaseActor(\w+), true',identity.group(0),re.S):
+                for case in re.findall(r'"([A-Z0-9_]+)"',cases): observed[case]=(role,'CASE_ACTOR_'+actor.upper())
+            return identity.group(0),observed
+        identity,observed=case_identity(harness)
+        expected={case:(role,actor) for case,role,actor,_,_,_ in EXPECTED_CASE_CONTRACT}
+        self.assertEqual(observed,expected)
+        coordinated_selector=dict(expected)
+        coordinated_selector['FIRST_UNKNOWN_CREATE'],coordinated_selector['FIRST_UNKNOWN_APPROVE']=(
+          coordinated_selector['FIRST_UNKNOWN_APPROVE'],coordinated_selector['FIRST_UNKNOWN_CREATE'])
+        self.assertNotEqual(coordinated_selector,expected)
+        drift=harness.replace('return authz.RoleViewer, continuousRecoveryCaseActorViewer, true',
+          'return authz.RoleAdmin, continuousRecoveryCaseActorViewer, true',1)
+        self.assertNotEqual(case_identity(drift)[1],expected)
+        self.assertEqual({role:roles[role] for role in set(actor_roles.values())},
+          {'Viewer':'viewer','Admin':'admin','Approver':'approver','Auditor':'auditor'})
+        self.assertIn('role, actor, ok := continuousRecoveryCaseIdentity(name)',harness)
+        self.assertLess(harness.index('role, actor, ok := continuousRecoveryCaseIdentity(name)'),harness.index('token := h.tokens[string(role)]'))
+        self.assertNotRegex(identity,r'(?i)(toupper|tolower|equalfold|sprintf|format|encode)')
+        self.assertNotIn('json:"role"',harness); self.assertIn('json:"caseActor"',harness)
         policy_test=(HERE.parents[1]/'internal/authz/policy_test.go').read_text(encoding='utf8')
         viewer=re.search(r'RoleViewer:\s*\{([^}]*)\}',policy_test,re.S); auditor=re.search(r'RoleAuditor:\s*\{([^}]*)\}',policy_test,re.S)
         self.assertIsNotNone(viewer); self.assertIsNotNone(auditor)
         self.assertIn('ActionReadResource: true',viewer.group(1)); self.assertNotIn('ActionReadResource',auditor.group(1))
+        policy=(HERE.parents[1]/'internal/authz/policy.go').read_text(encoding='utf8')
+        self.assertIn('case RoleViewer:\n\t\t\tif action == ActionReadResource',policy)
+        self.assertIn('case RoleApprover:\n\t\t\tif action == ActionReadResource || action == ActionReadEvidence || action == ActionApproveOperation',policy)
+        self.assertIn('case RoleAdmin:\n\t\t\tswitch action {\n\t\t\tcase ActionReadResource, ActionReadEvidence, ActionCreateDraft,\n\t\t\t\tActionCreateOperation, ActionExecuteOperation',policy)
+        auditor_source=re.search(r'case RoleAuditor:(.*?)case RoleAdmin:',policy,re.S)
+        self.assertIsNotNone(auditor_source); self.assertNotIn('ActionReadResource',auditor_source.group(1))
         recovery_policy=(HERE.parents[1]/'internal/authz/lab_recovery.go').read_text(encoding='utf8')
         recovery_read=re.search(r'case ActionReadLabRecovery:(.*?)case ActionPrepareLabRecovery',recovery_policy,re.S)
         self.assertIsNotNone(recovery_read); self.assertIn('RoleAuditor',recovery_read.group(1))
@@ -98,6 +177,16 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertIn('return outputs,report,forbidden',source)
         self.assertIn("fence_outputs(outputs,forbidden,'REPORT_AND_HTTP_OUTPUTS'",source)
         self.assertIn("fence_outputs(outputs,forbidden,'ALL_GENERIC_AND_REPORT_OUTPUTS'",source)
+        self.assertNotIn("row.get('role')",source); self.assertIn("row.get('caseActor')",source)
+        self.assertIn("'chengwang.mihomo-continuous-recovery-http-originals/v2'",source)
+        self.assertNotIn("'chengwang.mihomo-continuous-recovery-http-originals/v1'",source)
+        source_lines=source.splitlines(keepends=True); source_tree=ast.parse(source)
+        expected_function_hashes={'encoded_secret_variants':'51a8652f2fc2c1e10f14f53289eb0cf290bd45d1f6dc0d400532fe6b87958192',
+          'build_forbidden':'05bea73608b1eb872da922a3465756198001fcebe4f0c8a4c5fb1f916fc5741c',
+          'fence_outputs':'91b4a1d6db867001a7cb7e7272f3cec42c200ee64b0dce15182aa850026182a5'}
+        actual_function_hashes={node.name:hashlib.sha256(''.join(source_lines[node.lineno-1:node.end_lineno]).encode()).hexdigest()
+          for node in source_tree.body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)) and node.name in expected_function_hashes}
+        self.assertEqual(actual_function_hashes,expected_function_hashes)
         classes=('IDENTITY_PROFILE','HTTP_TOKENS','TLS_KEY','SERVICE_SECRET','CONFIG_A','CONFIG_B')
         self.assertEqual(self.worker.SECRET_INPUT_CLASSES,frozenset(classes))
         self.assertEqual(self.worker.SECRET_ENCODING_VARIANTS,frozenset(('RAW','B64','B64URL','HEX','JSON_QUOTED')))
@@ -127,6 +216,13 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                       'recoveryCreateTraceObserved':False,'recoveryCreateTraceBounded':False,
                       'recoveryCreateCount':0,'lastRecoveryCreateStage':None,
                       'encodingVariant':variant})
+        for actor in ('CASE_ACTOR_VIEWER','CASE_ACTOR_ADMIN','CASE_ACTOR_APPROVER','CASE_ACTOR_AUDITOR'):
+            variants=self.worker.encoded_secret_variants(actor.encode(),'CONFIG_A','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE')
+            self.assertEqual(len(variants),8)
+            for entry in variants:
+                with self.subTest(private_actor=actor,variant=entry[3]),self.assertRaises(ValueError):
+                    self.worker.fence_outputs({'continuous-recovery-report.json':b'x'+entry[0]+b'y'},(entry,),
+                      'REPORT_AND_HTTP_OUTPUTS',0,0,True,31,'NONE',True)
         self.assertIsNone(self.worker.fence_outputs({'clean.json':b'clean'},
           ((b'model-private-value','CONFIG_A','WHOLE_FILE','RAW',False,False,'NOT_APPLICABLE'),),
           'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,False,0,'UNKNOWN',False))
@@ -342,10 +438,10 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
           'candidates':[{'name':'local-a','recordSHA256':record_a,'configSHA256':config_a,'sourceSpecSHA256':'e'*64,'isCurrent':current=='a'},
                         {'name':'local-b','recordSHA256':record_b,'configSHA256':config_b,'sourceSpecSHA256':'f'*64,'isCurrent':current=='b'}],
           'writeBlocked':False,'proof':self.proof()}
-    def call(self,sequence,case,role,method,path,status,result):
+    def call(self,sequence,case,actor,method,path,status,result):
         body=json.dumps({'boundary':'OWNED_ISOLATED_MIHOMO_LIFECYCLE_NOT_PRODUCTION_OR_FULL_PAYLOAD_PROOF','code':'mihomo_lab_ok',
           'stateMayHaveChanged':method=='POST','result':result},separators=(',',':')).encode()+b'\n'
-        return {'sequence':sequence,'case':case,'role':role,'method':method,'path':path,'requestBodySHA256':self.reader.sha(b'' if method=='GET' else b'model'),
+        return {'sequence':sequence,'case':case,'caseActor':actor,'method':method,'path':path,'requestBodySHA256':self.reader.sha(b'' if method=='GET' else b'model'),
           'statusCode':status,'responseBodySHA256':self.reader.sha(body),'responseBodyB64':base64.b64encode(body).decode(),'errorClass':'NONE'},body
     def rewrite_case(self,report,root,case,mutate):
         row=next(item for item in report['http'] if item['case']==case)
@@ -381,14 +477,14 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
             base='/api/v1/lab/mihomo/recoveries/'+item['recoveryId']; dynamic[prefix+'_INSPECT_PLANNED']=base; dynamic[prefix+'_APPROVE']=base+'/approvals'; dynamic[prefix+'_EXECUTE']=base+'/execute'; dynamic[prefix+'_INSPECT_COMPLETED']=base
         http=[]
         for i,want in enumerate(self.reader.HTTP_CASES,1):
-            case,role,method,path,status=want; row,body=self.call(i,case,role,method,path or dynamic[case],status,result[case]); http.append(row); (root/f'http-{i:03d}.response.json').write_bytes(body)
+            case,actor,method,path,status=want; row,body=self.call(i,case,actor,method,path or dynamic[case],status,result[case]); http.append(row); (root/f'http-{i:03d}.response.json').write_bytes(body)
         native=(('KERNEL_OS_START_ATTEMPT',1),('KERNEL_OS_START_RETURN',1),('RECOVERY_STOP_DISPATCH',1),('RECOVERY_START_DISPATCH',0),('SYNTAX_OS_START_ATTEMPT',0),('SYNTAX_OS_START_RETURN',0))
         pre=[{'sequence':100+i,'kind':kind,'core':core,'at':'2026-10-26T00:00:00Z'} for i,(kind,core) in enumerate(native,1)]
         post=pre+[{'sequence':100+i+len(pre),'kind':kind,'core':2,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate(('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
         initial={'schema':'chengwang.mihomo-lab-acceptance-state/v1','sourceCommit':'a'*40,'walSchema':self.reader.WAL_SCHEMA,'controlSHA256':'7'*64,'recordSHA256':'8'*64,
           'head':copy.deepcopy(heads[0]),'activeOperationId':None,'activePhase':None,'activeIntentSHA256':None,'completed':[],'terminated':[],'unknownObservationCount':0,
           'privateWALValidated':True,'fullPrivateWALIndependentlyProven':False,'observedProcessMatchesHead':True,'production':False}
-        return {'schema':'chengwang.mihomo-continuous-recovery-http-experiment/v1','scope':self.reader.SCOPE,'sourceCommit':'a'*40,'outcome':'PASS','failureCode':'NONE','http':http,'initial':initial,
+        return {'schema':'chengwang.mihomo-continuous-recovery-http-experiment/v2','scope':self.reader.SCOPE,'sourceCommit':'a'*40,'outcome':'PASS','failureCode':'NONE','http':http,'initial':initial,
           'heads':[{'stage':s,'view':v} for s,v in zip(('INITIAL','FIRST_UNKNOWN','FIRST_RECOVERED','ORDINARY_ACK','SECOND_UNKNOWN','SECOND_RECOVERED'),heads)],
           'operations':[{'stage':s,'view':v} for s,v in zip(('FIRST_UNKNOWN','ORDINARY_ACK','SECOND_UNKNOWN'),ops)],
           'recoveries':[{'stage':s,'view':v} for s,v in zip(('FIRST_RECOVERY','SECOND_RECOVERY'),rec)],
@@ -397,12 +493,79 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
           'closedPorts':[{'port':p,'connectAttempted':True,'accepted':False,'errorClass':'CONNECTION_REFUSED'} for p in (28411,28412,28413,28414,28415,30000)],
           'runtimeReturned':True,'runtimeErrorClass':'NONE','privateWALDecodedByTest':False,'production':False,'fullPayloadProven':False,'internetBusinessProven':False}
 
+    def worker_outputs(self,report,forbidden):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); service=root/'service'; service.mkdir()
+            report_path=service/'continuous-recovery-report.private.json'
+            report_path.write_bytes(self.worker.canonical(report)+b'\n')
+            (service/'kernel.stdout').write_bytes(b''); (service/'kernel.stderr').write_bytes(b'')
+            binding={'sourceCommit':'a'*40}
+            with mock.patch.object(self.worker,'REPORT',report_path),mock.patch.object(self.worker,'SERVICE',service), \
+                 mock.patch.object(self.worker,'adapter',return_value=Adapter(root)),mock.patch.object(self.worker.os,'fsync'), \
+                 mock.patch.object(self.worker.os,'O_NOFOLLOW',0,create=True):
+                return self.worker.safe_report_outputs(binding,list(forbidden),0,1)
+
     def test_reader_accepts_complete_synthetic_shape_and_rejects_material_mutants(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); report=self.fixture(root); binding={'schema':'binding'}
             self.assertEqual(len(self.reader.validate_report(report,'a'*40,root,binding)),31)
+            outputs,worker_report,_=self.worker_outputs(report,[])
+            self.assertEqual(worker_report['outcome'],'PASS')
+            self.assertEqual(json.loads(outputs['http-originals-index.json'])['entries'][-1]['caseActor'],'CASE_ACTOR_VIEWER')
+            partial=copy.deepcopy(report); partial['outcome']='FAIL'; partial['failureCode']='HTTP_RESULT'; partial['http']=partial['http'][:26]
+            partial['http'][-1]['statusCode']=503
+            outputs,worker_report,_=self.worker_outputs(partial,[])
+            self.assertEqual(worker_report['outcome'],'FAIL'); self.assertEqual(len(json.loads(outputs['http-originals-index.json'])['entries']),26)
+            self.assertEqual(outputs['http-026.response.json'],base64.b64decode(partial['http'][-1]['responseBodyB64']))
+            with self.assertRaises((ValueError,TypeError)):
+                self.reader.validate_report(partial,'a'*40,root,binding)
+            actor_forbidden=self.worker.encoded_secret_variants(
+              b'CASE_ACTOR_ADMIN','CONFIG_A','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE')
+            with self.assertRaises(ValueError): self.worker_outputs(partial,actor_forbidden)
+            unobserved=copy.deepcopy(partial); unobserved['http']=unobserved['http'][:6]
+            unobserved['http'][-1].update(statusCode=None,responseBodySHA256='',responseBodyB64=None,errorClass='RESPONSE_NOT_OBSERVED')
+            outputs,_,_=self.worker_outputs(unobserved,[]); last=json.loads(outputs['http-originals-index.json'])['entries'][-1]
+            self.assertEqual((last['name'],last['bytes'],last['sha256']),(None,0,'')); self.assertNotIn('http-006.response.json',outputs)
+            empty_prefix=copy.deepcopy(partial); empty_prefix['http']=[]
+            outputs,_,_=self.worker_outputs(empty_prefix,[])
+            self.assertEqual(json.loads(outputs['http-originals-index.json'])['entries'],[])
+            full_failure=copy.deepcopy(report); full_failure['outcome']='FAIL'; full_failure['failureCode']='CLEANUP'
+            outputs,_,_=self.worker_outputs(full_failure,[])
+            self.assertEqual(len(json.loads(outputs['http-originals-index.json'])['entries']),31)
+            bounded_body=copy.deepcopy(partial); raw=b'x'*((16<<10)+1)
+            bounded_body['http'][-1].update(statusCode=503,responseBodySHA256=self.reader.sha(raw),
+              responseBodyB64=base64.b64encode(raw).decode(),errorClass='BODY')
+            outputs,_,_=self.worker_outputs(bounded_body,[]); self.assertEqual(outputs['http-026.response.json'],raw)
+            def envelope_mutant(key,value):
+                result=copy.deepcopy(partial); row=result['http'][0]
+                envelope=json.loads(base64.b64decode(row['responseBodyB64'],validate=True)); envelope[key]=value
+                raw=json.dumps(envelope,separators=(',',':')).encode()+b'\n'
+                row['responseBodySHA256']=self.reader.sha(raw); row['responseBodyB64']=base64.b64encode(raw).decode()
+                return result
+            capture_mutants=[]
+            value=copy.deepcopy(partial); value['http'][0]['caseActor']='CASE_ACTOR_ADMIN'; capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'][0]['role']=value['http'][0].pop('caseActor'); capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'][0]['sequence']=True; capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'][0]['statusCode']=503; capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'][0]['errorClass']='BODY'; capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'][0].update(
+              statusCode=None,responseBodySHA256='',responseBodyB64=None,errorClass='RESPONSE_NOT_OBSERVED'); capture_mutants.append(value)
+            capture_mutants.extend((envelope_mutant('boundary','WRONG'),envelope_mutant('code','wrong'),
+              envelope_mutant('stateMayHaveChanged',True),envelope_mutant('result','not-an-object')))
+            value=copy.deepcopy(partial); value['http'][-1]['statusCode']=True; capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'][-1]['errorClass']='UNKNOWN'; capture_mutants.append(value)
+            value=copy.deepcopy(bounded_body); raw=b'x'*((16<<10)+2); value['http'][-1].update(
+              responseBodySHA256=self.reader.sha(raw),responseBodyB64=base64.b64encode(raw).decode()); capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['http'].append(copy.deepcopy(report['http'][25])); capture_mutants.append(value)
+            value=copy.deepcopy(partial); value['outcome']='PASS'; value['failureCode']='NONE'; capture_mutants.append(value)
+            for index,value in enumerate(capture_mutants):
+                with self.subTest(capture_mutant=index),self.assertRaises((ValueError,TypeError)): self.worker_outputs(value,[])
             mutants=[]
             for mutate in (
+              lambda x:x.__setitem__('schema','chengwang.mihomo-continuous-recovery-http-experiment/v1'),
+              lambda x:(x['http'][0].__setitem__('role','viewer'),x['http'][0].pop('caseActor')),
+              lambda x:x['http'][0].__setitem__('case','UNKNOWN_CASE'),
+              lambda x:x['http'][0].__setitem__('caseActor','CASE_ACTOR_ADMIN'),
               lambda x:x['http'][0].__setitem__('sequence',True),
               lambda x:x['http'][0].__setitem__('statusCode',200.0),
               lambda x:x['http'][0].__setitem__('responseBodySHA256','0'*64),

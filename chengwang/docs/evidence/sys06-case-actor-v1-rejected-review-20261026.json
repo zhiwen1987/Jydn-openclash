@@ -1,0 +1,171 @@
+{
+  "affectedRuntimeRoots": [
+    "Exact-tag Linux Go harness TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery",
+    "continuous_recovery_api_worker.py artifact producer and secret fence",
+    "check_continuous_recovery_api.py independent artifact reader",
+    "test_continuous_recovery_api_model.py source and negative MODEL"
+  ],
+  "applicability": {
+    "rationale": "All four files are in the owned continuous-recovery exact-tag workflow and directly produce, publish, or validate its evidence artifacts.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "The exact patch, base, four after-images, call graph, schema changes, privacy functions, and a concrete in-memory coordinated-drift counterexample were independently inspected. Missing runtime evidence does not affect the established need to revise."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes only the isolated continuous-recovery test/report pipeline, but it changes a public evidence schema and the metadata used to demonstrate real bearer-role/RBAC behavior. A wrong mapping can make security evidence semantically false even though product authorization remains enforced."
+  },
+  "importantCallers": [
+    "continuousRecoveryHTTPS.call -> continuousRecoveryCaseIdentity -> private bearer token lookup -> http.Client.Do",
+    "safe_report_outputs -> REPORT_AND_HTTP_OUTPUTS fence -> public artifact write",
+    "checker validate_http -> schema-v2 report and index comparison"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A caller-supplied independent role and actor could disagree and publish false evidence.",
+      "id": "case-selector-authority",
+      "invariant": "Every one of the 31 CASE names selects exactly one real authz.Role and one public CASE_ACTOR, and unknown input fails before token access or network dispatch.",
+      "legitimateControl": "call no longer accepts either value; the exact CASE selector returns both, default returns false, and selection precedes token lookup and http.Client.Do.",
+      "result": "supported",
+      "runtimeRoot": "continuousRecoveryHTTPS.call and continuousRecoveryCaseIdentity"
+    },
+    {
+      "counterexample": "Treating CASE_ACTOR as an allowed secret could expose a real private value equal to that literal.",
+      "id": "privacy-fence-preservation",
+      "invariant": "No raw private role is deliberately emitted, and no role/actor exception, mask, or encoding bypass weakens the original secret fence.",
+      "legitimateControl": "Report and index use caseActor, while independent function hashes show private_bases, write_private, append_jsonl, encoded_secret_variants, build_forbidden, report_diagnostic_status, fence_outputs, capture, and main unchanged; collision negatives still reject every actor encoding.",
+      "result": "supported",
+      "runtimeRoot": "continuous_recovery_api_worker.py"
+    },
+    {
+      "counterexample": "Swap FIRST_UNKNOWN_CREATE to APPROVER and FIRST_UNKNOWN_APPROVE to ADMIN in reader, worker, and Go selector. Counts, inspect-role assertions, policy snippets, call count, and the current observed-versus-expected check all remain satisfied.",
+      "id": "independent-role-contract",
+      "invariant": "The MODEL independently defines correct CASE-to-role semantics instead of accepting coordinated producer and reader drift.",
+      "legitimateControl": "Use a separate immutable 31-entry expected CASE-to-authz.Role/CASE_ACTOR map in the MODEL, then compare Go selector, reader table, and worker table independently to it; add the coordinated swap as a negative.",
+      "result": "contradicted",
+      "runtimeRoot": "test_continuous_recovery_api_model.py source-contract checks"
+    },
+    {
+      "counterexample": "A stale v1 producer or mixed v1/v2 index could break artifact acceptance or silently omit fields.",
+      "id": "schema-v2-rollout",
+      "invariant": "Report v2 and index v2 are produced, fenced, and accepted together without dropping any of the 31 HTTP cases or old validation gates.",
+      "legitimateControl": "All three source paths require exact v2 schemas and exact row keys; the reader retains all response-body, path, digest, status, and state-chain checks.",
+      "result": "supported",
+      "runtimeRoot": "Go report producer, worker public artifacts, and Python reader"
+    },
+    {
+      "counterexample": "A report with outcome FAIL after HTTP 26 and a real 503 has fewer than 31 rows and a non-success status. The new len(rows)==31 and status==want/errorClass==NONE checks raise before REPORT_AND_HTTP_OUTPUTS fencing, private fsync receipts, the final fence, and public evidence writes.",
+      "id": "failure-prefix-preservation",
+      "invariant": "A failed real HTTPS run must retain its safely fenced, source-bound observed HTTP prefix and fixed diagnostic rather than being rejected before export; final acceptance must still require all 31 successes.",
+      "legitimateControl": "Split evidence capture from acceptance: for PASS require the exact 31 successful rows; for FAIL allow only an ordered 0..31 prefix with exact CASE/actor/method/path identity and the producer's closed status/errorClass/body-observation shapes, fence every observed byte twice, and still let the independent reader/fresh acceptance require 31 successes.",
+      "result": "contradicted",
+      "runtimeRoot": "continuous_recovery_api_worker.py safe_report_outputs and main"
+    }
+  ],
+  "patch": {
+    "base": "d58635b44be19dbaf2e343f919e7f47598f57aed (tree 1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12)",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "four-file candidate identified by PATH-MANIFEST after Git blobs 241aa65625f3c4469603e122dc95c20c414dd98c,45fb639849233dc097574bde8d5c7219247f5c88,d42f080ca268dc0e4d3721c84ad28be0a5a50b0a,23a340d972e75e7a19411784b86739bbe9dd265e",
+    "repository": "D:\\CodexData\\workspace\\mihomo-d58635b-acceptance-6c28sadh\\repo",
+    "sha256": "15657d93fcd7a91b80958899f3a439e4971d4f11246d70c3c44ce60572e45278",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "call accepts only CASE name, so caller cannot independently mismatch role and public actor",
+    "unknown CASE rejects before token lookup and HTTP dispatch",
+    "31 cases, actor counts 12/10/5/4, and status counts 26x200 plus 5x201 are preserved",
+    "private inventory, encoding, diagnostics, self-scan, both fence paths, and final write path remain byte-identical except the necessary safe_report_outputs public assembly",
+    "raw role fields are removed from the report and index while real authn/RBAC still use exact authz.Role constants"
+  ],
+  "recommendation": "revise",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The change is confined to four test/CI evidence files, adds no migration or persisted product state, and can be reverted as one isolated patch."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "The runtime selector and privacy removal are narrow, but the claimed independent source binding has a demonstrated coordinated-drift counterexample. In addition, safe_report_outputs now requires a complete successful 31-row report before either fence/export path, so real partial failure evidence is lost. Go compilation, formatting, and exact-tag Linux execution have not run."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Six Python MODEL tests pass and catch single-sided drift, report mutation, schemas, privacy collisions, and source bindings. They neither reject a coordinated CASE actor swap across reader, worker, and Go selector nor exercise safe_report_outputs with a valid partial FAIL prefix."
+  },
+  "riskDrivers": [
+    "safe_report_outputs became success-only and rejects partial FAIL prefixes before the privacy fence and artifact export",
+    "MODEL expected CASE-to-role map is derived from the mutable reader table rather than an independent fixed source contract",
+    "Schema v2 and Go formatting/compilation have not been exercised on Linux",
+    "Security evidence semantics depend on exact actor-to-real-role binding"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "The current raw role metadata collides with the unchanged private-secret fence and blocks publication of otherwise successful continuous-recovery evidence. The failure is fail-closed rather than a demonstrated secret disclosure."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "Whether the Go after-image compiles and is gofmt-clean on Go 1.23.12."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "Whether the exact-tag Linux HTTPS chain produces and the checker accepts the v2 report/index with the unchanged fence."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Exact patch, manifest, source receipt, and fsync receipt SHA-256",
+      "protects": "Immutable patch identity and declared four-path scope",
+      "status": "passed"
+    },
+    {
+      "name": "git apply --check --whitespace=error-all against immutable d586 base",
+      "protects": "Base applicability and patch whitespace integrity",
+      "status": "passed"
+    },
+    {
+      "name": "Independent after-image SHA/length/LF verification",
+      "protects": "All four candidate file bytes match PATH-MANIFEST",
+      "status": "passed"
+    },
+    {
+      "name": "Independent AST function hashing",
+      "protects": "Nine privacy-sensitive worker functions remain byte-identical; only safe_report_outputs changes",
+      "status": "passed"
+    },
+    {
+      "name": "Independent Python MODEL execution",
+      "protects": "Six existing CPU tests pass in the supplied validation tree",
+      "status": "passed"
+    },
+    {
+      "name": "Coordinated CASE actor swap falsification",
+      "protects": "Demonstrates current MODEL does not independently pin full CASE-to-real-role semantics",
+      "status": "failed"
+    },
+    {
+      "name": "Partial failure-prefix MODEL coverage",
+      "protects": "No test invokes safe_report_outputs with the existing HTTP_RESULT partial-prefix diagnostics; the new success-only precondition would discard those originals",
+      "status": "failed"
+    },
+    {
+      "name": "Go compile, gofmt, exact-tag Linux MODEL and real TLS/HTTP",
+      "protects": "Compilation, formatting, and real authn/RBAC integration remain unproven",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "revise"
+}

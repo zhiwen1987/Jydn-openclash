@@ -1,0 +1,151 @@
+{
+  "affectedRuntimeRoots": [
+    "Exact-tag Go HTTP harness",
+    "continuous_recovery_api_worker.py safe failure capture",
+    "Independent continuous recovery checker and MODEL"
+  ],
+  "applicability": {
+    "rationale": "The files directly implement the owned exact-tag continuous-recovery evidence producer and verifier.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Exact full/delta identities, after-images, privacy function hashes, CPU tests, Go call control flow, and an executable invalid-envelope counterexample were independently verified."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The isolated evidence pipeline does not alter product RBAC, but an impossible continued request sequence can be published as source-bound failure evidence."
+  },
+  "importantCallers": [
+    "continuousRecoveryHTTPS.call appends a row then validates the response envelope",
+    "worker main calls safe_report_outputs before both fence/export phases"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "Coordinated source-table drift.",
+      "id": "case-role-binding",
+      "invariant": "The independent 31-case contract binds exact real roles and public actors.",
+      "legitimateControl": "Fixed EXPECTED_CASE_CONTRACT is independently compared to reader, worker, and parsed Go selector plus authz sources.",
+      "result": "supported",
+      "runtimeRoot": "Go selector, reader, worker, MODEL"
+    },
+    {
+      "counterexample": "A 503/BODY/unobserved row followed by later calls.",
+      "id": "failure-transport-order",
+      "invariant": "No non-tail row may carry a transport, BODY, or unexpected-status failure.",
+      "legitimateControl": "v3 applies PASS-equivalent observed/NONE/expected-status checks to every non-tail row and tests all three mutations.",
+      "result": "supported",
+      "runtimeRoot": "Go call and worker safe_report_outputs"
+    },
+    {
+      "counterexample": "A 26-row prefix with row 1 status 200/error NONE/body `{}` is accepted and exported, but Go would fail HTTP_BODY at row 1 and never issue rows 2-26.",
+      "id": "failure-envelope-order",
+      "invariant": "Every non-tail row must have completed the common Go response-envelope checks before a later request could run.",
+      "legitimateControl": "For non-tail rows parse the common envelope and require the real boundary, mihomo_lab_ok code, method-bound stateMayHaveChanged, and a non-null object result; add invalid boundary/code/state/result negatives. Tail rows must retain invalid-envelope evidence.",
+      "result": "contradicted",
+      "runtimeRoot": "Go call lines 183-192 and worker safe_report_outputs"
+    },
+    {
+      "counterexample": "A private value equals a CASE_ACTOR literal.",
+      "id": "privacy-fence",
+      "invariant": "CASE_ACTOR introduces no secret exception or masking.",
+      "legitimateControl": "Nine privacy-sensitive function hashes remain d586-identical and collision tests reject actor variants.",
+      "result": "supported",
+      "runtimeRoot": "Worker private inventory, encoding, diagnostics, fences, and write path"
+    },
+    {
+      "counterexample": "Relaxing PASS or dropping genuine tail originals.",
+      "id": "pass-and-tail-capture",
+      "invariant": "PASS stays exact 31 while genuine tail failures and 31-success business failures remain exportable but not independently accepted.",
+      "legitimateControl": "MODEL exercises exact PASS, tail 503, BODY 16385, unobserved no-file, empty FAIL, and 31-success FAIL; checker remains strict.",
+      "result": "supported",
+      "runtimeRoot": "Worker safe_report_outputs and final checker"
+    }
+  ],
+  "patch": {
+    "base": "d58635b44be19dbaf2e343f919e7f47598f57aed (tree 1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12)",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "four-file CASE_ACTOR v3 candidate identified by PATH-MANIFEST v3 after Git blobs",
+    "repository": "D:\\CodexData\\workspace\\mihomo-d58635b-acceptance-6c28sadh\\repo",
+    "sha256": "bf3ca8d2ffede368fd88e48432b81da040e8e14f3df48572d1fb13211d2e121c",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "v3 requires non-tail observed/NONE/expected status",
+    "PASS remains exact 31 and checker remains strict",
+    "Tail 503/BODY/unobserved and 31-success-then-business-failure are retained",
+    "Independent 31-case role contract and privacy function byte guards remain intact"
+  ],
+  "recommendation": "revise",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "Four isolated test/evidence files, no migration or product-state change."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "v3 closes non-tail transport/status/error failures, but it still treats syntactically valid yet rejected HTTP envelopes as successful non-tail responses. Go/gofmt/Linux/HTTPS remain unrun."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Six MODEL tests cover independent mappings, PASS, tail failures, non-tail status/BODY/unobserved failures, secret fences, and malformed inputs. They do not cover a non-tail 200/NONE response whose JSON fails the Go call envelope contract."
+  },
+  "riskDrivers": [
+    "Non-tail 200/NONE rows are only json.loads-checked, not checked against the common envelope required before Go call returns",
+    "No exact-head Go, gofmt, Linux MODEL, or HTTPS evidence"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Raw role metadata continues to block evidence publication under the fail-closed secret fence until a safe CASE_ACTOR patch lands."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "Whether a revised Go after-image compiles and is gofmt-clean on the pinned Linux toolchain."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "Whether a revised candidate completes the real 31-request HTTPS and fresh/checker closure."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Full patch and v2-to-v3 delta hashes plus strict apply",
+      "protects": "Immutable identity and exact base applicability",
+      "status": "passed"
+    },
+    {
+      "name": "Four after-image bytes, LF, and worker function hash audit",
+      "protects": "Declared scope and unchanged privacy machinery",
+      "status": "passed"
+    },
+    {
+      "name": "Independent Python MODEL",
+      "protects": "Six CPU tests including v3 non-tail transport/status failures",
+      "status": "passed"
+    },
+    {
+      "name": "Non-tail invalid-envelope counterexample",
+      "protects": "Worker accepted row 1 body `{}` with 25 later rows although Go call would stop at row 1",
+      "status": "failed"
+    },
+    {
+      "name": "Go compile, gofmt, exact-tag Linux MODEL, and real HTTPS",
+      "protects": "Runtime and platform behavior remain unproven",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "revise"
+}

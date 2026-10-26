@@ -58,27 +58,27 @@ DELIVERY=(
  'chengwang/tools/mihomo-runtime-candidate/pin.json',
  'chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py')
 HTTP_CASES=(
- ('INITIAL_HEAD','viewer','GET','/api/v1/lab/mihomo/head',200),
- ('FIRST_CANDIDATES','viewer','GET','/api/v1/lab/mihomo/candidates',200),
- ('FIRST_UNKNOWN_CREATE','admin','POST','/api/v1/lab/mihomo/deployments',201),
- ('FIRST_UNKNOWN_APPROVE','approver','POST',None,200),('FIRST_UNKNOWN_EXECUTE','admin','POST',None,200),
- ('FIRST_UNKNOWN_INSPECT','viewer','GET',None,200),('FIRST_UNKNOWN_HEAD','viewer','GET','/api/v1/lab/mihomo/head',200),
- ('FIRST_RECOVERY_CREATE','admin','POST','/api/v1/lab/mihomo/recoveries',201),
- ('FIRST_RECOVERY_INSPECT_PLANNED','auditor','GET',None,200),('FIRST_RECOVERY_APPROVE','approver','POST',None,200),
- ('FIRST_RECOVERY_EXECUTE','admin','POST',None,200),('FIRST_RECOVERY_INSPECT_COMPLETED','auditor','GET',None,200),
- ('FIRST_RECOVERED_HEAD','viewer','GET','/api/v1/lab/mihomo/head',200),
- ('ACK_CANDIDATES','viewer','GET','/api/v1/lab/mihomo/candidates',200),
- ('ORDINARY_ACK_CREATE','admin','POST','/api/v1/lab/mihomo/deployments',201),
- ('ORDINARY_ACK_APPROVE','approver','POST',None,200),('ORDINARY_ACK_EXECUTE','admin','POST',None,200),
- ('ORDINARY_ACK_INSPECT','viewer','GET',None,200),('ORDINARY_ACK_HEAD','viewer','GET','/api/v1/lab/mihomo/head',200),
- ('SECOND_CANDIDATES','viewer','GET','/api/v1/lab/mihomo/candidates',200),
- ('SECOND_UNKNOWN_CREATE','admin','POST','/api/v1/lab/mihomo/deployments',201),
- ('SECOND_UNKNOWN_APPROVE','approver','POST',None,200),('SECOND_UNKNOWN_EXECUTE','admin','POST',None,200),
- ('SECOND_UNKNOWN_INSPECT','viewer','GET',None,200),('SECOND_UNKNOWN_HEAD','viewer','GET','/api/v1/lab/mihomo/head',200),
- ('SECOND_RECOVERY_CREATE','admin','POST','/api/v1/lab/mihomo/recoveries',201),
- ('SECOND_RECOVERY_INSPECT_PLANNED','auditor','GET',None,200),('SECOND_RECOVERY_APPROVE','approver','POST',None,200),
- ('SECOND_RECOVERY_EXECUTE','admin','POST',None,200),('SECOND_RECOVERY_INSPECT_COMPLETED','auditor','GET',None,200),
- ('SECOND_RECOVERED_HEAD','viewer','GET','/api/v1/lab/mihomo/head',200))
+ ('INITIAL_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+ ('FIRST_CANDIDATES','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+ ('FIRST_UNKNOWN_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+ ('FIRST_UNKNOWN_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),('FIRST_UNKNOWN_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),
+ ('FIRST_UNKNOWN_INSPECT','CASE_ACTOR_VIEWER','GET',None,200),('FIRST_UNKNOWN_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+ ('FIRST_RECOVERY_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/recoveries',201),
+ ('FIRST_RECOVERY_INSPECT_PLANNED','CASE_ACTOR_AUDITOR','GET',None,200),('FIRST_RECOVERY_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),
+ ('FIRST_RECOVERY_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),('FIRST_RECOVERY_INSPECT_COMPLETED','CASE_ACTOR_AUDITOR','GET',None,200),
+ ('FIRST_RECOVERED_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+ ('ACK_CANDIDATES','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+ ('ORDINARY_ACK_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+ ('ORDINARY_ACK_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),('ORDINARY_ACK_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),
+ ('ORDINARY_ACK_INSPECT','CASE_ACTOR_VIEWER','GET',None,200),('ORDINARY_ACK_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+ ('SECOND_CANDIDATES','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+ ('SECOND_UNKNOWN_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+ ('SECOND_UNKNOWN_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),('SECOND_UNKNOWN_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),
+ ('SECOND_UNKNOWN_INSPECT','CASE_ACTOR_VIEWER','GET',None,200),('SECOND_UNKNOWN_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+ ('SECOND_RECOVERY_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/recoveries',201),
+ ('SECOND_RECOVERY_INSPECT_PLANNED','CASE_ACTOR_AUDITOR','GET',None,200),('SECOND_RECOVERY_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),
+ ('SECOND_RECOVERY_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),('SECOND_RECOVERY_INSPECT_COMPLETED','CASE_ACTOR_AUDITOR','GET',None,200),
+ ('SECOND_RECOVERED_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200))
 
 def need(value):
     if not value: raise ValueError('continuous Recovery independent verification rejected')
@@ -221,16 +221,16 @@ def envelope(raw,method):
 def validate_http(report,public):
     rows=report['http']; need(type(rows) is list and len(rows)==len(HTTP_CASES)==31); results={}; index=[]
     for i,(row,want) in enumerate(zip(rows,HTTP_CASES),1):
-        keys(row,('sequence','case','role','method','path','requestBodySHA256','statusCode','responseBodySHA256','responseBodyB64','errorClass'))
-        case,role,method,path,status=want
+        keys(row,('sequence','case','caseActor','method','path','requestBodySHA256','statusCode','responseBodySHA256','responseBodyB64','errorClass'))
+        case,actor,method,path,status=want
         integer(row['sequence'],1,31); integer(row['statusCode'],100,599)
-        need(row['sequence']==i and row['case']==case and row['role']==role and row['method']==method and row['statusCode']==status and row['errorClass']=='NONE')
+        need(row['sequence']==i and row['case']==case and row['caseActor']==actor and row['method']==method and row['statusCode']==status and row['errorClass']=='NONE')
         if path is not None: need(row['path']==path)
         text(row['path'],r'/api/v1/lab/mihomo/[A-Za-z0-9_./-]+',512); digest(row['requestBodySHA256']); digest(row['responseBodySHA256'])
         if method=='GET': need(row['requestBodySHA256']==sha(b''))
         body=base64.b64decode(text(row['responseBodyB64'],limit=1<<16),validate=True); need(body and len(body)<=16<<10 and sha(body)==row['responseBodySHA256'])
         name=f'http-{i:03d}.response.json'; need(source_file(public/name,16<<10)==body); results[case]=envelope(body,method)
-        index.append({'sequence':i,'case':case,'role':role,'method':method,'path':row['path'],'statusCode':status,'bytes':len(body),'sha256':sha(body),'name':name})
+        index.append({'sequence':i,'case':case,'caseActor':actor,'method':method,'path':row['path'],'statusCode':status,'bytes':len(body),'sha256':sha(body),'name':name})
     # Dynamic paths are derived from the actual IDs returned by earlier responses.
     for prefix in ('FIRST_UNKNOWN','ORDINARY_ACK','SECOND_UNKNOWN'):
         op=results[prefix+'_CREATE']['operationId']; base='/api/v1/lab/mihomo/deployments/'+op
@@ -264,7 +264,7 @@ def fault(value,state):
 
 def validate_report(report,commit,public,binding):
     keys(report,('schema','scope','sourceCommit','outcome','failureCode','http','initial','heads','operations','recoveries','callsBefore','callsAfter','faultBeforeCleanup','faultAfterCleanup','faultClosed','closedPorts','runtimeReturned','runtimeErrorClass','privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven'))
-    need(report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v1' and report['scope']==SCOPE and report['sourceCommit']==commit and report['outcome']=='PASS' and report['failureCode']=='NONE')
+    need(report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v2' and report['scope']==SCOPE and report['sourceCommit']==commit and report['outcome']=='PASS' and report['failureCode']=='NONE')
     need(report['runtimeReturned'] is True and report['runtimeErrorClass']=='NONE' and all(report[k] is False for k in ('privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven')))
     initial_acceptance(report['initial'],commit)
     results,index=validate_http(report,public)
@@ -371,7 +371,7 @@ def verify(repo,public,commit):
     expected=fixed|{f'http-{i:03d}.response.json' for i in range(1,32)}; need({p.name for p in public.iterdir()}==expected)
     report,raw=json_file(public/'continuous-recovery-report.json'); index=validate_report(report,commit,public,binding)
     actual_index,_=json_file(public/'http-originals-index.json'); keys(actual_index,('schema','scope','sourceCommit','sourceBinding','entries','production'))
-    need(actual_index['schema']=='chengwang.mihomo-continuous-recovery-http-originals/v1' and actual_index['scope']==SCOPE and actual_index['sourceCommit']==commit and actual_index['production'] is False); exact(actual_index['sourceBinding'],binding); exact(actual_index['entries'],index)
+    need(actual_index['schema']=='chengwang.mihomo-continuous-recovery-http-originals/v2' and actual_index['scope']==SCOPE and actual_index['sourceCommit']==commit and actual_index['production'] is False); exact(actual_index['sourceBinding'],binding); exact(actual_index['entries'],index)
     execution,_=json_file(public/'execution.json'); keys(execution,('schema','scope','sourceCommit','sourceBinding','formatExit','goExit','outcome','fullPrivateWALIndependentlyProven','production'))
     need(execution['schema']=='chengwang.mihomo-continuous-recovery-execution/v1' and execution['scope']==SCOPE and execution['sourceCommit']==commit and execution['formatExit']==execution['goExit']==0 and execution['outcome']=='PASS' and execution['fullPrivateWALIndependentlyProven'] is False and execution['production'] is False); exact(execution['sourceBinding'],binding)
     need(source_file(public/'gofmt.patch',8<<20,empty=True)==b'' and source_file(public/'gofmt.stderr',8<<20,empty=True)==b'' and source_file(public/'continuous.stderr',8<<20,empty=True)==b'')

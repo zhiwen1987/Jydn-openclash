@@ -1,0 +1,174 @@
+{
+  "affectedRuntimeRoots": [
+    "continuous_recovery_api_worker.safe_report_outputs evidence-export path",
+    "continuous recovery Python source model",
+    "unchanged independent continuous-recovery checker and tagged Go harness represented in the full four-file patch"
+  ],
+  "applicability": {
+    "rationale": "continuous_recovery_api_worker.safe_report_outputs is the experiment worker path that validates the Go report before exporting originals; the v4 branch is reached for every PASS row and every non-tail FAIL row.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Exact patch bytes, base, after hashes, strict applicability, changed call site, privacy functions, product boundary literal, and material source counterexamples were independently checked. Runtime acceptance remains explicitly unknown rather than inferred."
+  },
+  "evidencePlan": [
+    {
+      "action": "Run the pinned offline Go 1.23 formatting/build checks and the exact-tag MODEL job at the candidate head, retaining raw machine-readable events and zero-skip evidence.",
+      "outcomes": {
+        "all required checks pass with zero skips": "hold_for_evidence",
+        "compile, format, exact-top, or model assertion fails": "revise"
+      },
+      "question": "Does the candidate compile and preserve the exact producer/model contract on the required Linux toolchain?"
+    },
+    {
+      "action": "Run the isolated Linux HTTPS job, then verify originals and fresh artifacts byte-for-byte with the unchanged independent checker, including PASS31, command receipts, privacy fences, and source binding.",
+      "outcomes": {
+        "full exact-head originals and fresh closure pass": "merge",
+        "runtime, privacy, schema, ordering, fresh, or checker gate fails": "revise"
+      },
+      "question": "Does the real continuous-recovery experiment produce and independently accept the full 31-case evidence set without privacy leakage?"
+    }
+  ],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes the public evidence collector for the tagged continuous-recovery experiment. A defect could misclassify or discard diagnostic HTTP originals, but it does not change product authorization, lifecycle state, or production routes."
+  },
+  "importantCallers": [
+    "continuous_recovery_api_worker.main",
+    "continuous-recovery workflow worker invocation",
+    "check_continuous_recovery_api.py for PASS-only independent acceptance"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A PASS report whose final response body is the syntactically valid JSON object {} must be rejected.",
+      "id": "pass-envelope",
+      "invariant": "A report can reach PASS evidence only with exactly 31 ordered cases and a valid common envelope on every response, including the last.",
+      "legitimateControl": "The outcome PASS branch requires 31 rows, and the per-row condition applies the boundary, code, stateMayHaveChanged, and object-result checks to all rows.",
+      "result": "supported",
+      "runtimeRoot": "continuous_recovery_api_worker.safe_report_outputs"
+    },
+    {
+      "counterexample": "A non-tail row with expected status and NONE error but body {} followed by later rows must be rejected.",
+      "id": "fail-prefix-order",
+      "invariant": "Every completed row before the final FAIL row must represent the expected successful HTTP step; only the terminal row may preserve an invalid or unobserved response.",
+      "legitimateControl": "The i < len(rows) branch requires observation, expected status, NONE, exact common envelope, method-bound mutation flag, and object result; direct execution rejected the former v3 counterexample.",
+      "result": "supported",
+      "runtimeRoot": "continuous_recovery_api_worker.safe_report_outputs"
+    },
+    {
+      "counterexample": "Applying the non-tail common-envelope rule to the terminal failure would erase the first failing HTTP original.",
+      "id": "failure-original-preservation",
+      "invariant": "The terminal FAIL row remains exportable for diagnosis even when its response is unobserved, BODY-class, or has an invalid common envelope, and it can never be accepted by the independent checker.",
+      "legitimateControl": "The common-envelope condition excludes only the final FAIL row; direct execution preserved a terminal {} original, while the unchanged checker rejects outcome FAIL.",
+      "result": "supported",
+      "runtimeRoot": "worker originals export plus check_continuous_recovery_api.py"
+    },
+    {
+      "counterexample": "A CASE_ACTOR label that equals a private value or encoded variant must still trigger the original fixed rejection before public writes.",
+      "id": "privacy-fence",
+      "invariant": "No secret value, encoded secret variant, response body, or dynamic diagnostic detail may bypass the existing pre-export fences.",
+      "legitimateControl": "The four privacy and diagnostic functions were byte-compared with v3 and are unchanged; v4 introduces no exemption, mask, dynamic secret diagnostic, or alternate writer.",
+      "result": "supported",
+      "runtimeRoot": "continuous_recovery_api_worker privacy inventory and fence_outputs calls"
+    },
+    {
+      "counterexample": "A worker-only boundary literal drift would reject all genuine prefix rows or admit a foreign boundary.",
+      "id": "product-boundary",
+      "invariant": "The envelope boundary required by the worker must equal the product LabBackendBoundary emitted by the Mihomo lab service.",
+      "legitimateControl": "The v4 literal exactly equals LabBackendBoundary in immutable base lab_backend.go, and the model also binds worker.BOUNDARY to the unchanged independent reader.BOUNDARY.",
+      "result": "supported",
+      "runtimeRoot": "mihomodeploy LabBackendBoundary producers and continuous worker"
+    }
+  ],
+  "patch": {
+    "base": "d58635b44be19dbaf2e343f919e7f47598f57aed tree 1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "CASE_ACTOR v4 manifest 0720557973724cf1d6cf31804b4aa48f4d23fc704c30ee5a54a8000e5d45dc83",
+    "repository": "chengwang mihomo lifecycle continuous-recovery acceptance",
+    "sha256": "59f97fb6533d67a57e5006e772184a16055c7dda7a14e786a9220316ebffaedf",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "PASS remains exact-31 and applies boundary, code, method-bound stateMayHaveChanged, and object-result checks to every row including the tail.",
+    "FAIL permits an invalid envelope only on its final row, preserving the actual failure original without accepting it as success.",
+    "The independent checker is byte-identical to v3 and rejects every FAIL outcome.",
+    "encoded_secret_variants, build_forbidden, fence_outputs, and report_diagnostic_status are byte-identical to v3."
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The change is confined to experiment evidence code and an existing Python model; it adds no migration or persistent product-state format. Reverting the four-file candidate restores the prior behavior."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "The v4 delta is narrow and the source counterexamples pass, but the affected Python collector is coupled to a Linux-tagged Go producer and its exact HTTP envelope. Go compilation, formatting, and exact-tag Linux execution have not run."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Six focused CPU model tests and three independent direct counterexamples exercise the changed rule, while the unchanged independent checker still refuses FAIL reports. Exact-head Go/Linux/HTTPS checks are absent."
+  },
+  "riskDrivers": [
+    "The worker consumes private Go-generated HTTP originals and therefore sits on a privacy-sensitive evidence boundary.",
+    "The exact Linux-tagged Go producer and HTTPS chain have not executed against this candidate.",
+    "FAIL capture intentionally validates only ordering and the common envelope for completed prefix rows; it is not a second typed business-state validator."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without v4, v3 permits a syntactically valid but non-envelope JSON object on a non-tail FAIL row, allowing an impossible diagnostic prefix to be exported. It still cannot become accepted PASS evidence because the independent checker rejects FAIL."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "The four-file full candidate has not been compiled or gofmt-checked with Go 1.23 on Linux, and the exact-tag model has not executed."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "No exact-head real HTTPS 31-case producer, originals/fresh byte-equality, privacy fence, or independent checker run exists for v4."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Exact artifact identity and LF after-image audit",
+      "protects": "Full patch, v3 delta, manifest, source receipt, and fsync receipt hashes match the frozen declarations; all four after files match manifest SHA/byte counts and contain zero CR bytes.",
+      "status": "passed"
+    },
+    {
+      "name": "Strict full and v3-delta apply checks",
+      "protects": "The full patch applies cleanly with whitespace errors forbidden to immutable d586, and the delta applies cleanly to frozen v3.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent Python model suite",
+      "protects": "python -m unittest ran 6 tests with 0 failures, 0 errors, and 0 skips against the frozen v4 validation tree.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent v3 counterexample and tail-boundary probes",
+      "protects": "A non-tail {} response is rejected, a terminal FAIL {} response is preserved, and a PASS terminal {} response is rejected.",
+      "status": "passed"
+    },
+    {
+      "name": "Privacy and unaffected-file byte comparison",
+      "protects": "The four privacy/diagnostic functions and the independent checker and Go harness are unchanged from v3.",
+      "status": "passed"
+    },
+    {
+      "name": "Go build, gofmt, Linux exact-tag model, and real HTTPS run",
+      "protects": "Would establish producer/consumer compatibility, platform behavior, exact 31-case execution, privacy fencing, fresh replay, and independent checker acceptance.",
+      "status": "unavailable"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}

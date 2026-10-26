@@ -1,0 +1,93 @@
+{
+  "boundaries": {
+    "isolatedContinuousScenarioAccepted": false,
+    "localGoRun": false,
+    "privacyFenceWeakened": false,
+    "privateValueOrBodyOutput": false,
+    "productionAccepted": false,
+    "productionTouched": false,
+    "rawJobLogPersisted": false,
+    "rawPrivateArtifactDownloaded": false,
+    "rerunTriggered": false,
+    "roleMetadataExemptionImplemented": false,
+    "signedURLPersistedOrPrinted": false
+  },
+  "classification": {
+    "actualBusinessChainReached31Requests": true,
+    "freshVerifierAccepted": false,
+    "goReportOutcomePass": true,
+    "independentCheckerAccepted": false,
+    "overall": "MODEL_PASS_AND_GO_REPORT_PASS_BUT_PRIVACY_FENCE_REJECTED",
+    "privacyFenceRejectedBeforeSafeExport": true,
+    "secondaryFailures": [
+      "same-job independent checker lacked the rejected safe export",
+      "fresh verifier could not accept the rejected safe export"
+    ]
+  },
+  "httpsSafeDiagnostic": {
+    "diagnosticCount": 1,
+    "encodingVariant": "JSON_QUOTED",
+    "exactKeyCount": 24,
+    "formatExit": 0,
+    "goExit": 0,
+    "httpCount": 31,
+    "lastHTTPCase": "SECOND_RECOVERED_HEAD",
+    "lastHTTPErrorClass": "NONE",
+    "lastHTTPStateMayHaveChanged": false,
+    "lastHTTPStateMayHaveChangedObserved": true,
+    "lastHTTPStatusCode": 200,
+    "lastHTTPStatusObserved": true,
+    "lastRecoveryCreateStage": "ACCEPTED",
+    "matchesPublicIdentityRole": true,
+    "matchesPublicLabEnvironment": false,
+    "outputLogicalName": "continuous-recovery-report.json",
+    "phase": "REPORT_AND_HTTP_OUTPUTS",
+    "publicIdentityRole": "VIEWER",
+    "recoveryCreateCount": 4,
+    "recoveryCreateTraceBounded": true,
+    "recoveryCreateTraceObserved": true,
+    "reportFailureCode": "NONE",
+    "reportObserved": true,
+    "reportOutcomePass": true,
+    "secretElementClass": "JSON_IDENTITY_ROLE",
+    "secretInputClass": "IDENTITY_PROFILE"
+  },
+  "modelGate": {
+    "exactStepSuccess": true,
+    "independentArtifactReceipt": "D:/CodexData/workspace/mihomo-d58635b-continuous-model-audit-20261026-impl56h-v1/AUDIT-RECEIPT-FINAL.json",
+    "independentArtifactReceiptSHA256": "86104350f5ce521f8649312486fa017d9e19c4f7d9bcd8fc89899f63fa95693a",
+    "parentAndFiveSubtests": {
+      "eachPass": 1,
+      "eachRun": 1,
+      "exitCode": 0,
+      "packageFail": 0,
+      "packagePass": 1,
+      "stderrEmpty": true,
+      "totalFail": 0,
+      "totalSkip": 0
+    },
+    "scope": "MODEL structural evidence only, not HTTPS or production acceptance",
+    "sourceBeforeAfterStepSuccess": true
+  },
+  "run": {
+    "attempt": 1,
+    "freshConclusion": "failure",
+    "freshJobId": 121448100891,
+    "httpsConclusion": "failure",
+    "httpsJobId": 121447714767,
+    "modelConclusion": "success",
+    "modelJobId": 121447512468,
+    "runId": 40285306033
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-primary-safe-audit/v1",
+  "source": {
+    "checkerSHA256": "50947e50846deea80908c3898186782fd109d1210535f81906150db211e92719",
+    "commit": "d58635b44be19dbaf2e343f919e7f47598f57aed",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-d58635b-acceptance-6c28sadh/repo",
+    "modelTestSHA256": "a16aec85cc917fd3a787d2981171a9c49957f8f28ce1cce746ecfcdf02340a13",
+    "rawGitBlobsVerifiedByRoot": 1455,
+    "tree": "1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12",
+    "workerSHA256": "a44b35086f66c5c4fec08d1d0faa3f7e977d7e8068ea2d0e80b75a54eabb792c",
+    "workflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea"
+  }
+}

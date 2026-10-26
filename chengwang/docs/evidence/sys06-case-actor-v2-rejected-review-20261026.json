@@ -1,0 +1,159 @@
+{
+  "affectedRuntimeRoots": [
+    "continuousRecoveryHTTPS.call and continuousRecoveryCaseIdentity in the exact-tag Go harness",
+    "continuous_recovery_api_worker.py safe_report_outputs and both secret-fence phases",
+    "check_continuous_recovery_api.py final PASS checker",
+    "test_continuous_recovery_api_model.py source and capture MODEL"
+  ],
+  "applicability": {
+    "rationale": "The changed files directly produce and validate the owned exact-tag continuous-recovery artifacts.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Exact full and v1-to-v2 patches, all after-images, worker function hashes, checker identity, direct CPU tests, and an executable impossible-prefix counterexample were independently verified."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes an isolated Linux recovery evidence harness and its public artifact schema. It does not change product RBAC, but an impossible failure prefix could misstate what the real HTTPS harness executed."
+  },
+  "importantCallers": [
+    "Go call appends one row then immediately fatals on transport, BODY, or unexpected status",
+    "worker main calls safe_report_outputs for both PASS and FAIL reports before public export",
+    "independent checker accepts only complete 31-row PASS evidence"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A coordinated CREATE/APPROVE swap across producer and readers could preserve counts.",
+      "id": "case-role-binding",
+      "invariant": "Every CASE has one independently specified real authz.Role and public CASE_ACTOR, unknown cases reject before token lookup and HTTP dispatch.",
+      "legitimateControl": "v2 defines an independent 31-entry contract and compares reader, worker, and parsed Go selector separately to it; the authz role literals and relevant policies are also source-anchored.",
+      "result": "supported",
+      "runtimeRoot": "Go selector, reader table, worker table, and MODEL EXPECTED_CASE_CONTRACT"
+    },
+    {
+      "counterexample": "Treating a partial FAIL as accepted recovery evidence.",
+      "id": "pass-acceptance",
+      "invariant": "A PASS report must contain exactly 31 expected successful rows and the independent checker must reject every FAIL prefix.",
+      "legitimateControl": "worker requires exact 31 only for PASS; checker remains byte-identical to v1 and rejects the exercised partial FAIL.",
+      "result": "supported",
+      "runtimeRoot": "worker safe_report_outputs and check_continuous_recovery_api.py"
+    },
+    {
+      "counterexample": "Set row 1 status to 503 while retaining rows 2 through 26. v2 exports all 26 even though Go call fatals immediately after row 1 and could never issue later calls.",
+      "id": "failure-original-preservation",
+      "invariant": "A genuine Go-producer FAIL prefix is safely exported without inventing response originals and without permitting impossible execution order.",
+      "legitimateControl": "Require every non-tail row to be observed, errorClass NONE, and have its expected success status. Permit only the tail row to use the closed failure shapes or to remain successful when a later business assertion failed; keep both fences unchanged.",
+      "result": "contradicted",
+      "runtimeRoot": "Go call and worker safe_report_outputs"
+    },
+    {
+      "counterexample": "An actor allowlist could permit a matching private scalar.",
+      "id": "privacy-fence",
+      "invariant": "No role exception or masking weakens detection, including when a private value equals a CASE_ACTOR literal.",
+      "legitimateControl": "Independent AST/text hashes show nine privacy-sensitive functions unchanged; collision tests still reject all actor variants before write.",
+      "result": "supported",
+      "runtimeRoot": "worker private inventory, encoded variants, diagnostics, fences, and public write path"
+    },
+    {
+      "counterexample": "Fabricating an empty response original for RESPONSE_NOT_OBSERVED or truncating a 16385-byte BODY.",
+      "id": "response-shapes",
+      "invariant": "Observed 503/BODY bytes are preserved under bounds and an unobserved response creates no response file or digest.",
+      "legitimateControl": "v2 requires null/empty response metadata for unobserved and emits no file; it preserves BODY bytes through 16385 and hashes the exact bytes.",
+      "result": "supported",
+      "runtimeRoot": "worker safe_report_outputs HTTP row loop"
+    }
+  ],
+  "patch": {
+    "base": "d58635b44be19dbaf2e343f919e7f47598f57aed (tree 1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12)",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "four-file CASE_ACTOR v2 candidate identified by PATH-MANIFEST v2 after Git blobs",
+    "repository": "D:\\CodexData\\workspace\\mihomo-d58635b-acceptance-6c28sadh\\repo",
+    "sha256": "7e4e6b292162a2e451dc701928a26ee2c32337865012f0f8578271f38e34f4ac",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "PASS remains exact 31 with expected status and NONE error",
+    "FAIL is bounded to an ordered 0..31 CASE/actor/method/path prefix with closed response shapes",
+    "503 and BODY originals are retained and fenced; unobserved responses synthesize no original",
+    "A fixed independent 31-entry contract now binds reader, worker, Go selector, authz constants, and policy anchors",
+    "Nine privacy-sensitive worker functions remain byte-identical to d586 and checker is byte-identical to frozen v1"
+  ],
+  "recommendation": "revise",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "Four test/evidence files only; no product migration or persisted product state."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "v2 corrects the v1 independent mapping and success-only capture defects, but safe_report_outputs still accepts non-tail failure rows followed by later calls, a sequence the Go producer cannot emit. Go compilation, gofmt, and Linux execution also remain unrun."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Six Python MODEL tests independently pin the 31-case mapping and exercise PASS, partial 503, unobserved, BODY, malformed prefix, and unchanged privacy fences. They do not mutate a non-tail row to a failure while retaining later rows, so the impossible sequence remains accepted."
+  },
+  "riskDrivers": [
+    "FAIL prefix validator does not require every non-tail row to be an expected successful producer step",
+    "Go/gofmt/exact-tag Linux and real HTTPS have not run"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without the CASE_ACTOR change the unchanged privacy fence blocks publication on raw role collision; this is fail-closed, not a demonstrated disclosure."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "Whether the Go after-image compiles and is gofmt-clean with the pinned Linux toolchain."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "Whether a revised candidate completes the real exact-tag 31-request HTTPS chain and fresh/checker closure."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Full patch and v1-to-v2 delta SHA-256 plus strict apply checks",
+      "protects": "Immutable identity, d586 applicability, and v1 delta scope",
+      "status": "passed"
+    },
+    {
+      "name": "Four after-image SHA, length, and LF checks",
+      "protects": "PATH-MANIFEST byte identity",
+      "status": "passed"
+    },
+    {
+      "name": "Worker AST/text hash comparison and v1 checker byte comparison",
+      "protects": "Only safe_report_outputs changes among privacy functions and final checker is not weakened",
+      "status": "passed"
+    },
+    {
+      "name": "Independent Python MODEL run",
+      "protects": "6 tests cover fixed 31 mapping, PASS, partial capture, secret collisions, source binding, and malformed inputs",
+      "status": "passed"
+    },
+    {
+      "name": "Impossible non-tail 503 prefix counterexample",
+      "protects": "v2 accepted row 1 status 503 followed by 25 later rows, revealing missing producer-order validation",
+      "status": "failed"
+    },
+    {
+      "name": "Go compile, gofmt, exact-tag Linux MODEL, and real TLS/HTTP",
+      "protects": "Compilation, canonical formatting, and runtime integration remain unproven",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "revise"
+}

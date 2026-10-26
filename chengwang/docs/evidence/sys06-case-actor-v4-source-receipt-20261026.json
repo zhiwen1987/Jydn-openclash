@@ -1,0 +1,91 @@
+{
+  "baseCommit": "d58635b44be19dbaf2e343f919e7f47598f57aed",
+  "baseTree": "1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12",
+  "boundaries": {
+    "canonicalGoFormattingRequiresLinuxProof": true,
+    "goRun": false,
+    "gofmtRun": false,
+    "httpsRun": false,
+    "linuxRun": false,
+    "production": false,
+    "roleFenceExemption": false,
+    "secretMasking": false
+  },
+  "changedPathsFromBase": 4,
+  "changedPathsFromV3": 2,
+  "contracts": {
+    "commonEnvelopeBoundary": "OWNED_ISOLATED_MIHOMO_LIFECYCLE_NOT_PRODUCTION_OR_FULL_PAYLOAD_PROOF",
+    "commonEnvelopeCode": "mihomo_lab_ok",
+    "commonEnvelopeResultMustBeObject": true,
+    "commonEnvelopeStateMayHaveChangedBindsMethod": true,
+    "deliveryCount": 25,
+    "failureNeverAcceptedByIndependentChecker": true,
+    "failureNonTailRequiresCommonEnvelope": true,
+    "failureNonTailRequiresExpectedStatusAndNoneError": true,
+    "failureTailMayContainClosedFailureShape": true,
+    "failureTailMayRemainSuccessfulForLaterBusinessFailure": true,
+    "failureTailPreservesInvalidEnvelopeEvidence": true,
+    "formatPaths": 11,
+    "httpCases": 31,
+    "independentVerificationSchema": "chengwang.mihomo-continuous-recovery-independent-verification/v1",
+    "mandatoryNoTagGoTops": 688,
+    "originalsIndexSchema": "chengwang.mihomo-continuous-recovery-http-originals/v2",
+    "passRequiresExact31": true,
+    "pythonModelTops": 6,
+    "reportSchema": "chengwang.mihomo-continuous-recovery-http-experiment/v2"
+  },
+  "cpu": {
+    "command": "python -m unittest test_continuous_recovery_api_model.py",
+    "errors": 0,
+    "exitCode": 0,
+    "failures": 0,
+    "seconds": 5.173,
+    "skipped": 0,
+    "testsRun": 6,
+    "validationTree": "validation-tree/chengwang"
+  },
+  "lineEndings": "LF",
+  "newV4NegativeCoverage": [
+    "non-tail wrong envelope boundary",
+    "non-tail wrong envelope code",
+    "non-tail stateMayHaveChanged mismatch",
+    "non-tail non-object result"
+  ],
+  "patches": {
+    "full": {
+      "bytes": 58016,
+      "name": "continuous-case-actor-v4-full.patch",
+      "sha256": "59f97fb6533d67a57e5006e772184a16055c7dda7a14e786a9220316ebffaedf",
+      "strictApplyCheck": true,
+      "whitespaceErrorAll": true
+    },
+    "v3Delta": {
+      "bytes": 5862,
+      "name": "continuous-case-actor-v3-to-v4.patch",
+      "sha256": "2a5f3b481ffba0fe73bb9c13632c43e615f30aaadb018a80e0e9577ca5b151cb",
+      "strictApplyCheck": true,
+      "whitespaceErrorAll": true
+    }
+  },
+  "peerInputs": {
+    "v3AssessmentSHA256": "d4fcd3345bbccda9f5e17e5b67862f9eb2009d1b9c3d8099ac3128269ebc1b5b",
+    "v3ReportSHA256": "9afd893e4de8ede6512f0ec742c982de86243295cbae7e9aa91eb67c90b2e0df"
+  },
+  "retainedCoverage": [
+    "non-tail status BODY and unobserved rejection",
+    "tail failure evidence capture",
+    "empty and full FAIL capture",
+    "PASS exact31",
+    "independent fixed 31-case table",
+    "privacy collisions"
+  ],
+  "schema": "chengwang.mihomo-continuous-case-actor-source-receipt/v4",
+  "status": "SOURCE_CANDIDATE_CPU_VERIFIED_GO_NOT_RUN",
+  "unchanged": {
+    "buildForbiddenFunctionSHA256": "05bea73608b1eb872da922a3465756198001fcebe4f0c8a4c5fb1f916fc5741c",
+    "continuousRecoveryContractSHA256": "b85225fbfbb693bef66cfa48dc7d21cb122608df032bc5b4ae486540cb834bd7",
+    "continuousRecoveryWorkflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea",
+    "encodedSecretVariantsFunctionSHA256": "51a8652f2fc2c1e10f14f53289eb0cf290bd45d1f6dc0d400532fe6b87958192",
+    "fenceOutputsFunctionSHA256": "91b4a1d6db867001a7cb7e7272f3cec42c200ee64b0dce15182aa850026182a5"
+  }
+}

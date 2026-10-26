@@ -1,0 +1,136 @@
+{
+  "accepted": true,
+  "artifact": {
+    "bytes": 2621,
+    "crcAndPathFencingVerified": true,
+    "id": 12633882075,
+    "memberCount": 6,
+    "members": [
+      {
+        "bytes": 151,
+        "crc32": 361623450,
+        "path": "exit.json",
+        "sha256": "888c0f22b0a48df5b1f1ce6180bbf666c8d01c89d9e2517a5e9f1b8595111c36"
+      },
+      {
+        "bytes": 619,
+        "crc32": 1130982646,
+        "path": "source-after.json",
+        "sha256": "c65ad13d8525cb194eccbd7e7bb0441fdd02328ba5ec04e93726489dad7ecb2c"
+      },
+      {
+        "bytes": 7697,
+        "crc32": 2541785822,
+        "path": "go-test.json",
+        "sha256": "a0280e18d47d34b4db0d2aa9e16462cd50d1fa21109b9a7a7d91cede6d594f06"
+      },
+      {
+        "bytes": 0,
+        "crc32": 0,
+        "path": "go-test.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 619,
+        "crc32": 1130982646,
+        "path": "source-before.json",
+        "sha256": "c65ad13d8525cb194eccbd7e7bb0441fdd02328ba5ec04e93726489dad7ecb2c"
+      },
+      {
+        "bytes": 295,
+        "crc32": 3910835016,
+        "path": "verification.json",
+        "sha256": "77309a7f08c18f1ea5a80e9368f336b3dae09a5332deaa7828ea6b814213fb8c"
+      }
+    ],
+    "name": "mihomo-continuous-fault-model-40285306033-1",
+    "rawArchivePersisted": false,
+    "sha256": "32550cf24c4d2cb00ae1bc13876efe6cc56b7acd2318a64e3fa3d93c0baf8314"
+  },
+  "go": {
+    "events": [
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+      },
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/create-stage-is-exact-bounded-diagnostic-only"
+      },
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/completed-archive-allows-one-fresh-second-recovery-begin"
+      },
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-publication-failure-retains-completed-facade"
+      },
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-rejects-changed-archive-before-publication"
+      },
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/terminal-replacement-rejects-execution-injection-and-unpaired-history"
+      }
+    ],
+    "exitCode": 0,
+    "expectedTestsFromSource": [
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/create-stage-is-exact-bounded-diagnostic-only",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/completed-archive-allows-one-fresh-second-recovery-begin",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-publication-failure-retains-completed-facade",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-rejects-changed-archive-before-publication",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/terminal-replacement-rejects-execution-injection-and-unpaired-history"
+    ],
+    "packageFailures": 0,
+    "packagePasses": 1,
+    "rawDynamicOutputPersisted": false,
+    "stderrEmpty": true,
+    "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+    "verification": {
+      "package": "chengwang/internal/mihomodeploy",
+      "passCount": 1,
+      "production": false,
+      "runCount": 1,
+      "schema": "chengwang.mihomo-continuous-fault-model-verification/v1",
+      "sourceCommit": "d58635b44be19dbaf2e343f919e7f47598f57aed",
+      "topTest": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+    }
+  },
+  "jobConclusion": "success",
+  "jobId": 121447512468,
+  "production": false,
+  "runId": 40285306033,
+  "runStateAtAudit": "IN_PROGRESS_WITH_MODEL_TERMINAL",
+  "schema": "chengwang.mihomo-continuous-fault-model-original-audit/v1",
+  "scope": "MODEL_ONLY_NO_HTTPS_NO_PRODUCT_ACCEPTANCE",
+  "snapshot": {
+    "localTextDifference": "WINDOWS_STDOUT_CRLF_ONLY",
+    "path": "D:\\CodexData\\workspace\\mihomo-d58635b-acceptance-6c28sadh\\repo",
+    "sourceBeforeEqualsSourceAfter": true,
+    "sourceBindingMatchesIndependentSnapshotRecompute": true,
+    "sourceBindingSHA256": "c65ad13d8525cb194eccbd7e7bb0441fdd02328ba5ec04e93726489dad7ecb2c",
+    "sourceTree": "1e82d7e3c1a0e29dc7f54652b4d83ffa49e17b12",
+    "trackedPathsVerifiedByRoot": 1455
+  },
+  "sourceCommit": "d58635b44be19dbaf2e343f919e7f47598f57aed"
+}

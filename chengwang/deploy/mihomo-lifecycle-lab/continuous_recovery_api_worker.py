@@ -16,6 +16,7 @@ import threading
 import unicodedata
 
 SCOPE = 'ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION'
+BOUNDARY = 'OWNED_ISOLATED_MIHOMO_LIFECYCLE_NOT_PRODUCTION_OR_FULL_PAYLOAD_PROOF'
 TOP = 'TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery'
 TAGS = ('linux','chengwang_mihomo_service','chengwang_mihomo_recovery_native',
         'chengwang_mihomo_recovery_continuous_fault')
@@ -49,14 +50,29 @@ PUBLIC_IDENTITY_ROLE_LABELS = {
 PUBLIC_IDENTITY_ROLE_ENUMS = frozenset((*PUBLIC_IDENTITY_ROLE_LABELS.values(),'UNKNOWN','NOT_APPLICABLE'))
 HTTP_ERROR_CLASSES = frozenset(('NONE','RESPONSE_NOT_OBSERVED','BODY'))
 HTTP_DIAGNOSTIC_ERROR_CLASSES = HTTP_ERROR_CLASSES|{'UNKNOWN'}
-HTTP_DIAGNOSTIC_CASES = frozenset((
-  'INITIAL_HEAD','FIRST_CANDIDATES','FIRST_UNKNOWN_CREATE','FIRST_UNKNOWN_APPROVE','FIRST_UNKNOWN_EXECUTE',
-  'FIRST_UNKNOWN_INSPECT','FIRST_UNKNOWN_HEAD','FIRST_RECOVERY_CREATE','FIRST_RECOVERY_INSPECT_PLANNED',
-  'FIRST_RECOVERY_APPROVE','FIRST_RECOVERY_EXECUTE','FIRST_RECOVERY_INSPECT_COMPLETED','FIRST_RECOVERED_HEAD',
-  'ACK_CANDIDATES','ORDINARY_ACK_CREATE','ORDINARY_ACK_APPROVE','ORDINARY_ACK_EXECUTE','ORDINARY_ACK_INSPECT',
-  'ORDINARY_ACK_HEAD','SECOND_CANDIDATES','SECOND_UNKNOWN_CREATE','SECOND_UNKNOWN_APPROVE','SECOND_UNKNOWN_EXECUTE',
-  'SECOND_UNKNOWN_INSPECT','SECOND_UNKNOWN_HEAD','SECOND_RECOVERY_CREATE','SECOND_RECOVERY_INSPECT_PLANNED',
-  'SECOND_RECOVERY_APPROVE','SECOND_RECOVERY_EXECUTE','SECOND_RECOVERY_INSPECT_COMPLETED','SECOND_RECOVERED_HEAD'))
+HTTP_PUBLIC_CASES = (
+  ('INITIAL_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('FIRST_CANDIDATES','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+  ('FIRST_UNKNOWN_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+  ('FIRST_UNKNOWN_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),('FIRST_UNKNOWN_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),
+  ('FIRST_UNKNOWN_INSPECT','CASE_ACTOR_VIEWER','GET',None,200),('FIRST_UNKNOWN_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('FIRST_RECOVERY_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/recoveries',201),
+  ('FIRST_RECOVERY_INSPECT_PLANNED','CASE_ACTOR_AUDITOR','GET',None,200),('FIRST_RECOVERY_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),
+  ('FIRST_RECOVERY_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),('FIRST_RECOVERY_INSPECT_COMPLETED','CASE_ACTOR_AUDITOR','GET',None,200),
+  ('FIRST_RECOVERED_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('ACK_CANDIDATES','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+  ('ORDINARY_ACK_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+  ('ORDINARY_ACK_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),('ORDINARY_ACK_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),
+  ('ORDINARY_ACK_INSPECT','CASE_ACTOR_VIEWER','GET',None,200),('ORDINARY_ACK_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('SECOND_CANDIDATES','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/candidates',200),
+  ('SECOND_UNKNOWN_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/deployments',201),
+  ('SECOND_UNKNOWN_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),('SECOND_UNKNOWN_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),
+  ('SECOND_UNKNOWN_INSPECT','CASE_ACTOR_VIEWER','GET',None,200),('SECOND_UNKNOWN_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200),
+  ('SECOND_RECOVERY_CREATE','CASE_ACTOR_ADMIN','POST','/api/v1/lab/mihomo/recoveries',201),
+  ('SECOND_RECOVERY_INSPECT_PLANNED','CASE_ACTOR_AUDITOR','GET',None,200),('SECOND_RECOVERY_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),
+  ('SECOND_RECOVERY_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),('SECOND_RECOVERY_INSPECT_COMPLETED','CASE_ACTOR_AUDITOR','GET',None,200),
+  ('SECOND_RECOVERED_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200))
+HTTP_DIAGNOSTIC_CASES = frozenset(row[0] for row in HTTP_PUBLIC_CASES)
 FENCE_PHASES = frozenset(('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'))
 REPORT_FAILURE_CODES = frozenset(('ACK_HEAD','CANDIDATES','CLEANUP','CLEANUP_CALLS','CLEANUP_PORT',
   'DEPLOY_ACK','DEPLOY_APPROVAL','DEPLOY_EXECUTE','DEPLOY_INSPECT','DEPLOY_PLAN','DEPLOY_STATE','DEPLOY_UNKNOWN',
@@ -457,17 +473,45 @@ def capture(state, argv, name, err_name, timeout, command):
 
 def safe_report_outputs(binding, forbidden, format_exit, go_exit):
     a=adapter(); w=a.shared(); raw=source_file(REPORT,2<<20); report=json.loads(raw)
-    need(canonical(report)+b'\n'==raw and report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v1' and
+    need(canonical(report)+b'\n'==raw and report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v2' and
          report['scope']==SCOPE and report['sourceCommit']==binding['sourceCommit'])
     need(type(forbidden) is list)
     outputs={'continuous-recovery-report.json':raw}; index=[]
-    for i,row in enumerate(report.get('http',[]),1):
-        need(type(row) is dict and row.get('sequence')==i and type(row.get('responseBodyB64')) is str)
-        body=base64.b64decode(row['responseBodyB64'],validate=True); need(0<len(body)<=16<<10 and sha(body)==row.get('responseBodySHA256'))
-        name=f'http-{i:03d}.response.json'; outputs[name]=body
-        index.append({'sequence':i,'case':row.get('case'),'role':row.get('role'),'method':row.get('method'),'path':row.get('path'),
-          'statusCode':row.get('statusCode'),'bytes':len(body),'sha256':sha(body),'name':name})
-    outputs['http-originals-index.json']=canonical({'schema':'chengwang.mihomo-continuous-recovery-http-originals/v1',
+    outcome=report.get('outcome'); failure_code=report.get('failureCode')
+    need(outcome in ('PASS','FAIL') and failure_code in REPORT_FAILURE_CODES and
+         (outcome!='PASS' or failure_code=='NONE') and (outcome!='FAIL' or failure_code!='NONE'))
+    rows=report.get('http',[]); need('http' in report and type(rows) is list and len(rows)<=len(HTTP_PUBLIC_CASES)==31)
+    if outcome=='PASS': need(len(rows)==31)
+    for i,(row,want) in enumerate(zip(rows,HTTP_PUBLIC_CASES),1):
+        need(type(row) is dict and set(row)=={'sequence','case','caseActor','method','path','requestBodySHA256',
+          'statusCode','responseBodySHA256','responseBodyB64','errorClass'} and
+          type(row.get('sequence')) is int and row['sequence']==i)
+        case,actor,method,path,status=want
+        need(row.get('case')==case and row.get('caseActor')==actor and row.get('method')==method and
+          type(row.get('path')) is str and row['path'].startswith('/api/v1/lab/mihomo/') and
+          (path is None or row['path']==path) and type(row.get('requestBodySHA256')) is str and
+          SHA.fullmatch(row['requestBodySHA256']) is not None and row.get('errorClass') in HTTP_ERROR_CLASSES)
+        if method=='GET': need(row['requestBodySHA256']==sha(b''))
+        observed=row['errorClass']!='RESPONSE_NOT_OBSERVED'
+        envelope=None
+        if observed:
+            need(type(row.get('statusCode')) is int and 100<=row['statusCode']<=599 and
+              type(row.get('responseBodySHA256')) is str and SHA.fullmatch(row['responseBodySHA256']) is not None and
+              type(row.get('responseBodyB64')) is str)
+            body=base64.b64decode(row['responseBodyB64'],validate=True)
+            need(len(body)<=(16<<10)+1 and sha(body)==row['responseBodySHA256'])
+            if row['errorClass']=='NONE': need(bool(body) and len(body)<=16<<10); envelope=json.loads(body)
+            name=f'http-{i:03d}.response.json'; outputs[name]=body
+        else:
+            need(row.get('statusCode') is None and row.get('responseBodySHA256')=='' and row.get('responseBodyB64') is None)
+            body=b''; name=None
+        if outcome=='PASS' or i<len(rows):
+            need(observed and row['statusCode']==status and row['errorClass']=='NONE' and type(envelope) is dict and
+              envelope.get('boundary')==BOUNDARY and envelope.get('code')=='mihomo_lab_ok' and
+              envelope.get('stateMayHaveChanged') is (method=='POST') and type(envelope.get('result')) is dict)
+        index.append({'sequence':i,'case':case,'caseActor':actor,'method':method,'path':row.get('path'),
+          'statusCode':row.get('statusCode'),'bytes':len(body),'sha256':sha(body) if observed else '','name':name})
+    outputs['http-originals-index.json']=canonical({'schema':'chengwang.mihomo-continuous-recovery-http-originals/v2',
       'scope':SCOPE,'sourceCommit':binding['sourceCommit'],'sourceBinding':binding,'entries':index,'production':False})+b'\n'
     for public,private in (('kernel.stdout',SERVICE/'kernel.stdout'),('kernel.stderr',SERVICE/'kernel.stderr')):
         outputs[public]=source_file(private,256<<10,empty=True)
