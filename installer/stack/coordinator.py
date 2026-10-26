@@ -37,6 +37,8 @@ class Coordinator:
 
     def plan(self):
         inventory=self.doctor();server=inventory['server'];router=inventory['router']
+        if server.get('managed_version'):
+            require(server.get('managed_profile_sha256')==server['profile_sha256'],'已安装站点的环境档案发生变化，需要单独评审迁移；不会借升级改变网络接入')
         if self.p['mode']=='fresh':
             # A same-site managed container is handled by the idempotent path.
             if server['container'] is None:require(all(server['ports_free'].values()),'目标端口已被占用，请修改环境档案；不会停止占用端口的业务')
@@ -109,8 +111,10 @@ class Coordinator:
                 except Failure as error:last=error;time.sleep(5)
             else:raise last or Failure('服务启动超时')
             if time.monotonic()>deadline:raise last or Failure('服务启动超时')
-            router=self.router_action('verify',accept=True)
             server=self.server_action('verify',accept=True)
+            # Keep the center available if the client disappears between commits.
+            # The router retains its independent rollback until its own acceptance.
+            router=self.router_action('verify',accept=True)
             return {'installed':True,'site':self.p['site'],'version':self.manifest['version'],'backup':receipt['backup'],'router':router,'server':server,'pending_user_actions':plan['pending_user_actions']}
         except BaseException:
             self.emit('安装未通过，正在恢复本次变更…')
@@ -132,7 +136,15 @@ class Coordinator:
         self.emit('恢复上一已记录版本；保留业务数据…')
         router=self.router_action('restore',manual=True)
         server=self.server_action('restore',manual=True)
-        return {'router':router,'server':server}
+        result={'router':router,'server':server}
+        if server.get('previous_managed_version'):
+            self.emit('等待恢复后的服务重新就绪…')
+            deadline=time.monotonic()+180;last=None
+            while time.monotonic()<deadline:
+                try:result['verification']=self.verify();break
+                except Failure as error:last=error;time.sleep(5)
+            else:raise Failure('恢复已应用，但服务尚未通过验收：'+str(last))
+        return result
 
     def backup(self):
         return {'server':self.server_action('backup'),'router':self.router_action('backup')}

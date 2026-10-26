@@ -44,6 +44,12 @@ def atomic(path, value):
 def read(path):return json.loads(Path(path).read_text())
 
 
+def stop_transient_timer(unit):
+    state=subprocess.run(['systemctl','show',unit,'--property=LoadState','--value'],capture_output=True,timeout=5)
+    if state.stdout.strip()==b'not-found':return True
+    return subprocess.run(['systemctl','stop',unit],capture_output=True,timeout=15).returncode==0
+
+
 def command(args, timeout=60, data=None, cwd=None):
     try:p=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout,cwd=cwd)
     except subprocess.TimeoutExpired:raise RuntimeError('command_timeout:'+Path(args[0]).name) from None
@@ -79,6 +85,7 @@ def socket_free(host, port, udp=False):
 
 def doctor(p):
     check(os.geteuid()==0,'root_required')
+    check(sys.version_info>=(3,9),'server_python_39_required')
     engine=json.loads(command(['docker','info','--format','{{json .}}']))
     check(engine['OSType']=='linux' and engine['Architecture'] in ('x86_64','amd64'),'unsupported_docker_platform')
     command(['docker','compose','version'])
@@ -141,6 +148,7 @@ def prepare(p, base, package, manifest, inputs):
     for name,digest in manifest['payload_files'].items():check(sha(release/name)==digest,'payload_file_checksum_failed')
     for script in (release/'payload/center').glob('*.sh'):script.chmod(0o700)
     current=read(base/'state.json') if (base/'state.json').exists() else None
+    if current:check(current.get('profile')==p,'managed_profile_migration_requires_review')
     name=current['container_name'] if current else ('clash-center-'+p['site'] if p['mode']=='fresh' else p['existing_container'])
     old=docker_info(name)
     if current:check(old and old['Id']==current['container_id'],'managed_container_identity_changed')
@@ -433,11 +441,10 @@ def restore(p, base, manual=False, transaction=None):
     (base/'transaction.json').unlink()
     if t.get('guard_unit'):
         try:
-            stopped=subprocess.run(['systemctl','stop',t['guard_unit']+'.timer'],capture_output=True,timeout=15)
-            if stopped.returncode:cleanup_warnings.append('rollback_timer_cleanup_failed')
+            if not stop_transient_timer(t['guard_unit']+'.timer'):cleanup_warnings.append('rollback_timer_cleanup_failed')
         except subprocess.TimeoutExpired:cleanup_warnings.append('rollback_timer_cleanup_timeout')
     atomic(backup/'restore-result.json',{'at':time.time(),'data_retained':True,'cleanup_warnings':cleanup_warnings})
-    return {'restored':True,'data_retained':True,'backup':str(backup),'cleanup_warnings':cleanup_warnings}
+    return {'restored':True,'data_retained':True,'backup':str(backup),'cleanup_warnings':cleanup_warnings,'previous_managed_version':t.get('previous',{}).get('manifest',{}).get('version') if t.get('previous') else None}
 
 
 def backup(p,base):

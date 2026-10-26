@@ -61,7 +61,7 @@ def bundle(args):
     for folder in ('stack','agents'):
         for p in (ROOT/folder).rglob('*.py' if folder=='stack' else '*'):
             if p.is_file() and '__pycache__' not in p.parts:copy(p,destination/folder/p.relative_to(ROOT/folder))
-    for name in ('clash_stack.py','start.ps1','开始安装.cmd','install.sh','README.zh-CN.md','RECOVERY.zh-CN.md','NOTICE.md'):
+    for name in ('clash_stack.py','start.ps1','开始安装.cmd','install.sh','README.zh-CN.md','RECOVERY.zh-CN.md','ACCEPTANCE.zh-CN.md','NOTICE.md'):
         copy(ROOT/name,destination/name)
     router=destination/'payload/router'
     for name in ('template.json','strict_custom.rb','strict-custom-policy.json','router_compile.rb'):copy(ROOT/'runtime'/name,router/name)

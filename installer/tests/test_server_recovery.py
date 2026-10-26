@@ -17,6 +17,16 @@ spec=importlib.util.spec_from_file_location('stack_server_agent',Path(__file__).
 agent=importlib.util.module_from_spec(spec);spec.loader.exec_module(agent)
 
 class RecoveryTests(unittest.TestCase):
+    def test_collected_transient_timer_is_already_clean(self):
+        state=type('Result',(),{'stdout':b'not-found\n','returncode':0})()
+        with patch.object(agent.subprocess,'run',return_value=state) as run:
+            self.assertTrue(agent.stop_transient_timer('owned.timer'))
+            self.assertEqual(run.call_count,1)
+        loaded=type('Result',(),{'stdout':b'loaded\n','returncode':0})()
+        failed=type('Result',(),{'stdout':b'','returncode':1})()
+        with patch.object(agent.subprocess,'run',side_effect=[loaded,failed]):
+            self.assertFalse(agent.stop_transient_timer('owned.timer'))
+
     def test_tar_traversal_and_symlinks_refused(self):
         for name,link in (('../escape',False),('data/link',True)):
             with tempfile.TemporaryDirectory() as d:

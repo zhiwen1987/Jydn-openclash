@@ -4,7 +4,7 @@
 
 ## 支持范围
 
-- Docker 主机：Linux x86_64、systemd、Docker Engine 与 Compose v2；SSH 用户须为 root，或能够 `sudo -n`。至少留出 6 GiB 空间，建议 10 GiB。
+- Docker 主机：Linux x86_64、systemd、Python 3.9 或更高、Docker Engine 与 Compose v2；SSH 用户须为 root，或能够 `sudo -n`。至少留出 6 GiB 空间，建议 10 GiB。
 - 旁路由：x86_64 OpenWrt/iStoreOS，已有 opkg 安装的 OpenClash 0.48.002、Ruby/YAML、curl、UCI 和可运行的 Mihomo。当前包同时核对插件版本和兼容内核 SHA-256；不匹配就停止，不能据此推断支持全部 OpenClash 版本。
 - 操作端：Windows x64 内置独立 Python；Linux x86_64 需要 Python 3.11–3.13、glibc 2.34 或更高。依赖随包提供，无需更改系统 Python。
 - 普通静态 IPv4 管理网络。OpenClash 软件、内核、防火墙依赖的安装属于前置准备，不在不明版本设备上自动替换。
@@ -55,6 +55,8 @@ restore --profile sites/home.json
 源代码在本目录；`Dockerfile` 只从已固定 ID 的基础镜像构建，不从生产容器执行 `docker commit`。`build_package.py` 按文件散列生成包，`sources/` 保存核心对应声明版本的源代码和构建上下文，`NOTICE.md` 说明第三方来源。散列用于检查完整性，不代替可信发行来源的签名。
 
 首次交付的测试结果以同目录验收文档为准。没有实测的环境应标为未验收。
+
+具体结果和缺口见 `ACCEPTANCE.zh-CN.md`。现有规则优先级可能让某些共享资源先进入其他策略组，例如 `gstatic.com` 先命中自定义强制代理规则；选择 Google 组的自定义出口不代表已锁定全部 Google 域名族。本包保留原有规则顺序，不把安装通过表述为整个分流体系已无缺陷。
 
 ## 轻量化措施
 
