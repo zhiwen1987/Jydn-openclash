@@ -1,0 +1,15 @@
+{
+  "applyBeforeAllPreflightChecksCompleted": true,
+  "candidateLookupCompleted": false,
+  "classification": "PRECHECK_CANDIDATE_OBJECT_LOOKUP_IN_WRONG_REPOSITORY_AND_MISSING_EXIT_GATE",
+  "commitOrPushBeforeCorrection": false,
+  "preApplyChecksReached": [
+    "target HEAD/tree/branch clean",
+    "apply patch SHA size LF",
+    "seven source preimage raw blobs",
+    "archive absence"
+  ],
+  "production": false,
+  "schema": "chengwang.root-coordinator-incident/v1",
+  "sourcePathScope": "R2 ten declared files only"
+}

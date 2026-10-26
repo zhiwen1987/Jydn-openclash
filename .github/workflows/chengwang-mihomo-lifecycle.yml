@@ -64,6 +64,12 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           required=module.required_names({p:Path(p).read_bytes() for p in module.FILES})
           declared=sorted(package+'::'+name for package,names in required.items() for name in names)
+          p207a_v3_added={
+            'chengwang/internal/authn::TestSnapshotManagerTrustedPrincipalRevalidatesRevocationWithoutToken',
+          }
+          assert len(p207a_v3_added)==1 and p207a_v3_added.issubset(declared)
+          previous688=sorted(set(declared)-p207a_v3_added)
+          assert len(previous688)==688 and hashlib.sha256('\n'.join(previous688).encode()).hexdigest()=='b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280'
           core_d_added={
             'chengwang/internal/api::TestMihomoRecoveryAPIInspectExposesOnlyBoundedFailureExitMODEL',
             'chengwang/internal/api::TestMihomoRecoveryAPIInspectExposesReconciledFreshCreateExitMODEL',
@@ -94,7 +100,7 @@ jobs:
             'chengwang/internal/mihomodeploy::TestLifecycleRecoveryReconciledStrictlyRestoresOriginalUnknown',
           }
           assert len(core_d_added)==27 and core_d_added.issubset(declared)
-          previous661=sorted(set(declared)-core_d_added)
+          previous661=sorted(set(previous688)-core_d_added)
           assert len(previous661)==661 and hashlib.sha256('\n'.join(previous661).encode()).hexdigest()=='3a8336389d2196c1dbe6f250b8a7cdeeff83af9a83d97bc4294ec8695b3e17fa'
           baseline=json.loads(Path('chengwang/deploy/mihomo-lifecycle-lab/legacy_go_tops.json').read_bytes())
           assert set(baseline)=={'schema','scope','acceptedSourceCommit','count','namesSHA256','names'}
@@ -260,8 +266,8 @@ jobs:
           assert snapshot_added.issubset(declared)
           previous=sorted(set(previous539)-snapshot_added)
           assert len(previous)==528 and hashlib.sha256('\n'.join(previous).encode()).hexdigest()=='b327b4466baea4e3dcbb624ceadcd2edfc83013b291f7a13163539dbacc2b370'
-          assert len(declared)==688 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280'
-          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous661_preserved=true previous660_preserved=true previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
+          assert len(declared)==689 and hashlib.sha256('\n'.join(declared).encode()).hexdigest()=='2ffac806dc10c8019b0342e1e0e0c56a4712a02172bdaee8a29429e5c78fa68f'
+          print('GO_TEST_DECLARATIONS='+str(len(declared))+' previous688_preserved=true previous661_preserved=true previous660_preserved=true previous647_preserved=true previous635_preserved=true legacy407_preserved=true execution_not_proven=true')
           PY
       - name: Observe host before isolated Go execution
         run: |

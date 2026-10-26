@@ -17,6 +17,9 @@ const (
 	RoleApprover Role = "approver"
 	RoleAuditor  Role = "auditor"
 	RoleAdmin    Role = "admin"
+	// RoleSubscriptionRefresher is reserved for a non-interactive machine
+	// identity. It grants no human/API write capability.
+	RoleSubscriptionRefresher Role = "subscription_refresher"
 )
 
 // Action is an operation evaluated by the authorization policy. Unknown
@@ -42,6 +45,7 @@ const (
 	ActionApproveSubscriptionSource Action = "subscription.source.approve"
 	ActionFetchSubscription         Action = "subscription.fetch"
 	ActionRollbackSubscription      Action = "subscription.rollback"
+	ActionRefreshSubscription       Action = "subscription.refresh.execute"
 	ActionReadLabRecovery           Action = "mihomo_lab.recovery.read"
 	ActionPrepareLabRecovery        Action = "mihomo_lab.recovery.prepare"
 	ActionApproveLabRecovery        Action = "mihomo_lab.recovery.approve"

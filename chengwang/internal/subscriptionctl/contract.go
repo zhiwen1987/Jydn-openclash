@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"chengwang/internal/authz"
+	"chengwang/internal/authn"
 	"chengwang/internal/control"
 	"chengwang/internal/subscription"
 )
@@ -29,6 +30,10 @@ const (
 	CodeCanceled         Code = "subscription_command_canceled"
 	CodeApprovalRequired Code = "subscription_approval_required"
 	CodeLimit            Code = "subscription_command_limit"
+	CodeFetchPolicy      Code = "subscription_fetch_policy_rejected"
+	CodeFetchUnavailable Code = "subscription_fetch_unavailable"
+	CodeFetchHTTP        Code = "subscription_fetch_http_rejected"
+	CodeFetchRateLimited Code = "subscription_fetch_rate_limited"
 )
 
 type Error struct {
@@ -70,6 +75,13 @@ type Command struct {
 	ReferenceID      string
 	PolicyRevision   uint64
 	ApprovalID       string
+	// Automated fields are package/service inputs from trusted refresh policy;
+	// the HTTP decoder never accepts them.
+	Automated             bool `json:"-"`
+	ApprovalSourceRevision uint64 `json:"-"`
+	ApprovalMaxAgeSeconds  uint64 `json:"-"`
+	refreshReference       authn.SnapshotRef
+	freshIdentityRequired  bool
 }
 
 func (Command) String() string   { return "subscription private command" }
@@ -149,9 +161,35 @@ type PolicyProvider interface {
 	Fetch(context.Context, subscription.Scope, string, string) (subscription.FetchResult, error)
 }
 
+// RefreshPolicyProvider exposes only safe scheduler bindings. Network policy
+// and secret material remain behind PolicyProvider.Fetch/Describe.
+type RefreshPolicyProvider interface {
+	RefreshBindings() ([]subscription.RefreshBinding, error)
+}
+
+type RefreshPage struct {
+	Refreshes []subscription.RefreshView `json:"refreshes"`
+	Total     int                        `json:"total"`
+	Capacity  subscription.StoreCapacity `json:"capacity"`
+}
+
+type RefreshReader interface {
+	ListRefreshes(context.Context, authz.Principal) (RefreshPage, error)
+	ReadRefresh(context.Context, authz.Principal, string) (subscription.RefreshView, error)
+}
+
+type RefreshIdentityProvider interface {
+	TrustedPrincipal(string, time.Time) (authz.Principal, authn.SnapshotRef, error)
+	CurrentPrincipal(authn.SnapshotRef, string, time.Time) (authz.Principal, error)
+}
+
 type Config struct {
 	Scope         authz.ResourceScope
 	Store         *subscription.Store      `json:"-"`
+	RefreshStore  *subscription.RefreshStore `json:"-"`
+	RefreshRecovery *subscription.RefreshRecovery `json:"-"`
+	RefreshIdentity RefreshIdentityProvider `json:"-"`
+	RefreshIdentityID string `json:"-"`
 	Audit         control.EvidenceAppender `json:"-"`
 	Policies      PolicyProvider           `json:"-"`
 	WritesEnabled bool

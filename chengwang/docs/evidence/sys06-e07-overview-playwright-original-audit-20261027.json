@@ -1,0 +1,100 @@
+{
+  "schema": "chengwang.overview-playwright-artifact-audit/v3",
+  "runId": 40357945306,
+  "runAttempt": 1,
+  "sourceCommit": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a",
+  "previousReceipts": {
+    "rawFreshAndVisualAudit": {
+      "path": "PLAYWRIGHT-AUDIT.json",
+      "bytes": 5644,
+      "sha256": "51ea237e4c3acfb545322161ee6144d3456f3818701cef5bef023e5cec63c714"
+    },
+    "missingPathRejectionLocator": {
+      "path": "WINDOWS-INDEPENDENT-REJECTION-LOCATOR.json",
+      "bytes": 2180,
+      "sha256": "4081def4c5702fc9f6c30a09697b1dd05764cc0617ad7f20f7528912376f797f",
+      "preserved": true
+    }
+  },
+  "offlineTlsVerifier": {
+    "product": "OpenSSL 3.5.9 29 Sep 2026",
+    "bytes": 1004516,
+    "sha256": "6e6a931dbf6029e3033c26f40fbda7e191ed84576d50aa9c3fee0471e94fd62b",
+    "source": "GIT_FOR_WINDOWS_BUNDLED_EXECUTABLE",
+    "pathScope": "CHILD_CHECKER_PROCESS_ONLY",
+    "systemPathModified": false,
+    "checkerParametersModified": false,
+    "trustOrTimeValidationDisabled": false
+  },
+  "windowsIndependentReplay": {
+    "checkerSource": {
+      "path": "chengwang/deploy/overview-ui-browser/check_overview_ui.py",
+      "bytes": 59740,
+      "sha256": "ab11fa8efc84a77a06973842ea93a0c152ae9fb89ec697eec6942feb151caf3a"
+    },
+    "sourceCommit": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a",
+    "engine": "playwright",
+    "profiles": {
+      "disabled": {
+        "outcome": "PASS",
+        "scope": "OVERVIEW_READONLY_ERROR_UNKNOWN_UI_FLOW",
+        "production": false,
+        "outputBytes": 3713,
+        "outputSHA256": "12ee39de644719a22e99a0565a4fe0028f2b1eae4a0e08c23737bd0e90e314ed",
+        "equalsProducerReport": true,
+        "equalsFreshReport": true
+      },
+      "enabledUnknown": {
+        "outcome": "PASS",
+        "scope": "OVERVIEW_READONLY_ERROR_UNKNOWN_UI_FLOW",
+        "production": false,
+        "outputBytes": 3111,
+        "outputSHA256": "58aaea6c819a112bc4c7ef850acce24f4e4a192d69329f2f01684b1f4f8f9b22",
+        "equalsProducerReport": true,
+        "equalsFreshReport": true
+      }
+    },
+    "verificationCoverage": {
+      "allOriginalPublicFilesExactSetAndBytes": true,
+      "allEightPngPerProfileDimensionsAndHashes": true,
+      "sourceManifestAndGitBlobsBound": true,
+      "checkerContractAndPrimitiveBytesBound": true,
+      "offlineCertificateChainAndAttimeVerifiedByOriginalParameters": true,
+      "postTlsImmutableEvidenceRereadCompleted": true,
+      "postTlsContractRereadCompleted": true,
+      "postTlsCheckerAndPrimitiveRereadCompleted": true,
+      "canonicalReportWrittenExclusively": true
+    }
+  },
+  "artifactReportAgreement": {
+    "disabled": {
+      "producerFreshWindowsAllByteEqual": true,
+      "sha256": "12ee39de644719a22e99a0565a4fe0028f2b1eae4a0e08c23737bd0e90e314ed"
+    },
+    "enabledUnknown": {
+      "producerFreshWindowsAllByteEqual": true,
+      "sha256": "58aaea6c819a112bc4c7ef850acce24f4e4a192d69329f2f01684b1f4f8f9b22"
+    }
+  },
+  "acceptanceBoundary": {
+    "linuxProducerReports": "PASS",
+    "linuxFreshReports": "BYTE_IDENTICAL_TO_PRODUCER",
+    "windowsIndependentOfflineChecker": "PASS_BYTE_IDENTICAL_TO_PRODUCER_AND_FRESH",
+    "windowsBrowserExecuted": false,
+    "authorization": "BLOCKED",
+    "production": false,
+    "workflowConclusion": "failure_due_to_separate_chrome_cdp_profiles",
+    "workflowGreenClaimed": false,
+    "businessInternetDnsRbacProductionProofClaimed": false,
+    "cssFixClaimed": false
+  },
+  "executionBoundaries": {
+    "browserOrProductServerStartedLocally": false,
+    "networkUsedByWindowsReplay": false,
+    "rawJobLogsRead": false,
+    "originalEvidenceModified": false,
+    "originalLogsOverwritten": false,
+    "productionTouched": false,
+    "mainTouched": false
+  }
+}

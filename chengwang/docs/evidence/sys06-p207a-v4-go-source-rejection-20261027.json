@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "mihomo P207A Go-only source candidate",
+    "sourceType": "patch_file",
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "head": "candidate-afterimage-3f4ccfdda9c09bfc2ede298e3994e29600b993dd73d0db8ee446d42c2e36794a",
+    "changedFiles": [
+      "chengwang/internal/api/server.go",
+      "chengwang/internal/api/subscriptions.go",
+      "chengwang/internal/api/subscriptions_test.go",
+      "chengwang/internal/authn/snapshot_manager.go",
+      "chengwang/internal/authn/snapshot_manager_linux_test.go",
+      "chengwang/internal/authn/store.go",
+      "chengwang/internal/authz/model.go",
+      "chengwang/internal/authz/policy.go",
+      "chengwang/internal/authz/subscription.go",
+      "chengwang/internal/authz/subscription_refresh_test.go",
+      "chengwang/internal/serverruntime/runtime.go",
+      "chengwang/internal/serverruntime/subscription_config.go",
+      "chengwang/internal/serverruntime/subscription_config_test.go",
+      "chengwang/internal/subscription/control.go",
+      "chengwang/internal/subscription/refresh.go",
+      "chengwang/internal/subscription/refresh_test.go",
+      "chengwang/internal/subscription/store.go",
+      "chengwang/internal/subscriptionctl/contract.go",
+      "chengwang/internal/subscriptionctl/refresh.go",
+      "chengwang/internal/subscriptionctl/service.go",
+      "chengwang/internal/subscriptionctl/service_linux_test.go",
+      "chengwang/internal/subscriptionpolicy/catalog.go",
+      "chengwang/internal/subscriptionpolicy/catalog_access.go",
+      "chengwang/internal/subscriptionpolicy/refresh_test.go"
+    ],
+    "sha256": "84d6fd5d4739be11cb2710767571917bbaa86c5db7951abe975fd8d9be98d850"
+  },
+  "recommendation": "revise",
+  "workflowLabel": "revise",
+  "impact": {
+    "rating": "high",
+    "rationale": "The sidecar is a durable authority for automated refresh attempts. A definite pre-rename failure can leave process memory ahead of durable bytes, and the exported reservation pointer can mutate capacity authority outside the store lock."
+  },
+  "regressionLikelihood": {
+    "rating": "high",
+    "rationale": "The contradictions follow directly from Go slice and pointer aliasing at every affected call; one newly authored v4 source test is itself incompatible with the implementation and should fail when executed."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "The patch adds useful definite/uncertain cut and state-shape tests, but the definite-completion test exposes the shallow-copy defect, the bind test omits in-memory and reopen assertions, and no actual Go test was run.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "managed",
+    "rationale": "A source fix can deep-clone snapshots and detached views and add bounded definite-write retry policy. Existing uncertain-write poison and reopen semantics can remain intact, but persisted state may otherwise require controlled restart and inspection."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "The main findings are deterministic from the frozen afterimage: slice assignment shares backing arrays, RefreshView copies share Reservation pointers, and the worker call chain returns on the first sidecar error."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The reviewed patch and all 24 manifest afterimages match the frozen candidate, reverse-apply succeeds, and the contradicted paths are the actual RefreshStore and server runtime paths introduced by P207A."
+  },
+  "statusQuoRisk": {
+    "rating": "high",
+    "rationale": "Integrating v4 as written would advertise exact retry after definite persistence failure while allowing memory/disk divergence and would terminate the whole runtime for definite sidecar errors not absorbed by finishRefresh."
+  },
+  "autoMergeExclusions": [
+    "persistent_state",
+    "public_contract",
+    "broad_shared_default"
+  ],
+  "affectedRuntimeRoots": [
+    "chengwang/internal/subscription.RefreshStore",
+    "chengwang/internal/subscriptionctl.Service.RunRefresh",
+    "chengwang/internal/serverruntime.RunWith"
+  ],
+  "importantCallers": [
+    "RefreshStore.RotateCheckpoint",
+    "RefreshStore.observe",
+    "RefreshStore.Reconcile",
+    "RefreshStore.claim",
+    "RefreshStore.BindCommand",
+    "RefreshStore.ReconcileReservation",
+    "RefreshStore.Complete",
+    "subscriptionctl.Service.finishRefresh",
+    "subscriptionctl.Service.refreshOnce",
+    "subscriptionctl.Service.RunRefresh",
+    "serverruntime.RunWith"
+  ],
+  "riskDrivers": [
+    "refreshSnapshot shallow-copies mutable slices and RefreshView reservation pointers",
+    "public read and claim results expose the same Reservation pointer held by store state",
+    "KnownNotCommitted persistence errors are not uniformly retried by the runtime caller",
+    "snapshot validation accepts a positive AttemptSequence below its ledger high-water"
+  ],
+  "protectiveFactors": [
+    "pre-rename and post-rename disk failures are distinguished",
+    "uncertain commits poison the process-local store and require reopen",
+    "the main subscription-store/v1 wire remains separate",
+    "UNKNOWN retains capacity ownership and does not auto-retry"
+  ],
+  "materialBoundaries": [
+    {
+      "id": "definite_failure_transaction_isolation",
+      "invariant": "A pre-rename definite failure leaves durable bytes, process memory, and opaque capability state unchanged so the same operation can perform a real durable retry.",
+      "runtimeRoot": "chengwang/internal/subscription/refresh.go",
+      "counterexample": "BindCommand, Complete, RotateCheckpoint, observe, claim, and reconciliation start from n := s.state. Refreshes and Ledgers therefore share backing arrays with s.state. Mutating n.Refreshes or n.Ledgers changes s.state before persist; beforeRename then returns CodeStoreUnsafe with disk bytes unchanged. A Bind retry sees the in-memory CommandID and skips persist, while a Complete retry sees a terminal state and conflicts.",
+      "legitimateControl": "Deep-clone IdentityKey, Ledgers, Refreshes, and every Reservation before mutation; assign only the detached successfully persisted value. Test each mutator with a definite cut, exact in-memory and durable preimage equality, proof that retry reaches persist again, and close/reopen equality.",
+      "result": "contradicted"
+    },
+    {
+      "id": "detached_authority_views",
+      "invariant": "Read and claim APIs return detached data plus only the intended opaque lease; callers cannot mutate store capacity authority without the store lock and persist path.",
+      "runtimeRoot": "RefreshStore.Refreshes, Refresh, ClaimLive, and ClaimRecovery",
+      "counterexample": "RefreshView is copied by value but contains *RefreshReservation. Refreshes appends v directly and claim returns v directly, so callers receive the same reservation object referenced by s.state.Refreshes. Changing its slots or bytes changes in-memory ReservedCapacity without validation, persistence, or locking.",
+      "legitimateControl": "Clone Reservation on every snapshot clone and every outward RefreshView copy. Keep Lease process-local and add mutation-after-return tests proving internal state and durable bytes remain unchanged.",
+      "result": "contradicted"
+    },
+    {
+      "id": "known_not_committed_runtime_recovery",
+      "invariant": "A definite sidecar persistence failure is either recovered in-process without replaying network or main-store effects, or the contract accurately declares that the refresh worker and HTTP runtime stop.",
+      "runtimeRoot": "subscriptionctl refresh worker and serverruntime.RunWith",
+      "counterexample": "finishRefresh invokes Complete once. refreshOnce returns any resulting error; RunRefresh returns on the first RefreshOnce error; startWorker converts that return into workerErrors; RunWith then closes the HTTP server. Direct store tests demonstrate a same-capability API retry but the actual caller does not perform it for Complete, observe, top-level Refreshes, or ClaimLive persistence failures.",
+      "legitimateControl": "After fixing snapshot isolation, add a bounded same-stage retry for definite sidecar writes while holding the same attempt/critical section and without rerunning fetch or main-store effects. Keep uncertain writes poison-and-stop. Alternatively declare definite local persistence errors fatal and remove any same-process self-heal claim.",
+      "result": "contradicted"
+    },
+    {
+      "id": "attempt_ledger_highwater",
+      "invariant": "Every persisted positive AttemptSequence equals that source ledger's LastIssuedSequence; only an idle or pre-attempt sequence-blocked view may sit below retained ledger history.",
+      "runtimeRoot": "validateRefreshSnapshot",
+      "counterexample": "Validation only rejects AttemptSequence greater than LastIssuedSequence. A canonical running or terminal view with AttemptSequence 1 and the same source ledger at 2 is accepted even though claim is the only producer of positive attempts and always advances both to the same sequence.",
+      "legitimateControl": "Require equality whenever AttemptSequence is positive and retain the existing zero-sequence exception for idle and sequence-exhausted blocked states. Add reopen negatives for lower view sequence in Running, terminal, and UNKNOWN states.",
+      "result": "contradicted"
+    },
+    {
+      "id": "uncertain_commit_fail_closed",
+      "invariant": "An after-rename uncertain write poisons the live store, forbids replay, and requires reopen to classify the bytes found on disk.",
+      "runtimeRoot": "RefreshStore.persist and storeLinuxDisk.write",
+      "counterexample": "No source counterexample found in the reviewed v4 delta; persist marks poisoned when write reports uncertain, and later usable calls reject.",
+      "legitimateControl": "Retain poison-before-retry and reopen tests on actual Linux after integration.",
+      "result": "supported"
+    },
+    {
+      "id": "main_store_v1_compatibility",
+      "invariant": "Automation state remains in the separately versioned sidecar and does not add an Automated field to the main subscription-store/v1 persisted wire.",
+      "runtimeRoot": "chengwang/internal/subscription store and refresh sidecar",
+      "counterexample": "No wire-field counterexample found in the 24-path Go-only patch; v4 changes only refresh.go and refresh_test.go relative to v3.",
+      "legitimateControl": "Retain the strict legacy decode and exact-head Linux compatibility tests after final overlay.",
+      "result": "supported"
+    },
+    {
+      "id": "long_run_retention",
+      "invariant": "Long-running scheduled refresh remains bounded while preserving Accepted LKV, manual records, UNKNOWN/inflight authority, approval references, and anti-replay high-water state.",
+      "runtimeRoot": "subscription main store and refresh sidecar",
+      "counterexample": "The delivery explicitly does not implement the durable sealed history/archive and active-store compaction slice; fixed capacity still eventually fails closed.",
+      "legitimateControl": "Design and separately validate bounded retention/compaction before claiming module completion; it is not required to pretend this Go-only source slice is complete.",
+      "result": "unresolved"
+    }
+  ],
+  "validation": [
+    {
+      "name": "full patch SHA-256 and byte length",
+      "status": "passed",
+      "protects": "Reviewed artifact identity is exactly 166401 bytes and SHA-256 84d6fd5d4739be11cb2710767571917bbaa86c5db7951abe975fd8d9be98d850."
+    },
+    {
+      "name": "24-path afterimage manifest recomputation",
+      "status": "passed",
+      "protects": "Every listed candidate file matched manifest byte length and SHA-256; manifest SHA-256 is 1e42da370d6d436a68480e037ec053820276ec3ee62b50921ab34afe8a126c58."
+    },
+    {
+      "name": "reverse apply and diff whitespace checks",
+      "status": "passed",
+      "protects": "The full binary patch reverse-applies to the candidate and git diff --check reports no Go whitespace error."
+    },
+    {
+      "name": "definite completion retry source test consistency",
+      "status": "failed",
+      "protects": "TestRefreshV4CompleteDefiniteFailureRetainsCapabilityForExactRetry expects Running in memory after the injected second write fails, but Complete has already changed the shared Refreshes backing array to Blocked."
+    },
+    {
+      "name": "actual Go compile, gofmt, Linux tests, race, runtime, and CI",
+      "status": "skipped",
+      "protects": "Forbidden in this source-only review; no runtime acceptance is inferred."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "The final b5 overlay and its independent non-Go source closure were outside this Go-only review.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "The frozen candidate was not compiled or executed, so additional compile, format, architecture, and race defects may remain.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "Rollback of all trusted local anchors to one older mutually consistent image remains intentionally outside the local detection model.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": []
+}

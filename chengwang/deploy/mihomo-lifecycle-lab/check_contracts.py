@@ -142,6 +142,36 @@ RECOVERY_SERVICE_COORDINATOR_FILES = (
 )
 FILES += ['chengwang/internal/mihomodeploy/' + name for name in RECOVERY_SERVICE_COORDINATOR_FILES]
 FILES += ['chengwang/internal/api/mihomo_recovery.go', 'chengwang/internal/api/mihomo_recovery_test.go']
+P207A_V3_SOURCE_FILES = (
+    '.github/workflows/chengwang-subscription-refresh.yml',
+    'chengwang/deploy/subscription-refresh/check_go_events.py',
+    'chengwang/deploy/subscription-refresh/check_go_list.py',
+    'chengwang/deploy/subscription-refresh/check_source_contract.py',
+    'chengwang/deploy/subscription-refresh/source_contract.json',
+    'chengwang/deploy/subscription-refresh/test_go_events.py',
+    'chengwang/deploy/subscription-refresh/test_go_list.py',
+    'chengwang/deploy/subscription-refresh/test_source_contract.py',
+    'chengwang/internal/api/subscriptions.go',
+    'chengwang/internal/api/subscriptions_test.go',
+    'chengwang/internal/authz/subscription_refresh_test.go',
+    'chengwang/internal/serverruntime/subscription_config.go',
+    'chengwang/internal/serverruntime/subscription_config_test.go',
+    'chengwang/internal/subscription/control.go',
+    'chengwang/internal/subscription/refresh.go',
+    'chengwang/internal/subscription/refresh_test.go',
+    'chengwang/internal/subscription/store.go',
+    'chengwang/internal/subscriptionctl/contract.go',
+    'chengwang/internal/subscriptionctl/refresh.go',
+    'chengwang/internal/subscriptionctl/service.go',
+    'chengwang/internal/subscriptionctl/service_linux_test.go',
+    'chengwang/internal/subscriptionpolicy/catalog.go',
+    'chengwang/internal/subscriptionpolicy/catalog_access.go',
+    'chengwang/internal/subscriptionpolicy/refresh_test.go',
+)
+P207A_V3_FOUNDATION_ADDED_NAMES = frozenset({
+    'chengwang/internal/authn::TestSnapshotManagerTrustedPrincipalRevalidatesRevocationWithoutToken',
+})
+FILES += list(P207A_V3_SOURCE_FILES)
 TEST_FILES = [('chengwang/internal/adapter/mihomo/write_client_test.go', 'chengwang/internal/adapter/mihomo'),
     *[('chengwang/internal/mihomodeploy/' + name, 'chengwang/internal/mihomodeploy')
       for name in ('config_test.go', 'artifact_test.go', 'artifact_linux_test.go', 'plan_test.go', 'prepare_test.go',

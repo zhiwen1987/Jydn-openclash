@@ -89,7 +89,13 @@ func subscriptionStatus(code subscriptionctl.Code) (int, bool) {
 		return http.StatusNotFound, true
 	case subscriptionctl.CodeLimit:
 		return http.StatusTooManyRequests, true
-	case subscriptionctl.CodeUnavailable, subscriptionctl.CodeAuditDegraded, subscriptionctl.CodeCommitUnknown, subscriptionctl.CodeCanceled:
+	case subscriptionctl.CodeFetchPolicy:
+		return http.StatusForbidden, true
+	case subscriptionctl.CodeFetchHTTP:
+		return http.StatusBadGateway, true
+	case subscriptionctl.CodeFetchRateLimited:
+		return http.StatusTooManyRequests, true
+	case subscriptionctl.CodeUnavailable, subscriptionctl.CodeFetchUnavailable, subscriptionctl.CodeAuditDegraded, subscriptionctl.CodeCommitUnknown, subscriptionctl.CodeCanceled:
 		return http.StatusServiceUnavailable, true
 	}
 	return http.StatusServiceUnavailable, false
@@ -268,6 +274,113 @@ func (s *server) subscriptionSources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeSubscription(w, http.StatusOK, page, "", false)
+}
+
+func (s *server) subscriptionRefreshes(w http.ResponseWriter, r *http.Request) {
+	principal, ok := s.subscriptionPreflight(w, r, authz.ActionReadSubscription, false)
+	if !ok || !subscriptionRequest(w, r, http.MethodGet, false) {
+		return
+	}
+	reader, ok := s.options.Subscriptions.(subscriptionctl.RefreshReader)
+	if !ok {
+		writeSubscriptionError(w, http.StatusServiceUnavailable, subscriptionctl.CodeUnavailable, false)
+		return
+	}
+	page, err := reader.ListRefreshes(r.Context(), principal)
+	if err != nil {
+		writeSubscriptionBackendError(w, err, false)
+		return
+	}
+	if !s.subscriptionRefreshPageValid(page) {
+		writeSubscriptionError(w, http.StatusServiceUnavailable, subscriptionctl.CodeUnavailable, false)
+		return
+	}
+	writeSubscription(w, http.StatusOK, page, "", false)
+}
+
+func (s *server) subscriptionRefresh(w http.ResponseWriter, r *http.Request) {
+	principal, ok := s.subscriptionPreflight(w, r, authz.ActionReadSubscription, false)
+	if !ok || !subscriptionRequest(w, r, http.MethodGet, false) {
+		return
+	}
+	sourceID := r.PathValue("sourceId")
+	if !subscriptionSourceID.MatchString(sourceID) {
+		writeSubscriptionError(w, http.StatusBadRequest, subscriptionctl.CodeInvalid, false)
+		return
+	}
+	reader, ok := s.options.Subscriptions.(subscriptionctl.RefreshReader)
+	if !ok {
+		writeSubscriptionError(w, http.StatusServiceUnavailable, subscriptionctl.CodeUnavailable, false)
+		return
+	}
+	value, err := reader.ReadRefresh(r.Context(), principal, sourceID)
+	if err != nil {
+		writeSubscriptionBackendError(w, err, false)
+		return
+	}
+	if !s.subscriptionRefreshValid(value, sourceID) {
+		writeSubscriptionError(w, http.StatusServiceUnavailable, subscriptionctl.CodeUnavailable, false)
+		return
+	}
+	writeSubscription(w, http.StatusOK, value, "", false)
+}
+
+func (s *server) subscriptionRefreshPageValid(page subscriptionctl.RefreshPage) bool {
+	if page.Refreshes == nil || page.Total != len(page.Refreshes) || page.Total > subscription.MaxSources || page.Capacity.CommandsUsed < 0 || page.Capacity.CommandsUsed > page.Capacity.CommandsMax || page.Capacity.CommandsMax != subscription.MaxControlCommands || page.Capacity.CandidatesUsed < 0 || page.Capacity.CandidatesUsed > page.Capacity.CandidatesMax || page.Capacity.CandidatesMax != subscription.MaxCandidates || page.Capacity.DomainAuditUsed < 0 || page.Capacity.DomainAuditUsed > page.Capacity.DomainAuditMax || page.Capacity.DomainAuditMax != subscription.MaxAuditEntries {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, value := range page.Refreshes {
+		if seen[value.Binding.SourceID] || !s.subscriptionRefreshValid(value, value.Binding.SourceID) {
+			return false
+		}
+		seen[value.Binding.SourceID] = true
+	}
+	return true
+}
+
+func (s *server) subscriptionRefreshValid(value subscription.RefreshView, sourceID string) bool {
+	binding := value.Binding
+	if binding.SourceID != sourceID || !subscriptionSourceID.MatchString(sourceID) || !subscriptionPart.MatchString(binding.ReferenceID) || !subscriptionCommandID.MatchString(binding.ApprovalID) ||
+		binding.PolicyRevision == 0 || binding.ApprovalSourceRevision == 0 || binding.IntervalSeconds < uint64(subscription.MinRefreshInterval/time.Second) || binding.IntervalSeconds > uint64(subscription.MaxRefreshInterval/time.Second) ||
+		binding.ApprovalTTLSeconds < uint64(subscription.MinRefreshInterval/time.Second) || binding.ApprovalTTLSeconds > uint64(subscription.MaxApprovalTTL/time.Second) || binding.MaxStaleSeconds < binding.IntervalSeconds || binding.MaxStaleSeconds > uint64(subscription.MaxApprovalTTL/time.Second) ||
+		binding.MaxBackoffSeconds < binding.IntervalSeconds || binding.MaxBackoffSeconds > uint64(subscription.MaxRefreshInterval/time.Second) || value.Scope.TenantID != s.subscriptionScope.TenantID || value.Scope.SiteID != s.subscriptionScope.SiteID || value.Scope.Environment != s.subscriptionScope.Environment || !subscriptionDigest.MatchString(value.BindingSeal) || value.BindingGeneration == 0 {
+		return false
+	}
+	switch value.State {
+	case subscription.RefreshIdle, subscription.RefreshRunning, subscription.RefreshSucceededNoop, subscription.RefreshCandidateQuarantined, subscription.RefreshFailed, subscription.RefreshBlocked, subscription.RefreshUnknown:
+	default:
+		return false
+	}
+	switch value.Failure {
+	case subscription.RefreshFailureNone, subscription.RefreshFailureApproval, subscription.RefreshFailurePolicy, subscription.RefreshFailureTransport,
+		subscription.RefreshFailureHTTP, subscription.RefreshFailureRate, subscription.RefreshFailureInput, subscription.RefreshFailureLimit,
+		subscription.RefreshFailureConflict, subscription.RefreshFailureAudit, subscription.RefreshFailureUnknown, subscription.RefreshFailureCanceled,
+		subscription.RefreshFailureForbidden, subscription.RefreshFailureUnavailable, subscription.RefreshFailureClock, subscription.RefreshFailureSequence:
+	default:
+		return false
+	}
+	if value.ClockState != subscription.RefreshClockNormal && value.ClockState != subscription.RefreshClockFrozen || value.ClockState == subscription.RefreshClockNormal && value.ClockReason != "" || value.ClockState == subscription.RefreshClockFrozen && value.ClockReason == "" || value.AttemptKey != "" && !subscriptionKey.MatchString(value.AttemptKey) || value.Fence != "" && !subscriptionHash.MatchString(value.Fence) || value.CommandID != "" && !subscriptionCommandID.MatchString(value.CommandID) || value.CandidateID != "" && !subscriptionCandidateID.MatchString(value.CandidateID) || value.CandidateDigest != "" && !subscriptionDigest.MatchString(value.CandidateDigest) {
+		return false
+	}
+	if value.StoragePending!=(value.StorageRetryCount>0)||value.StoragePending!=(!value.StorageNextRetryAt.IsZero()){return false}
+	switch value.State {
+	case subscription.RefreshIdle:
+		return value.AttemptCount == 0 && value.AttemptSequence == 0 && value.AttemptKey == "" && value.Fence == "" && value.Failure == "" && !value.NextAttemptAt.IsZero() && !value.AuditRecorded && !value.StateMayHaveChanged
+	case subscription.RefreshRunning:
+		return value.AttemptCount > 0 && value.AttemptSequence > 0 && value.AttemptKey != "" && value.Fence != "" && !value.StartedAt.IsZero() && value.CompletedAt.IsZero() && value.NextAttemptAt.IsZero() && value.Failure == "" && !value.StateMayHaveChanged
+	case subscription.RefreshCandidateQuarantined:
+		return value.AttemptCount > 0 && value.CommandID != "" && value.CandidateID != "" && value.CandidateDigest != "" && value.ResultRevision > 0 && !value.CompletedAt.IsZero() && value.LastSuccessAt.Equal(value.CompletedAt) && value.FreshUntil.After(value.LastSuccessAt) && value.NextAttemptAt.IsZero() && value.Failure == "" && value.AuditRecorded && !value.StateMayHaveChanged
+	case subscription.RefreshSucceededNoop:
+		return value.AttemptCount > 0 && value.CommandID != "" && value.CandidateID != "" && value.CandidateDigest != "" && value.ResultRevision > 0 && !value.CompletedAt.IsZero() && value.LastSuccessAt.Equal(value.CompletedAt) && value.FreshUntil.After(value.LastSuccessAt) && value.NextAttemptAt.After(value.CompletedAt) && value.Failure == "" && value.AuditRecorded && !value.StateMayHaveChanged
+	case subscription.RefreshFailed:
+		return value.AttemptCount > 0 && value.Failure != "" && value.ConsecutiveFailures > 0 && !value.CompletedAt.IsZero() && value.NextAttemptAt.After(value.CompletedAt) && !value.StateMayHaveChanged
+	case subscription.RefreshBlocked:
+		return (value.AttemptCount > 0 && !value.CompletedAt.IsZero() || value.Failure == subscription.RefreshFailureSequence) && value.Failure != "" && value.NextAttemptAt.IsZero() && !value.StateMayHaveChanged
+	case subscription.RefreshUnknown:
+		return value.AttemptCount > 0 && value.Failure == subscription.RefreshFailureUnknown && !value.CompletedAt.IsZero() && value.NextAttemptAt.IsZero() && value.StateMayHaveChanged
+	}
+	return false
 }
 
 func (s *server) subscriptionCandidates(w http.ResponseWriter, r *http.Request) {

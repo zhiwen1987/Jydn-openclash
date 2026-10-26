@@ -60,9 +60,12 @@
   "completePackageTestSources": {
     "historicalCount": 84,
     "previousCount": 88,
-    "candidateCount": 93,
+    "preP207ACandidateCount": 93,
+    "candidateCount": 94,
+    "p207aAddedSourceCount": 1,
     "continuousRecoveryTaggedSourceCount": 5,
-    "ordinaryMandatoryTopLevelCount": 688,
+    "previousOrdinaryMandatoryTopLevelCount": 688,
+    "ordinaryMandatoryTopLevelCount": 689,
     "completionHarnessExcludedFromOrdinaryMandatoryNames": true,
     "continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames": true
   },

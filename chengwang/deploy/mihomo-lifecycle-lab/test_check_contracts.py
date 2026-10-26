@@ -258,7 +258,7 @@ class ContractEvidenceModels(unittest.TestCase):
             S.required_names(duplicates)
 
     def test_synthetic_complete_ordinary_and_race_remain_distinct(self):
-        self.assertEqual(len(self.sources), 161)
+        self.assertEqual(len(self.sources), 185)
         self.assertEqual(len(S.PACKAGES), 6)
         result = self.verify_model()
         self.assertEqual(set(result['suites']), {'ordinary.json', 'race.json'})
@@ -302,7 +302,7 @@ class ContractEvidenceModels(unittest.TestCase):
                                   run.split('"${common[@]}" "$goroot/bin/gofmt"', 1)[0]))
         bound = {path.removeprefix('chengwang/') for path in S.FILES
                  if path.startswith('chengwang/') and path.endswith('.go')}
-        self.assertEqual(len(declared), 155)
+        self.assertEqual(len(declared), 171)
         self.assertEqual(declared, bound)
 
     def test_missing_race_cannot_be_replaced_by_ordinary_success(self):

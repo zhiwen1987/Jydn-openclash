@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:\\CodexData\\workspace\\mihomo-p207a-v5-ci-source-closure-20261027-implementation56h-v3\\repo",
+    "sourceType": "patch_file",
+    "base": "b5b5fa96cadbf35ae833c618555ab82e5d70429b (tree 203d3d7647dc160c115ec10ef57bdcf530f4cccc)",
+    "head": "non-Go candidate tree ba37fc8fcdcec23fc7b2dde765a383b666ebb7ca",
+    "changedFiles": [
+      ".github/workflows/chengwang-mihomo-lifecycle.yml",
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/mihomo-capacity-profile/check_profile.py",
+      "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py",
+      "chengwang/deploy/mihomo-capacity-profile/test_profile_contract.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_compat.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_service.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/native_completion_contract.json",
+      "chengwang/deploy/mihomo-lifecycle-lab/native_completion_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_compat.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_native_completion_reader_model.py",
+      "chengwang/deploy/subscription-refresh/check_go_events.py",
+      "chengwang/deploy/subscription-refresh/check_go_list.py",
+      "chengwang/deploy/subscription-refresh/check_source_contract.py",
+      "chengwang/deploy/subscription-refresh/source_contract.json",
+      "chengwang/deploy/subscription-refresh/test_go_events.py",
+      "chengwang/deploy/subscription-refresh/test_go_list.py",
+      "chengwang/deploy/subscription-refresh/test_source_contract.py"
+    ],
+    "sha256": "5666fc1a41c79b8f698c5014eee139964cbd37c38b0d13771c99f39188b86804"
+  },
+  "recommendation": "hold_for_evidence",
+  "workflowLabel": "hold_for_evidence",
+  "impact": {
+    "rating": "high",
+    "rationale": "The patch defines source, formatter, official package-selection, exact Go-event, compatibility, and artifact-publication gates for a privileged revocation-sensitive subscription refresh backend. A false acceptance or privacy leak would undermine the evidence used for integration."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "No remaining source-visible defect was found after the v1 ordering and v2 raw-artifact corrections. Risk remains because the 25-path gate patch and paired 24-path Go overlay have not executed together on the exact Linux head."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "All 271 declared pure-CPU models pass independently, exact source membership and upload allowlists are closed, and v1/v2 regression cases are explicit. The dedicated v3 lane is ordinary-only: exact-head Linux formatting, official selection, seven-package compilation/ordinary tests, and fresh readback have not run; race and typed failure diagnosis are separate open work.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The non-Go patch has no migration or persistent runtime state and can be reverted before promotion. It only enables evidence workflows and readers; production/runtime defaults remain unchanged."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "The exact full and v2-to-v3 patch bytes, base, convergent candidate tree, 25 paths, manifest afterimages, three upload allowlists, runner-local raw streams, control-flow ordering, source counts, pins, and all 271 CPU models were inspected. Runtime acceptance is explicitly unresolved."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The patch adds the dedicated P207A lane and updates every identified normal/profile/apply/service/UNKNOWN/Completion source contract affected by the 24-path Go overlay."
+  },
+  "statusQuoRisk": {
+    "rating": "unknown",
+    "rationale": "The risk of retaining b5 without P207A depends on backend revocation and durability semantics, outside this non-Go component review."
+  },
+  "autoMergeExclusions": [
+    "privileged_boundary",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "affectedRuntimeRoots": [
+    ".github/workflows/chengwang-subscription-refresh.yml source-models, source-and-go, evidence publication, and fresh jobs",
+    ".github/workflows/chengwang-mihomo-lifecycle.yml foundation contracts job",
+    "chengwang/deploy/subscription-refresh source, Go-list, and Go-event readers",
+    "chengwang/deploy/mihomo-lifecycle-lab normal, compat, apply, service, UNKNOWN, and Completion readers",
+    "chengwang/deploy/mihomo-capacity-profile full-profile producer and reader"
+  ],
+  "importantCallers": [
+    "source-models -> source-and-go -> fresh dependency chain",
+    "three actions/upload-artifact steps parsed into exact name-to-path allowlists",
+    "run_contracts.sh ordinary and race evidence producer",
+    "check_unknown.py and unknown disclosure worker source/FMT consumers",
+    "check_native_completion.py and native_completion_worker.py source_check",
+    "profile_evidence.py full capture and check_profile.py full reader"
+  ],
+  "riskDrivers": [
+    "Exact integrated Linux head has not executed official go list, gofmt, seven-package ordinary Go tests, or fresh readback",
+    "The dedicated lane has no race command and publishes only bounded exit/source/format failure evidence, not a typed Go failure-cause report",
+    "Normal race/profile/UNKNOWN/Completion execution remains unobserved and the closure is coupled to a privileged 24-path backend overlay"
+  ],
+  "protectiveFactors": [
+    "v1 early-format failure is fixed by capture-first/final-strict control flow and two targeted negatives",
+    "v2 privacy failure is fixed: raw Go events and stderr remain runner-local and are absent from all exact upload allowlists",
+    "Three new targeted negatives reject failure raw events, accepted raw stderr, and directory glob uploads with specified ContractError gates",
+    "Full patch and exact v2-to-v3 delta converge to tree ba37fc8fcdcec23fc7b2dde765a383b666ebb7ca",
+    "Module825, fixture20, source-top486, required-run481, added33, foundation689/previous688, and changed-Go24 are independently recomputed",
+    "OLD_V5 and BOUND_CREDENTIALS_V2 five-file anchors remain unchanged; profile full FMT producer/reader remain exact at 50 paths"
+  ],
+  "materialBoundaries": [
+    {
+      "id": "capture_first_final_strict",
+      "invariant": "Formatting and Go evidence must be captured before independent strict acceptance gates.",
+      "runtimeRoot": ".github/workflows/chengwang-subscription-refresh.yml source-and-go step",
+      "counterexample": "An early non-empty gofmt assertion would prevent Go execution and event capture.",
+      "legitimateControl": "The workflow captures format and Go exit under set +e, records source-after and event-reader status, then applies format, Go, event, and stderr gates; early-gate and reorder mutations are rejected.",
+      "result": "supported"
+    },
+    {
+      "id": "artifact_privacy",
+      "invariant": "Raw Go event and stderr streams stay runner-local and uploads use closed explicit path sets.",
+      "runtimeRoot": "workflow upload-artifact steps and workflow_upload_paths",
+      "counterexample": "Adding raw go-events.private.jsonl, go.stderr, or a directory glob could publish arbitrary failed-test output.",
+      "legitimateControl": "All three artifact names map to exact allowlists; raw basenames and glob markers are rejected, while execution and reader markers prove raw streams remain local inputs. Three concrete negatives hit the intended ContractError gates.",
+      "result": "supported"
+    },
+    {
+      "id": "closed_source_membership",
+      "invariant": "The lane binds exact module, fixture, changed-Go, formatter, package, test-file, top-name, and run-name sets.",
+      "runtimeRoot": "check_source_contract.py and source_contract.json",
+      "counterexample": "Count-only substitutions could omit an affected path or top.",
+      "legitimateControl": "The checker recomputes content hashes and exact ordered sets for module825, fixture20, changed24, seven packages, source486, run481, and foundation689/previous688.",
+      "result": "supported"
+    },
+    {
+      "id": "official_linux_execution",
+      "invariant": "Linux/amd64 Go 1.23.12 must select and complete all seven packages and 481 required tops with zero skip/fail and fresh-source identity.",
+      "runtimeRoot": "source-and-go and fresh jobs",
+      "counterexample": "Build tags or compilation can invalidate static membership, and a run can omit or fail a required top.",
+      "legitimateControl": "Pinned official go list and JSON event readers enforce exact selection and terminals, but the exact head has not yet produced those artifacts.",
+      "result": "unresolved"
+    },
+    {
+      "id": "failure_diagnostic_scope",
+      "invariant": "A failing ordinary run must stay failed without publishing raw output; this source slice does not claim typed failure-cause localization.",
+      "runtimeRoot": ".github/workflows/chengwang-subscription-refresh.yml final gates and bounded failure artifact",
+      "counterexample": "Exit-only evidence can prove rejection but cannot distinguish compile, test assertion, timeout, or other Go failure cause.",
+      "legitimateControl": "The captured Go and event-reader exit codes cannot become pass, source/format custody remains bounded, and raw streams are not uploaded. Typed privacy-safe diagnosis is explicitly deferred rather than inferred.",
+      "result": "unresolved"
+    },
+    {
+      "id": "legacy_downstream_closure",
+      "invariant": "New sources and top 689 propagate without deleting prior 688 or rewriting historical OLD_V5 anchors.",
+      "runtimeRoot": "normal/profile/apply/service/UNKNOWN/Completion readers",
+      "counterexample": "A dedicated-only update could leave a stale downstream reader.",
+      "legitimateControl": "All changed Go paths are represented in imported source closures; full FMT producer/reader agree at 50, prior688 remains pinned, and OLD_V5 plus active five-file anchors are unchanged.",
+      "result": "supported"
+    },
+    {
+      "id": "runtime_default_off",
+      "invariant": "Source closure must not enable production refresh by default.",
+      "runtimeRoot": "25-path non-Go patch scope",
+      "counterexample": "A gate patch could also alter runtime activation.",
+      "legitimateControl": "The exact paths are workflows, readers, contracts, and models; no product Go default or production environment is changed.",
+      "result": "supported"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Immutable artifact identity",
+      "status": "passed",
+      "protects": "Full patch 249904 bytes, v2-to-v3 delta 15193 bytes, manifest, SOURCE, and FSYNC hashes match freeze."
+    },
+    {
+      "name": "Full and delta application replay",
+      "status": "passed",
+      "protects": "Exact b5 plus full patch and exact v2 plus three-path delta produce identical tree ba37fc8fcdcec23fc7b2dde765a383b666ebb7ca; 25 paths, strict apply, diff-check, and reverse check pass."
+    },
+    {
+      "name": "Manifest afterimage replay",
+      "status": "passed",
+      "protects": "All 25 candidate non-Go files match declared byte length, SHA-256, and LF shape."
+    },
+    {
+      "name": "Actual source-contract replay",
+      "status": "passed",
+      "protects": "Recomputes module825, fixture20, source486, run481, added33, foundation689/previous688, and changed-Go24 exact hashes."
+    },
+    {
+      "name": "Source, Go-list, and Go-event CPU models",
+      "status": "passed",
+      "protects": "39/39 pass, including early-format, capture-order, raw failure event, raw accepted stderr, and glob upload negatives."
+    },
+    {
+      "name": "Foundation and UNKNOWN CPU models",
+      "status": "passed",
+      "protects": "218/218 normal, compat, apply, service, UNKNOWN reader, and disclosure-worker models pass."
+    },
+    {
+      "name": "Profile and Completion CPU models",
+      "status": "passed",
+      "protects": "Profile 2/2 and Completion 12/12 pass; total independent pure-CPU result is 271/271."
+    },
+    {
+      "name": "Exact-head dedicated Linux format/compile/ordinary/fresh",
+      "status": "skipped",
+      "protects": "No Go, formatter, Linux runtime, CI, ordinary execution, or fresh readback was run by this peer."
+    },
+    {
+      "name": "Race and typed failure diagnosis",
+      "status": "unavailable",
+      "protects": "The dedicated workflow contains no race command and its bounded failure artifact proves rejection state, not a typed Go failure cause."
+    },
+    {
+      "name": "Backend semantic execution",
+      "status": "unavailable",
+      "protects": "This receipt does not convert the separate Go source review into runtime acceptance."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "Whether the exact integrated head passes Go 1.23.12 formatting, official Linux selection, all seven packages and 481 required ordinary tops, and fresh readback.",
+      "decisionCritical": true
+    },
+    {
+      "summary": "Whether separate race/profile/UNKNOWN/Completion lanes accept the same integrated source and backend semantics.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "Which privacy-safe typed cause should be retained when the ordinary Go command fails; v3 preserves bounded failure state but not cause localization.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": [
+    {
+      "question": "Does the exact integrated head pass the dedicated format, official Linux selection, seven-package compile and ordinary 481-top execution, bounded accepted-artifact membership, and fresh readback?",
+      "action": "Run the dedicated lane on the exact integrated head with pinned Go 1.23.12 and inspect only the bounded accepted artifact.",
+      "outcomes": {
+        "all_required_evidence_passes": "merge",
+        "any_gate_or_artifact_member_fails": "revise"
+      }
+    }
+  ]
+}

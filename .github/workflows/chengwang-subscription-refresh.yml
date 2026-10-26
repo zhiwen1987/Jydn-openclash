@@ -1,0 +1,256 @@
+name: Chengwang Subscription Refresh Closed Lane
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'codex/chengwang-p207a-refresh-*'
+    paths:
+      - '.github/workflows/chengwang-subscription-refresh.yml'
+      - 'chengwang/**'
+  pull_request:
+    paths:
+      - '.github/workflows/chengwang-subscription-refresh.yml'
+      - 'chengwang/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-subscription-refresh-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
+  CONTRACT_SHA256: 773e1ea48bf19ab160d0daf8ac78ab973bd256dfb21a7d55d666ab89b3624b56
+  CHECKER_SHA256: 7367acc0ba39c1212318e9ed2bd2c45fafd67eab0c2a8caf0e86c660374cb3cc
+  MODEL_SHA256: af2813e9db64711e5395b981ff928db1faa7b85dedfd7247c5f4d8a9e97678f2
+  EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
+  EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
+  GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
+  GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
+  MODULE_COUNT: '825'
+  MODULE_SHA256: 1153aa09c830c0ffca50f46bb8b705dced39926732a5b69aba02fc5fac631d6a
+  FIXTURE_COUNT: '20'
+  FIXTURE_SHA256: 4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf
+  TEST_TOP_COUNT: '486'
+  TEST_TOPS_SHA256: dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f
+  RUN_TOP_COUNT: '481'
+  RUN_TOPS_SHA256: 34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0
+  CHANGED_GO_COUNT: '24'
+  CHANGED_GO_SHA256: 710f5a6bac3d309765d4ef26cea966e34786bd2b36e1aaff80558dbb39f0b322
+
+jobs:
+  source-models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Run and independently pin closed-gate CPU models
+        working-directory: chengwang/deploy/subscription-refresh
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest -v test_source_contract test_go_events test_go_list > source-models.log 2>&1
+          python3 - <<'PY'
+          import ast,hashlib,re
+          from pathlib import Path
+          files=('test_source_contract.py','test_go_events.py','test_go_list.py')
+          names=[]
+          for filename in files:
+              tree=ast.parse(Path(filename).read_text(encoding='utf-8'))
+              names.extend(filename+'::'+node.name for item in tree.body if isinstance(item,ast.ClassDef)
+                           for node in item.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'))
+          names=sorted(names)
+          assert len(names)==len(set(names))==39
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='83990a795e696af0e5962fadef2f6360f739df38e7af067a965e3cc29fdf90d1'
+          text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
+          observed=[]
+          for filename in files:
+              stem=filename.removesuffix('.py')
+              observed.extend(filename+'::'+name for name in re.findall(
+                  r'^(test_[A-Za-z0-9_]+) \((?:[A-Za-z0-9_]+\.)?'+re.escape(stem)+r'\.[A-Za-z0-9_]+\) \.\.\. ok$',text,re.M))
+          assert sorted(observed)==names and len(observed)==39
+          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==['39']
+          assert re.findall(r'^OK$',text,re.M)==['OK']
+          assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
+          print('P207A_SOURCE_MODELS=PASS count=39 go_execution_proven=false')
+          PY
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p207a-source-models-${{ github.run_id }}-${{ github.run_attempt }}
+          path: chengwang/deploy/subscription-refresh/source-models.log
+          if-no-files-found: warn
+          retention-days: 14
+  source-and-go:
+    needs: source-models
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Verify source, official selection, formatting, and exact Go events
+        env:
+          GOFLAGS: -mod=vendor
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: '0'
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/p207a-refresh"
+          test ! -e "$out"
+          install -d -m 0700 "$out"
+          verify_source() {
+            python3 -I -B chengwang/deploy/subscription-refresh/check_source_contract.py \
+              --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" \
+              --contract-sha256 "$CONTRACT_SHA256" --checker-sha256 "$CHECKER_SHA256" \
+              --model-sha256 "$MODEL_SHA256" --event-checker-sha256 "$EVENT_CHECKER_SHA256" \
+              --event-model-sha256 "$EVENT_MODEL_SHA256" --go-list-checker-sha256 "$GO_LIST_CHECKER_SHA256" \
+              --go-list-model-sha256 "$GO_LIST_MODEL_SHA256" --module-count "$MODULE_COUNT" \
+              --module-sha256 "$MODULE_SHA256" --fixture-count "$FIXTURE_COUNT" \
+              --fixture-sha256 "$FIXTURE_SHA256" --test-top-count "$TEST_TOP_COUNT" \
+              --test-tops-sha256 "$TEST_TOPS_SHA256" --run-top-count "$RUN_TOP_COUNT" \
+              --run-tops-sha256 "$RUN_TOPS_SHA256" --changed-go-count "$CHANGED_GO_COUNT" \
+              --changed-go-sha256 "$CHANGED_GO_SHA256"
+          }
+          verify_source > "$out/source-before.json"
+          cd chengwang
+          go env -json GOOS GOARCH CGO_ENABLED GOVERSION > "$out/go-env.json"
+          go list -json ./internal/api ./internal/authn ./internal/authz ./internal/serverruntime \
+            ./internal/subscription ./internal/subscriptionctl ./internal/subscriptionpolicy > "$out/go-list.private.json"
+          cd "$GITHUB_WORKSPACE"
+          python3 -I -B chengwang/deploy/subscription-refresh/check_go_list.py \
+            --go-list "$out/go-list.private.json" --go-env "$out/go-env.json" \
+            --contract "$CONTRACT" --contract-sha256 "$CONTRACT_SHA256" \
+            --output "$out/go-list-report.json"
+          fmt=(
+            chengwang/internal/api/server.go
+            chengwang/internal/api/subscriptions.go
+            chengwang/internal/api/subscriptions_test.go
+            chengwang/internal/authn/snapshot_manager.go
+            chengwang/internal/authn/snapshot_manager_linux_test.go
+            chengwang/internal/authn/store.go
+            chengwang/internal/authz/model.go
+            chengwang/internal/authz/policy.go
+            chengwang/internal/authz/subscription.go
+            chengwang/internal/authz/subscription_refresh_test.go
+            chengwang/internal/serverruntime/runtime.go
+            chengwang/internal/serverruntime/subscription_config.go
+            chengwang/internal/serverruntime/subscription_config_test.go
+            chengwang/internal/subscription/control.go
+            chengwang/internal/subscription/refresh.go
+            chengwang/internal/subscription/refresh_test.go
+            chengwang/internal/subscription/store.go
+            chengwang/internal/subscriptionctl/contract.go
+            chengwang/internal/subscriptionctl/refresh.go
+            chengwang/internal/subscriptionctl/service.go
+            chengwang/internal/subscriptionctl/service_linux_test.go
+            chengwang/internal/subscriptionpolicy/catalog.go
+            chengwang/internal/subscriptionpolicy/catalog_access.go
+            chengwang/internal/subscriptionpolicy/refresh_test.go
+          )
+          set +e
+          gofmt -d "${fmt[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
+          formatCode=$?
+          cd chengwang
+          go test -json -count=1 -timeout=180s -run '^Test' ./internal/api ./internal/authn ./internal/authz \
+            ./internal/serverruntime ./internal/subscription ./internal/subscriptionctl ./internal/subscriptionpolicy \
+            > "$out/go-events.private.jsonl" 2> "$out/go.stderr"
+          code=$?
+          cd "$GITHUB_WORKSPACE"
+          set -e
+          printf '%s\n' "$formatCode" > "$out/format-exit.txt"
+          printf '%s\n' "$code" > "$out/go-exit.txt"
+          verify_source > "$out/source-after.json"
+          cmp "$out/source-before.json" "$out/source-after.json"
+          set +e
+          python3 -I -B chengwang/deploy/subscription-refresh/check_go_events.py \
+            --events "$out/go-events.private.jsonl" --go-exit "$code" \
+            --contract "$CONTRACT" --contract-sha256 "$CONTRACT_SHA256" \
+            --output "$out/go-events-report.json"
+          eventCode=$?
+          set -e
+          printf '%s\n' "$eventCode" > "$out/event-check-exit.txt"
+          test "$formatCode" = 0
+          test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"
+          test "$code" = 0 && test "$eventCode" = 0
+          test ! -s "$out/go.stderr"
+      - name: Upload bounded accepted evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p207a-source-go-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/p207a-refresh/source-before.json
+            ${{ runner.temp }}/p207a-refresh/source-after.json
+            ${{ runner.temp }}/p207a-refresh/go-list-report.json
+            ${{ runner.temp }}/p207a-refresh/go-events-report.json
+            ${{ runner.temp }}/p207a-refresh/format-exit.txt
+            ${{ runner.temp }}/p207a-refresh/go-exit.txt
+            ${{ runner.temp }}/p207a-refresh/event-check-exit.txt
+            ${{ runner.temp }}/p207a-refresh/gofmt.patch
+            ${{ runner.temp }}/p207a-refresh/gofmt.stderr
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload bounded failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p207a-source-go-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/p207a-refresh/source-before.json
+            ${{ runner.temp }}/p207a-refresh/source-after.json
+            ${{ runner.temp }}/p207a-refresh/format-exit.txt
+            ${{ runner.temp }}/p207a-refresh/go-exit.txt
+            ${{ runner.temp }}/p207a-refresh/event-check-exit.txt
+            ${{ runner.temp }}/p207a-refresh/gofmt.patch
+            ${{ runner.temp }}/p207a-refresh/gofmt.stderr
+          if-no-files-found: warn
+          retention-days: 14
+
+  fresh:
+    needs: source-and-go
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: p207a-source-go-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/p207a-refresh-readback
+      - name: Recompute source and read bounded reports
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/p207a-refresh-readback"
+          test -f "$root/source-before.json" && test -f "$root/source-after.json"
+          cmp "$root/source-before.json" "$root/source-after.json"
+          python3 -I -B chengwang/deploy/subscription-refresh/check_source_contract.py \
+            --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" \
+            --contract-sha256 "$CONTRACT_SHA256" --checker-sha256 "$CHECKER_SHA256" \
+            --model-sha256 "$MODEL_SHA256" --event-checker-sha256 "$EVENT_CHECKER_SHA256" \
+            --event-model-sha256 "$EVENT_MODEL_SHA256" --go-list-checker-sha256 "$GO_LIST_CHECKER_SHA256" \
+            --go-list-model-sha256 "$GO_LIST_MODEL_SHA256" --module-count "$MODULE_COUNT" \
+            --module-sha256 "$MODULE_SHA256" --fixture-count "$FIXTURE_COUNT" \
+            --fixture-sha256 "$FIXTURE_SHA256" --test-top-count "$TEST_TOP_COUNT" \
+            --test-tops-sha256 "$TEST_TOPS_SHA256" --run-top-count "$RUN_TOP_COUNT" \
+            --run-tops-sha256 "$RUN_TOPS_SHA256" --changed-go-count "$CHANGED_GO_COUNT" \
+            --changed-go-sha256 "$CHANGED_GO_SHA256" > "$root/source-fresh.json"
+          cmp "$root/source-before.json" "$root/source-fresh.json"
+          test "$(cat "$root/format-exit.txt")" = 0
+          test "$(cat "$root/go-exit.txt")" = 0
+          test "$(cat "$root/event-check-exit.txt")" = 0
+          test ! -s "$root/gofmt.patch" && test ! -s "$root/gofmt.stderr"
+          python3 -I -B chengwang/deploy/subscription-refresh/check_go_list.py \
+            --report "$root/go-list-report.json" --contract "$CONTRACT" \
+            --contract-sha256 "$CONTRACT_SHA256"
+          python3 -I -B chengwang/deploy/subscription-refresh/check_go_events.py \
+            --report "$root/go-events-report.json" --contract "$CONTRACT" \
+            --contract-sha256 "$CONTRACT_SHA256"

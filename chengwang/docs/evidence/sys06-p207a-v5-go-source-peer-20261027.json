@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:/CodexData/workspace/mihomo-p207a-v5-candidate-2eb7717-20261027-000500",
+    "sourceType": "patch_file",
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "head": "afterimage:e74cfc1de2bf438139a19ffeab4784c34a0faa7e7ebfc239feae08d96b87cbc1",
+    "changedFiles": [
+      "chengwang/internal/api/server.go",
+      "chengwang/internal/api/subscriptions.go",
+      "chengwang/internal/api/subscriptions_test.go",
+      "chengwang/internal/authn/snapshot_manager.go",
+      "chengwang/internal/authn/snapshot_manager_linux_test.go",
+      "chengwang/internal/authn/store.go",
+      "chengwang/internal/authz/model.go",
+      "chengwang/internal/authz/policy.go",
+      "chengwang/internal/authz/subscription.go",
+      "chengwang/internal/authz/subscription_refresh_test.go",
+      "chengwang/internal/serverruntime/runtime.go",
+      "chengwang/internal/serverruntime/subscription_config.go",
+      "chengwang/internal/serverruntime/subscription_config_test.go",
+      "chengwang/internal/subscription/control.go",
+      "chengwang/internal/subscription/refresh.go",
+      "chengwang/internal/subscription/refresh_test.go",
+      "chengwang/internal/subscription/store.go",
+      "chengwang/internal/subscriptionctl/contract.go",
+      "chengwang/internal/subscriptionctl/refresh.go",
+      "chengwang/internal/subscriptionctl/service.go",
+      "chengwang/internal/subscriptionctl/service_linux_test.go",
+      "chengwang/internal/subscriptionpolicy/catalog.go",
+      "chengwang/internal/subscriptionpolicy/catalog_access.go",
+      "chengwang/internal/subscriptionpolicy/refresh_test.go"
+    ],
+    "sha256": "938b32faec01a3347a84bed1a6ef9bfb55ad1cab89ad30b17a1d910d818c0bec"
+  },
+  "recommendation": "hold_for_evidence",
+  "workflowLabel": "hold_for_evidence",
+  "impact": {
+    "rating": "high",
+    "rationale": "The Go-only patch introduces a durable scheduler sidecar, opaque attempt authority, persistent reservations, automated worker retries, API views, and changes shared subscription and runtime paths. The feature is default-off, but defects in the enabled path can affect durable state, admission capacity, or service lifetime."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "The seven v5 delta paths are narrowly targeted and the four previously deterministic defects are source-closed, but the candidate has not been compiled, formatted, race-tested, or executed on Linux and still spans 24 Go afterimages."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "Source review found dedicated tests for every mutator's definite pre-rename cut, detached outward reservations, high-water truth-table rejection, exact-stage retry, authorization revalidation, cancellation, read visibility, manual TryLock behavior, and uncertain-commit non-retry. These tests are authored but were not run.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "managed",
+    "rationale": "The feature remains default-off and the v5 source is isolated as a reversible 24-path patch. Enabled deployments write a separately versioned sidecar and main-store records, so rollback requires controlled state-aware handling rather than a blind source revert."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "Confidence is high for the scoped source conclusion because patch identities, all 24 afterimages, reverse application, the seven-path v4-to-v5 delta, the relevant production call chains, and the targeted test bodies were independently inspected. Runtime confidence remains intentionally withheld."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The patch directly modifies the P207A refresh sidecar and production subscription worker paths named in the review request; the v5 delta specifically addresses the four confirmed v4 blockers."
+  },
+  "statusQuoRisk": {
+    "rating": "high",
+    "rationale": "Without the v5 changes, a definite pre-rename sidecar failure can mutate live state, leaked reservation pointers can mutate authority-bearing capacity state, known-not-committed stages terminate the worker/runtime, and persisted positive attempt sequences below a ledger high-water can reopen."
+  },
+  "autoMergeExclusions": [
+    "persistent_state",
+    "public_contract",
+    "broad_shared_default"
+  ],
+  "affectedRuntimeRoots": [
+    "chengwang/internal/subscription.RefreshStore",
+    "chengwang/internal/subscriptionctl.Service.RunRefresh",
+    "chengwang/internal/subscriptionctl.Service.Execute",
+    "chengwang/internal/api subscription refresh handlers",
+    "chengwang/internal/serverruntime subscription refresh worker"
+  ],
+  "importantCallers": [
+    "subscriptionctl.ConfigureRefresh",
+    "subscriptionctl.RefreshOnce",
+    "subscriptionctl.RecoverRefreshOnce",
+    "subscriptionctl.finishRefresh",
+    "subscriptionctl.executeRefreshLocked",
+    "subscriptionctl.ListRefreshes",
+    "subscriptionctl.ReadRefresh"
+  ],
+  "riskDrivers": [
+    "durable sidecar state and opaque one-use lease transitions",
+    "cross-store workflow between sidecar, main subscription store, and audit records",
+    "unbounded-in-count but context-bounded retry loop for a closed known-not-committed class",
+    "shared runtime service lifetime and manual command admission",
+    "exact-head Go and Linux execution not yet available"
+  ],
+  "protectiveFactors": [
+    "feature remains default-off",
+    "main subscription-store/v1 wire remains unchanged",
+    "candidate creation remains quarantined and grants no publication authority",
+    "uncertain commit poisons the sidecar and is not retried",
+    "fresh machine authorization is checked immediately before Fetch and Import",
+    "v5 test additions target the four prior deterministic blockers"
+  ],
+  "materialBoundaries": [
+    {
+      "id": "owned_snapshot_on_failed_persist",
+      "invariant": "A definite pre-rename persistence failure must leave the authoritative live snapshot and durable bytes unchanged, and the same capability must be able to retry the same writer.",
+      "runtimeRoot": "chengwang/internal/subscription/refresh.go: cloneRefreshSnapshot, persist, all sidecar mutators",
+      "counterexample": "A shallow copy shares Refreshes or Reservation storage; a mutation before disk.write returns not-committed changes s.state and makes the retry skip or conflict.",
+      "legitimateControl": "Every mutator builds from cloneRefreshSnapshot, persist encodes another owned clone, assigns s.state only after a successful writer return, and capability flags are changed only after successful persistence.",
+      "result": "supported"
+    },
+    {
+      "id": "detached_outward_views",
+      "invariant": "No list, read, live-claim, recovery-claim, or completion return may expose a pointer into the sidecar-owned Reservation graph.",
+      "runtimeRoot": "chengwang/internal/subscription/refresh.go: cloneRefreshView, detachRefreshView, Refreshes, SnapshotRefreshes, claim, Complete",
+      "counterexample": "A caller mutates returned Reservation.Bytes or slot fields and changes subsequent capacity or authorization decisions without persistence.",
+      "legitimateControl": "All outward views deep-copy Reservation and remove Lease and transient storage fields; live or recovery claims add only a source-issued process-local lease to the detached copy.",
+      "result": "supported"
+    },
+    {
+      "id": "closed_not_committed_retry",
+      "invariant": "Only a RefreshStore persist whose writer reports that rename did not occur may authorize exact-stage retry; encode, validation, store usability, and uncertain post-rename failures must not be retried.",
+      "runtimeRoot": "chengwang/internal/subscription/refresh.go:persist and chengwang/internal/subscriptionctl/refresh.go:retryRefreshStoreStage",
+      "counterexample": "A parse, canonical-validation, poisoned-store, or uncertain-commit error is reclassified as known-not-committed and repeats authority or network work.",
+      "legitimateControl": "persist returns the dedicated sentinel only on disk.write's false commit-certainty result; errors before disk.write pass through, true uncertainty poisons and returns CodeCommitUncertain, and the worker retries only errors.Is with the dedicated sentinel.",
+      "result": "supported"
+    },
+    {
+      "id": "same_stage_worker_recovery",
+      "invariant": "A known-not-committed bind, reservation, or completion write must remain on the same lease and stage, without repeating Fetch, Import, main-store mutation, or audit work, while cancellation safely stops with Running authority retained.",
+      "runtimeRoot": "chengwang/internal/subscriptionctl/refresh.go and service.go",
+      "counterexample": "finishRefresh returns the first definite write error to RunRefresh, causing the runtime worker to exit or a later loop to reacquire and replay external work.",
+      "legitimateControl": "retryRefreshStoreStage encloses only the local sidecar call at checkpoint, observe, reconcile, claim, bind, reservation, and complete; external effects remain outside each closure, the same arguments and lease are retained, and context cancellation exits the backoff loop.",
+      "result": "supported"
+    },
+    {
+      "id": "fresh_authority_and_manual_serialization",
+      "invariant": "Retry must not bypass fresh source-owned authorization, duplicate external work, block manual goroutines indefinitely, or hide safe pending state from reads.",
+      "runtimeRoot": "chengwang/internal/subscriptionctl/service.go: Execute and executeRefreshLocked; refresh.go read projections",
+      "counterexample": "A long storage backoff queues manual writes behind a blocking mutex, or stale identity remains authorized when the bind retry eventually succeeds.",
+      "legitimateControl": "Feature-on manual Execute uses TryLock, reads use non-mutating detached snapshots with bounded pending metadata, and CurrentPrincipal plus refreshPrincipalCurrent are checked before Fetch and again before Import.",
+      "result": "supported"
+    },
+    {
+      "id": "sequence_high_water_truth",
+      "invariant": "Every persisted positive AttemptSequence must equal the matching source ledger LastIssuedSequence; zero remains limited to the existing idle and sequence-exhausted blocked forms.",
+      "runtimeRoot": "chengwang/internal/subscription/refresh.go:validateRefreshSnapshot and claim",
+      "counterexample": "A running, blocked, or unknown record with a lower positive sequence reopens and permits a stale attempt identity after a higher sequence was issued.",
+      "legitimateControl": "The validator rejects any positive sequence unequal to the ledger high-water and separately retains producer-state and global LastSequence checks.",
+      "result": "supported"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Delivery file identity",
+      "status": "passed",
+      "protects": "Full patch, v4-to-v5 delta, manifest, SHA256SUMS, source validation, and receipt byte sizes and SHA-256 values match the frozen delivery."
+    },
+    {
+      "name": "Afterimage manifest replay",
+      "status": "passed",
+      "protects": "All 24 afterimage files exist exactly once and match manifest size, SHA-256, and LF-only claims."
+    },
+    {
+      "name": "Patch applicability",
+      "status": "passed",
+      "protects": "Candidate HEAD is the declared 2eb7717 base, the full patch reverse-applies to the candidate, the v4-to-v5 delta enumerates exactly seven declared paths, and git diff --check reports no whitespace errors."
+    },
+    {
+      "name": "Scoped production call-chain review",
+      "status": "passed",
+      "protects": "All RefreshStore mutators use owned snapshots; read and claim returns detach Reservation; exact-stage retries exclude network and main-store work; feature-on manual admission and read paths match the stated source contract."
+    },
+    {
+      "name": "Targeted v5 test-source review",
+      "status": "passed",
+      "protects": "Seven added Go test tops contain real writer-cut, reopen, pointer mutation, stage retry, authorization, cancellation, uncertainty, and high-water counterexamples rather than only constant checks."
+    },
+    {
+      "name": "Exact-head Go compile, gofmt, unit, race, and Linux execution",
+      "status": "skipped",
+      "protects": "Required runtime evidence was explicitly forbidden for this review and remains required before acceptance."
+    },
+    {
+      "name": "Final b5 non-Go and source-closure overlay",
+      "status": "unavailable",
+      "protects": "A separate peer owns the final workflow, source inventory, and non-Go closure; this Go-only review does not claim that combined result."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "Whether the 24-path Go afterimage compiles, is canonical gofmt output, passes the new and retained Go tests, and remains race-free on the exact integrated Linux head.",
+      "decisionCritical": true
+    },
+    {
+      "summary": "Whether the independently reviewed b5 non-Go/source closure combines without dropping packages, test tops, format inputs, or default-off gates.",
+      "decisionCritical": true
+    },
+    {
+      "summary": "Durable sealed archive/checkpoint compaction and long-term retention remain explicitly unimplemented; therefore this slice cannot establish complete long-running P207A capacity closure.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "A coordinated rollback of all mutually trusted local anchors remains outside the claimed detection model.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": [
+    {
+      "question": "Does the exact integrated head compile, format cleanly, and pass the full retained plus seven new Linux Go tests and race checks?",
+      "action": "On an immutable integrated Linux head, run the pinned Go 1.23 toolchain, canonical gofmt comparison, the declared seven packages and test tops, retained required tests, and race coverage; bind outputs to commit, source manifest, and artifact hashes.",
+      "outcomes": {
+        "all checks pass": "merge",
+        "compile, format, test, or race failure": "revise"
+      }
+    },
+    {
+      "question": "Does the b5 non-Go/source closure preserve the complete enabled and default-off build/test inventory?",
+      "action": "Apply the separately frozen b5 overlay to the same immutable head and independently recompute source, build-tag, format, package, test-top, workflow, and artifact manifests before starting runtime validation.",
+      "outcomes": {
+        "closed inventory and strict replay pass": "merge",
+        "missing or stale source contract": "revise"
+      }
+    },
+    {
+      "question": "Do real crash cuts and worker operation preserve one external effect, exact-stage retry, reopen truth, pending reads, and manual TryLock semantics?",
+      "action": "Run isolated Linux fault injection at every before-rename and post-rename boundary plus bind, reservation, and completion backoff; verify source-owned logs and persisted state without production access.",
+      "outcomes": {
+        "all durable and worker invariants hold": "merge",
+        "any replay, authority loss, false success, or unbounded service failure": "block"
+      }
+    }
+  ]
+}

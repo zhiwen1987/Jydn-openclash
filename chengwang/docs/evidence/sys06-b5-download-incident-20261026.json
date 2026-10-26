@@ -1,0 +1,16 @@
+{
+  "schema": "chengwang.artifact-download-incident/v1",
+  "recordedAt": "2026-10-26T15:23:40.9544961Z",
+  "artifactID": 12660719206,
+  "artifactName": "mihomo-capacity-profile-full-40346620157-1",
+  "attempt": 1,
+  "closedFailureClass": "STORAGE_TRANSPORT",
+  "targetCreated": false,
+  "zipCreated": false,
+  "liveHelperProcessAfterFailure": false,
+  "signedURLOrCredentialInArgumentsOutputOrFile": false,
+  "fallbackUsed": false,
+  "sameAuthenticatedArtifactRetriedOnce": true,
+  "retryAccepted": true,
+  "originalFailurePreserved": true
+}

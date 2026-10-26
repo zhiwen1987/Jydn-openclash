@@ -462,6 +462,22 @@ func (s *Store) AuthenticateAuthorizationValues(headers []string, now time.Time)
 	return s.AuthenticateAuthorization(headers[0], now)
 }
 
+// resolvePrincipal is package-private because Store is an immutable snapshot.
+// Only SnapshotManager may expose a freshly reread id-based trusted-service
+// lookup; HTTP callers must authenticate a bearer value.
+func (s *Store) resolvePrincipal(id string, now time.Time) (authz.Principal, error) {
+	if s == nil || validateIdentifier("principal.id", id, 128) != nil { return authz.Principal{}, denied(CodeTokenInvalid) }
+	for _, identity := range s.identities {
+		record := identity.record
+		if record.Principal.ID != id { continue }
+		if record.Disabled { return authz.Principal{}, denied(CodeIdentityDisabled) }
+		if record.NotBefore != nil && now.Before(*record.NotBefore) { return authz.Principal{}, denied(CodeIdentityNotActive) }
+		if record.ExpiresAt != nil && !now.Before(*record.ExpiresAt) { return authz.Principal{}, denied(CodeIdentityExpired) }
+		return clonePrincipal(record.Principal), nil
+	}
+	return authz.Principal{}, denied(CodeTokenInvalid)
+}
+
 // GenerateToken creates an opaque base64url bearer token using crypto/rand
 // and returns its plaintext once together with the lowercase SHA-256 digest
 // suitable for Identity.TokenHash. It performs no file or production write.
@@ -546,7 +562,7 @@ func validatePrincipal(principal authz.Principal) error {
 	roleSeen := make(map[authz.Role]struct{}, len(principal.Roles))
 	for _, role := range principal.Roles {
 		switch role {
-		case authz.RoleViewer, authz.RoleOperator, authz.RoleApprover, authz.RoleAuditor, authz.RoleAdmin:
+		case authz.RoleViewer, authz.RoleOperator, authz.RoleApprover, authz.RoleAuditor, authz.RoleAdmin, authz.RoleSubscriptionRefresher:
 		default:
 			return fmt.Errorf("principal.roles contains unknown role %q", role)
 		}

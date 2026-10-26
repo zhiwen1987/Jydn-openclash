@@ -369,8 +369,9 @@ def source_check(repo):
              'trackedSet':'ALL_GIT_HEAD_BLOBS','deliveryCount':len(DELIVERY_PATHS),
              'gitCommitRequired':True,'gitTreeRequired':True,'gitIndexMustMatchCommitTree':True,
              'workingBytesMustMatchGitBlobs':True,'oldTwentyOneSourceManifestAccepted':False})
-    exact_same(contract['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'candidateCount':93,
-             'continuousRecoveryTaggedSourceCount':5,'ordinaryMandatoryTopLevelCount':688,
+    exact_same(contract['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'preP207ACandidateCount':93,
+             'candidateCount':94,'p207aAddedSourceCount':1,'continuousRecoveryTaggedSourceCount':5,
+             'previousOrdinaryMandatoryTopLevelCount':688,'ordinaryMandatoryTopLevelCount':689,
              'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
              'continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames':True})
     exact_same(contract['coldReopen'],{
@@ -403,8 +404,8 @@ def source_check(repo):
     need("'-run=^'+TOP+'$'" in worker and "'-timeout=105s'" in worker and
          'reconstruct_s1(s2)' in worker and 'reconstruct_s2(attempted)' in worker)
     profile = source_file(repo/'chengwang/deploy/mihomo-capacity-profile/check_profile.py',512 << 10).decode()
-    need("len(suite_test_sources)==93" in profile and "len(previous88)==88" in profile and "len(previous84)==84" in profile and
-         "len(names)==688" in profile and "completionHarnessExcludedFromOrdinaryMandatoryNames':True" in profile and
+    need("len(suite_test_sources)==94" in profile and "len(previous89)==89" in profile and "len(previous88)==88" in profile and "len(previous84)==84" in profile and
+         "len(names)==689" in profile and "len(previous688)==688" in profile and "completionHarnessExcludedFromOrdinaryMandatoryNames':True" in profile and
          "continuousRecoveryTaggedTestsExcludedFromOrdinaryMandatoryNames':True" in profile)
     exact_continuous = b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
     for path in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',

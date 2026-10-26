@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"chengwang/internal/authz"
+	"chengwang/internal/authn"
 	"chengwang/internal/evidence"
 	"chengwang/internal/subscription"
 )
@@ -41,6 +42,15 @@ type serviceCore struct {
 	inflight map[string]bool
 	sources  map[string]bool
 	denials  atomic.Uint32
+	refreshBusy atomic.Bool
+	capacityMu sync.Mutex
+	now      func() time.Time
+	refreshRetryWait func(context.Context,time.Duration) bool
+	refreshStoreCall func(string,func()error) error
+	refreshStorageMu sync.RWMutex
+	refreshStoragePending bool
+	refreshStorageRetryCount uint32
+	refreshStorageNextRetryAt time.Time
 	// Package-private test seam; production always reads the Store's actual
 	// immutable audit/request projection, never a caller-provided receipt.
 	mutationReceipt func(subscription.Scope, string, string) (subscription.MutationReceipt, bool, error)
@@ -74,7 +84,9 @@ func New(ctx context.Context, config Config) (*Service, error) {
 	if !ctlPart.MatchString(r.TenantID) || !ctlPart.MatchString(r.SiteID) || !ctlPart.MatchString(r.Environment) || r.ObjectType != "subscription-store" || !ctlPart.MatchString(r.ObjectID) || config.Store == nil || ctlNil(config.Audit) {
 		return nil, ctlError(CodeInvalid, false)
 	}
-	s := &Service{serviceCore: &serviceCore{config: config, scope: subscription.Scope{TenantID: r.TenantID, SiteID: r.SiteID, Environment: r.Environment}, inflight: map[string]bool{}, sources: map[string]bool{}}}
+	refreshConfigured := config.RefreshStore != nil || config.RefreshRecovery != nil || !ctlNil(config.RefreshIdentity) || config.RefreshIdentityID != ""
+	if refreshConfigured && (config.RefreshStore == nil || config.RefreshRecovery == nil || ctlNil(config.RefreshIdentity) || !ctlPart.MatchString(config.RefreshIdentityID)) { return nil, ctlError(CodeInvalid, false) }
+	s := &Service{serviceCore: &serviceCore{config: config, scope: subscription.Scope{TenantID: r.TenantID, SiteID: r.SiteID, Environment: r.Environment}, inflight: map[string]bool{}, sources: map[string]bool{}, now: func() time.Time { return time.Now().UTC() }, refreshRetryWait: func(ctx context.Context,delay time.Duration)bool{timer:=time.NewTimer(delay);defer timer.Stop();select{case<-ctx.Done():return false;case<-timer.C:return true}}, refreshStoreCall:func(_ string,operation func()error)error{return operation()}}}
 	actor, err := config.Store.ControlActorFactory(s.scope)
 	if err != nil {
 		return nil, ctlMap(err, false)
@@ -102,7 +114,7 @@ func (s *Service) authorize(ctx context.Context, p authz.Principal, action authz
 	if p.ID == "" || len(p.ID) > 4096 || !utf8.ValidString(p.ID) || strings.TrimSpace(p.ID) != p.ID || strings.ContainsFunc(p.ID, unicode.IsControl) {
 		return ctlError(CodeForbidden, false)
 	}
-	decision := authz.Evaluate(authz.Request{Principal: p, Action: action, Resource: Resource(s.config.Scope, source)}, time.Now().UTC())
+	decision := authz.Evaluate(authz.Request{Principal: p, Action: action, Resource: Resource(s.config.Scope, source)}, s.now().UTC())
 	if !decision.Allowed {
 		return ctlError(CodeForbidden, false)
 	}
@@ -131,6 +143,14 @@ func ctlMap(err error, changed bool) error {
 			return ctlError(CodeInvalid, changed)
 		case subscription.CodeCommitUncertain:
 			return ctlError(CodeCommitUnknown, true)
+		case subscription.CodeFetchPolicy:
+			return ctlError(CodeFetchPolicy, changed)
+		case subscription.CodeFetchUnavailable:
+			return ctlError(CodeFetchUnavailable, changed)
+		case subscription.CodeFetchHTTP:
+			return ctlError(CodeFetchHTTP, changed)
+		case subscription.CodeFetchRateLimited:
+			return ctlError(CodeFetchRateLimited, changed)
 		}
 	}
 	return ctlError(CodeUnavailable, changed)
@@ -259,6 +279,13 @@ func ctlValidCommand(c Command) bool {
 	if !ctlKey.MatchString(c.IdempotencyKey) || ActionFor(c.Kind) == "" {
 		return false
 	}
+	if c.Automated {
+		if c.Kind != Fetch || c.ApprovalSourceRevision == 0 || c.ApprovalMaxAgeSeconds < uint64(subscription.MinRefreshInterval/time.Second) || c.ApprovalMaxAgeSeconds > uint64(subscription.MaxApprovalTTL/time.Second) {
+			return false
+		}
+	} else if c.ApprovalSourceRevision != 0 || c.ApprovalMaxAgeSeconds != 0 {
+		return false
+	}
 	if c.Kind == Create {
 		return c.SourceID == "" && c.CandidateID == "" && c.ExpectedRevision == 0 && c.ExpectedDigest == "" && c.Label != "" && len(c.Label) <= 128 && c.Format == "" && len(c.Content) == 0 && c.Decision == "" && c.ReferenceID == "" && c.PolicyRevision == 0 && c.ApprovalID == ""
 	}
@@ -296,6 +323,15 @@ func ctlMaterial(c Command) []byte {
 		ApprovalID            string
 	}{c.Kind, c.SourceID, c.CandidateID, c.ExpectedRevision, c.ExpectedDigest, c.Label, c.Format, sha256.Sum256(c.Content), len(c.Content), c.Decision, c.ReferenceID, c.PolicyRevision, c.ApprovalID}
 	raw, _ := json.Marshal(value)
+	if c.Automated {
+		extended := struct {
+			Base                   json.RawMessage
+			Automated              bool
+			ApprovalSourceRevision uint64
+			ApprovalMaxAgeSeconds  uint64
+		}{raw, true, c.ApprovalSourceRevision, c.ApprovalMaxAgeSeconds}
+		raw, _ = json.Marshal(extended)
+	}
 	return raw
 }
 func (s *Service) claim(id, source string) error {
@@ -325,7 +361,29 @@ func (s *Service) release(id, source string) {
 }
 
 func (s *Service) Execute(ctx context.Context, p authz.Principal, c Command) (Receipt, error) {
-	if err := s.authorize(ctx, p, ActionFor(c.Kind), c.SourceID); err != nil {
+	if s==nil||s.serviceCore==nil{return Receipt{},ctlError(CodeUnavailable,false)};if s.config.RefreshStore!=nil {if !s.capacityMu.TryLock(){return Receipt{},ctlError(CodeConflict,false)};if s.refreshBusy.Load(){s.capacityMu.Unlock();return Receipt{},ctlError(CodeConflict,false)}}else{s.capacityMu.Lock()};defer s.capacityMu.Unlock()
+	return s.execute(ctx, p, c, ActionFor(c.Kind))
+}
+
+func (s *Service) executeRefreshLocked(ctx context.Context, attempt subscription.RefreshView, c Command) (Receipt, error) {
+	if s == nil || s.serviceCore == nil || ctlNil(s.config.RefreshIdentity) || s.config.RefreshStore == nil || !c.Automated || c.Kind != Fetch { return Receipt{}, ctlError(CodeForbidden, false) }
+	p, ref, err := s.config.RefreshIdentity.TrustedPrincipal(s.config.RefreshIdentityID, s.now().UTC())
+	if err != nil { return Receipt{}, refreshIdentityError(err) }
+	if !s.refreshPrincipalCurrent(p, c.SourceID) { return Receipt{}, ctlError(CodeForbidden, false) }
+	c.refreshReference, c.freshIdentityRequired = ref, true
+	identity,err:=s.config.Store.ControlIdentity(s.scope,p.ID,c.IdempotencyKey,ctlMaterial(c));if err!=nil{return Receipt{},ctlMap(err,false)}
+	if err=s.retryRefreshStoreStage(ctx,"bind",func()error{return s.config.RefreshStore.BindCommand(s.scope,c.SourceID,attempt,p.ID,identity.ID)});err!=nil{return Receipt{},ctlMap(err,false)}
+	receipt,executeErr:=s.execute(ctx,p,c,authz.ActionRefreshSubscription)
+	record,exists,readErr:=s.config.Store.ControlCommand(s.scope,identity.ID);if readErr!=nil{return receipt,ctlMap(readErr,true)}
+	var persisted *subscription.ControlCommand;if exists{persisted=&record}
+	if err=s.retryRefreshStoreStage(ctx,"reservation",func()error{return s.config.RefreshStore.ReconcileReservation(s.scope,c.SourceID,attempt,persisted)});err!=nil{return receipt,ctlMap(err,true)}
+	return receipt,executeErr
+}
+
+func (s *Service) ensureManualCapacity(c Command) error {if s.config.RefreshStore==nil{return nil};cap,err:=s.config.Store.Capacity(s.scope);if err!=nil{return ctlMap(err,false)};reserved,err:=s.config.RefreshStore.ReservedCapacity();if err!=nil{return ctlMap(err,false)};commands,candidates,audit,bytes:=1,0,0,64*1024;switch c.Kind{case Import,Fetch:candidates=1;audit=1;bytes=subscription.MaxRefreshReservationBytes;case Create,Decide,Rollback:audit=1};if cap.CommandsUsed+reserved.CommandsUsed+commands>cap.CommandsMax||cap.CandidatesUsed+reserved.CandidatesUsed+candidates>cap.CandidatesMax||cap.DomainAuditUsed+reserved.DomainAuditUsed+audit>cap.DomainAuditMax||cap.EncodedBytes+reserved.EncodedBytes+bytes>cap.EncodedBytesMax{return ctlError(CodeLimit,false)};return nil}
+
+func (s *Service) execute(ctx context.Context, p authz.Principal, c Command, action authz.Action) (Receipt, error) {
+	if err := s.authorize(ctx, p, action, c.SourceID); err != nil {
 		return Receipt{}, err
 	}
 	if !s.config.WritesEnabled {
@@ -363,6 +421,7 @@ func (s *Service) Execute(ctx context.Context, p authz.Principal, c Command) (Re
 		}
 		return receipt, nil
 	}
+	if !c.Automated { if err:=s.ensureManualCapacity(c);err!=nil{return Receipt{},err} }
 	command := subscription.ControlCommand{ID: identity.ID, Scope: s.scope, ActorID: identity.ActorID, OwnerID: p.ID, CoreKey: identity.CoreKey, KeyDigest: identity.KeyDigest, Fingerprint: identity.Fingerprint, Kind: string(c.Kind), SourceID: c.SourceID, ExpectedRevision: c.ExpectedRevision}
 	prepared, err := s.appendAudit(command, nil)
 	if err != nil {
@@ -379,8 +438,8 @@ func (s *Service) Execute(ctx context.Context, p authz.Principal, c Command) (Re
 	// Independently enforce authorization and cancellation at the real side
 	// effect boundary, rather than trusting an API adapter's preflight.
 	var result subscription.ControlResult
-	if err = s.authorize(ctx, p, ActionFor(c.Kind), c.SourceID); err == nil {
-		result, err = s.executeDomain(ctx, p, c, command)
+	if err = s.authorize(ctx, p, action, c.SourceID); err == nil {
+		result, err = s.executeDomain(ctx, p, c, command, action)
 	}
 	if err != nil {
 		classified := ctlMap(err, false)
@@ -421,7 +480,7 @@ func (s *Service) Execute(ctx context.Context, p authz.Principal, c Command) (Re
 func ctlResult(m subscription.MutationReceipt) subscription.ControlResult {
 	return subscription.ControlResult{SourceID: m.SourceID, CandidateID: m.CandidateID, Revision: m.Revision, Digest: m.Digest, State: "committed", LocalAuditHash: m.LocalAuditHash, CompletedAt: m.CompletedAt}
 }
-func (s *Service) executeDomain(ctx context.Context, p authz.Principal, c Command, record subscription.ControlCommand) (subscription.ControlResult, error) {
+func (s *Service) executeDomain(ctx context.Context, p authz.Principal, c Command, record subscription.ControlCommand, action authz.Action) (subscription.ControlResult, error) {
 	var view subscription.CandidateView
 	var err error
 	switch c.Kind {
@@ -461,12 +520,20 @@ func (s *Service) executeDomain(ctx context.Context, p authz.Principal, c Comman
 		if ctlCanceled(ctx) {
 			return subscription.ControlResult{}, ctlError(CodeCanceled, false)
 		}
+		if c.freshIdentityRequired {
+			if ctlNil(s.config.RefreshIdentity) || c.refreshReference == (authn.SnapshotRef{}) { return subscription.ControlResult{}, ctlError(CodeForbidden, false) }
+			fresh, freshErr := s.config.RefreshIdentity.CurrentPrincipal(c.refreshReference, p.ID, s.now().UTC())
+			if freshErr != nil { return subscription.ControlResult{}, refreshIdentityError(freshErr) }
+			if !s.refreshPrincipalCurrent(fresh, c.SourceID) { return subscription.ControlResult{}, ctlError(CodeForbidden, false) }
+			if err := s.authorize(ctx, fresh, action, c.SourceID); err != nil { return subscription.ControlResult{}, err }
+			p = fresh
+		}
 		fetched, fetchErr := s.config.Policies.Fetch(ctx, s.scope, c.SourceID, approval.ReferenceID)
 		if fetchErr != nil {
-			return subscription.ControlResult{}, ctlError(CodeUnavailable, false)
-		}
-		if err := s.authorize(ctx, p, ActionFor(c.Kind), c.SourceID); err != nil {
-			return subscription.ControlResult{}, err
+			if ctlCanceled(ctx) {
+				return subscription.ControlResult{}, ctlError(CodeCanceled, false)
+			}
+			return subscription.ControlResult{}, ctlMap(fetchErr, false)
 		}
 		again, checkErr := s.fetchApproval(c)
 		if checkErr != nil {
@@ -476,7 +543,14 @@ func (s *Service) executeDomain(ctx context.Context, p authz.Principal, c Comman
 			return subscription.ControlResult{}, ctlError(CodeApprovalRequired, false)
 		}
 		if fetched.Scope != s.scope || fetched.SourceID != c.SourceID || len(fetched.Content) == 0 || len(fetched.Content) > subscription.MaxInputBytes || fetched.ResponseBytes != len(fetched.Content) || fetched.AttemptedAt.IsZero() || fetched.CompletedAt.Before(fetched.AttemptedAt) {
-			return subscription.ControlResult{}, ctlError(CodeUnavailable, false)
+			return subscription.ControlResult{}, ctlError(CodeFetchPolicy, false)
+		}
+		if c.freshIdentityRequired {
+			fresh, freshErr := s.config.RefreshIdentity.CurrentPrincipal(c.refreshReference, p.ID, s.now().UTC())
+			if freshErr != nil { return subscription.ControlResult{}, refreshIdentityError(freshErr) }
+			if !s.refreshPrincipalCurrent(fresh, c.SourceID) { return subscription.ControlResult{}, ctlError(CodeForbidden, false) }
+			if err := s.authorize(ctx, fresh, action, c.SourceID); err != nil { return subscription.ControlResult{}, err }
+			p = fresh
 		}
 		view, err = s.config.Store.Import(subscription.ImportRequest{Scope: s.scope, SourceID: c.SourceID, ExpectedRevision: c.ExpectedRevision, ActorID: record.ActorID, IdempotencyKey: record.CoreKey, Format: subscription.FormatAuto, Content: append([]byte{}, fetched.Content...)})
 	}
@@ -526,6 +600,12 @@ func (s *Service) fetchApproval(c Command) (subscription.ControlApproval, error)
 	}
 	if source.Revision != c.ExpectedRevision {
 		return a, ctlError(CodeConflict, false)
+	}
+	if c.Automated {
+		now := s.now().UTC()
+		if a.SourceRevision != c.ApprovalSourceRevision || a.SourceRevision != c.ExpectedRevision || now.Before(a.ApprovedAt) || !now.Before(a.ApprovedAt.Add(time.Duration(c.ApprovalMaxAgeSeconds)*time.Second)) {
+			return a, ctlError(CodeApprovalRequired, false)
+		}
 	}
 	return a, nil
 }
@@ -771,7 +851,8 @@ func (s *Service) RecordDenied(ctx context.Context, p authz.Principal, action au
 }
 func ctlKnownCode(code Code) bool {
 	switch code {
-	case CodeInvalid, CodeForbidden, CodeLocked, CodeUnavailable, CodeConflict, CodeNotFound, CodeAuditDegraded, CodeCommitUnknown, CodeCanceled, CodeApprovalRequired, CodeLimit:
+	case CodeInvalid, CodeForbidden, CodeLocked, CodeUnavailable, CodeConflict, CodeNotFound, CodeAuditDegraded, CodeCommitUnknown, CodeCanceled, CodeApprovalRequired, CodeLimit,
+		CodeFetchPolicy, CodeFetchUnavailable, CodeFetchHTTP, CodeFetchRateLimited:
 		return true
 	}
 	return false

@@ -11,6 +11,41 @@ import (
 
 const MaxControlCommands = 4096
 
+type StoreCapacity struct {
+	CommandsUsed int `json:"commandsUsed"`
+	CommandsMax int `json:"commandsMax"`
+	CandidatesUsed int `json:"candidatesUsed"`
+	CandidatesMax int `json:"candidatesMax"`
+	DomainAuditUsed int `json:"domainAuditUsed"`
+	DomainAuditMax int `json:"domainAuditMax"`
+	EncodedBytes int `json:"encodedBytes"`
+	EncodedBytesMax int `json:"encodedBytesMax"`
+}
+
+func (s *Store) Capacity(scope Scope) (StoreCapacity, error) {
+	if s == nil || s.storeCore == nil { return StoreCapacity{}, fail(CodeStoreClosed) }
+	s.mu.Lock(); defer s.mu.Unlock()
+	if err := s.usable(); err != nil { return StoreCapacity{}, err }
+	if !validScope(scope) { return StoreCapacity{}, fail(CodeInputInvalid) }
+	raw, err := storeEncode(s.state); if err != nil { return StoreCapacity{}, err }
+	return StoreCapacity{CommandsUsed: len(s.state.Commands), CommandsMax: MaxControlCommands, CandidatesUsed: len(s.state.Candidates), CandidatesMax: MaxCandidates, DomainAuditUsed: len(s.state.Audit), DomainAuditMax: MaxAuditEntries, EncodedBytes:len(raw), EncodedBytesMax:MaxStoreBytes}, nil
+}
+
+const refreshCheckpointPrefix = "refresh-epoch-"
+
+// LatestRefreshCheckpoint uses only fields understood by the strict v1
+// reader. Commands are append-only, so the last valid marker is authoritative.
+func (s *Store) LatestRefreshCheckpoint(scope Scope) (string, string, bool, error) {
+	if s == nil || s.storeCore == nil { return "", "", false, fail(CodeStoreClosed) }
+	s.mu.Lock(); defer s.mu.Unlock()
+	if err := s.usable(); err != nil { return "", "", false, err }
+	if !validScope(scope) { return "", "", false, fail(CodeInputInvalid) }
+	var id, epoch string
+	for _,d:=range s.state.Commands { c:=d.Record;if c.Scope!=scope||!c.Acknowledged||c.Result==nil||c.Result.State!="failed"||!strings.HasPrefix(c.Result.ReferenceID,refreshCheckpointPrefix){continue};e:=strings.TrimPrefix(c.Result.ReferenceID,refreshCheckpointPrefix);if !storeHexPattern.MatchString(e){return "","",false,fail(CodeStoreUnsafe)};id,epoch=c.ID,e }
+	return id,epoch,id!="",nil
+}
+
+
 var controlIDPattern = regexp.MustCompile(`^cmd_[a-f0-9]{32}$`)
 var controlReferencePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
 
@@ -521,7 +556,7 @@ func storeValidateControl(state storeSnapshot) error {
 			}
 		} else {
 			r := c.Result
-			if r.CompletedAt.IsZero() || r.CompletedAt.Before(c.PreparedAt) || !parserMember(r.State, "committed noop approved failed unknown") || r.Code != "" && !parserMember(r.Code, "subscription_command_invalid subscription_forbidden subscription_writes_disabled subscription_unavailable subscription_command_conflict subscription_command_not_found subscription_audit_degraded subscription_commit_unknown subscription_command_canceled subscription_approval_required subscription_command_limit") {
+			if r.CompletedAt.IsZero() || r.CompletedAt.Before(c.PreparedAt) || !parserMember(r.State, "committed noop approved failed unknown") || r.Code != "" && !parserMember(r.Code, "subscription_command_invalid subscription_forbidden subscription_writes_disabled subscription_unavailable subscription_command_conflict subscription_command_not_found subscription_audit_degraded subscription_commit_unknown subscription_command_canceled subscription_approval_required subscription_command_limit subscription_fetch_policy_rejected subscription_fetch_unavailable subscription_fetch_http_rejected subscription_fetch_rate_limited") {
 				return bad()
 			}
 			if r.SourceID != "" && !validSource(r.SourceID) || r.CandidateID != "" && !storeCandidatePattern.MatchString(r.CandidateID) || r.Digest != "" && !storeDigestPattern.MatchString(r.Digest) {

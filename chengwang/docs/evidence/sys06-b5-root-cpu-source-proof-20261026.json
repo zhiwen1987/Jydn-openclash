@@ -1,0 +1,47 @@
+{
+  "continuousRecoverySourceReplay": true,
+  "goExecutedByThisCPUProof": false,
+  "groups": {
+    "apply-service": {
+      "exitCode": 0,
+      "stderrSHA256": "320444235ede6673505a3b70025449caddb3faf4f98067f423dcfd45e8ec01df",
+      "tests": 85
+    },
+    "continuous-models": {
+      "exitCode": 0,
+      "stderrSHA256": "0ce87ed31be5a5efdabd1ae3506e1631a8790048645258fcace1e496faf78760",
+      "tests": 6
+    },
+    "contracts-compat": {
+      "exitCode": 0,
+      "stderrSHA256": "e013b5f06b1ffbf4eafe25df994eb5fd38b1ce3f2ce96dc98f41b9dd52fb1bb1",
+      "tests": 60
+    },
+    "legacy-disclosure-projection": {
+      "exitCode": 0,
+      "stderrSHA256": "b73fa4233e4a30c7095a3f2c4f25ab407b600cf71f50c5015c3ee9cb6599726f",
+      "tests": 121
+    },
+    "native-completion-reader-models": {
+      "exitCode": 0,
+      "stderrSHA256": "acbeb2c1d727e8e44e2565b6eca359e9a0658ff9374ae27b81d215c30697374e",
+      "tests": 12
+    },
+    "old-native": {
+      "exitCode": 0,
+      "stderrSHA256": "5173a8b0832bf89537815145fd5c3872e5766e992232759a75934e006ec354f2",
+      "tests": 17
+    },
+    "profile-contract-models": {
+      "exitCode": 0,
+      "stderrSHA256": "c0eaf543610c2e551ef563febcdd9d2e526878eb12036d30526b5f0f2f7dcb80",
+      "tests": 2
+    }
+  },
+  "head": "b5b5fa96cadbf35ae833c618555ab82e5d70429b",
+  "nativeCompletionSourceReplay": true,
+  "newRuntimeAcceptedByThisCPUProof": false,
+  "production": false,
+  "schema": "chengwang.b5-root-cpu-source-proof/v1",
+  "totalTests": 303
+}

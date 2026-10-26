@@ -36,6 +36,28 @@ EXPECTED_FULL_FMT = (
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
+    'internal/api/server.go',
+    'internal/api/subscriptions.go',
+    'internal/api/subscriptions_test.go',
+    'internal/authn/snapshot_manager.go',
+    'internal/authn/snapshot_manager_linux_test.go',
+    'internal/authz/model.go',
+    'internal/authz/policy.go',
+    'internal/authz/subscription.go',
+    'internal/authz/subscription_refresh_test.go',
+    'internal/serverruntime/subscription_config.go',
+    'internal/serverruntime/subscription_config_test.go',
+    'internal/subscription/control.go',
+    'internal/subscription/refresh.go',
+    'internal/subscription/refresh_test.go',
+    'internal/subscription/store.go',
+    'internal/subscriptionctl/contract.go',
+    'internal/subscriptionctl/refresh.go',
+    'internal/subscriptionctl/service.go',
+    'internal/subscriptionctl/service_linux_test.go',
+    'internal/subscriptionpolicy/catalog.go',
+    'internal/subscriptionpolicy/catalog_access.go',
+    'internal/subscriptionpolicy/refresh_test.go',
 )
 BOUND_CREDENTIALS_V2_ADDED_FMT = (
     'internal/authn/continuous_bound_credentials_linux.go',
@@ -49,6 +71,7 @@ SOURCE_ORIGIN_ADDED_FMT = (
     'internal/mihomodeploy/lab_native_recovery_observer_default.go',
     'internal/mihomodeploy/lab_native_recovery_observer_linux.go',
 )
+P207A_V3_ADDED_FMT = EXPECTED_FULL_FMT[28:]
 
 
 def load(name):
@@ -101,7 +124,7 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
             rows = [json.loads(line) for line in (private/'commands.jsonl').read_text(encoding='utf-8').splitlines()]
         return observed, rows
 
-    def test_full_formatter_argv_uses_the_independent_exact_28_path_contract(self):
+    def test_full_formatter_argv_uses_the_independent_exact_50_path_contract(self):
         self.assertEqual(tuple(self.producer.FULL_FMT), EXPECTED_FULL_FMT)
         self.assertEqual(tuple(self.reader.FULL_FMT), EXPECTED_FULL_FMT)
         self.assertEqual(tuple(self.producer.CAPACITY_FMT), EXPECTED_FULL_FMT[:4])
@@ -160,7 +183,19 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         origin_reordered[first], origin_reordered[second] = origin_reordered[second], origin_reordered[first]
         self.assertNotEqual(tuple(origin_reordered),tuple(self.producer.FULL_FMT))
         self.assertNotEqual(tuple(origin_reordered),tuple(self.reader.FULL_FMT))
-        self.assertEqual(len(EXPECTED_FULL_FMT),len(set(EXPECTED_FULL_FMT)),28)
+        self.assertEqual(len(P207A_V3_ADDED_FMT),22)
+        for path in P207A_V3_ADDED_FMT:
+            with self.subTest(p207a_path=path):
+                shortened = tuple(item for item in EXPECTED_FULL_FMT if item != path)
+                self.assertNotEqual(shortened,tuple(self.producer.FULL_FMT))
+                self.assertNotEqual(shortened,tuple(self.reader.FULL_FMT))
+        p207a_reordered = list(EXPECTED_FULL_FMT)
+        first = p207a_reordered.index(P207A_V3_ADDED_FMT[0])
+        second = p207a_reordered.index(P207A_V3_ADDED_FMT[-1])
+        p207a_reordered[first], p207a_reordered[second] = p207a_reordered[second], p207a_reordered[first]
+        self.assertNotEqual(tuple(p207a_reordered),tuple(self.producer.FULL_FMT))
+        self.assertNotEqual(tuple(p207a_reordered),tuple(self.reader.FULL_FMT))
+        self.assertEqual(len(EXPECTED_FULL_FMT),len(set(EXPECTED_FULL_FMT)),50)
 
 
 if __name__ == '__main__':

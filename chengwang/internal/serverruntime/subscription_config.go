@@ -13,7 +13,7 @@ var subscriptionRuntimeScopePart = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-
 
 func validateSubscriptionConfig(c Config) error {
 	if !c.SubscriptionsEnabled {
-		if c.SubscriptionWritesEnabled || c.SubscriptionPolicyFile != "" {
+		if c.SubscriptionWritesEnabled || c.SubscriptionPolicyFile != "" || c.SubscriptionRefreshEnabled || c.SubscriptionRefreshIdentityID != "" {
 			return errSubscriptionConfiguration
 		}
 		return nil
@@ -24,6 +24,13 @@ func validateSubscriptionConfig(c Config) error {
 		}
 	}
 	if c.IdentitiesFile == "" || c.TLSCertFile == "" || c.TLSKeyFile == "" {
+		return errSubscriptionConfiguration
+	}
+	if c.SubscriptionRefreshEnabled {
+		if !c.SubscriptionWritesEnabled || c.SubscriptionPolicyFile == "" || !subscriptionRuntimeScopePart.MatchString(c.SubscriptionRefreshIdentityID) {
+			return errSubscriptionConfiguration
+		}
+	} else if c.SubscriptionRefreshIdentityID != "" {
 		return errSubscriptionConfiguration
 	}
 	if path := c.SubscriptionPolicyFile; path != "" {
@@ -44,6 +51,11 @@ func subscriptionConfigFromEnvironment(c *Config) error {
 	if err != nil {
 		return errSubscriptionConfiguration
 	}
+	c.SubscriptionRefreshEnabled, err = StrictBoolEnv("CHENGWANG_SUBSCRIPTION_REFRESH_ENABLED")
+	if err != nil {
+		return errSubscriptionConfiguration
+	}
 	c.SubscriptionPolicyFile = os.Getenv("CHENGWANG_SUBSCRIPTION_POLICY_FILE")
+	c.SubscriptionRefreshIdentityID = os.Getenv("CHENGWANG_SUBSCRIPTION_REFRESH_IDENTITY_ID")
 	return validateSubscriptionConfig(*c)
 }

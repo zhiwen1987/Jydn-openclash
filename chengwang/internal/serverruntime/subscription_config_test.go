@@ -21,7 +21,7 @@ func subscriptionConfigFixture(t *testing.T) Config {
 }
 func subscriptionClearEnvironment(t *testing.T) {
 	t.Helper()
-	for _, name := range []string{"CHENGWANG_SUBSCRIPTIONS_ENABLED", "CHENGWANG_SUBSCRIPTION_WRITES_ENABLED", "CHENGWANG_SUBSCRIPTION_POLICY_FILE", "CHENGWANG_MANAGEMENT_TENANT_ID", "CHENGWANG_MANAGEMENT_SITE_ID", "CHENGWANG_MANAGEMENT_OBJECT_ID", "CHENGWANG_IDENTITIES_FILE", "CHENGWANG_TLS_CERT_FILE", "CHENGWANG_TLS_KEY_FILE", "CHENGWANG_MODE"} {
+	for _, name := range []string{"CHENGWANG_SUBSCRIPTIONS_ENABLED", "CHENGWANG_SUBSCRIPTION_WRITES_ENABLED", "CHENGWANG_SUBSCRIPTION_REFRESH_ENABLED", "CHENGWANG_SUBSCRIPTION_REFRESH_IDENTITY_ID", "CHENGWANG_SUBSCRIPTION_POLICY_FILE", "CHENGWANG_MANAGEMENT_TENANT_ID", "CHENGWANG_MANAGEMENT_SITE_ID", "CHENGWANG_MANAGEMENT_OBJECT_ID", "CHENGWANG_IDENTITIES_FILE", "CHENGWANG_TLS_CERT_FILE", "CHENGWANG_TLS_KEY_FILE", "CHENGWANG_MODE"} {
 		t.Setenv(name, "")
 	}
 }
@@ -29,7 +29,7 @@ func TestServerRuntimeP205DisabledDefaultsAndResidualClosed(t *testing.T) {
 	if validateSubscriptionConfig(Config{}) != nil {
 		t.Fatal("disabled defaults")
 	}
-	for _, c := range []Config{{SubscriptionWritesEnabled: true}, {SubscriptionPolicyFile: "private-sentinel-path"}} {
+	for _, c := range []Config{{SubscriptionWritesEnabled: true}, {SubscriptionPolicyFile: "private-sentinel-path"}, {SubscriptionRefreshEnabled: true}, {SubscriptionRefreshIdentityID: "refresh-machine"}} {
 		if validateSubscriptionConfig(c) == nil {
 			t.Fatal("disabled residual subscription inputs")
 		}
@@ -63,7 +63,7 @@ func TestServerRuntimeP205PolicyPathIsCanonical(t *testing.T) {
 }
 func TestServerRuntimeP205EnvironmentBooleanIsStrict(t *testing.T) {
 	subscriptionClearEnvironment(t)
-	for _, name := range []string{"CHENGWANG_SUBSCRIPTIONS_ENABLED", "CHENGWANG_SUBSCRIPTION_WRITES_ENABLED"} {
+	for _, name := range []string{"CHENGWANG_SUBSCRIPTIONS_ENABLED", "CHENGWANG_SUBSCRIPTION_WRITES_ENABLED", "CHENGWANG_SUBSCRIPTION_REFRESH_ENABLED"} {
 		for _, value := range []string{"TRUE", " true", "false ", "1", "yes", "private-sentinel"} {
 			t.Setenv(name, value)
 			if _, err := ConfigFromEnvironment(); err == nil || strings.Contains(err.Error(), value) {
@@ -71,6 +71,33 @@ func TestServerRuntimeP205EnvironmentBooleanIsStrict(t *testing.T) {
 			}
 			t.Setenv(name, "")
 		}
+	}
+}
+
+func TestServerRuntimeP207ARefreshRequiresIndependentClosedGates(t *testing.T) {
+	c := subscriptionConfigFixture(t)
+	c.SubscriptionWritesEnabled = true
+	c.SubscriptionPolicyFile = filepath.Join(c.DataDir, "policy.json")
+	c.SubscriptionRefreshEnabled = true
+	c.SubscriptionRefreshIdentityID = "subscription-refresh-machine"
+	if validateSubscriptionConfig(c) != nil {
+		t.Fatal("complete refresh configuration rejected")
+	}
+	for _, edit := range []func(*Config){
+		func(value *Config) { value.SubscriptionWritesEnabled = false },
+		func(value *Config) { value.SubscriptionPolicyFile = "" },
+		func(value *Config) { value.SubscriptionRefreshIdentityID = "" },
+		func(value *Config) { value.SubscriptionRefreshIdentityID = "bad/identity" },
+	} {
+		bad := c
+		edit(&bad)
+		if validateSubscriptionConfig(bad) == nil {
+			t.Fatal("partial refresh configuration accepted")
+		}
+	}
+	c.SubscriptionRefreshEnabled = false
+	if validateSubscriptionConfig(c) == nil {
+		t.Fatal("disabled refresh retained machine identity")
 	}
 }
 func TestServerRuntimeP205EnvironmentCompleteAndIndependent(t *testing.T) {

@@ -3,6 +3,7 @@ package subscriptionpolicy
 import (
 	"sort"
 
+	"chengwang/internal/subscription"
 	"chengwang/internal/subscriptionctl"
 )
 
@@ -26,4 +27,26 @@ func (c *Catalog) References() ([]subscriptionctl.PolicyReference, error) {
 	return entries, nil
 }
 
+func (c *Catalog) RefreshBindings() ([]subscription.RefreshBinding, error) {
+	if c == nil || c.core == nil || len(c.core.sources) == 0 || len(c.core.sources) > subscription.MaxSources {
+		return nil, ErrUnavailable
+	}
+	entries := make([]subscription.RefreshBinding, 0, len(c.core.sources))
+	seen := make(map[string]bool, len(c.core.sources))
+	for key, value := range c.core.sources {
+		refresh := value.config.Refresh
+		if key != value.config.ReferenceID || refresh == nil {
+			continue
+		}
+		if seen[refresh.SourceID] {
+			return nil, ErrInvalid
+		}
+		seen[refresh.SourceID] = true
+		entries = append(entries, subscription.RefreshBinding{SourceID: refresh.SourceID, ReferenceID: value.config.ReferenceID, PolicyRevision: value.config.Revision, ApprovalID: refresh.ApprovalID, ApprovalSourceRevision: refresh.ApprovalSourceRevision, IntervalSeconds: refresh.IntervalSeconds, ApprovalTTLSeconds: refresh.ApprovalTTLSeconds, MaxStaleSeconds: refresh.MaxStaleSeconds, MaxBackoffSeconds: refresh.MaxBackoffSeconds})
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].SourceID < entries[j].SourceID })
+	return entries, nil
+}
+
 var _ subscriptionctl.PolicyReferenceReader = (*Catalog)(nil)
+var _ subscriptionctl.RefreshPolicyProvider = (*Catalog)(nil)

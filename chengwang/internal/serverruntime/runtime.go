@@ -52,6 +52,8 @@ type Config struct {
 	ProbePollInterval, ProbeCacheMaxAge             time.Duration
 	SubscriptionsEnabled, SubscriptionWritesEnabled bool
 	SubscriptionPolicyFile                          string
+	SubscriptionRefreshEnabled                      bool
+	SubscriptionRefreshIdentityID                   string
 }
 
 type TrustDependencies struct {
@@ -261,6 +263,7 @@ func RunWith(options Options) (result error) {
 		}
 	}
 	var subscriptions subscriptionctl.Backend
+	var subscriptionRefresh *subscriptionctl.Service
 	if c.SubscriptionsEnabled {
 		var policies subscriptionctl.PolicyProvider
 		if c.SubscriptionPolicyFile != "" {
@@ -282,11 +285,31 @@ func RunWith(options Options) (result error) {
 			return errors.New("initialize subscription storage failed")
 		}
 		closers = append(closers, inventory.Close)
-		application, applicationErr := subscriptionctl.New(ctx, subscriptionctl.Config{Scope: authz.ResourceScope{TenantID: c.TenantID, SiteID: c.SiteID, Environment: c.Mode, ObjectType: "subscription-store", ObjectID: c.ManagementObjectID}, Store: inventory, Audit: audit, Policies: policies, WritesEnabled: c.SubscriptionWritesEnabled})
+		applicationConfig := subscriptionctl.Config{Scope: authz.ResourceScope{TenantID: c.TenantID, SiteID: c.SiteID, Environment: c.Mode, ObjectType: "subscription-store", ObjectID: c.ManagementObjectID}, Store: inventory, Audit: audit, Policies: policies, WritesEnabled: c.SubscriptionWritesEnabled}
+		if c.SubscriptionRefreshEnabled {
+			refreshPath, refreshPathErr := filepath.Abs(filepath.Join(c.DataDir, "subscription-refresh-v3"))
+			if refreshPathErr != nil { return errors.New("initialize subscription refresh storage failed") }
+			refreshStore, refreshOpenErr := subscription.OpenRefreshStore(refreshPath)
+			if refreshOpenErr != nil { return errors.New("initialize subscription refresh storage failed") }
+			closers = append(closers, refreshStore.Close)
+			refreshRecovery, refreshRecoveryErr := refreshStore.TakeRecovery()
+			if refreshRecoveryErr != nil { return errors.New("initialize subscription refresh recovery failed") }
+			refreshIdentity, refreshIdentityErr := authn.OpenSnapshotManager(c.IdentitiesFile, time.Now().UTC())
+			if refreshIdentityErr != nil { return errors.New("initialize subscription refresh identity failed") }
+			closers = append(closers, refreshIdentity.Close)
+			applicationConfig.RefreshStore, applicationConfig.RefreshRecovery, applicationConfig.RefreshIdentity, applicationConfig.RefreshIdentityID = refreshStore, refreshRecovery, refreshIdentity, c.SubscriptionRefreshIdentityID
+		}
+		application, applicationErr := subscriptionctl.New(ctx, applicationConfig)
 		if applicationErr != nil {
 			return errors.New("initialize subscription recovery failed")
 		}
 		subscriptions = application
+		if c.SubscriptionRefreshEnabled {
+			if configureErr := application.ConfigureRefresh(ctx); configureErr != nil {
+				return errors.New("initialize subscription refresh failed")
+			}
+			subscriptionRefresh = application
+		}
 	}
 	var trust TrustComponent
 	if options.TrustFactory != nil {
@@ -392,6 +415,9 @@ func RunWith(options Options) (result error) {
 	if probes != nil {
 		workerCount++
 	}
+	if subscriptionRefresh != nil {
+		workerCount++
+	}
 	workerErrors := make(chan error, workerCount)
 	startWorker := func(run func(context.Context) error) {
 		workers.Add(1)
@@ -417,6 +443,9 @@ func RunWith(options Options) (result error) {
 	}
 	if probes != nil {
 		startWorker(probes.Run)
+	}
+	if subscriptionRefresh != nil {
+		startWorker(subscriptionRefresh.RunRefresh)
 	}
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(listener) }()

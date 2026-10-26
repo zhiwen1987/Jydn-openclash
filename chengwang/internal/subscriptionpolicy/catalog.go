@@ -37,6 +37,7 @@ var (
 	ErrScopeDenied = errors.New("subscription policy scope denied")
 	partPattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
 	sourcePattern  = regexp.MustCompile(`^src_[a-f0-9]{32}$`)
+	commandPattern = regexp.MustCompile(`^cmd_[a-f0-9]{32}$`)
 )
 
 type Owner struct{ UID, GID uint32 }
@@ -70,6 +71,17 @@ type sourceConfig struct {
 	URL           string   `json:"url"`
 	AllowedCNAMEs []string `json:"allowedCnames"`
 	CAPEM         string   `json:"caPEM"`
+	Refresh       *refreshConfig `json:"refresh,omitempty"`
+}
+
+type refreshConfig struct {
+	SourceID               string `json:"sourceId"`
+	ApprovalID             string `json:"approvalId"`
+	ApprovalSourceRevision uint64 `json:"approvalSourceRevision"`
+	IntervalSeconds        uint64 `json:"intervalSeconds"`
+	ApprovalTTLSeconds     uint64 `json:"approvalTtlSeconds"`
+	MaxStaleSeconds        uint64 `json:"maxStaleSeconds"`
+	MaxBackoffSeconds      uint64 `json:"maxBackoffSeconds"`
 }
 
 func (Catalog) String() string               { return "subscription trusted policy directory" }
@@ -142,6 +154,9 @@ func ParseBytes(raw []byte) (*Catalog, error) {
 	for _, entry := range entries {
 		fields, ok := object(entry, "referenceId", "revision", "secretVersion", "url", "allowedCnames", "caPEM")
 		if !ok {
+			fields, ok = object(entry, "referenceId", "revision", "secretVersion", "url", "allowedCnames", "caPEM", "refresh")
+		}
+		if !ok {
 			return nil, ErrInvalid
 		}
 		config := sourceConfig{ReferenceID: text(fields["referenceId"]), Revision: uintValue(fields["revision"]), SecretVersion: text(fields["secretVersion"]), URL: text(fields["url"]), CAPEM: text(fields["caPEM"])}
@@ -153,6 +168,20 @@ func ParseBytes(raw []byte) (*Catalog, error) {
 		}
 		if _, ok := fields["caPEM"].(string); !ok {
 			return nil, ErrInvalid
+		}
+		if raw, exists := fields["refresh"]; exists {
+			refresh, ok := object(raw, "sourceId", "approvalId", "approvalSourceRevision", "intervalSeconds", "approvalTtlSeconds", "maxStaleSeconds", "maxBackoffSeconds")
+			if !ok {
+				return nil, ErrInvalid
+			}
+			config.Refresh = &refreshConfig{SourceID: text(refresh["sourceId"]), ApprovalID: text(refresh["approvalId"]), ApprovalSourceRevision: uintValue(refresh["approvalSourceRevision"]), IntervalSeconds: uintValue(refresh["intervalSeconds"]), ApprovalTTLSeconds: uintValue(refresh["approvalTtlSeconds"]), MaxStaleSeconds: uintValue(refresh["maxStaleSeconds"]), MaxBackoffSeconds: uintValue(refresh["maxBackoffSeconds"])}
+			if !sourcePattern.MatchString(config.Refresh.SourceID) || !commandPattern.MatchString(config.Refresh.ApprovalID) || config.Refresh.ApprovalSourceRevision == 0 ||
+				config.Refresh.IntervalSeconds < uint64(subscription.MinRefreshInterval/time.Second) || config.Refresh.IntervalSeconds > uint64(subscription.MaxRefreshInterval/time.Second) ||
+				config.Refresh.ApprovalTTLSeconds < uint64(subscription.MinRefreshInterval/time.Second) || config.Refresh.ApprovalTTLSeconds > uint64(subscription.MaxApprovalTTL/time.Second) ||
+				config.Refresh.MaxStaleSeconds < config.Refresh.IntervalSeconds || config.Refresh.MaxStaleSeconds > uint64(subscription.MaxApprovalTTL/time.Second) ||
+				config.Refresh.MaxBackoffSeconds < config.Refresh.IntervalSeconds || config.Refresh.MaxBackoffSeconds > uint64(subscription.MaxRefreshInterval/time.Second) {
+				return nil, ErrInvalid
+			}
 		}
 		aliases, ok := fields["allowedCnames"].([]any)
 		if !ok || len(aliases) > probe.MaxAllowedCNAMEs {
@@ -179,13 +208,21 @@ func ParseBytes(raw []byte) (*Catalog, error) {
 		}
 		// A struct fixes field order; sorted allowlists have identical effective
 		// membership. Inline PEM bytes remain conservatively bound verbatim.
+		materialSource := struct {
+			ReferenceID   string   `json:"referenceId"`
+			Revision      uint64   `json:"revision"`
+			SecretVersion string   `json:"secretVersion"`
+			URL           string   `json:"url"`
+			AllowedCNAMEs []string `json:"allowedCnames"`
+			CAPEM         string   `json:"caPEM"`
+		}{config.ReferenceID, config.Revision, config.SecretVersion, config.URL, config.AllowedCNAMEs, config.CAPEM}
 		material, err := json.Marshal(struct {
 			Version                int                `json:"version"`
 			Scope                  subscription.Scope `json:"scope"`
-			Source                 sourceConfig       `json:"source"`
+			Source                 any                `json:"source"`
 			Resolver               resolverConfig     `json:"resolver"`
 			ResolverTimeoutSeconds int                `json:"resolverTimeoutSeconds"`
-		}{1, scope, config, rc, 5})
+		}{1, scope, materialSource, rc, 5})
 		if err != nil {
 			return nil, ErrInvalid
 		}

@@ -190,6 +190,19 @@ func (manager *SnapshotManager) AuthenticateAuthorization(header string, now tim
 	return manager.AuthenticateAuthorizationValues([]string{header}, now)
 }
 
+// TrustedPrincipal resolves an id only for trusted startup/background code.
+// It rereads the source file and returns a process-bound reference; possession
+// of an id or of the returned reference is not HTTP authentication.
+func (manager *SnapshotManager) TrustedPrincipal(id string, now time.Time) (authz.Principal, SnapshotRef, error) {
+	core, err := manager.lock()
+	if err != nil { return authz.Principal{}, SnapshotRef{}, err }
+	defer core.mu.Unlock()
+	if err := core.refresh(now); err != nil { return authz.Principal{}, SnapshotRef{}, err }
+	principal, err := core.store.resolvePrincipal(id, now)
+	if err != nil { return authz.Principal{}, SnapshotRef{}, err }
+	return principal, SnapshotRef{core: core.ref}, nil
+}
+
 // CurrentPrincipal revalidates activity and returns fresh roles/scope; it does
 // NOT authenticate a caller merely because they supplied an id. Only a trusted
 // service may use a saved approval principal id with its retained SnapshotRef.
@@ -206,26 +219,7 @@ func (manager *SnapshotManager) CurrentPrincipal(ref SnapshotRef, id string, now
 	if ref.core == nil || ref.core != core.ref || ref.core.owner != core || ref.core.generation != core.generation || subtle.ConstantTimeCompare(ref.core.manager[:], core.manager[:]) != 1 || subtle.ConstantTimeCompare(ref.core.epoch[:], core.epoch[:]) != 1 || ref.core.epoch == [32]byte{} {
 		return authz.Principal{}, ErrSnapshotStale
 	}
-	if validateIdentifier("principal.id", id, 128) != nil {
-		return authz.Principal{}, ErrSnapshotStale
-	}
-	for _, identity := range core.store.identities {
-		record := identity.record
-		if record.Principal.ID != id {
-			continue
-		}
-		if record.Disabled {
-			return authz.Principal{}, denied(CodeIdentityDisabled)
-		}
-		if record.NotBefore != nil && now.Before(*record.NotBefore) {
-			return authz.Principal{}, denied(CodeIdentityNotActive)
-		}
-		if record.ExpiresAt != nil && !now.Before(*record.ExpiresAt) {
-			return authz.Principal{}, denied(CodeIdentityExpired)
-		}
-		return clonePrincipal(record.Principal), nil
-	}
-	return authz.Principal{}, denied(CodeTokenInvalid)
+	return core.store.resolvePrincipal(id, now)
 }
 
 // Close invalidates every reference, including copied manager values which

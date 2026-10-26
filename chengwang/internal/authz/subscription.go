@@ -8,7 +8,8 @@ var subscriptionSourceID = regexp.MustCompile(`^src_[a-f0-9]{32}$`)
 func subscriptionAction(action Action) bool {
 	switch action {
 	case ActionReadSubscription, ActionManageSubscriptionSource, ActionImportSubscription,
-		ActionDecideSubscription, ActionApproveSubscriptionSource, ActionFetchSubscription, ActionRollbackSubscription:
+		ActionDecideSubscription, ActionApproveSubscriptionSource, ActionFetchSubscription, ActionRollbackSubscription,
+		ActionRefreshSubscription:
 		return true
 	default:
 		return false

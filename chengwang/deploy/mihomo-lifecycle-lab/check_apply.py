@@ -800,7 +800,7 @@ def _kernel_stdio(out, err):
 
 def verify_raw(raw, sources, commit):
     need(type(raw) is dict and set(raw) == set(PUBLIC) and type(sources) is dict and set(sources) == set(FILES))
-    need(len(FILES) == len(set(FILES)) == 170 and set(BOUND_CREDENTIAL_SOURCES).issubset(FILES) and
+    need(len(FILES) == len(set(FILES)) == 194 and set(BOUND_CREDENTIAL_SOURCES).issubset(FILES) and
          type(commit) is str and COMMIT.fullmatch(commit) is not None)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     need(all(type(v) is bytes and len(v) <= 8 << 20 for v in raw.values()))
@@ -871,7 +871,7 @@ def source_bindings(repo, commit):
 
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit)
     need(Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 170 and set(BOUND_CREDENTIAL_SOURCES).issubset(FILES))
+    need(len(FILES) == len(set(FILES)) == 194 and set(BOUND_CREDENTIAL_SOURCES).issubset(FILES))
     sources = {}
     for path in FILES:
         value = C.read(repo / path, 1 << 20, False)

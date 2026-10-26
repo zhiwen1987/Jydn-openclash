@@ -211,6 +211,24 @@ files+=(
   internal/mihomodeploy/lifecycle_recovery_reconcile.go
   internal/mihomodeploy/lifecycle_recovery_reconcile_test.go
 )
+files+=(
+  internal/api/subscriptions.go
+  internal/api/subscriptions_test.go
+  internal/authz/subscription_refresh_test.go
+  internal/serverruntime/subscription_config.go
+  internal/serverruntime/subscription_config_test.go
+  internal/subscription/control.go
+  internal/subscription/refresh.go
+  internal/subscription/refresh_test.go
+  internal/subscription/store.go
+  internal/subscriptionctl/contract.go
+  internal/subscriptionctl/refresh.go
+  internal/subscriptionctl/service.go
+  internal/subscriptionctl/service_linux_test.go
+  internal/subscriptionpolicy/catalog.go
+  internal/subscriptionpolicy/catalog_access.go
+  internal/subscriptionpolicy/refresh_test.go
+)
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?

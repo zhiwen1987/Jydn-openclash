@@ -52,10 +52,13 @@ type subscriptionAPISpy struct {
 	scope                                              authz.ResourceScope
 	scopeCalls, sourceCalls, candidateCalls, nodeCalls int
 	executeCalls, receiptCalls, deniedCalls            int
+	refreshListCalls, refreshReadCalls                 int
 	sources                                            subscriptionctl.SourcePage
 	candidates                                         subscriptionctl.CandidatePage
 	nodes                                              subscriptionctl.NodePage
 	receipt                                            subscriptionctl.Receipt
+	refreshPage                                        subscriptionctl.RefreshPage
+	refresh                                            subscription.RefreshView
 	lastPrincipal                                      authz.Principal
 	lastCommand                                        subscriptionctl.Command
 	lastQuery                                          subscriptionctl.ListQuery
@@ -105,8 +108,18 @@ func (b *subscriptionAPISpy) RecordDenied(_ context.Context, _ authz.Principal, 
 	b.deniedCalls++
 	return b.deniedErr
 }
+func (b *subscriptionAPISpy) ListRefreshes(_ context.Context, p authz.Principal) (subscriptionctl.RefreshPage, error) {
+	b.refreshListCalls++
+	b.lastPrincipal = p
+	return b.refreshPage, b.err
+}
+func (b *subscriptionAPISpy) ReadRefresh(_ context.Context, p authz.Principal, source string) (subscription.RefreshView, error) {
+	b.refreshReadCalls++
+	b.lastPrincipal, b.lastSource = p, source
+	return b.refresh, b.err
+}
 func (b *subscriptionAPISpy) privateCalls() int {
-	return b.sourceCalls + b.candidateCalls + b.nodeCalls + b.executeCalls + b.receiptCalls
+	return b.sourceCalls + b.candidateCalls + b.nodeCalls + b.executeCalls + b.receiptCalls + b.refreshListCalls + b.refreshReadCalls
 }
 
 func subscriptionAPIFixture(role authz.Role) (Options, *subscriptionAPISpy, *subscriptionAPIAuth) {
@@ -132,6 +145,29 @@ func subscriptionAPIJSON(t *testing.T, value any) []byte {
 		t.Fatal("fixture JSON")
 	}
 	return raw
+}
+
+func TestSubscriptionRefreshReadAPIIsReadOnlyAndScoped(t *testing.T) {
+	options, backend, _ := subscriptionAPIFixture(authz.RoleViewer)
+	when := time.Date(2026, 10, 26, 8, 0, 0, 0, time.UTC)
+	binding := subscription.RefreshBinding{SourceID: subscriptionAPISource, ReferenceID: "reference", PolicyRevision: 1, ApprovalID: subscriptionAPICommand, ApprovalSourceRevision: 2, IntervalSeconds: 60, ApprovalTTLSeconds: 600, MaxStaleSeconds: 300, MaxBackoffSeconds: 600}
+	backend.refresh = subscription.RefreshView{Scope: subscription.Scope{TenantID: subscriptionAPIScope.TenantID, SiteID: subscriptionAPIScope.SiteID, Environment: subscriptionAPIScope.Environment}, Binding: binding, BindingSeal: "hmac-sha256:" + strings.Repeat("a", 64), BindingGeneration: 1, State: subscription.RefreshIdle, NextAttemptAt: when, ClockState: subscription.RefreshClockNormal, StoragePending: true, StorageRetryCount: 4, StorageNextRetryAt: when.Add(time.Second)}
+	backend.refreshPage = subscriptionctl.RefreshPage{Refreshes: []subscription.RefreshView{backend.refresh}, Total: 1, Capacity: subscription.StoreCapacity{CommandsMax: subscription.MaxControlCommands, CandidatesMax: subscription.MaxCandidates, DomainAuditMax: subscription.MaxAuditEntries}}
+	handler := New(options)
+	listResponse := subscriptionAPIServe(t, handler, subscriptionAPIRequest(http.MethodGet, "/api/v1/subscriptions/refreshes", nil), http.StatusOK)
+	readResponse := subscriptionAPIServe(t, handler, subscriptionAPIRequest(http.MethodGet, subscriptionAPIPath("/refresh"), nil), http.StatusOK)
+	for _, response := range []*httptest.ResponseRecorder{listResponse, readResponse} {
+		if !strings.Contains(response.Body.String(), `"storagePending":true`) || !strings.Contains(response.Body.String(), `"storageRetryCount":4`) || !strings.Contains(response.Body.String(), `"storageNextRetryAt":`) {
+			t.Fatal("refresh storage backoff status missing from read API")
+		}
+	}
+	if backend.refreshListCalls != 1 || backend.refreshReadCalls != 1 || backend.lastSource != subscriptionAPISource || backend.executeCalls != 0 {
+		t.Fatal("refresh read route escaped read-only scoped backend")
+	}
+	subscriptionAPIServe(t, handler, subscriptionAPIRequest(http.MethodPost, "/api/v1/subscriptions/refreshes", []byte(`{}`)), http.StatusMethodNotAllowed)
+	if backend.refreshListCalls != 1 || backend.executeCalls != 0 {
+		t.Fatal("refresh status route accepted a write")
+	}
 }
 func subscriptionAPIPath(suffix string) string {
 	return "/api/v1/subscriptions/sources/" + subscriptionAPISource + suffix

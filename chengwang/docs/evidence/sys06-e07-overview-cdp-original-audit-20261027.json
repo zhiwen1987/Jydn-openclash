@@ -1,0 +1,123 @@
+{
+  "schema": "chengwang.overview-run-artifact-audit/v2",
+  "preservesPriorReceipt": {
+    "path": "RUN-AUDIT.json",
+    "sha256": "62250f92e54c31531657f2359659f5076a6217427e18e4f860abb2d863fdcff1",
+    "bytes": 6244,
+    "overwritten": false,
+    "priorGap": "policy peer path not yet supplied and disabled CDP original not yet downloaded"
+  },
+  "run": {
+    "id": 40357945306,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "headSha": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a"
+  },
+  "helperPolicy": {
+    "helperSha256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "helperHashVerified": true,
+    "materializerSha256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "materializerHashVerified": true,
+    "policyPeerPath": "D:/CodexData/home/state/plugins/codex-security/scans/mihomo-git-credential-artifact-helper-20261026-native56h-v3/artifacts-97f8178e6e73bbcd088d0b5b558247a2194adb40fb0fc42fa4ce922e05d06ae3/artifacts/reviews/policy-multicore-contract-git-credential-artifact-helper-source-review-final-v3-20261026.json",
+    "policyPeerSha256": "34a92ad72b41a66fb3b17a5ae7b5e2a6afa68307927041c323656f130e968bfa",
+    "policyPeerBytes": 15612,
+    "policyPeerFileLocated": true,
+    "policyPeerHashVerified": true
+  },
+  "downloads": {
+    "count": 2,
+    "maximumConcurrent": 1,
+    "executedSerially": true,
+    "signedLocationPersistedOrLogged": false,
+    "enabledUnknown": {
+      "artifactId": 12667831179,
+      "headSha": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a",
+      "zipBytes": 176719,
+      "zipSha256": "122c19c2d89caa1cfe6f8c7905c0c618f942b23bf9ceed8ef140d2be1c17ff87",
+      "members": 41,
+      "originalBytesStable": true
+    },
+    "disabled": {
+      "artifactId": 12667011476,
+      "headSha": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a",
+      "zipBytes": 176688,
+      "zipSha256": "26a0f7ee1df84e09b713b1cabb3b8cfcceb49dd20215e941e98e9f6a06ffb7ac",
+      "members": 41,
+      "originalBytesStable": true
+    }
+  },
+  "chromeCdpProfiles": {
+    "evidenceEnabledUnknown": {
+      "failureJsonSha256": "bd3332a44a9e37cbaed684b58044ef5d91b749cd0d8cddf17af394f321a233a6",
+      "schema": "chengwang.native-open-failure/v2",
+      "driverCheckpoints": 0,
+      "phase": "NATIVE_OPEN",
+      "stage": "CDP_POST_TARGETS",
+      "firstFault": "STARTUP_REJECTED",
+      "firstTargetFault": {"phase":null,"kind":null},
+      "initialTargets": {"shape":"ARRAY","total":2,"pages":1,"blankPages":1,"types":{"browser":0,"invalid":0,"other":1,"page":1,"serviceWorker":0,"sharedWorker":0,"tab":0},"rowsValid":true,"idsValid":true,"idsUnique":true,"guardPredicate":"PASS"},
+      "postTargets": {"shape":"ARRAY","total":5,"pages":2,"blankPages":2,"types":{"browser":0,"invalid":0,"other":1,"page":2,"serviceWorker":2,"sharedWorker":0,"tab":0},"rowsValid":true,"idsValid":true,"idsUnique":true,"guardPredicate":"UNAUTHORIZED_PROTECTED","initialPresent":true,"initialKind":"page","selectedPresent":true,"selectedKind":"page","extraProtectedCount":2},
+      "serverExitCode": 0,
+      "controllerExitCode": 1,
+      "forcedSignals": 1,
+      "noLiveOwnedProcesses": true,
+      "exactKeyBoundsHistogramAudit": "PASS",
+      "successCheckerExitCode": 1,
+      "successCheckerReportCreated": false
+    },
+    "evidenceDisabled": {
+      "failureJsonSha256": "791493bc55e73aa91406e79c357b757f32e73b7e6512b585b7b5caa912446711",
+      "schema": "chengwang.native-open-failure/v2",
+      "driverCheckpoints": 0,
+      "phase": "NATIVE_OPEN",
+      "stage": "CDP_POST_TARGETS",
+      "firstFault": "STARTUP_REJECTED",
+      "firstTargetFault": {"phase":null,"kind":null},
+      "initialTargets": {"shape":"ARRAY","total":2,"pages":1,"blankPages":1,"types":{"browser":0,"invalid":0,"other":1,"page":1,"serviceWorker":0,"sharedWorker":0,"tab":0},"rowsValid":true,"idsValid":true,"idsUnique":true,"guardPredicate":"PASS"},
+      "postTargets": {"shape":"ARRAY","total":5,"pages":2,"blankPages":2,"types":{"browser":0,"invalid":0,"other":1,"page":2,"serviceWorker":2,"sharedWorker":0,"tab":0},"rowsValid":true,"idsValid":true,"idsUnique":true,"guardPredicate":"UNAUTHORIZED_PROTECTED","initialPresent":true,"initialKind":"page","selectedPresent":true,"selectedKind":"page","extraProtectedCount":2},
+      "serverExitCode": 0,
+      "controllerExitCode": 1,
+      "forcedSignals": 1,
+      "noLiveOwnedProcesses": true,
+      "exactKeyBoundsHistogramAudit": "PASS",
+      "successCheckerExitCode": 1,
+      "successCheckerReportCreated": false
+    }
+  },
+  "sourceInvestigation": {
+    "uniqueSceneRootCreatedWithOsMkdir": true,
+    "profilePathInsideUniqueSceneRoot": true,
+    "launcherCreatesOrValidatesPrivateProfileDirectory": true,
+    "commonChromeFlagsDisableExtensions": true,
+    "commonChromeFlagsDisableServiceWorkers": false,
+    "cdpSequence": ["initial target snapshot","create one blank page target","attach selected target","post target snapshot","enable target discovery"],
+    "serviceWorkersInInitialSnapshot": 0,
+    "serviceWorkersInPostSnapshot": 2,
+    "sameObservationAcrossBothBusinessProfiles": true,
+    "v2CarriesTargetOrigin": false,
+    "v2CarriesBrowserContextAssociation": false,
+    "v2CarriesTargetIdentifier": false,
+    "ownershipProven": false,
+    "guardMayBeRelaxedFromCurrentEvidence": false,
+    "reason": "type counts alone cannot distinguish owned Chrome-internal targets from unauthorized protected targets",
+    "evidenceGap": "a separately reviewed privacy-preserving ownership association signal is required before any whitelist or guard relaxation; it must not emit or hash IDs, URLs, origins, debugger endpoints, headers, tokens, exceptions, or session data"
+  },
+  "playwrightBoundary": {
+    "bothProducerJobsMetadataConclusion": "success",
+    "bothFreshJobsMetadataConclusion": "success",
+    "rawProducerArtifactsInspected": false,
+    "rawFreshArtifactsInspected": false,
+    "metadataAloneClaimedAsActualBrowserAcceptance": false,
+    "uiOrCssFixProven": false
+  },
+  "boundaries": {
+    "jobLogsUsed": false,
+    "rawJobLogsUsed": false,
+    "rerunOrCancelUsed": false,
+    "localBrowserRun": false,
+    "localProductServerRun": false,
+    "production": false,
+    "mainModified": false
+  }
+}

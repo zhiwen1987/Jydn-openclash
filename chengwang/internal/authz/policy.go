@@ -99,7 +99,7 @@ func deny(code ReasonCode) Decision { return Decision{Code: code} }
 
 func knownRole(role Role) bool {
 	switch role {
-	case RoleViewer, RoleOperator, RoleApprover, RoleAuditor, RoleAdmin:
+	case RoleViewer, RoleOperator, RoleApprover, RoleAuditor, RoleAdmin, RoleSubscriptionRefresher:
 		return true
 	default:
 		return false
@@ -112,7 +112,7 @@ func knownAction(action Action) bool {
 		ActionCreateOperation, ActionExecuteOperation, ActionApproveOperation,
 		ActionDisableAudit, ActionReadImageTrust, ActionUpdateImageTrust, ActionVerifyImageTrust, ActionHistoryImageTrust,
 		ActionReadSubscription, ActionManageSubscriptionSource, ActionImportSubscription, ActionDecideSubscription,
-		ActionApproveSubscriptionSource, ActionFetchSubscription, ActionRollbackSubscription:
+		ActionApproveSubscriptionSource, ActionFetchSubscription, ActionRollbackSubscription, ActionRefreshSubscription:
 		return true
 	case ActionReadLabRecovery, ActionPrepareLabRecovery, ActionApproveLabRecovery,
 		ActionExecuteLabRecovery, ActionRevokeLabRecovery:
@@ -173,6 +173,12 @@ func roleAllows(roles []Role, action Action, risk Risk) (allowed bool, riskDenie
 			continue
 		}
 		if subscriptionAction(action) {
+			if action == ActionRefreshSubscription {
+				if role == RoleSubscriptionRefresher {
+					return true, false
+				}
+				continue
+			}
 			switch role {
 			case RoleAdmin:
 				return true, false

@@ -127,6 +127,33 @@ RECOVERY_COMPLETION_CURRENT_SCOPE_FILES = (
     'lab_current_epoch_runtime_test.go',
 )
 FOUNDATION += ['chengwang/internal/mihomodeploy/' + name for name in RECOVERY_COMPLETION_CURRENT_SCOPE_FILES]
+P207A_V3_SOURCE_FILES = (
+    '.github/workflows/chengwang-subscription-refresh.yml',
+    'chengwang/deploy/subscription-refresh/check_go_events.py',
+    'chengwang/deploy/subscription-refresh/check_go_list.py',
+    'chengwang/deploy/subscription-refresh/check_source_contract.py',
+    'chengwang/deploy/subscription-refresh/source_contract.json',
+    'chengwang/deploy/subscription-refresh/test_go_events.py',
+    'chengwang/deploy/subscription-refresh/test_go_list.py',
+    'chengwang/deploy/subscription-refresh/test_source_contract.py',
+    'chengwang/internal/api/subscriptions.go',
+    'chengwang/internal/api/subscriptions_test.go',
+    'chengwang/internal/authz/subscription_refresh_test.go',
+    'chengwang/internal/serverruntime/subscription_config.go',
+    'chengwang/internal/serverruntime/subscription_config_test.go',
+    'chengwang/internal/subscription/control.go',
+    'chengwang/internal/subscription/refresh.go',
+    'chengwang/internal/subscription/refresh_test.go',
+    'chengwang/internal/subscription/store.go',
+    'chengwang/internal/subscriptionctl/contract.go',
+    'chengwang/internal/subscriptionctl/refresh.go',
+    'chengwang/internal/subscriptionctl/service.go',
+    'chengwang/internal/subscriptionctl/service_linux_test.go',
+    'chengwang/internal/subscriptionpolicy/catalog.go',
+    'chengwang/internal/subscriptionpolicy/catalog_access.go',
+    'chengwang/internal/subscriptionpolicy/refresh_test.go',
+)
+FOUNDATION += list(P207A_V3_SOURCE_FILES)
 FILES = FOUNDATION + ['chengwang/internal/mihomodeploy/runtime_compat_linux_test.go']
 FILES += [PREFIX + n for n in ('run_compat.sh', 'compat_worker.py', 'compat_contract.json', 'check_compat.py', 'test_check_compat.py')]
 CONSUMER_FILES = [CANDIDATE + n for n in ('pin.json', 'consume_pin.py', 'check_consumption.py', 'test_consume_pin.py', 'README.md')]
@@ -205,7 +232,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 162)
+    need(len(FILES) == len(set(FILES)) == 186)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw

@@ -783,5 +783,8 @@ func storeValidate(state storeSnapshot) error {
 			return bad()
 		}
 	}
-	return storeValidateControl(state)
+	if err := storeValidateControl(state); err != nil {
+		return err
+	}
+	return nil
 }
