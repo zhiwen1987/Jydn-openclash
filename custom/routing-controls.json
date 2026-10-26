@@ -1,0 +1,8 @@
+{
+  "stable_choice": "🛟 稳定自动",
+  "additional_selectors": [
+    "🌐 默认策略", "🐟 漏网之鱼", "🐟 遵循规则", "🔒 隐私代理",
+    "🚀 手动选择", "🧭 手动选择"
+  ],
+  "direct_domains": ["sysceo.com", "drvceo.com"]
+}

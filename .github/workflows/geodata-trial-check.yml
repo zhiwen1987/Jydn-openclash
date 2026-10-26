@@ -1,0 +1,18 @@
+name: Geodata trial safety
+on:
+  pull_request:
+    paths: ['monitoring/lan-center/geodata_trial.py', 'monitoring/lan-center/test_geodata_trial.py', '.github/workflows/geodata-trial-check.yml']
+  push:
+    branches: ['main', 'codex/**']
+    paths: ['monitoring/lan-center/geodata_trial.py', 'monitoring/lan-center/test_geodata_trial.py', '.github/workflows/geodata-trial-check.yml']
+permissions:
+  contents: read
+jobs:
+  trial-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -B -m unittest discover -s monitoring/lan-center -p test_geodata_trial.py -v
