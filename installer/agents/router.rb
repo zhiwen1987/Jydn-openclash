@@ -247,6 +247,11 @@ def verify(p,base,accept=false)
   assert(proxies.key?('🔐 自定义节点') && proxies.key?('🧪 节点能力检测'),'managed_groups_missing')
   assert(proxies['🔐 自定义节点']['all'].first=='REJECT','custom_default_not_reject')
   assert(rules.length>=100,'routing_rules_incomplete')
+  providers=api('/providers/proxies','GET',nil,settings)['providers']
+  Integer(settings['source_count']).times do |index|
+   nodes=providers.dig('Public_'+(index+1).to_s,'proxies') || []
+   assert(nodes.any?{|n|!%w[Reject RejectDrop Direct Pass PassRule].include?(n['type']) && !n['name'].to_s.start_with?('__STACK_EMPTY_')},'public_provider_not_loaded')
+  end
   if t['phase']=='installed'
    reconcile_service_files(t,base)
    runtime='/etc/openclash/'+File.basename(t['target']);t['owned_sha256'][runtime]=hash_file(runtime) if File.file?(runtime)

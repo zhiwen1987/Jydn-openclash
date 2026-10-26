@@ -45,7 +45,8 @@ def read(path):return json.loads(Path(path).read_text())
 
 
 def command(args, timeout=60, data=None, cwd=None):
-    p=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout,cwd=cwd)
+    try:p=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout,cwd=cwd)
+    except subprocess.TimeoutExpired:raise RuntimeError('command_timeout:'+Path(args[0]).name) from None
     if p.returncode:
         if 'LOG' in globals():
             # Keep raw stderr on the target, never send it over a user receipt.
@@ -419,14 +420,24 @@ def restore(p, base, manual=False, transaction=None):
     if t.get('previous'):
         previous=t['previous'];previous['container_id']=docker_info(t['container_name'])['Id'];atomic(base/'state.json',previous)
     elif (base/'state.json').exists():(base/'state.json').unlink()
+    cleanup_warnings=[]
     if p['mode']=='fresh' and not t.get('previous'):
         unit='clash-stack-watchdog-'+p['site']
-        subprocess.run(['systemctl','disable','--now',unit+'.timer'],capture_output=True,timeout=15)
-    atomic(backup/'restore-result.json',{'at':time.time(),'data_retained':True})
+        if Path('/etc/systemd/system',unit+'.timer').exists():
+            try:
+                stopped=subprocess.run(['systemctl','disable','--now',unit+'.timer'],capture_output=True,timeout=15)
+                if stopped.returncode:cleanup_warnings.append('watchdog_timer_cleanup_failed')
+            except subprocess.TimeoutExpired:cleanup_warnings.append('watchdog_timer_cleanup_timeout')
+    atomic(backup/'restore-result.json',{'at':time.time(),'data_retained':True,'cleanup_warnings':cleanup_warnings})
     atomic(backup/'restored-transaction.private.json',t)
     (base/'transaction.json').unlink()
-    if t.get('guard_unit'):subprocess.run(['systemctl','stop',t['guard_unit']+'.timer'],capture_output=True,timeout=15)
-    return {'restored':True,'data_retained':True,'backup':str(backup)}
+    if t.get('guard_unit'):
+        try:
+            stopped=subprocess.run(['systemctl','stop',t['guard_unit']+'.timer'],capture_output=True,timeout=15)
+            if stopped.returncode:cleanup_warnings.append('rollback_timer_cleanup_failed')
+        except subprocess.TimeoutExpired:cleanup_warnings.append('rollback_timer_cleanup_timeout')
+    atomic(backup/'restore-result.json',{'at':time.time(),'data_retained':True,'cleanup_warnings':cleanup_warnings})
+    return {'restored':True,'data_retained':True,'backup':str(backup),'cleanup_warnings':cleanup_warnings}
 
 
 def backup(p,base):

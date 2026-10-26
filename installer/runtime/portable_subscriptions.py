@@ -26,6 +26,7 @@ def install_public_header(module):
         if match and match.group(1)!='local-custom' and header:
             import hmac
             if not hmac.compare_digest(header,'Bearer '+module.PUBLISH_TOKEN) or h.client_address[0] not in module.ALLOWED_PROVIDER_CLIENTS:
+                module.log('provider_forbidden','source='+match.group(1)+' client='+h.client_address[0],'warning')
                 h.send(403,'application/json',b'{"error":"forbidden"}');return
             manifest=module.current_manifest()
             item=next((s for s in (manifest or {}).get('sources',[]) if s['id']==match.group(1)),None)
@@ -40,7 +41,7 @@ def install_public_header(module):
 def scheduler(module):
     def run():
         while True:
-            started=time.time();delay=30
+            started=time.monotonic();delay=30
             try:
                 with module.LOCK:
                     sources=module.load_sources()
@@ -65,9 +66,18 @@ def scheduler(module):
                                 module.MODE='shadow';ok,_=module.publish(release,manifest,sources)
                                 if not ok:raise RuntimeError('bootstrap_publish_deferred')
                             finally:module.MODE=previous_mode
+                        bootstrap_verified=module.DATA/'bootstrap-runtime-verified.json'
+                        if not bootstrap_verified.exists():
                             module.refresh_providers(sources)
+                            runtime=module.api_request('GET','/providers/proxies').get('providers',{})
+                            for source in sources:
+                                nodes=runtime.get(source.provider_name,{}).get('proxies',[])
+                                if not any(n.get('type') not in ('Reject','RejectDrop','Direct','Pass','PassRule') and not n.get('name','').startswith('__STACK_EMPTY_') for n in nodes):
+                                    raise module.ControllerError('bootstrap_provider_not_loaded:'+source.source_id)
+                            module.atomic_json(bootstrap_verified,{'at':time.time()})
                             module.atomic_json(module.DATA.parent/'local-discovery.json',{'at':time.time(),'source':'public_release'})
-                            module.atomic_json(module.HEALTH_PATH,{'status':'ok','mode':module.MODE,'epoch':module.now(),'node_count':manifest['node_count'],'current_release':release})
+                            current=module.current_manifest()
+                            module.atomic_json(module.HEALTH_PATH,{'status':'ok','mode':module.MODE,'epoch':module.now(),'node_count':current['node_count'],'current_release':current['release_id']})
                         else:
                             before=module.current_manifest().get('release_id')
                             module.cycle()
@@ -80,7 +90,20 @@ def scheduler(module):
                 reason=detail if isinstance(error,module.ControllerError) and re.fullmatch(r'[A-Za-z0-9_:.+-]{1,140}',detail) else type(error).__name__
                 module.log('cycle_failed',reason,'error')
                 module.atomic_json(module.HEALTH_PATH,{'status':'degraded','mode':module.MODE,'epoch':module.now(),'reason':reason,'current_release':(module.current_manifest() or {}).get('release_id','')})
-            time.sleep(max(10,delay-(time.time()-started)))
+            # Keep the existing bounded probation/recovery work during the fetch
+            # cooldown; bootstrapping must not remove these safety checks.
+            deadline=max(started+delay,time.monotonic()+10)
+            while time.monotonic()<deadline:
+                time.sleep(min(30,max(1,deadline-time.monotonic())))
+                try:
+                    module.maintain_probation()
+                    if module.repair_pointer():
+                        with module.exclusive(module.DATA.parent/'routing-owner.lock') as acquired:
+                            if acquired:
+                                module.refresh_providers(module.load_sources())
+                                (module.DATA/'recovery-refresh.json').unlink(missing_ok=True)
+                except Exception as error:
+                    module.log('release_probation_tick_error',type(error).__name__,'warning')
     return run
 
 
