@@ -319,7 +319,7 @@ def validate_report(report,commit,public,binding):
              planned['targetConfigSHA256']==planned_read['targetConfigSHA256']==approved['targetConfigSHA256']==completed['targetConfigSHA256']==completed_read['targetConfigSHA256'] and
              planned_read['revision']==planned['revision'] and planned['revision']<approved['revision']<completed['revision'] and completed_read['revision']==completed['revision'])
         exact(planned,planned_read); exact(completed,completed_read)
-    need(hv[0]['activeOperationId'] is None and hv[1]['activeOperationId']==ops[0]['view']['operationId'] and hv[2]['activeOperationId'] is None and hv[3]['activeOperationId'] is None and hv[4]['activeOperationId']==ops[2]['view']['operationId'] and hv[5]['activeOperationId'] is None)
+    need(hv[0]['activeOperationId'] is None and hv[1]['activeOperationId']==ops[0]['view']['operationId'] and hv[2]['activeOperationId'] is None and hv[3]['activeOperationId']==ops[1]['view']['operationId'] and hv[4]['activeOperationId']==ops[2]['view']['operationId'] and hv[5]['activeOperationId'] is None)
     for blocked,stable in ((hv[1],hv[0]),(hv[4],hv[3])):
         need(blocked['generation']==stable['generation'] and blocked['headSHA256']==stable['headSHA256'] and blocked['previousHeadSHA256']==stable['previousHeadSHA256'] and blocked['artifactRecordSHA256']==stable['artifactRecordSHA256'] and blocked['configSHA256']==stable['configSHA256'] and blocked['verificationSHA256']==stable['verificationSHA256'] and blocked['verifiedAt']==stable['verifiedAt'] and blocked['writeBlocked'] is True)
     for published,previous,artifact,config,source in ((hv[2],hv[0],rec[0]['view']['targetArtifactRecordSHA256'],rec[0]['view']['targetConfigSHA256'],rec[0]['view']),

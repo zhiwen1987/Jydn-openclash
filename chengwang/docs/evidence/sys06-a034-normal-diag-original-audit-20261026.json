@@ -1,0 +1,127 @@
+{
+  "allTrackedBytesMatchedGitBlobs": true,
+  "artifacts": [
+    {
+      "bytes": 252218,
+      "id": 12620231558,
+      "members": 13,
+      "name": "mihomo-foundation-contracts-40248699557-1",
+      "sha256": "bfb13029d2e624350f0b9d2c2208a3c14585e513fd81018afbaaa8d1cea6f124"
+    },
+    {
+      "bytes": 303309,
+      "id": 12619267940,
+      "members": 19,
+      "name": "mihomo-capacity-profile-40248699543-1",
+      "sha256": "7301e3826a5609b0ef5fdfbdaa49e78332c1dd3c07a0ad7ace9d5c1b74a2d2fc"
+    },
+    {
+      "bytes": 542563,
+      "id": 12619263099,
+      "members": 21,
+      "name": "mihomo-capacity-profile-full-40248699543-1",
+      "sha256": "d07241bbf2ba82d1c43adeaf39abcc706e3e06dbb7e4c1d3d5806d175e6a53e7"
+    }
+  ],
+  "diagnostic": {
+    "FULL_CONTRACTS": {
+      "captureVerified": true,
+      "formatClean": true,
+      "fullGoAccepted": false,
+      "goExit": 1,
+      "profileDurationNanoseconds": 120122955954,
+      "profileFunctions": 1420,
+      "sourceManifestSHA256": "2d01e95456da4a976cc19e4538bda21a3b9efc65b2042b5f46cd61a9c74933ed",
+      "summary": {
+        "capacityAction": "pass",
+        "capacitySeconds": 85.75,
+        "dataRaceWarningObserved": false,
+        "events": 6843,
+        "failedTests": 0,
+        "packageAction": "fail",
+        "packageSeconds": 180.042,
+        "passingTests": 1680,
+        "skippedTests": 0,
+        "timedOut3m": true,
+        "unfinished": [
+          "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal",
+          "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal/source-owner"
+        ]
+      },
+      "verificationSHA256": "f7891ed2859f6bcb49647e3b5accc78bd35614cf8277341328b39dc84952cab6",
+      "wholeCIPass": false
+    },
+    "SINGLE_CASE": {
+      "captureVerified": true,
+      "formatClean": true,
+      "fullGoAccepted": null,
+      "goExit": 0,
+      "profileDurationNanoseconds": 60184519974,
+      "profileFunctions": 616,
+      "sourceManifestSHA256": "2d01e95456da4a976cc19e4538bda21a3b9efc65b2042b5f46cd61a9c74933ed",
+      "summary": {
+        "capacityAction": "pass",
+        "capacitySeconds": 85.69,
+        "dataRaceWarningObserved": false,
+        "events": 8,
+        "failedTests": 0,
+        "packageAction": "pass",
+        "packageSeconds": 86.72,
+        "passingTests": 1,
+        "skippedTests": 0,
+        "timedOut3m": false,
+        "unfinished": []
+      },
+      "verificationSHA256": "c71154e0bfcfe046ba52281a31abc1bbe023d9c9cd2b61f455d2b9f7ec6c5b45",
+      "wholeCIPass": false
+    }
+  },
+  "diagnosticRun": 40248699543,
+  "goExecutedLocally": false,
+  "head": "a034d905e8ee94f85710f9a1ed9ab184f406f9b2",
+  "members": 53,
+  "normal": {
+    "checkerRejected": true,
+    "formatClean": true,
+    "mandatoryNamesSHA256": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280",
+    "mandatoryTests": 688,
+    "ordinary": {
+      "capacityAction": "pass",
+      "capacitySeconds": 7.37,
+      "dataRaceWarningObserved": false,
+      "events": 8008,
+      "failedTests": 0,
+      "packageAction": "pass",
+      "packageSeconds": 24.103,
+      "passingTests": 1992,
+      "skippedTests": 0,
+      "timedOut3m": false,
+      "unfinished": []
+    },
+    "race": {
+      "capacityAction": "pass",
+      "capacitySeconds": 84.89,
+      "dataRaceWarningObserved": false,
+      "events": 6865,
+      "failedTests": 0,
+      "packageAction": "fail",
+      "packageSeconds": 180.047,
+      "passingTests": 1686,
+      "skippedTests": 0,
+      "timedOut3m": true,
+      "unfinished": [
+        "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal",
+        "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal/recorded-before-marker"
+      ]
+    },
+    "sourceFiles": 158,
+    "testFiles": 58
+  },
+  "normalRun": 40248699557,
+  "performanceImprovementAttributed": false,
+  "productionChanged": false,
+  "schema": "chengwang.a034-normal-diagnostic-original-audit/v1",
+  "signedURLsPersisted": false,
+  "trackedPaths": 1422,
+  "verdict": "NORMAL_REJECT_RACE_TIMEOUT_DIAGNOSTIC_SINGLE_ACCEPT_FULL_REJECT_TIMEOUT"
+}

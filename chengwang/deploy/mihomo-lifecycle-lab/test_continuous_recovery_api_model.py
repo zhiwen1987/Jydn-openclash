@@ -81,6 +81,12 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         recovery_policy=(HERE.parents[1]/'internal/authz/lab_recovery.go').read_text(encoding='utf8')
         recovery_read=re.search(r'case ActionReadLabRecovery:(.*?)case ActionPrepareLabRecovery',recovery_policy,re.S)
         self.assertIsNotNone(recovery_read); self.assertIn('RoleAuditor',recovery_read.group(1))
+        lifecycle=(HERE.parents[1]/'internal/mihomodeploy/lab_bootstrap_state.go').read_text(encoding='utf8')
+        service=(HERE.parents[1]/'internal/mihomodeploy/lab_service.go').read_text(encoding='utf8')
+        self.assertIn('n := next.wire.Active\n\tn.Phase = lifecycleCompletedPhase',lifecycle)
+        self.assertIn('if w.Active != nil {\n\t\tx := w.Active.Plan.OperationID\n\t\tv.ActiveOperationID = &x',service)
+        self.assertIn('ackHead.ActiveOperationID == nil || *ackHead.ActiveOperationID != acknowledged.OperationID',harness)
+        self.assertNotIn('ackHead.ActiveOperationID != nil {',harness)
         plan=(HERE.parents[1]/'internal/mihomodeploy/plan.go').read_text(encoding='utf8')
         runtime=(HERE.parents[1]/'internal/serverruntime/runtime.go').read_text(encoding='utf8')
         environment=re.search(r'LabEnvironment\s*=\s*"([^"]+)"',plan)
@@ -333,7 +339,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         h0='a'*64; h1='b'*64; h2='c'*64; h3='d'*64
         record_a='2'*64; config_a='3'*64; record_b='5'*64; config_b='6'*64
         heads=[self.head(1,h0,record_a,config_a,False),self.head(1,h0,record_a,config_a,True,'op1'),
-          self.head(2,h1,record_b,config_b,False,None,h0),self.head(3,h2,record_a,config_a,False,None,h1),
+          self.head(2,h1,record_b,config_b,False,None,h0),self.head(3,h2,record_a,config_a,False,'op2',h1),
           self.head(3,h2,record_a,config_a,True,'op3',h1),self.head(4,h3,record_b,config_b,False,None,h2)]
         ops=[self.op('op1','UNKNOWN',1,h0,h0,record_b,config_b,True,False,4),self.op('op2','COMPLETED',3,h1,h2,record_a,config_a,False,True,10),self.op('op3','UNKNOWN',3,h2,h2,record_b,config_b,True,False,14)]
         rec=[self.recovery('rec1','op1',2,h0,h1,record_b,config_b,7),self.recovery('rec2','op3',4,h2,h3,record_b,config_b,17)]
@@ -433,6 +439,8 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
           ('head-artifact',retained_head(2,'artifactRecordSHA256','7'*64)),
           ('head-config',retained_head(3,'configSHA256','7'*64)),
           ('published-head-unchanged',retained_head(2,'headSHA256','a'*64)),
+          ('ack-head-active-cleared',retained_head(3,'activeOperationId',None)),
+          ('ack-head-active-foreign',retained_head(3,'activeOperationId','foreign-op')),
           ('deployment-approved-head-generation',http('ORDINARY_ACK_APPROVE',lambda view:view.__setitem__('headGeneration',99))),
           ('deployment-approved-head-sha',http('ORDINARY_ACK_APPROVE',lambda view:view.__setitem__('headSHA256','7'*64))),
           ('recovery-approved-head-generation',http('FIRST_RECOVERY_APPROVE',lambda view:view.__setitem__('headGeneration',99))),

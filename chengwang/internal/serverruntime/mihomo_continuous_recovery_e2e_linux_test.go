@@ -542,7 +542,8 @@ func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testi
 	acknowledged := https.deploy("ORDINARY_ACK", ackTarget, mihomo.ReloadAcknowledged)
 	ackHead := https.head("ORDINARY_ACK")
 	if ackHead.Generation != firstRecoveredHead.Generation+1 || ackHead.HeadSHA256 != acknowledged.HeadSHA256 ||
-		ackHead.ArtifactRecordSHA256 != acknowledged.CandidateRecordSHA256 || ackHead.WriteBlocked || ackHead.ActiveOperationID != nil {
+		ackHead.ArtifactRecordSHA256 != acknowledged.CandidateRecordSHA256 || ackHead.WriteBlocked ||
+		ackHead.ActiveOperationID == nil || *ackHead.ActiveOperationID != acknowledged.OperationID {
 		report.FailureCode = "ACK_HEAD"
 		t.Fatal("ordinary acknowledged publish did not advance the recovered epoch")
 	}

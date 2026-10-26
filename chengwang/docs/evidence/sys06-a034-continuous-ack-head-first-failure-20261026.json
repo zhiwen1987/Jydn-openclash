@@ -1,0 +1,112 @@
+{
+  "conclusion": {
+    "notProven": [
+      "Which ACK_HEAD postcondition failed.",
+      "A completed second UNKNOWN and second recovery chain.",
+      "Permission to exempt public role metadata from the secret fence."
+    ],
+    "primaryBusinessFailure": "The ordinary ACK head request succeeded at HTTP level, then the Go harness failed an ACK_HEAD postcondition.",
+    "primaryEvidenceExportFailure": "The first report fence rejected a source-bound VIEWER identity-role JSON quoted match before public export.",
+    "secondaryFailures": [
+      "Independent verification failed after the actual execution/export failure."
+    ]
+  },
+  "evidenceBoundary": {
+    "artifactDownloaded": false,
+    "localGoOrProductRun": false,
+    "privateDirectoryRead": false,
+    "privateValueDigestOffsetOrBodyObserved": false,
+    "productionTouched": false,
+    "rawJobLogPersisted": false,
+    "signedURLObservedOrPersisted": false,
+    "workflowRerunRequested": false
+  },
+  "github": {
+    "firstFailingStep": "Execute actual continuous Recovery HTTPS chain in fresh namespaces",
+    "firstFailingStepNumber": 7,
+    "hostAfterStepConclusion": "success",
+    "independentVerifyStepConclusion": "failure",
+    "jobConclusion": "failure",
+    "jobID": 121335740539,
+    "jobName": "continuous-recovery-api",
+    "jobStatus": "completed",
+    "repository": "zhiwen1987/Jydn-openclash",
+    "runID": 40248700273
+  },
+  "privacyClassification": {
+    "elementClass": "JSON_IDENTITY_ROLE",
+    "encoding": "JSON_QUOTED",
+    "matchStillRejected": true,
+    "publicMetadataExemptionApplied": false,
+    "sourceBoundPublicEnum": "VIEWER",
+    "sourceClass": "IDENTITY_PROFILE"
+  },
+  "safeDiagnostic": {
+    "encodingVariant": "JSON_QUOTED",
+    "formatExit": 0,
+    "goExit": 1,
+    "httpCount": 19,
+    "lastHTTPCase": "ORDINARY_ACK_HEAD",
+    "lastHTTPErrorClass": "NONE",
+    "lastHTTPStatusCode": 200,
+    "lastHTTPStatusObserved": true,
+    "matchesPublicIdentityRole": true,
+    "matchesPublicLabEnvironment": false,
+    "outputLogicalName": "continuous-recovery-report.json",
+    "phase": "REPORT_AND_HTTP_OUTPUTS",
+    "publicIdentityRole": "VIEWER",
+    "reportFailureCode": "ACK_HEAD",
+    "reportObserved": true,
+    "reportOutcomePass": false,
+    "secretElementClass": "JSON_IDENTITY_ROLE",
+    "secretInputClass": "IDENTITY_PROFILE"
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-safe-diagnostic-receipt/v2",
+  "source": {
+    "commit": "a034d905e8ee94f85710f9a1ed9ab184f406f9b2",
+    "harness": {
+      "bytes": 30675,
+      "gitOID": "a9d22e2faf8ba38f9c4990d1cda703cc04fcd6f2",
+      "sha256": "0b3baea337af5e0b86d15986fc3243fed2426af11509ec6265014b29b3b1da49"
+    },
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-a034d90-acceptance-jcgk8k0q/repo",
+    "trackedPaths": 1422,
+    "tree": "15f2d48dd4d271a20a134a040ea28733dc03974c",
+    "worker": {
+      "bytes": 35210,
+      "gitOID": "1b900054ac7e3c41b87a71e3c36b6f2c88cb1c90",
+      "sha256": "595393f4ea91ed25ae8f8829132130b9e64c1f5daca543eff32b3d4fd96675d2"
+    },
+    "workflow": {
+      "bytes": 12137,
+      "gitOID": "f472dc5f92c98b7859b2794a50c664605c3bca74",
+      "sha256": "45bca5ab3cf476037c85a642ddf38165427ca61c4b2849190219e94038a6f33c"
+    }
+  },
+  "sourceDerivedLocalization": {
+    "businessFailure": "ACK_HEAD",
+    "checkedPostconditions": [
+      "head generation equals first recovered generation plus one",
+      "head SHA equals acknowledged deployment head SHA",
+      "artifact record SHA equals acknowledged candidate record SHA",
+      "head is not write blocked",
+      "head has no active operation"
+    ],
+    "lastRequest": "ORDINARY_ACK_HEAD",
+    "lastRequestErrorClass": "NONE",
+    "lastRequestMethod": "GET",
+    "lastRequestRole": "viewer",
+    "lastRequestStatus": 200,
+    "specificFailedPostconditionKnown": false
+  },
+  "status": "ACTUAL_ISOLATED_CI_FAILURE_SAFELY_CLASSIFIED",
+  "validation": {
+    "diagnosticMarkerCount": 1,
+    "exactEighteenKeyObjects": 1,
+    "fallbackDiagnostics": 0,
+    "oldTenOrTwelveKeyParserUsed": false,
+    "parseRejects": 0,
+    "sourceEnumsTypesAndCrossFieldLinksValidated": true,
+    "uniqueValidatedObjects": 1
+  }
+}

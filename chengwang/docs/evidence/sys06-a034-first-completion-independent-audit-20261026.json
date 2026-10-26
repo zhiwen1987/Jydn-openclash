@@ -1,0 +1,195 @@
+{
+  "archiveAudit": {
+    "advertisedSHA256Match": true,
+    "advertisedSizesMatch": true,
+    "crcAllValid": true,
+    "memberCount": 167,
+    "metadataHeadMatches": true,
+    "overwriteAttempts": 0,
+    "unsafePaths": 0,
+    "zipCount": 9
+  },
+  "artifacts": [
+    {
+      "bytes": 3142,
+      "file": "candidate.zip",
+      "id": 12619487153,
+      "members": 7,
+      "sha256": "46d0f831b1a76f96692054e9cd453c124eb845e779924bc3ea3577047986b1a1"
+    },
+    {
+      "bytes": 26995,
+      "file": "positive-originals.zip",
+      "id": 12619707590,
+      "members": 39,
+      "sha256": "37eeb18fd5748fab90e44a427c9c4e07b0c4513d7d6a9ee4a672196a8b40e133"
+    },
+    {
+      "bytes": 315,
+      "file": "positive-fresh.zip",
+      "id": 12619912189,
+      "members": 1,
+      "sha256": "99e05dafcf5781369c5a64e8b6bcf662bcf5f126b7bc057bc0a998e627f884ba"
+    },
+    {
+      "bytes": 27374,
+      "file": "not-committed-originals.zip",
+      "id": 12619247730,
+      "members": 39,
+      "sha256": "539cab33d94771fed3b760c43ee4ea1974e7b222096c422a6fcad07ecb306f74"
+    },
+    {
+      "bytes": 329,
+      "file": "not-committed-fresh.zip",
+      "id": 12619378863,
+      "members": 1,
+      "sha256": "9028ed25d79191f49921a03a55a26a35ad9efcbe2b01ec09e73fb4c657227f79"
+    },
+    {
+      "bytes": 26937,
+      "file": "unknown-originals.zip",
+      "id": 12619682608,
+      "members": 39,
+      "sha256": "921406a96f68b29faf252eba7e68e39b1849b646ba4de2ab3a18a894f920e2ab"
+    },
+    {
+      "bytes": 312,
+      "file": "unknown-fresh.zip",
+      "id": 12619307797,
+      "members": 1,
+      "sha256": "3ab38b1e8fe46b886c44bf84fc2e4188996be1586961de8476b40649b9406b2a"
+    },
+    {
+      "bytes": 26997,
+      "file": "readback-originals.zip",
+      "id": 12619497052,
+      "members": 39,
+      "sha256": "eb4154e9a5151402faed5a468aacfdf55d87371b78903b4c0c0db69aae56781b"
+    },
+    {
+      "bytes": 314,
+      "file": "readback-fresh.zip",
+      "id": 12619677548,
+      "members": 1,
+      "sha256": "3cf13ec93a8730c05a1500fe566cb3d336f152fd5641ce1a2f47cb62b9ef817a"
+    }
+  ],
+  "candidate": {
+    "consumptionEqualsIndependent": true,
+    "production": false,
+    "runtimeExecuted": false,
+    "state": "PINNED_GZIP_EXPANDED_NOT_EXECUTED"
+  },
+  "crossChecks": {
+    "allCommandClasses": [
+      "SANDBOX",
+      "GO_VERSION",
+      "GOFMT",
+      "GO_TEST"
+    ],
+    "allCommandExitZero": true,
+    "allDirectoryFsyncObserved": true,
+    "allDiskOwnerClosed": true,
+    "allFivePortsClosed": [
+      28411,
+      28412,
+      28413,
+      28414,
+      28415
+    ],
+    "allFixtureRolesClean": [
+      "origin",
+      "A",
+      "B"
+    ],
+    "allFsyncObserved": true,
+    "allOldAndNewProcessGroupsAbsent": true,
+    "allPrivateModes": "0600",
+    "allPrivateUIDGID": 10001,
+    "allReportsFailureCodeNone": true,
+    "allReportsOutcomePass": true,
+    "allRuntimeClosed": true,
+    "allS1": [
+      17,
+      "START_ARMED"
+    ],
+    "allS2": [
+      18,
+      "START_ARMED"
+    ],
+    "fullPrivateWALIndependentlyProven": false,
+    "notCommittedColdReopenAdvancedToUnknown": true,
+    "otherModesReopenedExactCompletedDiskPoint": true,
+    "production": false
+  },
+  "limitations": [
+    "This accepts only the isolated actual first-Completion four-mode scope at the exact head.",
+    "It does not prove API rebind, ordinary publication, a second recovery, full private WAL independence, production, or business availability.",
+    "No local Go, gofmt, product runtime, production system, push, merge, or rerun was performed."
+  ],
+  "modes": {
+    "not-committed": {
+      "checkerMainExit": 0,
+      "freshByteEqual": true,
+      "freshSHA256": "589822b89518454e313f5b841c68fd3a4b837f1386bdf64aa38884d35dcfaea6",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "reopenedPhase": "RECOVERY_UNKNOWN",
+      "reopenedRevision": 19
+    },
+    "positive": {
+      "checkerMainExit": 0,
+      "freshByteEqual": true,
+      "freshSHA256": "a5b63f612751137a1f22cae91b88e63c9757dca78cee8b25eeed7c6b0800fc76",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "reopenedPhase": "COMPLETED",
+      "reopenedRevision": 19
+    },
+    "readback": {
+      "checkerMainExit": 0,
+      "freshByteEqual": true,
+      "freshSHA256": "860fb666a976864579b80a3d2bb12d37488291a2dcd1d342ef045f5b6604eb19",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "reopenedPhase": "COMPLETED",
+      "reopenedRevision": 19
+    },
+    "unknown": {
+      "checkerMainExit": 0,
+      "freshByteEqual": true,
+      "freshSHA256": "5d90be22fa95a159bd9d40698ac17bf9edca0f545e72bfeee73855b8c4366fb0",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "reopenedPhase": "COMPLETED",
+      "reopenedRevision": 19
+    }
+  },
+  "result": "ACCEPTED_EXACT_HEAD_ACTUAL_FIRST_COMPLETION_FOUR_MODE_SCOPE",
+  "run": {
+    "attempt": 1,
+    "conclusion": "success",
+    "headSHA": "a034d905e8ee94f85710f9a1ed9ab184f406f9b2",
+    "headTree": "15f2d48dd4d271a20a134a040ea28733dc03974c",
+    "id": 40248699597,
+    "status": "completed"
+  },
+  "schema": "chengwang.mihomo-native-first-completion-independent-audit/v1",
+  "snapshot": {
+    "clean": true,
+    "headSHA": "a034d905e8ee94f85710f9a1ed9ab184f406f9b2",
+    "path": "D:/CodexData/workspace/mihomo-a034d90-acceptance-jcgk8k0q/repo",
+    "trackedPathEntries": 1422
+  },
+  "sourceBinding": {
+    "deliveryCount": 9,
+    "deliverySetSHA256": "dffd1b2597f33cdf87d85739d92948aa51fb052eaaadb0d000168107028b259b",
+    "indexTree": "15f2d48dd4d271a20a134a040ea28733dc03974c",
+    "sourceCommit": "a034d905e8ee94f85710f9a1ed9ab184f406f9b2",
+    "sourceCount": 1422,
+    "sourceManifestSHA256": "b0a15b225cb84783de8500d924cd8158f1f880ffef67864b8466cc9d9821a84e",
+    "sourceSetSHA256": "77b609a7297a6e5a784f94f1797947da84d6dcbdb3130be6db8ec35dae347cf9",
+    "sourceTree": "15f2d48dd4d271a20a134a040ea28733dc03974c",
+    "verifiedByOriginalChecker": true
+  }
+}
