@@ -62,7 +62,7 @@ module StrictRouterRecovery
     current=api('/proxies')['proxies']
     raise 'new_private_selection_manual_review_required' if current.any?{|name,g|name!='GLOBAL' && name!='🔐 自定义节点' && g['now']=='🔐 自定义节点' && a['choices'][name]!='🔐 自定义节点'}
     a['owned_sha256'].keys.each do |k|
-      item=m['files'][k];current=hash(item['path'])
+      item=m['files'][k];current=File.file?(item['path']) ? hash(item['path']) : nil
       raise 'concurrent_configuration_edit' unless [item['sha256'],a['owned_sha256'][k]].include?(current)
     end
     a['owned_sha256'].keys.each do |k|
