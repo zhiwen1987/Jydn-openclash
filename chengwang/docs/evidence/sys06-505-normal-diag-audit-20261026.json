@@ -1,0 +1,28 @@
+{
+  "auditResult": {
+    "bytes": 4798,
+    "path": "AUDIT-RESULT.json",
+    "sha256": "2296f9deb422afa03d1e44b6fc7ab272e269fd8ccc5a97be6544f9f6de68b427"
+  },
+  "custodyFiles": {
+    "mihomo-capacity-profile-40280615316-1.custody.json": "9e0a5af8f84037c099dd04c14773780601e6fb98d27431ecfc04f98b20efaf68",
+    "mihomo-capacity-profile-fresh-40280615316-1.custody.json": "98b3241fc2b36f53562e9d16c39317340498a2e73e3ed9da27ccd6abf6b04585",
+    "mihomo-capacity-profile-full-40280615316-1.custody.json": "0671c4e8cc6955f00f3ae860d0c2222459812fa4946782f0810bf3b4d5c4e5d0",
+    "mihomo-capacity-profile-full-fresh-40280615316-1.custody.json": "b872ab65ac88582fc12ee69ec38eee89407649b989c5341c9b4c788b7fcd36ca",
+    "mihomo-contracts-fresh-40280615369-1.custody.json": "7c7017ce22ba195f58d08ab00acca4c0ad7dc0f0f52159fe07031b0fcc7dc234",
+    "mihomo-foundation-contracts-40280615369-1.custody.json": "1f7d89d50b83aa7e8f3dc1c3e33bddc965a9dc862aadbc969e3b8d6e7305e51d"
+  },
+  "helpers": {
+    "audit_originals.py": "3dd11053fa2c13933028ffde7079354d645d458cc86d22ebd2550cf6948912d4",
+    "materialize-ci-safe-batch-text-v4-20261025.py": "efc5a2aa9dd21827f9d1862c0a7372e571b34a16674172e2ec25f37bbfc3d64f",
+    "materialize.py": "fbd2b2f1b9490cd66d7904f0909fa80e9c1f2f74faec9a57e9ceb06984675a78",
+    "private_fetch.py": "1fd90ecec077659dc6f7a8c93c911830ffc3f226b03844d4bb9c0c84dd83a3b4"
+  },
+  "noActiveAuditProcess": true,
+  "noSignedReferenceMatchInAuditTopLevelText": true,
+  "production": false,
+  "schema": "chengwang.mihomo-505-normal-diag-independent-audit-receipt/v1",
+  "sourceCommit": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+  "status": "ACCEPTED_ACTUAL_ORIGINALS_SCOPE_BOUNDED",
+  "workspace": "D:/CodexData/workspace/mihomo-505e91c-normal-diag-actual-audit-20261026-native56h-v1"
+}

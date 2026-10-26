@@ -1,0 +1,76 @@
+{
+  "artifact": {
+    "artifactId": 12632177432,
+    "bytes": 1361,
+    "crcAndMemberPathsVerified": true,
+    "memberCount": 4,
+    "name": "mihomo-continuous-fault-model-40280615306-1",
+    "rawArchivePersisted": false,
+    "rawLogPersisted": false,
+    "requiredMembersPresent": true,
+    "sha256": "780f5d5b5803ac740c691b2cb01892075978122980527ee05f52dc5be46f02ad"
+  },
+  "audit": {
+    "assessment": "REJECT_COMPILE_OR_BUILD_FAILURE_BEFORE_MODEL_TOP",
+    "dynamicOutputDiscarded": true,
+    "safeExtractorSHA256": "7a5b9645ee1aa4e8042461c3fad3e9b72e31dbd349fea08017bb34bf3ef735d3"
+  },
+  "boundaries": {
+    "httpsExperimentRan": false,
+    "localGoRun": false,
+    "newBusinessRuntimeFailureProven": false,
+    "normalOrDiagnosticSuccessUsedAsModelEvidence": false,
+    "privateArtifactRead": false,
+    "privatePathRead": false,
+    "productionTouched": false,
+    "rerunTriggered": false,
+    "secondRecovery503FixProven": false,
+    "signedURLPersistedOrPrinted": false
+  },
+  "declaredInvocation": {
+    "package": "chengwang/internal/mihomodeploy",
+    "tags": [
+      "linux",
+      "chengwang_mihomo_service",
+      "chengwang_mihomo_recovery_native",
+      "chengwang_mihomo_recovery_continuous_fault"
+    ],
+    "timeoutSeconds": 30,
+    "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+    "workflowSourceLines": "65-83"
+  },
+  "run": {
+    "attempt": 1,
+    "freshFailureClassification": "SECONDARY_MISSING_ARTIFACT",
+    "freshJobConclusion": "failure",
+    "freshJobId": 121433107071,
+    "httpsJobConclusion": "skipped",
+    "httpsJobId": 121433108194,
+    "modelJobConclusion": "failure",
+    "modelJobId": 121432931607,
+    "modelStepName": "Run only the exact-tag continuous fault MODEL top",
+    "modelStepNumber": 5,
+    "runId": 40280615306
+  },
+  "safeResult": {
+    "classification": "COMPILE_OR_BUILD_FAILURE_BEFORE_TARGET_RUN",
+    "dynamicCompilerOrRuntimeTextRetained": false,
+    "exitCode": 1,
+    "packageFailCount": 1,
+    "sourceOwnedAssertionLine": null,
+    "sourceOwnedFixedModelMessage": null,
+    "stderrState": "NONEMPTY_NOT_EXPOSED",
+    "targetFailCount": 0,
+    "targetPassCount": 0,
+    "targetRunCount": 0
+  },
+  "schema": "chengwang.mihomo-continuous-model-first-failure-safe-audit/v1",
+  "source": {
+    "commit": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-505e91c-acceptance-l4cm5luc/repo",
+    "modelTestSourceSHA256": "933235fa087fae598de55c1d55c290f1c44662f46eac1a1512c86fe873273d63",
+    "rawGitBlobsVerifiedByRoot": 1443,
+    "tree": "12d5ee60326f9442e311f312a76427a29def166e",
+    "workflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea"
+  }
+}

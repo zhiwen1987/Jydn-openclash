@@ -1,0 +1,30 @@
+{
+  "correctedWording": "The frozen v1 receipt remained untouched. Its helper extractor was temporarily edited, then mechanically restored to the byte identity recorded by the frozen receipt; no byte backup was used. The authorized compile diagnostic was subsequently created in a separate v2 directory.",
+  "extractor": {
+    "claimThatExtractorWasNeverModified": false,
+    "currentBytes": 3316,
+    "currentBytesMatchRecordedOriginalSHA256": true,
+    "currentSHA256": "7a5b9645ee1aa4e8042461c3fad3e9b72e31dbd349fea08017bb34bf3ef735d3",
+    "fact": "THE_EXTRACTOR_WAS_TEMPORARILY_EDITED_TO_ADD_COMPILE_SOURCE_LINE_EXTRACTION_AFTER_THE_RECEIPT_FREEZE",
+    "path": "D:/CodexData/workspace/mihomo-505-continuous-model-first-failure-40280615306-execution56h-v1/safe_extract.py",
+    "restoration": "THE_TWO_TEMPORARY_EDIT_BLOCKS_WERE_REMOVED_WITH_A_REVERSE_APPLY_PATCH",
+    "restorationSource": "RECORDED_ORIGINAL_EXTRACTOR_SHA256_PLUS_THE_EXACT_LOCAL_EDIT_DELTA",
+    "restoredFromByteBackup": false
+  },
+  "frozenReceipt": {
+    "bytes": 2714,
+    "fact": "THIS_RECEIPT_WAS_NEVER_EDITED_OR_OVERWRITTEN_AFTER_ITS_HASH_WAS_REPORTED",
+    "path": "D:/CodexData/workspace/mihomo-505-continuous-model-first-failure-40280615306-execution56h-v1/ACTUAL-SAFE-RECEIPT.json",
+    "sha256": "9e3a779285b8f5d08acc1fdc04b59903d73e5f092dc5c6d6f1d6a2bde5f6ba17"
+  },
+  "originalEvidenceReconstructedOrInvented": false,
+  "schema": "chengwang.mihomo-continuous-model-audit-custody-erratum/v1",
+  "separateCompileDiagnostic": {
+    "bytes": 1762,
+    "fact": "THE_SOURCE_LINE_AND_CLOSED_COMPILE_CATEGORY_ARE_RECORDED_ONLY_IN_THIS_SEPARATE_V2_DIRECTORY",
+    "path": "D:/CodexData/workspace/mihomo-505-continuous-model-compile-diagnostic-40280615306-execution56h-v2/SAFE-COMPILE-DIAGNOSTIC-RECEIPT.json",
+    "sha256": "e1e1940515d769969d66393fbbebda5cfbcc0c92d4b8e6e0415b5bf2e8a3ae41"
+  },
+  "subject": "DISTINGUISH_FROZEN_RECEIPT_FROM_TEMPORARILY_EDITED_EXTRACTOR",
+  "v1OrV2ModifiedByThisErratum": false
+}

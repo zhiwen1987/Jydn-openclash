@@ -1,0 +1,242 @@
+{
+  "archiveAudit": {
+    "advertisedSHA256Match": true,
+    "advertisedSizesMatch": true,
+    "crcAllValid": true,
+    "memberCount": 167,
+    "metadataHeadMatches": true,
+    "overwriteAttempts": 0,
+    "unsafePaths": 0,
+    "zipCount": 9
+  },
+  "artifacts": [
+    {
+      "bytes": 3142,
+      "file": "artifact-12631434588.original.zip",
+      "id": 12631434588,
+      "members": 7,
+      "sha256": "81ceb68f0df196f5c42685175955305fdd062833872a276a241b41a4146d5ecb"
+    },
+    {
+      "bytes": 27001,
+      "file": "artifact-12631788840.original.zip",
+      "id": 12631788840,
+      "members": 39,
+      "sha256": "da31eac0c30cacf40c1cf726b8da440d19fdcba0ab7a03b91d294d499c2824de"
+    },
+    {
+      "bytes": 315,
+      "file": "artifact-12631903679.original.zip",
+      "id": 12631903679,
+      "members": 1,
+      "sha256": "eb8aa74d3fa4a50ad5a9780e0790b730a8af25599973d44415f0e435d5dc3541"
+    },
+    {
+      "bytes": 27375,
+      "file": "artifact-12631674091.original.zip",
+      "id": 12631674091,
+      "members": 39,
+      "sha256": "066f33faa851f37dda37b97db0c11943956b8c77f4dddc062ecf688ae76e5382"
+    },
+    {
+      "bytes": 329,
+      "file": "artifact-12631474678.original.zip",
+      "id": 12631474678,
+      "members": 1,
+      "sha256": "fcc881ce83cbed9cfc80b9f5ee84894b665880e56b771de0ceaeeba9aa02640b"
+    },
+    {
+      "bytes": 26926,
+      "file": "artifact-12631923454.original.zip",
+      "id": 12631923454,
+      "members": 39,
+      "sha256": "5ecf6748df6b3a849f9f5056de765aaf96a018b3362cd558cbd65b16e9fefaf6"
+    },
+    {
+      "bytes": 312,
+      "file": "artifact-12632077982.original.zip",
+      "id": 12632077982,
+      "members": 1,
+      "sha256": "09912ea44e1c8939a1c14fb9a19d81c139c14f3574ab2a17f77f421b486431cb"
+    },
+    {
+      "bytes": 26998,
+      "file": "artifact-12631943349.original.zip",
+      "id": 12631943349,
+      "members": 39,
+      "sha256": "cd3da69d0680a724e6d1d53e2e210f012a3309e7fb29915a570700ba16860799"
+    },
+    {
+      "bytes": 314,
+      "file": "artifact-12632255021.original.zip",
+      "id": 12632255021,
+      "members": 1,
+      "sha256": "749916928fc6c8741d60e87aa73033f8b630f15bb40cc4afd164789bb4eadbdd"
+    }
+  ],
+  "candidate": {
+    "consumptionEqualsIndependent": true,
+    "consumptionSHA256": "3cd5793557659ab2e6664200661784c35dcb5de8799689366f1b9b73303b3d79",
+    "production": false,
+    "runtimeExecuted": false,
+    "state": "PINNED_GZIP_EXPANDED_NOT_EXECUTED"
+  },
+  "crossChecks": {
+    "allCommandClasses": [
+      "GOFMT",
+      "GO_TEST",
+      "GO_VERSION",
+      "SANDBOX"
+    ],
+    "allCommandExitZero": true,
+    "allDiskOwnerClosed": true,
+    "allReportsFailureCodeNone": true,
+    "allReportsOutcomePass": true,
+    "allRuntimeClosed": true,
+    "allS1": [
+      17,
+      "START_ARMED"
+    ],
+    "allS2": [
+      18,
+      "START_ARMED"
+    ],
+    "allScopeFlagsFalse": true,
+    "freshProducerBytesEqualAllModes": true,
+    "fullPrivateWALIndependentlyProven": false,
+    "notCommittedColdReopenAdvancedToUnknown": true,
+    "otherModesReopenedExactCompletedDiskPoint": true,
+    "production": false
+  },
+  "limitations": [
+    "This accepts only isolated actual first-Completion four-mode behavior at exact head 505e91c.",
+    "It does not prove API rebind, ordinary publication, a second recovery, full private WAL independence, production, or business availability.",
+    "No local Go, gofmt, product runtime, production system, push, merge, or rerun was performed."
+  ],
+  "modes": {
+    "not-committed": {
+      "allCommandExitZero": true,
+      "apiRouteProven": false,
+      "checkerMainExit": 0,
+      "commandClasses": [
+        "GOFMT",
+        "GO_TEST",
+        "GO_VERSION",
+        "SANDBOX"
+      ],
+      "diskOwnerClosed": true,
+      "freshByteEqual": true,
+      "freshSHA256": "589822b89518454e313f5b841c68fd3a4b837f1386bdf64aa38884d35dcfaea6",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "ordinaryPublishProven": false,
+      "reopenedPhase": "RECOVERY_UNKNOWN",
+      "reopenedRevision": 19,
+      "runtimeClosed": true,
+      "secondRecoveryProven": false,
+      "serviceRebindProven": false
+    },
+    "positive": {
+      "allCommandExitZero": true,
+      "apiRouteProven": false,
+      "checkerMainExit": 0,
+      "commandClasses": [
+        "GOFMT",
+        "GO_TEST",
+        "GO_VERSION",
+        "SANDBOX"
+      ],
+      "diskOwnerClosed": true,
+      "freshByteEqual": true,
+      "freshSHA256": "a5b63f612751137a1f22cae91b88e63c9757dca78cee8b25eeed7c6b0800fc76",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "ordinaryPublishProven": false,
+      "reopenedPhase": "COMPLETED",
+      "reopenedRevision": 19,
+      "runtimeClosed": true,
+      "secondRecoveryProven": false,
+      "serviceRebindProven": false
+    },
+    "readback": {
+      "allCommandExitZero": true,
+      "apiRouteProven": false,
+      "checkerMainExit": 0,
+      "commandClasses": [
+        "GOFMT",
+        "GO_TEST",
+        "GO_VERSION",
+        "SANDBOX"
+      ],
+      "diskOwnerClosed": true,
+      "freshByteEqual": true,
+      "freshSHA256": "860fb666a976864579b80a3d2bb12d37488291a2dcd1d342ef045f5b6604eb19",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "ordinaryPublishProven": false,
+      "reopenedPhase": "COMPLETED",
+      "reopenedRevision": 19,
+      "runtimeClosed": true,
+      "secondRecoveryProven": false,
+      "serviceRebindProven": false
+    },
+    "unknown": {
+      "allCommandExitZero": true,
+      "apiRouteProven": false,
+      "checkerMainExit": 0,
+      "commandClasses": [
+        "GOFMT",
+        "GO_TEST",
+        "GO_VERSION",
+        "SANDBOX"
+      ],
+      "diskOwnerClosed": true,
+      "freshByteEqual": true,
+      "freshSHA256": "5d90be22fa95a159bd9d40698ac17bf9edca0f545e72bfeee73855b8c4366fb0",
+      "goPackagePass": 1,
+      "goTopPass": 1,
+      "ordinaryPublishProven": false,
+      "reopenedPhase": "COMPLETED",
+      "reopenedRevision": 19,
+      "runtimeClosed": true,
+      "secondRecoveryProven": false,
+      "serviceRebindProven": false
+    }
+  },
+  "result": "ACCEPTED_EXACT_HEAD_ACTUAL_FIRST_COMPLETION_FOUR_MODE_SCOPE",
+  "run": {
+    "attempt": 1,
+    "conclusion": "success",
+    "headSHA": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+    "headTree": "12d5ee60326f9442e311f312a76427a29def166e",
+    "id": 40280615379,
+    "status": "completed"
+  },
+  "schema": "chengwang.mihomo-native-first-completion-independent-audit/v1",
+  "snapshot": {
+    "clean": true,
+    "headSHA": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+    "path": "D:/CodexData/workspace/mihomo-505e91c-acceptance-l4cm5luc/repo",
+    "trackedPathEntries": 1443
+  },
+  "sourceBinding": {
+    "deliveryCount": 9,
+    "deliverySetSHA256": "dffd1b2597f33cdf87d85739d92948aa51fb052eaaadb0d000168107028b259b",
+    "indexTree": "12d5ee60326f9442e311f312a76427a29def166e",
+    "sourceCommit": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+    "sourceCount": 1443,
+    "sourceManifestSHA256": "c7214365bb28c70600b33a15fda164c5729f7c0d33d056dbf0385ff581ec4578",
+    "sourceSetSHA256": "8ba46368d2ad1efc8696ac6d779ec6505d75660a1589e5677c800097fb903dd4",
+    "sourceTree": "12d5ee60326f9442e311f312a76427a29def166e",
+    "verifiedByOriginalChecker": true
+  },
+  "transport": {
+    "connectorFileReferenceAcquisitionRepeated": true,
+    "initialFailedOrchestrationAttemptsPreserved": true,
+    "nonTTYChildInput": true,
+    "originalZIPMaterializationEachExactlyOnce": true,
+    "singleSerialDownloadProcess": true,
+    "urlsPersisted": false,
+    "urlsPrinted": false
+  }
+}

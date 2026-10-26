@@ -22,10 +22,12 @@ type labContinuousSecondRecoveryModel struct {
 	plan          labRecoveryPlan
 	revision      uint64
 	recordSHA256  string
-	disk          *lifecycleModelDisk
+	disk          *labBootstrapModelDisk
 	history       []lifecycleRecoveryTxn
 	now           time.Time
 }
+
+var _ labRuntimeDisk = (*labBootstrapModelDisk)(nil)
 
 // MODEL only: derive the exact strict COMPLETED wire shape from the existing
 // verified fixture, reopen it through the production decoder, and bind the
@@ -33,7 +35,7 @@ type labContinuousSecondRecoveryModel struct {
 // This issues no real Completion cap and claims no native process evidence;
 // the subsequent facade commits and beginNextRecovery publication are the
 // production paths under test.
-func labContinuousCompletedRecoveryModel(t *testing.T) (*lifecycleRecoveryStore, *lifecycleModelDisk, *lifecycleRecoveryOwnerToken, *lifecycleStore, *lifecycleOwnerToken, time.Time) {
+func labContinuousCompletedRecoveryModel(t *testing.T) (*lifecycleRecoveryStore, *labBootstrapModelDisk, *lifecycleRecoveryOwnerToken, *lifecycleStore, *lifecycleOwnerToken, time.Time) {
 	t.Helper()
 	_, _, _, _, verified := lifecycleVerifiedBoundsModel(t)
 	completed := lifecycleV3Copy(t, verified)
@@ -87,7 +89,7 @@ func labContinuousCompletedRecoveryModel(t *testing.T) (*lifecycleRecoveryStore,
 	if err != nil {
 		t.Fatal("MODEL completed strict record", err)
 	}
-	disk := &lifecycleModelDisk{raw: bytes.Clone(raw), exists: true, state: lifecycleCommitted}
+	disk := &labBootstrapModelDisk{lifecycleModelDisk: &lifecycleModelDisk{raw: bytes.Clone(raw), exists: true, state: lifecycleCommitted}, binding: completed.core.Provisioning}
 	recovery, err := openLifecycleRecoveryStore(disk, committedAt)
 	if err != nil {
 		t.Fatal("MODEL completed strict reopen", err)

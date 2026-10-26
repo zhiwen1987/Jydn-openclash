@@ -1,0 +1,190 @@
+{
+  "artifacts": [
+    {
+      "bytes": 277078,
+      "digest": "cdab07c763744e5620833bd6f787642d987c17165ceab3a58104d5850b262421",
+      "id": 12632360009,
+      "members": 14,
+      "name": "mihomo-foundation-contracts-40280615369-1"
+    },
+    {
+      "bytes": 8029,
+      "digest": "0a72c543771d4c99c59a419800da235bc4b6248d61236946e331b50b058f96bf",
+      "id": 12631174022,
+      "members": 1,
+      "name": "mihomo-contracts-fresh-40280615369-1"
+    },
+    {
+      "bytes": 559879,
+      "digest": "f0e34580ad450ff9f87915d69cbc291c5394fd7a50e05eff601576c75dcd93c2",
+      "id": 12632118135,
+      "members": 21,
+      "name": "mihomo-capacity-profile-full-40280615316-1"
+    },
+    {
+      "bytes": 21498,
+      "digest": "22c47bb9160ed61ff43e3eecc79a021da8dd098d3ec6eb2c57cc9007dc8475d3",
+      "id": 12631709190,
+      "members": 1,
+      "name": "mihomo-capacity-profile-full-fresh-40280615316-1"
+    },
+    {
+      "bytes": 300985,
+      "digest": "30399b5e8dda7a22125526405e14be37f46394c8d316b9b007f954c8807939da",
+      "id": 12631679334,
+      "members": 19,
+      "name": "mihomo-capacity-profile-40280615316-1"
+    },
+    {
+      "bytes": 1349,
+      "digest": "8f6a3e249187b7266b6598604e30bb5faa9a5ba8866637d2f78f2eec51cfbaf2",
+      "id": 12631629454,
+      "members": 1,
+      "name": "mihomo-capacity-profile-fresh-40280615316-1"
+    }
+  ],
+  "downloadCustody": {
+    "allAPIMetadataHeadMatched": true,
+    "allCRCAndPathsAccepted": true,
+    "allExactDigestAndSize": true,
+    "artifactDownloadedAtMostOnce": true,
+    "continuousArtifactsAccessed": false,
+    "nodeKernelReset": true,
+    "signedURLPersisted": false,
+    "signedURLPrinted": false,
+    "stdinWasTTY": false
+  },
+  "full": {
+    "capacityTopElapsedSeconds": 55.24,
+    "dataRaceWarningObserved": false,
+    "failed": [],
+    "formatClean": true,
+    "fullGoAccepted": true,
+    "goExit": 0,
+    "mihomodeployPackageElapsedSeconds": 128.994,
+    "normalStrictEventsAccepted": true,
+    "normalStrictEventsReport": {
+      "allPassingSemanticTests": 1992,
+      "mandatoryNewTopLevelTests": 688,
+      "skips": 0
+    },
+    "originalFreshExact": true,
+    "packageTimeoutObserved": {
+      "chengwang/internal/adapter/mihomo": false,
+      "chengwang/internal/api": false,
+      "chengwang/internal/authn": false,
+      "chengwang/internal/authz": false,
+      "chengwang/internal/mihomodeploy": false,
+      "chengwang/internal/serverruntime": false
+    },
+    "profileMeasuredDurationNanoseconds": 120276574340,
+    "profileStopReason": "TIMER_120_SECONDS",
+    "reportSHA256": "c767619dd4cd0bf7d6c93da33fbecacbe7839ec53ec3577912d7ebe0b56eebb6",
+    "requiredCounts": {
+      "failed": 0,
+      "notStarted": 0,
+      "passed": 688,
+      "skipped": 0,
+      "unfinished": 0
+    },
+    "skipped": [],
+    "unfinished": [],
+    "wholeCIPass": false
+  },
+  "goVersion": "go version go1.23.12 linux/amd64",
+  "initialFailures": [
+    {
+      "accepted": false,
+      "detail": "PRIVATE_FETCH=REJECTED url_suppressed=true",
+      "phase": "plain-pipe helper received EOF before private reference delivery",
+      "secretDisclosed": false,
+      "targetCreated": false
+    },
+    {
+      "accepted": false,
+      "detail": "normal evidence parent included the verification report; corrected to the artifact's source-owned nested evidence directory",
+      "phase": "first checker replay path selection"
+    },
+    {
+      "accepted": false,
+      "detail": "two report-summary key lookups were too broad for SINGLE_CASE v1; corrected without changing checker inputs or reader logic",
+      "phase": "local summary projection"
+    }
+  ],
+  "normal": {
+    "formatPatchBytes": 0,
+    "ordinary": {
+      "allPassingSemanticTests": 1992,
+      "mandatoryNewTopLevelTests": 688,
+      "mihomodeployPackageElapsedSeconds": 19.489,
+      "skips": 0,
+      "stderrBytes": 0
+    },
+    "originalFreshExact": true,
+    "outcome": "PASS",
+    "race": {
+      "allPassingSemanticTests": 1992,
+      "mandatoryNewTopLevelTests": 688,
+      "mihomodeployPackageElapsedSeconds": 147.555,
+      "skips": 0,
+      "stderrBytes": 0
+    },
+    "reportSHA256": "47e299b50e934f01ddee41d311822afa34259b2bd58b6cd609b763d12817574d"
+  },
+  "production": false,
+  "profile": {
+    "capacityTopElapsedSeconds": 65.13,
+    "dataRaceWarningObserved": false,
+    "formatClean": true,
+    "goExit": 0,
+    "originalCasePassed": true,
+    "originalFreshExact": true,
+    "packageElapsedSeconds": 66.161,
+    "packageTerminal": "pass",
+    "packageTimeoutObserved": false,
+    "profileMeasuredDurationNanoseconds": 60172881236,
+    "profileStopReason": "TIMER_60_SECONDS",
+    "reportSHA256": "4be7cedade530221218f44769acfc44a70d530c6fa12f15b4d1bfbcfeccdbbda",
+    "testFailureEvents": 0,
+    "testPass": 1,
+    "testRun": 1
+  },
+  "readerReplay": {
+    "fullCheckerVerifyRaw": true,
+    "normalCheckerVerify": true,
+    "profileCheckerVerifyRaw": true,
+    "sourceGitFiles": 1443,
+    "sourceGitVerified": true,
+    "windowsPosixLexicalAdapter": "Only leading-slash captured Linux GOROOT values used PurePosixPath; checker functions and all bytes remained source-owned and unchanged"
+  },
+  "runs": {
+    "diagnostic": {
+      "id": 40280615316,
+      "jobConclusion": "success",
+      "jobs": {
+        "full": 121432888009,
+        "fullFresh": 121433727960,
+        "profile": 121432888033,
+        "profileFresh": 121433418260
+      }
+    },
+    "normal": {
+      "id": 40280615369,
+      "jobConclusion": "success",
+      "jobs": {
+        "contracts": 121432881192,
+        "contractsFresh": 121434004123
+      }
+    }
+  },
+  "schema": "chengwang.mihomo-505-normal-diag-independent-audit/v1",
+  "scopeLimits": {
+    "diagnosticWholeCIPass": false,
+    "nativeKernelExecuted": false,
+    "normalIsSourceContractsOnly": true,
+    "performanceStabilityFromSingleSample": false,
+    "productionAcceptance": false
+  },
+  "sourceCommit": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+  "status": "ACCEPTED_ACTUAL_NORMAL_AND_DIAGNOSTIC_ORIGINALS_WITH_SCOPE_LIMITS"
+}

@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+505实测与MODEL编译修正（2026-10-26）：normal普通／race各1992语义、688必需通过；diag single及full原件均通过，full包128.994秒；首次Completion四模式9 ZIP／167成员／1443源限定通过。上述都不代证连续恢复。连续run40280615306在Go MODEL进入前因TYPE_MISMATCH编译失败，目标run／pass／fail均0，HTTPS按前置门跳过，fresh缺原件属次生失败。安全定位为test源码171:109：基础lifecycleModelDisk不满足labRuntimeDisk。当前仅修测试，复用既有labBootstrapModelDisk，并让strict reopen、recovery、handoff、runtime保持同一wrapper身份；底层writes／state／writeErr故障断言不变，增加编译期接口断言，产品transition／owner／fence及31请求链不改。手工MODEL owner／handoff仍不是真实Completion或冷开权限。必须先由新exact-head Linux MODEL真实run／pass，再验收完整31 HTTPS、原checker与fresh。ROLE例外仍未实现，503修复效果尚未获证；单样本性能通过不代表稳定余量，生产、main、Registry未动。
+
 9fac实际验收与源码阻断（2026-10-26）：普通／race各1992语义、688必需通过，race包149.284秒；首个Completion四mode的9 ZIP／167成员／1434源经原checker与fresh限定复核通过。diag single通过，full仍在180.051秒超时，未证稳定性能余量。新增fault Go MODEL已从NOT_RUN转为真实RUN_AND_PASS，前后源码绑定一致。连续HTTPS仍于HTTP26 SECOND_RECOVERY_CREATE返回503／NONE，固定诊断为REJECTED_BEGIN；stateMayHaveChanged是保守分类位，不证明WAL已写。独立源码审查确认：terminal执行事实非空，而fresh PLANNED为空，通用Execution相等早门先于合法终态替换分支，足以阻断该路径；这不代表诊断已证明运行时唯一原因或修后无后续缺陷。修复必须保留旧完整terminal history tail、只准新鲜PLANNED且无执行事实，并保持owner／clock／CAS／full validation／publisher各门；完整31链、第二恢复及安全原件导出仍未通过，ROLE例外未实现。性能V3仅在独立886e154分支实测，run40275513837四leg均180秒包超时，容量target通过不代证完整接受；候选未纳入主生命周期分支，亦不能归因顺序／profile／host。8子代理与主会话共9个running已由实际列表验证，不是配置推断。下载时一次临时签名链接被TTY工具回显，进程已终止，去敏事故保留，未将链接落盘；后续只准非TTY隐藏输入。生产、main、Registry未改。
 
 567原件与第二次恢复诊断（2026-10-26）：normal ordinary／race各1992语义、688必需且零fail／skip／unfinished通过，race包121.681秒；diag single／full原件通过，full包147.558秒；首次Completion四mode9 ZIP／167成员／1426源经原checker与fresh限定复核通过。不能由单样本证明性能已稳定。连续run40250192418推进到HTTP26 SECOND_RECOVERY_CREATE，实测503／error NONE，Go以HTTP_RESULT失败；此前ACK合同错误已越过，但第二次恢复未完成。两次独立源码调查都未唯一定位内部503分支，未猜修、未放宽UNKNOWN或授权门。下一源码仅添加source-issued同service、最多4事件的固定阶段诊断，默认构建空实现；共享backend确有marker源码改动，不等同于零源改动，业务语义意图不变仍需Go／Linux验证。诊断只输出固定enum和实际HTTP envelope的严格stateMayHaveChanged布尔，不输出error／opID／hash／path／body；ROLE例外未实现。发现fault Go MODEL之前未由现有CI执行，状态为NOT_RUN而非FAIL；新增独立exact-tag MODEL job并作为实际HTTPS实验前置，原serverruntime单TOP与31链保持，delivery闭集24→25、format10→11同步。配对测量在独立8d360ed分支run40252034807已实际完成并复核：AB两leg接受、BA两leg均180秒超时，虽然两job都success；不能归因于第二位置／profile／负载／源码收益。原件结构接受不代替Go接受。新诊断源码、Go负例与真实连续链仍需exact-head Linux验收；生产、main、Registry未改。
@@ -30,9 +32,9 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | --- | --- | --- | --- |
 | 固定双配置正常发布与 UNKNOWN 不重发 | 限定隔离验收通过 | 已接受 `2bba397` 的真实正常服务、响应丢失及独立复算；参见 SYS-06 文档 | 不等于全部故障、互联网业务或生产验收 |
 | 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
-| 首次真实 Completion | 9fac四模式限定隔离验收通过 | [9fac独立审计](evidence/sys06-9fac-first-completion-independent-audit-20261026.json)：run40256417699，9 ZIP／167成员／1434源；四mode原checker与fresh一致 | 不代证完整私有WAL、恢复API、普通发布、第二恢复或生产 |
-| 当前提交其他三套 CI | 9fac normal接受；diag single接受／full超时 | [原件审计](evidence/sys06-9fac-normal-diag-original-audit-20261026.json)：race149.284秒；full180.051秒、586 required通过／1未完成／101未起；容量本身86.1秒通过 | 不放宽180秒／256／2MiB，不声称稳定性能；历史与[下载事故](evidence/sys06-9fac-download-incident-20261026.json)保留 |
-| 失败恢复协调器与产品 API | 9fac Go MODEL真实通过，连续第二Create仍503 | [安全阶段原件](evidence/sys06-9fac-continuous-stage-actual-20261026.json)：HTTP26／REJECTED_BEGIN；独立源码审查已确认Execution早门阻断合法终态替换 | 仍需严格修复及exact-head Go／31链验收；ROLE例外未实现，UNKNOWN不盲重试 |
+| 首次真实 Completion | 505四模式限定隔离验收通过 | [505独立审计](evidence/sys06-505-first-completion-audit-20261026.json)：run40280615379，9 ZIP／167成员／1443源；原checker与fresh一致 | 不代证service rebind、产品API、普通发布、第二恢复或完整私有WAL |
+| 当前提交其他三套 CI | 505 normal及diag single/full原件接受 | [505原件](evidence/sys06-505-normal-diag-audit-20261026.json)：ordinary/race各1992 semantic，full 688/688、0fail/skip/unfinished；包128.994秒 | 只接受本次样本，不证明稳定性能、业务API或生产 |
+| 失败恢复协调器与产品 API | 505 MODEL编译失败；测试磁盘适配已修源码待Linux | [安全首因](evidence/sys06-505-model-build-first-failure-20261026.json)及[编译定位](evidence/sys06-505-model-safe-compile-diagnostic-20261026.json)：TYPE_MISMATCH、target run0、HTTPS skipped | 新MODEL真实通过后方可验31 HTTPS；原测试门及隐私fence不放宽 |
 | 恢复后普通发布与第二次恢复 | 未验收 | 已有部分模型与外部源码，不能当作实际产品结果 | 完成新 head／epoch 接续、真实 API、普通发布与连续恢复的端到端证据 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
 

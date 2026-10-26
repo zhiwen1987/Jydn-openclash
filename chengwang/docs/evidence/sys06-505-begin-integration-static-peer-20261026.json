@@ -1,0 +1,182 @@
+{
+  "archivedFacts": {
+    "childConcurrencyObservation": {
+      "actualListObservationNotConfigurationInference": true,
+      "allEightRecordedStatuses": "running",
+      "archiveSHA256": "69d32296a9c568783f645f728acc6ab32cb3407e4d3025156878b3be8d830513",
+      "hiddenRuntimeModelIndependentlyProven": false,
+      "observedActiveChildren": 8,
+      "observedActiveIncludingRoot": 9,
+      "platformReportedSlots": 9,
+      "requestedModelAndReasoningAreRequestMetadataOnly": true
+    },
+    "downloadIncident": {
+      "archiveSHA256": "ce35b7d97f1aeab6482c61ae11a02cec0093db4e531ac61db0a55b1be08810de",
+      "containsSignedURLValue": false,
+      "downloadProcessTerminated": true,
+      "productionChanged": false,
+      "redactedAndRetained": true,
+      "signedURLPersistedToDisk": false
+    },
+    "performanceV3": {
+      "auditSHA256": "4382e941ef164e1e62813edd41b83a90571d61dd0a3e1316bcb8f2799c5f1792",
+      "candidateIntegrated": false,
+      "commit": "886e1544d99929f3a45b45549e5ae1df600638bc",
+      "fourLegsAccepted": false,
+      "legs": {
+        "AB_A": {
+          "goExit": 1,
+          "packageSeconds": 180.032,
+          "timeoutObserved": true
+        },
+        "AB_B": {
+          "goExit": 1,
+          "packageSeconds": 180.034,
+          "timeoutObserved": true
+        },
+        "BA_A": {
+          "goExit": 1,
+          "packageSeconds": 180.042,
+          "timeoutObserved": true
+        },
+        "BA_B": {
+          "goExit": 1,
+          "packageSeconds": 180.05,
+          "timeoutObserved": true
+        }
+      },
+      "performanceImprovementProven": false,
+      "productAcceptance": false,
+      "resultsSHA256": "61dfeeef8057ce545d4fee9dfff4477fa738a40c8a9dd68e0083f54cafb9633d",
+      "run": 40275513837
+    }
+  },
+  "contractContinuity": {
+    "basis": "Protected producer/checker/workflow/31-chain files are byte-identical to the 9fac snapshot; the changed MODEL file retains the same sole top-level test; the integration contract pins 25/11/688/31 and the existing mandatory-name digest. No CPU or Go suite was rerun by this peer.",
+    "changedModelTopAfter": [
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+    ],
+    "changedModelTopBefore": [
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+    ],
+    "continuousDeliveryCount": 25,
+    "continuousFormatCount": 11,
+    "goMandatoryNamesCount": 688,
+    "httpCaseCount": 31,
+    "mandatoryNamesSHA256": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280",
+    "newGoTopCount": 0
+  },
+  "documentationTruthReview": {
+    "downloadIncidentRetainedWithoutURLValue": true,
+    "eightChildObservationQualifiedAsObservedNotHiddenModelProof": true,
+    "noClaimOfContinuousLinuxAcceptance": true,
+    "noClaimOfProductionMainOrRegistryChange": true,
+    "noClaimOfSecondRecoveryCompletion": true,
+    "noClaimOfStablePerformanceMargin": true,
+    "performanceFourLegRejectionRetained": true
+  },
+  "inputs": {
+    "baseline": "9fac00d9491a93cb6618a3f86e49ff8cefade37f",
+    "baselineSnapshot": "D:/CodexData/workspace/mihomo-9fac00d-acceptance-6iigwz4x/repo",
+    "docsPerfOverlayPatch": {
+      "bytes": 30732,
+      "path": "D:/CodexData/workspace/mihomo-9fac-begin-doc-perf-overlay-tszldndw/changes.apply.patch",
+      "sha256": "34fc930036b25913812e99cea9c8fd04558fff7fa354fcc659b01db685fd92ce"
+    },
+    "initialRootPatch": {
+      "bytes": 54989,
+      "path": "D:/CodexData/workspace/mihomo-9fac-begin-fix-root-transfer-y3gbrj9o/changes.apply.patch",
+      "sha256": "9e8261cb0ecde5aad6107257c84ae5daaf02a622ad4d8f9f60e8fb18f0daed40"
+    },
+    "integrationConfig": {
+      "bytes": 48681,
+      "path": "D:/CodexData/workspace/9fac-begin-fix-integration-prepare-u2vf_hsv/integration-config.json",
+      "sha256": "61c5e7929bb522e9a3d2b267639dbc159a83dfffc9af3784bffb724671b22ad3"
+    },
+    "parentRootTransferPlan": {
+      "bytes": 7604,
+      "path": "D:/CodexData/workspace/mihomo-9fac-begin-fix-root-transfer-y3gbrj9o/plan.json",
+      "sha256": "e22a45b46fe33586a8f9361248b0135e92bb4c2ad93fb249f215518b22432c1d"
+    },
+    "rootDocsPatch": {
+      "bytes": 39211,
+      "path": "D:/CodexData/workspace/mihomo-9fac-results-docs-7i0uq75i/changes.apply.patch",
+      "sha256": "6a8103f360be36af3b0f4d754ca9697876c550a7c5ee3c614051b11b23909216"
+    },
+    "rootDocsPlan": {
+      "bytes": 5517,
+      "path": "D:/CodexData/workspace/mihomo-9fac-results-docs-7i0uq75i/plan.json",
+      "sha256": "055d0593f468211dbfd85a3620fc765bc4264b16f77422b53a0240f8844d91fc"
+    },
+    "rootFinalPlan": {
+      "bytes": 10767,
+      "path": "D:/CodexData/workspace/mihomo-9fac-begin-doc-perf-overlay-tszldndw/plan.json",
+      "sha256": "7be7b92f159a0ad1c08ac1644d56d210ab04500641f0a2eb64c7fb2f48fc33d9"
+    },
+    "workspace": "D:/CodexData/workspace/chengwang-mihomo-lifecycle-uv9npzyn/r"
+  },
+  "limitations": {
+    "cpuModelsRerun": false,
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "integratorStatusVerified": false,
+    "note": "R bytes were observed while the root-owned integrator was live. This receipt does not claim terminal integrator status, commit, push, Linux execution, or product acceptance.",
+    "productionChanged": false,
+    "pushStatusVerified": false,
+    "runtimeFixProven": false,
+    "secondRecoveryCompleted": false,
+    "staticOnly": true
+  },
+  "modelAuthorityBoundary": {
+    "description": "The MODEL manually reconstructs recovery owner/live and handoff binding before exercising the downstream adopt/ACK/UNKNOWN/begin path. It is structural regression coverage, not evidence of genuine Completion capability issuance or cold-reopen authority restoration.",
+    "failedReconciledExecutionMatrixDirectlyTested": false,
+    "isNotColdReopenAuthorityProof": true,
+    "isNotProductHTTPS31Acceptance": true,
+    "isNotRealCompletionAuthority": true,
+    "manualOwnerHandoffInjection": true
+  },
+  "patchIdentitySemantics": {
+    "docsPerfOverlayPatchSHA256": "34fc930036b25913812e99cea9c8fd04558fff7fa354fcc659b01db685fd92ce",
+    "initialRootPatchIsNotFinalCombinedDiff": true,
+    "initialRootPatchSHA256": "9e8261cb0ecde5aad6107257c84ae5daaf02a622ad4d8f9f60e8fb18f0daed40",
+    "note": "The final plan inherits patchSHA256 from the parent root transfer. The integration config and generated evidence accurately name this identity initialRootPatchSHA256 and separately bind the docs/performance overlay and final plan; they do not represent the initial patch as the final combined diff.",
+    "parentRootTransferPlanSHA256": "e22a45b46fe33586a8f9361248b0135e92bb4c2ad93fb249f215518b22432c1d",
+    "rootDocsPatchSHA256": "6a8103f360be36af3b0f4d754ca9697876c550a7c5ee3c614051b11b23909216",
+    "rootDocsPlanSHA256": "055d0593f468211dbfd85a3620fc765bc4264b16f77422b53a0240f8844d91fc",
+    "rootFinalPlanSHA256": "7be7b92f159a0ad1c08ac1644d56d210ab04500641f0a2eb64c7fb2f48fc33d9"
+  },
+  "pathClosure": {
+    "autoEvidence": {
+      "bytes": 46090,
+      "path": "chengwang/docs/evidence/sys06-9fac-second-recovery-begin-source-20261026.json",
+      "sha256": "b137a5d231fd238641893c6d18258884cebf44b9adca7bce5e483564a9754ea9"
+    },
+    "observedTotalIncludingAutoEvidence": 15,
+    "plannedPathComposition": {
+      "archives": 8,
+      "docs": 4,
+      "source": 2
+    },
+    "plannedPathCount": 14,
+    "plannedPathHashMismatches": 0,
+    "plannedPathsMatchingConfiguredAfterSHA256": 14
+  },
+  "protectedWholeByteBindings": {
+    "allEqualTo9facBaseline": true,
+    "files": {
+      ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py": "50947e50846deea80908c3898186782fd109d1210535f81906150db211e92719",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py": "a44b35086f66c5c4fec08d1d0faa3f7e977d7e8068ea2d0e80b75a54eabb792c",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go": "d1e9745f0b568727fdac7edf65155503110a3aa5844b0046ce50a7065b6df8f3"
+    },
+    "http31ChainWholeByteUnchanged": true
+  },
+  "result": "STATIC_SOURCE_ACCEPT_NO_RUNTIME_CLAIM",
+  "reviewedAt": "2026-10-26T00:00:00+08:00",
+  "schema": "chengwang.9fac-second-recovery-begin-integration-static-peer/v1",
+  "scope": "READ_ONLY_EXTERNAL_STATIC_REVIEW",
+  "sourceAfterSHA256": {
+    "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go": "933235fa087fae598de55c1d55c290f1c44662f46eac1a1512c86fe873273d63",
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go": "0367fd638cf3995843ae9ab69ccfa11e0be4ba9c78a352f1b987c967d0782b1c"
+  }
+}

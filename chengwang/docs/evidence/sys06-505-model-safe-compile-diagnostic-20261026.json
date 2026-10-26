@@ -1,0 +1,56 @@
+{
+  "artifact": {
+    "bytes": 1361,
+    "crcAndExactMemberSetVerified": true,
+    "id": 12632177432,
+    "memberCount": 4,
+    "refetchReason": "AUTHORIZED_CLOSED_COMPILE_DIAGNOSTIC_AFTER_TARGET_RUN_COUNT_ZERO",
+    "sha256": "780f5d5b5803ac740c691b2cb01892075978122980527ee05f52dc5be46f02ad"
+  },
+  "boundaries": {
+    "ciRerun": false,
+    "compilerTextOutput": false,
+    "localGoRun": false,
+    "privateValueOutput": false,
+    "productionTouched": false,
+    "signedURLPersistedOrPrinted": false
+  },
+  "diagnostic": {
+    "category": "TYPE_MISMATCH",
+    "locations": [
+      {
+        "column": 109,
+        "line": 171,
+        "path": "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go"
+      }
+    ],
+    "rawArchivePersisted": false,
+    "rawDiagnosticRetained": false,
+    "sourceIdentifiers": [
+      "artifactDirectory",
+      "disk",
+      "labRuntimeDisk",
+      "lifecycleModelDisk"
+    ]
+  },
+  "extractor": {
+    "bytes": 3795,
+    "sha256": "f5b722ecdb57f23b43a3373feee8124b9939be509f092153fb62ad673d7896d6"
+  },
+  "jobId": 121432931607,
+  "runAttempt": 1,
+  "runId": 40280615306,
+  "schema": "chengwang.mihomo-continuous-model-safe-compile-diagnostic/v1",
+  "sourceCommit": "505e91c9547b341af6e00e9079a8049bc5975cdc",
+  "sourceInference": {
+    "conclusion": "LIFECYCLE_MODEL_DISK_DOES_NOT_IMPLEMENT_LAB_RUNTIME_DISK",
+    "modelDiskDeclarationLine": 21,
+    "modelDiskMethodsLines": "33-41",
+    "modelDiskPath": "chengwang/internal/mihomodeploy/lifecycle_test.go",
+    "runtimeCoreDiskFieldLine": 30,
+    "runtimeDiskInterfaceLines": "22-25",
+    "runtimeDiskInterfacePath": "chengwang/internal/mihomodeploy/lab_bootstrap.go"
+  },
+  "sourceTree": "12d5ee60326f9442e311f312a76427a29def166e",
+  "stepNumber": 5
+}
