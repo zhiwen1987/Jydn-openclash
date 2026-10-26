@@ -1,0 +1,100 @@
+{
+  "schema": "chengwang.source-pair-source-receipt/v2",
+  "createdAt": "2026-10-26T15:48:57.3305733Z",
+  "verdict": "SOURCE_CANDIDATE_FOR_ROOT_INDEPENDENT_REVIEW",
+  "scope": "MEASUREMENT_CONTROLLER_ONLY_NOT_PRODUCT_SOURCE",
+  "controllerBase": {
+    "commit": "1e35adc8a292e5e17385cd72250f238f4ca807b8",
+    "tree": "28d0e564905d173981bf6a2ac2f9c3764d842d50"
+  },
+  "sourcePair": {
+    "originalBaselineCommit": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+    "testEqualBaselineCommit": "a46f1b93ddec3b600fbe46e906795b84c363f848",
+    "testEqualBaselineTree": "c67c2c6bffc7a8c5bc8600e266ae6937a571d102",
+    "testEqualBaselineParents": [
+      "fdcdcea3f469670ed0edc08d180f991e150a3a66"
+    ],
+    "candidateCommit": "b5b5fa96cadbf35ae833c618555ab82e5d70429b",
+    "candidateTree": "203d3d7647dc160c115ec10ef57bdcf530f4cccc",
+    "trackedGoFilesEach": 569,
+    "trackedTestGoFilesEach": 233,
+    "allTrackedTestGoBytesEqual": true,
+    "testFixture": {
+      "path": "chengwang/internal/mihomodeploy/lifecycle_trusted_clone_properties_test.go",
+      "gitBlobSHA1Both": "bb3855e52ce3ef69e607d990793e76b68e02b4ea",
+      "sha256Both": "02495da477fa2a77ecdcbe8de649724a2d2e8dfba9b2293f4c535789f1060756"
+    },
+    "onlyGoDifference": {
+      "path": "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go",
+      "baselineGitBlobSHA1": "e2280919851bd8833395e90f77cf995459f64623",
+      "baselineSHA256": "0367fd638cf3995843ae9ab69ccfa11e0be4ba9c78a352f1b987c967d0782b1c",
+      "candidateGitBlobSHA1": "6db06420f70135fbdda4cf0e3a38948c56b04918",
+      "candidateSHA256": "3b6e3f1c63b982ea114afcb5b618aa52bf92d8666c76c2c8824073afe65afeb7"
+    },
+    "allOtherTrackedGoBytesEqual": true,
+    "nonGoDifferencesRestrictedToChengwangDocs": true,
+    "normalScriptSHA256Both": "51eb6a08aed8bdcc2ea88fb91d0bcd10dd00ee442a3895b923651caeb0e164f8",
+    "goModSHA256Both": "c09a20bedd893f2f03a6badef4a2893201425c4439cf5e88b0145bf00b8b7be0",
+    "requiredTopLevelTestsEach": 688,
+    "requiredNamesSHA256Both": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280"
+  },
+  "controllerContract": {
+    "orders": [
+      "AB",
+      "BA"
+    ],
+    "sameRunnerSequentialLegs": true,
+    "freshPrivateNamespaceAndTmpfsCachePerLeg": true,
+    "sourceControllerAndGoRootReadOnlyInsideLeg": true,
+    "pidfdGateAndFiveEventSuccessfulTrace": true,
+    "captureVerifiedSeparatedFromEachGoAccepted": true,
+    "ordinaryAndRaceUseExactSourceNormalScript": true,
+    "explicitRacePFlag": false,
+    "runtimeGOMAXPROCSModified": false,
+    "goTestTimeoutSeconds": 180,
+    "historyEntries": 256,
+    "recordBytes": 2097152,
+    "outerCustodyTimeoutSeconds": 420,
+    "failedOrTimedOutLegCannotBecomeAccepted": true,
+    "actualOriginalsPreservedByAlwaysUploadStep": true
+  },
+  "staticChecks": {
+    "pythonAst": "PASS_2_FILES",
+    "models": "PASS_12_POSITIVE_23_VALUEERROR_NEGATIVE",
+    "sourceContract": "PASS_1_PRODUCTION_GO_DIFF_233_TEST_GO_EQUAL_688_TOPS",
+    "legScriptContract": "PASS_A_AND_B",
+    "gitDiffCheck": "PASS",
+    "patchForwardApply": "PASS",
+    "patchReverseApplyCheck": "PASS",
+    "afterimagesMatchSource": true
+  },
+  "negativeClasses": [
+    "wrong_source_commit",
+    "wrong_baseline_parent",
+    "wrong_or_extra_go_diff_path",
+    "test_go_mismatch",
+    "non_go_execution_input_difference",
+    "normal_script_flag_difference",
+    "namespace_isolation_or_shape",
+    "resource_row_or_type",
+    "pidfd_five_event_state_machine"
+  ],
+  "notRun": [
+    "go",
+    "gofmt",
+    "build",
+    "runtime_measurement",
+    "ci",
+    "network",
+    "production"
+  ],
+  "claims": {
+    "expected2012ScenarioSemanticsSourceEqual": true,
+    "expected2012ScenarioSemanticsExecuted": false,
+    "performanceCauseProven": false,
+    "sameRunnerSameLoadProven": false,
+    "candidateMayReplaceBaselineAcceptance": false,
+    "sourceAcceptanceIsGoAcceptance": false
+  },
+  "integrationBoundary": "ROOT_ONLY_INTEGRATION_TO_SEPARATE_MEASUREMENT_BRANCH_THEN_NEW_LINUX_RUN"
+}

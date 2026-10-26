@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "D:/CodexData/workspace/mihomo-a46f1b9-b5b-test-equal-source-pair-measurement-candidate-20261026-policy56h-v2/repo",
+    "sourceType": "patch_file",
+    "base": "1e35adc8a292e5e17385cd72250f238f4ca807b8",
+    "head": "candidate-tree:170856f061dbc9d1c4db37202b2ad949e264cab5",
+    "changedFiles": [
+      ".github/workflows/chengwang-mihomo-source-pair.yml",
+      "chengwang/deploy/mihomo-source-pair/check_pair.py",
+      "chengwang/deploy/mihomo-source-pair/pair_controller.py",
+      "chengwang/deploy/mihomo-source-pair/run_leg.sh"
+    ],
+    "sha256": "e4d75212dc8f248de31d15018a2fece80ebc112ffd406cd24a74831fa956f434"
+  },
+  "recommendation": "merge",
+  "workflowLabel": "human_review_required",
+  "impact": {
+    "rating": "high",
+    "rationale": "The add-only measurement workflow uses sudo, Linux namespace and pidfd custody, executes two complete fixed-source Go test legs, and emits evidence that could influence a performance decision. It changes no product Go bytes and has no production path, but a wrong controller could invalidate evidence or mishandle a privileged CI boundary."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "The source-visible contracts are narrow and independently exercised, with no contradicted boundary found. Exact-head Linux namespace, pidfd, Go, filesystem, and hosted-runner behavior has not run, so runtime regression likelihood cannot be rated low."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "Python AST, 12 positive models, 23 named ValueError-only mutants, real A*/B source-contract replay, exact leg-script checks, immutable Git-object closure, patch identity, and reverse-apply checks passed. Linux execution, Go/gofmt, fresh AB/BA captures, and performance measurement remain unrun.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "All four paths are additions on a separate measurement branch. Reverting or deleting the workflow/controller leaves product source and persisted product state unchanged; uploaded diagnostics are measurement-only retained artifacts."
+  },
+  "confidence": {
+    "rating": "moderate",
+    "rationale": "Patch identity, callers, source commits, parentage, Go/test byte partitions, normal commands, custody state machine, acceptance split, and model rejection paths were independently traced. The bounded missing evidence is actual Linux execution at the eventual integrated controller commit."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The workflow directly calls the added controller and reader for immutable A*=a46f1b93ddec3b600fbe46e906795b84c363f848 and B=b5b5fa96cadbf35ae833c618555ab82e5d70429b on the dedicated measurement branch."
+  },
+  "statusQuoRisk": {
+    "rating": "low",
+    "rationale": "Without this patch the product remains unchanged; the cost is lack of a controlled same-test source comparison. That is an evidence gap, not a production safety regression."
+  },
+  "autoMergeExclusions": [
+    "privileged_boundary",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "affectedRuntimeRoots": [
+    "GitHub Actions job pair-{AB,BA} on ubuntu-24.04",
+    "chengwang/deploy/mihomo-source-pair/pair_controller.py",
+    "chengwang/deploy/mihomo-source-pair/run_leg.sh",
+    "chengwang/deploy/mihomo-source-pair/check_pair.py"
+  ],
+  "importantCallers": [
+    ".github/workflows/chengwang-mihomo-source-pair.yml:67-142",
+    "pair_controller.py:211-423 and 455-477",
+    "check_pair.py:243-289, 507-692, and 885-929",
+    "immutable source run_contracts.sh from each leg"
+  ],
+  "riskDrivers": [
+    "sudo root custody with unshare --net --mount --pid and pidfd signaling",
+    "raw ordinary/race originals are retained even when Go fails",
+    "hosted Linux namespace and mount behavior is not exercised locally",
+    "measurement results could be overstated as causal if report disclaimers are ignored"
+  ],
+  "protectiveFactors": [
+    "controller patch is four add-only paths and modifies no product Go bytes",
+    "A* has exactly one raw parent fdcdcea3f469670ed0edc08d180f991e150a3a66",
+    "A* and B have 569 tracked Go files, 233 byte-equal test Go files, and only lifecycle_recovery_store.go differs",
+    "exact normal script, go.mod, 688 required test names, 180 second timeout, 256 history entries, and 2 MiB ceiling are fixed",
+    "each leg uses a new namespace and private tmpfs caches while source, controller, and Go root are read-only",
+    "captureVerified and eachGoAccepted are separate and a report with either Go rejection exits 3",
+    "performanceCauseProven is always false and sameRunnerSameLoadProven is false"
+  ],
+  "materialBoundaries": [
+    {
+      "id": "source-identity",
+      "invariant": "A* and B must be immutable distinct sources; A* must be the single-parent fd derivative, all 233 test Go files must match, and the sole Go difference must be lifecycle_recovery_store.go.",
+      "runtimeRoot": "source_pair_contract, source_snapshot, raw_go_pair_binding",
+      "counterexample": "A changed test, second Go path, wrong commit, wrong A* parent, dirty checkout, or documentation difference outside chengwang/docs.",
+      "legitimateControl": "Fixed commit constants plus raw commit-header parent parsing, full ls-tree comparison, all-file source snapshots, exact blob identities, clean worktree checks, and real source-contract replay.",
+      "result": "supported"
+    },
+    {
+      "id": "execution-equivalence",
+      "invariant": "Both legs must run their own byte-identical normal script with default package parallelism and unchanged 180 second, 688-test, 256-entry, and 2 MiB contracts.",
+      "runtimeRoot": "run_leg.sh, script_binding, required_contract, normal_script_contract",
+      "counterexample": "A copied controller script, -p=1, GOMAXPROCS override, changed package order, changed normal script, or changed required-name set.",
+      "legitimateControl": "Each leg invokes its source run_contracts.sh; source-contract requires script equality and exact commands; sandbox uses fixed env-i without GOMAXPROCS; required names must match the fixed count and digest.",
+      "result": "supported"
+    },
+    {
+      "id": "isolation-and-custody",
+      "invariant": "Every leg must execute in a fresh private network/mount/PID namespace with private caches, read-only source/controller/Go root, and a five-event pidfd gate before execution.",
+      "runtimeRoot": "pair_controller.supervise, run_leg.sh, sandbox_contract, supervision",
+      "counterexample": "Host namespace reuse within a live leg, writable source or Go root, shared cache, gate release before pidfd acquisition, PID drift, signal-state contradiction, or forged resource rows.",
+      "legitimateControl": "unshare and mount commands, inner read-only binding record, sandbox-vs-live-host namespace checks, exact five-event reader state machine, exact PID and runner reconciliation, strict resource row types, and 17 relevant isolation/custody mutants among the 23 total.",
+      "result": "supported"
+    },
+    {
+      "id": "capture-versus-go-acceptance",
+      "invariant": "Preserving originals from a failed or timed-out Go leg must never make that leg or the pair accepted.",
+      "runtimeRoot": "validate_leg, verify, check_pair.main, always-upload workflow step",
+      "counterexample": "A complete-looking report after ordinary/race TLE or nonzero exit is treated as a successful measurement.",
+      "legitimateControl": "Go acceptance requires zero format/ordinary/race exits plus exact source normal checker acceptance; comparison is written first for diagnosis, then main exits 3 if either goAccepted is false; outer timeout or partial custody cannot satisfy the five-event/receipt/file-set gates.",
+      "result": "supported"
+    },
+    {
+      "id": "evidence-causality",
+      "invariant": "A captured AB/BA comparison may identify the source change as a possible cause but must not claim equal load, stable benefit, or proven causality.",
+      "runtimeRoot": "pair context and comparison report",
+      "counterexample": "A faster single leg is reported as proof that the store change solved the timeout or can replace baseline acceptance.",
+      "legitimateControl": "Reports hard-code measurementOnly=true, production=false, candidateMayReplaceBaselineAcceptance=false, sameRunnerSameLoadProven=false, and performanceCauseProven=false; both orders and eachGoAccepted are separately reported.",
+      "result": "supported"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Immutable artifact hashes and bytes",
+      "status": "passed",
+      "protects": "Patch 86908 bytes and SHA256 e4d75212..., manifest ec667bc0..., SOURCE e7a62fe0..., FSYNC eed8fde3...; all four afterimages match staged bytes."
+    },
+    {
+      "name": "Patch/base applicability",
+      "status": "passed",
+      "protects": "Base HEAD/tree are 1e35adc8.../28d0e564...; four paths are add-only, diff --check passed, reverse cached apply check passed, and reconstructed staged diff is byte-identical to the frozen patch."
+    },
+    {
+      "name": "Independent immutable Git source closure",
+      "status": "passed",
+      "protects": "A* tree c67c2c6b... has sole parent fdcdcea3...; B tree 203d3d76...; both have 569 Go and 233 test Go files, zero test-Go differences, and one Go difference with the pinned store blobs. A* versus fd changes only the copied trusted-clone test Go file plus one evidence document."
+    },
+    {
+      "name": "Real source-contract and leg-script replay",
+      "status": "passed",
+      "protects": "Read-only A*/B snapshots produced go_diff_paths=1, required_tops=688, test_go_equal=true, exact source normal=true for A and B, and performance_cause_proven=false."
+    },
+    {
+      "name": "Reader/controller Python checks",
+      "status": "passed",
+      "protects": "Both Python files parsed; models executed 12 positive cases and 23 named mutants, with the rejection harness catching only ValueError."
+    },
+    {
+      "name": "Exact-head Linux Go and custody run",
+      "status": "skipped",
+      "protects": "No local Go/gofmt/runtime/CI was authorized; fresh Linux AB/BA execution remains mandatory before any runtime or performance conclusion."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "Whether the eventual integrated controller commit completes both AB/BA legs with captureVerified=true and eachGoAccepted=true on ubuntu-24.04.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "Whether repeated paired measurements show a stable timing delta attributable to the sole production Go change.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": []
+}

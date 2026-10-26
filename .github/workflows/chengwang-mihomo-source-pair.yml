@@ -1,0 +1,142 @@
+name: Chengwang Test-Equal Baseline versus Candidate Measurement
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'codex/chengwang-source-measure-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-mihomo-source-pair-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pair:
+    name: pair-${{ matrix.order }}
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/codex/chengwang-source-measure-') }}
+    runs-on: ubuntu-24.04
+    # Custody ceiling only. Each source keeps the original normal script's
+    # format, ordinary and race commands, including its 180 s Go timeout.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        order: [AB, BA]
+    steps:
+      - name: Reject non-measurement events and refs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUEST_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in push|workflow_dispatch) ;; *) exit 2 ;; esac
+          [[ "$REQUEST_REF" =~ ^refs/heads/codex/chengwang-source-measure-[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]
+
+      - name: Checkout controller tools separately
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: controller
+          persist-credentials: false
+
+      - name: Checkout immutable test-equal baseline source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source-a
+          ref: a46f1b93ddec3b600fbe46e906795b84c363f848
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout immutable candidate source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source-b
+          ref: b5b5fa96cadbf35ae833c618555ab82e5d70429b
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Select pinned Go without cache sharing
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+
+      - name: Verify controller source pair and CPU-only models
+        env:
+          CONTROLLER_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          controller="$GITHUB_WORKSPACE/controller"
+          source_a="$GITHUB_WORKSPACE/source-a"
+          source_b="$GITHUB_WORKSPACE/source-b"
+          test "$(git -C "$controller" rev-parse HEAD)" = "$CONTROLLER_COMMIT"
+          test -z "$(git -C "$controller" status --porcelain --untracked-files=all)"
+          test "$(git -C "$source_a" rev-parse HEAD)" = a46f1b93ddec3b600fbe46e906795b84c363f848
+          test "$(git -C "$source_b" rev-parse HEAD)" = b5b5fa96cadbf35ae833c618555ab82e5d70429b
+          test -z "$(git -C "$source_a" status --porcelain --untracked-files=all)"
+          test -z "$(git -C "$source_b" status --porcelain --untracked-files=all)"
+          python3 -B "$controller/chengwang/deploy/mihomo-source-pair/check_pair.py" models
+          python3 -B "$controller/chengwang/deploy/mihomo-source-pair/check_pair.py" source-contract \
+            --baseline-source "$source_a" --candidate-source "$source_b"
+
+      - name: Run both sources sequentially with fresh private namespaces and caches
+        env:
+          CONTROLLER_COMMIT: ${{ github.sha }}
+          ORDER: ${{ matrix.order }}
+        run: |
+          set -euo pipefail
+          controller="$GITHUB_WORKSPACE/controller"
+          helper="$controller/chengwang/deploy/mihomo-source-pair/pair_controller.py"
+          root="$RUNNER_TEMP/mihomo-source-pair-$ORDER"
+          test ! -e "$root"
+          install -d -m 0755 "$root"
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          for position in 1 2; do
+            offset=$((position-1))
+            leg="${ORDER:$offset:1}"
+            if test "$leg" = A; then source="$GITHUB_WORKSPACE/source-a"; else source="$GITHUB_WORKSPACE/source-b"; fi
+            out="$root/leg-$leg"
+            control="$root/control-$leg"
+            install -d -m 0755 "$out" "$control"
+            python3 -B "$helper" prepare --controller "$controller" --source "$source" \
+              --out "$out" --control "$control" --controller-commit "$CONTROLLER_COMMIT" \
+              --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --order "$ORDER" --position "$position" --leg "$leg" --job "pair-$ORDER"
+            set +e
+            sudo --non-interactive python3 -B "$helper" supervise --controller "$controller" \
+              --source "$source" --out "$out" --control "$control" --goroot "$go_root" \
+              --controller-commit "$CONTROLLER_COMMIT" --leg "$leg"
+            supervise_exit=$?
+            set -e
+            python3 -B "$helper" finish --controller "$controller" --source "$source" \
+              --out "$out" --control "$control" --controller-commit "$CONTROLLER_COMMIT" \
+              --leg "$leg" --supervise-exit "$supervise_exit"
+          done
+
+      - name: Strictly read captures without converting Go failures to passes
+        if: ${{ always() }}
+        env:
+          CONTROLLER_COMMIT: ${{ github.sha }}
+          ORDER: ${{ matrix.order }}
+        run: |
+          set -euo pipefail
+          controller="$GITHUB_WORKSPACE/controller"
+          root="$RUNNER_TEMP/mihomo-source-pair-$ORDER"
+          python3 -B "$controller/chengwang/deploy/mihomo-source-pair/check_pair.py" verify \
+            --controller "$controller" --baseline-source "$GITHUB_WORKSPACE/source-a" \
+            --candidate-source "$GITHUB_WORKSPACE/source-b" --controller-commit "$CONTROLLER_COMMIT" \
+            --order "$ORDER" --a "$root/leg-A" --b "$root/leg-B" \
+            --report "$root/comparison.json"
+
+      - name: Preserve actual originals and measurement-only report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-source-pair-${{ matrix.order }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-source-pair-${{ matrix.order }}
+          retention-days: 14
+          if-no-files-found: error

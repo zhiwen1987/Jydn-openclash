@@ -1,0 +1,54 @@
+{
+  "schema": "chengwang.source-pair-path-manifest/v2",
+  "createdAt": "2026-10-26T15:48:57.3305733Z",
+  "candidateClass": "MEASUREMENT_CONTROLLER_SOURCE_ONLY",
+  "controllerBaseCommit": "1e35adc8a292e5e17385cd72250f238f4ca807b8",
+  "controllerBaseTree": "28d0e564905d173981bf6a2ac2f9c3764d842d50",
+  "candidateTree": "170856f061dbc9d1c4db37202b2ad949e264cab5",
+  "patch": {
+    "path": "test-equal-source-pair-measurement-v2.patch",
+    "bytes": 86908,
+    "sha256": "e4d75212dc8f248de31d15018a2fece80ebc112ffd406cd24a74831fa956f434"
+  },
+  "paths": [
+    {
+      "path": ".github/workflows/chengwang-mihomo-source-pair.yml",
+      "action": "add",
+      "mode": "100644",
+      "bytes": 6303,
+      "gitBlobSHA1": "896854ade59a020b97785095381bf3faeeb565a1",
+      "sha256": "b92ae181b3a264ec77c9fc5719f3dffda5c892060eab7a8d803e5a89db91eb36"
+    },
+    {
+      "path": "chengwang/deploy/mihomo-source-pair/check_pair.py",
+      "action": "add",
+      "mode": "100644",
+      "bytes": 51883,
+      "gitBlobSHA1": "29d8e60ee141dc1451e80db639f5c78d38170630",
+      "sha256": "fea2da7c5df77bf782603858f9d5d7383251012459290e3882b2b634804d95be"
+    },
+    {
+      "path": "chengwang/deploy/mihomo-source-pair/pair_controller.py",
+      "action": "add",
+      "mode": "100644",
+      "bytes": 23518,
+      "gitBlobSHA1": "91553455cce0d7896ee89c446c0c27fed62318ff",
+      "sha256": "c676136150fc551c75cdb6c80377f1a6daa91f6756367145831aec7f1e569d06"
+    },
+    {
+      "path": "chengwang/deploy/mihomo-source-pair/run_leg.sh",
+      "action": "add",
+      "mode": "100644",
+      "bytes": 2340,
+      "gitBlobSHA1": "129157cae841ed95266a839d2f52fadfc6ed2b03",
+      "sha256": "5cfb12f6d43d1ac2cf6637cf7a6b0f4c54cbd4f94c0540d294fd5a078747e144"
+    }
+  ],
+  "basePathAbsenceVerified": true,
+  "strictUtf8LfNoNul": true,
+  "patchForwardApplyCheck": true,
+  "patchReverseApplyCheck": true,
+  "controllerBaseExistingPathsModified": false,
+  "workingCandidateHasOnlyManifestedAdditions": true,
+  "productGoBytesModifiedByCandidate": false
+}

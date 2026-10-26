@@ -1,0 +1,19 @@
+{
+  "allGoFiles": 569,
+  "allTestGoEqualToCandidate": true,
+  "allTrackedBlobsVerified": 1528,
+  "branch": "codex/chengwang-copy-baseline-20261026",
+  "candidate": "b5b5fa96cadbf35ae833c618555ab82e5d70429b",
+  "commit": "a46f1b93ddec3b600fbe46e906795b84c363f848",
+  "goRuntimeExecuted": false,
+  "mainChanged": false,
+  "mandatoryGoNames": 688,
+  "measurementAccepted": false,
+  "onlyGoDifferenceAgainstCandidate": [
+    "chengwang/internal/mihomodeploy/lifecycle_recovery_store.go"
+  ],
+  "parent": "fdcdcea3f469670ed0edc08d180f991e150a3a66",
+  "production": false,
+  "remoteHeadVerified": true,
+  "tree": "c67c2c6bffc7a8c5bc8600e266ae6937a571d102"
+}
