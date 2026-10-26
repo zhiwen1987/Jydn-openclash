@@ -98,7 +98,6 @@ def bundle(args):
     copy(downloads/'mihomo-source.tar.gz',sources/'mihomo-daf3ad03021cca6031f4a7303ca6d861a14d5a16.tar.gz')
     tar_directory(ROOT/'.build/context',sources/'center-build-context.tar.gz')
     # Initial seed only: no production databases, URLs, accounts or node secrets.
-    files={str(p.relative_to(destination)).replace('\\','/'):sha(p) for p in destination.rglob('*') if p.is_file()}
     copy(downloads/'dependencies.lock.json',destination/'sources/dependencies.lock.json')
     files={str(p.relative_to(destination)).replace('\\','/'):sha(p) for p in destination.rglob('*') if p.is_file()}
     manifest={'schema':1,'version':args.version,'platform':'linux/amd64','image_id':args.image_id,'base_image_id':BASE_ID,'kuma_version':args.kuma_version,'core_sha256':CORE_SHA,'files':files,'payload_files':payload_hashes,'payload_sha256':files['payload.tar.gz'],'image_archive_sha256':files['clash-center.tar.gz'],'router_files':[str(p.relative_to(router)).replace('\\','/') for p in router.rglob('*') if p.is_file()],'required_free_bytes':6*1024**3,'source_commit':args.commit,'assurance':'installation_acceptance_only_not_business_availability'}

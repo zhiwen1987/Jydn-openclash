@@ -75,8 +75,11 @@ def scheduler(module):
                             if before!=after:module.atomic_json(module.DATA.parent/'local-discovery.json',{'at':time.time(),'source':'public_release'})
                         delay=module.INTERVAL
             except Exception as error:
-                module.log('cycle_failed',type(error).__name__,'error')
-                module.atomic_json(module.HEALTH_PATH,{'status':'degraded','mode':module.MODE,'epoch':module.now(),'reason':type(error).__name__,'current_release':(module.current_manifest() or {}).get('release_id','')})
+                # Retain controlled reason codes without leaking URLs or node data.
+                detail=str(error)
+                reason=detail if isinstance(error,module.ControllerError) and re.fullmatch(r'[A-Za-z0-9_:.+-]{1,140}',detail) else type(error).__name__
+                module.log('cycle_failed',reason,'error')
+                module.atomic_json(module.HEALTH_PATH,{'status':'degraded','mode':module.MODE,'epoch':module.now(),'reason':reason,'current_release':(module.current_manifest() or {}).get('release_id','')})
             time.sleep(max(10,delay-(time.time()-started)))
     return run
 
