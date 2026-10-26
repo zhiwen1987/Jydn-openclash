@@ -1,0 +1,22 @@
+{
+  "schema": "chengwang.external-candidate-path-manifest/v1",
+  "candidate": "mihomo-2eb7717-p1-paired-diagnostic-candidate-20261026-identity56h-v3",
+  "baselineCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+  "pathCount": 5,
+  "newPaths": [
+    {"path": ".github/workflows/chengwang-mihomo-p1-pair.yml", "beforeExists": false, "afterBytes": 5732, "afterSHA256": "cb63c2a9bb501db599d0998f5cb8c8debd6d103b57e619570bf4764481d4d2f2", "mode": "100644"},
+    {"path": "chengwang/deploy/mihomo-p1-pair/check_pair.py", "beforeExists": false, "afterBytes": 37873, "afterSHA256": "4bb6393614e707e321c8b20920279733fd95ab50bc1caef7e6c978c95b045e12", "mode": "100644"},
+    {"path": "chengwang/deploy/mihomo-p1-pair/pair_controller.py", "beforeExists": false, "afterBytes": 22491, "afterSHA256": "8b65261b58577adbe4494fccb7c5809af9159f7d41e0d29e7c56afeb2f0570b2", "mode": "100644"},
+    {"path": "chengwang/deploy/mihomo-p1-pair/run_contracts_p1.sh", "beforeExists": false, "afterBytes": 11873, "afterSHA256": "ab658a626834a2adc19cefabb437472960b12ae9ffa044f200561e1ca6694f32", "mode": "100644"},
+    {"path": "chengwang/deploy/mihomo-p1-pair/run_leg.sh", "beforeExists": false, "afterBytes": 2342, "afterSHA256": "bfad624052f9f0425d2d3aef15b5517621f2891847471aecebb8ed3ba2cce2b2", "mode": "100644"}
+  ],
+  "modifiedExistingPaths": [],
+  "deletedPaths": [],
+  "fullPatch": {"path": "mihomo-p1-paired-diagnostic-v3-full.patch", "bytes": 83379, "sha256": "3282602e8f4fb70a91940e25c3bcaa841b28f6da52d5f1c4ed5b18e562deeb1f", "appliesCleanlyToBaseline": true},
+  "v2ToV3Patch": {"path": "v2-to-v3.patch", "bytes": 4968, "sha256": "a6cbe2ba18c9c68038e3b4b13f85540980de27ee0407342ef11a361cd4e875a7", "onlyChangedCandidatePath": "chengwang/deploy/mihomo-p1-pair/check_pair.py"},
+  "beforeArtifact": "BEFORE-ABSENCE.json",
+  "afterRoot": "after",
+  "utf8": true,
+  "lineEndings": "LF",
+  "finalNewline": true
+}

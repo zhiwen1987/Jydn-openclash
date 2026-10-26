@@ -1,0 +1,28 @@
+{
+  "schema": "chengwang.p1-paired-diagnostic-source-receipt/v3",
+  "candidate": "mihomo-2eb7717-p1-paired-diagnostic-candidate-20261026-identity56h-v3",
+  "frozenDate": "2026-10-26",
+  "verdict": "SOURCE_CANDIDATE_READY_FOR_INDEPENDENT_REVIEW_ONLY",
+  "measurementOnly": true,
+  "production": false,
+  "baselineCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+  "baselineTrackedPaths": 1516,
+  "candidateNewPaths": 5,
+  "candidateModifiedTrackedPaths": 0,
+  "rawGoBinding": {"trackedGoFiles": 569, "gitTreeRowsSHA256": "2477c4c913fe462dd369e6bec6bdf5f13b653bd2693783df45e530bfdb23be58", "newGoPaths": 0, "modifiedGoPaths": 0, "allRawGoBlobsFromExact2eb": true},
+  "correctionChain": [
+    {"candidate": "v1", "formalVerdict": "REVISE", "formalReviewSHA256": "eead2a5bfa70eeeb0d40e098e24497476d533068409220bbe9a68212201db3f4"},
+    {"candidate": "v2", "formalVerdict": "REVISE", "formalReviewSHA256": "e3c4a49e0fdde1732a87dda4bf3c1d6bc16cebcaa3f11f0ea0726224a1784bf7", "soleFinding": "cross-leg namespace numeric identity was over-strong for sequential destroyed namespaces"}
+  ],
+  "v3NamespaceContract": {"eachLegSandboxDiffersFromConcurrentlyAliveHost": true, "eachLegUsesFreshUnshareInvocationAndPrivateCache": true, "crossLegNamespaceNumericStringsCompared": false, "numericNamespaceStringIsPermanentIdentity": false, "sequentialNumericReusePositiveModelAccepted": true, "namespaceFDPinningAdded": false},
+  "preservedV2Closure": {"snapshotGoModDigest": true, "exactNormalSandboxFields": true, "fullCapacityResourceRows": true, "strictFiveEventPidfdAcquireBeforeGate": true, "journalPIDRunnerExitAndSignalConsistency": true},
+  "models": {"positiveCases": 7, "negativeMutants": 17, "expectRejectCatchesOnlyValueError": true, "countsDerivedFromExecutedCaseTable": true},
+  "normalContract": {"legA": "exact 2eb format plus ordinary plus default-p race", "legB": "only race adds -p=1", "goTestTimeoutSeconds": 180, "requiredTopLevelTests": 688, "historyEntries": 256, "recordBytes": 2097152, "runtimeGOMAXPROCSModified": false, "legBCanReplaceDefaultPAcceptance": false},
+  "pairing": {"jobs": ["AB", "BA"], "legsSequentialWithinJob": true, "freshPrivateCacheAndNamespaceInvocationPerLeg": true, "sameRunnerSameLoadProven": false, "captureVerifiedSeparateFromGoAccepted": true, "performanceCauseProven": false},
+  "dualIdentity": {"measurementSourceCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8", "controllerCommit": "INTEGRATION_COMMIT_REQUIRED_AT_RUNTIME", "separateReadOnlyCheckouts": true},
+  "historicalProvenance": {"originalHarnessCommit": "8d360ed0a358250cc1f855633f133636aac64287", "harnessAlsoPresentAt": "886e1544d99929f3a45b45549e5ae1df600638bc", "historicalRun": "40252034807"},
+  "cpuChecks": {"pythonAST": "PASS", "model7Positive17Negative": "PASS", "scriptOnlyRaceP1": "PASS", "actualPublicSandboxResourceReplay": "PASS", "allForgedResourceReplayRejected": true, "fullPatchApply": "PASS", "diffCheck": "PASS"},
+  "actualReplayClass": "DIAGNOSTIC_READER_LOGIC_REPLAY_NOT_LINUX_WORKFLOW_ACCEPTANCE",
+  "notRun": ["Go", "gofmt", "workflow", "CI", "Linux namespace runtime", "network", "production"],
+  "integrationBoundary": "Root remains the only integrator; a fresh independent v3 review is required before isolated Linux measurement."
+}

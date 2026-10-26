@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "patch": {
+    "repository": "mihomo / Chengwang P1 paired diagnostic measurement branch",
+    "sourceType": "patch_file",
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8 (tree e7a84d171913cb601feb5dd7609b625ca3d4b045)",
+    "head": "frozen five-new-path v3 afterimage represented by mihomo-p1-paired-diagnostic-v3-full.patch",
+    "changedFiles": [
+      ".github/workflows/chengwang-mihomo-p1-pair.yml",
+      "chengwang/deploy/mihomo-p1-pair/check_pair.py",
+      "chengwang/deploy/mihomo-p1-pair/pair_controller.py",
+      "chengwang/deploy/mihomo-p1-pair/run_contracts_p1.sh",
+      "chengwang/deploy/mihomo-p1-pair/run_leg.sh"
+    ],
+    "sha256": "3282602e8f4fb70a91940e25c3bcaa841b28f6da52d5f1c4ed5b18e562deeb1f"
+  },
+  "recommendation": "merge",
+  "workflowLabel": "human_review_required",
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch adds an isolated CI diagnostic branch with no product Go-byte or production-state change. If wrong, it can misclassify or lose confidence in a default-p versus -p=1 diagnostic result, but cannot itself change the product runtime."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "V3 precisely removes the unsupported cross-lifetime namespace-number inequality, adds the legitimate sequential-reuse positive case, confines the delta to the reader, and preserves all independently reviewed source, custody, resource, and success-state controls."
+  },
+  "regressionProtection": {
+    "rating": "partial",
+    "rationale": "Exact patch/path binding, strict apply-check, Python AST, 7 positive models, 17 named reject mutations, and exact script byte transformation pass. Linux workflow, namespace runtime, Go, and hosted-runner integration have not run.",
+    "exactHeadChecksPassed": false
+  },
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The unintegrated measurement candidate adds five isolated workflow/controller paths, modifies no tracked product or Go bytes, creates no migration or persistent state, and can be reverted or omitted directly."
+  },
+  "confidence": {
+    "rating": "high",
+    "rationale": "The frozen patch, v2-to-v3 delta, manifest, SOURCE and FSYNC identities match; the full patch applies strictly to exact 2eb; every afterimage matches; only check_pair.py differs from v2; and the revised positive/negative models were independently executed and inspected."
+  },
+  "applicability": {
+    "status": "confirmed",
+    "rationale": "The candidate is an explicitly measurement-only AB/BA branch for the unresolved exact-2eb default-p versus -p=1 hypothesis. It does not claim a product fix, a performance benefit, or authority to replace default-p acceptance."
+  },
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without an accepted measurement branch the P1 timing hypothesis remains unresolved. V3 removes the v2 false-rejection risk while preserving the diagnostic controls needed for a meaningful isolated Linux run."
+  },
+  "autoMergeExclusions": [
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "affectedRuntimeRoots": [
+    ".github/workflows/chengwang-mihomo-p1-pair.yml",
+    "chengwang/deploy/mihomo-p1-pair/pair_controller.py",
+    "chengwang/deploy/mihomo-p1-pair/check_pair.py",
+    "chengwang/deploy/mihomo-p1-pair/run_leg.sh",
+    "chengwang/deploy/mihomo-p1-pair/run_contracts_p1.sh"
+  ],
+  "importantCallers": [
+    "GitHub Actions pair matrix jobs AB and BA",
+    "pair_controller.py prepare, supervise, finish, inner-binding, inner-resource, and fsync-originals",
+    "check_pair.py verify, validate_leg, sandbox_contract, resource, supervision, and models",
+    "exact 2eb run_contracts.sh and check_contracts.py",
+    "exact 2eb capacity profile source snapshot, producer, and resource verifier"
+  ],
+  "riskDrivers": [
+    "This remains architecture- and Linux-specific diagnostic orchestration that has not run on the target hosted runner.",
+    "Capture verification and Go acceptance depend on multiple generated artifacts and strict reader contracts.",
+    "The measurement can test correlation only; it cannot establish a performance cause from one AB/BA sample."
+  ],
+  "protectiveFactors": [
+    "V3 no longer treats transient namespace inode strings as permanent identities across sequential legs.",
+    "Each leg still validates sandbox net/mount/pid namespaces against the simultaneously live host namespaces, exact syntax, exact module hash, private temporary root, UID/GID, capabilities, no-new-privileges, and environment keys.",
+    "The producer source still performs a fresh unshare invocation and fresh private cache setup per leg.",
+    "Exact five-row resource semantics and exact five-event successful pidfd journal remain mandatory.",
+    "Only ValueError from the validator rejection path is counted by expect_reject; setup TypeError, KeyError, assertion, or other exceptions cannot inflate the 17-negative count.",
+    "Leg A remains exact 2eb normal; leg B differs only by inserting -p=1 on the race command. The 180-second timeout, 688 tests, 256 entries, 2 MiB limit, packages, and unset GOMAXPROCS are unchanged.",
+    "Available originals are uploaded under always(), while failed, signaled, timed-out, incomplete, or nonzero-Go captures cannot become captureVerified.",
+    "B cannot replace A and performanceCauseProven remains false."
+  ],
+  "materialBoundaries": [
+    {
+      "id": "frozen-identity-and-change-confinement",
+      "invariant": "V3 must be exactly the supplied full patch, with the v2 correction limited to check_pair.py and no product Go-byte change.",
+      "runtimeRoot": "full patch, v2-to-v3 patch, PATH-MANIFEST, candidate repo, and afterimages",
+      "counterexample": "A workflow/controller/script byte changes together with the reader correction or an unlisted Go file enters the candidate.",
+      "legitimateControl": "All provided hashes match; candidate and afterimage members match the manifest; the other four candidate paths are byte-identical to v2; the full patch strictly applies to exact 2eb.",
+      "result": "supported"
+    },
+    {
+      "id": "sequential-namespace-contract",
+      "invariant": "Freshness is established per leg by fixed fresh-unshare source plus comparison with simultaneously live host namespaces, without assuming transient numeric strings are permanently unique across sequential lifetimes.",
+      "runtimeRoot": "check_pair.py sandbox_contract, validate_leg, verify, and models; run_leg.sh",
+      "counterexample": "A legitimate fresh B namespace receives the same freed numeric identifier as A and is rejected, or a leg runs in a live host namespace and is accepted.",
+      "legitimateControl": "V3 removes namespace_separation and pair_reused_sandbox_namespaces, accepts identical sandbox strings against a different later host in its positive model, and retains all three per-leg sandbox-versus-host inequalities and syntax checks. This matches Linux namespace lifetime semantics established in the retained v2 review.",
+      "result": "supported"
+    },
+    {
+      "id": "model-rejection-truthfulness",
+      "invariant": "Every reported negative case is executed and rejected by its named validator, not by setup failure or a broad exception catch.",
+      "runtimeRoot": "check_pair.py models and need",
+      "counterexample": "A malformed fixture raises KeyError, TypeError, JSON setup failure, or another unrelated exception and is counted as a valid boundary rejection.",
+      "legitimateControl": "expect_reject catches only ValueError; the candidate's explicit ValueError raise is the common need() rejection path; every mutant is valid JSON constructed before invocation; independent execution reports exactly the 17 named sandbox, resource, and supervision cases.",
+      "result": "supported"
+    },
+    {
+      "id": "exact-source-and-p1-delta",
+      "invariant": "A runs exact 2eb normal, B adds only -p=1 to the race command, and all measurement source/module bytes bind exact 2eb.",
+      "runtimeRoot": "run_contracts_p1.sh, run_leg.sh, source_snapshot, raw_go_binding, and check_pair.py",
+      "counterexample": "A normal bytes differ, B changes another flag, or a dirty/forged Go or go.mod byte is accepted.",
+      "legitimateControl": "The independent script-contract run proves the sole -p=1 insertion; exact source/module and full tracked blob validation remain unchanged from v2; no candidate Go path exists.",
+      "result": "supported"
+    },
+    {
+      "id": "resource-observation-integrity",
+      "invariant": "All five resource rows have exact names, scopes, types, ranges, and reason/value relations.",
+      "runtimeRoot": "check_pair.py resource",
+      "counterexample": "Plausible row names conceal forged scopes, values, reasons, bool-as-int aliases, or inconsistent unlimited quota data.",
+      "legitimateControl": "The v3 reader preserves v2's exact 2eb-derived row semantics; six named resource mutants, including all-forged rows, execute and are rejected.",
+      "result": "supported"
+    },
+    {
+      "id": "successful-supervision-state-machine",
+      "invariant": "captureVerified requires exactly START_INTENT, STARTED_GATED, PIDFD_ACQUIRED, GATE_RELEASED, WAIT_RETURNED for one PID and a successful, unsignaled runner.",
+      "runtimeRoot": "pair_controller.py supervise and check_pair.py supervision",
+      "counterexample": "Gate release precedes pidfd acquisition, a PID/schema differs, outer timeout or signals occur, runner exit mismatches, or capture is incomplete.",
+      "legitimateControl": "The strict five-event sequence, PID, schema, runner-exit, signal, timeout, and completion gates are byte-identical to v2; five named supervision mutants execute and are rejected.",
+      "result": "supported"
+    },
+    {
+      "id": "partial-capture-and-original-preservation",
+      "invariant": "Timeout/signal/partial evidence is not accepted as success, but available originals are retained for diagnosis.",
+      "runtimeRoot": "pair_controller.py runner outcome, check_pair.py validate_leg/supervision, and workflow always-run reader/upload steps",
+      "counterexample": "A 420-second outer timeout with TERM/KILL becomes captureVerified or its raw failure artifacts are silently omitted.",
+      "legitimateControl": "Strict verification requires no outer timeout/signals and complete successful supervision; workflow upload uses always() and remains byte-identical to v2.",
+      "result": "supported"
+    },
+    {
+      "id": "go-acceptance-and-causality-separation",
+      "invariant": "B cannot replace default-p A, failed Go cannot become acceptance, and diagnostic timing cannot be reported as a proven cause.",
+      "runtimeRoot": "check_pair.py validate_leg/verify and comparison report",
+      "counterexample": "Only B passes, partial evidence is accepted, or one timing sample is labeled causal.",
+      "legitimateControl": "Per-leg Go acceptance, bMayReplaceOriginalAcceptance=false, originalDefaultPAcceptanceStillRequired=true, and performanceCauseProven=false remain fixed.",
+      "result": "supported"
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen artifact identity",
+      "status": "passed",
+      "protects": "Full patch 83379 bytes SHA-256 3282602e8f4fb70a91940e25c3bcaa841b28f6da52d5f1c4ed5b18e562deeb1f; v2-to-v3 delta 4968 bytes SHA-256 a6cbe2ba18c9c68038e3b4b13f85540980de27ee0407342ef11a361cd4e875a7; manifest, SOURCE, and FSYNC hashes match."
+    },
+    {
+      "name": "Exact base and strict patch application",
+      "status": "passed",
+      "protects": "Baseline HEAD is exact 2eb with tree e7a84d; git apply --check --whitespace=error-all passes for the frozen full patch."
+    },
+    {
+      "name": "Manifest and afterimage binding",
+      "status": "passed",
+      "protects": "All five repo and artifact-after files match each other and the manifest SHA-256/byte declarations."
+    },
+    {
+      "name": "V2-to-v3 confinement",
+      "status": "passed",
+      "protects": "Only check_pair.py changes; workflow, controller, p1 script, and leg script are byte-identical to v2."
+    },
+    {
+      "name": "Independent Python AST and models",
+      "status": "passed",
+      "protects": "AST parses; models report exactly 7 positive cases and 17 named reject mutations. The sequential same-number namespace positive succeeds."
+    },
+    {
+      "name": "Reject-exception specificity",
+      "status": "passed",
+      "protects": "expect_reject catches only ValueError; explicit rejection originates in need(); valid encoded mutant fixtures avoid setup parse errors."
+    },
+    {
+      "name": "Independent normal-versus-p1 script contract",
+      "status": "passed",
+      "protects": "The only accepted script delta is -p=1 before -race; output reports only_race_p_equals_1_added=true."
+    },
+    {
+      "name": "Go/gofmt/workflow/CI/Linux namespace runtime/network/production",
+      "status": "skipped",
+      "protects": "Prohibited and not claimed. Source acceptance permits root integration into a separate measurement branch only; fresh Linux and Go evidence remains required."
+    }
+  ],
+  "unknowns": [
+    {
+      "summary": "No Linux measurement, hosted-runner workflow, Go, or target namespace runtime ran; capture success, Go acceptance, timing difference, and performance benefit remain unproven.",
+      "decisionCritical": false
+    },
+    {
+      "summary": "The isolated branch still cannot prove same-runner same-load equivalence or causality; its own report truthfully keeps performanceCauseProven false.",
+      "decisionCritical": false
+    }
+  ],
+  "evidencePlan": []
+}
