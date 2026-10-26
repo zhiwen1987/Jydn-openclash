@@ -2,6 +2,8 @@
 
 > 历史操作记录：本文包含旧双容器架构及当时的监控/频率参数。当前 `clash-center` 单容器使用[最新手册](../../docs/system-guide.zh-CN.md)和[恢复说明](../../installer/RECOVERY.zh-CN.md)，当前数据目录与本次验收见[部署记录](../../docs/production-deployment-20261026.md)。不要照旧容器名执行重启或恢复命令。
 
+当前逐页操作、指标和按钮说明见[管理页面完整手册](../../docs/management-pages.zh-CN.md)；订阅信息缺失、IPv6 检测出口及尚未修复的准入锁见[后续问题记录](../../docs/diagnostics-20261027.md)。下文不是这些问题的修复收据。
+
 适用环境：
 
 - Docker 主机：`10.88.0.249`

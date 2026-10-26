@@ -1,12 +1,12 @@
 # lan-center
 
-> 当前入口：中心已采用 `clash-center` 单容器架构，Kuma、CoreDNS、订阅和能力评估集中运行。请优先阅读[最新使用手册](../../docs/system-guide.zh-CN.md)、[部署记录](../../docs/production-deployment-20261026.md)与[恢复手册](../../installer/RECOVERY.zh-CN.md)。下面保留的双容器说明、历史组数和检测频率用于追溯，不作为当前生产参数；外置 Grok 宿主机任务仍单独管理。
+> 当前入口：中心已采用 `clash-center` 单容器架构，Kuma、CoreDNS、订阅和能力评估集中运行。请优先阅读[管理页面完整手册](../../docs/management-pages.zh-CN.md)、[最新使用手册](../../docs/system-guide.zh-CN.md)、[部署记录](../../docs/production-deployment-20261026.md)与[恢复手册](../../installer/RECOVERY.zh-CN.md)。[后续问题记录](../../docs/diagnostics-20261027.md)中的准入锁和套餐元数据仍待修复。下面保留的双容器说明、历史组数和检测频率用于追溯，不作为当前生产参数；外置 Grok 宿主机任务仍单独管理。
 
 生产位置：`10.88.0.249:/root/dpanel/compose/lan-center`
 
-完整维护与回滚步骤见 [OPERATIONS.md](./OPERATIONS.md)，基础监控验收见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)，V2 节点能力系统验收见 [ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md](./ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md)，自动订阅控制器验收见 [ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md](./ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md)。
+当前维护与回滚以顶部的新手册为准。历史操作记录见 [OPERATIONS.md](./OPERATIONS.md)，基础监控验收见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)，V2 节点能力系统验收见 [ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md](./ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md)，自动订阅控制器验收见 [ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md](./ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md)。
 
-## 当前架构
+## 历史架构与检测记录（不用于当前部署）
 
 - `uptime-kuma`：监控面板，局域网端口 `3101`；镜像固定到已验收的 SHA256 摘要。
 - `failover`：不新增第三个容器，内部同时运行代理观察、业务探针、ChatGPT 控制器、节点能力评估器、订阅发布控制器和子进程监督。

@@ -8,6 +8,8 @@
 
 当前生产接管状态、版本和证据见[部署记录](../docs/production-deployment-20261026.md)，日常业务选择、自建节点及故障排查见[系统手册](../docs/system-guide.zh-CN.md)。全新安装和接管的数据路径不同，查看凭据前先确认实际 `/data` 挂载，不能把新站点路径直接当成已有生产路径。
 
+安装后的 OpenClash、3101/3102/3103、DPanel 页面及指标操作见[管理页面完整手册](../docs/management-pages.zh-CN.md)；[问题与核验记录](../docs/diagnostics-20261027.md)列出当前已知缺口。源码文档更新不代表已重新构建或升级离线包。
+
 - Docker 主机：Linux x86_64、systemd、Python 3.9 或更高、Docker Engine 与 Compose v2；SSH 用户须为 root，或能够 `sudo -n`。至少留出 6 GiB 空间，建议 10 GiB。
 - 旁路由：x86_64 OpenWrt/iStoreOS，已有 opkg 安装的 OpenClash 0.48.002、Ruby/YAML、curl、UCI 和可运行的 Mihomo。当前包同时核对插件版本和兼容内核 SHA-256；不匹配就停止，不能据此推断支持全部 OpenClash 版本。
 - 操作端：Windows x64 内置独立 Python；Linux x86_64 需要 Python 3.11–3.13、glibc 2.34 或更高。依赖随包提供，无需更改系统 Python。
