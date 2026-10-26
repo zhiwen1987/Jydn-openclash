@@ -5,7 +5,7 @@
 ## 支持范围
 
 - Docker 主机：Linux x86_64、systemd、Docker Engine 与 Compose v2；SSH 用户须为 root，或能够 `sudo -n`。至少留出 6 GiB 空间，建议 10 GiB。
-- 旁路由：x86_64 OpenWrt/iStoreOS，已有 OpenClash、Ruby/YAML、curl、UCI 和可运行的 Mihomo。当前包严格核对兼容内核 SHA-256；不匹配就停止，不能据此推断支持全部 OpenClash 版本。
+- 旁路由：x86_64 OpenWrt/iStoreOS，已有 opkg 安装的 OpenClash 0.48.002、Ruby/YAML、curl、UCI 和可运行的 Mihomo。当前包同时核对插件版本和兼容内核 SHA-256；不匹配就停止，不能据此推断支持全部 OpenClash 版本。
 - 操作端：Windows x64 内置独立 Python；Linux x86_64 需要 Python 3.11–3.13、glibc 2.34 或更高。依赖随包提供，无需更改系统 Python。
 - 普通静态 IPv4 管理网络。OpenClash 软件、内核、防火墙依赖的安装属于前置准备，不在不明版本设备上自动替换。
 
@@ -18,6 +18,8 @@
 5. 安装器完成本地校验、预检、备份、镜像加载、双端恢复守护、部署和运行验收后输出收据。自动生成的密钥只保存在目标机受限目录。
 
 默认面板为 Docker 主机的 3101（Kuma）、3102（节点能力）、3103（订阅与自建节点）。可在向导调整端口。DNS 默认不发布；选择发布也不会修改 DHCP 或终端 DNS。
+
+空订阅只适合先部署管理服务。全新站点同时选择空订阅和发布 DNS 时，会在修改旁路由前停止并恢复准备事务；当前模板的默认加密解析依赖代理，不能把它当成已经可用的全网 DNS。启用 DNS 前需提供有效订阅，并验收 UDP、TCP 和真实访问。环境档案中的 `dns.test_name` 可指定实际验收域名，默认 `www.baidu.com`；更换单个测试域名不能代替完整业务验收。
 
 首次设置 Kuma 管理员后，会通过 Kuma 原生 API 添加三个中心服务监控。其他业务监控需要根据目标环境接入，不能把别的局域网的 Lucky/ESXi 地址直接复制过来。3103 编辑凭据在目标机 `/opt/clash-stack/<站点>/data/control/subscription-controller/local-source/admin-token`；应在自己的受信管理终端查看，避免复制到工单或 Git。
 
@@ -51,3 +53,9 @@ restore --profile sites/home.json
 源代码在本目录；`Dockerfile` 只从已固定 ID 的基础镜像构建，不从生产容器执行 `docker commit`。`build_package.py` 按文件散列生成包，`sources/` 保存核心对应声明版本的源代码和构建上下文，`NOTICE.md` 说明第三方来源。散列用于检查完整性，不代替可信发行来源的签名。
 
 首次交付的测试结果以同目录验收文档为准。没有实测的环境应标为未验收。
+
+## 轻量化措施
+
+Linux 3.11–3.13 共用相同的 ABI3 和纯 Python 依赖，仅保留各版本的必要扩展。空节点时降低图谱查询频率，订阅发布通过标记文件唤醒发现。已存在且镜像 ID 精确匹配时跳过重复加载；恢复策略选择时共用一次策略图读取。新受管配置采用实测内存更低的 `memconservative` 数据加载器。
+
+这些优化不修改已有生产模板。镜像仍含现有 Kuma 和运行依赖，当前不靠删除未知依赖压缩镜像。镜像基础运行时代码固定，三份受管脚本通过只读挂载按清单散列验证；二者共同构成本版本。

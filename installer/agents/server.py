@@ -359,7 +359,10 @@ def verify(p, base, accept=False):
         check(setup['ok'],'kuma_initialization_pending_or_failed');checks['kuma_setup']='ready'
     if p['dns']['publish']:
         import struct
-        query=b'\x19\x26'+struct.pack('!5H',0x100,1,0,0,0)+b'\x03www\x05baidu\x03com\x00'+struct.pack('!2H',1,1)
+        labels=p['dns'].get('test_name','www.baidu.com').rstrip('.').encode('ascii').split(b'.')
+        check(all(0<len(label)<=63 for label in labels),'dns_test_name_invalid')
+        question=b''.join(bytes([len(label)])+label for label in labels)+b'\x00'+struct.pack('!2H',1,1)
+        query=b'\x19\x26'+struct.pack('!5H',0x100,1,0,0,0)+question
         for tcp in (False,True):
             with socket.socket(socket.AF_INET,socket.SOCK_STREAM if tcp else socket.SOCK_DGRAM) as s:
                 s.settimeout(5);s.connect((p['server']['host'],p['ports']['dns']))
@@ -368,7 +371,8 @@ def verify(p, base, accept=False):
                     while len(raw)<n:
                         chunk=s.recv(n-len(raw));check(bool(chunk),'dns_tcp_eof');raw+=chunk
                 else:s.send(query);raw=s.recv(4096)
-            header=struct.unpack('!6H',raw[:12]);check(header[0]==0x1926 and header[1]&15==0 and header[3]>0,'dns_query_failed')
+            check(len(raw)>=12,'dns_response_incomplete')
+            header=struct.unpack('!6H',raw[:12]);check(header[0]==0x1926 and header[1]&0x8000 and not header[1]&0x0200 and header[1]&15==0 and header[2]==1 and header[3]>0 and raw[12:12+len(question)].lower()==question.lower(),'dns_query_failed')
             checks['dns_tcp' if tcp else 'dns_udp']='ready'
     current=all_shapes()
     for name,old in t.get('other_containers',{}).items():

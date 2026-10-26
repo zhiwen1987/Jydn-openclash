@@ -4,11 +4,11 @@ import time
 from pathlib import Path
 
 from .model import Failure, canonical, digest, require, site_paths, verify_bundle
-from .transport import SSH
 
 
 class Coordinator:
     def __init__(self, root, profile, passwords=None, emit=print):
+        from .transport import SSH
         self.root=Path(root).resolve();self.p=profile;self.paths=site_paths(profile)
         self.manifest=verify_bundle(self.root);self.emit=emit;passwords=passwords or {}
         self.server=SSH(profile['server'],passwords.get('server'))
@@ -92,6 +92,8 @@ class Coordinator:
             self.emit('创建配置与数据库备份…')
             receipt=self.server_action('prepare',package=self.package,manifest=self.manifest,inputs=inputs or {})
             server_prepared=True;material=receipt.pop('private')
+            require(self.p['mode']!='fresh' or not self.p['dns']['publish'] or receipt['source_count']>0,
+                    '空订阅尚无代理解析能力，请先关闭 DNS 发布；配置有效订阅并验收后再启用')
             self.router_action('prepare',material=material,allow_router_switch=allow_router_switch,expected=plan['inventory']['router']);router_prepared=True
             if self.p['mode']=='fresh':self.stage_router(material,receipt['source_count'])
             self.emit('部署中心服务并启用独立回退保护…')

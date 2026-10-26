@@ -51,6 +51,11 @@ def profile(value):
     dns=value.get('dns',{})
     require(set(dns) <= {'publish','upstreams','test_name','allowed_cidrs'}, 'DNS 字段不支持')
     require(type(dns.get('publish')) is bool,'必须明确是否发布 DNS 端口')
+    if 'test_name' in dns:
+        name=dns['test_name']
+        require(isinstance(name,str) and 1<=len(name.rstrip('.'))<=253 and all(
+            bool(re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?',label))
+            for label in name.rstrip('.').split('.')),'DNS 验收域名格式无效')
     require(not dns['publish'] or ports['dns'] not in [ports[k] for k in ('kuma','capability','subscription')],'中心 DNS 与面板端口重复')
     require(isinstance(dns.get('upstreams'),list) and 1<=len(dns['upstreams'])<=4,'需要 1–4 个 DNS 上游')
     for address in dns['upstreams']:

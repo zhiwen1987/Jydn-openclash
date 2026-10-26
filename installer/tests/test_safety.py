@@ -41,4 +41,10 @@ class SafetyTests(unittest.TestCase):
  def test_manifest_has_no_credential_fields_in_profile(self):
   p=self.valid();self.assertEqual(profile(p),p)
   self.assertNotIn('password',canonical(p).decode())
+ def test_dns_acceptance_name_is_bounded(self):
+  for name in ('www.baidu.com','example.com.','a'*63+'.test'):
+   p=self.valid();p['dns']['test_name']=name;profile(p)
+  for name in ('','a'*64+'.test','a..test','-bad.test','https://example.com',123):
+   p=self.valid();p['dns']['test_name']=name
+   with self.assertRaises(Failure):profile(p)
 if __name__=='__main__':unittest.main()
