@@ -243,6 +243,78 @@ func TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL(t *testin
 			t.Fatal("MODEL dynamic create-stage diagnostic was accepted")
 		}
 	})
+	t.Run("source-owned-kill-origins-project-without-changing-legacy-events", func(t *testing.T) {
+		registry := &processLabNativeRecoveryCalls
+		registry.mu.Lock()
+		previousCores, previousEvents, previousOverflow := registry.cores, registry.events, registry.overflow
+		registry.cores = map[*ownedLabKernelCore]uint64{}
+		registry.events = []labNativeRecoveryRawCall{}
+		registry.overflow = false
+		registry.mu.Unlock()
+		t.Cleanup(func() {
+			registry.mu.Lock()
+			registry.cores, registry.events, registry.overflow = previousCores, previousEvents, previousOverflow
+			registry.mu.Unlock()
+		})
+		core := &ownedLabKernelCore{}
+		labNativeRecoveryObserve(core, "KERNEL_OS_START_ATTEMPT")
+		labNativeRecoveryObserveCancelKillAttempt(core)
+		labNativeRecoveryObserveCancelKillReturn(core)
+		labNativeRecoveryObserveIdentityKillAttempt(core)
+		labNativeRecoveryObserveIdentityKillReturn(core)
+		labNativeRecoveryObserveStopKillAttempt(core)
+		labNativeRecoveryObserveStopKillReturn(core)
+		legacy, legacyBounded := labNativeRecoveryReadCalls()
+		continuous, continuousBounded := labNativeRecoveryReadContinuousCalls()
+		legacyKinds := []string{"KERNEL_OS_START_ATTEMPT", "KERNEL_OS_KILL_ATTEMPT", "KERNEL_OS_KILL_RETURN",
+			"KERNEL_OS_KILL_ATTEMPT", "KERNEL_OS_KILL_RETURN", "KERNEL_OS_KILL_ATTEMPT", "KERNEL_OS_KILL_RETURN"}
+		continuousKinds := []string{"KERNEL_OS_START_ATTEMPT", "KERNEL_OS_CANCEL_KILL_ATTEMPT", "KERNEL_OS_CANCEL_KILL_RETURN",
+			"KERNEL_OS_IDENTITY_KILL_ATTEMPT", "KERNEL_OS_IDENTITY_KILL_RETURN", "KERNEL_OS_STOP_KILL_ATTEMPT", "KERNEL_OS_STOP_KILL_RETURN"}
+		if !legacyBounded || !continuousBounded || len(legacy) != len(continuous) || len(legacy) != len(legacyKinds) {
+			t.Fatal("MODEL source-origin projection changed cardinality or bounds")
+		}
+		for index := range legacy {
+			if legacy[index].Kind != legacyKinds[index] || continuous[index].Kind != continuousKinds[index] ||
+				legacy[index].Sequence != continuous[index].Sequence || legacy[index].Core != continuous[index].Core ||
+				!legacy[index].At.Equal(continuous[index].At) {
+				t.Fatal("MODEL source-origin projection changed legacy identity or mislabeled origin")
+			}
+		}
+		raw, err := json.Marshal(legacy)
+		if err != nil || bytes.Contains(raw, []byte("origin")) || !bytes.Contains(raw, []byte(`"kind":"KERNEL_OS_KILL_ATTEMPT"`)) {
+			t.Fatal("MODEL legacy event JSON exposed origin or changed generic kind")
+		}
+		continuous[1].Kind = "MUTATED"
+		fresh, bounded := labNativeRecoveryReadContinuousCalls()
+		if !bounded || fresh[1].Kind != "KERNEL_OS_CANCEL_KILL_ATTEMPT" {
+			t.Fatal("MODEL returned projection aliased the raw registry")
+		}
+		for _, invalid := range []labNativeRecoveryRawCall{
+			{call: labNativeRecoveryCall{Sequence: 1, Kind: "KERNEL_OS_KILL_ATTEMPT", Core: 1, At: time.Now().UTC()}},
+			{call: labNativeRecoveryCall{Sequence: 1, Kind: "KERNEL_OS_START_ATTEMPT", Core: 1, At: time.Now().UTC()}, killOrigin: labNativeRecoveryKillOriginCancel},
+			{call: labNativeRecoveryCall{Sequence: 1, Kind: "KERNEL_OS_KILL_RETURN", Core: 1, At: time.Now().UTC()}, killOrigin: labNativeRecoveryKillOrigin(255)},
+		} {
+			registry.mu.Lock()
+			registry.cores = map[*ownedLabKernelCore]uint64{core: 1}
+			registry.events = []labNativeRecoveryRawCall{invalid}
+			registry.overflow = false
+			registry.mu.Unlock()
+			projected, ok := labNativeRecoveryReadContinuousCalls()
+			if ok || len(projected) != 1 || projected[0].Sequence != 1 {
+				t.Fatal("MODEL invalid raw origin produced a bounded or filtered projection")
+			}
+		}
+		registry.mu.Lock()
+		registry.cores = map[*ownedLabKernelCore]uint64{}
+		registry.events = []labNativeRecoveryRawCall{}
+		registry.overflow = false
+		registry.mu.Unlock()
+		labNativeRecoveryObserve(core, "KERNEL_OS_KILL_ATTEMPT")
+		legacy, bounded = labNativeRecoveryReadCalls()
+		if bounded || len(legacy) != 0 {
+			t.Fatal("MODEL generic observer forged a source-owned kill")
+		}
+	})
 	t.Run("completed-archive-allows-one-fresh-second-recovery-begin", func(t *testing.T) {
 		m := labContinuousSecondRecoveryBeginModel(t)
 		writes := m.disk.writes

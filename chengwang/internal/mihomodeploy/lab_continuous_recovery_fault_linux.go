@@ -14,7 +14,7 @@ import (
 )
 
 const labContinuousRecoveryFaultDebug = "private continuous recovery response-loss schedule"
-const labContinuousRecoveryFaultSchema = "chengwang.mihomo-continuous-recovery-response-loss/v1"
+const labContinuousRecoveryFaultSchema = "chengwang.mihomo-continuous-recovery-response-loss/v2"
 
 type LabContinuousRecoveryNativeCall struct {
 	Sequence int       `json:"sequence"`
@@ -153,7 +153,7 @@ func BeginLabContinuousRecoveryResponseLoss(service *LabService) (*LabContinuous
 	if !ok {
 		return nil, errLifecycleUnsafe
 	}
-	events, bounded := labNativeRecoveryReadCalls()
+	events, bounded := labNativeRecoveryReadContinuousCalls()
 	if !bounded || len(events) > 256 {
 		return nil, errLifecycleUnsafe
 	}
@@ -218,7 +218,7 @@ func (h *LabContinuousRecoveryFaultHandle) Observe() (LabContinuousRecoveryFault
 	if err != nil {
 		return zero, errLifecycleUnsafe
 	}
-	events, bounded := labNativeRecoveryReadCalls()
+	events, bounded := labNativeRecoveryReadContinuousCalls()
 	if core.nativePrefix > len(events) || !bounded {
 		core.poisoned = true
 		return zero, errLifecycleUnsafe

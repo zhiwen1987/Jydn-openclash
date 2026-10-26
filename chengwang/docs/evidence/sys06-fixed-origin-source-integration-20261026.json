@@ -1,0 +1,313 @@
+{
+  "actualNewRuntimeAccepted": false,
+  "archives": [
+    {
+      "archivedSHA256": "18880f210e9e274f33fc46aa07c2a386f85286ff2e563be147cf8239b3fd71fb",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "4943171d7e13fe191f154a401166f3b48319a62f446869bfdef0edce9029c8b9",
+      "path": "chengwang/docs/evidence/sys06-2eb-continuous-original-rejection-20261026.json",
+      "source": "D:\\CodexData\\workspace\\mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1\\AUDIT-RECEIPT-FINAL.json"
+    },
+    {
+      "archivedSHA256": "e08469380ecdc4e6a56c08f5aa7230cd85178be12db08c7a563c079e68b60dff",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "bd3a63dded7862ceddcbc71cf1917ebbb1773e21733517b24be4fb0b1a262191",
+      "path": "chengwang/docs/evidence/sys06-2eb-normal-diag-unknown-original-audit-20261026.json",
+      "source": "D:\\CodexData\\workspace\\mihomo-2eb7717-normal-diag-unknown-originals-20261026-native56h-v1\\AUDIT-RECEIPT-FINAL.json"
+    },
+    {
+      "archivedSHA256": "ca8a86f554b8f98dfc1785f76662519cae42d52db6558e7bbf3c943897176c82",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "8738b1c11e84098ec221d0297f46f2cf349223a6b76b9ba95faba640a401baf0",
+      "path": "chengwang/docs/evidence/sys06-2eb-oldnative-original-audit-20261026.json",
+      "source": "D:\\CodexData\\workspace\\mihomo-2eb7717-oldnative-originals-20261026-implementation56h-v1\\AUDIT-RECEIPT-FINAL.json"
+    },
+    {
+      "archivedSHA256": "d5a12a9a3e8e544baefdb21b2029ddb75665483c74fb1b767258fbdcebe14f89",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "a1a14e2fb837eb51a79f6aa3414e0e9cd77674becc14378e38d78b9daa49cda4",
+      "path": "chengwang/docs/evidence/sys06-2eb-first-completion-original-audit-20261026.json",
+      "source": "D:\\CodexData\\workspace\\mihomo-2eb7717-first-completion-originals-20261026-implementation56h-v1\\AUDIT-RECEIPT-FINAL.json"
+    },
+    {
+      "archivedSHA256": "4947091a4fda6923b0472d6cd38350469de2f20c6577c4bde3d5bb022d83e081",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "7ea499be1aa6722609e03478dd25e9f12f28b6aa879643dac57bd0dbd5a2801f",
+      "path": "chengwang/docs/evidence/sys06-2eb-cleanup-source-postmortem-20261026.json",
+      "source": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1\\artifacts-ac9e4417367047f11bdaeb850306bc07f2a2da2a1ce9fbb6d4ef2a8b7e78cf4c\\artifacts\\reviews\\policy-multicore-contract-p1v3-postmortem-source-review-final-v3-20261026.json"
+    },
+    {
+      "archivedSHA256": "420eb4ac4ff3ab73d590e132342d5288fc5ee4358712fdc5f00673045b37e121",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "8cdc701762249f66732a52cd554fde784912a1c4e7e37075c02ce62587138b38",
+      "path": "chengwang/docs/evidence/sys06-2eb-cleanup-review-erratum-20261026.json",
+      "source": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1\\artifacts-ac9e4417367047f11bdaeb850306bc07f2a2da2a1ce9fbb6d4ef2a8b7e78cf4c\\artifacts\\reviews\\policy-multicore-contract-cleanup-core-v3-review-erratum-final-v3-20261026.json"
+    },
+    {
+      "archivedSHA256": "afb8e8e1c0a073e240bcdbe0cc39e790b8c223419095796002556c63ec34c2b5",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "4e6af0aa9b016b09fe234dbcf128a790789f3fe766cb890368a4d4f8d2a49213",
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-source-receipt-20261026.json",
+      "source": "D:\\CodexData\\workspace\\mihomo-continuous-origin-v3-20261026-execution56h-v1\\SOURCE-RECEIPT.json"
+    },
+    {
+      "archivedSHA256": "3c19efb7890f631c68ed48129468222259bd2896cce58a432968496555c29e11",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "6d767a82aa8906e2d91f743245651be016c9187b90f2a702871f70f30d90c9f7",
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-implementation-review-20261026.json",
+      "source": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-continuous-origin-v3-20261026-execution56h-v1\\artifacts-7ed8df8ba778b21e09a23744e646639565d6ffd17e8c7375abf60493bdbbf639\\artifacts\\continuous-origin-v3\\implementation56h-patch-risk-assessment.json"
+    },
+    {
+      "archivedSHA256": "1bf20b0866c6438460ccb255179e82ba373c7f650e0d8622ae4884e3b69b54cd",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "386196a087a30e3e790cf27babde612bb22dc143391f8ff7b92b1a2977d138f5",
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-policy-review-20261026.json",
+      "source": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-continuous-origin-v3-20261026-execution56h-v1\\artifacts-7ed8df8ba778b21e09a23744e646639565d6ffd17e8c7375abf60493bdbbf639\\artifacts\\reviews\\policy-multicore-contract-continuous-origin-v3-source-review-final-v1-20261026.json"
+    },
+    {
+      "archivedSHA256": "ef86178b4f4ca6ee6f80f0de1e8fca55d80c349945912474c1ccde23da68d462",
+      "encoding": "SEMANTIC_JSON_LF_COPY_ORIGINAL_PRESERVED",
+      "originalSHA256": "d77a4f96656934f9e023a7626d116ddf3914d2e4d17bbb618494e96658ea07f4",
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-coordinator-review-20261026.json",
+      "source": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-continuous-origin-v3-20261026-execution56h-v1\\artifacts-7ed8df8ba778b21e09a23744e646639565d6ffd17e8c7375abf60493bdbbf639\\artifacts\\fixed-origin-integration-orchestrator-review-v3\\native56h-assessment.json"
+    }
+  ],
+  "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+  "baseline": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+  "candidateAdmissions": [
+    {
+      "kind": "fixed-origin",
+      "manifest": "PATH-MANIFEST.json",
+      "patch": "continuous-origin-v3.patch",
+      "pathCount": 14,
+      "pins": [
+        {
+          "path": "continuous-origin-v3.patch",
+          "sha256": "c115323d488aa4b0dc00fc456d886bfc6ae743c057653f188317dbc7e12c6655"
+        },
+        {
+          "path": "PATH-MANIFEST.json",
+          "sha256": "b58ffa90e7d22f1eb4b6441eca21000e9e8bf234c0b37e48aafd6acca1cb7baf"
+        },
+        {
+          "path": "SOURCE-RECEIPT.json",
+          "sha256": "4e6af0aa9b016b09fe234dbcf128a790789f3fe766cb890368a4d4f8d2a49213"
+        },
+        {
+          "path": "FSYNC-RECEIPT.json",
+          "sha256": "ce92c3b3d72c5e506c3a9fbe40fbf185f26921a9bc7ec728d996205441d12383"
+        }
+      ],
+      "receipt": "SOURCE-RECEIPT.json",
+      "root": "D:/CodexData/workspace/mihomo-continuous-origin-v3-20261026-execution56h-v1"
+    }
+  ],
+  "expectedCPUTotal": 303,
+  "files": [
+    {
+      "afterSHA256": "84ffb0e625694791c9a4f4cb5e9eba38b898024f963f7e87809918e5fb109aa8",
+      "beforeSHA256": "da9e1926cab523adf078debd997050e94e41103f20748a2ac3eb8fc809e77c20",
+      "path": "chengwang/deploy/mihomo-capacity-profile/check_profile.py",
+      "workingPatchPreimageSHA256": "da9e1926cab523adf078debd997050e94e41103f20748a2ac3eb8fc809e77c20"
+    },
+    {
+      "afterSHA256": "ef795b049034f1ea5386b106b9d8e753414bf27a2c27115ef3f1b470fcf878cf",
+      "beforeSHA256": "7f42337ff13bab31d65d6497eff470e99c93bc17c3047317464b0bc1d25eb5f2",
+      "path": "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py",
+      "workingPatchPreimageSHA256": "7f42337ff13bab31d65d6497eff470e99c93bc17c3047317464b0bc1d25eb5f2"
+    },
+    {
+      "afterSHA256": "45772029da345d41b204be0d3f70159bac7e6b34aa8f916e4bbad052883ab43c",
+      "beforeSHA256": "f557100ac0c9b5ac691399223f9e7f6afd28dc17bacc18e6272307a0a9fa6db3",
+      "path": "chengwang/deploy/mihomo-capacity-profile/test_profile_contract.py",
+      "workingPatchPreimageSHA256": "f557100ac0c9b5ac691399223f9e7f6afd28dc17bacc18e6272307a0a9fa6db3"
+    },
+    {
+      "afterSHA256": "821f00104dae925db0b86a636adeac7f3634e75e2ef220dd518a35459dfbd505",
+      "beforeSHA256": "6adf3a0992fc5cc05284b8dca69011b4eb1f2a2ae86bec5ed217c90cc18232af",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "workingPatchPreimageSHA256": "6adf3a0992fc5cc05284b8dca69011b4eb1f2a2ae86bec5ed217c90cc18232af"
+    },
+    {
+      "afterSHA256": "eecfebee1b2f36dd016fa5782514486e9c54765895a1e38d167ecc8e56cb1a9c",
+      "beforeSHA256": "b85225fbfbb693bef66cfa48dc7d21cb122608df032bc5b4ae486540cb834bd7",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json",
+      "workingPatchPreimageSHA256": "b85225fbfbb693bef66cfa48dc7d21cb122608df032bc5b4ae486540cb834bd7"
+    },
+    {
+      "afterSHA256": "8c93a408dda0c07069e745dc0fca6e19b419c8056b558a3abf57a01fd534bc1a",
+      "beforeSHA256": "a3cc01c1c5db2fc9c24387842b077f7b2b113c596dcb6f59e2b228d11d99ab9c",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_source_policy.json",
+      "workingPatchPreimageSHA256": "a3cc01c1c5db2fc9c24387842b077f7b2b113c596dcb6f59e2b228d11d99ab9c"
+    },
+    {
+      "afterSHA256": "6e09818440e82a70c08a8cac22d76def8650daaa25e21fb4416c7dfdeeea9b1c",
+      "beforeSHA256": "8eb82ebc0a8b56e556a72dd1586dd9e1c7cdbd6a89a58adb102afbd1e5ce6cf1",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "workingPatchPreimageSHA256": "8eb82ebc0a8b56e556a72dd1586dd9e1c7cdbd6a89a58adb102afbd1e5ce6cf1"
+    },
+    {
+      "afterSHA256": "5daa529d4695bfae6fbd19d9ec8023fec1ab4a68c3b8e848c3ecb2433f4e0386",
+      "beforeSHA256": "f74e2d434127940870da6212599a502eba8291a715bbc771d615c1fedf3670b7",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "workingPatchPreimageSHA256": "f74e2d434127940870da6212599a502eba8291a715bbc771d615c1fedf3670b7"
+    },
+    {
+      "afterSHA256": "84cfc0c5c5ce7c09dab7d27b7cde1528ddb0c515b77fbd45211953586e425cbb",
+      "beforeSHA256": "93cc6980748699446d44ececabd89816739f59e6a60604f51c757fcd337844ee",
+      "path": "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go",
+      "workingPatchPreimageSHA256": "93cc6980748699446d44ececabd89816739f59e6a60604f51c757fcd337844ee"
+    },
+    {
+      "afterSHA256": "b46ec1563664d20e9089ffcf49e74452c6a249b6c1ec5b65d1c899f4f6edd9b7",
+      "beforeSHA256": "a16aec85cc917fd3a787d2981171a9c49957f8f28ce1cce746ecfcdf02340a13",
+      "path": "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go",
+      "workingPatchPreimageSHA256": "a16aec85cc917fd3a787d2981171a9c49957f8f28ce1cce746ecfcdf02340a13"
+    },
+    {
+      "afterSHA256": "1aea35c74aa2661c1da2f5fce079475ab27d5242820e55d11d245101e02070a6",
+      "beforeSHA256": "112d933fd941052e251cf0215c4fed9bce0b1d9a3868dca04ca4b1db9e8d35b5",
+      "path": "chengwang/internal/mihomodeploy/lab_kernel_linux.go",
+      "workingPatchPreimageSHA256": "112d933fd941052e251cf0215c4fed9bce0b1d9a3868dca04ca4b1db9e8d35b5"
+    },
+    {
+      "afterSHA256": "c22c72c930acd874a07a10a2cd5c4938aecea023e843e15a426d7f4eccef78f9",
+      "beforeSHA256": "b72c34897c3ef6587c8ac9f5318286d54f2913e04d0823422bfb4b8ea411d681",
+      "path": "chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go",
+      "workingPatchPreimageSHA256": "b72c34897c3ef6587c8ac9f5318286d54f2913e04d0823422bfb4b8ea411d681"
+    },
+    {
+      "afterSHA256": "bd7035f68d30f5fe9d27da6957f05b2a7d1984ecd86a048b8e96fd590783bc65",
+      "beforeSHA256": "c06c498510a2d61c6b831527a84c5fbb3311658bcbac7494a88459a0ba588894",
+      "path": "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go",
+      "workingPatchPreimageSHA256": "c06c498510a2d61c6b831527a84c5fbb3311658bcbac7494a88459a0ba588894"
+    },
+    {
+      "afterSHA256": "bccdcb169cd1fd98531634e44eaf47cc64d6eabfc56dea2c420f95fc7a6a2bae",
+      "beforeSHA256": "4b108f4a5347a12744c44d9e341aea220657c5cf08c59ca7c3981ee4fe9ffae9",
+      "path": "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go",
+      "workingPatchPreimageSHA256": "4b108f4a5347a12744c44d9e341aea220657c5cf08c59ca7c3981ee4fe9ffae9"
+    },
+    {
+      "afterSHA256": "5644c24310b3b4db2e9dd333f52f790eda2e9eb65869079a374a5ec72b50f3cd",
+      "beforeSHA256": "834bf24378e13c195cda0ebd87642dfbffde94ba968165f3f6f3abf2d0159aa3",
+      "path": "chengwang/docs/LIVE-TASKS.md",
+      "workingPatchPreimageSHA256": "834bf24378e13c195cda0ebd87642dfbffde94ba968165f3f6f3abf2d0159aa3"
+    },
+    {
+      "afterSHA256": "18880f210e9e274f33fc46aa07c2a386f85286ff2e563be147cf8239b3fd71fb",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-2eb-continuous-original-rejection-20261026.json",
+      "workingPatchPreimageSHA256": "2764f09dbb1e655a09d67c6cede065b5c80e97147b796cbb3e743b84a9402878"
+    },
+    {
+      "afterSHA256": "e08469380ecdc4e6a56c08f5aa7230cd85178be12db08c7a563c079e68b60dff",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-2eb-normal-diag-unknown-original-audit-20261026.json",
+      "workingPatchPreimageSHA256": "c21cd25d76e38749e4f7f831af23b3378018ef4e355f9543b7c5949057ac5bfb"
+    },
+    {
+      "afterSHA256": "ca8a86f554b8f98dfc1785f76662519cae42d52db6558e7bbf3c943897176c82",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-2eb-oldnative-original-audit-20261026.json",
+      "workingPatchPreimageSHA256": "74efeadb6082cc54af5bb6a45878dae027545ef74b07e123259e2053bd07f179"
+    },
+    {
+      "afterSHA256": "d5a12a9a3e8e544baefdb21b2029ddb75665483c74fb1b767258fbdcebe14f89",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-2eb-first-completion-original-audit-20261026.json",
+      "workingPatchPreimageSHA256": "8136da8af15a9584e29459ab3288343312f4a0ca9f268ab7acff5d83b5751ffd"
+    },
+    {
+      "afterSHA256": "4947091a4fda6923b0472d6cd38350469de2f20c6577c4bde3d5bb022d83e081",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-2eb-cleanup-source-postmortem-20261026.json",
+      "workingPatchPreimageSHA256": "7ea499be1aa6722609e03478dd25e9f12f28b6aa879643dac57bd0dbd5a2801f"
+    },
+    {
+      "afterSHA256": "420eb4ac4ff3ab73d590e132342d5288fc5ee4358712fdc5f00673045b37e121",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-2eb-cleanup-review-erratum-20261026.json",
+      "workingPatchPreimageSHA256": "8cdc701762249f66732a52cd554fde784912a1c4e7e37075c02ce62587138b38"
+    },
+    {
+      "afterSHA256": "afb8e8e1c0a073e240bcdbe0cc39e790b8c223419095796002556c63ec34c2b5",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-source-receipt-20261026.json",
+      "workingPatchPreimageSHA256": null
+    },
+    {
+      "afterSHA256": "3c19efb7890f631c68ed48129468222259bd2896cce58a432968496555c29e11",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-implementation-review-20261026.json",
+      "workingPatchPreimageSHA256": null
+    },
+    {
+      "afterSHA256": "1bf20b0866c6438460ccb255179e82ba373c7f650e0d8622ae4884e3b69b54cd",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-policy-review-20261026.json",
+      "workingPatchPreimageSHA256": null
+    },
+    {
+      "afterSHA256": "ef86178b4f4ca6ee6f80f0de1e8fca55d80c349945912474c1ccde23da68d462",
+      "beforeSHA256": null,
+      "path": "chengwang/docs/evidence/sys06-fixed-origin-coordinator-review-20261026.json",
+      "workingPatchPreimageSHA256": null
+    }
+  ],
+  "fullDiagnosticTimeoutResolved": false,
+  "fullPrivateWALIndependentlyProven": false,
+  "fullSystemComplete": false,
+  "inputSHA256": "f76ae2dcb3d1d9b4cd30aa225216e44f31200fede9ad4d610bfe86d8ac8e8275",
+  "integrationScriptSHA256": "ffaa1b6a9e3a706bede49e1644823b1c9bdce6eea4b2b1d4f667f88ec409bb00",
+  "mainMerged": false,
+  "mandatoryGoNames": 688,
+  "patchSHA256": "bd9339e68f701ade03ebe01065f9a7e44fd074785be4258d136bac70de8a8476",
+  "peerPins": [
+    {
+      "path": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-continuous-origin-v3-20261026-execution56h-v1\\artifacts-7ed8df8ba778b21e09a23744e646639565d6ffd17e8c7375abf60493bdbbf639\\artifacts\\continuous-origin-v3\\implementation56h-patch-risk-assessment.json",
+      "role": "implementation",
+      "sha256": "6d767a82aa8906e2d91f743245651be016c9187b90f2a702871f70f30d90c9f7"
+    },
+    {
+      "path": "D:\\CodexData\\home\\state\\plugins\\codex-security\\scans\\mihomo-continuous-origin-v3-20261026-execution56h-v1\\artifacts-7ed8df8ba778b21e09a23744e646639565d6ffd17e8c7375abf60493bdbbf639\\artifacts\\reviews\\policy-multicore-contract-continuous-origin-v3-source-review-final-v1-20261026.json",
+      "role": "policy",
+      "sha256": "386196a087a30e3e790cf27babde612bb22dc143391f8ff7b92b1a2977d138f5"
+    }
+  ],
+  "performanceBenefitProven": false,
+  "preparationScriptSHA256": "cedeed7c4b8f973721dcc1e324704cb990709d80c322999c06767d492080a150",
+  "production": false,
+  "registryPublished": false,
+  "rootPlanSHA256": "353bd58c2cbf33297bccc004a9ed3fe96d4e7d0d9fce6e35b1e4d8e4afa6c25f",
+  "schema": "chengwang.fixed-origin-root-plan/v1",
+  "scope": "SOURCE_AND_CPU_NOT_NEW_RUNTIME_ACCEPTANCE",
+  "sharedProductGoSourceChanged": true,
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-capacity-profile/check_profile.py": "84ffb0e625694791c9a4f4cb5e9eba38b898024f963f7e87809918e5fb109aa8",
+    "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py": "ef795b049034f1ea5386b106b9d8e753414bf27a2c27115ef3f1b470fcf878cf",
+    "chengwang/deploy/mihomo-capacity-profile/test_profile_contract.py": "45772029da345d41b204be0d3f70159bac7e6b34aa8f916e4bbad052883ab43c",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py": "821f00104dae925db0b86a636adeac7f3634e75e2ef220dd518a35459dfbd505",
+    "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json": "eecfebee1b2f36dd016fa5782514486e9c54765895a1e38d167ecc8e56cb1a9c",
+    "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_source_policy.json": "8c93a408dda0c07069e745dc0fca6e19b419c8056b558a3abf57a01fd534bc1a",
+    "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py": "6e09818440e82a70c08a8cac22d76def8650daaa25e21fb4416c7dfdeeea9b1c",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py": "5daa529d4695bfae6fbd19d9ec8023fec1ab4a68c3b8e848c3ecb2433f4e0386",
+    "chengwang/docs/LIVE-TASKS.md": "5644c24310b3b4db2e9dd333f52f790eda2e9eb65869079a374a5ec72b50f3cd",
+    "chengwang/docs/evidence/sys06-2eb-cleanup-review-erratum-20261026.json": "420eb4ac4ff3ab73d590e132342d5288fc5ee4358712fdc5f00673045b37e121",
+    "chengwang/docs/evidence/sys06-2eb-cleanup-source-postmortem-20261026.json": "4947091a4fda6923b0472d6cd38350469de2f20c6577c4bde3d5bb022d83e081",
+    "chengwang/docs/evidence/sys06-2eb-continuous-original-rejection-20261026.json": "18880f210e9e274f33fc46aa07c2a386f85286ff2e563be147cf8239b3fd71fb",
+    "chengwang/docs/evidence/sys06-2eb-first-completion-original-audit-20261026.json": "d5a12a9a3e8e544baefdb21b2029ddb75665483c74fb1b767258fbdcebe14f89",
+    "chengwang/docs/evidence/sys06-2eb-normal-diag-unknown-original-audit-20261026.json": "e08469380ecdc4e6a56c08f5aa7230cd85178be12db08c7a563c079e68b60dff",
+    "chengwang/docs/evidence/sys06-2eb-oldnative-original-audit-20261026.json": "ca8a86f554b8f98dfc1785f76662519cae42d52db6558e7bbf3c943897176c82",
+    "chengwang/docs/evidence/sys06-fixed-origin-coordinator-review-20261026.json": "ef86178b4f4ca6ee6f80f0de1e8fca55d80c349945912474c1ccde23da68d462",
+    "chengwang/docs/evidence/sys06-fixed-origin-implementation-review-20261026.json": "3c19efb7890f631c68ed48129468222259bd2896cce58a432968496555c29e11",
+    "chengwang/docs/evidence/sys06-fixed-origin-policy-review-20261026.json": "1bf20b0866c6438460ccb255179e82ba373c7f650e0d8622ae4884e3b69b54cd",
+    "chengwang/docs/evidence/sys06-fixed-origin-source-receipt-20261026.json": "afb8e8e1c0a073e240bcdbe0cc39e790b8c223419095796002556c63ec34c2b5",
+    "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go": "84cfc0c5c5ce7c09dab7d27b7cde1528ddb0c515b77fbd45211953586e425cbb",
+    "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go": "b46ec1563664d20e9089ffcf49e74452c6a249b6c1ec5b65d1c899f4f6edd9b7",
+    "chengwang/internal/mihomodeploy/lab_kernel_linux.go": "1aea35c74aa2661c1da2f5fce079475ab27d5242820e55d11d245101e02070a6",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go": "c22c72c930acd874a07a10a2cd5c4938aecea023e843e15a426d7f4eccef78f9",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go": "bd7035f68d30f5fe9d27da6957f05b2a7d1984ecd86a048b8e96fd590783bc65",
+    "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go": "bccdcb169cd1fd98531634e44eaf47cc64d6eabfc56dea2c420f95fc7a6a2bae"
+  }
+}

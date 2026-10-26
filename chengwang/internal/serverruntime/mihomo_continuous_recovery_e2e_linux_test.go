@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -311,7 +312,8 @@ func (h continuousRecoveryHTTPS) recover(stage string, unknown mihomodeploy.LabD
 }
 
 func continuousRecoveryObserveValid(observation mihomodeploy.LabContinuousRecoveryFaultObservation) bool {
-	if !observation.NativeCallsBounded || observation.BoundOperations != 3 || observation.ObservedResults != 3 ||
+	if observation.Schema != "chengwang.mihomo-continuous-recovery-response-loss/v2" || !observation.NativeCallsBounded ||
+		observation.BoundOperations != 3 || observation.ObservedResults != 3 ||
 		observation.InitialCore == 0 || observation.RecoveredCore == nil || *observation.RecoveredCore == 0 ||
 		*observation.RecoveredCore == observation.InitialCore || observation.Transport.BoundChildren != 3 ||
 		observation.Transport.UnderlyingRoundTrips != 3 || observation.Transport.Injected != 2 || len(observation.Transport.Steps) != 3 ||
@@ -343,6 +345,19 @@ func continuousRecoveryObserveValid(observation mihomodeploy.LabContinuousRecove
 	previous := 0
 	for _, call := range observation.NativeCalls {
 		if call.Sequence <= previous || call.At.IsZero() {
+			return false
+		}
+		zeroCore := call.Kind == "RECOVERY_START_DISPATCH" || call.Kind == "SYNTAX_OS_START_ATTEMPT" || call.Kind == "SYNTAX_OS_START_RETURN"
+		switch call.Kind {
+		case "RECOVERY_START_DISPATCH", "SYNTAX_OS_START_ATTEMPT", "SYNTAX_OS_START_RETURN", "RECOVERY_STOP_DISPATCH",
+			"KERNEL_OS_START_ATTEMPT", "KERNEL_OS_START_RETURN", "KERNEL_OS_WAIT_ENTER", "KERNEL_OS_WAIT_RETURN",
+			"OWNED_STOP_HELPER_ENTER", "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN",
+			"KERNEL_OS_CANCEL_KILL_ATTEMPT", "KERNEL_OS_CANCEL_KILL_RETURN",
+			"KERNEL_OS_STOP_KILL_ATTEMPT", "KERNEL_OS_STOP_KILL_RETURN":
+		default:
+			return false
+		}
+		if zeroCore != (call.Core == 0) {
 			return false
 		}
 		previous = call.Sequence
@@ -400,29 +415,61 @@ func continuousRecoveryCleanupCalls(before, after mihomodeploy.LabContinuousReco
 			return false
 		}
 		switch call.Kind {
-		case "OWNED_STOP_HELPER_ENTER", "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN", "KERNEL_OS_KILL_ATTEMPT",
-			"KERNEL_OS_KILL_RETURN", "KERNEL_OS_WAIT_ENTER", "KERNEL_OS_WAIT_RETURN":
+		case "OWNED_STOP_HELPER_ENTER", "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN",
+			"KERNEL_OS_CANCEL_KILL_ATTEMPT", "KERNEL_OS_CANCEL_KILL_RETURN",
+			"KERNEL_OS_STOP_KILL_ATTEMPT", "KERNEL_OS_STOP_KILL_RETURN",
+			"KERNEL_OS_WAIT_ENTER", "KERNEL_OS_WAIT_RETURN":
 			positions[call.Kind] = append(positions[call.Kind], index)
 		default:
 			return false
 		}
 	}
-	helper, termAttempt, termReturn, waitReturn := positions["OWNED_STOP_HELPER_ENTER"], positions["KERNEL_OS_TERM_ATTEMPT"],
-		positions["KERNEL_OS_TERM_RETURN"], positions["KERNEL_OS_WAIT_RETURN"]
-	killAttempt, killReturn, waitEnter := positions["KERNEL_OS_KILL_ATTEMPT"], positions["KERNEL_OS_KILL_RETURN"], positions["KERNEL_OS_WAIT_ENTER"]
-	if len(helper) != 1 || len(termAttempt) != 1 || len(termReturn) != 1 || len(waitReturn) != 1 || len(waitEnter) > 1 ||
-		len(killAttempt) != len(killReturn) || len(killAttempt) > 1 ||
-		!(helper[0] < termAttempt[0] && termAttempt[0] < termReturn[0] && termAttempt[0] < waitReturn[0]) {
+	helper := positions["OWNED_STOP_HELPER_ENTER"]
+	waitEnter, waitReturn := positions["KERNEL_OS_WAIT_ENTER"], positions["KERNEL_OS_WAIT_RETURN"]
+	termAttempt, termReturn := positions["KERNEL_OS_TERM_ATTEMPT"], positions["KERNEL_OS_TERM_RETURN"]
+	cancelAttempt, cancelReturn := positions["KERNEL_OS_CANCEL_KILL_ATTEMPT"], positions["KERNEL_OS_CANCEL_KILL_RETURN"]
+	stopAttempt, stopReturn := positions["KERNEL_OS_STOP_KILL_ATTEMPT"], positions["KERNEL_OS_STOP_KILL_RETURN"]
+	if len(helper) != 1 || len(waitReturn) != 1 || len(waitEnter) > 1 ||
+		len(termAttempt) != len(termReturn) || len(termAttempt) > 1 ||
+		len(cancelAttempt) != len(cancelReturn) || len(cancelAttempt) > 1 ||
+		len(stopAttempt) != len(stopReturn) || len(stopAttempt) > 1 {
 		return false
 	}
 	if len(waitEnter) == 1 && waitEnter[0] >= waitReturn[0] {
 		return false
 	}
-	return len(killAttempt) == 0 || termReturn[0] < killAttempt[0] && killAttempt[0] < killReturn[0]
+	if len(termAttempt) == 1 && !(helper[0] < termAttempt[0] && termAttempt[0] < termReturn[0]) {
+		return false
+	}
+	if len(cancelAttempt) == 1 && !(cancelAttempt[0] < cancelReturn[0] && cancelReturn[0] < waitReturn[0]) {
+		return false
+	}
+	if len(stopAttempt) == 1 && (len(termAttempt) != 1 || !(termReturn[0] < stopAttempt[0] && stopAttempt[0] < stopReturn[0])) {
+		return false
+	}
+	protected := make([]string, 0, 6)
+	for _, call := range suffix {
+		switch call.Kind {
+		case "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN", "KERNEL_OS_CANCEL_KILL_ATTEMPT", "KERNEL_OS_CANCEL_KILL_RETURN",
+			"KERNEL_OS_STOP_KILL_ATTEMPT", "KERNEL_OS_STOP_KILL_RETURN":
+			protected = append(protected, call.Kind)
+		}
+	}
+	if len(protected)%2 != 0 {
+		return false
+	}
+	for index := 0; index < len(protected); index += 2 {
+		attempt, returned := protected[index], protected[index+1]
+		if attempt != "KERNEL_OS_TERM_ATTEMPT" && attempt != "KERNEL_OS_CANCEL_KILL_ATTEMPT" && attempt != "KERNEL_OS_STOP_KILL_ATTEMPT" ||
+			returned != strings.TrimSuffix(attempt, "_ATTEMPT")+"_RETURN" {
+			return false
+		}
+	}
+	return true
 }
 
 func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool {
-	if report == nil || report.Schema != "chengwang.mihomo-continuous-recovery-http-experiment/v2" ||
+	if report == nil || report.Schema != "chengwang.mihomo-continuous-recovery-http-experiment/v3" ||
 		report.Scope != "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION" ||
 		len(report.SourceCommit) != 40 || report.Outcome != "PASS" || report.FailureCode != "NONE" ||
 		report.Initial == nil || len(report.HTTP) != 31 || len(report.Heads) != 6 || len(report.Operations) != 3 ||
@@ -459,7 +506,7 @@ func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool
 }
 
 func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testing.T) {
-	report := continuousRecoveryReport{Schema: "chengwang.mihomo-continuous-recovery-http-experiment/v2",
+	report := continuousRecoveryReport{Schema: "chengwang.mihomo-continuous-recovery-http-experiment/v3",
 		Scope:        "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION",
 		SourceCommit: os.Getenv("CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT"), Outcome: "FAIL", FailureCode: "NOT_COMPLETED",
 		HTTP: []continuousRecoveryHTTPOriginal{}, Heads: []continuousRecoveryHeadState{},

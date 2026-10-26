@@ -1,0 +1,170 @@
+{
+  "affectedRuntimeRoots": [
+    "Linux exact-tag continuous-recovery acceptance top TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery",
+    "Python continuous-recovery public evidence reader validate_report",
+    "Python synthetic model contract",
+    "Go 1.23.12 os/exec CommandContext cancellation interaction with ownedLabKernel.stop"
+  ],
+  "applicability": {
+    "rationale": "The reviewed P1v3 patch is integrated in 2eb7717a, and the failing exact-tag top reaches the changed predicate at the recorded CLEANUP_CALLS failure.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "The exact-head public receipt, preserved report, local 2eb source, and pinned Go 1.23.12 primary source independently agree on the missed cancellation path and ordering."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The integrated predicate is acceptance-only and does not change production execution, but it rejects a source-valid cleanup trace after all 31 HTTPS cases succeed and therefore blocks exact-head evidence publication."
+  },
+  "importantCallers": [
+    "LabService close cancellation before ownedLabKernel.stop",
+    "ownedLabKernelCore.run custom cmd.Cancel",
+    "ownedLabKernelCore.run direct cmd.Wait",
+    "ownedLabKernel.stop TERM and fallback KILL",
+    "continuousRecoveryCleanupCalls and Python cleanup_calls"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "The exact 2eb trace emits the custom-cancellation KILL pair before stop TERM, with HELPER_ENTER interposed while c.mu is held by Cancel.",
+      "id": "prior_review_missed_cancel_callsite",
+      "invariant": "All producers of a generic cleanup event kind must be included before deriving its cardinality and order.",
+      "legitimateControl": "Withdraw the prior claim that every cleanup KILL follows TERM_RETURN and model custom Cancel separately from stop fallback Kill.",
+      "result": "contradicted",
+      "runtimeRoot": "lab_kernel_linux.go cmd.Cancel, identity rejection, and stop fallback Kill callsites"
+    },
+    {
+      "counterexample": "P1v3 requires exactly one TERM pair, at most one KILL pair, TERM_ATTEMPT before WAIT_RETURN, and every KILL after TERM_RETURN.",
+      "id": "confirmed_overstrong_p1v3_predicates",
+      "invariant": "Acceptance must not require events or orders that source scheduling does not guarantee.",
+      "legitimateControl": "TERM is optional when done is already closed; observed KILL may include one custom-Cancel pair plus one stop-fallback pair; TERM has no order guarantee against WAIT_RETURN; custom-Cancel KILL may precede TERM.",
+      "result": "contradicted",
+      "runtimeRoot": "continuousRecoveryCleanupCalls and Python cleanup_calls"
+    },
+    {
+      "counterexample": "An ad hoc allowlist accepts crossed TERM/KILL protected pairs, stop fallback Kill without a preceding TERM, TERM before HELPER, or a cancellation KILL ending after WAIT_RETURN.",
+      "id": "source_guarantees_that_must_remain",
+      "invariant": "Correction must retain genuine source and Go 1.23.12 constraints.",
+      "legitimateControl": "After projecting away HELPER/WAIT, TERM and KILL observations form non-overlapping attempt-return pairs; HELPER precedes any stop TERM; stop fallback KILL follows TERM; an observed custom-Cancel KILL_RETURN precedes owned WAIT_RETURN.",
+      "result": "supported",
+      "runtimeRoot": "observer sequence, c.mu critical sections, stop control flow, and os/exec watchCtx"
+    },
+    {
+      "counterexample": "Counting all generic KILL events as one optional stop fallback pair rejects the 2eb trace; treating all permutations as valid accepts impossible protected-section crossings.",
+      "id": "current_kind_finite_trace_language",
+      "invariant": "Without origin telemetry, the validator may only require that a trace has at least one source-valid assignment of generic KILL pairs to custom Cancel and stop fallback.",
+      "legitimateControl": "Parse the protected-event projection into atomic TERM or KILL pairs; allow zero or one TERM and zero to two KILL pairs; existentially label at most one KILL as Cancel with return before WAIT_RETURN and at most one as stop fallback requiring a prior TERM; preserve helper, final-core, prefix, kind and wait constraints.",
+      "result": "supported",
+      "runtimeRoot": "current seven-kind cleanup suffix contract"
+    },
+    {
+      "counterexample": "A repeated custom-Cancel producer could be misclassified by an existential checker as one Cancel plus one stop fallback.",
+      "id": "origin_telemetry_tradeoff",
+      "invariant": "Exact callsite provenance cannot be inferred from identical generic KILL event kinds.",
+      "legitimateControl": "Root selected fixed internal origin telemetry: preserve the legacy four-field generic-KILL projection, add a deterministic continuous-only one-to-one projection with fixed CANCEL, STOP and IDENTITY kinds, and update every affected reader/model/FMT/delivery/source closure.",
+      "result": "supported",
+      "runtimeRoot": "labNativeRecoveryObserve event vocabulary and all native evidence readers"
+    },
+    {
+      "counterexample": "Assuming cmd.Wait can return before its custom Cancel callback returns, or treating WaitDelay fallback Kill as an observed lab event.",
+      "id": "go_1_23_12_primary_contract",
+      "invariant": "The trace model must match the Go version pinned by CI.",
+      "legitimateControl": "In Go 1.23.12 Start launches one watchCtx; watchCtx calls Cancel at most once and sends ctxResult after Cancel returns; Wait receives ctxResult before returning. WaitDelay fallback calls Process.Kill directly and is outside labNativeRecoveryObserve.",
+      "result": "supported",
+      "runtimeRoot": "Go 1.23.12 src/os/exec/exec.go"
+    }
+  ],
+  "patch": {
+    "base": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "repository": "chengwang immutable 2eb7717a post-integration review of frozen P1v3 cleanup-core patch",
+    "sha256": "668f5dd0d293fbb93847b7b5ef4649a3854a4d153659eaabe023ade23b89f256",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Every cleanup suffix row in the failed run remains bound to final core 3 and the prefix is preserved.",
+    "The observer's own mutex provides a total event sequence, while owned core c.mu serializes TERM and observed KILL critical sections.",
+    "Pinned Go 1.23.12 creates one watchCtx; an observed custom-Cancel KILL_RETURN precedes cmd.Wait return.",
+    "The product execution path succeeded for all 31 HTTP cases and returned runtimeErrorClass NONE, isolating the failure to acceptance semantics.",
+    "Root selected the fixed-internal-origin boundary, avoiding the unprovable assignment of identical generic KILL pairs to source callsites."
+  ],
+  "recommendation": "revise",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The defect is confined to Go/Python diagnostic acceptance predicates and fixtures. A corrected checker slice can be reverted independently and does not migrate persistent state."
+  },
+  "regressionLikelihood": {
+    "rating": "high",
+    "rationale": "Regression is confirmed, not hypothetical: exact head 2eb7717a produced CLEANUP_CALLS with suffix KILL_ATTEMPT, HELPER_ENTER, KILL_RETURN, TERM_ATTEMPT, TERM_RETURN, WAIT_RETURN, all bound to final core."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "none",
+    "rationale": "The prior six Python tops and 5904 permutation comparison encoded an incomplete hand-written model that omitted the cmd.Cancel Kill callsite and therefore could not protect the real scheduler trace."
+  },
+  "riskDrivers": [
+    "The old review did not inspect lab_kernel_linux.go cmd.Cancel at lines 541-557.",
+    "Three different source callsites share generic KERNEL_OS_KILL event kinds, so current telemetry cannot prove Kill origin.",
+    "Go WaitDelay may call Process.Kill directly after one second without passing through labNativeRecoveryObserve; nativeCalls are source-owned observations, not a complete OS syscall audit.",
+    "No corrected candidate has been frozen or executed on Linux."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "high",
+    "rationale": "Keeping the predicate unchanged deterministically rejects at least one real source-valid cleanup schedule and prevents downstream fresh-reader evidence, while weakening it ad hoc could silently accept impossible callsite orders."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "No frozen fixed-origin candidate or corrected Linux exact-head result exists yet."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen P1v3 and prior review identity",
+      "protects": "P1v3 candidate.patch is 19586 bytes SHA256 668f5dd0d293fbb93847b7b5ef4649a3854a4d153659eaabe023ade23b89f256; preserved prior review is 11122 bytes SHA256 ec801fd5947772a0f0160e045c77b0836935ea3f391f3b2e057d0f78c80d90f7 and was not modified.",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-head Linux original receipt and report",
+      "protects": "AUDIT-RECEIPT-FINAL.json is 5578 bytes SHA256 4943171d7e13fe191f154a401166f3b48319a62f446869bfdef0edce9029c8b9; it records 31 expected HTTP responses, runtime NONE, and CLEANUP_CALLS on the six-event final-core suffix.",
+      "status": "passed"
+    },
+    {
+      "name": "Complete local source control-flow inspection",
+      "protects": "Inspected service cancel-before-stop, cmd.Cancel, direct cmd.Wait, deferred done close, post-Wait exit/pipes/group updates, stop helper/TERM/fallback Kill, and observer serialization in clean immutable 2eb snapshot.",
+      "status": "passed"
+    },
+    {
+      "name": "Official Go 1.23.12 primary-source inspection",
+      "protects": "Verified github.com/golang/go tag go1.23.12 src/os/exec/exec.go watchCtx and Wait behavior. Upstream license is BSD-3-Clause; applicability is limited to the pinned version and this command's configured custom Cancel/WaitDelay.",
+      "status": "passed"
+    },
+    {
+      "name": "Prior 5904 permutation proof",
+      "protects": "It compared reader behavior to an incomplete declared partial order, not to all source producers; therefore it does not establish source correctness.",
+      "status": "failed"
+    },
+    {
+      "name": "Remediation boundary selection and closure audit",
+      "protects": "Root selected fixed internal origin telemetry. Read-only closure inspection found the continuous FMT and DELIVERY tuples currently omit lab_kernel_linux.go, lab_native_recovery_observer_linux.go and lab_native_recovery_observer_default.go; legacy native recovery/completion FMT tuples already include them and OLD_V5 hash maps do not.",
+      "status": "passed"
+    },
+    {
+      "name": "Corrected Go/gofmt/Linux/CI run",
+      "protects": "No product code, checker candidate, Go command, formatter, runtime, CI rerun or production operation was performed in this review.",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "revise"
+}

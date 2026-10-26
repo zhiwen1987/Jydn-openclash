@@ -1,0 +1,86 @@
+{
+  "base": {
+    "commit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "immutableRepo": "D:/CodexData/workspace/mihomo-2eb7717-acceptance-10h6sggf/repo",
+    "tree": "e7a84d171913cb601feb5dd7609b625ca3d4b045"
+  },
+  "boundaries": {
+    "actual2ebFailurePreserved": true,
+    "httpsExperimentRun": false,
+    "linuxCompileRun": false,
+    "linuxModelsRun": false,
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "observedCallsAreCompleteOSSyscallAudit": false,
+    "productionTouched": false,
+    "repositoryRTouched": false,
+    "waitDelayKillIsInstrumented": false
+  },
+  "byteIdentities": {
+    "buildForbidden": "05bea73608b1eb872da922a3465756198001fcebe4f0c8a4c5fb1f916fc5741c",
+    "encodedSecretVariants": "51a8652f2fc2c1e10f14f53289eb0cf290bd45d1f6dc0d400532fe6b87958192",
+    "fenceOutputs": "91b4a1d6db867001a7cb7e7272f3cec42c200ee64b0dce15182aa850026182a5",
+    "httpCases": "8015205113a1e7b1679550b2366fa9f4b521227f9a5f2695b390fe4c82216005",
+    "legacyCallStruct": "c7a9b642811fe0576dc489e1213cf4b6b0acb1d4ee78ed6952906c733d21c975",
+    "legacyEventSnapshot": "c42c7aac9f1a2698a14c9f253d5e83cd150e5016122d45d0f8be739a90c23686",
+    "workerHTTPPublicCases": "9d933ee3ae3b0e51ea529d4ea97b687fcd5b833f555c60251b072332b914bbb2"
+  },
+  "candidateRepo": "D:/CodexData/workspace/mihomo-continuous-origin-v3-20261026-execution56h-v1/repo",
+  "card": {
+    "bytes": 1475,
+    "name": "SOURCE-CARD.md",
+    "sha256": "e2515f66a269ba535b3f22abde91749e73be955e8cc92dd1c960b2336488b881"
+  },
+  "changedPathCount": 14,
+  "closures": {
+    "applyFMTUnchanged": 1,
+    "applyFiles": 170,
+    "compatFiles": 162,
+    "continuousDelivery": 33,
+    "continuousFMT": 19,
+    "profileCapacityFMT": 4,
+    "profileFullFMT": 28,
+    "serviceFMTUnchanged": 8,
+    "serviceFiles": 177,
+    "unknownFMTUnchanged": 11,
+    "unknownFiles": 183
+  },
+  "cpu": [
+    {
+      "command": "python -m unittest test_check_contracts.py test_check_compat.py test_check_apply.py test_check_service.py test_check_unknown.py test_service_worker.py test_unknown_worker.py test_continuous_recovery_api_model.py",
+      "exitCode": 0,
+      "seconds": 34.154,
+      "tests": 239
+    },
+    {
+      "command": "python -m unittest test_native_completion_reader_model.py test_check_native_recovery.py",
+      "exitCode": 0,
+      "seconds": 24.409,
+      "tests": 29
+    },
+    {
+      "command": "python -m unittest test_profile_contract.py",
+      "exitCode": 0,
+      "seconds": 0.087,
+      "tests": 2
+    }
+  ],
+  "exactSchemas": {
+    "contract": "chengwang.mihomo-continuous-recovery-contract/v2",
+    "faultObservation": "chengwang.mihomo-continuous-recovery-response-loss/v2",
+    "httpIndexUnchanged": "chengwang.mihomo-continuous-recovery-http-index/v2",
+    "report": "chengwang.mihomo-continuous-recovery-http-experiment/v3"
+  },
+  "manifest": {
+    "bytes": 6215,
+    "name": "PATH-MANIFEST.json",
+    "sha256": "b58ffa90e7d22f1eb4b6441eca21000e9e8bf234c0b37e48aafd6acca1cb7baf"
+  },
+  "patch": {
+    "bytes": 73544,
+    "name": "continuous-origin-v3.patch",
+    "sha256": "c115323d488aa4b0dc00fc456d886bfc6ae743c057653f188317dbc7e12c6655"
+  },
+  "schema": "chengwang.mihomo-continuous-origin-source-receipt/v1",
+  "status": "SOURCE_CANDIDATE_HOLD_FOR_EXACT_HEAD_LINUX_EVIDENCE"
+}

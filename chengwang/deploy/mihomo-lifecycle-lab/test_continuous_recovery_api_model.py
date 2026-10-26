@@ -89,15 +89,46 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
 
     def test_contract_excludes_old_fault_tags_and_has_independent_capture(self):
         contract=json.loads((HERE/'continuous_recovery_api_contract.json').read_bytes())
+        self.assertEqual(contract['schema'],'chengwang.mihomo-continuous-recovery-contract/v2')
+        self.assertEqual(contract['reportSchema'],'chengwang.mihomo-continuous-recovery-http-experiment/v3')
+        self.assertEqual(contract['faultObservationSchema'],'chengwang.mihomo-continuous-recovery-response-loss/v2')
         self.assertEqual(contract['goTimeoutSeconds'],210); self.assertEqual(contract['outerGoTimeoutSeconds'],240)
         self.assertFalse(set(contract['exactTags']) & set(contract['forbiddenTags']))
         lifecycle=(HERE.parents[1]/'internal/mihomodeploy/lifecycle.go').read_text(encoding='utf8')
         actual=re.search(r'^const lifecycleSchemaV2 = "([^"]+)"$',lifecycle,re.M)
         self.assertIsNotNone(actual); self.assertEqual(actual.group(1),self.reader.WAL_SCHEMA)
         harness=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go').read_text(encoding='utf8')
+        fault_source=(HERE.parents[1]/'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go').read_text(encoding='utf8')
+        self.assertEqual(set(re.findall(r'chengwang\.mihomo-continuous-recovery-http-experiment/v\d+',harness)),{contract['reportSchema']})
+        self.assertIn('const labContinuousRecoveryFaultSchema = "'+contract['faultObservationSchema']+'"',fault_source)
         self.assertIn('initial.WALSchema != "'+self.reader.WAL_SCHEMA+'"',harness)
         self.assertNotIn('chengwang.mihomo-lifecycle/v2',harness)
         self.assertIn('h.call(stage+"_INSPECT", http.MethodGet',harness)
+        kernel=(HERE.parents[1]/'internal/mihomodeploy/lab_kernel_linux.go').read_text(encoding='utf8')
+        observer=(HERE.parents[1]/'internal/mihomodeploy/lab_native_recovery_observer_linux.go').read_text(encoding='utf8')
+        observer_default=(HERE.parents[1]/'internal/mihomodeploy/lab_native_recovery_observer_default.go').read_text(encoding='utf8')
+        for origin,line in (('Cancel','e := p.Kill()'),('Identity','killErr := c.process.Kill()'),('Stop','e = proc.Kill()')):
+            attempt='labNativeRecoveryObserve'+origin+'KillAttempt(c)'; returned='labNativeRecoveryObserve'+origin+'KillReturn(c)'
+            self.assertEqual(kernel.count(attempt),1); self.assertEqual(kernel.count(returned),1)
+            self.assertLess(kernel.index(attempt),kernel.index(line)); self.assertLess(kernel.index(line),kernel.index(returned))
+            self.assertIn('func labNativeRecoveryObserve'+origin+'KillAttempt(core *ownedLabKernelCore)',observer)
+            self.assertIn('func labNativeRecoveryObserve'+origin+'KillReturn(core *ownedLabKernelCore)',observer)
+            self.assertIn('func labNativeRecoveryObserve'+origin+'KillAttempt(*ownedLabKernelCore)',observer_default)
+            self.assertIn('func labNativeRecoveryObserve'+origin+'KillReturn(*ownedLabKernelCore)',observer_default)
+        self.assertNotIn('labNativeRecoveryObserve(c, "KERNEL_OS_KILL_',kernel)
+        self.assertNotIn('labNativeRecoveryObserveRaw',kernel)
+        self.assertEqual(observer.count('labNativeRecoveryObserveRaw('),8)
+        self.assertIn('events := make([]labNativeRecoveryCall, len(c.events))',observer)
+        self.assertIn('func labNativeRecoveryReadContinuousCalls() ([]labNativeRecoveryCall, bool)',observer)
+        self.assertNotRegex(observer,r'type labNativeRecoveryCall struct \{[^}]*[Oo]rigin')
+        self.assertIn('labNativeRecoveryReadContinuousCalls()',
+          fault_source)
+        for path in ('internal/mihomodeploy/lab_kernel_linux.go','internal/mihomodeploy/lab_native_recovery_observer_default.go',
+                     'internal/mihomodeploy/lab_native_recovery_observer_linux.go'):
+            self.assertIn(path,self.reader.FMT); self.assertIn(path,self.worker.FMT)
+            full='chengwang/'+path; self.assertIn(full,self.reader.DELIVERY); self.assertIn(full,self.worker.DELIVERY)
+        self.assertEqual(self.reader.FMT,self.worker.FMT); self.assertEqual(len(self.reader.FMT),19)
+        self.assertEqual(self.reader.DELIVERY,self.worker.DELIVERY); self.assertEqual(len(self.reader.DELIVERY),33)
         self.assertNotRegex(harness,r'h\.call\([^\n]*"(?:viewer|operator|approver|auditor|admin)"')
         self.assertEqual(len(re.findall(r'h\.call\(',harness)),11)
         deployment_inspects=[row for row in self.reader.HTTP_CASES if row[0] in
@@ -490,7 +521,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
             loss=i!=2; steps.append({'sequence':i,'action':'LOSS' if loss else 'PASS','state':'INJECTED' if loss else 'PASSTHROUGH',
               'underlyingRoundTrips':1,'statusCode':204,'bodyBytes':0 if loss else None,'eofObserved':True if loss else None,
               'closeSucceeded':True if loss else None,'injected':loss,'failureCode':None})
-        return {'schema':'chengwang.mihomo-continuous-recovery-response-loss/v1','state':state,'boundOperations':3,'observedResults':3,
+        return {'schema':'chengwang.mihomo-continuous-recovery-response-loss/v2','state':state,'boundOperations':3,'observedResults':3,
           'initialCore':1,'recoveredCore':2,'nativeCallsBounded':True,'nativeCalls':calls,
           'recoveryCreatesBounded':True,'recoveryCreates':[{'sequence':1,'stage':'ENTERED'},{'sequence':2,'stage':'ACCEPTED'},
             {'sequence':3,'stage':'ENTERED'},{'sequence':4,'stage':'ACCEPTED'}],
@@ -553,7 +584,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         initial={'schema':'chengwang.mihomo-lab-acceptance-state/v1','sourceCommit':'a'*40,'walSchema':self.reader.WAL_SCHEMA,'controlSHA256':'7'*64,'recordSHA256':'8'*64,
           'head':copy.deepcopy(heads[0]),'activeOperationId':None,'activePhase':None,'activeIntentSHA256':None,'completed':[],'terminated':[],'unknownObservationCount':0,
           'privateWALValidated':True,'fullPrivateWALIndependentlyProven':False,'observedProcessMatchesHead':True,'production':False}
-        return {'schema':'chengwang.mihomo-continuous-recovery-http-experiment/v2','scope':self.reader.SCOPE,'sourceCommit':'a'*40,'outcome':'PASS','failureCode':'NONE','http':http,'initial':initial,
+        return {'schema':'chengwang.mihomo-continuous-recovery-http-experiment/v3','scope':self.reader.SCOPE,'sourceCommit':'a'*40,'outcome':'PASS','failureCode':'NONE','http':http,'initial':initial,
           'heads':[{'stage':s,'view':v} for s,v in zip(('INITIAL','FIRST_UNKNOWN','FIRST_RECOVERED','ORDINARY_ACK','SECOND_UNKNOWN','SECOND_RECOVERED'),heads)],
           'operations':[{'stage':s,'view':v} for s,v in zip(('FIRST_UNKNOWN','ORDINARY_ACK','SECOND_UNKNOWN'),ops)],
           'recoveries':[{'stage':s,'view':v} for s,v in zip(('FIRST_RECOVERY','SECOND_RECOVERY'),rec)],
@@ -578,26 +609,45 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); report=self.fixture(root); binding={'schema':'binding'}
             self.assertEqual(len(self.reader.validate_report(report,'a'*40,root,binding)),31)
-            kill_before_wait=copy.deepcopy(report); pre=kill_before_wait['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            stop_before_wait=copy.deepcopy(report); pre=stop_before_wait['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
             suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
               'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN',
-              'KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
-            kill_before_wait['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
-            kill_before_wait['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
-            self.assertEqual(len(self.reader.validate_report(kill_before_wait,'a'*40,root,binding)),31)
+              'KERNEL_OS_STOP_KILL_ATTEMPT','KERNEL_OS_STOP_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+            stop_before_wait['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            stop_before_wait['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(stop_before_wait,'a'*40,root,binding)),31)
             wait_before_term_return=copy.deepcopy(report); pre=wait_before_term_return['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
             suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
               'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_WAIT_RETURN','KERNEL_OS_TERM_RETURN'),1)]
             wait_before_term_return['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
             wait_before_term_return['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
             self.assertEqual(len(self.reader.validate_report(wait_before_term_return,'a'*40,root,binding)),31)
-            kill_after_wait=copy.deepcopy(report); pre=kill_after_wait['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            cancel_then_stop=copy.deepcopy(report); pre=cancel_then_stop['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
             suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
-              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN',
-              'KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_KILL_RETURN'),1)]
-            kill_after_wait['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
-            kill_after_wait['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
-            self.assertEqual(len(self.reader.validate_report(kill_after_wait,'a'*40,root,binding)),31)
+              'KERNEL_OS_CANCEL_KILL_ATTEMPT','OWNED_STOP_HELPER_ENTER','KERNEL_OS_CANCEL_KILL_RETURN',
+              'KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+            cancel_then_stop['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            cancel_then_stop['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(cancel_then_stop,'a'*40,root,binding)),31)
+            wait_inside_stop=copy.deepcopy(report); pre=wait_inside_stop['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_STOP_KILL_ATTEMPT',
+              'KERNEL_OS_WAIT_RETURN','KERNEL_OS_STOP_KILL_RETURN'),1)]
+            wait_inside_stop['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            wait_inside_stop['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(wait_inside_stop,'a'*40,root,binding)),31)
+            settled_before_helper=copy.deepcopy(report); pre=settled_before_helper['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'KERNEL_OS_WAIT_RETURN','OWNED_STOP_HELPER_ENTER'),1)]
+            settled_before_helper['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            settled_before_helper['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(settled_before_helper,'a'*40,root,binding)),31)
+            cancel_without_term=copy.deepcopy(report); pre=cancel_without_term['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'KERNEL_OS_CANCEL_KILL_ATTEMPT','OWNED_STOP_HELPER_ENTER','KERNEL_OS_CANCEL_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+            cancel_without_term['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            cancel_without_term['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(cancel_without_term,'a'*40,root,binding)),31)
             for snapshot in ('faultBeforeCleanup','faultAfterCleanup','faultClosed'):
                 passthrough=report[snapshot]['transport']['steps'][1]
                 self.assertIsNone(passthrough['bodyBytes']); self.assertIsNone(passthrough['eofObserved']); self.assertIsNone(passthrough['closeSucceeded'])
@@ -635,6 +685,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                 row['responseBodySHA256']=self.reader.sha(raw); row['responseBodyB64']=base64.b64encode(raw).decode()
                 return result
             capture_mutants=[]
+            value=copy.deepcopy(partial); value['schema']='chengwang.mihomo-continuous-recovery-http-experiment/v2'; capture_mutants.append(value)
             value=copy.deepcopy(partial); value['http'][0]['caseActor']='CASE_ACTOR_ADMIN'; capture_mutants.append(value)
             value=copy.deepcopy(partial); value['http'][0]['role']=value['http'][0].pop('caseActor'); capture_mutants.append(value)
             value=copy.deepcopy(partial); value['http'][0]['sequence']=True; capture_mutants.append(value)
@@ -654,7 +705,8 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                 with self.subTest(capture_mutant=index),self.assertRaises((ValueError,TypeError)): self.worker_outputs(value,[])
             mutants=[]
             for mutate in (
-              lambda x:x.__setitem__('schema','chengwang.mihomo-continuous-recovery-http-experiment/v1'),
+              lambda x:x.__setitem__('schema','chengwang.mihomo-continuous-recovery-http-experiment/v2'),
+              lambda x:x['faultBeforeCleanup'].__setitem__('schema','chengwang.mihomo-continuous-recovery-response-loss/v1'),
               lambda x:(x['http'][0].__setitem__('role','viewer'),x['http'][0].pop('caseActor')),
               lambda x:x['http'][0].__setitem__('case','UNKNOWN_CASE'),
               lambda x:x['http'][0].__setitem__('caseActor','CASE_ACTOR_ADMIN'),
@@ -715,15 +767,20 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         def cleanup_kill_before_term_return(report,root):
             pre=report['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
             suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
-              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_KILL_ATTEMPT',
-              'KERNEL_OS_TERM_RETURN','KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_STOP_KILL_ATTEMPT',
+              'KERNEL_OS_TERM_RETURN','KERNEL_OS_STOP_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
             report['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
             report['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
         def cleanup_kill_return_before_attempt(report,root):
             pre=report['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
             suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
               'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN',
-              'KERNEL_OS_KILL_RETURN','KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_WAIT_RETURN'),1)]
+              'KERNEL_OS_STOP_KILL_RETURN','KERNEL_OS_STOP_KILL_ATTEMPT','KERNEL_OS_WAIT_RETURN'),1)]
+            report['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            report['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+        def cleanup_fixed_suffix(report,kinds):
+            pre=report['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate(kinds,1)]
             report['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
             report['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
         mutants=(
@@ -751,6 +808,24 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
           ('final-start-reuses-first-core',final_start_reuses_first_core),
           ('cleanup-kill-before-term-return',cleanup_kill_before_term_return),
           ('cleanup-kill-return-before-attempt',cleanup_kill_return_before_attempt),
+          ('cleanup-generic-kill',lambda report,root:cleanup_fixed_suffix(report,(
+            'OWNED_STOP_HELPER_ENTER','KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_RETURN'))),
+          ('cleanup-identity-kill',lambda report,root:cleanup_fixed_suffix(report,(
+            'OWNED_STOP_HELPER_ENTER','KERNEL_OS_IDENTITY_KILL_ATTEMPT','KERNEL_OS_IDENTITY_KILL_RETURN','KERNEL_OS_WAIT_RETURN'))),
+          ('cleanup-origin-mismatch',lambda report,root:cleanup_fixed_suffix(report,(
+            'OWNED_STOP_HELPER_ENTER','KERNEL_OS_CANCEL_KILL_ATTEMPT','KERNEL_OS_STOP_KILL_RETURN','KERNEL_OS_WAIT_RETURN'))),
+          ('cleanup-crossed-pairs',lambda report,root:cleanup_fixed_suffix(report,(
+            'OWNED_STOP_HELPER_ENTER','KERNEL_OS_CANCEL_KILL_ATTEMPT','KERNEL_OS_TERM_ATTEMPT',
+            'KERNEL_OS_CANCEL_KILL_RETURN','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'))),
+          ('cleanup-repeat-cancel',lambda report,root:cleanup_fixed_suffix(report,(
+            'KERNEL_OS_CANCEL_KILL_ATTEMPT','KERNEL_OS_CANCEL_KILL_RETURN','KERNEL_OS_CANCEL_KILL_ATTEMPT',
+            'KERNEL_OS_CANCEL_KILL_RETURN','OWNED_STOP_HELPER_ENTER','KERNEL_OS_WAIT_RETURN'))),
+          ('cleanup-stop-without-term',lambda report,root:cleanup_fixed_suffix(report,(
+            'OWNED_STOP_HELPER_ENTER','KERNEL_OS_STOP_KILL_ATTEMPT','KERNEL_OS_STOP_KILL_RETURN','KERNEL_OS_WAIT_RETURN'))),
+          ('cleanup-cancel-return-after-wait',lambda report,root:cleanup_fixed_suffix(report,(
+            'KERNEL_OS_CANCEL_KILL_ATTEMPT','OWNED_STOP_HELPER_ENTER','KERNEL_OS_WAIT_RETURN','KERNEL_OS_CANCEL_KILL_RETURN'))),
+          ('cleanup-wait-enter-after-return',lambda report,root:cleanup_fixed_suffix(report,(
+            'OWNED_STOP_HELPER_ENTER','KERNEL_OS_WAIT_RETURN','KERNEL_OS_WAIT_ENTER'))),
           ('head-previous',retained_head(2,'previousHeadSHA256','7'*64)),
           ('head-artifact',retained_head(2,'artifactRecordSHA256','7'*64)),
           ('head-config',retained_head(3,'configSHA256','7'*64)),

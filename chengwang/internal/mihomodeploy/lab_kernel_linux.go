@@ -548,9 +548,9 @@ func (c *ownedLabKernelCore) run(ctx context.Context, home string, raw []byte, w
 		if p == nil {
 			return os.ErrProcessDone
 		}
-		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_ATTEMPT")
+		labNativeRecoveryObserveCancelKillAttempt(c)
 		e := p.Kill()
-		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_RETURN")
+		labNativeRecoveryObserveCancelKillReturn(c)
 		if e == nil {
 			c.exit.KillSent = true
 		}
@@ -635,9 +635,9 @@ func (c *ownedLabKernelCore) run(ctx context.Context, home string, raw []byte, w
 		ready <- nil
 	} else {
 		c.mu.Lock()
-		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_ATTEMPT")
+		labNativeRecoveryObserveIdentityKillAttempt(c)
 		killErr := c.process.Kill()
-		labNativeRecoveryObserve(c, "KERNEL_OS_KILL_RETURN")
+		labNativeRecoveryObserveIdentityKillReturn(c)
 		if killErr == nil {
 			c.exit.KillSent = true
 		}
@@ -1019,9 +1019,9 @@ func (k *ownedLabKernel) stop(ctx context.Context) (labKernelExit, error) {
 		}
 	}
 	c.mu.Lock()
-	labNativeRecoveryObserve(c, "KERNEL_OS_KILL_ATTEMPT")
+	labNativeRecoveryObserveStopKillAttempt(c)
 	e = proc.Kill()
-	labNativeRecoveryObserve(c, "KERNEL_OS_KILL_RETURN")
+	labNativeRecoveryObserveStopKillReturn(c)
 	if e == nil {
 		c.exit.KillSent = true
 	}

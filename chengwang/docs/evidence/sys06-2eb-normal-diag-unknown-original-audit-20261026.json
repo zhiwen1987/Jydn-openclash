@@ -1,0 +1,242 @@
+{
+  "adapters": {
+    "profile": {
+      "bytes": 4641,
+      "path": "replay_check_profile.py",
+      "scope": "select POSIX lexical interpretation only for evidence paths beginning slash; original verify_raw unchanged",
+      "sha256": "1187eef979d1430cde67fb9e77b4f25d644d39bcba80c6ca4b96f507cb338ec2"
+    },
+    "unknown": {
+      "bytes": 3502,
+      "path": "replay_check_unknown.py",
+      "scope": "replace Windows-incompatible stable-open identity preflight with exact working-byte equals git-show binding; original verify_raw unchanged",
+      "sha256": "ba17497e92e3bfbca5324a5f945f25699ecbfc6541fa369e834edc1ad5926b1d"
+    }
+  },
+  "artifacts": [
+    {
+      "bytes": 314849,
+      "custodySHA256": "fb675c4a60c1505643b4bbf12e5f65b16653d44d24ff3351a7cdc75d5926b90a",
+      "id": 12648542735,
+      "members": 19,
+      "name": "mihomo-capacity-profile-40320476723-1",
+      "sha256": "85875c147e760de812fbf407fa1cacb5fa083e60c28d6d3e4153255523b1e6b4"
+    },
+    {
+      "bytes": 1345,
+      "custodySHA256": "af961bce0ab311bccf738876ddca274c800300f2a34304ee342318a9d4ff8b40",
+      "id": 12649052124,
+      "members": 1,
+      "name": "mihomo-capacity-profile-fresh-40320476723-1",
+      "sha256": "65706a4bd3e2a63205a92055bfc3196ce00d91faf0b64929d6800cf07fb4a0cb"
+    },
+    {
+      "bytes": 575057,
+      "custodySHA256": "93305e9f012ef49adfc7ed9dfd275463dafff8f0d025c80f5c6dde4079c8727f",
+      "id": 12648564171,
+      "members": 21,
+      "name": "mihomo-capacity-profile-full-40320476723-1",
+      "sha256": "3d42f60b5720b1d68a99712aca9e21ecb1fb87dc739d133baafcca260b83f497"
+    },
+    {
+      "bytes": 21612,
+      "custodySHA256": "4d32d0a94ef13bbc629ad87eb5c0b4616db366eb8da7f97b5ee054967381d44b",
+      "id": 12649042025,
+      "members": 1,
+      "name": "mihomo-capacity-profile-full-fresh-40320476723-1",
+      "sha256": "56afaab99b322d4eb119e4fc299c07cd57cbf77595b6e53db840334c706bbf72"
+    },
+    {
+      "bytes": 252416,
+      "custodySHA256": "98e201e06c604f4e7d8ba559427117d9560efa29db8df65636027d6ad42f905b",
+      "id": 12649430617,
+      "members": 13,
+      "name": "mihomo-foundation-contracts-40320476704-1",
+      "sha256": "29da2717830e3a9dfb9a443ec3bc2dac13c32e9c68897c3967615d2017be5c27"
+    },
+    {
+      "bytes": 58745,
+      "custodySHA256": "fc8bba7e623a47eae2d70e35e0169266dbef403f228ddde0518ccba902e95935",
+      "id": 12647934806,
+      "members": 61,
+      "name": "mihomo-unknown-originals-40320476704-1",
+      "sha256": "c86d6a0b1a328c000e2022d0c9c7529b2800e150ddd2ab41c4c092266233e036"
+    },
+    {
+      "bytes": 11102,
+      "custodySHA256": "b6f28e71eb3dfa2a9430c5db05b35c71b24bb0539f0a781cdf472f73f3471396",
+      "id": 12649150699,
+      "members": 1,
+      "name": "mihomo-unknown-fresh-40320476704-1",
+      "sha256": "526024af6e8ecb633168828138789c926534c853df16f8fc3f3f684e1cf2fea7"
+    }
+  ],
+  "boundaries": {
+    "ciRerun": false,
+    "continuousRecoveryAcceptedByThisReceipt": false,
+    "diagSuccessUsedAsNormalAcceptance": false,
+    "localGoOrGofmtRun": false,
+    "performanceStabilityClaimed": false,
+    "production": false,
+    "sourceOrRModified": false
+  },
+  "diagnostic": {
+    "full": {
+      "allPassingSemanticTests": 2004,
+      "allSixPackagesPassed": true,
+      "capacityTopElapsedSeconds": 53.39,
+      "captureVerified": true,
+      "failed": 0,
+      "formatClean": true,
+      "fullGoAccepted": true,
+      "inputCount": 20,
+      "inputHashesUnchanged": true,
+      "mandatoryTopLevelPassed": 688,
+      "mihomodeployPackageElapsedSeconds": 124.48,
+      "originalAndFreshAndIndependentBytesEqual": true,
+      "originalGoExit": 0,
+      "profileMeasuredDurationNanoseconds": 120250170492,
+      "profileStopReason": "TIMER_120_SECONDS",
+      "skipped": 0,
+      "unfinished": 0,
+      "verificationBytes": 105981,
+      "verificationSHA256": "f398acbe40d9cd81a7eb613272d59be6768bb6801e623c1735798a5bb9b98780",
+      "wholeSixPackageCPUProfileProven": false,
+      "wholeTestDurationProfileProven": false
+    },
+    "offlineReplayStatus": "OFFLINE_ORIGINAL_CHECKER_FUNCTION_REPLAY_NOT_LINUX_CLI",
+    "profile": {
+      "capacityTopElapsedSeconds": 83.36,
+      "captureVerified": true,
+      "formatClean": true,
+      "inputCount": 18,
+      "inputHashesUnchanged": true,
+      "mihomodeployPackageElapsedSeconds": 84.393,
+      "originalAndFreshAndIndependentBytesEqual": true,
+      "originalGoExit": 0,
+      "packageTerminal": "pass",
+      "packageTimeoutObserved": false,
+      "testFailureEvents": 0,
+      "testPass": 1,
+      "testRun": 1,
+      "verificationBytes": 2377,
+      "verificationSHA256": "cad597d381565b4bef4ff43516a7b988a295074427df4eab59cefdfa53c97f10"
+    },
+    "singleSamplePerformanceImprovementProven": false
+  },
+  "downloadChannel": {
+    "credentialFillOnly": true,
+    "helper": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "metadataHeadDigestSizeCRCPathAndOEXCLChecked": true,
+    "signedURLInToolArgumentsOrFiles": false,
+    "singleSerialDownloadProcess": true,
+    "staticPeerReceiptSHA256": "91300458503baeed3afe31ec863294b2e221de06dc7fd9ea5ef245bed5e0edf7",
+    "ttyUsed": false
+  },
+  "normalContracts": {
+    "accepted": false,
+    "formatExit": 0,
+    "freshVerification": "ABSENT_BECAUSE_CONTRACTS_JOB_FAILED",
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "limitsUnchanged": {
+      "historyEntries": 256,
+      "mandatoryTopLevelTests": 688,
+      "raceSeconds": 180,
+      "recordBytes": 2097152
+    },
+    "ordinary": {
+      "allObservedTopLevelPassed": 858,
+      "allObservedTopLevelTests": 858,
+      "failed": 0,
+      "mandatoryDeclaredTopLevelTests": 688,
+      "mandatoryPassed": 688,
+      "mihomodeployPackageElapsedSeconds": 24.012,
+      "skipped": 0,
+      "unfinished": 0
+    },
+    "ordinaryExit": 0,
+    "ordinaryStderrBytes": 0,
+    "race": {
+      "allObservedTopLevelFailed": 0,
+      "allObservedTopLevelPassed": 757,
+      "allObservedTopLevelTests": 758,
+      "allObservedTopLevelUnfinished": 1,
+      "dataRaceWarningObserved": false,
+      "mandatoryDeclaredTopLevelTests": 688,
+      "mandatoryFailed": 0,
+      "mandatoryNotStarted": 100,
+      "mandatoryPassed": 587,
+      "mandatorySkipped": 0,
+      "mandatoryUnfinished": 1,
+      "mihomodeployPackageConclusion": "fail",
+      "mihomodeployPackageElapsedSeconds": 180.048,
+      "otherFivePackagesPassed": true,
+      "packageTimeoutObserved": true,
+      "unfinishedName": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal"
+    },
+    "raceExit": 1,
+    "raceStderrBytes": 0
+  },
+  "retainedInitialAuditFailures": [
+    "profile Linux CLI rejected on Windows at its explicit os.name POSIX gate",
+    "first profile function replay used WindowsPath for a Linux absolute goRoot and was rejected",
+    "second profile function replay replaced all checker Path calls with PurePosixPath and broke checker source resolution",
+    "first unknown replay used the Linux-oriented stable-open identity helper on Windows and was rejected"
+  ],
+  "runs": {
+    "diagnostic": {
+      "fullConclusion": "success",
+      "fullJob": 121563930365,
+      "id": 40320476723,
+      "profileConclusion": "success",
+      "profileJob": 121563930688
+    },
+    "normal": {
+      "contractsConclusion": "failure",
+      "contractsJob": 121563863779,
+      "id": 40320476704,
+      "unknownConclusion": "success",
+      "unknownFreshConclusion": "success",
+      "unknownFreshJob": 121564333802,
+      "unknownJob": 121563958983
+    }
+  },
+  "schema": "chengwang.mihomo-normal-diag-unknown-original-audit/v1",
+  "source": {
+    "commit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "snapshot": "D:/CodexData/workspace/mihomo-2eb7717-acceptance-10h6sggf/repo",
+    "snapshotCleanFromRootCustody": true,
+    "trackedRawGitBlobs": 1516
+  },
+  "status": "DIAG_AND_UNKNOWN_ACCEPTED_NORMAL_RACE_TIMEOUT_REJECTED",
+  "unknown": {
+    "accepted": true,
+    "actualClientUnknownPreserved": true,
+    "disclosureModels": {
+      "count": 30,
+      "nameSetSHA256": "3bdd4b6aab96222d0a15495a8ba766f62aa8e04893ef424b6e097aefd1d37fdf"
+    },
+    "evidenceModels": {
+      "count": 43,
+      "nameSetSHA256": "209af96f8dd88a868c7c388e1202786c3715c10e1ced273fb13b11c08c86e77e"
+    },
+    "formatExit": 0,
+    "goExit": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "inputCount": 58,
+    "inputHashesUnchanged": true,
+    "originalAndFreshAndIndependentBytesEqual": true,
+    "outcome": "PASS",
+    "passingSemanticTests": 34,
+    "publicHTTPResponsesValidated": true,
+    "realMihomoExecutionObserved": true,
+    "topLevelTests": 2,
+    "unchangedHeadAndNoResendObserved": true,
+    "unknownStderrBytes": 0,
+    "verificationBytes": 36845,
+    "verificationSHA256": "d08282492a2a39ed0a44a6797213188b0f6c6bd8902e2938e612e82f63570caf"
+  }
+}

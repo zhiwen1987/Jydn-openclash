@@ -1,0 +1,127 @@
+{
+  "corrections": [
+    {
+      "correction": "lab_kernel_linux.go lines 541-557 installs cmd.Cancel, which emits the same generic KILL pair under c.mu. LabService cancels before it invokes owned stop, so the cancellation pair may precede TERM and HELPER may interpose inside it.",
+      "effect": "The prior source model omitted a real producer and falsely rejected the observed exact-head trace.",
+      "id": "missed_cmd_cancel_callsite",
+      "priorClaim": "The optional generic KILL pair in cleanup is only the owned stop fallback and therefore follows TERM_RETURN."
+    },
+    {
+      "correction": "ownedLabKernel.stop records HELPER, then may return immediately if done is already closed; TERM is therefore zero or one complete pair.",
+      "effect": "Mandatory TERM cardinality is overstrong.",
+      "id": "term_cardinality",
+      "priorClaim": "Exactly one TERM attempt/return pair is mandatory."
+    },
+    {
+      "correction": "The source may emit one custom-Cancel pair and one owned-stop fallback pair. Go 1.23.12 invokes the custom Cancel callback at most once, and stop has at most one fallback Kill.",
+      "effect": "Current generic telemetry admits zero to two complete KILL pairs.",
+      "id": "kill_cardinality",
+      "priorClaim": "There is at most one generic KILL attempt/return pair."
+    },
+    {
+      "correction": "WAIT_RETURN is observed before exit metadata, pipe settlement, group check and deferred done close, and it is outside c.mu. It may precede, follow or interpose the stop TERM pair.",
+      "effect": "TERM_ATTEMPT < WAIT_RETURN is not source-guaranteed.",
+      "id": "term_wait_order",
+      "priorClaim": "TERM_ATTEMPT must precede WAIT_RETURN."
+    },
+    {
+      "correction": "The comparison established equivalence only to an incomplete hand-written predicate that omitted cmd.Cancel. It is not source proof and must not be reused as regression evidence.",
+      "effect": "That validation item is withdrawn.",
+      "id": "permutation_proof",
+      "priorClaim": "The 5904-order comparison establishes reader/source partial-order equivalence."
+    }
+  ],
+  "date": "2026-10-26",
+  "executionBoundary": {
+    "correctedCandidateAccepted": false,
+    "productionTouched": false,
+    "repositoryModified": false,
+    "reviewerRanCI": false,
+    "reviewerRanGo": false,
+    "reviewerRanGofmt": false,
+    "reviewerRanRuntime": false
+  },
+  "officialDependency": {
+    "applicabilityLimit": "This reasoning is pinned to Go 1.23.12 and this command's custom Cancel and one-second WaitDelay. WaitDelay's direct Process.Kill is not emitted by labNativeRecoveryObserve, so the report is a bounded source-owned observation rather than a complete OS syscall audit.",
+    "license": "BSD-3-Clause",
+    "project": "Go",
+    "source": "https://github.com/golang/go/blob/go1.23.12/src/os/exec/exec.go",
+    "verifiedBehavior": "Start launches one watchCtx; watchCtx calls custom Cancel at most once and sends its result only after Cancel returns; Wait receives that result before returning; WaitDelay may call Process.Kill directly.",
+    "version": "go1.23.12"
+  },
+  "preservedSourceConstraints": [
+    "When TERM exists, HELPER_ENTER precedes TERM_ATTEMPT and TERM_ATTEMPT precedes TERM_RETURN.",
+    "The custom-Cancel, TERM and stop-fallback KILL critical sections share c.mu, so their attempt/return pairs do not cross after HELPER and WAIT events are projected away.",
+    "An observed Go 1.23.12 custom-Cancel KILL_RETURN precedes owned cmd.Wait return and therefore the owned WAIT_RETURN observation.",
+    "A stop-fallback KILL pair requires a preceding TERM pair and follows TERM_RETURN.",
+    "WAIT_ENTER, WAIT_RETURN and HELPER are not protected by c.mu and must retain their real races.",
+    "Every cleanup suffix event must remain bound to the final core and the before snapshot must remain an exact prefix."
+  ],
+  "priorErratumPreserved": {
+    "bytes": 6998,
+    "path": "D:/CodexData/home/state/plugins/codex-security/scans/mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1/artifacts-ac9e4417367047f11bdaeb850306bc07f2a2da2a1ce9fbb6d4ef2a8b7e78cf4c/artifacts/reviews/policy-multicore-contract-cleanup-core-v3-review-erratum-v2-20261026.json",
+    "sha256": "f54f2c06e93bad979e0c8953226f594b0f25c533f90340b0a7b783b8dab14ca4"
+  },
+  "priorReview": {
+    "bytes": 11122,
+    "correctedRecommendation": "revise",
+    "path": "D:/CodexData/home/state/plugins/codex-security/scans/mihomo-continuous-recovery-cleanup-core-candidate-20261026-native56h-v3/artifacts-a103001a01bcc87fd671d8b5c6b2c60dad0494d8c4d8fba6a7360301063ff9d8/artifacts/reviews/policy-multicore-contract-cleanup-core-v3-p1-review-20261026.json",
+    "preservedUnmodified": true,
+    "priorRecommendation": "merge",
+    "sha256": "ec801fd5947772a0f0160e045c77b0836935ea3f391f3b2e057d0f78c80d90f7"
+  },
+  "purpose": "Preserve and correct the P1v3 cleanup-core peer review after exact-head Linux evidence exposed an omitted source callsite.",
+  "replacementReview": {
+    "bytes": 11470,
+    "path": "D:/CodexData/home/state/plugins/codex-security/scans/mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1/artifacts-ac9e4417367047f11bdaeb850306bc07f2a2da2a1ce9fbb6d4ef2a8b7e78cf4c/artifacts/reviews/policy-multicore-contract-p1v3-postmortem-source-review-final-v3-20261026.json",
+    "schemaValidated": true,
+    "sha256": "7ea499be1aa6722609e03478dd25e9f12f28b6aa879643dac57bd0dbd5a2801f"
+  },
+  "reviewedPatch": {
+    "base": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "bytes": 19586,
+    "integratedHead": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "path": "D:/CodexData/workspace/mihomo-continuous-recovery-cleanup-core-candidate-20261026-native56h-v3/candidate.patch",
+    "sha256": "668f5dd0d293fbb93847b7b5ef4649a3854a4d153659eaabe023ade23b89f256"
+  },
+  "reviewerRole": "policy_multicore_contract",
+  "schema": "chengwang.external-review-erratum/v1",
+  "selectedCorrectionBoundary": {
+    "decision": "FIXED_INTERNAL_ORIGIN",
+    "requirements": [
+      "Closed non-serializable internal origin values for CANCEL, STOP and IDENTITY.",
+      "No caller-, HTTP-, environment- or free-string-controlled origin.",
+      "Legacy native recovery and completion projections retain identical generic KILL kinds and four-field JSON.",
+      "Continuous-only deterministic one-to-one projection emits fixed origin-specific kinds under versioned nested and outer schemas.",
+      "No event filtering, duplication, reordering or renumbering; invalid origin combinations fail boundedness.",
+      "All producer, observer, reader, model, formatter, delivery and source-policy closures must be updated together."
+    ],
+    "schemaVersions": {
+      "caseActor": "v2 unchanged",
+      "httpIndex": "v2 unchanged",
+      "nestedResponseLoss": "v2",
+      "outerContinuousExperiment": "v3"
+    },
+    "status": "DESIGN_SELECTED_CANDIDATE_NOT_YET_FROZEN"
+  },
+  "status": "FINAL",
+  "triggerEvidence": {
+    "allHTTPExpected": true,
+    "cleanupSuffix": [
+      "KERNEL_OS_KILL_ATTEMPT",
+      "OWNED_STOP_HELPER_ENTER",
+      "KERNEL_OS_KILL_RETURN",
+      "KERNEL_OS_TERM_ATTEMPT",
+      "KERNEL_OS_TERM_RETURN",
+      "KERNEL_OS_WAIT_RETURN"
+    ],
+    "exactHeadOutcome": "FAIL",
+    "failureCode": "CLEANUP_CALLS",
+    "httpCases": 31,
+    "receiptBytes": 5578,
+    "receiptPath": "D:/CodexData/workspace/mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1/AUDIT-RECEIPT-FINAL.json",
+    "receiptSHA256": "4943171d7e13fe191f154a401166f3b48319a62f446869bfdef0edce9029c8b9",
+    "runtimeErrorClass": "NONE",
+    "suffixCore": 3
+  }
+}

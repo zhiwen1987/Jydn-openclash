@@ -1,0 +1,169 @@
+{
+  "affectedRuntimeRoots": [
+    "root integration coordinator and lifecycle development branch",
+    "chengwang/internal/mihomodeploy Linux kill-origin observation",
+    "continuous recovery worker/checker/source policy and report schema",
+    "capacity profile formatter closure and ten-file evidence archive"
+  ],
+  "applicability": {
+    "rationale": "The bundle targets the owned lifecycle R path at exact 2eb and the frozen fixed-origin candidate already source-reviewed for Linux-only integration.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "All four exact script bytes, AST syntax, builder/prepare field compatibility, every hard-coded candidate/peer/archive source digest, current R state, candidate full-index patch, source receipt fields and prior immutable-source closure checks were inspected read-only."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "high",
+    "rationale": "The admitted workflow stages 14 shared source paths, LIVE, ten evidence archives and a generated integration record, then creates and pushes a lifecycle development-branch commit. A defect could affect shared Linux recovery behavior or publish incorrect audit evidence, although production, main and Registry remain outside scope."
+  },
+  "importantCallers": [
+    "build-mihomo-fixed-origin-input-20261026.py",
+    "prepare-mihomo-fixed-origin-integration-20261026.py stage/finalize",
+    "integrate-mihomo-fixed-origin-development-20261026.py commit/303 CPU replay/push",
+    "replay-continuous-fixed-origin-final-head-source-20261026.py"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A substituted prepare or integrator could weaken admission or stage a different set after the review.",
+      "id": "four_file_orchestration_identity",
+      "invariant": "The reviewed prepare, integrator, replay helper and input builder must be the exact files used for one integration.",
+      "legitimateControl": "The builder verifies supplied prepare and integrator SHA values, hard-pins the replay helper, and this review pins the builder; prepare verifies itself and the integrator again, while the integrator verifies itself before any repository stage or commit.",
+      "result": "supported",
+      "runtimeRoot": "root-controlled external integration coordinator"
+    },
+    {
+      "counterexample": "A valid unrelated JSON must not be accepted under any fixed-origin evidence filename.",
+      "id": "new_archive_role_binding",
+      "invariant": "The four new archive destinations must contain exactly the selected candidate receipt, implementation peer, policy peer and coordinator review.",
+      "legitimateControl": "The builder fixes candidate and peer sources and emits an independently supplied coordinator pin. Prepare reconstructs the expected role map, requires exact implementation/policy roles and basenames, hashes every pin, and requires each NEW4 source path and SHA to equal its selected origin.",
+      "result": "supported",
+      "runtimeRoot": "committed chengwang/docs/evidence archive"
+    },
+    {
+      "counterexample": "A stale receipt name/count, alternate manifest, divergent working-tree diff or peer for another patch must stop.",
+      "id": "candidate_receipt_and_patch_identity",
+      "invariant": "The candidate receipt, manifest, patch, afterimages and both peer reviews must all describe one exact immutable 14-path change.",
+      "legitimateControl": "Prepare requires candidate manifest/patch/receipt pins, strict receipt schema/count/name/bytes/SHA, exact manifest schema/base/tree/14 unique rows/mode/LF/hash/blob data, byte-equal full-index patch, and both peer patch objects' sourceType/base/SHA/14-file set.",
+      "result": "supported",
+      "runtimeRoot": "candidate admission"
+    },
+    {
+      "counterexample": "Dropping, replacing or adding a historical archive, or staging unrelated dirty data, must fail.",
+      "id": "dirty_archive_preservation",
+      "invariant": "Exactly six named preexisting untracked archives and LIVE must be preserved while exactly four new archives are added.",
+      "legitimateControl": "Builder requires the actual six-name untracked set and captures exact UTF-8 working bytes; prepare requires exact six working copies, exact total ten destinations, semantic equality to each historical source, exact stage/finalize dirty sets and immutable-base candidate preimages.",
+      "result": "supported",
+      "runtimeRoot": "R working tree and resulting commit"
+    },
+    {
+      "counterexample": "Count-preserving path substitutions, privacy drift, broader contract changes or unrelated kernel edits must fail.",
+      "id": "source_contract_closure",
+      "invariant": "The integrated source must retain exact continuous, profile, contract, policy, privacy, kernel and normal-name closures.",
+      "legitimateControl": "Finalization derives exact delivery/FMT ordering, base CAPACITY plus exact three and old FULL extras, unchanged Go args, schema-v2 plus two contract fields, policy-only delivery33, byte-identical private functions, reversible six kernel wrappers, HTTP31 and normal 688 hash from immutable 2eb.",
+      "result": "supported",
+      "runtimeRoot": "continuous recovery and capacity-profile source contracts"
+    },
+    {
+      "counterexample": "A source-only pass could otherwise be mistaken for compiled or real 31-request recovery acceptance.",
+      "id": "runtime_evidence_truthfulness",
+      "invariant": "Source integration must not be represented as exact-head Linux or production acceptance.",
+      "legitimateControl": "Plan/evidence explicitly keep actualNewRuntimeAccepted, performanceBenefitProven, production, mainMerged, registryPublished, fullDiagnosticTimeoutResolved and fullSystemComplete false; Linux/runtime evidence remains a separate next gate.",
+      "result": "supported",
+      "runtimeRoot": "integration evidence and later CI rollout"
+    }
+  ],
+  "patch": {
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "changedFiles": [
+      "D:/CodexData/workspace/prepare-mihomo-fixed-origin-integration-20261026.py",
+      "D:/CodexData/workspace/integrate-mihomo-fixed-origin-development-20261026.py",
+      "D:/CodexData/workspace/replay-continuous-fixed-origin-final-head-source-20261026.py",
+      "D:/CodexData/workspace/build-mihomo-fixed-origin-input-20261026.py"
+    ],
+    "head": "four-file orchestration bundle in order prepare, integrator, replay helper, input builder; component SHA256 cedeed7c4b8f973721dcc1e324704cb990709d80c322999c06767d492080a150, ffaa1b6a9e3a706bede49e1644823b1c9bdce6eea4b2b1d4f667f88ec409bb00, 0fac69563533c543d1dead92b4e30e69f8112edfead6db32235a2d203dac652b, 864c9e1e0c9be07f28ad76cad808a7a697d13cb0a686ca3a08d9a276c631531b",
+    "repository": "D:/CodexData/workspace/chengwang-mihomo-lifecycle-uv9npzyn/r",
+    "sha256": "d8a1851fc67f39476eb93e4c21c9a1894d3de9ee830527f0682666134f570ec2",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "The four-file bundle is pinned by exact SHA256; prepare and integrator verify their configured bytes, the replay helper has a fixed hash, and the builder verifies its supplied prepare/integrator hashes before output.",
+    "The builder pins four candidate artifacts, two role-distinct peer receipts and six historical source receipts, and writes one fixed O_EXCL+fsync input only after all checks.",
+    "NEW4 sources are mapped exactly to candidate receipt, implementation peer, policy peer and independently supplied coordinator-review pin; archive path and SHA must match the selected origin.",
+    "The source receipt now requires exact schema, changed count, manifest/patch names, byte counts and hashes in addition to base commit/tree.",
+    "The candidate full-index binary diff remains byte-identical to patch c115323d... and all prior profile, continuous, privacy, kernel reversal and normal-688 guards remain."
+  ],
+  "recommendation": "merge",
+  "recoverability": {
+    "rating": "managed",
+    "rationale": "No migration or production write is involved. The development commit can be reverted, but CPU replay occurs after the local commit and a pushed failure requires a controlled branch revert while preserving LIVE and the six original evidence files."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "The integration touches architecture-specific Linux process observation and public evidence schemas, and exact-head Go evidence must follow integration. The source admission path now has exact pins, role-bound archives, strict receipt fields and immutable-base derivations, with no remaining deterministic source defect found."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The source contract protects the exact four orchestration files, 14-path patch, manifest rows, two peer patch identities, six existing and four new role-bound archives, profile/continuous/contract/policy closures and schedules 303 CPU checks plus final-head source replay. It deliberately does not claim exact-head Linux compilation, formatting or runtime acceptance before the single integration."
+  },
+  "riskDrivers": [
+    "The admitted patch changes shared Linux observation and serialized evidence contracts.",
+    "The integrator commits before running the post-commit CPU/source replay and pushes only after those checks.",
+    "Exact-head Linux Go, official formatting and real continuous runtime evidence must be obtained after integration."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without this candidate, the continuous recovery evidence cannot distinguish the required source-owned kill origins. The corrected orchestrator now admits that source without weakening the existing runtime or evidence gates."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": false,
+      "summary": "The coordinator-review path/hash must be supplied from this retained v3 review when the builder is run; this is an operational input, not an unresolved source decision."
+    },
+    {
+      "decisionCritical": false,
+      "summary": "Exact integrated-head Linux formatting, compile/race and runtime acceptance remain the next rollout gate."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Four-file identity, LF and syntax",
+      "protects": "Prepare 17778B cedeed7c..., integrator 8196B ffaa1b6a..., replay 2196B 0fac6956..., builder 5416B 864c9e1e...; all LF/EOF-LF and Python AST-parse.",
+      "status": "passed"
+    },
+    {
+      "name": "Builder to prepare schema compatibility",
+      "protects": "The nine top-level fields consumed by prepare exactly equal the nine emitted by builder; no missing or extra top-level field exists.",
+      "status": "passed"
+    },
+    {
+      "name": "Hard-coded source pins",
+      "protects": "All four candidate pins, two peer pins and six historical source-receipt hashes match current bytes; R is exact 2eb/tree with only LIVE and those six named files dirty, and all six working files are semantically equal to their source receipts.",
+      "status": "passed"
+    },
+    {
+      "name": "Candidate and source closure",
+      "protects": "Actual full-index patch bytes equal c115323d...; strict receipt/manifest/peer/NEW4 role checks are present; prior exact profile, contract, policy, continuous, privacy, kernel and normal-688 checks remain unchanged.",
+      "status": "passed"
+    },
+    {
+      "name": "Builder execution and stage/finalize",
+      "protects": "Explicitly forbidden during this review. The fixed output path is currently absent; source order places every hash/source/status check before O_EXCL write and all admission checks before stage output.",
+      "status": "skipped"
+    },
+    {
+      "name": "Exact-head Linux Go and runtime",
+      "protects": "Required after the controlled integration; not claimed by this source acceptance.",
+      "status": "unavailable"
+    }
+  ],
+  "workflowLabel": "human_review_required"
+}

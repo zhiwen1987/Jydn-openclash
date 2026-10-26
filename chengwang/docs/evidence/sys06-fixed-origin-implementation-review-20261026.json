@@ -1,0 +1,208 @@
+{
+  "affectedRuntimeRoots": [
+    "chengwang/internal/mihomodeploy/lab_kernel_linux.go process cleanup",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go native recovery observation",
+    "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go exact-tag fault observation",
+    "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go serialized experiment report",
+    "chengwang/deploy/mihomo-lifecycle-lab continuous recovery producer/checker/contract",
+    "chengwang/deploy/mihomo-capacity-profile source and formatter closures"
+  ],
+  "applicability": {
+    "rationale": "The candidate directly addresses the exact 2eb continuous-recovery cleanup evidence path where generic KILL events could not distinguish cancel, identity, and stop origins.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout",
+    "broad_shared_default"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Patch identity, all 14 before/after images, changed runtime roots, three concrete Kill call sites, compatibility projection, schema consumers, privacy fences, and available CPU checks were independently inspected. The unresolved Linux evidence is explicit rather than hidden."
+  },
+  "evidencePlan": [
+    {
+      "action": "Run the repository-pinned Linux Go 1.23.12/vendor-offline compile and gofmt gates for default, recovery-native, and continuous-fault source closures without changing existing limits.",
+      "outcomes": {
+        "all variants compile and the official gofmt patch is empty": "hold_for_evidence",
+        "any variant fails compilation or formatting": "revise"
+      },
+      "question": "Do all affected Go build-tag variants compile and format cleanly at the exact candidate afterimage?"
+    },
+    {
+      "action": "Run the exact-tag Go MODEL and the isolated 31-step HTTPS experiment at the exact candidate head, then require the independent checker and fresh replay to accept original bytes with all privacy fences active.",
+      "outcomes": {
+        "MODEL, Go experiment, checker, and fresh replay all pass with exact source binding": "merge",
+        "any runtime, schema, cleanup, privacy, or fresh-replay gate fails": "revise"
+      },
+      "question": "Does the source-bound origin preserve runtime behavior and close the actual evidence chain?"
+    }
+  ],
+  "impact": {
+    "rating": "high",
+    "rationale": "The patch changes a shared Linux process-kill observation path and externally checked serialized evidence contracts. A wrong classification could falsify cleanup provenance or break normal Linux process cleanup/continuous-recovery acceptance, even though the default observer implementation is intended to be a no-op."
+  },
+  "importantCallers": [
+    "cancel path calling os.Process.Kill in lab_kernel_linux.go",
+    "identity cleanup path calling os.Process.Kill in lab_kernel_linux.go",
+    "stop path calling os.Process.Kill in lab_kernel_linux.go",
+    "labNativeRecoveryReadCalls legacy consumers",
+    "labNativeRecoveryReadContinuousCalls continuous-fault consumers",
+    "continuous_recovery_api_worker.py safe report export and privacy fence",
+    "check_continuous_recovery_api.py independent acceptance reader"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A freely supplied origin could relabel a generic kill as STOP or CANCEL and fabricate a valid cleanup sequence.",
+      "id": "origin_provenance",
+      "invariant": "A kill-origin label must be issued by the actual source call site and must not be supplied by an external string, environment variable, API field, or serialized input.",
+      "legitimateControl": "The patch uses an unexported typed origin and six fixed private wrappers around exactly three Process.Kill calls; unknown or mismatched origins set bounded=false.",
+      "result": "supported",
+      "runtimeRoot": "lab_kernel_linux.go and lab_native_recovery_observer_linux.go"
+    },
+    {
+      "counterexample": "Adding origin to the exported JSON shape or changing legacy kinds would invalidate old readers, evidence pins, and four-mode S2 contracts.",
+      "id": "legacy_projection",
+      "invariant": "Existing native recovery consumers must retain the legacy four-field call DTO, ordering, and generic KILL kinds.",
+      "legitimateControl": "Raw events are stored internally; labNativeRecoveryReadCalls copies only the original call under the same mutex, one row per event. The legacy call struct and event snapshot blocks are byte-identical and old V5/BOUND pins are unchanged.",
+      "result": "supported",
+      "runtimeRoot": "labNativeRecoveryReadCalls and existing native completion/recovery readers"
+    },
+    {
+      "counterexample": "A version skew could accept a stale report or reject a valid report while still passing one side's local model.",
+      "id": "schema_closure",
+      "invariant": "The Go producer, worker, independent checker, and JSON contract must agree on outer report v3, nested fault observation v2, and contract v2 while preserving HTTP index v2.",
+      "legitimateControl": "All active producers and readers use the same fixed schemas; old versions remain negative fixtures, closures include all three new Go sources, and Python model suites exercise coordinated and single-sided schema rewrites.",
+      "result": "supported",
+      "runtimeRoot": "serverruntime report producer and deploy/mihomo-lifecycle-lab producer/checker"
+    },
+    {
+      "counterexample": "Masking origin fields, skipping secret variants, or relaxing safe-report validation could publish private identity or token material as accepted evidence.",
+      "id": "privacy_and_authority",
+      "invariant": "New origin evidence must not expose raw origin metadata, weaken secret scanning, change authentication or RBAC, or alter the 31 HTTP authority chain.",
+      "legitimateControl": "encoded_secret_variants, build_forbidden, and fence_outputs are byte-identical; safe_report_outputs only advances fixed schemas; no origin is serialized in the legacy DTO; authn, store, RBAC, raw HTTP bodies, index, and authority sources are unchanged.",
+      "result": "supported",
+      "runtimeRoot": "continuous_recovery_api_worker.py output path and unchanged authn/service path"
+    },
+    {
+      "counterexample": "A signature or build-tag mismatch could break normal builds; a blocking observer or wrong call ordering could change cleanup behavior or deadlock.",
+      "id": "build_tag_and_runtime",
+      "invariant": "Default/non-Linux builds must compile with exact no-op hook signatures, and exact-tag Linux builds must preserve process behavior while recording the correct origin.",
+      "legitimateControl": "The default file is the logical complement of linux plus recovery_native and defines matching no-op signatures; the Linux implementation records under the existing observer mutex and does not call back into kernel/service state.",
+      "result": "unresolved",
+      "runtimeRoot": "lab_native_recovery_observer_default.go, lab_native_recovery_observer_linux.go, and lab_kernel_linux.go"
+    }
+  ],
+  "patch": {
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8 (tree e7a84d171913cb601feb5dd7609b625ca3d4b045)",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-capacity-profile/check_profile.py",
+      "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py",
+      "chengwang/deploy/mihomo-capacity-profile/test_profile_contract.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_source_policy.json",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go",
+      "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go",
+      "chengwang/internal/mihomodeploy/lab_kernel_linux.go",
+      "chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go",
+      "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "candidate afterimage bound by PATH-MANIFEST sha256 b58ffa90e7d22f1eb4b6441eca21000e9e8bf234c0b37e48aafd6acca1cb7baf",
+    "repository": "D:/CodexData/workspace/mihomo-2eb7717-acceptance-10h6sggf/repo",
+    "sha256": "c115323d488aa4b0dc00fc456d886bfc6ae743c057653f188317dbc7e12c6655",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Kill origin is an unexported typed enum issued only by six fixed wrappers at three source call sites.",
+    "Legacy consumers still receive the same four-field DTO and generic KILL kinds through a one-for-one projection under the existing lock.",
+    "Invalid or mismatched origin poisons bounded evidence instead of being ignored.",
+    "Authn, store, RBAC, the 31 HTTP case list, raw response bodies, and authority sources are unchanged.",
+    "Secret inventory and both output fences are byte-identical; safe report changes are strict schema updates, not masks or exceptions."
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The candidate changes 14 source/test/contract files, introduces no migration or persistent data rewrite, and can be reverted as one bounded source patch."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "Source controls are narrow and fixed, and no source-visible bypass was found, but the patch crosses build-tag variants, shared Linux kill call sites, Go fixtures, and three protocol layers without exact-head Linux compilation or runtime evidence."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Python contract, compatibility, native-reader, and profile models ran and passed, including negative schema cases. They do not compile the changed Go variants or execute the exact-tag Go MODEL, actual 31-request HTTPS chain, checker, and fresh replay at this candidate afterimage."
+  },
+  "riskDrivers": [
+    "Shared Linux cleanup path receives six new observer calls.",
+    "Serialized report, fault observation, and contract schemas advance together.",
+    "Build-tag complement correctness and Go compilation are not yet executed.",
+    "The observer is not a complete OS-syscall audit; implicit WaitDelay kills remain outside scope."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without a source-bound kill origin, the continuous-recovery evidence path can reject an otherwise completed 31-step experiment because cleanup provenance is ambiguous; this blocks trustworthy acceptance but is not itself evidence of a production authorization failure."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "The candidate has not been compiled or gofmt-checked on Linux across default, recovery-native, and continuous-fault build tags."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "The exact-tag Go MODEL and real 31-request HTTPS producer/checker/fresh chain have not run at the candidate afterimage."
+    },
+    {
+      "decisionCritical": false,
+      "summary": "Implicit process termination performed by Go WaitDelay is not instrumented; the report remains a bounded observer of the three explicit Process.Kill call sites rather than a complete OS syscall audit."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Exact patch and manifest identity",
+      "protects": "The assessed bytes are the immutable 73544-byte patch with SHA-256 c115323d488aa4b0dc00fc456d886bfc6ae743c057653f188317dbc7e12c6655, applied to the exact 2eb base/tree; all 14 before/after hashes, modes, LF flags, and changed paths match the manifest.",
+      "status": "passed"
+    },
+    {
+      "name": "Strict patch application",
+      "protects": "git apply --check --whitespace=error-all succeeds on the immutable base and the diff path set equals the 14-path manifest.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent source closure and privacy review",
+      "protects": "Confirms continuous FMT19/delivery33, profile FMT4/full28, inherited compat/apply/service/unknown membership, unchanged old V5/BOUND pins, byte-identical privacy fences, and unchanged authn/store/RBAC/31-case authority surface.",
+      "status": "passed"
+    },
+    {
+      "name": "Python contract and compatibility models",
+      "protects": "239 tests passed for contracts, compat, apply, service, unknown, workers, and continuous models; these protect fixed membership, schema agreement, and negative rewrites, not Go runtime behavior.",
+      "status": "passed"
+    },
+    {
+      "name": "Python native reader models",
+      "protects": "29 tests passed for native completion/recovery readers and preserve old reader pins and closed schemas.",
+      "status": "passed"
+    },
+    {
+      "name": "Python profile contract models",
+      "protects": "2 tests passed for profile closure counts and source membership.",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-head Linux compilation and gofmt",
+      "protects": "Would prove all default/native/continuous build-tag combinations compile and the 19-file format closure is empty at the candidate afterimage.",
+      "status": "skipped"
+    },
+    {
+      "name": "Exact-tag Go MODEL and actual 31-step HTTPS plus fresh replay",
+      "protects": "Would exercise the real three kill call sites, origin projection, serialized v3/v2 evidence, independent checker, privacy fences, and producer/fresh byte equality.",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}

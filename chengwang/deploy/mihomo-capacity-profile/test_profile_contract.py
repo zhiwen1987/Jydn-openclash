@@ -9,6 +9,9 @@ from unittest import mock
 
 EXPECTED_FULL_FMT = (
     'internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go',
+    'internal/mihomodeploy/lab_kernel_linux.go',
+    'internal/mihomodeploy/lab_native_recovery_observer_default.go',
+    'internal/mihomodeploy/lab_native_recovery_observer_linux.go',
     'internal/authn/continuous_bound_credentials_linux.go',
     'internal/authn/continuous_bound_credentials_linux_test.go',
     'internal/authn/store.go',
@@ -41,6 +44,11 @@ BOUND_CREDENTIALS_V2_ADDED_FMT = (
     'internal/serverruntime/mihomo_lab_runtime.go',
     'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
 )
+SOURCE_ORIGIN_ADDED_FMT = (
+    'internal/mihomodeploy/lab_kernel_linux.go',
+    'internal/mihomodeploy/lab_native_recovery_observer_default.go',
+    'internal/mihomodeploy/lab_native_recovery_observer_linux.go',
+)
 
 
 def load(name):
@@ -59,7 +67,7 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         cls.producer, cls.producer_source = load('profile_evidence')
         cls.reader, cls.reader_source = load('check_profile')
 
-    def capture_full_commands(self):
+    def capture_commands(self, mode):
         observed = []
 
         class Process:
@@ -74,8 +82,11 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             private = Path(directory)
             environment = dict(os.environ)
-            environment.update(CHENGWANG_CAPACITY_PROFILE_MODE='FULL_CONTRACTS',
-                               CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT='1'*40)
+            environment.update(CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT='1'*40)
+            if mode == 'FULL_CONTRACTS':
+                environment['CHENGWANG_CAPACITY_PROFILE_MODE'] = mode
+            else:
+                environment.pop('CHENGWANG_CAPACITY_PROFILE_MODE', None)
             with mock.patch.object(self.producer, 'PRIVATE', private), \
                  mock.patch.object(self.producer, 'SOURCE', Path.cwd()), \
                  mock.patch.object(self.producer.sys, 'platform', 'linux'), \
@@ -86,15 +97,15 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
                  mock.patch.object(self.producer, 'resource_observation', return_value={'bounded':True}), \
                  mock.patch.object(self.producer.subprocess, 'Popen', Process), \
                  mock.patch.dict(self.producer.os.environ, environment, clear=True):
-                self.producer.commands(Path('/fixed-go-root'), 'FULL_CONTRACTS')
+                self.producer.commands(Path('/fixed-go-root'), mode)
             rows = [json.loads(line) for line in (private/'commands.jsonl').read_text(encoding='utf-8').splitlines()]
         return observed, rows
 
-    def test_full_formatter_argv_uses_the_independent_exact_25_path_contract(self):
+    def test_full_formatter_argv_uses_the_independent_exact_28_path_contract(self):
         self.assertEqual(tuple(self.producer.FULL_FMT), EXPECTED_FULL_FMT)
         self.assertEqual(tuple(self.reader.FULL_FMT), EXPECTED_FULL_FMT)
-        self.assertEqual(tuple(self.producer.CAPACITY_FMT), EXPECTED_FULL_FMT[:1])
-        self.assertEqual(tuple(self.reader.CAPACITY_FMT), EXPECTED_FULL_FMT[:1])
+        self.assertEqual(tuple(self.producer.CAPACITY_FMT), EXPECTED_FULL_FMT[:4])
+        self.assertEqual(tuple(self.reader.CAPACITY_FMT), EXPECTED_FULL_FMT[:4])
         self.assertEqual(self.producer.GO_ARGS,self.reader.GO_ARGS)
         self.assertEqual(self.producer.FULL_GO_ARGS,self.reader.FULL_GO_ARGS)
         self.assertEqual(self.producer.GO_ARGS,
@@ -105,10 +116,16 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
                          ['test','-race','-json','-count=1','-timeout=180s','-tags','chengwang_capacity_profile',
                           '-run','^Test','./internal/adapter/mihomo','./internal/mihomodeploy','./internal/authn',
                           './internal/api','./internal/serverruntime','./internal/authz'])
-        observed, rows = self.capture_full_commands()
+        observed, rows = self.capture_commands('FULL_CONTRACTS')
         go = str(Path('/fixed-go-root')/'bin/go')
         self.assertEqual(observed[1],[str(Path('/fixed-go-root')/'bin/gofmt'),'-d',*EXPECTED_FULL_FMT])
         self.assertEqual(observed[2],[go,*self.reader.FULL_GO_ARGS])
+        started = [row for row in rows if row['event'] == 'START_INTENT']
+        self.assertEqual([row['class'] for row in started],['VERSION','FORMAT','GO_TEST','PPROF_TOP','PPROF_CUM'])
+        self.assertEqual(started[1]['argv'],observed[1])
+        observed, rows = self.capture_commands('SINGLE_CASE')
+        self.assertEqual(observed[1],[str(Path('/fixed-go-root')/'bin/gofmt'),'-d',*EXPECTED_FULL_FMT[:4]])
+        self.assertEqual(observed[2],[go,*self.reader.GO_ARGS])
         started = [row for row in rows if row['event'] == 'START_INTENT']
         self.assertEqual([row['class'] for row in started],['VERSION','FORMAT','GO_TEST','PPROF_TOP','PPROF_CUM'])
         self.assertEqual(started[1]['argv'],observed[1])
@@ -130,7 +147,20 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         reordered[first], reordered[second] = reordered[second], reordered[first]
         self.assertNotEqual(tuple(reordered),tuple(self.producer.FULL_FMT))
         self.assertNotEqual(tuple(reordered),tuple(self.reader.FULL_FMT))
-        self.assertEqual(len(EXPECTED_FULL_FMT),len(set(EXPECTED_FULL_FMT)),25)
+        self.assertEqual(tuple(path for path in EXPECTED_FULL_FMT if path in SOURCE_ORIGIN_ADDED_FMT),
+                         SOURCE_ORIGIN_ADDED_FMT)
+        for path in SOURCE_ORIGIN_ADDED_FMT:
+            with self.subTest(origin_path=path):
+                shortened = tuple(item for item in EXPECTED_FULL_FMT if item != path)
+                self.assertNotEqual(shortened,tuple(self.producer.FULL_FMT))
+                self.assertNotEqual(shortened,tuple(self.reader.FULL_FMT))
+        origin_reordered = list(EXPECTED_FULL_FMT)
+        first = origin_reordered.index(SOURCE_ORIGIN_ADDED_FMT[0])
+        second = origin_reordered.index(SOURCE_ORIGIN_ADDED_FMT[1])
+        origin_reordered[first], origin_reordered[second] = origin_reordered[second], origin_reordered[first]
+        self.assertNotEqual(tuple(origin_reordered),tuple(self.producer.FULL_FMT))
+        self.assertNotEqual(tuple(origin_reordered),tuple(self.reader.FULL_FMT))
+        self.assertEqual(len(EXPECTED_FULL_FMT),len(set(EXPECTED_FULL_FMT)),28)
 
 
 if __name__ == '__main__':

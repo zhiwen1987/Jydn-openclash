@@ -19,6 +19,20 @@ type labNativeRecoveryCall struct {
 	At       time.Time `json:"at"`
 }
 
+type labNativeRecoveryKillOrigin uint8
+
+const (
+	labNativeRecoveryKillOriginNone labNativeRecoveryKillOrigin = iota
+	labNativeRecoveryKillOriginCancel
+	labNativeRecoveryKillOriginIdentity
+	labNativeRecoveryKillOriginStop
+)
+
+type labNativeRecoveryRawCall struct {
+	call       labNativeRecoveryCall
+	killOrigin labNativeRecoveryKillOrigin
+}
+
 type labNativeRecoveryEventCheckpoint struct {
 	Stage        string `json:"stage"`
 	Count        int    `json:"count"`
@@ -58,26 +72,60 @@ func labNativeRecoveryEventSnapshot(stage string) ([]labNativeRecoveryCall, labN
 type labNativeRecoveryCalls struct {
 	mu       sync.Mutex
 	cores    map[*ownedLabKernelCore]uint64
-	events   []labNativeRecoveryCall
+	events   []labNativeRecoveryRawCall
 	overflow bool
 }
 
 var processLabNativeRecoveryCalls = labNativeRecoveryCalls{
 	cores:  map[*ownedLabKernelCore]uint64{},
-	events: []labNativeRecoveryCall{},
+	events: []labNativeRecoveryRawCall{},
 }
 
 func labNativeRecoveryObserve(core *ownedLabKernelCore, kind string) {
+	labNativeRecoveryObserveRaw(core, kind, labNativeRecoveryKillOriginNone)
+}
+
+func labNativeRecoveryObserveCancelKillAttempt(core *ownedLabKernelCore) {
+	labNativeRecoveryObserveRaw(core, "KERNEL_OS_KILL_ATTEMPT", labNativeRecoveryKillOriginCancel)
+}
+
+func labNativeRecoveryObserveCancelKillReturn(core *ownedLabKernelCore) {
+	labNativeRecoveryObserveRaw(core, "KERNEL_OS_KILL_RETURN", labNativeRecoveryKillOriginCancel)
+}
+
+func labNativeRecoveryObserveIdentityKillAttempt(core *ownedLabKernelCore) {
+	labNativeRecoveryObserveRaw(core, "KERNEL_OS_KILL_ATTEMPT", labNativeRecoveryKillOriginIdentity)
+}
+
+func labNativeRecoveryObserveIdentityKillReturn(core *ownedLabKernelCore) {
+	labNativeRecoveryObserveRaw(core, "KERNEL_OS_KILL_RETURN", labNativeRecoveryKillOriginIdentity)
+}
+
+func labNativeRecoveryObserveStopKillAttempt(core *ownedLabKernelCore) {
+	labNativeRecoveryObserveRaw(core, "KERNEL_OS_KILL_ATTEMPT", labNativeRecoveryKillOriginStop)
+}
+
+func labNativeRecoveryObserveStopKillReturn(core *ownedLabKernelCore) {
+	labNativeRecoveryObserveRaw(core, "KERNEL_OS_KILL_RETURN", labNativeRecoveryKillOriginStop)
+}
+
+func labNativeRecoveryObserveRaw(core *ownedLabKernelCore, kind string, origin labNativeRecoveryKillOrigin) {
 	c := &processLabNativeRecoveryCalls
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	known := false
 	for _, name := range []string{"KERNEL_OS_START_ATTEMPT", "KERNEL_OS_START_RETURN", "KERNEL_OS_WAIT_ENTER", "KERNEL_OS_WAIT_RETURN",
-		"OWNED_STOP_HELPER_ENTER", "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN", "KERNEL_OS_KILL_ATTEMPT", "KERNEL_OS_KILL_RETURN",
+		"OWNED_STOP_HELPER_ENTER", "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN",
 		"RECOVERY_STOP_DISPATCH", "RECOVERY_START_DISPATCH", "SYNTAX_OS_START_ATTEMPT", "SYNTAX_OS_START_RETURN"} {
 		if kind == name {
 			known = true
 		}
+	}
+	kill := kind == "KERNEL_OS_KILL_ATTEMPT" || kind == "KERNEL_OS_KILL_RETURN"
+	if kill {
+		known = origin == labNativeRecoveryKillOriginCancel || origin == labNativeRecoveryKillOriginIdentity || origin == labNativeRecoveryKillOriginStop
+	} else if origin != labNativeRecoveryKillOriginNone {
+		known = false
 	}
 	if !known || len(c.events) >= 256 || (core != nil && c.cores[core] == 0 && len(c.cores) >= 4) {
 		c.overflow = true
@@ -91,14 +139,56 @@ func labNativeRecoveryObserve(core *ownedLabKernelCore, kind string) {
 			c.cores[core] = id
 		}
 	}
-	c.events = append(c.events, labNativeRecoveryCall{len(c.events) + 1, kind, id, time.Now().UTC()})
+	c.events = append(c.events, labNativeRecoveryRawCall{call: labNativeRecoveryCall{len(c.events) + 1, kind, id, time.Now().UTC()}, killOrigin: origin})
 }
 
 func labNativeRecoveryReadCalls() ([]labNativeRecoveryCall, bool) {
 	c := &processLabNativeRecoveryCalls
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return append([]labNativeRecoveryCall{}, c.events...), !c.overflow
+	events := make([]labNativeRecoveryCall, len(c.events))
+	for index := range c.events {
+		events[index] = c.events[index].call
+	}
+	return events, !c.overflow
+}
+
+// Continuous recovery gets a one-for-one diagnostic projection with fixed
+// source-owned kill kinds. Legacy readers keep the original generic kill kinds
+// and four-field JSON shape through labNativeRecoveryReadCalls.
+func labNativeRecoveryReadContinuousCalls() ([]labNativeRecoveryCall, bool) {
+	c := &processLabNativeRecoveryCalls
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	events := make([]labNativeRecoveryCall, 0, len(c.events))
+	bounded := !c.overflow
+	for _, raw := range c.events {
+		event := raw.call
+		killAttempt := event.Kind == "KERNEL_OS_KILL_ATTEMPT"
+		killReturn := event.Kind == "KERNEL_OS_KILL_RETURN"
+		if !killAttempt && !killReturn {
+			if raw.killOrigin != labNativeRecoveryKillOriginNone {
+				bounded = false
+			}
+		} else {
+			suffix := "_RETURN"
+			if killAttempt {
+				suffix = "_ATTEMPT"
+			}
+			switch raw.killOrigin {
+			case labNativeRecoveryKillOriginCancel:
+				event.Kind = "KERNEL_OS_CANCEL_KILL" + suffix
+			case labNativeRecoveryKillOriginIdentity:
+				event.Kind = "KERNEL_OS_IDENTITY_KILL" + suffix
+			case labNativeRecoveryKillOriginStop:
+				event.Kind = "KERNEL_OS_STOP_KILL" + suffix
+			default:
+				bounded = false
+			}
+		}
+		events = append(events, event)
+	}
+	return events, bounded
 }
 
 // Lookup never creates an entry or increments a counter. It associates the

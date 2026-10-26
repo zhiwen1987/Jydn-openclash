@@ -20,7 +20,10 @@ TAG='chengwang_capacity_profile'
 GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^'+TOP+'$','./internal/mihomodeploy']
 FULL_PACKAGES=['./internal/adapter/mihomo','./internal/mihomodeploy','./internal/authn','./internal/api','./internal/serverruntime','./internal/authz']
 FULL_GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^Test',*FULL_PACKAGES]
-CAPACITY_FMT=['internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go']
+CAPACITY_FMT=['internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go',
+    'internal/mihomodeploy/lab_kernel_linux.go',
+    'internal/mihomodeploy/lab_native_recovery_observer_default.go',
+    'internal/mihomodeploy/lab_native_recovery_observer_linux.go']
 FULL_FMT=[*CAPACITY_FMT,
     'internal/authn/continuous_bound_credentials_linux.go',
     'internal/authn/continuous_bound_credentials_linux_test.go',

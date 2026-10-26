@@ -25,6 +25,9 @@ FMT=(
  'internal/authn/store.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+ 'internal/mihomodeploy/lab_kernel_linux.go',
+ 'internal/mihomodeploy/lab_native_recovery_observer_default.go',
+ 'internal/mihomodeploy/lab_native_recovery_observer_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
@@ -50,6 +53,9 @@ DELIVERY=(
  'chengwang/internal/authn/store.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+ 'chengwang/internal/mihomodeploy/lab_kernel_linux.go',
+ 'chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go',
+ 'chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
@@ -251,11 +257,11 @@ def validate_http(report,public):
 
 def fault(value,state):
     keys(value,('schema','state','boundOperations','observedResults','initialCore','recoveredCore','nativeCallsBounded','nativeCalls','recoveryCreatesBounded','recoveryCreates','transport'))
-    need(value['schema']=='chengwang.mihomo-continuous-recovery-response-loss/v1' and value['state']==state and value['boundOperations']==value['observedResults']==3 and value['nativeCallsBounded'] is True and value['recoveryCreatesBounded'] is True)
+    need(value['schema']=='chengwang.mihomo-continuous-recovery-response-loss/v2' and value['state']==state and value['boundOperations']==value['observedResults']==3 and value['nativeCallsBounded'] is True and value['recoveryCreatesBounded'] is True)
     integer(value['initialCore'],1); integer(value['recoveredCore'],1); need(value['initialCore']!=value['recoveredCore'])
     calls=value['nativeCalls']; need(type(calls) is list and calls)
     zero={'RECOVERY_START_DISPATCH','SYNTAX_OS_START_ATTEMPT','SYNTAX_OS_START_RETURN'}
-    positive={'KERNEL_OS_START_ATTEMPT','KERNEL_OS_START_RETURN','KERNEL_OS_WAIT_ENTER','KERNEL_OS_WAIT_RETURN','OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_KILL_RETURN','RECOVERY_STOP_DISPATCH'}
+    positive={'KERNEL_OS_START_ATTEMPT','KERNEL_OS_START_RETURN','KERNEL_OS_WAIT_ENTER','KERNEL_OS_WAIT_RETURN','OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_CANCEL_KILL_ATTEMPT','KERNEL_OS_CANCEL_KILL_RETURN','KERNEL_OS_STOP_KILL_ATTEMPT','KERNEL_OS_STOP_KILL_RETURN','RECOVERY_STOP_DISPATCH'}
     first=None
     for offset,call in enumerate(calls):
         keys(call,('sequence','kind','core','at')); sequence=integer(call['sequence'],1); need(call['kind'] in zero|positive)
@@ -291,22 +297,30 @@ def recovery_final_core(value,calls):
 def cleanup_calls(before_value,pre,post):
     final=recovery_final_core(before_value,pre); suffix=post[len(pre):]; need(suffix)
     need(all(row['core']==final for row in suffix))
-    allowed=('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_KILL_ATTEMPT',
-      'KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_ENTER','KERNEL_OS_WAIT_RETURN')
+    allowed=('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN',
+      'KERNEL_OS_CANCEL_KILL_ATTEMPT','KERNEL_OS_CANCEL_KILL_RETURN','KERNEL_OS_STOP_KILL_ATTEMPT',
+      'KERNEL_OS_STOP_KILL_RETURN','KERNEL_OS_WAIT_ENTER','KERNEL_OS_WAIT_RETURN')
     need(all(row['kind'] in allowed for row in suffix))
     positions={kind:[i for i,row in enumerate(suffix) if row['kind']==kind] for kind in allowed}
-    helper=positions['OWNED_STOP_HELPER_ENTER']; term_attempt=positions['KERNEL_OS_TERM_ATTEMPT']
-    term_return=positions['KERNEL_OS_TERM_RETURN']; kill_attempt=positions['KERNEL_OS_KILL_ATTEMPT']
-    kill_return=positions['KERNEL_OS_KILL_RETURN']; wait_enter=positions['KERNEL_OS_WAIT_ENTER']; wait_return=positions['KERNEL_OS_WAIT_RETURN']
-    need(len(helper)==len(term_attempt)==len(term_return)==len(wait_return)==1 and len(wait_enter)<=1 and
-         len(kill_attempt)==len(kill_return) and len(kill_attempt)<=1)
-    need(helper[0]<term_attempt[0]<term_return[0] and term_attempt[0]<wait_return[0] and
-         (not wait_enter or wait_enter[0]<wait_return[0]))
-    need(not kill_attempt or term_return[0]<kill_attempt[0]<kill_return[0])
+    helper=positions['OWNED_STOP_HELPER_ENTER']; wait_enter=positions['KERNEL_OS_WAIT_ENTER']; wait_return=positions['KERNEL_OS_WAIT_RETURN']
+    term_attempt=positions['KERNEL_OS_TERM_ATTEMPT']; term_return=positions['KERNEL_OS_TERM_RETURN']
+    cancel_attempt=positions['KERNEL_OS_CANCEL_KILL_ATTEMPT']; cancel_return=positions['KERNEL_OS_CANCEL_KILL_RETURN']
+    stop_attempt=positions['KERNEL_OS_STOP_KILL_ATTEMPT']; stop_return=positions['KERNEL_OS_STOP_KILL_RETURN']
+    need(len(helper)==len(wait_return)==1 and len(wait_enter)<=1 and len(term_attempt)==len(term_return)<=1 and
+         len(cancel_attempt)==len(cancel_return)<=1 and len(stop_attempt)==len(stop_return)<=1)
+    need((not wait_enter or wait_enter[0]<wait_return[0]) and
+         (not term_attempt or helper[0]<term_attempt[0]<term_return[0]) and
+         (not cancel_attempt or cancel_attempt[0]<cancel_return[0]<wait_return[0]) and
+         (not stop_attempt or term_attempt and term_return[0]<stop_attempt[0]<stop_return[0]))
+    protected=[row['kind'] for row in suffix if row['kind'] not in ('OWNED_STOP_HELPER_ENTER','KERNEL_OS_WAIT_ENTER','KERNEL_OS_WAIT_RETURN')]
+    need(len(protected)%2==0)
+    pairs={'KERNEL_OS_TERM_ATTEMPT':'KERNEL_OS_TERM_RETURN','KERNEL_OS_CANCEL_KILL_ATTEMPT':'KERNEL_OS_CANCEL_KILL_RETURN',
+      'KERNEL_OS_STOP_KILL_ATTEMPT':'KERNEL_OS_STOP_KILL_RETURN'}
+    need(all(protected[i] in pairs and protected[i+1]==pairs[protected[i]] for i in range(0,len(protected),2)))
 
 def validate_report(report,commit,public,binding):
     keys(report,('schema','scope','sourceCommit','outcome','failureCode','http','initial','heads','operations','recoveries','callsBefore','callsAfter','faultBeforeCleanup','faultAfterCleanup','faultClosed','closedPorts','runtimeReturned','runtimeErrorClass','privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven'))
-    need(report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v2' and report['scope']==SCOPE and report['sourceCommit']==commit and report['outcome']=='PASS' and report['failureCode']=='NONE')
+    need(report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v3' and report['scope']==SCOPE and report['sourceCommit']==commit and report['outcome']=='PASS' and report['failureCode']=='NONE')
     need(report['runtimeReturned'] is True and report['runtimeErrorClass']=='NONE' and all(report[k] is False for k in ('privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven')))
     initial_acceptance(report['initial'],commit)
     results,index=validate_http(report,public)
@@ -402,7 +416,10 @@ def command_argv(row,index,binding,commit):
 def verify(repo,public,commit):
     binding,_=git_manifest(repo,commit); public=Path(public).resolve(strict=True)
     contract,contract_raw=json_file(Path(repo)/'chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json',64<<10)
-    need(contract['schema']=='chengwang.mihomo-continuous-recovery-contract/v1' and contract['scope']==SCOPE and contract['exactTags']==list(TAGS) and contract['forbiddenTags']==list(FORBIDDEN) and contract['goPackage']=='./internal/serverruntime' and contract['topTest']==TOP and contract['goTimeoutSeconds']==210 and contract['outerGoTimeoutSeconds']==240 and contract['httpOriginalBytesRequired'] is True and contract['fullPrivateWALIndependentlyProven'] is False and contract['internetBusinessProven'] is False and contract['production'] is False)
+    need(contract['schema']=='chengwang.mihomo-continuous-recovery-contract/v2' and contract['scope']==SCOPE and
+         contract['reportSchema']=='chengwang.mihomo-continuous-recovery-http-experiment/v3' and
+         contract['faultObservationSchema']=='chengwang.mihomo-continuous-recovery-response-loss/v2' and
+         contract['exactTags']==list(TAGS) and contract['forbiddenTags']==list(FORBIDDEN) and contract['goPackage']=='./internal/serverruntime' and contract['topTest']==TOP and contract['goTimeoutSeconds']==210 and contract['outerGoTimeoutSeconds']==240 and contract['httpOriginalBytesRequired'] is True and contract['fullPrivateWALIndependentlyProven'] is False and contract['internetBusinessProven'] is False and contract['production'] is False)
     build=b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
     default=b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'
     for rel in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',

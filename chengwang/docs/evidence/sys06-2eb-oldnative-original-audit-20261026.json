@@ -1,0 +1,121 @@
+{
+  "allModes": {
+    "actualRecoveryResponseBodies": 8,
+    "allCommandExitZero": true,
+    "attemptExit": 0,
+    "closedPorts": 5,
+    "commandClasses": [
+      "SANDBOX",
+      "GO_VERSION",
+      "GOFMT",
+      "GO_TEST"
+    ],
+    "commands": 4,
+    "controllerReceivedCount": null,
+    "formatPatchEmpty": true,
+    "formatStderrEmpty": true,
+    "functionalCheckerChain": "PASS",
+    "nativeStderrEmpty": true,
+    "originalVerificationAndFreshByteEqual": true,
+    "pidfdReferenceAndWaitVerified": true,
+    "processEvents": 16,
+    "reportFailureCode": "NONE",
+    "reportOutcome": "PASS",
+    "sourceBeforeAfterByteEqual": true,
+    "sourceCount": 199
+  },
+  "assessment": "ACCEPT_EXACT_HEAD_ISOLATED_NATIVE_S2_EVIDENCE",
+  "auditScript": {
+    "exit": 0,
+    "path": "D:/CodexData/workspace/mihomo-2eb7717-oldnative-originals-20261026-implementation56h-v1/audit_exact_head.py"
+  },
+  "candidate": {
+    "bytes": 2025,
+    "independentByteEqual": true,
+    "production": false,
+    "runtimeExecuted": false,
+    "sha256": "5e57b8c1571fbf38bc89a7928e81dc7f5f4bf6ba22e731865b34ab4e15339b25",
+    "state": "PINNED_GZIP_EXPANDED_NOT_EXECUTED"
+  },
+  "ciRerun": false,
+  "extractor": {
+    "network": false,
+    "path": "D:/CodexData/workspace/mihomo-2eb7717-oldnative-originals-20261026-implementation56h-v1/extract_originals_safely.py",
+    "sha256": "7cd3989e8d2e64ce0a48629c449580c6850e5d64878e1e629fc705c73807e12b"
+  },
+  "localGoRun": false,
+  "modes": {
+    "not-committed": {
+      "fail": 0,
+      "freshBytes": 32188,
+      "freshSHA256": "4c50c1130c5a8b573bea77a1c0adc49efe1f6ae54786783942477a7a46dedc7e",
+      "goEvents": 8,
+      "packagePass": 1,
+      "skip": 0,
+      "topPass": 1,
+      "topRun": 1
+    },
+    "positive": {
+      "fail": 0,
+      "freshBytes": 32177,
+      "freshSHA256": "739fefd561feb7e899c2834b3e85c5e7918f9926ca5652551eacf1c8a3ecfee1",
+      "goEvents": 8,
+      "packagePass": 1,
+      "skip": 0,
+      "topPass": 1,
+      "topRun": 1
+    },
+    "readback": {
+      "fail": 0,
+      "freshBytes": 32177,
+      "freshSHA256": "d75ff57139a91f3431ce3c4efa2e8e7e1f8a03adcee4524bfe58b38856e65751",
+      "goEvents": 8,
+      "packagePass": 1,
+      "skip": 0,
+      "topPass": 1,
+      "topRun": 1
+    },
+    "unknown": {
+      "fail": 0,
+      "freshBytes": 32175,
+      "freshSHA256": "b0bc1aeefb8100bbaf5ad49371a278a34f3d8fc8e0b3c51cf79e7f0d99f40d0b",
+      "goEvents": 8,
+      "packagePass": 1,
+      "skip": 0,
+      "topPass": 1,
+      "topRun": 1
+    }
+  },
+  "originals": {
+    "artifacts": 4,
+    "members": 181,
+    "offlineCustodyReceiptSHA256": "b7f7de51277b1f4b1ccdefe05f024dac7ba5b8cdf64e5e7cf9f94a1b6db92fbd"
+  },
+  "repositoryModified": false,
+  "runId": 40320476761,
+  "schema": "chengwang.mihomo-old-native-exact-head-independent-audit/v1",
+  "scope": {
+    "completion": false,
+    "fullPrivateWAL": false,
+    "httpRecovery": false,
+    "oldNativeS2Only": true,
+    "ordinaryPublish": false,
+    "production": false,
+    "secondRecovery": false
+  },
+  "snapshot": "D:/CodexData/workspace/mihomo-2eb7717-acceptance-10h6sggf/repo",
+  "snapshotTrackedRawGitBlobs": 1516,
+  "sourceCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+  "sourceTree": "e7a84d171913cb601feb5dd7609b625ca3d4b045",
+  "windowsDirectCheckerMain": {
+    "exit": 1,
+    "fixedMessage": "MIHOMO_NATIVE_RECOVERY=REJECTED raw_input_suppressed=true",
+    "reason": "POSIX report-writer behavior is unavailable on this Windows reviewer; the exact checker source functional chain was replayed without replacing validation logic",
+    "reportCreated": false,
+    "usedForAcceptance": false
+  },
+  "zipArtifacts": 9,
+  "zipCRCPathCasefoldAndExpandedBoundsVerified": true,
+  "zipMembers": 192,
+  "zipMetadataDigestSizeHeadVerified": true
+}

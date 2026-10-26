@@ -1,0 +1,199 @@
+{
+  "affectedRuntimeRoots": [
+    "chengwang/internal/mihomodeploy/lab_kernel_linux.go",
+    "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go",
+    "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go",
+    "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py"
+  ],
+  "applicability": {
+    "rationale": "The known 2eb exact Linux run reached all 31 HTTP successes but the old generic KILL trace could not distinguish cmd.Cancel from stop fallback. This patch changes the exact observer and continuous acceptance path that rejected that run.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "architecture_specific_rollout"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "The exact immutable patch, base tree, all 14 afterimages, affected callsites, locks, projections, schema readers/producers, closure lists, and model assertions were inspected. Confidence is high for source acceptance, not for Linux runtime acceptance."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes architecture-specific, test-tagged diagnostic observation and the versioned continuous-recovery evidence contract. A defect can falsely accept or reject cleanup evidence and break native/Completion compatibility, but the normal-tag observer remains a no-op, the three Process.Kill operations and locks are unchanged, and no persistent or production state format is changed."
+  },
+  "importantCallers": [
+    "ownedLabKernelCore.run cmd.Cancel wrapper at lab_kernel_linux.go:541-558",
+    "ownedLabKernelCore.run identity-mismatch kill at lab_kernel_linux.go:636-647",
+    "ownedLabKernel.stop TERM and stop-fallback kill at lab_kernel_linux.go:968-1028",
+    "BeginLabContinuousRecoveryResponseLoss and LabContinuousRecoveryFaultHandle.Observe",
+    "continuousRecoveryCleanupCalls and continuousRecoverySuccessReportValid",
+    "check_continuous_recovery_api.py fault, cleanup_calls, validate_report",
+    "legacy labNativeRecoveryReadCalls and labNativeRecoveryEventSnapshot consumers"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A generic observer call emits KERNEL_OS_KILL_ATTEMPT with no origin, or a non-kill event carries CANCEL, and the continuous projection accepts it as bounded.",
+      "id": "origin-authenticity",
+      "invariant": "A continuous kill origin must be fixed by the exact source callsite, never by serialized input, HTTP, environment, or a caller-provided string.",
+      "legitimateControl": "Six private typed wrappers supply the closed unexported enum at the three exact Process.Kill sites; labNativeRecoveryObserveRaw rejects kill-without-valid-origin and non-kill-with-origin, while the projection preserves cardinality and returns bounded=false for inconsistent raw state.",
+      "result": "supported",
+      "runtimeRoot": "lab_kernel_linux.go and lab_native_recovery_observer_linux.go"
+    },
+    {
+      "counterexample": "The raw origin field leaks into legacy JSON, changes a generic kind, aliases mutable raw storage, or drops an event.",
+      "id": "legacy-projection",
+      "invariant": "Old native and Completion readers must continue receiving the original sequence/kind/core/at DTO with generic KERNEL_OS_KILL kinds and unchanged event-snapshot JSON.",
+      "legitimateControl": "Raw storage is a distinct private struct; labNativeRecoveryReadCalls allocates and copies only labNativeRecoveryCall. The Go model checks equal cardinality, sequence/core/time identity, generic legacy kinds, absence of origin in JSON, and non-aliasing.",
+      "result": "supported",
+      "runtimeRoot": "labNativeRecoveryReadCalls and labNativeRecoveryEventSnapshot"
+    },
+    {
+      "counterexample": "The checker accepts generic or identity kills, crossed CANCEL/TERM pairs, repeated CANCEL, STOP without TERM, CancelReturn after WaitReturn, a wrong core, or a reused recovery core; alternatively it rejects legal WaitReturn inside TERM/STOP or helper inside CANCEL.",
+      "id": "cleanup-trace-language",
+      "invariant": "The continuous suffix must describe the actual final core and source-supported partial order without inventing a total order or accepting origin/pair fabrication.",
+      "legitimateControl": "Both Go and Python validators use the same bounded language: one helper and WaitReturn, optional single paired TERM/CANCEL/STOP, CancelReturn<WaitReturn, helper<TERM, TERM_RETURN<STOP, final-core binding, and pairwise adjacency after removing Wait/helper observations. Positive fixtures cover the source-real races and negative fixtures cover the listed fabrications.",
+      "result": "supported",
+      "runtimeRoot": "continuousRecoveryCleanupCalls and check_continuous_recovery_api.py cleanup_calls"
+    },
+    {
+      "counterexample": "A v1/v2 old report, generic KILL suffix, or IDENTITY_KILL suffix is accepted as a new source-attributed PASS.",
+      "id": "identity-and-old-trace-rejection",
+      "invariant": "The old 2eb generic trace is diagnostic evidence only and must not be relabeled or accepted; identity-mismatch kills cannot appear in a successful continuous trace.",
+      "legitimateControl": "New production evidence can only arise through the typed projection; readers require nested response-loss/v2, outer http-experiment/v3, and contract/v2, and the positive-kind/suffix allowlists reject generic and IDENTITY kill kinds. The preserved old artifact is not mutated.",
+      "result": "supported",
+      "runtimeRoot": "continuous projection, nested v2 observation reader, and outer v3 report reader"
+    },
+    {
+      "counterexample": "Kernel or observer changes enter a report without gofmt argv coverage, or apply/service/unknown exact FMT contracts are silently broadened.",
+      "id": "source-and-format-closure",
+      "invariant": "Every newly changed shared Go source must be included in the continuous and profile formatter/source evidence commands, while unrelated small FMT contracts must not be widened.",
+      "legitimateControl": "The exact ordered lists add the same three paths: continuous FMT 19 and delivery 33, profile CAPACITY_FMT 4 and FULL_FMT 28. Independent contract suites confirm compat/apply/service/unknown source membership and unchanged small FMT counts 1/8/11.",
+      "result": "supported",
+      "runtimeRoot": "continuous recovery source policy/worker and capacity profile producer/checker"
+    },
+    {
+      "counterexample": "Origin reaches JSON/public output or changes Process.Kill/Signal/Wait control flow, lock placement, request actors, or captured HTTP bytes.",
+      "id": "privacy-and-os-behavior",
+      "invariant": "Origin metadata is diagnostic-only and cannot alter process behavior, authority, public HTTP bytes, secret fences, or normal-tag runtime state.",
+      "legitimateControl": "Origin is unexported and not serialized; the default complement supplies no-op typed wrappers; the kernel diff replaces only observer calls around the same three Kill invocations; CPU models preserve privacy fences and HTTP case tables, and SOURCE-RECEIPT records unchanged byte identities.",
+      "result": "supported",
+      "runtimeRoot": "observer wrappers, default complement, worker public capture, and HTTP case contract"
+    }
+  ],
+  "patch": {
+    "base": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8 (tree e7a84d171913cb601feb5dd7609b625ca3d4b045)",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-capacity-profile/check_profile.py",
+      "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py",
+      "chengwang/deploy/mihomo-capacity-profile/test_profile_contract.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_source_policy.json",
+      "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go",
+      "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go",
+      "chengwang/internal/mihomodeploy/lab_kernel_linux.go",
+      "chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go",
+      "chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "frozen working-tree afterimage represented exactly by continuous-origin-v3.patch",
+    "repository": "mihomo / Chengwang continuous recovery diagnostic acceptance",
+    "sha256": "c115323d488aa4b0dc00fc456d886bfc6ae743c057653f188317dbc7e12c6655",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Origin is a closed unexported enum; production callsites use six fixed private wrappers and cannot pass a free-form origin.",
+    "Exactly three Process.Kill callsites are wrapped; OS calls, c.mu/stopMu placement, timers, cancellation, and Wait behavior are unchanged.",
+    "Legacy reads reconstruct the original four-field DTO one-for-one; continuous reads copy and relabel one-for-one under the same registry lock.",
+    "Unknown origin, kill-without-origin, and non-kill-with-origin fail boundedness without drop or reorder; generic observation cannot forge a source-owned kill.",
+    "The finite trace language enforces final-core binding, exact cardinality, per-origin pairing, CancelReturn before WaitReturn, TERM-before-STOP, helper-before-TERM, and protected-pair non-crossing while allowing source-real Wait/helper races.",
+    "Independent pure-CPU contract/model suites passed 239, 29, and 2 tests."
+  ],
+  "recommendation": "merge",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The change is an isolated source revert with versioned diagnostic schemas, no migration, no persisted production state change, and unchanged OS call behavior."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "Static source traces and independent Python model checks support the design, but exact-head Linux compilation, Go tests, the 31-case HTTPS run, Fresh/source-bound execution, and normal-tag regression have not run for this candidate."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The patch adds direct Go model assertions for raw/legacy/continuous projection and Python positive/negative trace models; independent pure-CPU suites passed. Platform-tagged Go compilation and exact-head runtime validation remain absent."
+  },
+  "riskDrivers": [
+    "The observer storage representation changes from legacy calls to raw calls and therefore must preserve every legacy projection byte and ordering invariant.",
+    "The accepted cleanup language models real concurrency and must permit Wait/helper interleavings without permitting cross-origin pair fabrication.",
+    "The contract, nested observation, and outer report schemas all change and must be consumed atomically.",
+    "No exact-head Linux Go or HTTPS execution exists for this frozen candidate."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "high",
+    "rationale": "Without fixed source origins, the continuous checker conflates cmd.Cancel and stop fallback and can reject a source-valid trace after successful HTTP execution, leaving the required diagnostic gate unable to classify the real cleanup path."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": false,
+      "summary": "The frozen candidate has not been compiled or executed with Go on Linux, so source acceptance does not prove exact-head build or runtime acceptance."
+    },
+    {
+      "decisionCritical": false,
+      "summary": "No new exact-head 31-case HTTPS report exists; the known 2eb failure trace remains preserved diagnostic evidence and is not reinterpreted as a candidate PASS."
+    },
+    {
+      "decisionCritical": false,
+      "summary": "Fresh/source-bound and normal-tag integrated regressions remain to be run after the root creates the single committed HEAD."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen artifact identity",
+      "protects": "continuous-origin-v3.patch is 73544 bytes with SHA-256 c115323d488aa4b0dc00fc456d886bfc6ae743c057653f188317dbc7e12c6655; manifest, SOURCE, and FSYNC hashes match the supplied freeze.",
+      "status": "passed"
+    },
+    {
+      "name": "Patch-to-afterimage binding",
+      "protects": "git diff --binary --full-index from base HEAD is byte-identical to the frozen patch; all 14 current files match manifest afterBytes and afterSHA256.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent continuous/source CPU suite",
+      "protects": "python -B unittest contract/compat/apply/service/unknown/service-worker/unknown-worker/continuous-model: 239/239 passed.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent legacy native/Completion CPU suite",
+      "protects": "python -B unittest native completion reader model and native recovery checker: 29/29 passed, preserving legacy pins and readers.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent profile command-closure CPU suite",
+      "protects": "python -B unittest profile contract: 2/2 passed, including ordered FMT argv and producer/checker equality.",
+      "status": "passed"
+    },
+    {
+      "name": "Source-level callsite and lock trace",
+      "protects": "Three exact Process.Kill operations remain in place; typed observations surround each; TERM/CANCEL/STOP pairs remain under c.mu, helper and Wait observations remain outside, and no generic/raw origin call is available at kernel callsites.",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-head Linux Go compile, gofmt, Go tests, and 31-case HTTPS experiment",
+      "protects": "Required to establish buildability and actual Linux trace acceptance; prohibited in this source-only review.",
+      "status": "skipped"
+    },
+    {
+      "name": "Fresh/source-bound/normal-tag regression at integrated HEAD",
+      "protects": "Required after root integration to establish clean source binding, fresh artifacts, old native/Completion behavior, and normal-tag no-op behavior.",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "human_review_required"
+}

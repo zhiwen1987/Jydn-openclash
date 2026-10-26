@@ -1,0 +1,188 @@
+{
+  "artifacts": {
+    "boundModel": {
+      "bytes": 5105,
+      "id": 12648259547,
+      "members": 8,
+      "sha256": "952934f586e26382487facd43a5502366e0747826f2d1e22819207c49006a606"
+    },
+    "candidate": {
+      "bytes": 3142,
+      "id": 12648383767,
+      "members": 7,
+      "sha256": "5ffc600990cb42446021b15e9aa0218ae868badd3d96b2dc652c5c1acfc61d6e"
+    },
+    "count": 5,
+    "faultModel": {
+      "bytes": 2615,
+      "id": 12648443932,
+      "members": 6,
+      "sha256": "431aec5e3cf2e501b0ccb91887fc4d0a4730fad2c5974b0f8c30f1b3bf9d2aab"
+    },
+    "fresh": {
+      "bytes": 188,
+      "id": 12649245976,
+      "members": 1,
+      "sha256": "82ce9c52e8c6e784ba3808baf78193fed690c7f1fbde728ac85cada565c800f8"
+    },
+    "httpOfflineCustodyReceiptSHA256": "f5510808163b23cbb355b807d405a57f0e5a066554082b9a28b870120e08a9b3",
+    "httpsOriginals": {
+      "bytes": 55518,
+      "id": 12647954003,
+      "members": 57,
+      "sha256": "b509addc3cecc2e0b2abbbcde0343c5ad6da0c24d65f374a5c010ded9303f697"
+    },
+    "zipMembers": 79
+  },
+  "assessment": "REJECT_EXACT_HEAD_CONTINUOUS_HTTPS_CLEANUP_CALL_ORDER",
+  "fresh": {
+    "accepted": false,
+    "bytes": 0,
+    "secondaryFailure": "ORIGINAL_VERIFICATION_EMPTY"
+  },
+  "https": {
+    "accepted": false,
+    "allHTTPErrorClassNone": true,
+    "allHTTPStatusExpected": true,
+    "attemptExit": 1,
+    "cleanupAfterCallCount": 30,
+    "cleanupBeforeCallCount": 24,
+    "cleanupOrderingMismatch": "KILL_ATTEMPT precedes OWNED_STOP_HELPER_ENTER and TERM_ATTEMPT",
+    "cleanupSuffixAllBoundToFinalCore": true,
+    "cleanupSuffixKinds": [
+      "KERNEL_OS_KILL_ATTEMPT",
+      "OWNED_STOP_HELPER_ENTER",
+      "KERNEL_OS_KILL_RETURN",
+      "KERNEL_OS_TERM_ATTEMPT",
+      "KERNEL_OS_TERM_RETURN",
+      "KERNEL_OS_WAIT_RETURN"
+    ],
+    "closedPortProbeCount": 0,
+    "commandExitCodes": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "failureCode": "CLEANUP_CALLS",
+    "formatPatchBytes": 0,
+    "formatStderrBytes": 0,
+    "goStderrBytes": 0,
+    "httpIndexEntries": 31,
+    "httpResponses": 31,
+    "originalCheckerRejected": true,
+    "originalVerificationBytes": 0,
+    "packageFail": 1,
+    "privateFsyncEntries": 3,
+    "processEventCount": 16,
+    "reportOutcome": "FAIL",
+    "runtimeErrorClass": "NONE",
+    "runtimeReturned": true,
+    "sourceFailureLine": "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go:688",
+    "top": "TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery",
+    "topFail": 1,
+    "topPass": 0,
+    "topRun": 1,
+    "topSkip": 0
+  },
+  "method": {
+    "auditScript": "D:/CodexData/workspace/mihomo-2eb7717-continuous-originals-20261026-implementation56h-v1/audit_exact_head.py",
+    "auditScriptSHA256": "4e42a18fb2947b58c0667ccadd02e154c023da9403e51d299be21f08267764bf",
+    "ciRerun": false,
+    "localGoOrGofmtExecuted": false,
+    "offlineExtractorSHA256": "fa90b41c0dec9dd9f116059733ea10cd6daf6f07d659cdebce07dfd4929c42e3",
+    "repositoryModified": false
+  },
+  "models": {
+    "accepted": true,
+    "boundAuthn": {
+      "fail": 0,
+      "nameSetSHA256": "6dd87037378086eda87c0a79d5e964cb2fc7bf92ff8e005d33e5f6ddfb04aa45",
+      "packagePass": true,
+      "runPassEach": true,
+      "skip": 0,
+      "testNames": 27,
+      "top": "TestContinuousRecoveryBoundCredentialsV2MODEL"
+    },
+    "boundRuntime": {
+      "fail": 0,
+      "nameSetSHA256": "42d6e94881ecdd88f0bd7d035c4d5d40bb68d417daa27e421b0f1a79c7186d8e",
+      "packagePass": true,
+      "runPassEach": true,
+      "skip": 0,
+      "testNames": 9,
+      "top": "TestContinuousRecoveryBoundCredentialsSourceArmMODEL"
+    },
+    "exitAllZero": true,
+    "fault": {
+      "fail": 0,
+      "nameSetSHA256": "1d4ce90f3a4da94e3d33b27e53bc6db2be1d5a7244ab12f049f4ebb0e383db10",
+      "packagePass": true,
+      "runPassEach": true,
+      "skip": 0,
+      "testNames": 6,
+      "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+    },
+    "stderrAllEmpty": true
+  },
+  "overallAccepted": false,
+  "privacy": {
+    "bothSourceOrderedFencesReachedBeforePublicExport": true,
+    "privateInventoryExportedOrIndependentlyDecoded": false,
+    "publicOriginalsPreserved": true
+  },
+  "reviewerRole": "implementation56h",
+  "schema": "chengwang.mihomo-continuous-recovery-exact-head-failure-audit/v1",
+  "scope": {
+    "fullPrivateWALIndependentlyProven": false,
+    "internetBusinessProven": false,
+    "production": false
+  },
+  "snapshot": {
+    "clean": true,
+    "path": "D:/CodexData/workspace/mihomo-2eb7717-acceptance-10h6sggf/repo",
+    "trackedGitBlobPathsVerifiedByRoot": 1516
+  },
+  "sourceBinding": {
+    "beforeAfterByteEqualAcrossBothModelJobs": true,
+    "deliveryCount": 30,
+    "indexTree": "e7a84d171913cb601feb5dd7609b625ca3d4b045",
+    "sourceBindingSHA256": "fee3dfbb46125b009bd9b0ee9f1a0175d86169634f5bec6abb4a92c44ada20df",
+    "sourceCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+    "sourceCount": 1516,
+    "sourceTree": "e7a84d171913cb601feb5dd7609b625ca3d4b045"
+  },
+  "sourceCommit": "2eb7717a7a9d32308fbb90c45b2c183c1acb53d8",
+  "sourceTree": "e7a84d171913cb601feb5dd7609b625ca3d4b045",
+  "transport": {
+    "helper": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "serialOnly": true,
+    "signedRedirectPersistedOrLogged": false
+  },
+  "workflow": {
+    "attempt": 1,
+    "boundModelJob": {
+      "conclusion": "success",
+      "id": 121563946644
+    },
+    "faultModelJob": {
+      "conclusion": "success",
+      "id": 121563946435
+    },
+    "freshJob": {
+      "cause": "original verification absent after rejection",
+      "conclusion": "failure",
+      "id": 121564796051
+    },
+    "headBound": true,
+    "httpsJob": {
+      "checkerStep": "failure",
+      "conclusion": "failure",
+      "executeStep": "failure",
+      "id": 121564240730,
+      "sourceAfterStep": "success"
+    },
+    "runId": 40320476780
+  }
+}

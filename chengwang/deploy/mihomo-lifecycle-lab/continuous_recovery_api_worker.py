@@ -95,6 +95,9 @@ FMT = (
  'internal/authn/store.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+ 'internal/mihomodeploy/lab_kernel_linux.go',
+ 'internal/mihomodeploy/lab_native_recovery_observer_default.go',
+ 'internal/mihomodeploy/lab_native_recovery_observer_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
@@ -121,6 +124,9 @@ DELIVERY = (
  'chengwang/internal/authn/store.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+ 'chengwang/internal/mihomodeploy/lab_kernel_linux.go',
+ 'chengwang/internal/mihomodeploy/lab_native_recovery_observer_default.go',
+ 'chengwang/internal/mihomodeploy/lab_native_recovery_observer_linux.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
@@ -264,7 +270,9 @@ def verify_manifest(root, raw, expected, module=False):
 
 def contract():
     raw=source_file(Path(__file__).with_name('continuous_recovery_api_contract.json'),64 << 10); value=json.loads(raw)
-    need(canonical(value)+b'\n' == raw and value['schema']=='chengwang.mihomo-continuous-recovery-contract/v1' and value['scope']==SCOPE and
+    need(canonical(value)+b'\n' == raw and value['schema']=='chengwang.mihomo-continuous-recovery-contract/v2' and value['scope']==SCOPE and
+         value['reportSchema']=='chengwang.mihomo-continuous-recovery-http-experiment/v3' and
+         value['faultObservationSchema']=='chengwang.mihomo-continuous-recovery-response-loss/v2' and
          tuple(value['exactTags'])==TAGS and tuple(value['forbiddenTags'])==FORBIDDEN_TAGS and value['topTest']==TOP and
          value['goTimeoutSeconds']==210 and value['outerGoTimeoutSeconds']==240 and value['fullPrivateWALIndependentlyProven'] is False and
          value['production'] is False and value['httpOriginalBytesRequired'] is True)
@@ -483,7 +491,7 @@ def capture(state, argv, name, err_name, timeout, command):
 
 def safe_report_outputs(binding, forbidden, format_exit, go_exit):
     a=adapter(); w=a.shared(); raw=source_file(REPORT,2<<20); report=json.loads(raw)
-    need(canonical(report)+b'\n'==raw and report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v2' and
+    need(canonical(report)+b'\n'==raw and report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v3' and
          report['scope']==SCOPE and report['sourceCommit']==binding['sourceCommit'])
     need(type(forbidden) is list)
     outputs={'continuous-recovery-report.json':raw}; index=[]
