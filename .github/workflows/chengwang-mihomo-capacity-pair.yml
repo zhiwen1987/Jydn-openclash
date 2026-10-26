@@ -1,0 +1,115 @@
+name: Chengwang Isolated Capacity A-B Measurement
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'codex/chengwang-capacity-measure-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chengwang-capacity-pair-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pair:
+    name: pair-${{ matrix.order }}
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/codex/chengwang-capacity-measure-') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        order: [AB, BA]
+    steps:
+      - name: Fail closed outside a dedicated measurement event and branch
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUEST_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) exit 2 ;;
+          esac
+          [[ "$REQUEST_REF" =~ ^refs/heads/codex/chengwang-capacity-measure-[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Run strict CPU-only checker countermodels
+        run: |
+          set -euo pipefail
+          python3 -B chengwang/deploy/mihomo-capacity-pair/check_pair.py models
+      - name: Create exact pair custody and immutable source snapshots
+        env:
+          ORDER: ${{ matrix.order }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-capacity-pair-$ORDER"
+          test ! -e "$root"
+          install -d -m 0755 "$root"
+          pair=chengwang/deploy/mihomo-capacity-pair/check_pair.py
+          profile=chengwang/deploy/mihomo-capacity-profile/check_profile.py
+          for position in 1 2; do
+            offset=$((position-1))
+            leg="${ORDER:$offset:1}"
+            out="$root/leg-$leg"
+            install -d -m 0755 "$out"
+            python3 -B "$pair" context --source-commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" \
+              --run-attempt "$GITHUB_RUN_ATTEMPT" --order "$ORDER" --position "$position" \
+              --leg "$leg" --job "pair-$ORDER" --out "$out/pair-context.json"
+            python3 -B "$profile" host --out "$out/host-before.json"
+            python3 -B "$profile" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+              --out "$out/source-before.json"
+          done
+      - name: Measure both orders in fresh private namespaces without changing the180s Go timeout
+        env:
+          ORDER: ${{ matrix.order }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-capacity-pair-$ORDER"
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          pair=chengwang/deploy/mihomo-capacity-pair/check_pair.py
+          profile=chengwang/deploy/mihomo-capacity-profile/check_profile.py
+          for position in 1 2; do
+            offset=$((position-1))
+            leg="${ORDER:$offset:1}"
+            out="$root/leg-$leg"
+            set +e
+            timeout --signal=TERM --kill-after=15s 270s \
+              sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+              bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-capacity-pair/run_leg.sh" \
+              "$GITHUB_WORKSPACE" "$out" "$go_root" "$GITHUB_SHA" "$leg" "$out/pair-context.json"
+            runner_exit=$?
+            set -e
+            python3 -B "$pair" runner --leg "$leg" --exit-code "$runner_exit" --out "$out/runner-exit.json"
+            python3 -B "$profile" host --out "$out/host-after.json"
+            python3 -B "$profile" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+              --out "$out/source-after.json"
+          done
+      - name: Strictly read both originals without converting failures to passes
+        if: ${{ always() }}
+        env:
+          ORDER: ${{ matrix.order }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-capacity-pair-$ORDER"
+          python3 -B chengwang/deploy/mihomo-capacity-pair/check_pair.py verify \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --order "$ORDER" \
+            --a "$root/leg-A" --b "$root/leg-B" --report "$root/comparison.json"
+      - name: Preserve both actual originals and the measurement-only report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-capacity-pair-${{ matrix.order }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-capacity-pair-${{ matrix.order }}
+          retention-days: 14
+          if-no-files-found: error
