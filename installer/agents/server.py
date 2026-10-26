@@ -388,7 +388,7 @@ def verify(p, base, accept=False):
         (base/'transaction.json').unlink()
         command(['systemctl','stop',t['guard_unit']+'.timer'])
         if p['mode']=='fresh':install_watchdog(p,base)
-    return {'checks':checks,'container_id':x['Id'],'unrelated_containers_unchanged':True,'accepted':accept,'business_account_acceptance':'pending_real_node_and_account'}
+    return {'checks':checks,'container_id':x['Id'],'unrelated_containers_unchanged':True,'accepted':t['phase']=='accepted','business_account_acceptance':'pending_real_node_and_account'}
 
 
 def restore(p, base, manual=False, transaction=None):

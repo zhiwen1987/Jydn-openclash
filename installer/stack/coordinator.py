@@ -109,8 +109,8 @@ class Coordinator:
                 except Failure as error:last=error;time.sleep(5)
             else:raise last or Failure('服务启动超时')
             if time.monotonic()>deadline:raise last or Failure('服务启动超时')
-            self.router_action('verify',accept=True)
-            self.server_action('verify',accept=True)
+            router=self.router_action('verify',accept=True)
+            server=self.server_action('verify',accept=True)
             return {'installed':True,'site':self.p['site'],'version':self.manifest['version'],'backup':receipt['backup'],'router':router,'server':server,'pending_user_actions':plan['pending_user_actions']}
         except BaseException:
             self.emit('安装未通过，正在恢复本次变更…')

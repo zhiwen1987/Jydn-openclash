@@ -263,7 +263,7 @@ def verify(p,base,accept=false)
   t['phase']='accepted';atomic(base+'/state.json',json(t));atomic(t['backup']+'/transaction.json',json(t));File.unlink(base+'/transaction.json')
   if t['guard_unit'];service('/etc/init.d/'+t['guard_unit'],'disable');service('/etc/init.d/'+t['guard_unit'],'stop');end
  end
- {'ready'=>true,'group_count'=>proxies.values.count{|g|g.key?('all')},'rule_count'=>rules.length,'custom_entry_count'=>proxies.count{|n,g|g.key?('all') && n.include?('自定义节点')},'accepted'=>accept}
+ {'ready'=>true,'group_count'=>proxies.values.count{|g|g.key?('all')},'rule_count'=>rules.length,'custom_entry_count'=>proxies.count{|n,g|g.key?('all') && n.include?('自定义节点')},'accepted'=>t['phase']=='accepted'}
 end
 def restore(p,base,manual=false)
  identity(p)
