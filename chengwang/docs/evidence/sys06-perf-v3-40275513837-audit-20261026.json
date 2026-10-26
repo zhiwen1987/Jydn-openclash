@@ -1,0 +1,60 @@
+{
+  "allTrackedBytesMatchedGitBlobs": true,
+  "artifactMemberClosure": "39_EACH",
+  "artifacts": [
+    {
+      "digest": "sha256:cf27bdbc76359d3063832b7f2f006e47aeb339d3a9da00a4323583314d7c8a61",
+      "expired": false,
+      "id": 12630680722,
+      "name": "mihomo-capacity-pair-AB-40275513837-1",
+      "size_in_bytes": 932246,
+      "workflow_run": {
+        "head_branch": "codex/chengwang-capacity-measure-perf-v3-20261026",
+        "head_sha": "886e1544d99929f3a45b45549e5ae1df600638bc",
+        "id": 40275513837
+      }
+    },
+    {
+      "digest": "sha256:d71b86130819a954baea60effbd56a1a64094c2f6c67763e8ff3b98e39ab2aca",
+      "expired": false,
+      "id": 12630421327,
+      "name": "mihomo-capacity-pair-BA-40275513837-1",
+      "size_in_bytes": 899647,
+      "workflow_run": {
+        "head_branch": "codex/chengwang-capacity-measure-perf-v3-20261026",
+        "head_sha": "886e1544d99929f3a45b45549e5ae1df600638bc",
+        "id": 40275513837
+      }
+    }
+  ],
+  "attempt": 1,
+  "branch": "codex/chengwang-capacity-measure-perf-v3-20261026",
+  "checkerResultBytes": 9594,
+  "checkerResultSHA256": "61dfeeef8057ce545d4fee9dfff4477fa738a40c8a9dd68e0083f54cafb9633d",
+  "downloadTransport": "AUTHENTICATED_CONNECTOR_REFERENCE_TO_HIDDEN_NON_TTY_CHILD_STDIN",
+  "fourLegsAccepted": false,
+  "freshReadback": {
+    "allFourSourceSnapshotsExactAndIdentical": true,
+    "comparisonReportExactCheckerReadback": true,
+    "extractedMembersExactOriginalZipBytes": true,
+    "sourceBeforeAfterExactEveryLeg": true
+  },
+  "goExecutedLocally": false,
+  "head": "886e1544d99929f3a45b45549e5ae1df600638bc",
+  "jobs": {
+    "pair-AB": 121417310105,
+    "pair-BA": 121417309981
+  },
+  "originalAndPrivateBytesExact": true,
+  "performanceImprovementProven": false,
+  "productAcceptance": false,
+  "productionChanged": false,
+  "rerunTriggered": false,
+  "run": 40275513837,
+  "schema": "chengwang.capacity-pair-perf-v3-actual-audit/v1",
+  "signedURLPersisted": false,
+  "signedURLPrinted": false,
+  "status": "CAMPAIGN_MEASUREMENT_REJECTED",
+  "trackedPaths": 1434,
+  "windowsReplayAdapter": "LEXICAL_LINUX_GOROOT_PATH_JOIN_ONLY_CHECKER_FUNCTIONS_UNCHANGED"
+}

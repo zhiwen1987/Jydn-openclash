@@ -1,0 +1,282 @@
+{
+  "artifacts": {
+    "AB": {
+      "bytes": 932246,
+      "crcAndPathVerified": true,
+      "id": 12630680722,
+      "members": 39,
+      "name": "mihomo-capacity-pair-AB-40275513837-1",
+      "sha256": "cf27bdbc76359d3063832b7f2f006e47aeb339d3a9da00a4323583314d7c8a61"
+    },
+    "BA": {
+      "bytes": 899647,
+      "crcAndPathVerified": true,
+      "id": 12630421327,
+      "members": 39,
+      "name": "mihomo-capacity-pair-BA-40275513837-1",
+      "sha256": "d71b86130819a954baea60effbd56a1a64094c2f6c67763e8ff3b98e39ab2aca"
+    }
+  },
+  "classification": {
+    "githubJobSuccessIsNotLegAcceptance": true,
+    "measurementOnly": true,
+    "productAcceptance": false,
+    "production": false,
+    "runnerExitZeroIsCaptureCompletionOnly": true,
+    "windowsReplayAdapter": "LEXICAL_LINUX_GOROOT_PATH_JOIN_ONLY_CHECKER_FUNCTIONS_UNCHANGED"
+  },
+  "crossOrder": {
+    "allFourSourceSnapshotsExactAndIdentical": true,
+    "artifactMemberClosure": "39_EACH",
+    "fourLegsAccepted": false
+  },
+  "orders": {
+    "AB": {
+      "A": {
+        "capacitySeconds": 79.33,
+        "dataRaceWarningObserved": false,
+        "goAccepted": false,
+        "goCLIWallNanoseconds": 205321215855,
+        "goExit": 1,
+        "mode": "NO_PROFILE_NORMAL_FLAGS",
+        "packageSeconds": 180.032,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "fail",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "rawEvents": {
+          "actionCounts": {
+            "fail": 3,
+            "output": 3963,
+            "pass": 1933,
+            "run": 1931,
+            "start": 6
+          },
+          "bytes": 1840448,
+          "lineCount": 7836,
+          "mihomodeployUnfinishedTests": [
+            "TestLifecycleV3RejectsNullNestedDescriptorAndHistoryLists"
+          ],
+          "packageTerminalEvents": {
+            "chengwang/internal/adapter/mihomo": "pass",
+            "chengwang/internal/api": "pass",
+            "chengwang/internal/authn": "pass",
+            "chengwang/internal/authz": "pass",
+            "chengwang/internal/mihomodeploy": "fail",
+            "chengwang/internal/serverruntime": "pass"
+          },
+          "sha256": "ca01b0dffe5a69e0cc3d8a0ce92f8aa4a2ae20fd7c777f823bef74ec61b4e543",
+          "timeoutPanicOutputCount": 1
+        },
+        "targetState": "pass",
+        "timeoutObserved": true
+      },
+      "B": {
+        "capacitySeconds": 80.66,
+        "dataRaceWarningObserved": false,
+        "goAccepted": false,
+        "goCLIWallNanoseconds": 205176898073,
+        "goExit": 1,
+        "mode": "TAGGED_FULL_PROFILE",
+        "packageSeconds": 180.034,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "fail",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "profileDurationNanoseconds": 120103960330,
+        "rawEvents": {
+          "actionCounts": {
+            "fail": 3,
+            "output": 3949,
+            "pass": 1931,
+            "run": 1929,
+            "start": 6
+          },
+          "bytes": 1836227,
+          "lineCount": 7818,
+          "mihomodeployUnfinishedTests": [
+            "TestLifecycleV3AnchorCannotChangeGenerationPreviousOrEpoch"
+          ],
+          "packageTerminalEvents": {
+            "chengwang/internal/adapter/mihomo": "pass",
+            "chengwang/internal/api": "pass",
+            "chengwang/internal/authn": "pass",
+            "chengwang/internal/authz": "pass",
+            "chengwang/internal/mihomodeploy": "fail",
+            "chengwang/internal/serverruntime": "pass"
+          },
+          "sha256": "72639e7f023b75332624fd1c684474283e344db5f9c89224984de66fb261c5b4",
+          "timeoutPanicOutputCount": 1
+        },
+        "targetState": "pass",
+        "timeoutObserved": true
+      },
+      "delta": {
+        "bMinusACapacitySeconds": 1.3299999999999983,
+        "bMinusAGoCLIWallNanoseconds": -144317782,
+        "bMinusAPackageSeconds": 0.001999999999981128
+      },
+      "job": "pair-AB",
+      "limits": {
+        "goTestTimeoutSecondsEach": 180,
+        "historyEntries": 256,
+        "jobTimeoutMinutes": 12,
+        "recordBytes": 2097152
+      },
+      "measurementOnlyBoundaries": {
+        "identicalSystemLoadProven": false,
+        "performanceImprovementProven": false,
+        "productAcceptance": false,
+        "production": false,
+        "profileOverheadCausalityProven": false
+      },
+      "pairID": "40275513837:1:AB",
+      "positions": {
+        "A": 1,
+        "B": 2
+      },
+      "strictCheckerReplay": true
+    },
+    "BA": {
+      "A": {
+        "capacitySeconds": 84.76,
+        "dataRaceWarningObserved": false,
+        "goAccepted": false,
+        "goCLIWallNanoseconds": 206352826941,
+        "goExit": 1,
+        "mode": "NO_PROFILE_NORMAL_FLAGS",
+        "packageSeconds": 180.042,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "fail",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "rawEvents": {
+          "actionCounts": {
+            "fail": 1,
+            "output": 3485,
+            "pass": 1692,
+            "run": 1689,
+            "start": 6
+          },
+          "bytes": 1579943,
+          "lineCount": 6873,
+          "mihomodeployUnfinishedTests": [
+            "TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal",
+            "TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal/head"
+          ],
+          "packageTerminalEvents": {
+            "chengwang/internal/adapter/mihomo": "pass",
+            "chengwang/internal/api": "pass",
+            "chengwang/internal/authn": "pass",
+            "chengwang/internal/authz": "pass",
+            "chengwang/internal/mihomodeploy": "fail",
+            "chengwang/internal/serverruntime": "pass"
+          },
+          "sha256": "2d8fd4160f311c0cb8a4eae058f0d474fd6250f56a4b68747aeaf041ed994032",
+          "timeoutPanicOutputCount": 1
+        },
+        "targetState": "pass",
+        "timeoutObserved": true
+      },
+      "B": {
+        "capacitySeconds": 84.57,
+        "dataRaceWarningObserved": false,
+        "goAccepted": false,
+        "goCLIWallNanoseconds": 206637965318,
+        "goExit": 1,
+        "mode": "TAGGED_FULL_PROFILE",
+        "packageSeconds": 180.05,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "fail",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "profileDurationNanoseconds": 120130588509,
+        "rawEvents": {
+          "actionCounts": {
+            "fail": 1,
+            "output": 3519,
+            "pass": 1694,
+            "run": 1691,
+            "start": 6
+          },
+          "bytes": 1591914,
+          "lineCount": 6911,
+          "mihomodeployUnfinishedTests": [
+            "TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal",
+            "TestLifecycleRecoveryVerifiedBoundsCoordinatedTamperRejectsAfterReseal/nil-verification"
+          ],
+          "packageTerminalEvents": {
+            "chengwang/internal/adapter/mihomo": "pass",
+            "chengwang/internal/api": "pass",
+            "chengwang/internal/authn": "pass",
+            "chengwang/internal/authz": "pass",
+            "chengwang/internal/mihomodeploy": "fail",
+            "chengwang/internal/serverruntime": "pass"
+          },
+          "sha256": "a1774e76623461463ed83561107fccd925ab9c34694492344c85dfa36a695b00",
+          "timeoutPanicOutputCount": 1
+        },
+        "targetState": "pass",
+        "timeoutObserved": true
+      },
+      "delta": {
+        "bMinusACapacitySeconds": -0.19000000000001194,
+        "bMinusAGoCLIWallNanoseconds": 285138377,
+        "bMinusAPackageSeconds": 0.008000000000009777
+      },
+      "job": "pair-BA",
+      "limits": {
+        "goTestTimeoutSecondsEach": 180,
+        "historyEntries": 256,
+        "jobTimeoutMinutes": 12,
+        "recordBytes": 2097152
+      },
+      "measurementOnlyBoundaries": {
+        "identicalSystemLoadProven": false,
+        "performanceImprovementProven": false,
+        "productAcceptance": false,
+        "production": false,
+        "profileOverheadCausalityProven": false
+      },
+      "pairID": "40275513837:1:BA",
+      "positions": {
+        "A": 2,
+        "B": 1
+      },
+      "strictCheckerReplay": true
+    }
+  },
+  "remote": {
+    "branch": "codex/chengwang-capacity-measure-perf-v3-20261026",
+    "head": "886e1544d99929f3a45b45549e5ae1df600638bc",
+    "jobs": {
+      "pair-AB": "success",
+      "pair-BA": "success"
+    },
+    "runAttempt": 1,
+    "runID": 40275513837
+  },
+  "schema": "chengwang.capacity-pair-campaign-audit/v1",
+  "source": {
+    "clean": true,
+    "head": "886e1544d99929f3a45b45549e5ae1df600638bc",
+    "snapshot": "D:\\CodexData\\workspace\\mihomo-capacity-perf-v3-integration-e35ml57y\\repo"
+  },
+  "status": "CAMPAIGN_MEASUREMENT_REJECTED"
+}

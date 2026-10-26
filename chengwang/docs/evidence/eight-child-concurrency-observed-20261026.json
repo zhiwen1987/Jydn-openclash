@@ -1,0 +1,57 @@
+{
+  "childStatuses": [
+    {
+      "name": "/root/begin_recovery_independent",
+      "status": "running"
+    },
+    {
+      "name": "/root/execution_56_high",
+      "status": "running"
+    },
+    {
+      "name": "/root/full_scope_exit_map",
+      "status": "running"
+    },
+    {
+      "name": "/root/identity_truth_contract",
+      "status": "running"
+    },
+    {
+      "name": "/root/implementation_56_high",
+      "status": "running"
+    },
+    {
+      "name": "/root/native_56_high",
+      "status": "running"
+    },
+    {
+      "name": "/root/policy_multicore_contract",
+      "status": "running"
+    },
+    {
+      "name": "/root/subscription_next_contract",
+      "status": "running"
+    }
+  ],
+  "claim": "ACTUAL_ACTIVE_CHILD_COUNT_OBSERVED_NOT_ONLY_CONFIGURED",
+  "existingChildModelChanged": false,
+  "heavyDownloadCLILimit": 2,
+  "hiddenRuntimeModelIndependentlyProven": false,
+  "newChildren": [
+    "begin_recovery_independent",
+    "full_scope_exit_map",
+    "identity_truth_contract",
+    "policy_multicore_contract",
+    "subscription_next_contract"
+  ],
+  "observedActiveChildren": 8,
+  "observedActiveIncludingRoot": 9,
+  "observedAtUTC": "2026-10-26 05:27:37 UTC",
+  "platformReportedSlots": 9,
+  "production": false,
+  "requestedNewChildModel": "gpt-5.6-sol",
+  "requestedNewChildReasoning": "high",
+  "rootStatus": "running",
+  "schema": "chengwang.observed-agent-concurrency/v1",
+  "source": "collaboration.list_agents current authoritative response"
+}

@@ -747,8 +747,12 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 	if a == nil || b == nil || a.Schema != b.Schema || a.Boundary != b.Boundary || a.Provisioning != b.Provisioning || !reflect.DeepEqual(a.SourceV2, b.SourceV2) || !reflect.DeepEqual(a.Current, b.Current) || !reflect.DeepEqual(a.RetiredEpochs, b.RetiredEpochs) || len(b.RecoveryHistory) < len(a.RecoveryHistory) || !reflect.DeepEqual(b.RecoveryHistory[:len(a.RecoveryHistory)], a.RecoveryHistory) {
 		return false
 	}
-	// Apply this before the nil/replacement/history early returns as well.
-	// Only the separate actual-capability recorder may append execution facts.
+	// Apply this before the nil/history early returns as well. Only the
+	// separate actual-capability recorder may append execution facts. A fresh
+	// plan may replace one terminal transaction only after that exact complete
+	// transaction is already the immutable history tail; the replacement must
+	// start without execution facts. This is the one case where the current
+	// slot deliberately stops repeating the archived execution.
 	var beforeExecution, afterExecution *lifecycleRecoveryExecution
 	if a.Recovery != nil {
 		beforeExecution = a.Recovery.Execution
@@ -756,7 +760,12 @@ func lifecycleV3Transition(a, b *lifecycleV3Wire) bool {
 	if b.Recovery != nil {
 		afterExecution = b.Recovery.Execution
 	}
-	if !reflect.DeepEqual(beforeExecution, afterExecution) {
+	replacingPlan := a.Recovery != nil && b.Recovery != nil && a.Recovery.Plan.PlanSHA256 != b.Recovery.Plan.PlanSHA256
+	if replacingPlan && (len(a.RecoveryHistory) == 0 || !reflect.DeepEqual(a.RecoveryHistory[len(a.RecoveryHistory)-1], *a.Recovery) ||
+		len(b.RecoveryHistory) != len(a.RecoveryHistory) || b.Recovery.Phase != "PLANNED" || b.Recovery.Execution != nil) {
+		return false
+	}
+	if !replacingPlan && !reflect.DeepEqual(beforeExecution, afterExecution) {
 		return false
 	}
 	for _, appended := range b.RecoveryHistory[len(a.RecoveryHistory):] {

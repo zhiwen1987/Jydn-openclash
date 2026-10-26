@@ -1,0 +1,82 @@
+{
+  "documentationBoundary": {
+    "actual503Fixed": false,
+    "goFaultModelNewGateExecuted": false,
+    "goFaultModelPreviouslyExecuted": false,
+    "mainMerged": false,
+    "productionChanged": false,
+    "registryPublished": false,
+    "secondRecoveryAccepted": false
+  },
+  "head": {
+    "commit": "9fac00d9491a93cb6618a3f86e49ff8cefade37f",
+    "worktreeCleanAtReview": true
+  },
+  "integrationConfig": {
+    "bytes": 51084,
+    "modifiedByReview": false,
+    "path": "D:/CodexData/workspace/567-create-stage-integration-prepare-emzlo32j/integration-config.json",
+    "sha256": "159cf73d30789a2973977c7876ad9ee5b72ccc5400cf7e0726ea39031cd9b370"
+  },
+  "limitations": [
+    "The integration config explicitly binds the source plan hash but does not contain the docs plan or docs patch hash.",
+    "Docs plan identity is therefore indirect: every one of its eleven output hashes and all seven archive-normalization records match the integration config exactly.",
+    "No frozen config, plan, patch, repository file, branch, integrator result, or commit was modified by this review.",
+    "No Go, gofmt, Linux workflow, product runtime, production system, push, merge, or CI rerun was performed by this review."
+  ],
+  "pathBinding": {
+    "docsArchiveNormalizationCount": 7,
+    "docsArchiveNormalizationMatchesIntegrationConfig": true,
+    "docsPlanOutputCount": 11,
+    "docsPlanOutputsMatchIntegrationConfig": true,
+    "integrationConfigPinnedPathCount": 21,
+    "integrationConfigPinnedPathHashMismatches": 0,
+    "sourcePlanOutputCount": 10,
+    "sourcePlanOutputsMatchIntegrationConfig": true
+  },
+  "plans": {
+    "docsPatch": {
+      "bytes": 45543,
+      "explicitlyBoundByIntegrationConfig": false,
+      "path": "D:/CodexData/workspace/mihomo-567-create-stage-docs-c_ex7__a/changes.apply.patch",
+      "sha256": "ebef145e6c73b05d74dede403afdf232ed3f078b05146db5e4e60d9ba2fff39c"
+    },
+    "docsPlan": {
+      "bytes": 6336,
+      "explicitlyBoundByIntegrationConfig": false,
+      "indirectlyBoundByOutputHashesAndArchiveNormalization": true,
+      "path": "D:/CodexData/workspace/mihomo-567-create-stage-docs-c_ex7__a/plan.json",
+      "sha256": "c1f2873672466bc6f47284b803bd666c7b8e2160fe7105b0795b534b86599c55"
+    },
+    "sourcePatch": {
+      "bytes": 52006,
+      "path": "D:/CodexData/workspace/mihomo-567-create-stage-root-apply-ex8x35m6/changes.apply.patch",
+      "sha256": "72c594cd4a6d905cf2f73b049e89d16dab45e97e1112585e3d21d57bfb09e855"
+    },
+    "sourcePlan": {
+      "bytes": 4204,
+      "explicitlyBoundByIntegrationConfig": true,
+      "path": "D:/CodexData/workspace/mihomo-567-create-stage-root-apply-ex8x35m6/plan.json",
+      "sha256": "39614d5498edcded88708fc9925af94710790249ef8c3fde1c6cf340a413f75c"
+    }
+  },
+  "result": "PASS_WITH_INDIRECT_DOC_PLAN_IDENTITY_LIMIT",
+  "schema": "chengwang.mihomo-create-stage-integration-static-peer/v1",
+  "scope": "SOURCE_CONFIG_DOC_STATIC_BINDING_NOT_GO_LINUX_RUNTIME_ACCEPTANCE",
+  "staticContracts": {
+    "continuousDeliveryCount": 25,
+    "continuousFormatCount": 11,
+    "httpCaseCountAfter": 31,
+    "httpCaseCountBefore": 31,
+    "httpCasesEqualAndOrdered": true,
+    "modelGatePrecedesHTTPSExperiment": true,
+    "policyDeliveryEqualAndOrdered": true,
+    "privacyProtectedFunctionCount": 13,
+    "privacyProtectedFunctionsASTChangedFrom567": 0,
+    "privacyProtectedFunctionsMissing": 0,
+    "scopeEqualTo567": true,
+    "serverruntimeTopEqualTo567": true,
+    "workerCheckerDeliveryEqualAndOrdered": true,
+    "workerCheckerFormatEqualAndOrdered": true
+  }
+}

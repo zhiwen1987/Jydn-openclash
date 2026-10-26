@@ -1,0 +1,130 @@
+{
+  "allTrackedBytesMatchedGitBlobs": true,
+  "artifacts": [
+    {
+      "bytes": 277327,
+      "id": 12622986568,
+      "members": 14,
+      "name": "mihomo-foundation-contracts-40256417768-1",
+      "sha256": "10b5875f63e57c9fcba5e0eb1a2cc6108d556bae39e59e7016839c44d044afda"
+    },
+    {
+      "bytes": 299960,
+      "id": 12623355140,
+      "members": 19,
+      "name": "mihomo-capacity-profile-40256417572-1",
+      "sha256": "b99fbab5f6fa3490d24d308f17e71a0fddd5a7275b58113ed3997d5b29059fe0"
+    },
+    {
+      "bytes": 541892,
+      "id": 12622577629,
+      "members": 21,
+      "name": "mihomo-capacity-profile-full-40256417572-1",
+      "sha256": "6aab72d0f86c258a587b364cbcf4e133fbfa539a5dd213ec189c8271bc8f3297"
+    }
+  ],
+  "diagnostic": {
+    "FULL_CONTRACTS": {
+      "captureVerified": true,
+      "formatClean": true,
+      "fullGoAccepted": false,
+      "goExit": 1,
+      "goVersion": "go version go1.23.12 linux/amd64",
+      "profileDurationNanoseconds": 120148123927,
+      "profileFunctions": 1418,
+      "sourceManifestSHA256": "9017134679b102e3df660f2f55fa5fc1d71231f96c86c654c15788c42ee11f4e",
+      "summary": {
+        "capacityAction": "pass",
+        "capacitySeconds": 86.1,
+        "dataRaceWarningObserved": false,
+        "events": 6816,
+        "failedNames": [],
+        "failedTests": 0,
+        "packageAction": "fail",
+        "packageSeconds": 180.051,
+        "passingTests": 1675,
+        "skippedTests": 0,
+        "timedOut3m": true,
+        "unfinished": [
+          "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsGenericPublisherCannotMintOrReplaceFact"
+        ]
+      },
+      "verificationSHA256": "11ead3394742712c56736dd7284d8a17201fc0af0838ee507fba710d7d27c8ab",
+      "wholeCIPass": false
+    },
+    "SINGLE_CASE": {
+      "captureVerified": true,
+      "formatClean": true,
+      "fullGoAccepted": null,
+      "goExit": 0,
+      "goVersion": "go version go1.23.12 linux/amd64",
+      "profileDurationNanoseconds": 60143758039,
+      "profileFunctions": 587,
+      "sourceManifestSHA256": "9017134679b102e3df660f2f55fa5fc1d71231f96c86c654c15788c42ee11f4e",
+      "summary": {
+        "capacityAction": "pass",
+        "capacitySeconds": 63.12,
+        "dataRaceWarningObserved": false,
+        "events": 8,
+        "failedNames": [],
+        "failedTests": 0,
+        "packageAction": "pass",
+        "packageSeconds": 64.142,
+        "passingTests": 1,
+        "skippedTests": 0,
+        "timedOut3m": false,
+        "unfinished": []
+      },
+      "verificationSHA256": "91c57a9d5ccbfe446581ee72dffd4ae5b8e87a3d61bba4e2c2fbcfa5c68176ae",
+      "wholeCIPass": false
+    }
+  },
+  "diagnosticRun": 40256417572,
+  "goExecutedLocally": false,
+  "head": "9fac00d9491a93cb6618a3f86e49ff8cefade37f",
+  "members": 54,
+  "normal": {
+    "checkerVerificationSHA256": "a6b01470f527b93427288a1934cf9e9aec1bb6d7a0f78abb473cea36f89dd6ac",
+    "formatClean": true,
+    "mandatoryNamesSHA256": "b0a464294a9dcaf7bea46ea29c0e7bc4937acc63b16df05387d3652efbbcb280",
+    "mandatoryTests": 688,
+    "ordinary": {
+      "capacityAction": "pass",
+      "capacitySeconds": 5.52,
+      "dataRaceWarningObserved": false,
+      "events": 8008,
+      "failedNames": [],
+      "failedTests": 0,
+      "packageAction": "pass",
+      "packageSeconds": 19.522,
+      "passingTests": 1992,
+      "skippedTests": 0,
+      "timedOut3m": false,
+      "unfinished": []
+    },
+    "race": {
+      "capacityAction": "pass",
+      "capacitySeconds": 65.13,
+      "dataRaceWarningObserved": false,
+      "events": 8008,
+      "failedNames": [],
+      "failedTests": 0,
+      "packageAction": "pass",
+      "packageSeconds": 149.284,
+      "passingTests": 1992,
+      "skippedTests": 0,
+      "timedOut3m": false,
+      "unfinished": []
+    },
+    "sourceFiles": 158,
+    "testFiles": 58
+  },
+  "normalRun": 40256417768,
+  "performanceImprovementAttributed": false,
+  "productionChanged": false,
+  "schema": "chengwang.9fac-normal-diagnostic-original-audit/v1",
+  "signedURLsPersisted": false,
+  "singleSampleStableHeadroomProven": false,
+  "trackedPaths": 1434,
+  "verdict": "NORMAL_AND_DIAGNOSTIC_SINGLE_ACCEPTED_FULL_TIMEOUT_RETAINED"
+}

@@ -1,0 +1,11 @@
+{
+  "artifactID": 12622986568,
+  "downloadProcessPID": 3428,
+  "downloadProcessTerminated": true,
+  "failure": "TTY echoed masked-input precursor into transient tool output",
+  "productionChanged": false,
+  "schema": "chengwang.private-download-incident/v1",
+  "signedURLPersistedToDisk": false,
+  "stage": "FIRST_TTY_CONFIG_ATTEMPT",
+  "subsequentDownloadsUsedMaskedReadHost": true
+}

@@ -1,0 +1,152 @@
+{
+  "handling": {
+    "artifactDownloaded": false,
+    "githubConnectorAuthenticated": true,
+    "jobMetadataRead": true,
+    "localGoRun": false,
+    "logsParsedInMemory": true,
+    "privateDirectoryRead": false,
+    "productionTouched": false,
+    "rawLogsPersisted": false,
+    "rawLogsPrinted": false,
+    "repositoryModified": false,
+    "rerunTriggered": false,
+    "responseBodyPersisted": false,
+    "secretValueOrDigestOrOffsetPersisted": false,
+    "signedURLPersisted": false
+  },
+  "https": {
+    "conclusion": "failure",
+    "diagnostic": {
+      "detailedOccurrences": 1,
+      "distinctDetailedDiagnostics": 1,
+      "exactKeyCount": 24,
+      "fallbackUsed": false,
+      "keySetExact": true,
+      "prefixExact": true
+    },
+    "firstBusinessFailure": {
+      "formatExit": 0,
+      "goExit": 1,
+      "httpCount": 26,
+      "lastHTTPCase": "SECOND_RECOVERY_CREATE",
+      "lastHTTPErrorClass": "NONE",
+      "lastHTTPStateMayHaveChanged": true,
+      "lastHTTPStateMayHaveChangedObserved": true,
+      "lastHTTPStatusCode": 503,
+      "lastHTTPStatusObserved": true,
+      "reportFailureCode": "HTTP_RESULT",
+      "reportObserved": true,
+      "reportOutcomePass": false
+    },
+    "job": "continuous-recovery-api",
+    "jobId": 121359307839,
+    "privacyFence": {
+      "captureRejected": true,
+      "encodingVariant": "JSON_QUOTED",
+      "matchesPublicIdentityRole": true,
+      "matchesPublicLabEnvironment": false,
+      "outputLogicalName": "continuous-recovery-report.json",
+      "phase": "REPORT_AND_HTTP_OUTPUTS",
+      "publicIdentityRole": "VIEWER",
+      "roleExemptionApplied": false,
+      "secretElementClass": "JSON_IDENTITY_ROLE",
+      "secretInputClass": "IDENTITY_PROFILE"
+    },
+    "sourceBoundStage": {
+      "lastRecoveryCreateStage": "REJECTED_BEGIN",
+      "recoveryCreateCount": 4,
+      "recoveryCreateTraceBounded": true,
+      "recoveryCreateTraceObserved": true
+    },
+    "status": "completed",
+    "steps": {
+      "executeActualChain": "failure",
+      "independentVerify": "failure",
+      "retainHostAfterAndBindSourceAfter": "success",
+      "upload": "success"
+    }
+  },
+  "interpretation": {
+    "continuousRecoveryAccepted": false,
+    "httpsPassed": false,
+    "modelGatePassed": true,
+    "productionAccepted": false,
+    "rejectedBeginIsFixedStageNotDynamicCause": true,
+    "secondRecovery503Fixed": false,
+    "secondRecovery503Observed": true,
+    "specific503CauseKnown": false,
+    "stateMayHaveChangedRequiresNoBlindRetry": true
+  },
+  "modelGate": {
+    "actualCoverageNow": "RUN_AND_PASS",
+    "actualLogVerifier": {
+      "failOrSkip": false,
+      "otherTop": false,
+      "packagePassCount": 1,
+      "passCount": 1,
+      "runCount": 1
+    },
+    "artifact": {
+      "downloaded": false,
+      "expired": false,
+      "headBound": true,
+      "id": 12623310129,
+      "name": "mihomo-continuous-fault-model-40256417607-1",
+      "runBound": true
+    },
+    "cleanBeforeAfter": true,
+    "conclusion": "success",
+    "exactTop": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+    "forbiddenTagsAbsent": true,
+    "job": "continuous-fault-model",
+    "jobId": 121359188205,
+    "package": "chengwang/internal/mihomodeploy",
+    "priorCoverageState": "NOT_RUN",
+    "sourceBeforeAfterBindingEqual": true,
+    "sourceBeforeAfterManifestEqual": true,
+    "status": "completed",
+    "stepConclusions": {
+      "bindBefore": "success",
+      "exactModel": "success",
+      "rebindAfter": "success",
+      "uploadSeparateArtifact": "success"
+    },
+    "tags": [
+      "linux",
+      "chengwang_mihomo_service",
+      "chengwang_mihomo_recovery_native",
+      "chengwang_mihomo_recovery_continuous_fault"
+    ],
+    "testTimeout": "30s",
+    "vendorOffline": true
+  },
+  "run": {
+    "attempt": 1,
+    "authenticatedBranchMatches": true,
+    "authenticatedHeadMatches": true,
+    "id": 40256417607,
+    "terminal": "failure"
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-stage-actual-safe-receipt/v1",
+  "secondary": {
+    "freshConclusion": "failure",
+    "freshJobId": 121359563998,
+    "independentCheckerFailure": true,
+    "notFirstCause": true
+  },
+  "source": {
+    "backendSHA256": "7464973dfcacc8e5f96de8e19b0e4b64d32c5fd2f0d980c939a4f74308cd3fe2",
+    "branch": "codex/chengwang-mihomo-lifecycle-20261024",
+    "checkerSHA256": "50947e50846deea80908c3898186782fd109d1210535f81906150db211e92719",
+    "clean": true,
+    "commit": "9fac00d9491a93cb6618a3f86e49ff8cefade37f",
+    "faultModelTestSHA256": "4cb54e4ccb25b34f911cdc5b02bd3577f34ffabf36e93bbcc2017df17378fa08",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-9fac00d-acceptance-6iigwz4x/repo",
+    "trackedPaths": 1434,
+    "tree": "a0ffe96c41078ed0dabf8fe4187e476f96ae6ad5",
+    "workerSHA256": "a44b35086f66c5c4fec08d1d0faa3f7e977d7e8068ea2d0e80b75a54eabb792c",
+    "workflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea"
+  },
+  "status": "ACTUAL_EXACT_HEAD_MODEL_PASS_HTTPS_FIRST_FAILURE_SAFE_DIAGNOSTIC"
+}
