@@ -1,0 +1,89 @@
+{
+  "actualFailure": {
+    "artifactBytes": 1888,
+    "artifactId": 12632619107,
+    "artifactSHA256": "637d3b8ffd2af8ba36791eab6cdf8ac98130fe2842c206ec14f615205822b7aa",
+    "fixedMessage": "MODEL ordinary plan",
+    "fixedMessageLine": 134,
+    "independentAuditReceiptSHA256": "2341203b8afcf8d470bbcfe60cdb7520c4f84fc8950fa93df86a9bad355b8499",
+    "jobId": 121442000408,
+    "observedPlanErrorCode": null,
+    "primarySafeReceiptSHA256": "92c15efc0648c72c8344272965d8702b1c50ab9731d8a94446c88f4061adbc4b",
+    "runId": 40283549206,
+    "targetRunPassFail": [
+      1,
+      0,
+      1
+    ]
+  },
+  "artifacts": {
+    "manifest": "PATH-MANIFEST.json",
+    "manifestSHA256": "226ac8c1e4db88821d19be4553b1a347306abd8e8d746f4f2babb789e4a2380b",
+    "patch": "model-port-binding.patch",
+    "patchBytes": 2993,
+    "patchSHA256": "5d6ecfd1c8914a39e684a928e719ba868303850718cde60a72c5c1328f9dcf04",
+    "verifier": "verify_candidate.py",
+    "verifierBytes": 3655,
+    "verifierSHA256": "0f80ba02c80d968711d9bf61649d65e4cfdc7911ee8d65d31165a74e97f4e9c2"
+  },
+  "base": {
+    "commit": "2736708525cf265e5b583b2c24dd1c6ca148a294",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-2736708-acceptance-u_k7hnnc/repo",
+    "rawGitBlobsVerifiedByRoot": 1451,
+    "tree": "4ba80b38941fb44e5b70174e3fb4534668ec9e31"
+  },
+  "boundaries": {
+    "httpsExperimentRanOnFix": false,
+    "privateDataRead": false,
+    "productionTouched": false,
+    "rolePrivacyExemptionImplemented": false,
+    "secondRecovery503FixProven": false,
+    "sourceRepositoryModified": false
+  },
+  "change": {
+    "actualCompletionCapabilityFabricated": false,
+    "authorityOrFenceChanged": false,
+    "backupConfigBytesSHAComparedToCurrentHeadArtifactConfigSHA": true,
+    "candidateAndBackupSpecsBoundByValueToCurrentHeadPorts": true,
+    "closedPlanErrorCodes": [
+      "lab_plan_invalid",
+      "lab_plan_expired",
+      "lab_plan_target_mismatch",
+      "lab_plan_artifact_invalid",
+      "lab_plan_backup_invalid",
+      "UNKNOWN"
+    ],
+    "dynamicPlanErrorTextPrinted": false,
+    "existingAssertionsRemoved": 0,
+    "newOrRenamedGoTopFunctions": 0,
+    "paths": 1,
+    "productSourceChanged": false,
+    "testFixtureOnly": true,
+    "transitionLogicChanged": false
+  },
+  "schema": "chengwang.mihomo-continuous-model-port-binding-fix-source-receipt/v1",
+  "sourceDiagnosis": {
+    "initiatorRegexAllowsUnderscore": true,
+    "literalChecks": {
+      "MODEL_continuous_initiator": true,
+      "MODEL_second_recovery": true,
+      "continuous-ack": true,
+      "continuous-unknown": true,
+      "labrec_99999999999999999999999999999999": true,
+      "opaque-approver-b": true
+    },
+    "newPlanPortGate": "plan.go:161-163",
+    "staticCertainConflict": "candidate and backup configs used 19090/18080 while the recovered current head used 28412/28411"
+  },
+  "status": "SOURCE_CANDIDATE_PENDING_LINUX_GO_AND_GOFMT",
+  "verification": {
+    "beforeAndAfterLF": true,
+    "cpuSourceVerifierExitCode": 0,
+    "cpuSourceVerifierOutput": "PASS exact ports bind both prepared configs to current head; literals valid; product=unchanged; go=not-run; gofmt=not-run",
+    "gitApplyCheckWhitespaceErrorAll": true,
+    "goRun": false,
+    "gofmtRun": false,
+    "linuxCompileProven": false,
+    "modelRuntimeProven": false
+  }
+}

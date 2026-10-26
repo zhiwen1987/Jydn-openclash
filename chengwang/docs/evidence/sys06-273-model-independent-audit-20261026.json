@@ -1,0 +1,124 @@
+{
+  "accepted": false,
+  "artifact": {
+    "bytes": 1888,
+    "crcAndPathFencingVerified": true,
+    "id": 12632619107,
+    "memberCount": 4,
+    "members": [
+      {
+        "bytes": 151,
+        "crc32": 1843185066,
+        "path": "exit.json",
+        "sha256": "3bd474ea6e9cfe24d070a48b89a3eba6342f9898e2361ce94514998a92a7cc42"
+      },
+      {
+        "bytes": 0,
+        "crc32": 0,
+        "path": "go-test.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 9123,
+        "crc32": 1052619887,
+        "path": "go-test.json",
+        "sha256": "fcac2807b0b6417e1d90e54dab4e75e316cb20ecfaecfce4d728afc8b00793ee"
+      },
+      {
+        "bytes": 619,
+        "crc32": 666119241,
+        "path": "source-before.json",
+        "sha256": "88d0032cfc24d670e32d494f1cd2210e26e1c769bbbc6788c7a5e6ffaac8240e"
+      }
+    ],
+    "name": "mihomo-continuous-fault-model-40283549206-1",
+    "rawArchivePersisted": false,
+    "sha256": "637d3b8ffd2af8ba36791eab6cdf8ac98130fe2842c206ec14f615205822b7aa"
+  },
+  "go": {
+    "events": [
+      {
+        "fail": 1,
+        "pass": 0,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+      },
+      {
+        "fail": 0,
+        "pass": 1,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/create-stage-is-exact-bounded-diagnostic-only"
+      },
+      {
+        "fail": 1,
+        "pass": 0,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/completed-archive-allows-one-fresh-second-recovery-begin"
+      },
+      {
+        "fail": 1,
+        "pass": 0,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-publication-failure-retains-completed-facade"
+      },
+      {
+        "fail": 1,
+        "pass": 0,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-rejects-changed-archive-before-publication"
+      },
+      {
+        "fail": 1,
+        "pass": 0,
+        "run": 1,
+        "skip": 0,
+        "test": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/terminal-replacement-rejects-execution-injection-and-unpaired-history"
+      }
+    ],
+    "exitCode": 1,
+    "expectedTestsFromSource": [
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/create-stage-is-exact-bounded-diagnostic-only",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/completed-archive-allows-one-fresh-second-recovery-begin",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-publication-failure-retains-completed-facade",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/second-begin-rejects-changed-archive-before-publication",
+      "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL/terminal-replacement-rejects-execution-injection-and-unpaired-history"
+    ],
+    "failureCategory": "SOURCE_OWNED_MODEL_ASSERTION",
+    "fixedSourceOwnedMatches": [
+      {
+        "fixedMessage": "MODEL ordinary plan",
+        "sourceLine": 134
+      }
+    ],
+    "packageFailures": 1,
+    "rawDynamicOutputPersisted": false,
+    "sourceLocations": [],
+    "stderrState": "EMPTY",
+    "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+  },
+  "jobConclusion": "failure",
+  "jobId": 121442000408,
+  "production": false,
+  "runConclusion": "failure",
+  "runId": 40283549206,
+  "schema": "chengwang.mihomo-continuous-fault-model-original-audit/v1",
+  "scope": "MODEL_ONLY_NO_HTTPS_NO_PRODUCT_ACCEPTANCE",
+  "snapshot": {
+    "localTextDifference": "WINDOWS_STDOUT_CRLF_ONLY",
+    "path": "D:\\CodexData\\workspace\\mihomo-2736708-acceptance-u_k7hnnc\\repo",
+    "sourceAfterPresent": false,
+    "sourceAfterReason": "MODEL_STEP_FAILED_BEFORE_REBIND",
+    "sourceBeforeMatchesIndependentSnapshotRecompute": true,
+    "sourceBeforeRawMatchesLocalTextStdout": false,
+    "sourceBindingSHA256": "88d0032cfc24d670e32d494f1cd2210e26e1c769bbbc6788c7a5e6ffaac8240e",
+    "sourceTree": "4ba80b38941fb44e5b70174e3fb4534668ec9e31",
+    "trackedPathsVerifiedByRoot": 1451
+  },
+  "sourceCommit": "2736708525cf265e5b583b2c24dd1c6ca148a294"
+}

@@ -1,0 +1,65 @@
+{
+  "artifact": {
+    "bytes": 1888,
+    "crcAndMemberPathsVerified": true,
+    "id": 12632619107,
+    "memberCount": 4,
+    "rawArchivePersisted": false,
+    "sha256": "637d3b8ffd2af8ba36791eab6cdf8ac98130fe2842c206ec14f615205822b7aa"
+  },
+  "constraints": {
+    "ciRerun": false,
+    "localGoRun": false,
+    "privateMaterialRead": false,
+    "productionTouched": false,
+    "rawLogPersisted": false,
+    "signedURLPersistedOrPrinted": false
+  },
+  "extractor": {
+    "bytes": 4333,
+    "sha256": "6eeab73f950c092743f672f1c9541cfc612fbc81af07d1400edc9617c6f19b98"
+  },
+  "run": {
+    "attempt": 1,
+    "freshClassification": "SECONDARY_MISSING_ARTIFACT",
+    "freshJobId": 121442180094,
+    "httpsConclusion": "skipped",
+    "httpsJobId": 121442181680,
+    "modelConclusion": "failure",
+    "modelJobId": 121442000408,
+    "modelStepNumber": 5,
+    "runId": 40283549206
+  },
+  "safeResult": {
+    "classification": "MODEL_RUNTIME_FIXTURE_FAILURE_AFTER_SUCCESSFUL_COMPILE",
+    "compileCategory": null,
+    "dynamicOutputRetained": false,
+    "exitCode": 1,
+    "packageFailCount": 1,
+    "sourceOwnedFixedMessage": "MODEL ordinary plan",
+    "sourceOwnedMessageLine": 134,
+    "stderrState": "EMPTY",
+    "targetFailCount": 1,
+    "targetPassCount": 0,
+    "targetRunCount": 1
+  },
+  "schema": "chengwang.mihomo-continuous-model-first-failure-safe-audit/v1",
+  "source": {
+    "commit": "2736708525cf265e5b583b2c24dd1c6ca148a294",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-2736708-acceptance-u_k7hnnc/repo",
+    "modelTestSHA256": "b76866c9b39aefa6803df62491dc4ada2f1d9efb058ba57c3c0d903512a9ed5f",
+    "rawGitBlobsVerifiedByRoot": 1451,
+    "tree": "4ba80b38941fb44e5b70174e3fb4534668ec9e31",
+    "workflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea"
+  },
+  "sourceDiagnosis": {
+    "boundary": "Static source proves the port mismatch; the artifact did not expose a PlanError code.",
+    "defaultConfigPortsSource": "config_test.go:17-18",
+    "initiatorRegexSource": "plan.go:21",
+    "initiatorUnderscoreRejected": false,
+    "newPlanGateSource": "plan.go:161-163",
+    "observedErrorCode": null,
+    "recoveredTargetPortsSource": "lifecycle_recovery_transitions_test.go:23-39",
+    "staticCertainGate": "NEW_PLAN_ARTIFACT_AND_BACKUP_PORTS_MUST_EQUAL_TARGET_PORTS"
+  }
+}

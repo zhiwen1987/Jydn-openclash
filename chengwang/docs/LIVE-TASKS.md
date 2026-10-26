@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+273真实MODEL与端口修正（2026-10-26）：Go已实际编译且进入目标top，但parent run／pass／fail=1／0／1；stage子例通过，新增四个second-recovery子例均在MODEL ordinary plan处失败，无skip，HTTPS因此跳过。实际日志未给PlanError.Code；源码独立确认recovered head端口为28412／28411，而fixture默认candidate为19090／18080，违反未改动的NewPlan端口门。当前只修测试helper：candidate与backup两个按值spec均在Build前绑定current head端口；backup只Build一次，先显式核其Config SHA等于head artifact，再把同一bytes交Prepared。合法actor、regexp、原全部断言、MODEL top、31 HTTPS、权限与产品逻辑不改；错误仅输出五类封闭PlanCode或UNKNOWN。新exact-head Go MODEL尚未运行，不称已通过；必须先MODEL真实全事件通过，再验完整31 HTTPS及原件checker／fresh。ROLE例外仍未实现；生产、main、Registry未改。
+
 505实测与MODEL编译修正（2026-10-26）：normal普通／race各1992语义、688必需通过；diag single及full原件均通过，full包128.994秒；首次Completion四模式9 ZIP／167成员／1443源限定通过。上述都不代证连续恢复。连续run40280615306在Go MODEL进入前因TYPE_MISMATCH编译失败，目标run／pass／fail均0，HTTPS按前置门跳过，fresh缺原件属次生失败。安全定位为test源码171:109：基础lifecycleModelDisk不满足labRuntimeDisk。当前仅修测试，复用既有labBootstrapModelDisk，并让strict reopen、recovery、handoff、runtime保持同一wrapper身份；底层writes／state／writeErr故障断言不变，增加编译期接口断言，产品transition／owner／fence及31请求链不改。手工MODEL owner／handoff仍不是真实Completion或冷开权限。必须先由新exact-head Linux MODEL真实run／pass，再验收完整31 HTTPS、原checker与fresh。ROLE例外仍未实现，503修复效果尚未获证；单样本性能通过不代表稳定余量，生产、main、Registry未动。
 
 9fac实际验收与源码阻断（2026-10-26）：普通／race各1992语义、688必需通过，race包149.284秒；首个Completion四mode的9 ZIP／167成员／1434源经原checker与fresh限定复核通过。diag single通过，full仍在180.051秒超时，未证稳定性能余量。新增fault Go MODEL已从NOT_RUN转为真实RUN_AND_PASS，前后源码绑定一致。连续HTTPS仍于HTTP26 SECOND_RECOVERY_CREATE返回503／NONE，固定诊断为REJECTED_BEGIN；stateMayHaveChanged是保守分类位，不证明WAL已写。独立源码审查确认：terminal执行事实非空，而fresh PLANNED为空，通用Execution相等早门先于合法终态替换分支，足以阻断该路径；这不代表诊断已证明运行时唯一原因或修后无后续缺陷。修复必须保留旧完整terminal history tail、只准新鲜PLANNED且无执行事实，并保持owner／clock／CAS／full validation／publisher各门；完整31链、第二恢复及安全原件导出仍未通过，ROLE例外未实现。性能V3仅在独立886e154分支实测，run40275513837四leg均180秒包超时，容量target通过不代证完整接受；候选未纳入主生命周期分支，亦不能归因顺序／profile／host。8子代理与主会话共9个running已由实际列表验证，不是配置推断。下载时一次临时签名链接被TTY工具回显，进程已终止，去敏事故保留，未将链接落盘；后续只准非TTY隐藏输入。生产、main、Registry未改。
@@ -34,7 +36,7 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
 | 首次真实 Completion | 505四模式限定隔离验收通过 | [505独立审计](evidence/sys06-505-first-completion-audit-20261026.json)：run40280615379，9 ZIP／167成员／1443源；原checker与fresh一致 | 不代证service rebind、产品API、普通发布、第二恢复或完整私有WAL |
 | 当前提交其他三套 CI | 505 normal及diag single/full原件接受 | [505原件](evidence/sys06-505-normal-diag-audit-20261026.json)：ordinary/race各1992 semantic，full 688/688、0fail/skip/unfinished；包128.994秒 | 只接受本次样本，不证明稳定性能、业务API或生产 |
-| 失败恢复协调器与产品 API | 505 MODEL编译失败；测试磁盘适配已修源码待Linux | [安全首因](evidence/sys06-505-model-build-first-failure-20261026.json)及[编译定位](evidence/sys06-505-model-safe-compile-diagnostic-20261026.json)：TYPE_MISMATCH、target run0、HTTPS skipped | 新MODEL真实通过后方可验31 HTTPS；原测试门及隐私fence不放宽 |
+| 失败恢复协调器与产品 API | 273编译通过／MODEL实际失败，端口fixture修正待Linux | [独立MODEL原件](evidence/sys06-273-model-independent-audit-20261026.json)：1 parent与4 recovery子例失败，固定NewPlan消息，无skip；HTTPS未执行 | 仅修candidate/backup端口及byte对应，不放宽产品门；MODEL通过后再31链 |
 | 恢复后普通发布与第二次恢复 | 未验收 | 已有部分模型与外部源码，不能当作实际产品结果 | 完成新 head／epoch 接续、真实 API、普通发布与连续恢复的端到端证据 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
 

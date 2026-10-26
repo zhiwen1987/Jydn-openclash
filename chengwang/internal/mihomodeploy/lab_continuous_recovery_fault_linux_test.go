@@ -5,6 +5,7 @@ package mihomodeploy
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -120,6 +121,8 @@ func labContinuousOrdinaryPlanModel(t *testing.T, current *lifecycleStore, opera
 	head := current.record.wire.Head
 	target := TargetBinding{DeviceRef: head.DeviceRef, Scope: head.Scope, Generation: head.Generation, HeadSHA256: head.HeadSHA256,
 		KernelSHA256: head.KernelSHA256, PID: head.PID, StartTicks: head.StartTicks, NetNSInode: head.NetNSInode, ControllerPort: head.ControllerPort, MixedPort: head.MixedPort}
+	candidateSpec.ControllerPort, candidateSpec.MixedPort = head.ControllerPort, head.MixedPort
+	backupSpec.ControllerPort, backupSpec.MixedPort = head.ControllerPort, head.MixedPort
 	candidate := labConfigTestBuild(t, candidateSpec)
 	artifact, err := newArtifactDescriptor(candidate.Descriptor(), sourceSHA, sourceBytes, candidateSpec.ControllerPort, candidateSpec.MixedPort)
 	if err != nil {
@@ -129,12 +132,24 @@ func labContinuousOrdinaryPlanModel(t *testing.T, current *lifecycleStore, opera
 	if err != nil {
 		t.Fatal("MODEL ordinary backup", err)
 	}
+	backupConfig := labConfigTestBuild(t, backupSpec)
+	if backupConfig.Descriptor().SHA256 != head.Artifact.Config.SHA256 {
+		t.Fatal("MODEL ordinary backup config")
+	}
 	plan, err := NewPlan(PlanSpec{OperationID: operationID, DeclaredInitiatorRef: "MODEL_continuous_initiator", Target: target, Artifact: artifact, Backup: backup, ExpiresAt: now.Add(time.Minute)}, now)
 	if err != nil {
-		t.Fatal("MODEL ordinary plan", err)
+		code := "UNKNOWN"
+		var typed *PlanError
+		if errors.As(err, &typed) {
+			switch typed.Code {
+			case PlanInvalid, PlanExpired, PlanTargetMismatch, PlanArtifactInvalid, PlanBackupInvalid:
+				code = string(typed.Code)
+			}
+		}
+		t.Fatal("MODEL ordinary plan", code)
 	}
 	prepared := &PreparedReload{preparedReloadCore: &preparedReloadCore{descriptor: ReloadPreparationDescriptor{Schema: ReloadPreparationSchema, Boundary: ReloadPreparationBoundary, Plan: plan.Descriptor(), PreparedAt: now},
-		candidate: candidate.Bytes(), backup: labConfigTestBuild(t, backupSpec).Bytes()}}
+		candidate: candidate.Bytes(), backup: backupConfig.Bytes()}}
 	return plan, prepared
 }
 
