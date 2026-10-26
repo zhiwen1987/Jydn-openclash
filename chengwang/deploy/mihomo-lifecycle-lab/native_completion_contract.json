@@ -60,8 +60,8 @@
   "completePackageTestSources": {
     "historicalCount": 84,
     "previousCount": 88,
-    "candidateCount": 91,
-    "continuousRecoveryTaggedSourceCount": 3,
+    "candidateCount": 93,
+    "continuousRecoveryTaggedSourceCount": 5,
     "ordinaryMandatoryTopLevelCount": 688,
     "completionHarnessExcludedFromOrdinaryMandatoryNames": true,
     "continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames": true

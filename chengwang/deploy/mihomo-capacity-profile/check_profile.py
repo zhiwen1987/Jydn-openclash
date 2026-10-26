@@ -22,6 +22,9 @@ FULL_PACKAGES=['./internal/adapter/mihomo','./internal/mihomodeploy','./internal
 FULL_GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags',TAG,'-run','^Test',*FULL_PACKAGES]
 CAPACITY_FMT=['internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go']
 FULL_FMT=[*CAPACITY_FMT,
+    'internal/authn/continuous_bound_credentials_linux.go',
+    'internal/authn/continuous_bound_credentials_linux_test.go',
+    'internal/authn/store.go',
     'internal/mihomodeploy/lifecycle_recovery_checkpoint.go',
     'internal/mihomodeploy/lifecycle_recovery_completion.go',
     'internal/mihomodeploy/lifecycle_recovery_completion_test.go',
@@ -38,6 +41,8 @@ FULL_FMT=[*CAPACITY_FMT,
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_lab_runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go']
@@ -294,7 +299,7 @@ def load_normal_checker(sources=None):
     if sources is not None:need(type(sources)is dict and sources.get(NORMAL_CHECKER)==code)
     module=types.ModuleType('_actual_bound_normal_contract_checker');module.__file__=str(path)
     exec(compile(code,str(path),'exec'),module.__dict__)
-    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==158 and len(module.TEST_FILES)==58)
+    need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==161 and len(module.TEST_FILES)==58)
     return module
 
 def full_source_contract(sources,manifest):
@@ -362,11 +367,13 @@ def full_source_contract(sources,manifest):
         'chengwang/internal/mihomodeploy/lifecycle_recovery_reconcile_test.go',
     }
     continuous_test_sources={
+        'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
         'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
         'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+        'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
         'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     }
-    need(completion_source in suite_test_sources and len(suite_test_sources)==91 and
+    need(completion_source in suite_test_sources and len(suite_test_sources)==93 and
          core_d_test_sources.issubset(suite_test_sources) and completion_source not in dict(checker.TEST_FILES) and
          continuous_test_sources.issubset(suite_test_sources) and
          continuous_test_sources.isdisjoint(dict(checker.TEST_FILES)) and

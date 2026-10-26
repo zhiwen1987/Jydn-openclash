@@ -1,0 +1,24 @@
+{
+  "actualFirstMatchingScalarIdentified": false,
+  "actualHTTPExecuted": false,
+  "actualPrivateValueRead": false,
+  "goExecuted": false,
+  "phases": [
+    {
+      "phase": "ALL_GENERIC_AND_REPORT_OUTPUTS",
+      "sourceLiteralCollisionRejected": true
+    },
+    {
+      "phase": "REPORT_AND_HTTP_OUTPUTS",
+      "sourceLiteralCollisionRejected": true
+    }
+  ],
+  "production": false,
+  "schema": "chengwang.public-schema-fence-source-reproducer/v1",
+  "sourceCommit": "6e309c4d150b6f9248089ad50abf3ede9015784c",
+  "sourceSHA256": {
+    "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py": "66f49ab01372c96a18458e2de51a9fea3a6ffcba0584b2120299a9d96aa567c9",
+    "chengwang/internal/mihomodeploy/lab_backend.go": "00bd10b778ac004066cedcd75d133da66582df33c3172605ef8df71b33fc2c93",
+    "chengwang/internal/mihomodeploy/plan.go": "4789047307c0796f2be86c91e5d73f96ca8a6c36c6a5c1b3ab5658e1c3c5d463"
+  }
+}

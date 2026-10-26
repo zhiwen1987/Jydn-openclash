@@ -90,6 +90,9 @@ COMMIT = re.compile(r'[0-9a-f]{40}')
 OID = re.compile(r'[0-9a-f]{40}')
 SHA = re.compile(r'[0-9a-f]{64}')
 FMT = (
+ 'internal/authn/continuous_bound_credentials_linux.go',
+ 'internal/authn/continuous_bound_credentials_linux_test.go',
+ 'internal/authn/store.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
@@ -97,6 +100,8 @@ FMT = (
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
  'internal/mihomodeploy/lab_recovery_backend.go',
  'internal/mihomodeploy/lab_service.go',
+ 'internal/serverruntime/mihomo_lab_runtime.go',
+ 'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
  'internal/serverruntime/runtime.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
@@ -111,6 +116,9 @@ DELIVERY = (
  'chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py',
  'chengwang/deploy/mihomo-lifecycle-lab/run_continuous_recovery_api.sh',
  'chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py',
+ 'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+ 'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+ 'chengwang/internal/authn/store.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
@@ -118,6 +126,8 @@ DELIVERY = (
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
  'chengwang/internal/mihomodeploy/lab_recovery_backend.go',
  'chengwang/internal/mihomodeploy/lab_service.go',
+ 'chengwang/internal/serverruntime/mihomo_lab_runtime.go',
+ 'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',

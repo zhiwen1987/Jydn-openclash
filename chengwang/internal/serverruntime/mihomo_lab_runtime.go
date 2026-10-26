@@ -62,14 +62,15 @@ func validateMihomoLabConfig(c Config) error {
 
 type MihomoLabRuntime struct{ core *mihomoLabRuntimeCore }
 type mihomoLabRuntimeCore struct {
-	mu       sync.Mutex
-	closeMu  sync.Mutex
-	manager  *authn.SnapshotManager
-	service  *mihomodeploy.LabService
-	ready    bool
-	writable bool
-	closing  bool
-	closed   bool
+	mu               sync.Mutex
+	closeMu          sync.Mutex
+	manager          *authn.SnapshotManager
+	service          *mihomodeploy.LabService
+	ready            bool
+	writable         bool
+	boundCredentials bool
+	closing          bool
+	closed           bool
 }
 
 func (MihomoLabRuntime) String() string             { return mihomoLabRuntimeDebug }
@@ -83,17 +84,26 @@ func (*MihomoLabRuntime) UnmarshalJSON([]byte) error { return errMihomoLabRuntim
 // A nonnil runtime must be retained and closed even alongside an error. An
 // uncertain service startup is never treated as evidence that no process ran.
 func OpenMihomoLabRuntime(ctx context.Context, c Config) (*MihomoLabRuntime, error) {
+	return openMihomoLabRuntime(ctx, c, nil)
+}
+
+func openMihomoLabRuntime(ctx context.Context, c Config, boundManager *authn.SnapshotManager) (*MihomoLabRuntime, error) {
 	if !c.MihomoLabEnabled {
 		return nil, nil
 	}
 	if !mihomoLabContextPresent(ctx) || ctx.Err() != nil || validateMihomoLabConfig(c) != nil {
 		return nil, errMihomoLabRuntime
 	}
-	manager, err := authn.OpenSnapshotManager(MihomoLabIdentityFile, time.Now().UTC())
-	if err != nil {
-		return nil, errMihomoLabRuntime
+	manager := boundManager
+	boundCredentials := manager != nil
+	if manager == nil {
+		var err error
+		manager, err = authn.OpenSnapshotManager(MihomoLabIdentityFile, time.Now().UTC())
+		if err != nil {
+			return nil, errMihomoLabRuntime
+		}
 	}
-	r := &MihomoLabRuntime{core: &mihomoLabRuntimeCore{manager: manager}}
+	r := &MihomoLabRuntime{core: &mihomoLabRuntimeCore{manager: manager, boundCredentials: boundCredentials}}
 	scope := authz.ResourceScope{TenantID: c.TenantID, SiteID: c.SiteID, ObjectType: mihomodeploy.LabObjectType,
 		ObjectID: c.ManagementObjectID, Environment: mihomodeploy.LabEnvironment}
 	service, err := mihomodeploy.OpenIsolatedLabService(ctx, manager, scope)

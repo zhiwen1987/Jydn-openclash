@@ -20,12 +20,16 @@ FORBIDDEN=('chengwang_mihomo_faults','chengwang_mihomo_completion_native')
 COMMANDS=('SANDBOX','GO_VERSION','GOFMT','GO_TEST')
 TIMEOUTS=(30,15,45,240)
 FMT=(
+ 'internal/authn/continuous_bound_credentials_linux.go',
+ 'internal/authn/continuous_bound_credentials_linux_test.go',
+ 'internal/authn/store.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
- 'internal/mihomodeploy/lab_recovery_backend.go','internal/mihomodeploy/lab_service.go','internal/serverruntime/runtime.go',
+ 'internal/mihomodeploy/lab_recovery_backend.go','internal/mihomodeploy/lab_service.go',
+ 'internal/serverruntime/mihomo_lab_runtime.go','internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go','internal/serverruntime/runtime.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
  'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go')
@@ -41,6 +45,9 @@ DELIVERY=(
  'chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py',
  'chengwang/deploy/mihomo-lifecycle-lab/run_continuous_recovery_api.sh',
  'chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py',
+ 'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+ 'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+ 'chengwang/internal/authn/store.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
  'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
@@ -48,6 +55,8 @@ DELIVERY=(
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
  'chengwang/internal/mihomodeploy/lab_recovery_backend.go',
  'chengwang/internal/mihomodeploy/lab_service.go',
+ 'chengwang/internal/serverruntime/mihomo_lab_runtime.go',
+ 'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
@@ -364,7 +373,11 @@ def verify(repo,public,commit):
     need(contract['schema']=='chengwang.mihomo-continuous-recovery-contract/v1' and contract['scope']==SCOPE and contract['exactTags']==list(TAGS) and contract['forbiddenTags']==list(FORBIDDEN) and contract['goPackage']=='./internal/serverruntime' and contract['topTest']==TOP and contract['goTimeoutSeconds']==210 and contract['outerGoTimeoutSeconds']==240 and contract['httpOriginalBytesRequired'] is True and contract['fullPrivateWALIndependentlyProven'] is False and contract['internetBusinessProven'] is False and contract['production'] is False)
     build=b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
     default=b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'
-    for rel in ('chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go','chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go'):
+    for rel in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',
+                'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+                'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
+                'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+                'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go'):
         need(source_file(Path(repo)/rel,2<<20).startswith(build))
     need(source_file(Path(repo)/'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',64<<10).startswith(default))
     fixed={'host-before.json','host-after.json','consumption.json','consumption-independent.json','sandbox.json','go-version.txt','gofmt.patch','gofmt.stderr','continuous.json','continuous.stderr','commands.jsonl','process-events.jsonl','execution.json','continuous-recovery-report.json','http-originals-index.json','private-fsync-receipts.json','kernel.stdout','kernel.stderr'}

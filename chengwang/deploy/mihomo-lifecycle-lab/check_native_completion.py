@@ -39,11 +39,16 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lifecycle_current_epoch.go','lab_current_epoch_runtime.go','lab_native_completion_linux_test.go')) + (
     'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
     'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/authn/continuous_bound_credentials_linux.go',
+    'internal/authn/continuous_bound_credentials_linux_test.go',
+    'internal/authn/store.go',
     'internal/mihomodeploy/lab_service.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_lab_runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go')
@@ -341,8 +346,8 @@ def source_check(repo):
              'trackedSet':'ALL_GIT_HEAD_BLOBS','deliveryCount':len(DELIVERY_PATHS),
              'gitCommitRequired':True,'gitTreeRequired':True,'gitIndexMustMatchCommitTree':True,
              'workingBytesMustMatchGitBlobs':True,'oldTwentyOneSourceManifestAccepted':False})
-    exact_same(contract['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'candidateCount':91,
-             'continuousRecoveryTaggedSourceCount':3,'ordinaryMandatoryTopLevelCount':688,
+    exact_same(contract['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'candidateCount':93,
+             'continuousRecoveryTaggedSourceCount':5,'ordinaryMandatoryTopLevelCount':688,
              'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
              'continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames':True})
     exact_same(contract['coldReopen'],{
@@ -375,9 +380,16 @@ def source_check(repo):
     need("'-run=^'+TOP+'$'" in worker and "'-timeout=105s'" in worker and
          'reconstruct_s1(s2)' in worker and 'reconstruct_s2(attempted)' in worker)
     profile = source_file(repo/'chengwang/deploy/mihomo-capacity-profile/check_profile.py',512 << 10).decode()
-    need("len(suite_test_sources)==91" in profile and "len(previous88)==88" in profile and "len(previous84)==84" in profile and
+    need("len(suite_test_sources)==93" in profile and "len(previous88)==88" in profile and "len(previous84)==84" in profile and
          "len(names)==688" in profile and "completionHarnessExcludedFromOrdinaryMandatoryNames':True" in profile and
          "continuousRecoveryTaggedTestsExcludedFromOrdinaryMandatoryNames':True" in profile)
+    exact_continuous = b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
+    for path in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',
+                 'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+                 'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
+                 'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+                 'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go'):
+        need(source_file(repo/path,2 << 20).startswith(exact_continuous))
     for name, digest in OLD_V5.items():
         need(sha(source_file(repo/name)) == digest)
     return contract

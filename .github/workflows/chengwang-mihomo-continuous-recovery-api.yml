@@ -121,6 +121,100 @@ jobs:
           path: ${{ runner.temp }}/mihomo-continuous-fault-model/*
           if-no-files-found: error
           retention-days: 14
+  continuous-bound-credentials-model:
+    needs: [development-only, source-models]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Bind the exact run HEAD before bound-credential MODEL tests
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/mihomo-continuous-bound-credentials-model"
+          test ! -e "$out"
+          install -d -m 0755 "$out"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git write-tree)" = "$(git rev-parse "$GITHUB_SHA^{tree}")"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
+            --source-manifest "$GITHUB_WORKSPACE" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/mihomo-continuous-bound-credentials-source-before.private.json" \
+            > "$out/source-before.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Run only the exact-tag bound-credential MODEL tops
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/mihomo-continuous-bound-credentials-model"
+          cd chengwang
+          authn_code=0
+          runtime_code=0
+          GOWORK=off GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=1 \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -count=1 -shuffle=off -p=1 \
+              -tags linux,chengwang_mihomo_service,chengwang_mihomo_recovery_native,chengwang_mihomo_recovery_continuous_fault \
+              -run '^TestContinuousRecoveryBoundCredentialsV2MODEL$' -timeout=30s \
+              ./internal/authn > "$out/authn-go-test.json" 2> "$out/authn-go-test.stderr" || authn_code=$?
+          GOWORK=off GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=1 \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -count=1 -shuffle=off -p=1 \
+              -tags linux,chengwang_mihomo_service,chengwang_mihomo_recovery_native,chengwang_mihomo_recovery_continuous_fault \
+              -run '^TestContinuousRecoveryBoundCredentialsSourceArmMODEL$' -timeout=30s \
+              ./internal/serverruntime > "$out/runtime-go-test.json" 2> "$out/runtime-go-test.stderr" || runtime_code=$?
+          python3 - "$out/exit.json" "$authn_code" "$runtime_code" "$GITHUB_SHA" <<'PY'
+          import json,os,sys
+          value={'schema':'chengwang.mihomo-continuous-bound-credentials-model-exit/v1','sourceCommit':sys.argv[4],
+                 'authnExitCode':int(sys.argv[2]),'runtimeExitCode':int(sys.argv[3]),'production':False}
+          with open(sys.argv[1],'x') as f:
+              json.dump(value,f,sort_keys=True,separators=(',',':'));f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          test "$authn_code" -eq 0
+          test "$runtime_code" -eq 0
+          python3 - "$out" "$GITHUB_SHA" <<'PY'
+          import json,os,sys
+          out=sys.argv[1]
+          expected=(('authn-go-test.json','chengwang/internal/authn','TestContinuousRecoveryBoundCredentialsV2MODEL'),
+                    ('runtime-go-test.json','chengwang/internal/serverruntime','TestContinuousRecoveryBoundCredentialsSourceArmMODEL'))
+          verified=[]
+          for name,package,target in expected:
+              with open(os.path.join(out,name),encoding='utf-8') as source:
+                  rows=[json.loads(line) for line in source if line.strip()]
+              relevant=[row for row in rows if row.get('Test')==target]
+              assert sum(row.get('Action')=='run' for row in relevant)==1
+              assert sum(row.get('Action')=='pass' for row in relevant)==1
+              assert not any(row.get('Action') in ('fail','skip') for row in rows)
+              assert all(row.get('Package')==package for row in rows)
+              assert all(row.get('Test',target).split('/')[0]==target for row in rows)
+              assert sum('Test' not in row and row.get('Action')=='pass' for row in rows)==1
+              verified.append({'package':package,'topTest':target,'runCount':1,'passCount':1})
+          value={'schema':'chengwang.mihomo-continuous-bound-credentials-model-verification/v1',
+                 'sourceCommit':sys.argv[2],'tests':verified,'production':False}
+          with open(os.path.join(out,'verification.json'),'x') as f:
+              json.dump(value,f,sort_keys=True,separators=(',',':'));f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+      - name: Rebind exact source after bound-credential MODEL tests
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/mihomo-continuous-bound-credentials-model"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
+            --source-manifest "$GITHUB_WORKSPACE" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/mihomo-continuous-bound-credentials-source-after.private.json" \
+            > "$out/source-after.json"
+          cmp "$RUNNER_TEMP/mihomo-continuous-bound-credentials-source-before.private.json" \
+            "$RUNNER_TEMP/mihomo-continuous-bound-credentials-source-after.private.json"
+          cmp "$out/source-before.json" "$out/source-after.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-continuous-bound-credentials-model-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-bound-credentials-model/*
+          if-no-files-found: error
+          retention-days: 14
   acquisition:
     needs: development-only
     runs-on: ubuntu-24.04
@@ -157,7 +251,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   continuous-recovery-api:
-    needs: [development-only, source-models, continuous-fault-model, acquisition]
+    needs: [development-only, source-models, continuous-fault-model, continuous-bound-credentials-model, acquisition]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

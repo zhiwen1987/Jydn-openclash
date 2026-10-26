@@ -163,9 +163,22 @@ func RunWith(options Options) (result error) {
 	if c.SubscriptionsEnabled && options.WriteTimeout > 0 && options.WriteTimeout < 30*time.Second {
 		return errors.New("subscription response timeout must be at least 30 seconds")
 	}
-	identity, err := OpenIdentityStore(c.IdentitiesFile)
+	identity, boundManager, boundCredentials, err := claimLabContinuousRecoveryCredentials(c, time.Now().UTC())
 	if err != nil {
-		return fmt.Errorf("initialize identity store: %w", err)
+		return errMihomoLabRuntime
+	}
+	boundManagerTransferred := false
+	if boundCredentials {
+		defer func() {
+			if !boundManagerTransferred && boundManager != nil && boundManager.Close() != nil {
+				result = errors.Join(result, errMihomoLabRuntime)
+			}
+		}()
+	} else {
+		identity, err = OpenIdentityStore(c.IdentitiesFile)
+		if err != nil {
+			return fmt.Errorf("initialize identity store: %w", err)
+		}
 	}
 	tlsConfig, err := LoadTLSConfig(c.TLSCertFile, c.TLSKeyFile)
 	if err != nil {
@@ -229,8 +242,11 @@ func RunWith(options Options) (result error) {
 	closers = append(closers, audit.Close)
 	var mihomoLab *MihomoLabRuntime
 	if c.MihomoLabEnabled {
-		mihomoLab, err = OpenMihomoLabRuntime(ctx, c)
+		mihomoLab, err = openMihomoLabRuntime(ctx, c, boundManager)
 		if mihomoLab != nil {
+			if boundCredentials {
+				boundManagerTransferred = true
+			}
 			closers = append(closers, func() error {
 				closing, stop := context.WithTimeout(context.Background(), 10*time.Second)
 				defer stop()
@@ -240,7 +256,7 @@ func RunWith(options Options) (result error) {
 		if err != nil {
 			return errMihomoLabRuntime
 		}
-		if err := bindLabContinuousRecoveryHarness(mihomoLab); err != nil {
+		if err := bindLabContinuousRecoveryHarness(mihomoLab, identity); err != nil {
 			return errMihomoLabRuntime
 		}
 	}

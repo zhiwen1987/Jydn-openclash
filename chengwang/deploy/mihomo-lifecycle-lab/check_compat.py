@@ -75,12 +75,15 @@ FOUNDATION += [
     'chengwang/internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
 ]
 CONTINUOUS_RECOVERY_COMPAT_FILES = (
+    'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+    'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
     'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
     'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
     'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
     'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
 )
@@ -202,7 +205,7 @@ def source_bindings(repo, commit):
         need(result.returncode == 0 and len(result.stdout) <= 1 << 20); return result.stdout
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit
          and Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 159)
+    need(len(FILES) == len(set(FILES)) == 162)
     result = {}
     for relative in FILES:
         raw = read(repo / relative, 1 << 20, False); need(raw == git('show', commit + ':' + relative)); result[relative] = raw

@@ -130,9 +130,18 @@ type credentialSnapshot struct {
 	digest [sha256.Size]byte
 }
 
+type credentialPayloadParser func([]byte) (*Store, error)
+
 // The optional hook is private and only supports deterministic filesystem-race
 // tests. Product callers never supply callbacks. The digest stays in memory.
 func readCredentialSnapshot(path string, strict bool, afterRead func()) (credentialSnapshot, error) {
+	return readCredentialSnapshotWithParser(path, strict, afterRead, parseCredentialPayload)
+}
+
+func readCredentialSnapshotWithParser(path string, strict bool, afterRead func(), parser credentialPayloadParser) (credentialSnapshot, error) {
+	if parser == nil {
+		return credentialSnapshot{}, errors.New("credential parser is required")
+	}
 	if strings.TrimSpace(path) == "" {
 		return credentialSnapshot{}, errors.New("credential file path is required")
 	}
@@ -216,7 +225,7 @@ func readCredentialSnapshot(path string, strict bool, afterRead func()) (credent
 	if err := file.Close(); err != nil {
 		return credentialSnapshot{}, errors.New("credential file close failed")
 	}
-	store, err := parseCredentialPayload(payload)
+	store, err := parser(payload)
 	if err != nil {
 		return credentialSnapshot{}, err
 	}
@@ -344,12 +353,18 @@ func parseCredentialPayload(payload []byte) (*Store, error) {
 }
 
 func rejectCredentialDuplicateKeys(payload []byte) error {
-	canonicalKeys := map[string]bool{
+	return rejectCredentialDuplicateKeysWithSet(payload, map[string]bool{
 		"version": true, "identities": true, "tokenId": true, "tokenHash": true,
 		"principal": true, "disabled": true, "notBefore": true, "expiresAt": true,
 		"id": true, "tenantId": true, "roles": true, "allowedScopes": true,
 		"breakGlassEligible": true, "siteId": true, "environment": true,
 		"objectType": true, "objectId": true,
+	})
+}
+
+func rejectCredentialDuplicateKeysWithSet(payload []byte, canonicalKeys map[string]bool) error {
+	if len(canonicalKeys) == 0 {
+		return errors.New("credential JSON key policy is unavailable")
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(payload)))
 	decoder.UseNumber()

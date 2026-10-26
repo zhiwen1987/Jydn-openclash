@@ -450,15 +450,21 @@ func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testi
 	cfg.IdentitiesFile = MihomoLabIdentityFile
 	cfg.MihomoLabEnabled = true
 	cfg.SubscriptionsEnabled, cfg.SubscriptionWritesEnabled = false, false
-	scope := authz.ResourceScope{TenantID: cfg.TenantID, SiteID: cfg.SiteID, ObjectType: mihomodeploy.LabObjectType,
-		ObjectID: cfg.ManagementObjectID, Environment: mihomodeploy.LabEnvironment}
-	profile := authn.File{Version: authn.FileVersion, Identities: []authn.Identity{}}
+	if cfg.TenantID != "sub-tenant" || cfg.SiteID != "sub-site" || cfg.ManagementObjectID != "local" {
+		report.FailureCode = "IDENTITY_INPUT"
+		t.Fatal("continuous recovery source identity scope")
+	}
+	profile := authn.ContinuousRecoveryBoundCredentialFile{Schema: authn.ContinuousRecoveryCredentialSchema,
+		Credentials: []authn.ContinuousRecoveryBoundCredential{}}
 	for _, role := range []authz.Role{authz.RoleViewer, authz.RoleOperator, authz.RoleApprover, authz.RoleAuditor, authz.RoleAdmin} {
 		name := string(role)
 		digest := sha256.Sum256([]byte(inputs.tokens[name]))
-		profile.Identities = append(profile.Identities, authn.Identity{TokenID: "continuous-" + name,
-			TokenHash: hex.EncodeToString(digest[:]), Principal: authz.Principal{ID: "continuous-" + name,
-				TenantID: scope.TenantID, Roles: []authz.Role{role}, AllowedScopes: []authz.ResourceScope{scope}}})
+		credential, credentialErr := authn.NewContinuousRecoveryBoundCredential(role, hex.EncodeToString(digest[:]))
+		if credentialErr != nil {
+			report.FailureCode = "IDENTITY_INPUT"
+			t.Fatal("continuous recovery source credential binding")
+		}
+		profile.Credentials = append(profile.Credentials, credential)
 	}
 	rawProfile, err := json.Marshal(profile)
 	if err != nil || serviceE2EWrite(MihomoLabIdentityFile, rawProfile) != nil {

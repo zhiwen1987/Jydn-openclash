@@ -43,11 +43,16 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lab_native_completion_linux_test.go')) + (
     'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
     'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/authn/continuous_bound_credentials_linux.go',
+    'internal/authn/continuous_bound_credentials_linux_test.go',
+    'internal/authn/store.go',
     'internal/mihomodeploy/lab_service.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_lab_runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go')
@@ -294,8 +299,8 @@ def contract():
              'trackedSet':'ALL_GIT_HEAD_BLOBS','deliveryCount':len(DELIVERY_PATHS),
              'gitCommitRequired':True,'gitTreeRequired':True,'gitIndexMustMatchCommitTree':True,
              'workingBytesMustMatchGitBlobs':True,'oldTwentyOneSourceManifestAccepted':False})
-    exact_same(value['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'candidateCount':91,
-             'continuousRecoveryTaggedSourceCount':3,'ordinaryMandatoryTopLevelCount':688,
+    exact_same(value['completePackageTestSources'],{'historicalCount':84,'previousCount':88,'candidateCount':93,
+             'continuousRecoveryTaggedSourceCount':5,'ordinaryMandatoryTopLevelCount':688,
              'completionHarnessExcludedFromOrdinaryMandatoryNames':True,
              'continuousRecoveryTaggedSourcesExcludedFromOrdinaryMandatoryNames':True})
     exact_same(value['coldReopen'],{

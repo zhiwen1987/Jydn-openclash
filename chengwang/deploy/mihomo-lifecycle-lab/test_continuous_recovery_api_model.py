@@ -171,6 +171,62 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         environment=re.search(r'LabEnvironment\s*=\s*"([^"]+)"',plan)
         self.assertIsNotNone(environment); self.assertEqual(self.worker.PUBLIC_LAB_ENVIRONMENT,environment.group(1))
         self.assertIn('log.Printf("chengwang listening (mode=%s)", c.Mode)',runtime)
+        bound=(HERE.parents[1]/'internal/authn/continuous_bound_credentials_linux.go').read_text(encoding='utf8')
+        bound_test=(HERE.parents[1]/'internal/authn/continuous_bound_credentials_linux_test.go').read_text(encoding='utf8')
+        store=(HERE.parents[1]/'internal/authn/store.go').read_text(encoding='utf8')
+        lab_runtime=(HERE.parents[1]/'internal/serverruntime/mihomo_lab_runtime.go').read_text(encoding='utf8')
+        exact_hook=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go').read_text(encoding='utf8')
+        default_hook=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_hook_default.go').read_text(encoding='utf8')
+        credential_test=(HERE.parents[1]/'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go').read_text(encoding='utf8')
+        exact_tag='linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native'
+        self.assertEqual(bound.splitlines()[0],'//go:build '+exact_tag)
+        self.assertEqual(bound_test.splitlines()[0],'//go:build '+exact_tag)
+        self.assertEqual(exact_hook.splitlines()[0],'//go:build '+exact_tag)
+        self.assertEqual(credential_test.splitlines()[0],'//go:build '+exact_tag)
+        self.assertEqual(harness.splitlines()[0],'//go:build '+exact_tag)
+        self.assertIn('!linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native',default_hook.splitlines()[0])
+        self.assertIn('chengwang.mihomo-continuous-recovery-bound-credentials/v2',bound)
+        credential_struct=re.search(r'type ContinuousRecoveryBoundCredential struct \{(.*?)\n\}',bound,re.S)
+        self.assertIsNotNone(credential_struct)
+        self.assertEqual(set(re.findall(r'json:"([A-Za-z]+)',credential_struct.group(1))),
+          {'tokenId','tokenHash','binding','disabled','notBefore','expiresAt'})
+        self.assertFalse({'principal','tenantId','siteId','objectType','objectId','environment','roles'} &
+          set(re.findall(r'json:"([A-Za-z]+)',credential_struct.group(1))))
+        rows=re.findall(r'\{tokenID: "([^"]+)", selector: "([^"]+)", principalID: "([^"]+)", role: authz\.Role(\w+)\}',bound)
+        self.assertEqual(rows,[
+          ('continuous-credential-01','binding-01','continuous-principal-viewer','Viewer'),
+          ('continuous-credential-02','binding-02','continuous-principal-operator','Operator'),
+          ('continuous-credential-03','binding-03','continuous-principal-approver','Approver'),
+          ('continuous-credential-04','binding-04','continuous-principal-auditor','Auditor'),
+          ('continuous-credential-05','binding-05','continuous-principal-admin','Admin')])
+        self.assertEqual(len({row[0] for row in rows}),5); self.assertEqual(len({row[1] for row in rows}),5)
+        self.assertIn('func continuousRecoveryBindings() [5]continuousRecoveryBinding',bound)
+        self.assertNotIn('var continuousRecoveryBindings',bound)
+        self.assertIn('TenantID: "sub-tenant", SiteID: "sub-site", ObjectType: "mihomo-lab", ObjectID: "local", Environment: "isolated-lab"',bound)
+        self.assertEqual(re.search(r'LabObjectType\s*=\s*"([^"]+)"',plan).group(1),'mihomo-lab')
+        self.assertIn('return readCredentialSnapshotWithParser(path, strict, afterRead, parseCredentialPayload)',store)
+        self.assertIn('initial, err := readCredentialSnapshotWithParser(path, true, nil, parseContinuousRecoveryCredentialPayload)',bound)
+        self.assertIn('return readCredentialSnapshotWithParser(candidate, true, nil, parseContinuousRecoveryCredentialPayload)',bound)
+        self.assertIn('managerCore.store != initial.store || managerCore.digest != initial.digest',bound)
+        self.assertIn('identity, boundManager, boundCredentials, err := claimLabContinuousRecoveryCredentials(c, time.Now().UTC())',runtime)
+        self.assertLess(runtime.index('claimLabContinuousRecoveryCredentials(c, time.Now().UTC())'),runtime.index('OpenIdentityStore(c.IdentitiesFile)'))
+        self.assertIn('openMihomoLabRuntime(ctx, c, boundManager)',runtime)
+        self.assertIn('bindLabContinuousRecoveryHarness(mihomoLab, identity)',runtime)
+        self.assertIn('manager: manager, boundCredentials: boundCredentials',lab_runtime)
+        self.assertIn('expectedStore, expectedManager := i.credentialStore, i.credentialManager',exact_hook)
+        self.assertIn('identity != expectedStore',exact_hook)
+        self.assertIn('c.manager == expectedManager && c.boundCredentials',exact_hook)
+        self.assertLess(exact_hook.index('validateMihomoLabConfig(c)'),exact_hook.index('authn.OpenContinuousRecoveryCredentialBundle'))
+        self.assertIn('!c.MihomoLabEnabled || validateMihomoLabConfig(c) != nil || c.IdentitiesFile != MihomoLabIdentityFile || configured != expected',exact_hook)
+        self.assertIn('scope != expected',exact_hook)
+        profile_source=re.search(r'profile := authn\.ContinuousRecoveryBoundCredentialFile.*?rawProfile, err := json\.Marshal\(profile\)',harness,re.S)
+        self.assertIsNotNone(profile_source)
+        self.assertNotIn('authn.Principal',profile_source.group(0)); self.assertNotIn('authn.Identity',profile_source.group(0))
+        for path in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',
+                     'chengwang/internal/authn/continuous_bound_credentials_linux_test.go','chengwang/internal/authn/store.go',
+                     'chengwang/internal/serverruntime/mihomo_lab_runtime.go',
+                     'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go'):
+            self.assertIn(path,self.reader.DELIVERY); self.assertIn(path,self.worker.DELIVERY)
         source=(HERE/'continuous_recovery_api_worker.py').read_text(encoding='utf8')
         self.assertIn('def capture(',source); self.assertNotIn('a.capture(',source); self.assertNotIn('apply_worker.capture',source)
         self.assertIn("cwd='/tmp/mihomo-apply-source'",source)
@@ -223,6 +279,12 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                 with self.subTest(private_actor=actor,variant=entry[3]),self.assertRaises(ValueError):
                     self.worker.fence_outputs({'continuous-recovery-report.json':b'x'+entry[0]+b'y'},(entry,),
                       'REPORT_AND_HTTP_OUTPUTS',0,0,True,31,'NONE',True)
+        public_schema=b'chengwang.mihomo-lab-head-view/v1'
+        for entry in self.worker.encoded_secret_variants(public_schema,'IDENTITY_PROFILE','JSON_OTHER_SCALAR',False,False,'NOT_APPLICABLE'):
+            for phase in ('REPORT_AND_HTTP_OUTPUTS','ALL_GENERIC_AND_REPORT_OUTPUTS'):
+                with self.subTest(public_constant_secret=entry[3],phase=phase),self.assertRaises(ValueError):
+                    self.worker.fence_outputs({'continuous-recovery-report.json':b'x'+entry[0]+b'y'},(entry,),
+                      phase,0,0,True,31,'NONE',True)
         self.assertIsNone(self.worker.fence_outputs({'clean.json':b'clean'},
           ((b'model-private-value','CONFIG_A','WHOLE_FILE','RAW',False,False,'NOT_APPLICABLE'),),
           'ALL_GENERIC_AND_REPORT_OUTPUTS',0,0,False,0,'UNKNOWN',False))

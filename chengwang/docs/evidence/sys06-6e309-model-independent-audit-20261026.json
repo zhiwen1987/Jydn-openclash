@@ -1,0 +1,124 @@
+{
+  "schema": "chengwang.mihomo-continuous-fault-model-independent-audit/v1",
+  "status": "ACCEPTED_MODEL_ONLY",
+  "scope": "ACTUAL_LINUX_EXACT_TAG_MODEL_NOT_HTTPS_OR_FULL_RECOVERY_ACCEPTANCE",
+  "repository": "zhiwen1987/Jydn-openclash",
+  "run": {
+    "id": 40294370287,
+    "attempt": 1,
+    "headSHA": "6e309c4d150b6f9248089ad50abf3ede9015784c",
+    "workflowOverallAtAudit": "in_progress"
+  },
+  "job": {
+    "id": 121476811988,
+    "name": "continuous-fault-model",
+    "status": "completed",
+    "conclusion": "success",
+    "allTenReportedStepsCompletedSuccess": true
+  },
+  "artifact": {
+    "id": 12637358091,
+    "name": "mihomo-continuous-fault-model-40294370287-1",
+    "apiBytes": 2630,
+    "apiSHA256": "9e055a72791f3a632a51a45eae4859338abd48538afe64d099ba47d18d46845b",
+    "localBytes": 2630,
+    "localSHA256": "9e055a72791f3a632a51a45eae4859338abd48538afe64d099ba47d18d46845b",
+    "apiHeadSHA": "6e309c4d150b6f9248089ad50abf3ede9015784c",
+    "expired": false,
+    "zipCRCAllMembersPassed": true,
+    "memberCount": 6,
+    "members": [
+      {
+        "name": "exit.json",
+        "bytes": 151,
+        "crc32": "0dc84665",
+        "sha256": "e8f294464993bfdb54418d2306e21e5436f70807a7fd64ab0c92b49cd2b85dee"
+      },
+      {
+        "name": "go-test.json",
+        "bytes": 7709,
+        "crc32": "8f939b68",
+        "sha256": "47ea64aeb81e60bdc000098e0762585780e6ea6bbf8c35218102e1197bd62902"
+      },
+      {
+        "name": "go-test.stderr",
+        "bytes": 0,
+        "crc32": "00000000",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "source-after.json",
+        "bytes": 619,
+        "crc32": "87416ac4",
+        "sha256": "d644a047d9087e5f3616159d1c7f3fe7d84f028d17d8b2f8c76896122ca9c189"
+      },
+      {
+        "name": "source-before.json",
+        "bytes": 619,
+        "crc32": "87416ac4",
+        "sha256": "d644a047d9087e5f3616159d1c7f3fe7d84f028d17d8b2f8c76896122ca9c189"
+      },
+      {
+        "name": "verification.json",
+        "bytes": 295,
+        "crc32": "91bbcfdd",
+        "sha256": "07b3d6079c339e95e971c6e800c59dee7e2afe6af86dc27de2a0183c9363173a"
+      }
+    ]
+  },
+  "sourceBinding": {
+    "beforeAfterByteEqual": true,
+    "independentlyRecomputedAgainstImmutableSnapshot": true,
+    "sourceCommit": "6e309c4d150b6f9248089ad50abf3ede9015784c",
+    "sourceTree": "96e17ca854f4fd3f351b465258c0ebed6d9e1b5f",
+    "indexTree": "96e17ca854f4fd3f351b465258c0ebed6d9e1b5f",
+    "sourceManifestSHA256": "68ae8254cd346191e42a24ad15ddf8cf6cdae29351e4037bc1013550e8e483c6",
+    "sourceSetSHA256": "2d88bb9e8a4ca9a77d3a2ed0c2d84b6edfb393e248bcced4c392ba69bb6caaf9",
+    "deliverySetSHA256": "d7b675c9d6cc1ea6d214a389c602f0bb144beb778536fcd9246f48d90dabd523",
+    "policySHA256": "7aa7915698563fc5ee9bfee03b9213669d4eb3320b92fd4a7bf9f4bd57033e8f",
+    "sourceCount": 1463,
+    "deliveryCount": 25
+  },
+  "go": {
+    "exitCode": 0,
+    "stderrBytes": 0,
+    "jsonEventCount": 28,
+    "package": "chengwang/internal/mihomodeploy",
+    "packagePassCount": 1,
+    "failOrSkipEventCount": 0,
+    "topTest": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+    "topRunCount": 1,
+    "topPassCount": 1,
+    "children": [
+      "create-stage-is-exact-bounded-diagnostic-only",
+      "completed-archive-allows-one-fresh-second-recovery-begin",
+      "second-begin-publication-failure-retains-completed-facade",
+      "second-begin-rejects-changed-archive-before-publication",
+      "terminal-replacement-rejects-execution-injection-and-unpaired-history"
+    ],
+    "childRunCountEach": 1,
+    "childPassCountEach": 1,
+    "childrenExactlyMatchSource": true,
+    "sourcePath": "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go",
+    "sourceSHA256": "a16aec85cc917fd3a787d2981171a9c49957f8f28ce1cce746ecfcdf02340a13",
+    "workflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea"
+  },
+  "transport": {
+    "singleSerialDownloadProcess": true,
+    "nonTTYChildInput": true,
+    "urlsPersisted": false,
+    "urlsPrinted": false,
+    "firstPlainPipeAttemptFailedBeforeMetadataOrDownload": true,
+    "firstFailureReceiptSHA256": "c980d987457c00658c711b78e2d5ab2ed34cf95562b09c48a720ffb92d36b618",
+    "successfulTransportReceiptSHA256": "94d720300310bd9cf4b035d3f8e568e62b8c488901d5c40af4d44e3cbb8db16"
+  },
+  "boundaries": {
+    "actualLinuxGoModelProven": true,
+    "actualHTTPSProven": false,
+    "continuousRecoveryCompleted": false,
+    "fullPrivateWALIndependentlyProven": false,
+    "production": false,
+    "repositoryModified": false,
+    "workflowRerun": false
+  }
+}

@@ -554,14 +554,23 @@ class SyntheticNativeRecoveryClosedModels(unittest.TestCase):
 
     def test_old_native_source_closure_selects_defaults_and_rejects_dual_fault_tags(self):
         sources = fixture_sources()
-        self.assertEqual(len(C.FILES), 196)
-        self.assertEqual(len(C.FMT), 28)
+        self.assertEqual(len(C.FILES), 199)
+        self.assertEqual(len(C.FMT), 33)
         self.assertEqual(C.contract(sources)['tags'], list(C.TAGS))
         changed = dict(sources)
         path = 'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go'
         changed[path] = changed[path].replace(b' || chengwang_mihomo_faults', b'', 1)
         with self.assertRaises(ValueError):
             C.contract(changed)
+        for path in (
+            'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+            'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+            'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
+        ):
+            changed = dict(sources)
+            changed[path] = changed[path].replace(b' && !chengwang_mihomo_faults', b'', 1)
+            with self.subTest(exact_tag_path=path), self.assertRaises(ValueError):
+                C.contract(changed)
         changed = dict(sources)
         contract = C.decode(changed[C.PREFIX + 'native_recovery_contract.json'])
         contract['tags'].append('chengwang_mihomo_recovery_continuous_fault')

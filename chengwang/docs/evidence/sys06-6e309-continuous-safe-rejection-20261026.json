@@ -1,0 +1,192 @@
+{
+  "schema": "chengwang.mihomo-continuous-recovery-case-actor-linux-audit/v1",
+  "status": "REJECTED_AT_FIRST_PUBLIC_PRIVACY_FENCE_AFTER_GO_REPORT_PASS",
+  "scope": "READ_ONLY_AUTHENTICATED_CI_EVIDENCE_NOT_PRODUCTION_NOT_RERUN",
+  "source": {
+    "commit": "6e309c4d150b6f9248089ad50abf3ede9015784c",
+    "tree": "96e17ca854f4fd3f351b465258c0ebed6d9e1b5f",
+    "snapshot": "D:/CodexData/workspace/mihomo-6e309c4-acceptance-hc6gldr6/repo",
+    "snapshotClean": true,
+    "workflowSHA256": "4f0f637ab662e31fb70ab63f733684103df379305c2036d6ccad6f901d66d1ea",
+    "workerSHA256": "66f49ab01372c96a18458e2de51a9fea3a6ffcba0584b2120299a9d96aa567c9",
+    "checkerSHA256": "6e68d153e4cbaae06e0f61962b3577fc06fec61651c94ae2f6d53efb6e83762d",
+    "modelSHA256": "61ee7ce83c6a0f3b56b7444b40e034be7af5c08b7d7e4154f49888cffa241922",
+    "goHarnessSHA256": "3fc0d70d6d5c5d7d7c5fdbf15ac42bbbe5257fb3a34475ced09d12b4ae02ba9a"
+  },
+  "github": {
+    "repository": "zhiwen1987/Jydn-openclash",
+    "runId": 40294370287,
+    "attempt": 1,
+    "producerJobId": 121477086646,
+    "freshJobId": 121477467062,
+    "producerStepConclusions": {
+      "sourceBeforeAndHostBefore": "success",
+      "executeActualContinuousRecoveryHTTPS": "failure",
+      "sourceAfterAndHostAfter": "success",
+      "independentChecker": "failure",
+      "artifactUpload": "success"
+    },
+    "freshStepConclusions": {
+      "artifactDownload": "success",
+      "freshChecker": "failure",
+      "artifactUpload": "success"
+    }
+  },
+  "firstFailure": {
+    "diagnosticCount": 1,
+    "keyCount": 24,
+    "keySetExactToWorkerSource": true,
+    "phase": "REPORT_AND_HTTP_OUTPUTS",
+    "formatExit": 0,
+    "goExit": 0,
+    "reportObserved": true,
+    "httpCount": 31,
+    "reportFailureCode": "NONE",
+    "reportOutcomePass": true,
+    "lastHTTPCase": "SECOND_RECOVERED_HEAD",
+    "lastHTTPStatusObserved": true,
+    "lastHTTPStatusCode": 200,
+    "lastHTTPErrorClass": "NONE",
+    "lastHTTPStateMayHaveChangedObserved": true,
+    "lastHTTPStateMayHaveChanged": false,
+    "recoveryCreateTraceObserved": true,
+    "recoveryCreateTraceBounded": true,
+    "recoveryCreateCount": 4,
+    "lastRecoveryCreateStage": "ACCEPTED",
+    "outputLogicalName": "continuous-recovery-report.json",
+    "secretInputClass": "IDENTITY_PROFILE",
+    "secretElementClass": "JSON_OTHER_SCALAR",
+    "matchesPublicLabEnvironment": false,
+    "matchesPublicIdentityRole": false,
+    "publicIdentityRole": "NOT_APPLICABLE",
+    "encodingVariant": "RAW",
+    "secretValuePersistedOrReported": false,
+    "secretDigestPersistedOrReported": false,
+    "secretOffsetPersistedOrReported": false,
+    "responseBodyPersistedOrReported": false
+  },
+  "producerArtifact": {
+    "artifactId": 12636864052,
+    "name": "mihomo-continuous-recovery-api-originals-40294370287-1",
+    "zipBytes": 5350,
+    "zipSHA256": "fe33ddfff5ec503a375eb7ca63ec872976d7e49a99d19342f1c4e06ec9aae3ef",
+    "zipMemberCount": 12,
+    "zipExpandedBytes": 6044,
+    "pathTraversalRejected": true,
+    "absolutePathsRejected": true,
+    "caseFoldDuplicatesRejected": true,
+    "boundedExtraction": true,
+    "crcAndLengthReadCompleted": true,
+    "members": [
+      {
+        "path": "mihomo-continuous-recovery-public/consumption-independent.json",
+        "bytes": 2025,
+        "sha256": "4883644518497e633d6f1108fe0759a8a50ccdedd27712f433ef898d432acc2c"
+      },
+      {
+        "path": "mihomo-continuous-recovery-public/host-after.json",
+        "bytes": 199,
+        "sha256": "59d66f466e2d0680bca77d88c3463a6d0d795a7161e1a89c94a2b08aa167d06d"
+      },
+      {
+        "path": "mihomo-continuous-recovery-public/consumption.json",
+        "bytes": 2025,
+        "sha256": "4883644518497e633d6f1108fe0759a8a50ccdedd27712f433ef898d432acc2c"
+      },
+      {
+        "path": "mihomo-continuous-recovery-public/host-before.json",
+        "bytes": 199,
+        "sha256": "59d66f466e2d0680bca77d88c3463a6d0d795a7161e1a89c94a2b08aa167d06d"
+      },
+      {
+        "path": "mihomo-continuous-recovery-verification.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "mihomo-continuous-recovery-verification.stderr",
+        "bytes": 1452,
+        "sha256": "5af455765f141a863caf7226aae52aed2e7b04171936d2df22988e1860ddb1cc"
+      },
+      {
+        "path": "mihomo-continuous-recovery-attempt.exit",
+        "bytes": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      },
+      {
+        "path": "mihomo-continuous-recovery-acquisition/acquisition.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "mihomo-continuous-recovery-acquisition/consume.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "mihomo-continuous-recovery-acquisition/consume.stdout",
+        "bytes": 71,
+        "sha256": "fc92030ebe55a982f6db0685a0e7160afb9ea78eb1290dacfb529709f7553161"
+      },
+      {
+        "path": "mihomo-continuous-recovery-acquisition/independent.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "mihomo-continuous-recovery-acquisition/independent.stdout",
+        "bytes": 71,
+        "sha256": "c02713ef417daa625b757c37498c29167327bd110faf1236d15b1b4c49fb7f35"
+      }
+    ],
+    "consumptionIndependentByteEqual": true,
+    "hostBeforeAfterByteEqual": true,
+    "attemptExit": 1,
+    "continuousReportExported": false,
+    "httpOriginalsExported": false,
+    "goJSONExported": false,
+    "goStderrExported": false,
+    "commandReceiptsExported": false,
+    "processEventsExported": false,
+    "gofmtPatchExported": false,
+    "gofmtPatchEmpty": "NOT_OBSERVED"
+  },
+  "freshArtifact": {
+    "artifactId": 12636839307,
+    "name": "mihomo-continuous-recovery-api-fresh-40294370287-1",
+    "zipBytes": 188,
+    "zipSHA256": "2226484ac0383e8a341fb3c4e02de83f98e103e8e62b6383974544565af96500",
+    "zipMemberCount": 1,
+    "zipExpandedBytes": 0,
+    "members": [
+      {
+        "path": "mihomo-continuous-recovery-fresh.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "freshByteEquality": "NOT_EVALUABLE_MISSING_EXPORTED_ORIGINALS"
+  },
+  "assessment": {
+    "actualGoProcessExitedZero": true,
+    "privateReportClaimedFull31CasePass": true,
+    "publicPrivacyFenceAccepted": false,
+    "independentCheckerAccepted": false,
+    "freshCheckerAccepted": false,
+    "endToEndContinuousRecoveryAccepted": false,
+    "formatPatchEmptyProven": false,
+    "fullHeadOperationRecoveryCleanupEvidencePubliclyAuditable": false,
+    "rootCauseBoundary": "PUBLIC_EXPORT_REJECTED_BY_EXISTING_FAIL_CLOSED_SECRET_FENCE",
+    "collisionValueOrMeaningDetermined": false,
+    "nextSourceAnalysis": "CLASSIFY_IDENTITY_PROFILE_JSON_OTHER_SCALAR_SOURCE_CONTRACT_WITHOUT_ENUMERATING_OR_WEAKENING_SECRET_INVENTORY"
+  },
+  "prohibitionsObserved": {
+    "rerun": false,
+    "localGo": false,
+    "production": false,
+    "repositoryMutation": false,
+    "signedURLPersistedOrReported": false,
+    "rawJobLogPersisted": false,
+    "privateDirectoryRead": false
+  }
+}

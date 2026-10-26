@@ -63,11 +63,16 @@ FMT = tuple('internal/mihomodeploy/' + name for name in (
     'lab_current_epoch_runtime_test.go')) + (
     'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
     'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/authn/continuous_bound_credentials_linux.go',
+    'internal/authn/continuous_bound_credentials_linux_test.go',
+    'internal/authn/store.go',
     'internal/mihomodeploy/lab_service.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_lab_runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go')
@@ -443,8 +448,15 @@ def contract(sources):
         b'//go:build !linux || !chengwang_mihomo_recovery_continuous_fault || !chengwang_mihomo_recovery_native\n'))
     need(sources['chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go'].startswith(
         b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'))
-    need(sources['chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go'].startswith(
-        b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'))
+    exact_continuous = b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
+    for path in (
+        'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+        'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+        'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
+        'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+        'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
+    ):
+        need(sources[path].startswith(exact_continuous))
     return value
 
 
@@ -1171,6 +1183,8 @@ FILES = (
     'chengwang/internal/authn/snapshot_manager_linux_test.go',
     'chengwang/internal/authn/snapshot_manager_test.go',
     'chengwang/internal/authn/snapshot_manager_unsupported.go',
+    'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+    'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
     'chengwang/internal/authn/store.go',
     'chengwang/internal/authn/store_test.go',
     'chengwang/internal/authz/image_trust_history_d8_test.go',
@@ -1271,6 +1285,7 @@ FILES = (
     'chengwang/internal/serverruntime/mihomo_lab_config_test.go',
     'chengwang/internal/serverruntime/mihomo_lab_runtime.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
     'chengwang/internal/serverruntime/mihomo_service_e2e_linux_test.go',
@@ -1315,7 +1330,7 @@ FILES = tuple(sorted((*FILES,
 
 
 def make_source_manifest(sources, source_commit):
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 196)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 199)
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     return {'schema': 'chengwang.mihomo-native-source-manifest/v1',
             'scope': 'FIXED_GIT_SOURCE_BYTES_NOT_NATIVE_EXECUTION',
@@ -1344,7 +1359,7 @@ def verify_raw(raw, sources, source_commit, variant='positive'):
     need(type(source_commit) is str and COMMIT.fullmatch(source_commit) is not None)
     need(type(raw) is dict and set(raw) == set(PUBLIC) and len(PUBLIC) == len(set(PUBLIC)) == 33)
     need(all(type(v) is bytes and len(v) <= 16 << 20 for v in raw.values()) and sum(map(len, raw.values())) <= 16 << 20)
-    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 196)
+    need(type(sources) is dict and set(sources) == set(FILES) and len(FILES) == len(set(FILES)) == 199)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     for path in FILES:
         source_path(path)

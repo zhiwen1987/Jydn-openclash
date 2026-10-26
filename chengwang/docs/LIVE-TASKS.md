@@ -1,5 +1,9 @@
 # 澄网：项目任务清单
 
+bound-credentials v2冻结候选（2026-10-26）：26路径／3个新增Go文件的外部源码候选已完成，独立94项CPU检查通过，认证与闭集两份现存哈希匹配复核记录允许单一集成后进入Linux诊断。新版仅在exact tag与一次性source arm中激活，私密文件只含凭据、公开授权绑定来自源码闭集，API Store与SnapshotManager初始同源；真实认证、v1解析核心、原始31HTTP映射、private inventory及双fence保留。显式null／错类型在v2拒绝，旧v1行为仅为兼容意图，仍须真实回归。新Linux Go／gofmt／两个专用MODEL／完整31 checker与fresh尚未获证；共享产品源码确已改变，生产环境、main、Registry未动。下面6e309及更早条目按各自提交保留，不代表本候选已完成运行验收。
+
+6e309开发集成与实际验收（2026-10-26）：CASE_ACTOR v4已纳入开发提交`6e309c4d150b6f9248089ad50abf3ede9015784c`，13路径提交与远端读回一致，179项CPU检查及两类最终HEAD源码绑定复演通过。独立快照1463个Git blob逐字节核对。[MODEL原件审计](evidence/sys06-6e309-model-independent-audit-20261026.json)已接受主测试和5个子例各run/pass一次、无fail/skip、exit0、stderr空与前后source绑定。continuous run40294370287的真实HTTPS job121477086646及fresh job121477467062均失败；[安全诊断原件](evidence/sys06-6e309-continuous-safe-rejection-20261026.json)显示Go exit0、31HTTP、report PASS、末SECOND_RECOVERED_HEAD 200/NONE，但report/original fence因IDENTITY_PROFILE/JSON_OTHER_SCALAR/RAW拒绝导出。公开fallback没有report、HTTP、Go事件或gofmt.patch，不能独立证明31链或空格式补丁；checker/fresh是缺件后的次生失败。Create计数4是两次Create的ENTERED+ACCEPTED共4阶段事件，不是4次Create。源码独立证明至少一个必然冲突：private authn profile复制公开LabObjectType，而必需API schema含同一片段，全scalar RAW子串扫描必拒；没有读取或识别实际首命中私值，不称唯一运行时原因。下一设计改变输入边界：bound-credentials v2只在私密文件保留凭据，公开授权绑定由isolated-only源码闭集提供；此方案尚未实现，v1、真实认证/RBAC、HTTP原字节、全私密输入与双fence均须保留。生产、main、Registry未动；下方按提交保留历史结果。
+
 d586实际分层验收（2026-10-26）：Go MODEL父测试与5个子例共6个源码绑定事件均run／pass，零fail／skip，package PASS、exit0、stderr空，source-before与source-after原字节及独立快照重算一致。实际HTTPS的安全诊断显示31请求、Go exit0／report PASS、末SECOND_RECOVERED_HEAD HTTP200／NONE、两次Create阶段均ACCEPTED；这证明执行器报告已走完整链，但不代替独立原件验收。隐私fence仍因报告重复公开VIEWER角色的JSON_QUOTED形式而拒绝导出，因此原checker／fresh未接受，完整场景整体仍未通过。下一源码方案只把报告／index改为固定CASE_ACTOR场景枚举，真实token／request role／authn／RBAC不改，禁止对私值Upper或任意编码，unknown在发请求前拒；private inventory、8变体、双fence及诊断自身检查必须原字节保持，不做角色例外或结构mask，真正secret与枚举碰撞仍须拒绝。当前31为正授权链，角色viewer12／admin10／approver5／auditor4、operator0，状态5×201＋26×200，不能据此称401／403已验收。本轮已纳入CASE_ACTOR报告/index v2候选源码，仍待新exact-head Linux原件；v1至v3复审拒绝均保留，v4恢复有界失败取证并固定独立31表，FAIL原件从不作为成功证据，生产、main、Registry未动。
 
 273真实MODEL与端口修正（2026-10-26）：Go已实际编译且进入目标top，但parent run／pass／fail=1／0／1；stage子例通过，新增四个second-recovery子例均在MODEL ordinary plan处失败，无skip，HTTPS因此跳过。实际日志未给PlanError.Code；源码独立确认recovered head端口为28412／28411，而fixture默认candidate为19090／18080，违反未改动的NewPlan端口门。当前只修测试helper：candidate与backup两个按值spec均在Build前绑定current head端口；backup只Build一次，先显式核其Config SHA等于head artifact，再把同一bytes交Prepared。合法actor、regexp、原全部断言、MODEL top、31 HTTPS、权限与产品逻辑不改；错误仅输出五类封闭PlanCode或UNKNOWN。新exact-head Go MODEL尚未运行，不称已通过；必须先MODEL真实全事件通过，再验完整31 HTTPS及原件checker／fresh。ROLE例外仍未实现；生产、main、Registry未改。
@@ -38,11 +42,14 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
 | 首次真实 Completion | 505四模式限定隔离验收通过 | [505独立审计](evidence/sys06-505-first-completion-audit-20261026.json)：run40280615379，9 ZIP／167成员／1443源；原checker与fresh一致 | 不代证service rebind、产品API、普通发布、第二恢复或完整私有WAL |
 | 当前提交其他三套 CI | 505 normal及diag single/full原件接受 | [505原件](evidence/sys06-505-normal-diag-audit-20261026.json)：ordinary/race各1992 semantic，full 688/688、0fail/skip/unfinished；包128.994秒 | 只接受本次样本，不证明稳定性能、业务API或生产 |
-| 失败恢复协调器与产品 API | d586 Go MODEL已通过；31 Go报告PASS但完整原件验收未通过 | [MODEL独立原件](evidence/sys06-d586-model-independent-audit-20261026.json)与[31安全投影](evidence/sys06-d586-continuous-safe-projection-20261026.json)：真实6 case PASS、31请求／末200；fence仍拒公开角色重复 | CASE_ACTOR仅为下一源码方案；保持真实auth及双fence，待原checker／fresh原件全通过 |
+| 失败恢复协调器与产品 API | 6e309 MODEL原件通过；bound-v2源码候选已复核，完整HTTPS仍未接受 | 旧Go31/PASS仅有安全投影；新26路径候选与94项CPU检查通过，凭据输入拆分保持原始HTTP及双fence | 新集成HEAD需Go／格式／两个MODEL、旧链回归、完整31原件与checker/fresh全部接受后才关闭本门 |
 | 恢复后普通发布与第二次恢复 | 未验收 | 已有部分模型与外部源码，不能当作实际产品结果 | 完成新 head／epoch 接续、真实 API、普通发布与连续恢复的端到端证据 |
+| 连续恢复后的清理调用归属 | 独立源码候选／CPU通过，尚未集成或运行Go | 外部cleanup-core v2在1463源完整overlay上6项MODEL通过；旧稀疏overlay缺fixture失败记录保留 | 验证最终第二恢复核心的清理归属与源码保证的偏序；不得把首恢复RecoveredCore误当最终核心；需独审、Go及真实Linux证据 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
 
-详见 [SYS-06 实施与逐次证据](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)。新源码的 CPU 模型、Linux CI 终态、原件复算和产品／生产验收分别记录。当前平台支持 root 加 3 个子代理；三路执行子代理沿用 GPT-5.6-sol / high，不把配置目标 8 当作已生效并发。
+详见 [SYS-06 实施与逐次证据](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)。新源码的 CPU 模型、Linux CI 终态、原件复算和产品／生产验收分别记录。平台9槽；root加8子代理同时running已有[实际列表证据](evidence/eight-child-concurrency-observed-20261026.json)，不是配置推断。执行子代理沿用 GPT-5.6-sol / high；当前活跃数量另查实时代理列表，不能把历史峰值当当前运行数。
+
+当前凭据输入拆分见[设计与启动bundle约束](CONTINUOUS-BOUND-CREDENTIALS-DESIGN.md)，状态为冻结源码候选／待集成HEAD运行验收；旧全scalar协议冲突已用[纯源码样例](evidence/sys06-6e309-public-schema-conflict-reproducer-20261026.json)实际复现双fence拒绝，未读取任何实际私值。
 
 ## 历史阶段：2026-10-24 能力页真实浏览器验收
 

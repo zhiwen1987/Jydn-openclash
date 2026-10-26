@@ -78,12 +78,15 @@ FILES += [
     'chengwang/internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
 ]
 CONTINUOUS_RECOVERY_COMPAT_FILES = (
+    'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+    'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
     'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
     'chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
     'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
     'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
 )

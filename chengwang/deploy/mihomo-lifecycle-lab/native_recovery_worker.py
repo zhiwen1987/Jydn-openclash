@@ -38,11 +38,16 @@ FMT = tuple('internal/mihomodeploy/'+name for name in (
     'lab_current_epoch_runtime_test.go')) + (
     'internal/adapter/mihomo/lab_reload_response_schedule_linux.go',
     'internal/adapter/mihomo/lab_reload_response_schedule_linux_test.go',
+    'internal/authn/continuous_bound_credentials_linux.go',
+    'internal/authn/continuous_bound_credentials_linux_test.go',
+    'internal/authn/store.go',
     'internal/mihomodeploy/lab_service.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_lab_runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go')
