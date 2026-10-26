@@ -15,6 +15,8 @@
 
 ## 开始安装
 
+发行包与校验文件：[GitHub Release v0.1.1](https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.1.1)。请选择 `Clash-Stack-0.1.1-x64.zip`，不要将 GitHub 自动生成的 Source code 当成可直接安装的离线包。
+
 1. 完整解压发行包，核对发行页公布的 SHA-256；不要在压缩包内直接运行。
 2. Windows 双击 `开始安装.cmd`；Linux 执行 `sh install.sh`。
 3. 按中文向导输入两台设备地址，核对 SSH 主机指纹与旁路由 MAC。密码和订阅地址隐藏输入，不写入站点档案。
