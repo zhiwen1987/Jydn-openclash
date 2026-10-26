@@ -1,0 +1,39 @@
+{
+  "agentRole": "implementation-56-high",
+  "safety": {
+    "actualSignedURLIncluded": false,
+    "credentialOrTokenIncluded": false,
+    "liveCredentialOrNetworkUsed": false,
+    "sessionOrToolLogsSearched": false
+  },
+  "schema": "chengwang.mihomo-model-audit-transport-erratum/v1",
+  "scope": [
+    {
+      "audit": "2736708 continuous MODEL artifact",
+      "originalReceipt": "D:/CodexData/workspace/mihomo-2736708-continuous-model-audit-20261026-impl56h-v1/AUDIT-RECEIPT-FINAL.json",
+      "originalReceiptSHA256": "2341203b8afcf8d470bbcfe60cdb7520c4f84fc8950fa93df86a9bad355b8499"
+    },
+    {
+      "audit": "d58635b continuous MODEL artifact",
+      "originalReceipt": "D:/CodexData/workspace/mihomo-d58635b-continuous-model-audit-20261026-impl56h-v1/AUDIT-RECEIPT-FINAL.json",
+      "originalReceiptSHA256": "86104350f5ce521f8649312486fa017d9e19c4f7d9bcd8fc89899f63fa95693a"
+    }
+  ],
+  "separation": {
+    "goEventAndTestOutcomeAudit": "UNCHANGED",
+    "originalReceiptsOverwritten": false,
+    "transportConfidentiality": "REJECTED_FOR_THESE_TWO_CHANNELS",
+    "zipDigestCrcPathAndSourceAudit": "UNCHANGED"
+  },
+  "status": "ORIGINAL_CONTENT_AUDIT_RETAINED_TRANSPORT_CONFIDENTIALITY_NOT_ACCEPTED",
+  "transportFinding": {
+    "absenceOfToolOrSessionPersistence": "NOT_PROVEN",
+    "helperSourceFact": "Both audit_model_artifact.py helpers read one dynamic signed HTTPS URL from process stdin and did not place that URL in the child process argv.",
+    "orchestrationFact": "The dynamic URL was supplied through a nested tool input argument carrying stdin characters.",
+    "transportConfidentialityAccepted": false,
+    "urlAbsentFromChildArgv": true,
+    "urlAbsentFromToolArguments": false,
+    "urlPrintedByChild": false,
+    "urlWrittenToExplicitAuditFileByChild": false
+  }
+}

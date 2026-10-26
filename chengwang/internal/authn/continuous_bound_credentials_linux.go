@@ -82,8 +82,12 @@ type continuousRecoveryCredentialBundleCore struct {
 	used     bool
 }
 
-func (ContinuousRecoveryCredentialBundle) String() string   { return continuousRecoveryCredentialBundleLabel }
-func (ContinuousRecoveryCredentialBundle) GoString() string { return continuousRecoveryCredentialBundleLabel }
+func (ContinuousRecoveryCredentialBundle) String() string {
+	return continuousRecoveryCredentialBundleLabel
+}
+func (ContinuousRecoveryCredentialBundle) GoString() string {
+	return continuousRecoveryCredentialBundleLabel
+}
 func (ContinuousRecoveryCredentialBundle) MarshalJSON() ([]byte, error) {
 	return []byte(`{"scope":"ISOLATED_SOURCE_BOUND_CREDENTIAL_BUNDLE_NOT_AUTHORIZATION"}`), nil
 }
@@ -237,7 +241,7 @@ func parseContinuousRecoveryCredentialPayload(payload []byte) (*Store, error) {
 		}
 		identity := Identity{TokenID: credential.TokenID, TokenHash: credential.TokenHash,
 			Principal: authz.Principal{ID: row.principalID, TenantID: scope.TenantID, Roles: []authz.Role{row.role}, AllowedScopes: []authz.ResourceScope{scope}},
-			Disabled: credential.Disabled, NotBefore: credential.NotBefore, ExpiresAt: credential.ExpiresAt}
+			Disabled:  credential.Disabled, NotBefore: credential.NotBefore, ExpiresAt: credential.ExpiresAt}
 		if err := validateIdentity(identity); err != nil {
 			return nil, errors.New("continuous recovery credential record rejected")
 		}

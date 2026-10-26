@@ -197,6 +197,37 @@ class CompletionReaderModelTests(unittest.TestCase):
         git('-c','user.email=model@example.invalid','-c','user.name=Model','commit','-q','-m','fixture')
         return temporary, root, git('rev-parse','HEAD').strip().decode('ascii')
 
+    def test_old_v5_active_revision_is_atomic_and_legacy_pins_remain_frozen(self):
+        expected_legacy = {
+            'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_contract.json':'74b29fb4c8c7bbc77439872ba10d56e9d8e1ba3e77d51c5c3b0cd1172510bb61',
+            'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py':'fa3f54df2c9443400a813dcca6d412753457734b715d4f8063b04f1390123146',
+            'chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py':'8f2ee93e3e6956ec39e37042628fc7e5c8d4b0816d25f150cbe19fdeaeed440d',
+            'chengwang/internal/mihomodeploy/lab_native_recovery_linux.go':'d211a41b9f6f22065a1315968d893c7a9ac2ffa0fc192693965d9543c42734e4',
+            'chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go':'04c7eaa88ac7b5172042982e7ad376f1332ed7830123dc43688daf5274650791'}
+        self.assertEqual(self.c.OLD_V5,expected_legacy)
+        current = dict(self.c.OLD_V5_BOUND_CREDENTIALS_V2)
+        self.assertEqual({name for name in expected_legacy if expected_legacy[name] != current[name]},
+                         self.c.OLD_V5_CLOSURE_CHANGED)
+        for name in set(expected_legacy) - self.c.OLD_V5_CLOSURE_CHANGED:
+            self.assertEqual(expected_legacy[name],current[name])
+        self.assertEqual(self.c.old_v5_compatibility(current,self.c.OLD_V5_ACTIVE_REVISION),current)
+        with self.assertRaises(ValueError):
+            self.c.old_v5_compatibility(expected_legacy,self.c.OLD_V5_ACTIVE_REVISION)
+        with self.assertRaises(ValueError):
+            self.c.old_v5_compatibility(expected_legacy,self.c.OLD_V5_LEGACY_REVISION)
+        with self.assertRaises(ValueError):
+            self.c.old_v5_compatibility(current,'UNKNOWN_REVISION')
+        for name in self.c.OLD_V5_CLOSURE_CHANGED:
+            with self.subTest(old_v5_mixed=name):
+                mixed = dict(current); mixed[name] = expected_legacy[name]
+                with self.assertRaises(ValueError):
+                    self.c.old_v5_compatibility(mixed,self.c.OLD_V5_ACTIVE_REVISION)
+        for name in current:
+            with self.subTest(old_v5_drift=name):
+                changed = dict(current); changed[name] = '0'*64
+                with self.assertRaises(ValueError):
+                    self.c.old_v5_compatibility(changed,self.c.OLD_V5_ACTIVE_REVISION)
+
     def test_fulltracked_authorities_match_and_reject_all_material_tamper(self):
         temporary, root, head = self.source_fixture()
         try:

@@ -9,8 +9,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -93,10 +95,14 @@ func TestContinuousRecoveryBoundCredentialsSourceArmMODEL(t *testing.T) {
 		disabled := c
 		disabled.MihomoLabEnabled = false
 		for name, candidate := range map[string]Config{
-			"disabled": disabled,
+			"disabled":      disabled,
 			"foreign-scope": foreign,
-			"foreign-mode": foreignMode,
-			"foreign-path": func() Config { value := c; value.IdentitiesFile = filepath.Join(filepath.Dir(MihomoLabIdentityFile), "other.json"); return value }(),
+			"foreign-mode":  foreignMode,
+			"foreign-path": func() Config {
+				value := c
+				value.IdentitiesFile = filepath.Join(filepath.Dir(MihomoLabIdentityFile), "other.json")
+				return value
+			}(),
 		} {
 			t.Run(name, func(t *testing.T) {
 				issuer := &labContinuousRecoveryHarnessIssuer{armed: true, result: make(chan labContinuousRecoveryHarnessResult, 1)}
@@ -122,8 +128,18 @@ func TestContinuousRecoveryBoundCredentialsSourceArmMODEL(t *testing.T) {
 		failed.Addr = "127.0.0.1:0"
 		failed.DataDir = t.TempDir()
 		failed.TLSCertFile = filepath.Join(t.TempDir(), "certificate.pem")
-		if err := RunWith(Options{Context: context.Background(), Config: &failed}); err == nil {
+		listenerCalled := false
+		err := RunWith(Options{Context: context.Background(), Config: &failed, ShutdownTimeout: time.Second,
+			Listen: func(_, _ string) (net.Listener, error) {
+				listenerCalled = true
+				t.Fatal("listener was invoked before the TLS failure")
+				return nil, errors.New("listener must not be invoked")
+			}})
+		if err == nil || !strings.Contains(err.Error(), "initialize TLS") {
 			t.Fatal("pre-transfer TLS failure was accepted")
+		}
+		if listenerCalled {
+			t.Fatal("pre-transfer TLS failure reached the listener")
 		}
 		manager := processLabContinuousRecoveryHarness.credentialManager
 		if manager == nil {

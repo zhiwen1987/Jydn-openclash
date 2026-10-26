@@ -26,7 +26,7 @@ type labContinuousRecoveryHarnessIssuer struct {
 	credentialAttempted bool
 	credentialStore     *authn.Store
 	credentialManager   *authn.SnapshotManager
-	result               chan labContinuousRecoveryHarnessResult
+	result              chan labContinuousRecoveryHarnessResult
 }
 
 var processLabContinuousRecoveryHarness labContinuousRecoveryHarnessIssuer

@@ -1,0 +1,143 @@
+{
+  "affectedRuntimeRoots": [
+    "firstCompletion source-before acceptance",
+    "check_native_completion.py",
+    "Linux-only bound-credentials MODEL fixtures"
+  ],
+  "applicability": {
+    "rationale": "The existing gate rejects the intended bound-credentials-v2 wrapper hashes before Go; this patch updates the owned gate.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Immutable identities, after-images, selector semantics, source-check path, and focused negatives were independently inspected."
+  },
+  "evidencePlan": [
+    {
+      "action": "Replay clean source binding, official gofmt, both MODEL paths, old-native, and firstCompletion without changing budgets.",
+      "outcomes": {
+        "all required lanes pass at exact head": "merge",
+        "any required lane fails": "revise"
+      },
+      "question": "Does the exact integrated commit pass every required Linux gate?"
+    }
+  ],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "An error could falsely reject or admit first-Completion evidence, but the patch has no production-state or runtime semantic change."
+  },
+  "importantCallers": [
+    "check_native_completion.py --source-manifest",
+    "check_native_completion.py final evidence reader",
+    "chengwang-mihomo-native-completion workflow"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "Legacy or mixed worker/checker hashes are supplied.",
+      "id": "old_v5_revision_atomicity",
+      "invariant": "Only the complete active five-file tuple is accepted.",
+      "legitimateControl": "Fixed active revision plus exact dictionary comparison and focused negative coverage.",
+      "result": "supported",
+      "runtimeRoot": "check_native_completion.py source_check"
+    },
+    {
+      "counterexample": "The checker is bypassed or runs only after Go.",
+      "id": "source_before_reachability",
+      "invariant": "The patched gate runs before any Completion Go process.",
+      "legitimateControl": "Workflow lines 127-130 run --source-manifest before the execution step at lines 131-140.",
+      "result": "supported",
+      "runtimeRoot": "native-completion workflow"
+    },
+    {
+      "counterexample": "Integration changes bytes after this frozen review.",
+      "id": "final_head_binding",
+      "invariant": "Commit tree, index, working bytes, and admitted source all match final HEAD.",
+      "legitimateControl": "Existing clean source-binding replay after root commits the exact candidate.",
+      "result": "unresolved",
+      "runtimeRoot": "full-tracked source binding"
+    }
+  ],
+  "patch": {
+    "base": "767fa9a29b50b761e84fe654a829e1d47f74ac4f",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_native_completion_reader_model.py",
+      "chengwang/internal/authn/continuous_bound_credentials_linux.go",
+      "chengwang/internal/authn/continuous_bound_credentials_linux_test.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go"
+    ],
+    "head": "frozen uncommitted afterimage identified by patch SHA-256",
+    "repository": "mihomo 767fa9a snapshot",
+    "sha256": "f44254b45808bb82a152c75fd44c1ca717d61c0ae7b0063872b2f3e732b236f2",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Legacy pins preserved",
+    "Atomic exact active tuple",
+    "Fixed internal selector",
+    "Full tracked Git binding retained",
+    "No production semantic change"
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "Six-path atomic revert with no migration or persistent-state change."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The active tuple is exact and fixed; legacy, mixed, drifted, and unknown revisions are rejected."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Focused Python validation passed, but committed exact-head Linux gates remain outstanding."
+  },
+  "riskDrivers": [
+    "Acceptance trust mapping changes",
+    "Required exact-head Linux evidence is pending"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without the patch, valid firstCompletion runtime evidence cannot start."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "Final integrated HEAD and Linux execution remain unproven."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen artifact and after-image identity",
+      "protects": "Patch identity and exact six-file content",
+      "status": "passed"
+    },
+    {
+      "name": "Independent source_check",
+      "protects": "Current source reaches and satisfies active OLD_V5 mapping",
+      "status": "passed"
+    },
+    {
+      "name": "Focused atomic revision unittest",
+      "protects": "Legacy, mixture, drift, unknown revision, and shared-anchor properties",
+      "status": "passed"
+    },
+    {
+      "name": "Receipt-reported 300 Python tests",
+      "protects": "Reported model regression set; not independently rerun",
+      "status": "passed"
+    },
+    {
+      "name": "Integrated Linux gates",
+      "protects": "Go compilation, formatting, MODEL, native, Completion, and final source binding",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}

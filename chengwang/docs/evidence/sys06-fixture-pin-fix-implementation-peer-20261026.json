@@ -1,0 +1,183 @@
+{
+  "affectedRuntimeRoots": [
+    "internal/authn.OpenContinuousRecoveryCredentialBundle strict filesystem custody (production semantics unchanged; test fixture corrected)",
+    "internal/serverruntime.RunWith exact-tag credential claim and pre-listener cleanup path (test coverage only)",
+    "deploy/mihomo-lifecycle-lab/check_native_completion.py source_check OLD_V5 compatibility gate",
+    "Linux gofmt gate for three exact-tag Go sources"
+  ],
+  "applicability": {
+    "rationale": "The prior exact-head evidence failed on the bound MODEL fixture preconditions and stale OLD_V5 source closure, and the official Linux formatter artifact named exactly the three Go files changed here.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "privileged_boundary",
+    "architecture_specific_rollout"
+  ],
+  "confidence": {
+    "rating": "moderate",
+    "rationale": "Confidence is high in byte identity and source semantics, but only moderate overall because the decisive Linux Go compile, exact-tag tests, and final-head native readers remain unavailable."
+  },
+  "evidencePlan": [
+    {
+      "action": "Run the existing pinned offline Linux MODEL job, retain structured Go test events, and require the parent plus every direct child to run/pass with zero fail or skip.",
+      "outcomes": {
+        "all expected events pass": "merge",
+        "compile, parent, or child failure": "revise"
+      },
+      "question": "Do the exact-tag authn and serverruntime MODEL tests compile and pass on the integrated Linux head?"
+    },
+    {
+      "action": "Run the existing Go 1.23.12 formatter step and require a zero-byte gofmt patch for the complete declared formatter set.",
+      "outcomes": {
+        "nonempty patch or missing target": "revise",
+        "zero-byte patch": "merge"
+      },
+      "question": "Is the official formatter transfer exact at the integrated head?"
+    },
+    {
+      "action": "Run the existing old-native and first-Completion workflows at the same final head and retain source-binding, checker, and fresh-reader receipts.",
+      "outcomes": {
+        "exact-head originals and fresh readers pass": "merge",
+        "source or reader gate rejects": "revise"
+      },
+      "question": "Do the native evidence readers accept only the final exact source closure?"
+    }
+  ],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "A regression would primarily block or misclassify the exact-tag bound-credential MODEL or the native first-Completion evidence reader. The production Go changes are the exact formatter afterimage only, but the affected evidence gates protect privileged recovery-authentication and completion acceptance."
+  },
+  "importantCallers": [
+    "TestContinuousRecoveryBoundCredentialsV2MODEL",
+    "TestContinuousRecoveryBoundCredentialsSourceArmMODEL",
+    "check_native_completion.source_check",
+    "native first-Completion producer/reader workflow"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "Relying on t.TempDir mode can yield a 0755 child under a common umask, while broadening the parser to accept 0755 would weaken custody.",
+      "id": "filesystem-custody",
+      "invariant": "Bound-credential parsing must require an exact private directory and regular single-link file without relaxing production custody.",
+      "legitimateControl": "The fixture chmods and verifies 0700/0600 before Open; dedicated negatives change the directory to 0755 and the file to 0644 and require nil bundle plus ErrSnapshotUnavailable. Product parser code is not relaxed.",
+      "result": "supported",
+      "runtimeRoot": "internal/authn continuousRecoveryTestFile and OpenContinuousRecoveryCredentialBundle"
+    },
+    {
+      "counterexample": "Nil Listen or zero ShutdownTimeout returns at RunWith lines 117-120, so a green-looking test could never observe claim or cleanup.",
+      "id": "claimed-manager-cleanup",
+      "invariant": "The MODEL must reach source-bound credential claim, fail before listener publication, close the claimed manager, and keep the process arm one-use.",
+      "legitimateControl": "The patched fixture supplies a positive timeout and a sentinel listener, requires the fixed initialize-TLS error, requires the listener to remain uncalled, verifies ErrSnapshotClosed from the retained manager, and rejects rearm.",
+      "result": "supported",
+      "runtimeRoot": "internal/serverruntime.RunWith and TestContinuousRecoveryBoundCredentialsSourceArmMODEL"
+    },
+    {
+      "counterexample": "Accepting either legacy or current hash independently per file would allow an unreviewed mixed support-wrapper closure.",
+      "id": "old-v5-source-closure",
+      "invariant": "Native first-Completion evidence may accept only the exact current five-file OLD_V5 closure, never a legacy/current per-file union.",
+      "legitimateControl": "old_v5_compatibility fixes the active revision, exact key set and count, exact two-path delta, valid digest syntax, and exact equality with the current tuple; the MODEL rejects both mixed tuples, all five single-file drifts, legacy revision, and unknown revision.",
+      "result": "supported",
+      "runtimeRoot": "check_native_completion.source_check"
+    },
+    {
+      "counterexample": "Manually approximating gofmt output could alter literals or omit one target while satisfying a superficial empty-format claim.",
+      "id": "formatter-transfer",
+      "invariant": "The official Linux gofmt changes must be transferred without semantic edits to production code.",
+      "legitimateControl": "The original 3213-byte patch with SHA-256 abce17f9c390903dd8b071db0e7b7af572db4fc75a704135f87207cb83d44ce5 applies strictly to the base and reverse-applies strictly to the candidate, covering exactly three targets.",
+      "result": "supported",
+      "runtimeRoot": "internal/authn/continuous_bound_credentials_linux.go and internal/serverruntime/mihomo_continuous_recovery_hook_linux.go"
+    }
+  ],
+  "patch": {
+    "base": "767fa9a29b50b761e84fe654a829e1d47f74ac4f",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_native_completion_reader_model.py",
+      "chengwang/internal/authn/continuous_bound_credentials_linux.go",
+      "chengwang/internal/authn/continuous_bound_credentials_linux_test.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go"
+    ],
+    "head": "uncommitted immutable candidate afterimage bound by PATH-MANIFEST.json",
+    "repository": "D:/CodexData/workspace/mihomo-767fa9-fixture-format-oldv5-fix-20261026-execution56h-v1/repo",
+    "sha256": "f44254b45808bb82a152c75fd44c1ca717d61c0ae7b0063872b2f3e732b236f2",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Directory and file modes are explicitly restored to 0700 and 0600 and negative cases prove broader modes remain rejected",
+    "The RunWith fixture supplies only required options and still requires the listener to remain uncalled while the claimed manager closes",
+    "OLD_V5 accepts one named exact five-file revision and rejects legacy tuples, mixed tuples, unknown revisions, and per-file drift",
+    "The official 3213-byte formatter patch strictly applies to the base and strictly reverse-applies to the candidate"
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "There are no migrations or persistent-state transformations. The patch is a six-file test/evidence-gate change plus formatter-only production afterimages and can be reverted as one commit before any evidence is accepted."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The semantic Go edits are confined to test fixtures, preserve strict filesystem custody, and drive RunWith through its documented option gate to a pre-listener TLS error. The OLD_V5 update requires one exact five-file active tuple and rejects legacy, mixtures, and drift. Remaining likelihood is dominated by the unexecuted Linux Go compilation and tagged tests."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The exact six-file manifest, strict patch round trips, official formatter-patch transfer, active OLD_V5 digest tuple, and 300 Python checks passed independently. No Go compiler, Linux exact-tag test, or post-integration gofmt check ran in this review."
+  },
+  "riskDrivers": [
+    "Linux build-tagged Go paths were not compiled or executed in this review",
+    "The OLD_V5 pin update controls acceptance of privileged recovery evidence",
+    "Formatter afterimages touch two non-test Go files even though token changes are formatting-only"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without the patch, the strict credential parser can reject a TempDir child whose mode is umask-derived, RunWith exits at its options gate before exercising manager cleanup, the formatter gate stays nonempty, and the native Completion reader rejects the current OLD_V5 support closure."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "Whether both exact-tag Go MODEL packages compile and all changed subtests pass on Linux Go 1.23.12."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "Whether the final integrated head produces an empty gofmt patch and passes the old-native and first-Completion source/reader gates."
+    }
+  ],
+  "validation": [
+    {
+      "name": "immutable artifact and manifest replay",
+      "protects": "Exact patch SHA/size, six before/after byte counts, SHA-256 values, Git blob IDs, LF-only afterimages, and base commit were independently matched.",
+      "status": "passed"
+    },
+    {
+      "name": "strict patch round trip",
+      "protects": "The candidate patch applies with whitespace errors enabled to immutable 767fa9a and reverse-applies to the frozen candidate.",
+      "status": "passed"
+    },
+    {
+      "name": "official formatter patch transfer",
+      "protects": "The 3213-byte official patch applies to the base and reverse-applies to the candidate across the exact 7/3, 7/3, and 1/1 target diffs.",
+      "status": "passed"
+    },
+    {
+      "name": "OLD_V5 live digest replay",
+      "protects": "All five active hashes match candidate source; exactly two legacy values differ and the three unchanged anchors remain equal.",
+      "status": "passed"
+    },
+    {
+      "name": "eleven Python model/checker modules",
+      "protects": "300 tests passed in 61.612 seconds with ResourceWarning promoted to error, including OLD_V5 atomicity and negative mixtures.",
+      "status": "passed"
+    },
+    {
+      "name": "Linux exact-tag Go compilation and tests",
+      "protects": "Would establish that the changed authn and serverruntime MODEL fixtures compile and exercise all expected subtests.",
+      "status": "unavailable"
+    },
+    {
+      "name": "post-integration Linux gofmt and native evidence workflows",
+      "protects": "Would establish empty formatting output and that old native plus first-Completion readers accept the final exact head without weakening evidence scope.",
+      "status": "unavailable"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}

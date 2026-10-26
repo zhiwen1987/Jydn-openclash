@@ -26,6 +26,17 @@ OLD_V5 = {
  'chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py':'8f2ee93e3e6956ec39e37042628fc7e5c8d4b0816d25f150cbe19fdeaeed440d',
  'chengwang/internal/mihomodeploy/lab_native_recovery_linux.go':'d211a41b9f6f22065a1315968d893c7a9ac2ffa0fc192693965d9543c42734e4',
  'chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go':'04c7eaa88ac7b5172042982e7ad376f1332ed7830123dc43688daf5274650791'}
+OLD_V5_BOUND_CREDENTIALS_V2 = {
+ 'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_contract.json':'74b29fb4c8c7bbc77439872ba10d56e9d8e1ba3e77d51c5c3b0cd1172510bb61',
+ 'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py':'dc5c6600c0da9ca83aeec3fa4b8fae6cf4a454c9eacfafd795ea185e28a721be',
+ 'chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py':'adc9a9e6914f94bf8f5aa992fd3b81ae096cad8c9018756161794ff9aee52da9',
+ 'chengwang/internal/mihomodeploy/lab_native_recovery_linux.go':'d211a41b9f6f22065a1315968d893c7a9ac2ffa0fc192693965d9543c42734e4',
+ 'chengwang/internal/mihomodeploy/lab_native_recovery_linux_test.go':'04c7eaa88ac7b5172042982e7ad376f1332ed7830123dc43688daf5274650791'}
+OLD_V5_LEGACY_REVISION = 'PRE_BOUND_CREDENTIALS_V2_SOURCE_CLOSURE'
+OLD_V5_ACTIVE_REVISION = 'BOUND_CREDENTIALS_V2_SOURCE_CLOSURE'
+OLD_V5_CLOSURE_CHANGED = frozenset((
+ 'chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py',
+ 'chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py'))
 EXPECTED = {'positive':(1,1,1,0,True,False,True),
             'not-committed':(1,0,0,0,False,True,False),
             'unknown':(1,1,0,0,True,True,False),
@@ -189,6 +200,18 @@ def decode(raw):
 
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def old_v5_compatibility(digests, revision):
+    need(revision == OLD_V5_ACTIVE_REVISION and type(digests) is dict)
+    need(set(OLD_V5) == set(OLD_V5_BOUND_CREDENTIALS_V2) == set(digests) and
+         len(OLD_V5) == len(OLD_V5_BOUND_CREDENTIALS_V2) == 5)
+    need({name for name in OLD_V5 if OLD_V5[name] != OLD_V5_BOUND_CREDENTIALS_V2[name]} ==
+         OLD_V5_CLOSURE_CHANGED)
+    need(all(type(value) is str and re.fullmatch(r'[0-9a-f]{64}',value) is not None
+             for value in digests.values()))
+    exact_same(digests,OLD_V5_BOUND_CREDENTIALS_V2)
+    return digests
 
 
 def canonical(value):
@@ -390,8 +413,8 @@ def source_check(repo):
                  'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
                  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go'):
         need(source_file(repo/path,2 << 20).startswith(exact_continuous))
-    for name, digest in OLD_V5.items():
-        need(sha(source_file(repo/name)) == digest)
+    old_v5_compatibility({name:sha(source_file(repo/name)) for name in OLD_V5_BOUND_CREDENTIALS_V2},
+                         OLD_V5_ACTIVE_REVISION)
     return contract
 
 

@@ -49,9 +49,20 @@ func continuousRecoveryTestFile(t *testing.T, edit func(*ContinuousRecoveryBound
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
 	path := filepath.Join(dir, "credentials.json")
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0600); err != nil {
+		t.Fatal(err)
+	}
+	dirInfo, dirErr := os.Stat(dir)
+	fileInfo, fileErr := os.Stat(path)
+	if dirErr != nil || fileErr != nil || dirInfo.Mode().Perm() != 0700 || fileInfo.Mode().Perm() != 0600 {
+		t.Fatal("bound credential fixture permissions were not exact")
 	}
 	return path, raw, tokens, time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
 }
@@ -285,6 +296,25 @@ func TestContinuousRecoveryBoundCredentialsV2MODEL(t *testing.T) {
 
 	t.Run("strict filesystem custody is shared by the v2 parser", func(t *testing.T) {
 		path, raw, _, now := continuousRecoveryTestFile(t, nil)
+		dir := filepath.Dir(path)
+		if err := os.Chmod(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if bundle, err := OpenContinuousRecoveryCredentialBundle(path, now); bundle != nil || !errors.Is(err, ErrSnapshotUnavailable) {
+			t.Fatal("non-private bound credential directory accepted")
+		}
+		if err := os.Chmod(dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(path, 0644); err != nil {
+			t.Fatal(err)
+		}
+		if bundle, err := OpenContinuousRecoveryCredentialBundle(path, now); bundle != nil || !errors.Is(err, ErrSnapshotUnavailable) {
+			t.Fatal("non-private bound credential file accepted")
+		}
+		if err := os.Chmod(path, 0600); err != nil {
+			t.Fatal(err)
+		}
 		link := path + "-link"
 		if err := os.Symlink(path, link); err != nil {
 			t.Fatal(err)
@@ -309,7 +339,6 @@ func TestContinuousRecoveryBoundCredentialsV2MODEL(t *testing.T) {
 		if bundle, err := OpenContinuousRecoveryCredentialBundle(fifo, now); bundle != nil || !errors.Is(err, ErrSnapshotUnavailable) {
 			t.Fatal("FIFO bound credential accepted")
 		}
-		dir := filepath.Dir(path)
 		moved := dir + "-moved"
 		t.Cleanup(func() { _ = os.RemoveAll(moved) })
 		if _, err := readCredentialSnapshotWithParser(path, true, func() {

@@ -1,0 +1,57 @@
+{
+  "affectedArtifacts": [
+    {
+      "artifactId": 12641709451,
+      "purpose": "firstCompletion positive public originals"
+    },
+    {
+      "artifactId": 12641794390,
+      "purpose": "old-native positive public originals"
+    }
+  ],
+  "boundariesStillTrue": {
+    "localGoRun": false,
+    "nonTTYTransport": true,
+    "productionTouched": false,
+    "rawPrivateRunnerDirectoryRead": false,
+    "repositoryRModified": false,
+    "signedURLDigestRecordedHere": false,
+    "signedURLValueReproducedHere": false,
+    "workflowRerun": false
+  },
+  "correction": {
+    "absenceFromPrintedOutputDoesNotProveAbsenceFromToolOrSessionRecords": true,
+    "priorNoSessionPersistenceImplicationWithdrawn": true,
+    "rootOriginalRequirementAlreadyProhibitedSignedURLInCommandArguments": true,
+    "thisWasNotANewRequirementIntroducedByAnotherReviewer": true,
+    "transportConfidentialityConforming": false,
+    "urlInCommandArgv": true,
+    "urlInNestedToolArgs": true,
+    "urlPrintedToUserVisibleOutput": false,
+    "urlWrittenToExplicitEvidenceFile": false
+  },
+  "evidenceIntegrity": {
+    "artifactSizeAndSHAConclusionsChanged": false,
+    "crcConclusionsChanged": false,
+    "evidenceFabricated": false,
+    "explanation": "The acquired artifact bytes were still checked against authenticated artifact metadata and the extracted members and source predicates were evaluated independently. This erratum invalidates the confidentiality guarantee of the transport invocation, not those content-integrity or source-analysis results. It adds no new CRC claim beyond the original extraction evidence.",
+    "sourceCheckConclusionsChanged": false,
+    "zipMemberAndPathValidationConclusionsChanged": false
+  },
+  "futureRule": {
+    "nextTransportMayProceedOnlyAfterItsOwnIndependentReview": true,
+    "plannedAlternativeOwnedByAnotherReviewer": "PROCESS_INTERNAL_AUTHENTICATED_GIT_CREDENTIAL_HELPER_WITH_REDIRECT_HANDLING",
+    "reuseThisNestedCurlChannel": false,
+    "scanHistoricalSessionLogsForURLs": false
+  },
+  "knownAffectedReceiptDirectories": [
+    "D:/CodexData/workspace/mihomo-767fa9-firstcompletion-oldnative-audit-20261026-execution56h-v1"
+  ],
+  "limits": {
+    "historicalTransportReceiptsReaudited": false,
+    "knownAffectedListIsLimitedToTheOccurrenceVerifiedInThisTurn": true
+  },
+  "schema": "chengwang.mihomo-artifact-transport-confidentiality-erratum/v1",
+  "scope": "CORRECTION_ONLY_NO_NEW_DOWNLOAD_OR_SOURCE_CHANGE",
+  "status": "TRANSPORT_CONFIDENTIALITY_REQUIREMENT_NOT_MET"
+}

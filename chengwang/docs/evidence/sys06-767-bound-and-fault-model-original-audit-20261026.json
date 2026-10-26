@@ -1,0 +1,169 @@
+{
+  "artifacts": [
+    {
+      "apiHeadExact": true,
+      "apiSizeAndDigestExact": true,
+      "artifactId": 12642251018,
+      "bytes": 4532,
+      "memberCount": 6,
+      "members": [
+        "authn-go-test.json",
+        "authn-go-test.stderr",
+        "runtime-go-test.json",
+        "runtime-go-test.stderr",
+        "exit.json",
+        "source-before.json"
+      ],
+      "name": "mihomo-continuous-bound-credentials-model-40305246343-1",
+      "safeRelativePathsOnly": true,
+      "sha256": "c7cbd1b5c2fd235f26ed7d02f9e8b8bae3af4d470a9920b7ac818d61f83464f3",
+      "transportReceiptSHA256": "d3fabad483314b071d559dfc382ab4f946a8f3760ae27ac9531d445d7c8d21ce",
+      "zipCRCAllMembers": true
+    },
+    {
+      "apiHeadExact": true,
+      "apiSizeAndDigestExact": true,
+      "artifactId": 12641998216,
+      "bytes": 2623,
+      "memberCount": 6,
+      "members": [
+        "go-test.json",
+        "go-test.stderr",
+        "exit.json",
+        "source-before.json",
+        "source-after.json",
+        "verification.json"
+      ],
+      "name": "mihomo-continuous-fault-model-40305246343-1",
+      "safeRelativePathsOnly": true,
+      "sha256": "fded97ba009f97388e4de2700adf77582c10b2f091fe0745d4592789317ca45d",
+      "transportReceiptSHA256": "b28f9762ebf93c2d2dd7c93df76afe7ee483c871de437df782d59cfd6e38b716",
+      "zipCRCAllMembers": true
+    }
+  ],
+  "boundModel": {
+    "accepted": false,
+    "authn": {
+      "actionCounts": {
+        "fail": 11,
+        "output": 64,
+        "pass": 17,
+        "run": 27,
+        "skip": 0,
+        "start": 1
+      },
+      "directTopChildren": {
+        "fail": 6,
+        "pass": 2,
+        "total": 8
+      },
+      "eventRows": 120,
+      "firstFailure": {
+        "case": "one_stable_snapshot_seeds_API_store_and_freshness_manager",
+        "closedFailureClass": "ERR_SNAPSHOT_UNAVAILABLE_BOUND_CREDENTIAL_BUNDLE_DID_NOT_OPEN",
+        "deeperCauseAvailable": false,
+        "file": "chengwang/internal/authn/continuous_bound_credentials_linux_test.go",
+        "line": 64,
+        "reason": "OpenContinuousRecoveryCredentialBundle intentionally collapses parser, custody, randomness and initial refresh errors into ErrSnapshotUnavailable"
+      },
+      "package": "chengwang/internal/authn",
+      "top": "TestContinuousRecoveryBoundCredentialsV2MODEL"
+    },
+    "compiledAndEnteredTests": true,
+    "exitCodes": {
+      "authn": 1,
+      "serverruntime": 1
+    },
+    "jobConclusion": "failure",
+    "jobId": 121512741501,
+    "serverruntime": {
+      "actionCounts": {
+        "fail": 3,
+        "output": 21,
+        "pass": 7,
+        "run": 9,
+        "skip": 0,
+        "start": 1
+      },
+      "directTopChildren": {
+        "fail": 1,
+        "pass": 3,
+        "total": 4
+      },
+      "eventRows": 41,
+      "firstFailure": {
+        "case": "RunWith_closes_claimed_manager_on_pre-transfer_TLS_failure_and_cannot_rearm",
+        "closedFailureClass": "CLAIMED_MANAGER_NOT_RETAINED",
+        "deeperCauseAvailable": false,
+        "file": "chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go",
+        "line": 130
+      },
+      "package": "chengwang/internal/serverruntime",
+      "top": "TestContinuousRecoveryBoundCredentialsSourceArmMODEL"
+    },
+    "stderrEmpty": {
+      "authn": true,
+      "serverruntime": true
+    }
+  },
+  "boundaries": [
+    "The successful fault MODEL does not offset or accept the failed bound-credential MODEL.",
+    "The bound artifact contains only a before-source binding because the post-test binding step was skipped; it is not described as double-bound.",
+    "The bound Go events prove compilation and real test entry but not a passing package.",
+    "The first public failure class is intentionally closed; no private value, raw failure text, bearer material, URL or HTTP body was exported.",
+    "No local Go, gofmt, CI rerun, repository modification, production action, push or merge was performed."
+  ],
+  "faultModel": {
+    "acceptedWithinModelScope": true,
+    "actionCounts": {
+      "fail": 0,
+      "output": 14,
+      "pass": 7,
+      "run": 6,
+      "skip": 0,
+      "start": 1
+    },
+    "compiledAndEnteredTests": true,
+    "directTopChildren": {
+      "fail": 0,
+      "pass": 5,
+      "total": 5
+    },
+    "eventRows": 28,
+    "exitCode": 0,
+    "jobConclusion": "success",
+    "jobId": 121512741579,
+    "package": "chengwang/internal/mihomodeploy",
+    "packagePassed": true,
+    "stderrEmpty": true,
+    "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+  },
+  "immutableSnapshot": {
+    "clean": true,
+    "independentSourceProjectionRecomputed": true,
+    "path": "D:/CodexData/workspace/mihomo-767fa9a-acceptance-mfi43926/repo",
+    "trackedRawBlobCount": 1480
+  },
+  "production": false,
+  "schema": "chengwang.mihomo-continuous-model-original-audit/v1",
+  "sourceBinding": {
+    "boundAfterPresent": false,
+    "boundAfterReason": "job step skipped after the exact-tag Go tests failed",
+    "boundBeforeExact": true,
+    "expectedDeliveryCount": 30,
+    "expectedSourceCount": 1480,
+    "faultAfterExact": true,
+    "faultBeforeExact": true
+  },
+  "sourceCommit": "767fa9a29b50b761e84fe654a829e1d47f74ac4f",
+  "status": "BOUND_MODEL_ACTUAL_FAIL_FAULT_MODEL_ACTUAL_PASS",
+  "transport": {
+    "artifactCount": 2,
+    "nonTTYNamedPipe": true,
+    "serial": true,
+    "signedReferencesRetained": false,
+    "urlsPersisted": false,
+    "urlsPrinted": false
+  },
+  "workflowRun": 40305246343
+}

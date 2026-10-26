@@ -1,0 +1,98 @@
+{
+  "base": {
+    "commit": "767fa9a29b50b761e84fe654a829e1d47f74ac4f",
+    "rawGitBlobsReported": 1480,
+    "snapshot": "D:/CodexData/workspace/mihomo-767fa9a-acceptance-mfi43926/repo"
+  },
+  "boundaries": {
+    "productionTouched": false,
+    "repositoryRModified": false,
+    "sourceManifestReplayOnDirtyCandidate": "NOT_RUN_BY_DESIGN; FINAL_HEAD_REPLAY_REQUIRES_ROOT_INTEGRATION_COMMIT",
+    "workflowRerun": false
+  },
+  "candidate": {
+    "changedPaths": 6,
+    "lineEnding": "LF",
+    "patch": "fixture-format-oldv5-fix.patch",
+    "patchBytes": 14267,
+    "patchSHA256": "f44254b45808bb82a152c75fd44c1ca717d61c0ae7b0063872b2f3e732b236f2",
+    "repo": "D:/CodexData/workspace/mihomo-767fa9-fixture-format-oldv5-fix-20261026-execution56h-v1/repo"
+  },
+  "changes": {
+    "authnFixture": {
+      "actualPreviousFailureUniquelyAttributedToUmask": false,
+      "credentialFileMode": "0600",
+      "directoryMode": "0700",
+      "exactModesCheckedBeforeOpen": true,
+      "nonPrivateDirectoryRejected": true,
+      "nonPrivateFileRejected": true,
+      "productCustodyRelaxed": false
+    },
+    "officialGoFmtPatch": {
+      "allThreeHunksPresent": true,
+      "artifactId": 12641794390,
+      "bytes": 3213,
+      "reverseApplyCheckAgainstCandidate": "PASS",
+      "sha256": "abce17f9c390903dd8b071db0e7b7af572db4fc75a704135f87207cb83d44ce5",
+      "sourceRun": 40305246225
+    },
+    "oldV5": {
+      "activeFivePinsAtomic": true,
+      "activeRevision": "BOUND_CREDENTIALS_V2_SOURCE_CLOSURE",
+      "callerSelectedRevisionAccepted": false,
+      "changedSupportPaths": [
+        "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py"
+      ],
+      "legacyFallbackAccepted": false,
+      "legacyFivePinsRetainedByteForByte": true,
+      "negativeCoverage": [
+        "legacy tuple rejected on current tree",
+        "both one-file old/new mixtures rejected",
+        "each of five single-file drifts rejected",
+        "unknown revision rejected",
+        "legacy five hashes retained",
+        "three shared anchors equal"
+      ],
+      "oldV5ContractChangedFalseMeaning": "THE_V5_CONTRACT_JSON_AND_TWO_GO_ANCHORS_ARE_UNCHANGED; SUPPORT_WRAPPER_SOURCE_CLOSURE_CHANGED",
+      "perFileDigestUnionAccepted": false,
+      "unchangedContractAndGoAnchors": 3
+    },
+    "runtimeFixture": {
+      "claimedManagerClosedAndRearmRejectedAssertionsRetained": true,
+      "fixedTLSStageRequired": true,
+      "positiveShutdownTimeoutProvided": true,
+      "sentinelListenerMustNotRun": true,
+      "sentinelListenerProvided": true,
+      "socketOpenedByFixture": false
+    }
+  },
+  "schema": "chengwang.mihomo-fixture-format-oldv5-source-receipt/v1",
+  "status": "SOURCE_CANDIDATE_PENDING_LINUX_GO_AND_GOFMT",
+  "verification": {
+    "allElevenPythonModules": {
+      "errors": 0,
+      "failures": 0,
+      "resourceWarningsAsErrors": true,
+      "seconds": 71.935,
+      "skips": 0,
+      "tests": 300
+    },
+    "candidateSourceCheck": "PASS",
+    "gitDiffCheck": "PASS",
+    "linuxCompileProven": false,
+    "linuxFormatEmptyProven": false,
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "runtimeFixturePassedOnLinux": false,
+    "strictPatchApplyAgainstBase": "PASS",
+    "strictPatchReverseAgainstCandidate": "PASS",
+    "targetedNativeCompletionPythonTests": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 8.849,
+      "skips": 0,
+      "tests": 12
+    }
+  }
+}

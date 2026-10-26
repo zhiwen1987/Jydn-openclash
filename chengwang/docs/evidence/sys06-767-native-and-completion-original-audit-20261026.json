@@ -1,0 +1,102 @@
+{
+  "firstCompletion": {
+    "actualExperimentStep": "SKIPPED",
+    "artifact": {
+      "bytes": 4924,
+      "containsGoExecutionEvidence": false,
+      "containsGoFmtPatch": false,
+      "expandedBytes": 4644,
+      "id": 12641709451,
+      "sha256": "60f7b6615bb187e7c3a045b031dd03cca0052a71f1018123ca0e19389a1275d6",
+      "verificationStderrBytes": 54,
+      "verificationStderrSHA256": "b5d9b212d7fa10cc05096c8402112469f97f354a99586cc9028df61241705b42",
+      "zipMembers": 11
+    },
+    "boundary": "This run provides no compiler or first-Completion runtime result because execution never started.",
+    "classification": "PRE_GO_SOURCE_CHECK_OLD_V5_PIN_MISMATCH",
+    "exactHeadPureSourceReproduction": {
+      "checker": "chengwang/deploy/mihomo-lifecycle-lab/check_native_completion.py",
+      "failedPredicate": "sha(source_file(repo/name)) == OLD_V5[name]",
+      "failureLine": 394,
+      "mismatches": [
+        {
+          "actualSHA256": "adc9a9e6914f94bf8f5aa992fd3b81ae096cad8c9018756161794ff9aee52da9",
+          "path": "chengwang/deploy/mihomo-lifecycle-lab/check_native_recovery.py",
+          "pinnedSHA256": "8f2ee93e3e6956ec39e37042628fc7e5c8d4b0816d25f150cbe19fdeaeed440d"
+        },
+        {
+          "actualSHA256": "dc5c6600c0da9ca83aeec3fa4b8fae6cf4a454c9eacfafd795ea185e28a721be",
+          "path": "chengwang/deploy/mihomo-lifecycle-lab/native_recovery_worker.py",
+          "pinnedSHA256": "fa3f54df2c9443400a813dcca6d412753457734b715d4f8063b04f1390123146"
+        }
+      ],
+      "otherPinnedOldV5MembersMatched": 3,
+      "probeOutputWasNotAcceptedAsCIArtifact": true
+    },
+    "firstFailingStep": "Record host state and bind the exact run HEAD before execution",
+    "goWasStarted": false,
+    "jobId": 121512754963,
+    "mode": "positive",
+    "runId": 40305246383
+  },
+  "limits": [
+    "Only the positive artifact was materialized for each workflow; sibling modes were not downloaded.",
+    "This receipt diagnoses the observed CI failures and does not claim a source fix, rerun, deployment, or production acceptance."
+  ],
+  "oldNative": {
+    "artifact": {
+      "bytes": 70584,
+      "expandedBytes": 196605,
+      "id": 12641794390,
+      "sha256": "a69b32e0837a2f555396e750e6b1f7e4f39a782ba35258fe20fa6e1868ebea94",
+      "zipMembers": 45
+    },
+    "boundary": "formatExit zero means the formatter command executed successfully; the nonempty patch is still a format-gate failure. The old native Go test itself ran and passed.",
+    "classification": "GO_SUCCEEDED_BUT_NONEMPTY_GOFMT_PATCH_REJECTED",
+    "execution": {
+      "formatExit": 0,
+      "goExit": 0,
+      "gofmtStderrBytes": 0,
+      "nativeReportFailureCode": "NONE",
+      "nativeReportOutcome": "PASS",
+      "nativeReportSchema": "chengwang.mihomo-native-recovery-experiment/v5",
+      "nativeStderrBytes": 0,
+      "schema": "chengwang.mihomo-native-recovery-execution/v2",
+      "sourceBeforeAfterSHA256": "804fd65634ac26dc0e1283ece943ea21d5faa85f0992484cb602fcf4968d159c",
+      "wrapperAttemptExit": 1
+    },
+    "firstFailingStep": "Execute actual owned kernel Started experiment in fresh namespaces",
+    "jobId": 121512735430,
+    "mode": "positive",
+    "officialGoFmtPatch": {
+      "bytes": 3213,
+      "paths": [
+        "chengwang/internal/authn/continuous_bound_credentials_linux.go",
+        "chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go",
+        "chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_linux.go"
+      ],
+      "sha256": "abce17f9c390903dd8b071db0e7b7af572db4fc75a704135f87207cb83d44ce5",
+      "strictApplyArguments": "git apply --check --whitespace=error-all -p0 --directory=chengwang",
+      "strictApplyCheckAgainstExactSnapshot": "PASS"
+    },
+    "runId": 40305246225
+  },
+  "safety": {
+    "authenticatedGitHubConnectorUsed": true,
+    "localGoRun": false,
+    "privateRunnerDirectoryRead": false,
+    "productionTouched": false,
+    "rawJobLogPersisted": false,
+    "repositoryModified": false,
+    "signedURLPersisted": false,
+    "signedURLPrinted": false,
+    "workflowRerun": false
+  },
+  "schema": "chengwang.mihomo-767fa9-firstcompletion-oldnative-audit/v1",
+  "source": {
+    "commit": "767fa9a29b50b761e84fe654a829e1d47f74ac4f",
+    "snapshot": "D:/CodexData/workspace/mihomo-767fa9a-acceptance-mfi43926/repo",
+    "snapshotReportedRawGitBlobs": 1480
+  },
+  "status": "ACTUAL_FAILURES_CLASSIFIED_NOT_REMEDIATED"
+}
