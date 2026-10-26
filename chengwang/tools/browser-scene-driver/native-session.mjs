@@ -46,11 +46,19 @@ export const NATIVE_OPEN_STAGES = Object.freeze([
 ])
 const typeKeys = ['page', 'serviceWorker', 'sharedWorker', 'tab', 'browser', 'other', 'invalid']
 const initialKeys = ['shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique', 'guardPredicate']
-const postKeys = ['shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique', 'guardPredicate', 'initialPresent', 'initialKind', 'selectedPresent', 'selectedKind', 'extraProtectedCount']
+const postKeys = ['shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique', 'guardPredicate', 'initialPresent', 'initialKind', 'selectedPresent', 'selectedKind', 'extraProtectedCount', 'extraWorkers']
 const initialPredicates = ['UNOBSERVED', 'INPUT_INVALID', 'PASS', 'EMPTY_OR_BOUNDS', 'ROW_INVALID', 'ID_INVALID', 'TYPE_INVALID', 'ID_DUPLICATE', 'PROTECTED_NON_PAGE', 'PAGE_COUNT', 'INITIAL_PAGE_URL']
 const postPredicates = ['UNOBSERVED', 'INPUT_INVALID', 'PASS', 'EMPTY_OR_BOUNDS', 'ROW_INVALID', 'ID_INVALID', 'TYPE_INVALID', 'ID_DUPLICATE', 'SELECTED_NOT_PAGE', 'SELECTED_EQUALS_INITIAL', 'INITIAL_NOT_PAGE', 'UNAUTHORIZED_PROTECTED']
 const publicKinds = ['page', 'service_worker', 'shared_worker', 'tab', 'browser', 'OTHER', 'INVALID', 'ABSENT']
+const workerTypeKeys = ['serviceWorker', 'sharedWorker']
+const urlSchemeKeys = ['EMPTY', 'ABOUT', 'CHROME_INTERNAL', 'CHROME_EXTENSION', 'DEVTOOLS', 'HTTP', 'HTTPS', 'DATA_BLOB', 'OTHER', 'INVALID']
+const openerRelationKeys = ['INITIAL', 'SELECTED', 'BOTH', 'OTHER', 'MISSING', 'INVALID']
+const contextRelationKeys = ['MATCH', 'DIFFERENT', 'WORKER_MISSING', 'REFERENCE_MISSING', 'BOTH_MISSING', 'INVALID']
+const extraWorkerKeys = ['total', 'types', 'urlSchemes', 'openerRelations', 'contextToInitial', 'contextToSelected',
+  'hasExtraWorkers', 'anyOpenerMatchesInitial', 'anyOpenerMatchesSelected', 'anyContextMatchesInitial',
+  'anyContextMatchesSelected', 'anyOpenerMissing', 'anyContextMissing', 'anyInvalidField']
 const emptyTypes = () => ({ page: 0, serviceWorker: 0, sharedWorker: 0, tab: 0, browser: 0, other: 0, invalid: 0 })
+const histogram = keys => Object.fromEntries(keys.map(key => [key, 0]))
 const typeProjection = value => {
   if (!targetType(value)) return { bucket: 'invalid', kind: 'INVALID' }
   if (value === 'service_worker') return { bucket: 'serviceWorker', kind: value }
@@ -90,7 +98,7 @@ const targetPhases = ['BUFFERING', 'ARMED', 'CLOSING', 'CLOSED']
 const targetFaults = ['EXTRA_TARGET', 'INVALID_TARGET_STATE', 'SESSION_DETACHED']
 const emptyPostTargets = shape => ({ shape, total: null, pages: null, blankPages: null, types: null,
   rowsValid: null, idsValid: null, idsUnique: null, guardPredicate: shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID',
-  initialPresent: null, initialKind: null, selectedPresent: null, selectedKind: null, extraProtectedCount: null })
+  initialPresent: null, initialKind: null, selectedPresent: null, selectedKind: null, extraProtectedCount: null, extraWorkers: null })
 // Read own data descriptors only: a diagnostic must not invoke a getter or
 // expose the private identities used for the two membership comparisons.
 function dataRecord(value, keys = null) {
@@ -104,6 +112,91 @@ function validateTypes(value, total, pages) {
   const types = dataRecord(value, typeKeys)
   return types !== null && typeKeys.every(key => integer(types[key], 0, total))
     && typeKeys.reduce((sum, key) => sum + types[key], 0) === total && types.page === pages
+}
+function ownField(value, key, validate) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { state: 'INVALID', value: null }
+  const field = Object.getOwnPropertyDescriptor(value, key)
+  if (!field) return { state: 'MISSING', value: null }
+  if (!Object.hasOwn(field, 'value') || !validate(field.value)) return { state: 'INVALID', value: null }
+  return { state: 'VALUE', value: field.value }
+}
+function contextField(value) {
+  return ownField(value, 'browserContextId', id => typeof id === 'string' && id.length >= 1 && id.length <= 256 && !/[\x00-\x1f\x7f]/.test(id))
+}
+function contextRelation(worker, reference) {
+  if (worker.state === 'INVALID' || reference.state === 'INVALID') return 'INVALID'
+  if (worker.state === 'MISSING' && reference.state === 'MISSING') return 'BOTH_MISSING'
+  if (worker.state === 'MISSING') return 'WORKER_MISSING'
+  if (reference.state === 'MISSING') return 'REFERENCE_MISSING'
+  return worker.value === reference.value ? 'MATCH' : 'DIFFERENT'
+}
+function urlScheme(value) {
+  const field = ownField(value, 'url', url => typeof url === 'string')
+  if (field.state !== 'VALUE') return 'INVALID'
+  if (field.value.length === 0) return 'EMPTY'
+  if (field.value.length > 4096 || /[\x00-\x1f\x7f]/.test(field.value)) return 'INVALID'
+  const match = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(field.value)
+  if (!match) return 'INVALID'
+  const scheme = match[1].toLowerCase()
+  if (scheme === 'about') return 'ABOUT'
+  if (['chrome', 'chrome-untrusted', 'chrome-search', 'chrome-native', 'chrome-internal'].includes(scheme)) return 'CHROME_INTERNAL'
+  if (scheme === 'chrome-extension') return 'CHROME_EXTENSION'
+  if (scheme === 'devtools' || scheme === 'chrome-devtools') return 'DEVTOOLS'
+  if (scheme === 'http') return 'HTTP'
+  if (scheme === 'https') return 'HTTPS'
+  if (scheme === 'data' || scheme === 'blob') return 'DATA_BLOB'
+  return 'OTHER'
+}
+function openerRelation(value, initial, selected) {
+  const field = ownField(value, 'openerId', targetId)
+  if (field.state === 'MISSING') return 'MISSING'
+  if (field.state !== 'VALUE') return 'INVALID'
+  const matchesInitial = field.value === initial, matchesSelected = field.value === selected
+  if (matchesInitial && matchesSelected) return 'BOTH'
+  if (matchesInitial) return 'INITIAL'
+  if (matchesSelected) return 'SELECTED'
+  return 'OTHER'
+}
+function projectExtraWorkers(rows, initial, selected) {
+  const safe = []
+  for (let i = 0; i < rows.length; i++) {
+    const slot = Object.getOwnPropertyDescriptor(rows, String(i))
+    if (!slot || !Object.hasOwn(slot, 'value')) continue
+    const value = slot.value
+    const id = ownField(value, 'targetId', targetId), type = ownField(value, 'type', targetType)
+    if (id.state === 'VALUE' && type.state === 'VALUE') safe.push({ value, id: id.value, type: type.value })
+  }
+  const referenceContext = id => {
+    const matches = safe.filter(row => row.id === id)
+    return matches.length === 1 ? contextField(matches[0].value) : matches.length === 0 ? { state: 'MISSING', value: null } : { state: 'INVALID', value: null }
+  }
+  const initialContext = referenceContext(initial), selectedContext = referenceContext(selected)
+  const workers = safe.filter(row => ['service_worker', 'shared_worker'].includes(row.type) && row.id !== initial && row.id !== selected)
+  const types = histogram(workerTypeKeys), urlSchemes = histogram(urlSchemeKeys), openerRelations = histogram(openerRelationKeys)
+  const contextToInitial = histogram(contextRelationKeys), contextToSelected = histogram(contextRelationKeys)
+  for (const worker of workers) {
+    types[worker.type === 'service_worker' ? 'serviceWorker' : 'sharedWorker']++
+    urlSchemes[urlScheme(worker.value)]++
+    openerRelations[openerRelation(worker.value, initial, selected)]++
+    const context = contextField(worker.value)
+    contextToInitial[contextRelation(context, initialContext)]++
+    contextToSelected[contextRelation(context, selectedContext)]++
+  }
+  const total = workers.length
+  return { total, types, urlSchemes, openerRelations, contextToInitial, contextToSelected,
+    hasExtraWorkers: total > 0,
+    anyOpenerMatchesInitial: openerRelations.INITIAL + openerRelations.BOTH > 0,
+    anyOpenerMatchesSelected: openerRelations.SELECTED + openerRelations.BOTH > 0,
+    anyContextMatchesInitial: contextToInitial.MATCH > 0,
+    anyContextMatchesSelected: contextToSelected.MATCH > 0,
+    anyOpenerMissing: openerRelations.MISSING > 0,
+    anyContextMissing: ['WORKER_MISSING', 'REFERENCE_MISSING', 'BOTH_MISSING'].some(key => contextToInitial[key] + contextToSelected[key] > 0),
+    anyInvalidField: urlSchemes.INVALID + openerRelations.INVALID + contextToInitial.INVALID + contextToSelected.INVALID > 0 }
+}
+function histogramProjection(value, keys, total) {
+  const projected = dataRecord(value, keys)
+  return projected !== null && keys.every(key => integer(projected[key], 0, total))
+    && keys.reduce((sum, key) => sum + projected[key], 0) === total ? projected : null
 }
 export function projectPostTargets(rows, initial, selected) {
   try {
@@ -132,8 +225,9 @@ export function projectPostTargets(rows, initial, selected) {
     if (guardPredicate === 'PASS' && selected === initial) guardPredicate = 'SELECTED_EQUALS_INITIAL'
     if (guardPredicate === 'PASS' && kinds.get(initial) !== 'page') guardPredicate = 'INITIAL_NOT_PAGE'
     if (guardPredicate === 'PASS' && [...kinds].some(([id, kind]) => protectedTypes.has(kind) && id !== initial && id !== selected)) guardPredicate = 'UNAUTHORIZED_PROTECTED'
+    const extraWorkers = projectExtraWorkers(rows, initial, selected)
     return { shape: 'ARRAY', total: rows.length, pages, blankPages, types, rowsValid, idsValid, idsUnique, guardPredicate,
-      initialPresent, initialKind, selectedPresent, selectedKind, extraProtectedCount }
+      initialPresent, initialKind, selectedPresent, selectedKind, extraProtectedCount, extraWorkers }
   } catch { return emptyPostTargets('INVALID') }
 }
 export function projectFirstTargetFault(code, detail) {
@@ -169,11 +263,31 @@ export function nativeOpenObservation(stage, firstFault, initialTargets, postTar
       && integer(post.extraProtectedCount, 0, post.total)
       && (!post.initialPresent || post.total > 0) && (!post.selectedPresent || post.total > 0)
       && (post.selectedKind !== 'page' || post.pages > 0))
+    const workers = dataRecord(post.extraWorkers, extraWorkerKeys)
+    need(workers && integer(workers.total, 0, post.total))
+    const workerTypes = histogramProjection(workers.types, workerTypeKeys, workers.total)
+    const urlSchemes = histogramProjection(workers.urlSchemes, urlSchemeKeys, workers.total)
+    const openerRelations = histogramProjection(workers.openerRelations, openerRelationKeys, workers.total)
+    const contextToInitial = histogramProjection(workers.contextToInitial, contextRelationKeys, workers.total)
+    const contextToSelected = histogramProjection(workers.contextToSelected, contextRelationKeys, workers.total)
+    need(workerTypes && urlSchemes && openerRelations && contextToInitial && contextToSelected)
+    const booleans = extraWorkerKeys.slice(6)
+    need(booleans.every(key => typeof workers[key] === 'boolean')
+      && workers.hasExtraWorkers === (workers.total > 0)
+      && workers.anyOpenerMatchesInitial === (workers.openerRelations.INITIAL + workers.openerRelations.BOTH > 0)
+      && workers.anyOpenerMatchesSelected === (workers.openerRelations.SELECTED + workers.openerRelations.BOTH > 0)
+      && workers.anyContextMatchesInitial === (workers.contextToInitial.MATCH > 0)
+      && workers.anyContextMatchesSelected === (workers.contextToSelected.MATCH > 0)
+      && workers.anyOpenerMissing === (workers.openerRelations.MISSING > 0)
+      && workers.anyContextMissing === (['WORKER_MISSING', 'REFERENCE_MISSING', 'BOTH_MISSING'].some(key => workers.contextToInitial[key] + workers.contextToSelected[key] > 0))
+      && workers.anyInvalidField === (workers.urlSchemes.INVALID + workers.openerRelations.INVALID + workers.contextToInitial.INVALID + workers.contextToSelected.INVALID > 0))
+    post.extraWorkers = { total: workers.total, types: workerTypes, urlSchemes, openerRelations, contextToInitial, contextToSelected,
+      ...Object.fromEntries(booleans.map(key => [key, workers[key]])) }
   } else need(postKeys.filter(key => !['shape', 'guardPredicate'].includes(key)).every(key => post[key] === null)
     && post.guardPredicate === (post.shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID'))
   need(targetFault.phase === null ? targetFault.kind === null : targetFaults.includes(firstFault)
     && targetPhases.includes(targetFault.phase) && (targetFault.kind === null || protectedTypes.has(targetFault.kind)))
-  return { schema: 'chengwang.native-open-failure/v2', stage, firstFault,
+  return { schema: 'chengwang.native-open-failure/v3', stage, firstFault,
     initialTargets: { shape, total, pages, blankPages, types, rowsValid, idsValid, idsUnique, guardPredicate }, postTargets: post, firstTargetFault: targetFault }
 }
 

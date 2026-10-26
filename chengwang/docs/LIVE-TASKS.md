@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+2026-10-27 前端 CDP 关系诊断 v3 开发集成：6个源文件已由root逐文件应用，前后像与候选bc6fc4e一致，完整source Git diff逐字节相等，TargetGuard／initializeCDPTargets／finishNativeSession保持原字节；未增加RPC、wait或retry。新增worker的URL scheme／opener／context只导出闭集分类、布尔和计数，缺失字段不推定归属，不据此放行guard。[独立peer](evidence/p2-overview-cdp-target-relation-v3-peer-20261027.json)、[冻结handoff](evidence/p2-overview-cdp-target-relation-v3-handoff-20261027.json)及[候选CPU](evidence/p2-overview-cdp-target-relation-v3-candidate-cpu-20261027.json)只证明源码／纯CPU，不代表Chrome实际target shape、浏览器成功或产品上线。root最终提交的236 source-bound replay与新HEAD隔离browser CI仍待；CDP故障没有因诊断代码集成而成为已修复。生产／main／Registry不动；下方旧HEAD证据保留各自范围。
+
 最近核对：2026-10-26（Asia/Shanghai；本段为本地验后更新）。能力页历史状态继续保留在下方，不由总览结果代证。总览最新源码绑定真实浏览器证据为 run `40103042172`、commit `8e30ffbbea478831dcb16537c22da60842d95d02`：Playwright 两种配置的 producer 与 fresh replay 均成功；Chrome/CDP 两种配置均在首个 UI checkpoint 前失败。本次集成提交引入 `125dec6d27005eed60ebb50efeb8cbc5c55627ac` 的六源 afterimage，仅增加失败路径有界诊断；候选已过 236 项纯 CPU 检查与独立同行复核，但尚未运行真实浏览器或产品服务器。生产、main 及用户三原 scripts 保持。
 
 **当前处于开发与隔离验收，未完成整套系统，未进入本轮生产切换。**

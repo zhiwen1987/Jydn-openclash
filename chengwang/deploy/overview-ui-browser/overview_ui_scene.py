@@ -290,7 +290,7 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
         if native is not None:
             need(value['phase'] == 'NATIVE_OPEN' and attempted is None and completed is None
                  and type(native) is dict and set(native) == {'schema', 'stage', 'firstFault', 'initialTargets', 'postTargets', 'firstTargetFault'}
-                 and native['schema'] == 'chengwang.native-open-failure/v2'
+                 and native['schema'] == 'chengwang.native-open-failure/v3'
                  and type(native['stage']) is str and native['stage'] in NATIVE_OPEN_STAGES
                  and (native['firstFault'] is None or type(native['firstFault']) is str and native['firstFault'] in NATIVE_FAULTS))
             type_keys = {'page', 'serviceWorker', 'sharedWorker', 'tab', 'browser', 'other', 'invalid'}
@@ -315,7 +315,7 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
                      and target['guardPredicate'] == ('UNOBSERVED' if target['shape'] == 'UNOBSERVED' else 'INPUT_INVALID'))
             post = native['postTargets']
             post_keys = {'shape', 'total', 'pages', 'blankPages', 'types', 'rowsValid', 'idsValid', 'idsUnique',
-                'guardPredicate', 'initialPresent', 'initialKind', 'selectedPresent', 'selectedKind', 'extraProtectedCount'}
+                'guardPredicate', 'initialPresent', 'initialKind', 'selectedPresent', 'selectedKind', 'extraProtectedCount', 'extraWorkers'}
             need(type(post) is dict and set(post) == post_keys
                  and type(post['shape']) is str and post['shape'] in ('UNOBSERVED', 'INVALID', 'ARRAY'))
             if post['shape'] == 'ARRAY':
@@ -336,6 +336,32 @@ def scene_failure_diagnostics(state, options, root, fixture, key, N):
                      and (not post['initialPresent'] or post['total'] > 0)
                      and (not post['selectedPresent'] or post['total'] > 0)
                      and (post['selectedKind'] != 'page' or post['pages'] > 0))
+                workers = post['extraWorkers']
+                worker_keys = {'total', 'types', 'urlSchemes', 'openerRelations', 'contextToInitial', 'contextToSelected',
+                    'hasExtraWorkers', 'anyOpenerMatchesInitial', 'anyOpenerMatchesSelected', 'anyContextMatchesInitial',
+                    'anyContextMatchesSelected', 'anyOpenerMissing', 'anyContextMissing', 'anyInvalidField'}
+                worker_type_keys = {'serviceWorker', 'sharedWorker'}
+                url_scheme_keys = {'EMPTY', 'ABOUT', 'CHROME_INTERNAL', 'CHROME_EXTENSION', 'DEVTOOLS', 'HTTP', 'HTTPS', 'DATA_BLOB', 'OTHER', 'INVALID'}
+                opener_keys = {'INITIAL', 'SELECTED', 'BOTH', 'OTHER', 'MISSING', 'INVALID'}
+                context_keys = {'MATCH', 'DIFFERENT', 'WORKER_MISSING', 'REFERENCE_MISSING', 'BOTH_MISSING', 'INVALID'}
+                need(type(workers) is dict and set(workers) == worker_keys and type(workers['total']) is int
+                     and 0 <= workers['total'] <= post['total'])
+                for name, names in [('types', worker_type_keys), ('urlSchemes', url_scheme_keys), ('openerRelations', opener_keys),
+                                    ('contextToInitial', context_keys), ('contextToSelected', context_keys)]:
+                    histogram = workers[name]
+                    need(type(histogram) is dict and set(histogram) == names
+                         and all(type(count) is int and 0 <= count <= workers['total'] for count in histogram.values())
+                         and sum(histogram.values()) == workers['total'])
+                bool_keys = worker_keys - {'total', 'types', 'urlSchemes', 'openerRelations', 'contextToInitial', 'contextToSelected'}
+                need(all(type(workers[name]) is bool for name in bool_keys)
+                     and workers['hasExtraWorkers'] == (workers['total'] > 0)
+                     and workers['anyOpenerMatchesInitial'] == (workers['openerRelations']['INITIAL'] + workers['openerRelations']['BOTH'] > 0)
+                     and workers['anyOpenerMatchesSelected'] == (workers['openerRelations']['SELECTED'] + workers['openerRelations']['BOTH'] > 0)
+                     and workers['anyContextMatchesInitial'] == (workers['contextToInitial']['MATCH'] > 0)
+                     and workers['anyContextMatchesSelected'] == (workers['contextToSelected']['MATCH'] > 0)
+                     and workers['anyOpenerMissing'] == (workers['openerRelations']['MISSING'] > 0)
+                     and workers['anyContextMissing'] == any(workers[relation][name] > 0 for relation in ('contextToInitial', 'contextToSelected') for name in ('WORKER_MISSING', 'REFERENCE_MISSING', 'BOTH_MISSING'))
+                     and workers['anyInvalidField'] == (workers['urlSchemes']['INVALID'] + workers['openerRelations']['INVALID'] + workers['contextToInitial']['INVALID'] + workers['contextToSelected']['INVALID'] > 0))
             else:
                 need(all(post[name] is None for name in post_keys - {'shape', 'guardPredicate'})
                      and post['guardPredicate'] == ('UNOBSERVED' if post['shape'] == 'UNOBSERVED' else 'INPUT_INVALID'))

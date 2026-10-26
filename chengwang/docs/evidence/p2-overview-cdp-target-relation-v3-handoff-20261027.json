@@ -1,0 +1,87 @@
+{
+  "schema": "chengwang.cdp-target-relation-v3-final-index/v1",
+  "decision": "READY_FOR_ROOT_REVIEW_AND_INTEGRATION",
+  "scope": "DIAGNOSTIC_ONLY",
+  "parentCommit": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a",
+  "candidateCommit": "bc6fc4ef0e662c9b5b54026e637470076c351df9",
+  "candidateTree": "8c9169a16a03e1b17a83ef94c0fd8c9b71650b89",
+  "candidateRepository": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-frozen",
+  "candidateClean": true,
+  "changedPaths": 6,
+  "sourceHandoff": {
+    "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-handoff/HANDOFF.json",
+    "bytes": 8625,
+    "sha256": "69ee1687f17597b95a68880bca2e246e8b864c1363439c2bb5ea5656c9794b2d",
+    "preservedUnmodified": true
+  },
+  "formatPatch": {
+    "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-handoff/0001-test-chengwang-classify-extra-CDP-workers-safely.patch",
+    "bytes": 51355,
+    "sha256": "048a6d40e5a5c4e3f657e495891cfd77c203b9c57b1d4cd0baffc339eae2fd58"
+  },
+  "frozenCpuReport": {
+    "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-audit/overview-synthetic-frozen.json",
+    "bytes": 6186,
+    "sha256": "f08039ed75ccebbd7353768a133d33880487e42c69bd28c302737871c0234283",
+    "outcome": "PASS",
+    "tests": 236,
+    "skipped": 0,
+    "realBrowserProven": false,
+    "production": false
+  },
+  "independentPeer": {
+    "task": "/root/frontend_56_high/peer_cdp_diag",
+    "decision": "ACCEPT_FOR_ROOT_INTEGRATION",
+    "requestedModel": "gpt-5.6-sol",
+    "requestedReasoningEffort": "high",
+    "actualModel": "UNKNOWN",
+    "actualReasoningEffort": "UNKNOWN",
+    "identityNote": "The peer runtime exposed no independently verifiable model or reasoning-effort identity.",
+    "jsonReceipt": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-peer56h/PEER-REVIEW.json",
+      "bytes": 4266,
+      "sha256": "ab17fe643f41867858ce37d885a007b0c4db2840e2d6a898844d2872dafec84e"
+    },
+    "markdownReceipt": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-peer56h/PEER-REVIEW.md",
+      "bytes": 4135,
+      "sha256": "f1d700a44e4676aacd2775ed00468ff97a4afbd7e0d2649af03ef1825cb3c0de"
+    },
+    "freshCpuReport": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-peer56h/overview-synthetic-peer-2.json",
+      "bytes": 6186,
+      "sha256": "6eab637e350eea1ac7c71951fdd54e22ac1aac151607fbc713cc07f4a5bcbfe2",
+      "outcome": "PASS",
+      "tests": 236,
+      "skipped": 0,
+      "realBrowserProven": false,
+      "production": false,
+      "authorization": "BLOCKED"
+    }
+  },
+  "rootCommands": {
+    "precondition": "ROOT_REPO is clean at exact parentCommit and root has independently verified every pinned hash.",
+    "checkPatch": "git -C <ROOT_REPO> apply --check --index -- D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-handoff/0001-test-chengwang-classify-extra-CDP-workers-safely.patch",
+    "applyPatch": "git -C <ROOT_REPO> apply --index -- D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-handoff/0001-test-chengwang-classify-extra-CDP-workers-safely.patch",
+    "generateFreshCpuEvidence": "node D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-audit/generate-cpu-transcripts.mjs <ROOT_REPO> <NEW_EMPTY_EVIDENCE_DIR>",
+    "verifyFinalSourceBinding": "python -B <ROOT_REPO>/chengwang/deploy/overview-ui-browser/check_overview_synthetic.py --evidence <NEW_EMPTY_EVIDENCE_DIR> --repo <ROOT_REPO> --report <NEW_REPORT_PATH> --source-commit <FINAL_ROOT_COMMIT_SHA>"
+  },
+  "unchangedSafety": {
+    "targetGuard": true,
+    "initializationSequence": true,
+    "allowedRpc": true,
+    "waitRetry": true,
+    "authorization": true,
+    "successPathFailureDiagnostic": false
+  },
+  "unverifiedUntilExactCommitIsolatedBrowserCi": [
+    "Chrome 157 real target shapes",
+    "real diagnostic publication and readback",
+    "final integration commit browser behavior"
+  ],
+  "integrationPerformed": false,
+  "ciTriggered": false,
+  "browserRun": false,
+  "productServerRun": false,
+  "productionChanged": false
+}

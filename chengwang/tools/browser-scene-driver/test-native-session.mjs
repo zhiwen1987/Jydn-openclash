@@ -12,10 +12,19 @@ const exit = (engine = 'chrome-cdp') => ({ schema: 'chengwang.subscription-ui-ch
 const created = (id, type = 'page') => ({ targetInfo: { targetId: id, type } })
 const make = () => { const faults = [], guard = new TargetGuard((code, detail) => faults.push({ code, ...detail })); return { guard, faults } }
 const targetTypes = (changes = {}) => ({ page: 0, serviceWorker: 0, sharedWorker: 0, tab: 0, browser: 0, other: 0, invalid: 0, ...changes })
+const counts = (keys, changes = {}) => ({ ...Object.fromEntries(keys.map(key => [key, 0])), ...changes })
+const workerTypes = changes => counts(['serviceWorker', 'sharedWorker'], changes)
+const urlSchemes = changes => counts(['EMPTY', 'ABOUT', 'CHROME_INTERNAL', 'CHROME_EXTENSION', 'DEVTOOLS', 'HTTP', 'HTTPS', 'DATA_BLOB', 'OTHER', 'INVALID'], changes)
+const openerRelations = changes => counts(['INITIAL', 'SELECTED', 'BOTH', 'OTHER', 'MISSING', 'INVALID'], changes)
+const contextRelations = changes => counts(['MATCH', 'DIFFERENT', 'WORKER_MISSING', 'REFERENCE_MISSING', 'BOTH_MISSING', 'INVALID'], changes)
+const noExtraWorkers = () => ({ total: 0, types: workerTypes(), urlSchemes: urlSchemes(), openerRelations: openerRelations(),
+  contextToInitial: contextRelations(), contextToSelected: contextRelations(), hasExtraWorkers: false,
+  anyOpenerMatchesInitial: false, anyOpenerMatchesSelected: false, anyContextMatchesInitial: false,
+  anyContextMatchesSelected: false, anyOpenerMissing: false, anyContextMissing: false, anyInvalidField: false })
 const initialUnavailable = shape => ({ shape, total: null, pages: null, blankPages: null, types: null,
   rowsValid: null, idsValid: null, idsUnique: null, guardPredicate: shape === 'UNOBSERVED' ? 'UNOBSERVED' : 'INPUT_INVALID' })
 const postUnavailable = shape => ({ ...initialUnavailable(shape), initialPresent: null, initialKind: null,
-  selectedPresent: null, selectedKind: null, extraProtectedCount: null })
+  selectedPresent: null, selectedKind: null, extraProtectedCount: null, extraWorkers: null })
 // Explicit controlled launch identity; an observed later snapshot is not enough.
 const baseline = g => { g.freezeInitial([{ targetId: 'initial', type: 'page', url: 'about:blank' }]); g.setBaseline([{ targetId: 'owned', type: 'page' }, { targetId: 'initial', type: 'page' }], 'owned') }
 function closer(overrides = {}) {
@@ -94,11 +103,12 @@ test('n31 closed event and fault lists contain no duplicate or arbitrary text ch
   assert.deepEqual(nativeOpenObservation('CDP_PORT_WAIT',null,unseen).postTargets,postUnseen)
   const rows=[{targetId:'PRIVATE-INITIAL',type:'page',url:'about:blank'},{targetId:'PRIVATE-OWNED',type:'page',url:'about:blank'},{targetId:'PRIVATE-EXTRA',type:'service_worker',url:'PRIVATE-URL'}]
   const post=projectPostTargets(rows,'PRIVATE-INITIAL','PRIVATE-OWNED')
-  assert.deepEqual(post,{shape:'ARRAY',total:3,pages:2,blankPages:2,types:targetTypes({page:2,serviceWorker:1}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'UNAUTHORIZED_PROTECTED',initialPresent:true,initialKind:'page',selectedPresent:true,selectedKind:'page',extraProtectedCount:1})
+  assert.deepEqual(post,{shape:'ARRAY',total:3,pages:2,blankPages:2,types:targetTypes({page:2,serviceWorker:1}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'UNAUTHORIZED_PROTECTED',initialPresent:true,initialKind:'page',selectedPresent:true,selectedKind:'page',extraProtectedCount:1,
+    extraWorkers:{...noExtraWorkers(),total:1,types:workerTypes({serviceWorker:1}),urlSchemes:urlSchemes({INVALID:1}),openerRelations:openerRelations({MISSING:1}),contextToInitial:contextRelations({BOTH_MISSING:1}),contextToSelected:contextRelations({BOTH_MISSING:1}),hasExtraWorkers:true,anyOpenerMissing:true,anyContextMissing:true,anyInvalidField:true}})
   const malformedSelected=projectPostTargets([{targetId:'PRIVATE-INITIAL',type:'page'},{targetId:'PRIVATE-OWNED',type:'PRIVATE-TYPE'}],'PRIVATE-INITIAL','PRIVATE-OWNED')
   assert.equal(malformedSelected.guardPredicate,'TYPE_INVALID');assert.equal(malformedSelected.selectedKind,'INVALID');assert.equal(malformedSelected.types.invalid,1)
   assert.equal(projectPostTargets([{targetId:'PRIVATE-INITIAL',type:'page'},{targetId:'PRIVATE-OWNED',type:'PRIVATE-TYPE'},{targetId:'PRIVATE-OWNED',type:'page'}],'PRIVATE-INITIAL','PRIVATE-OWNED').guardPredicate,'TYPE_INVALID')
-  assert.deepEqual(projectPostTargets([],'PRIVATE-INITIAL','PRIVATE-OWNED'),{shape:'ARRAY',total:0,pages:0,blankPages:0,types:targetTypes(),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'EMPTY_OR_BOUNDS',initialPresent:false,initialKind:'ABSENT',selectedPresent:false,selectedKind:'ABSENT',extraProtectedCount:0})
+  assert.deepEqual(projectPostTargets([],'PRIVATE-INITIAL','PRIVATE-OWNED'),{shape:'ARRAY',total:0,pages:0,blankPages:0,types:targetTypes(),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'EMPTY_OR_BOUNDS',initialPresent:false,initialKind:'ABSENT',selectedPresent:false,selectedKind:'ABSENT',extraProtectedCount:0,extraWorkers:noExtraWorkers()})
   for(const kind of ['page','service_worker','shared_worker','tab','browser','worker']){
     const r=projectPostTargets([{targetId:'PRIVATE-OWNED',type:kind,url:'about:blank'}],'PRIVATE-INITIAL','PRIVATE-OWNED')
     assert.equal(r.selectedKind,kind==='worker'?'OTHER':kind);assert.equal(r.initialPresent,false);assert.equal(r.selectedPresent,true);assert.equal(r.extraProtectedCount,0);assert.notEqual(r.guardPredicate,'PASS')
@@ -117,7 +127,7 @@ test('n31 closed event and fault lists contain no duplicate or arbitrary text ch
   assert.equal(getterCalls,0)
   const observation=nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,post,fault)
   assert(!JSON.stringify(observation).includes('PRIVATE'));assert.deepEqual(observation.firstTargetFault,fault)
-  for(const change of [{total:true},{pages:4},{blankPages:3},{types:{...post.types,extra:0}},{types:{...post.types,page:1}},{rowsValid:1},{idsValid:null},{idsUnique:'true'},{initialPresent:1},{initialKind:'PRIVATE'},{selectedPresent:null},{selectedKind:'PRIVATE'},{selectedPresent:false},{extraProtectedCount:4},{guardPredicate:'PRIVATE'},{privateID:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,{...post,...change},fault))
+  for(const change of [{total:true},{pages:4},{blankPages:3},{types:{...post.types,extra:0}},{types:{...post.types,page:1}},{rowsValid:1},{idsValid:null},{idsUnique:'true'},{initialPresent:1},{initialKind:'PRIVATE'},{selectedPresent:null},{selectedKind:'PRIVATE'},{selectedPresent:false},{extraProtectedCount:4},{extraWorkers:null},{guardPredicate:'PRIVATE'},{privateID:'PRIVATE'}])assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,{...post,...change},fault))
   // Preserve accessors for this case rather than invoking them in a spread.
   const accessorPost={...post};Object.defineProperty(accessorPost,'total',{get(){getterCalls++;return 3},enumerable:true})
   assert.throws(()=>nativeOpenObservation('CDP_POST_TARGETS','EXTRA_TARGET',unseen,accessorPost,fault))
@@ -129,6 +139,7 @@ test('n31 closed event and fault lists contain no duplicate or arbitrary text ch
   assert(source.includes('await hooks.onDiagnostic(nativeOpenObservation(openStage, firstFault, initialTargets, guard.postTargets, firstTargetFault))'))
   assert(source.includes('if (firstFault === null) { firstFault = code; firstTargetFault = projectFirstTargetFault(code, detail) }'))
   assert(source.indexOf('await hooks.onDiagnostic(')<source.lastIndexOf('await dispose(); throw rejected()'))
+  assertExtraWorkerDiagnostics()
 })
 
 test('n32 queued unknown target cannot be authorized by appearing in a later snapshot', () => {
@@ -173,7 +184,7 @@ test('n35 actual CDP initializer freezes before create and installs selected lis
   const result = await initializeCDPTargets(send, g, id => { assert.equal(id, 'selected-session'); installed = true })
   assert.deepEqual(calls, ['Target.getTargets', 'Target.createTarget', 'Target.attachToTarget', 'Target.getTargets', 'Target.setDiscoverTargets'])
   assert.deepEqual(result, { targetId: 'owned', sessionId: 'selected-session' }); assert.equal(g.phase, 'ARMED')
-  assert.deepEqual(g.postTargets,{shape:'ARRAY',total:2,pages:2,blankPages:2,types:targetTypes({page:2}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'PASS',initialPresent:true,initialKind:'page',selectedPresent:true,selectedKind:'page',extraProtectedCount:0})
+  assert.deepEqual(g.postTargets,{shape:'ARRAY',total:2,pages:2,blankPages:2,types:targetTypes({page:2}),rowsValid:true,idsValid:true,idsUnique:true,guardPredicate:'PASS',initialPresent:true,initialKind:'page',selectedPresent:true,selectedKind:'page',extraProtectedCount:0,extraWorkers:noExtraWorkers()})
   const {guard:stalled}=make();let reads=0
   await assert.rejects(initializeCDPTargets(async method=>{
     if(method==='Target.getTargets'){if(reads++)throw Error('PRIVATE-RPC');return{targetInfos:[{targetId:'initial',type:'page',url:'about:blank'}]}}
@@ -216,3 +227,81 @@ test('n37 actual PW registration forwards forbidden UDP observations to the real
   const source = readFileSync(new URL('./native-session.mjs', import.meta.url), 'utf8')
   assert(source.includes('registerSessionEvents(session, event)'))
 })
+
+function assertExtraWorkerDiagnostics() {
+  const schemes = [
+    ['', 'EMPTY'], ['about:blank', 'ABOUT'], ['chrome://system/', 'CHROME_INTERNAL'],
+    ['chrome-untrusted://system/', 'CHROME_INTERNAL'], ['chrome-search://system/', 'CHROME_INTERNAL'],
+    ['chrome-native://system/', 'CHROME_INTERNAL'], ['chrome-internal://system/', 'CHROME_INTERNAL'],
+    ['chrome-extension://private/', 'CHROME_EXTENSION'], ['devtools://private/', 'DEVTOOLS'],
+    ['chrome-devtools://private/', 'DEVTOOLS'], ['http://private/', 'HTTP'], ['https://private/', 'HTTPS'],
+    ['data:text/plain,private', 'DATA_BLOB'], ['blob:https://private/', 'DATA_BLOB'],
+    ['custom:private', 'OTHER'], ['not-a-url', 'INVALID'],
+  ]
+  const rows = [{ targetId: 'initial', type: 'page', url: 'about:blank', browserContextId: 'context-a' },
+    { targetId: 'selected', type: 'page', url: 'about:blank', browserContextId: 'context-b' },
+    ...schemes.map(([url], index) => ({ targetId: 'worker-' + index, type: index % 2 ? 'shared_worker' : 'service_worker', url }))]
+  const projected = projectPostTargets(rows, 'initial', 'selected'), workers = projected.extraWorkers
+  assert.equal(projected.guardPredicate, 'UNAUTHORIZED_PROTECTED'); assert.equal(workers.total, schemes.length)
+  assert.deepEqual(workers.types, workerTypes({ serviceWorker: 8, sharedWorker: 8 }))
+  assert.deepEqual(workers.urlSchemes, urlSchemes({ EMPTY: 1, ABOUT: 1, CHROME_INTERNAL: 5, CHROME_EXTENSION: 1, DEVTOOLS: 2, HTTP: 1, HTTPS: 1, DATA_BLOB: 2, OTHER: 1, INVALID: 1 }))
+  assert.deepEqual(workers.openerRelations, openerRelations({ MISSING: 16 }))
+  assert.deepEqual(workers.contextToInitial, contextRelations({ WORKER_MISSING: 16 }))
+  assert.deepEqual(workers.contextToSelected, contextRelations({ WORKER_MISSING: 16 }))
+  assert.equal(workers.hasExtraWorkers, true); assert.equal(workers.anyOpenerMissing, true); assert.equal(workers.anyContextMissing, true); assert.equal(workers.anyInvalidField, true)
+  assert.equal(JSON.stringify(projected).includes('private'), false)
+
+  const related = projectPostTargets([
+    { targetId: 'initial', type: 'page', url: 'about:blank', browserContextId: 'context-a' },
+    { targetId: 'selected', type: 'page', url: 'about:blank', browserContextId: 'context-b' },
+    { targetId: 'one', type: 'service_worker', url: 'https://private/', openerId: 'initial', browserContextId: 'context-a' },
+    { targetId: 'two', type: 'shared_worker', url: 'https://private/', openerId: 'selected', browserContextId: 'context-b' },
+    { targetId: 'three', type: 'service_worker', url: 'https://private/', openerId: 'other', browserContextId: 'context-c' },
+    { targetId: 'four', type: 'shared_worker', url: 'https://private/', openerId: '../invalid', browserContextId: '' },
+  ], 'initial', 'selected').extraWorkers
+  assert.deepEqual(related.openerRelations, openerRelations({ INITIAL: 1, SELECTED: 1, OTHER: 1, INVALID: 1 }))
+  assert.deepEqual(related.contextToInitial, contextRelations({ MATCH: 1, DIFFERENT: 2, INVALID: 1 }))
+  assert.deepEqual(related.contextToSelected, contextRelations({ MATCH: 1, DIFFERENT: 2, INVALID: 1 }))
+  assert.equal(related.anyOpenerMatchesInitial, true); assert.equal(related.anyOpenerMatchesSelected, true)
+  assert.equal(related.anyContextMatchesInitial, true); assert.equal(related.anyContextMatchesSelected, true)
+
+  const missingReferences = projectPostTargets([
+    { targetId: 'initial', type: 'page', url: 'about:blank' },
+    { targetId: 'selected', type: 'page', url: 'about:blank' },
+    { targetId: 'one', type: 'service_worker', url: 'about:blank' },
+    { targetId: 'two', type: 'service_worker', url: 'about:blank', browserContextId: 'context-a' },
+  ], 'initial', 'selected').extraWorkers
+  assert.deepEqual(missingReferences.contextToInitial, contextRelations({ BOTH_MISSING: 1, REFERENCE_MISSING: 1 }))
+  assert.deepEqual(missingReferences.contextToSelected, contextRelations({ BOTH_MISSING: 1, REFERENCE_MISSING: 1 }))
+
+  let getterCalls = 0
+  const hostile = { targetId: 'worker', type: 'service_worker' }
+  Object.defineProperty(hostile, 'url', { enumerable: true, get() { getterCalls++; return 'https://private/' } })
+  const hostileProjection = projectPostTargets([{ targetId: 'initial', type: 'page', url: 'about:blank' }, { targetId: 'selected', type: 'page', url: 'about:blank' }, hostile], 'initial', 'selected')
+  assert.equal(getterCalls, 0); assert.equal(hostileProjection.extraWorkers.total, 1); assert.equal(hostileProjection.extraWorkers.urlSchemes.INVALID, 1)
+  const hostileObservation = nativeOpenObservation('CDP_POST_TARGETS', 'STARTUP_REJECTED', initialUnavailable('UNOBSERVED'), hostileProjection)
+  assert(Buffer.byteLength(JSON.stringify(hostileObservation) + '\n') <= 4096)
+
+  const malformed = structuredClone(related)
+  malformed.urlSchemes.HTTPS = 3
+  const relatedPost = projectPostTargets([
+    { targetId: 'initial', type: 'page', url: 'about:blank' }, { targetId: 'selected', type: 'page', url: 'about:blank' },
+    { targetId: 'one', type: 'service_worker', url: 'https://private/' },
+  ], 'initial', 'selected')
+  for (const badWorkers of [{ ...relatedPost.extraWorkers, total: true }, { ...relatedPost.extraWorkers, privateId: 'forbidden' }, malformed,
+    { ...relatedPost.extraWorkers, hasExtraWorkers: false }]) {
+    assert.throws(() => nativeOpenObservation('CDP_POST_TARGETS', 'STARTUP_REJECTED', initialUnavailable('UNOBSERVED'), { ...relatedPost, extraWorkers: badWorkers }))
+  }
+  let toJSONCalls = 0
+  const inherited = structuredClone(relatedPost.extraWorkers)
+  Object.setPrototypeOf(inherited, { toJSON() { toJSONCalls++; return { privateId: 'forbidden' } } })
+  const sanitized = nativeOpenObservation('CDP_POST_TARGETS', 'STARTUP_REJECTED', initialUnavailable('UNOBSERVED'), { ...relatedPost, extraWorkers: inherited })
+  assert.equal(JSON.stringify(sanitized).includes('privateId'), false); assert.equal(toJSONCalls, 0)
+  const same = projectPostTargets([{ targetId: 'same', type: 'page', url: 'about:blank' }, { targetId: 'worker', type: 'service_worker', url: 'about:blank', openerId: 'same' }], 'same', 'same')
+  assert.equal(same.extraWorkers.openerRelations.BOTH, 1); assert.equal(same.guardPredicate, 'SELECTED_EQUALS_INITIAL')
+  const maximumRows = [{ targetId: 'initial', type: 'page', url: 'about:blank' }, { targetId: 'selected', type: 'page', url: 'about:blank' },
+    ...Array.from({ length: 62 }, (_, index) => ({ targetId: 'worker-' + index, type: index % 2 ? 'shared_worker' : 'service_worker', url: 'https://private/' }))]
+  const maximumPost = projectPostTargets(maximumRows, 'initial', 'selected')
+  const maximumObservation = nativeOpenObservation('CDP_POST_TARGETS', 'STARTUP_REJECTED', initialUnavailable('UNOBSERVED'), maximumPost)
+  assert.equal(maximumPost.extraWorkers.total, 62); assert(Buffer.byteLength(JSON.stringify(maximumObservation) + '\n') <= 4096)
+}

@@ -29,7 +29,7 @@ export function overviewFailureObservation(o, profile, c, phase, attemptedCheckp
     need(phase === 'NATIVE_OPEN' && attemptedCheckpoint === null && lastCompletedCheckpoint === null
       && exact(native, ['schema', 'stage', 'firstFault', 'initialTargets', 'postTargets', 'firstTargetFault']))
     const fields = Object.getOwnPropertyDescriptors(native)
-    need(Object.values(fields).every(field => Object.hasOwn(field, 'value')) && fields.schema.value === 'chengwang.native-open-failure/v2')
+    need(Object.values(fields).every(field => Object.hasOwn(field, 'value')) && fields.schema.value === 'chengwang.native-open-failure/v3')
     native = nativeOpenObservation(fields.stage.value, fields.firstFault.value, fields.initialTargets.value, fields.postTargets.value, fields.firstTargetFault.value)
   } else need(phase !== 'NATIVE_OPEN')
   const keys = c.counterRules.rawKeys

@@ -1,0 +1,95 @@
+{
+  "schema": "chengwang.cdp-target-relation-v3-peer-review/v1",
+  "reviewedAt": "2026-10-27T01:02:00+08:00",
+  "decision": "ACCEPT_FOR_ROOT_INTEGRATION",
+  "reviewerExecutionIdentity": {
+    "requestedModel": "gpt-5.6-sol",
+    "requestedReasoningEffort": "high",
+    "actualModel": "UNKNOWN",
+    "actualReasoningEffort": "UNKNOWN",
+    "explanation": "The runtime exposes no independently verifiable model or reasoning-effort identity to this reviewer."
+  },
+  "candidate": {
+    "repository": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-frozen",
+    "parentCommit": "e07b373653b00be0486772e5d2ebc96e5cdfdb3a",
+    "candidateCommit": "bc6fc4ef0e662c9b5b54026e637470076c351df9",
+    "candidateTree": "8c9169a16a03e1b17a83ef94c0fd8c9b71650b89",
+    "clean": true,
+    "changedPaths": 6,
+    "insertions": 279,
+    "deletions": 22,
+    "diffCheck": "PASS"
+  },
+  "reviewedArtifacts": {
+    "design": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-design-e07-20261027/DESIGN-RECEIPT.md",
+      "bytes": 7510,
+      "sha256": "2319c3a140cbf34aeed36d3d168702503c859df4900bf4ed066e1ca79a174778"
+    },
+    "handoff": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-handoff/HANDOFF.json",
+      "bytes": 8625,
+      "sha256": "69ee1687f17597b95a68880bca2e246e8b864c1363439c2bb5ea5656c9794b2d",
+      "peerReviewWasNull": true
+    },
+    "formatPatch": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-handoff/0001-test-chengwang-classify-extra-CDP-workers-safely.patch",
+      "bytes": 51355,
+      "sha256": "048a6d40e5a5c4e3f657e495891cfd77c203b9c57b1d4cd0baffc339eae2fd58",
+      "reverseApplyCheck": "PASS"
+    },
+    "frozenCpuReport": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-audit/overview-synthetic-frozen.json",
+      "bytes": 6186,
+      "sha256": "f08039ed75ccebbd7353768a133d33880487e42c69bd28c302737871c0234283"
+    },
+    "freshPeerCpuReport": {
+      "path": "D:/CodexData/workspace/chengwang-overview-cdp-target-relation-v3-20261027-peer56h/overview-synthetic-peer-2.json",
+      "bytes": 6186,
+      "sha256": "6eab637e350eea1ac7c71951fdd54e22ac1aac151607fbc713cc07f4a5bcbfe2",
+      "outcome": "PASS",
+      "tests": 236,
+      "skipped": 0,
+      "sourceCommit": "bc6fc4ef0e662c9b5b54026e637470076c351df9",
+      "realBrowserProven": false,
+      "realProductServerProven": false,
+      "production": false,
+      "authorization": "BLOCKED"
+    }
+  },
+  "findings": [],
+  "verified": {
+    "schemaV3ClosedAndExact": true,
+    "oldV1AndV2RejectedByV3Consumers": true,
+    "parentSourceRetainsV2Replay": true,
+    "extraRowsRequireValidTargetIdAndServiceOrSharedWorkerType": true,
+    "extraRowsExcludeInitialAndSelectedIds": true,
+    "ownDataDescriptorsUsedWithoutInvokingGetters": true,
+    "rawIdentityOrNetworkMaterialEmittedHashedOrStored": false,
+    "histogramsClosedBoundedAndSumToTotal": true,
+    "booleansMechanicallyDerived": true,
+    "missingContextDoesNotInferDefaultOrMatch": true,
+    "guardChanged": false,
+    "rpcChanged": false,
+    "waitRetryAuthChanged": false,
+    "initializationSequenceChanged": false,
+    "successPathWritesFailureDiagnostic": false,
+    "optionalFailureCallbackCompatibilityPreserved": true,
+    "maximumNativeDiagnosticBytesObserved": 1469,
+    "maximumWrappedFailureBytesObserved": 1964,
+    "publicationLimitBytes": 4096
+  },
+  "freshCpuReplay": {
+    "suiteCount": 9,
+    "totalTests": 236,
+    "skipped": 0,
+    "sourceBoundChecker": "PASS",
+    "note": "A first checker CLI invocation wrote a byte-identical valid PASS report but returned a post-write terminal rejection in the tool pipe. Direct verify() passed, and a second create-only report completed with exit 0; both report files have identical bytes and SHA-256."
+  },
+  "scopeLimits": [
+    "No browser or product server was run.",
+    "No build, CI, Go command, npm install, production action, or network validation was run.",
+    "No candidate, R, or R2 file was modified.",
+    "Pinned Chrome 157 runtime target shapes, diagnostic publication/readback, and integration behavior remain unverified until exact-commit isolated browser CI."
+  ]
+}
