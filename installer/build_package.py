@@ -69,6 +69,7 @@ def bundle(args):
     for path in (REPO/'docs').glob('*.md'):
         target=destination/'docs'/path.name;target.parent.mkdir(parents=True,exist_ok=True)
         target.write_text(path.read_text(encoding='utf-8-sig').replace('](../installer/','](../'),encoding='utf-8')
+    copy(REPO/'modules/openclash-dns-privacy-override.yaml',destination/'modules/openclash-dns-privacy-override.yaml')
     for name in ('README.zh-CN.md','ACCEPTANCE.zh-CN.md'):
         target=destination/name
         target.write_text(target.read_text(encoding='utf-8-sig').replace('](../docs/','](docs/'),encoding='utf-8')
