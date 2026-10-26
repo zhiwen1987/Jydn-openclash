@@ -1,0 +1,41 @@
+{
+  "correction": {
+    "correctedCoverage": "Four newly added cases reach the shared root reseal/validator loop. The later-schema case is a setup-fatal test defect, not validator negative evidence.",
+    "exactCause": "The subcase changes a V1 descriptor to labRecoveryPlanSchemaV2 while leaving Plan.Source nil, then calls labRecoveryPlanModelReseal. labRecoveryPlanDigest rejects V2 with nil Source, and labRecoveryPlanModelReseal calls t.Fatal on that error.",
+    "requiredRepair": "Retain the V2 missing-checkpoint shape without calling the plan reseal helper, synchronize current and history tail if testing the complete-history early reject, then reseal only the lifecycle V3 root. Label it as history planContext rejection, not shortcut execution.",
+    "sourceEvidence": [
+      "chengwang/internal/mihomodeploy/lab_recovery_plan.go:140-142 requires V2 Source non-nil",
+      "chengwang/internal/mihomodeploy/lab_recovery_plan_test.go:136-142 makes reseal fatal on digest error",
+      "frozen lifecycle_v3_test.go later_schema_checkpoint changes Schema to V2 and calls that reseal helper without constructing Source"
+    ],
+    "summary": "The original review overcounted the candidate's five newly added tail-reuse negatives as resealed validator cases. The later_schema_checkpoint subcase cannot reach lifecycleV3Seal or validateLifecycleV3Record."
+  },
+  "notPerformed": [
+    "go",
+    "gofmt",
+    "test",
+    "build",
+    "runtime",
+    "CI",
+    "network",
+    "production"
+  ],
+  "originalReview": {
+    "bytes": 11454,
+    "path": "D:/CodexData/home/state/plugins/codex-security/scans/mihomo-1c1fa28-revoked-tail-reuse-candidate-20261026-identity56h-v1/artifacts-4c4e928561c5332a207931f7ce7272fb57300aefacdcc60e944f2c25decaeff0/artifacts/reviews/policy-multicore-contract-revoked-tail-reuse-v1-review-20261026.json",
+    "recommendation": "revise",
+    "sha256": "72699e6ea305978d4d5caa5d52b16cdf90050235aff8a89de95a19489f8f9dd6"
+  },
+  "relationship": "This erratum supplements and does not overwrite the original immutable review. A future v2 candidate requires a new independent review.",
+  "reviewerRole": "policy_multicore_contract",
+  "schema": "chengwang.codex-independent-patch-review-erratum/v1",
+  "subjectCandidate": "mihomo-1c1fa28-revoked-tail-reuse-candidate-20261026-identity56h-v1",
+  "subjectPatchSHA256": "17999c819eb4d4f35e423ba6191fce7b15a8a1c4b58bc4639e01114857381e0f",
+  "unchangedFindings": {
+    "linuxExecutionAuthorized": false,
+    "mandatoryNegativeMatrixIncomplete": true,
+    "performanceBenefitClaimed": false,
+    "recommendation": "revise",
+    "sourceShortcutDefectFound": false
+  }
+}

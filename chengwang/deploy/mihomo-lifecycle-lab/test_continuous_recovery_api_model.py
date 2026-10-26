@@ -541,9 +541,15 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         http=[]
         for i,want in enumerate(self.reader.HTTP_CASES,1):
             case,actor,method,path,status=want; row,body=self.call(i,case,actor,method,path or dynamic[case],status,result[case]); http.append(row); (root/f'http-{i:03d}.response.json').write_bytes(body)
-        native=(('KERNEL_OS_START_ATTEMPT',1),('KERNEL_OS_START_RETURN',1),('RECOVERY_STOP_DISPATCH',1),('RECOVERY_START_DISPATCH',0),('SYNTAX_OS_START_ATTEMPT',0),('SYNTAX_OS_START_RETURN',0))
+        native=(
+          ('RECOVERY_STOP_DISPATCH',1),('OWNED_STOP_HELPER_ENTER',1),('KERNEL_OS_TERM_ATTEMPT',1),
+          ('KERNEL_OS_TERM_RETURN',1),('KERNEL_OS_WAIT_RETURN',1),('RECOVERY_START_DISPATCH',0),
+          ('KERNEL_OS_START_ATTEMPT',2),('KERNEL_OS_START_RETURN',2),('KERNEL_OS_WAIT_ENTER',2),
+          ('RECOVERY_STOP_DISPATCH',2),('OWNED_STOP_HELPER_ENTER',2),('KERNEL_OS_TERM_ATTEMPT',2),
+          ('KERNEL_OS_TERM_RETURN',2),('KERNEL_OS_WAIT_RETURN',2),('RECOVERY_START_DISPATCH',0),
+          ('KERNEL_OS_START_ATTEMPT',3),('KERNEL_OS_START_RETURN',3),('KERNEL_OS_WAIT_ENTER',3))
         pre=[{'sequence':100+i,'kind':kind,'core':core,'at':'2026-10-26T00:00:00Z'} for i,(kind,core) in enumerate(native,1)]
-        post=pre+[{'sequence':100+i+len(pre),'kind':kind,'core':2,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate(('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+        post=pre+[{'sequence':100+i+len(pre),'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate(('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
         initial={'schema':'chengwang.mihomo-lab-acceptance-state/v1','sourceCommit':'a'*40,'walSchema':self.reader.WAL_SCHEMA,'controlSHA256':'7'*64,'recordSHA256':'8'*64,
           'head':copy.deepcopy(heads[0]),'activeOperationId':None,'activePhase':None,'activeIntentSHA256':None,'completed':[],'terminated':[],'unknownObservationCount':0,
           'privateWALValidated':True,'fullPrivateWALIndependentlyProven':False,'observedProcessMatchesHead':True,'production':False}
@@ -572,6 +578,26 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); report=self.fixture(root); binding={'schema':'binding'}
             self.assertEqual(len(self.reader.validate_report(report,'a'*40,root,binding)),31)
+            kill_before_wait=copy.deepcopy(report); pre=kill_before_wait['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN',
+              'KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+            kill_before_wait['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            kill_before_wait['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(kill_before_wait,'a'*40,root,binding)),31)
+            wait_before_term_return=copy.deepcopy(report); pre=wait_before_term_return['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_WAIT_RETURN','KERNEL_OS_TERM_RETURN'),1)]
+            wait_before_term_return['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            wait_before_term_return['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(wait_before_term_return,'a'*40,root,binding)),31)
+            kill_after_wait=copy.deepcopy(report); pre=kill_after_wait['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN',
+              'KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_KILL_RETURN'),1)]
+            kill_after_wait['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            kill_after_wait['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+            self.assertEqual(len(self.reader.validate_report(kill_after_wait,'a'*40,root,binding)),31)
             for snapshot in ('faultBeforeCleanup','faultAfterCleanup','faultClosed'):
                 passthrough=report[snapshot]['transport']['steps'][1]
                 self.assertIsNone(passthrough['bodyBytes']); self.assertIsNone(passthrough['eofObserved']); self.assertIsNone(passthrough['closeSucceeded'])
@@ -673,6 +699,33 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
             self.rewrite_case(report,root,'FIRST_RECOVERED_HEAD',lambda view:view.__setitem__('artifactRecordSHA256',value))
         def reverse_native(report,root):
             calls=report['faultBeforeCleanup']['nativeCalls']; calls[0],calls[1]=calls[1],calls[0]
+        def cleanup_wrong_core(report,root):
+            prefix=len(report['faultBeforeCleanup']['nativeCalls'])
+            for name in ('faultAfterCleanup','faultClosed'):
+                for call in report[name]['nativeCalls'][prefix:]: call['core']=2
+        def cleanup_wrong_order(report,root):
+            prefix=len(report['faultBeforeCleanup']['nativeCalls'])
+            suffix=report['faultAfterCleanup']['nativeCalls'][prefix:]
+            suffix[1]['kind'],suffix[2]['kind']=suffix[2]['kind'],suffix[1]['kind']
+            report['faultClosed']['nativeCalls']=copy.deepcopy(report['faultAfterCleanup']['nativeCalls'])
+        def final_start_reuses_first_core(report,root):
+            for name in ('faultBeforeCleanup','faultAfterCleanup','faultClosed'):
+                starts=[call for call in report[name]['nativeCalls'] if call['kind'] in ('KERNEL_OS_START_ATTEMPT','KERNEL_OS_START_RETURN')]
+                starts[-2]['core']=starts[-1]['core']=2
+        def cleanup_kill_before_term_return(report,root):
+            pre=report['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_KILL_ATTEMPT',
+              'KERNEL_OS_TERM_RETURN','KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_RETURN'),1)]
+            report['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            report['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
+        def cleanup_kill_return_before_attempt(report,root):
+            pre=report['faultBeforeCleanup']['nativeCalls']; sequence=pre[-1]['sequence']
+            suffix=[{'sequence':sequence+i,'kind':kind,'core':3,'at':'2026-10-26T00:00:01Z'} for i,kind in enumerate((
+              'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN',
+              'KERNEL_OS_KILL_RETURN','KERNEL_OS_KILL_ATTEMPT','KERNEL_OS_WAIT_RETURN'),1)]
+            report['faultAfterCleanup']['nativeCalls']=copy.deepcopy(pre+suffix)
+            report['faultClosed']['nativeCalls']=copy.deepcopy(pre+suffix)
         mutants=(
           ('deployment-boundary',http('FIRST_UNKNOWN_CREATE',lambda view:view.__setitem__('boundary','WRONG'))),
           ('deployment-replayed',http('FIRST_UNKNOWN_CREATE',lambda view:view.__setitem__('replayed',True))),
@@ -692,7 +745,12 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
           ('native-gap',lambda report,root:report['faultBeforeCleanup']['nativeCalls'][1].__setitem__('sequence',103)),
           ('native-reverse',reverse_native),
           ('native-positive-kind-core-zero',lambda report,root:report['faultBeforeCleanup']['nativeCalls'][0].__setitem__('core',0)),
-          ('native-zero-kind-core-positive',lambda report,root:report['faultBeforeCleanup']['nativeCalls'][3].__setitem__('core',1)),
+          ('native-zero-kind-core-positive',lambda report,root:report['faultBeforeCleanup']['nativeCalls'][5].__setitem__('core',1)),
+          ('cleanup-wrong-final-core',cleanup_wrong_core),
+          ('cleanup-wrong-order',cleanup_wrong_order),
+          ('final-start-reuses-first-core',final_start_reuses_first_core),
+          ('cleanup-kill-before-term-return',cleanup_kill_before_term_return),
+          ('cleanup-kill-return-before-attempt',cleanup_kill_return_before_attempt),
           ('head-previous',retained_head(2,'previousHeadSHA256','7'*64)),
           ('head-artifact',retained_head(2,'artifactRecordSHA256','7'*64)),
           ('head-config',retained_head(3,'configSHA256','7'*64)),

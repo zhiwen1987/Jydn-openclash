@@ -1,0 +1,187 @@
+{
+  "agentRole": "implementation56h-independent-original-auditor",
+  "artifactTotals": {
+    "memberCount": 72,
+    "zipCount": 4
+  },
+  "artifacts": [
+    {
+      "bytes": 5107,
+      "custodySHA256": "e91161f1a5caab5ea70d345b025310f2dc0a6648fd370878d4a7a3efbe0e499e",
+      "id": 12646606719,
+      "kind": "bound-model",
+      "members": 8,
+      "sha256": "be58fce10bb72b52eaa01cc7a7b1e385d1406a9609752522d89aad3a8e2e8e01"
+    },
+    {
+      "bytes": 2625,
+      "custodySHA256": "ef4cc1096013f2b6826cd908f45f627c56cd51555e4facd6b93650f45545cf0a",
+      "id": 12645983373,
+      "kind": "fault-model",
+      "members": 6,
+      "sha256": "9df14f2f25361e4b750852fb661b23a28ddfda99add2d484e2dd8f8605199336"
+    },
+    {
+      "bytes": 55515,
+      "custodySHA256": "1b98ae568e508d7fcdfd5a5f1ea0bcc31ce329b5d76ca6a149bc68e3f16e9ef4",
+      "expandedBytes": 148645,
+      "id": 12646791481,
+      "kind": "https-originals",
+      "members": 57,
+      "sha256": "c12541b926e9bfbb1f6bb31f097b284ee98367a638fc2d5b27204a783ae31cb0"
+    },
+    {
+      "bytes": 652,
+      "custodySHA256": "efdab96f49991135ffede802652b26ae1e8615fcda3ab0c6904ba9eb67fc513a",
+      "id": 12646502798,
+      "kind": "fresh",
+      "members": 1,
+      "sha256": "e0f3563ea57720245b4b1a3812601c968580cdf2c058e9423422fbbbeebe45f1"
+    }
+  ],
+  "auditImplementation": {
+    "auditScriptSHA256": "29bb940a0b8afaefc29ffeb33143fb7eff8bb182923336d045c64100d923bf5c",
+    "credentialsOrSignedURLsPrintedOrPersisted": false,
+    "extractorSHA256": "a66c3a1aa6703627fef6ec76917df0d7dfecda16480bc9fbc0e58e68872de9c7",
+    "localGoOrGofmtRun": false,
+    "productionTouched": false,
+    "rawHTTPBodiesPrinted": false,
+    "repositoryModified": false,
+    "runtimeOrCIRerun": false
+  },
+  "fresh": {
+    "accepted": true,
+    "byteEqualToOriginalVerification": true,
+    "bytes": 871,
+    "sha256": "237746335344fbff10b41714aeed935736ea5b751eec8b1c6014f768f2eb6f60"
+  },
+  "https": {
+    "accepted": true,
+    "attemptExit": 0,
+    "commands": 4,
+    "commandsAllObservedAndExitZero": true,
+    "eventSHA256": "af20efe551a18ce1ee635d849d3b140ed9414f8673fa7b21b9d4f39ebe1dbbf9",
+    "exactlyOneRunAndPass": true,
+    "fail": 0,
+    "failureCode": "NONE",
+    "formatExit": 0,
+    "goExit": 0,
+    "goStderrBytes": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "httpIndexEntries": 31,
+    "httpResponses": 31,
+    "lossStepsStrictZeroTrueTrue": true,
+    "originalCheckerAccepted": true,
+    "originalVerificationBytes": 871,
+    "originalVerificationSHA256": "237746335344fbff10b41714aeed935736ea5b751eec8b1c6014f768f2eb6f60",
+    "packagePass": true,
+    "passStepStrictNullNullNull": true,
+    "privateFsyncEntries": 3,
+    "privateFsyncFilesAndDirectoryObserved": true,
+    "processEvents": 16,
+    "processSequencesAndPidfdValid": true,
+    "reportOutcome": "PASS",
+    "skip": 0,
+    "top": "TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery"
+  },
+  "jobs": {
+    "boundModel": {
+      "conclusion": "success",
+      "id": 121545726967
+    },
+    "faultModel": {
+      "conclusion": "success",
+      "id": 121545727056
+    },
+    "fresh": {
+      "conclusion": "success",
+      "id": 121546612070
+    },
+    "https": {
+      "conclusion": "success",
+      "id": 121546037270
+    }
+  },
+  "models": {
+    "accepted": true,
+    "allExitZero": true,
+    "allStderrEmpty": true,
+    "boundAuthn": {
+      "eachExactlyOneRunAndPass": true,
+      "eventSHA256": "cea595ec4c1b9e6c1492fa08ceff82d230775fd746d73d17910d7664f12ee192",
+      "fail": 0,
+      "nameSetSHA256": "6dd87037378086eda87c0a79d5e964cb2fc7bf92ff8e005d33e5f6ddfb04aa45",
+      "packagePass": true,
+      "parent": "TestContinuousRecoveryBoundCredentialsV2MODEL",
+      "skip": 0,
+      "testNames": 27
+    },
+    "boundRuntime": {
+      "eachExactlyOneRunAndPass": true,
+      "eventSHA256": "cef9a047f8867bbe48d145327fdf1004460a77c1eba26233e0c250525e4b5075",
+      "fail": 0,
+      "nameSetSHA256": "42d6e94881ecdd88f0bd7d035c4d5d40bb68d417daa27e421b0f1a79c7186d8e",
+      "packagePass": true,
+      "parent": "TestContinuousRecoveryBoundCredentialsSourceArmMODEL",
+      "skip": 0,
+      "testNames": 9
+    },
+    "fault": {
+      "eachExactlyOneRunAndPass": true,
+      "eventSHA256": "20360deec870a3cfd5b3f5fef3526e99b885763954748472053ae1133d519f81",
+      "fail": 0,
+      "nameSetSHA256": "1d4ce90f3a4da94e3d33b27e53bc6db2be1d5a7244ab12f049f4ebb0e383db10",
+      "packagePass": true,
+      "parent": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+      "skip": 0,
+      "testNames": 6
+    }
+  },
+  "privacy": {
+    "acceptedWithinExportedEvidenceBoundary": true,
+    "actualProducerReturnedZeroAndExportedExpectedOriginals": true,
+    "bothFencesSourceOrderedBeforeExport": true,
+    "boundary": "This proves both actual producer fence calls returned before publication. It does not expose, decode or independently reproduce private credential inventory bytes.",
+    "firstFence": "REPORT_AND_HTTP_OUTPUTS",
+    "privateInventoryDecodedByAuditor": false,
+    "secondFence": "ALL_GENERIC_AND_REPORT_OUTPUTS"
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-exact-head-original-audit/v1",
+  "scope": {
+    "fullPrivateWALIndependentlyProven": false,
+    "internetBusinessProven": false,
+    "isolatedContinuousRecoveryEvidenceAccepted": true,
+    "production": false
+  },
+  "snapshot": {
+    "builderSHA256": "18e507062d4002911e7c7a85f3b9a85fc51d4c1c26a0879c23d9cdfe0984bb4c",
+    "clean": true,
+    "head": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "index": "e55eabaf218d7f9484c0f1c2cc05be6865f378b5",
+    "path": "D:/CodexData/workspace/mihomo-1c1fa28-acceptance-_6kp2rq_/repo",
+    "resultSHA256": "da72411f972202614b28d7dbcba3e1b2726bdd16067de4f0a1ecbd9c46eb2e20",
+    "sourceBytesMatchActualGit": true,
+    "trackedBlobs": 1500,
+    "tree": "e55eabaf218d7f9484c0f1c2cc05be6865f378b5"
+  },
+  "sourceBinding": {
+    "beforeAfterEqualAcrossBothModels": true,
+    "deliveryCount": 30,
+    "schema": "chengwang.mihomo-continuous-recovery-source-binding/v1",
+    "sha256": "67861c46f3e98028befaab56aa93f87ce2d2fedce2e4cfe0e604d1ce77f16917",
+    "sourceCount": 1500,
+    "treeIndexExact": true
+  },
+  "sourceCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+  "status": "EXACT_HEAD_ISOLATED_CONTINUOUS_RECOVERY_EVIDENCE_ACCEPTED",
+  "transport": {
+    "credentialPersistedOrPrinted": false,
+    "helper": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "httpOfflineMaterializerBoundary": "The authenticated ZIP matched API size and digest. The pinned general materializer rejected only the safe .exit suffix, so a network-free exact-ZIP extractor performed CRC, path, casefold, UTF-8, size, O_EXCL, fsync and readback checks.",
+    "serialDownloads": true,
+    "signedURLInToolArgumentsOrLogs": false
+  },
+  "workflowRun": 40315107960
+}

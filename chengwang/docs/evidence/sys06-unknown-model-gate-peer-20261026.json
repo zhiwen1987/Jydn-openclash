@@ -1,0 +1,137 @@
+{
+  "affectedRuntimeRoots": [
+    "GitHub Actions job chengwang-mihomo-lifecycle UNKNOWN synthetic model step",
+    "SyntheticUnknownDisclosureModels source-list regression"
+  ],
+  "applicability": {
+    "rationale": "The patched workflow inline is the active UNKNOWN synthetic-model gate, and the added test parses that exact workflow tuple from its source-owned repository path.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "The immutable patch, base bytes, declared afterimages, full changed-file semantics, direct callers, relevant test source parity, and negative mutations were all inspected; the remaining Linux run is a rollout gate, not a source ambiguity."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "A wrong closed-name pin can block the shared UNKNOWN workflow before Go or admit an incomplete synthetic-model transcript, but the patch changes no product runtime, persistence, authority, or production path."
+  },
+  "importantCallers": [
+    "workflow inline AST and transcript validator",
+    "python -B -m unittest -v test_unknown_worker",
+    "root aggregate pure-Python model suite"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "Deleting, replacing, duplicating, omitting, or adding a Unicode-only test name must not pass by merely preserving the total count.",
+      "id": "closed-name-set",
+      "invariant": "The workflow must run exactly the 43 UNKNOWN evidence tests and 30 disclosure tests, with every sorted source name appearing once as a successful transcript entry and matching the fixed names digest.",
+      "legitimateControl": "The inline gate combines AST names, uniqueness, exact transcript pairs and order, exact counts, SHA-256 pins, terminal OK checks, and the required format-membership name; seven independent mutations all rejected.",
+      "result": "supported",
+      "runtimeRoot": "chengwang-mihomo-lifecycle workflow synthetic UNKNOWN step"
+    },
+    {
+      "counterexample": "A stale count, wrong digest, missing disclosure tuple, duplicate workflow cases line, or removed exact-format test must fail locally.",
+      "id": "source-workflow-binding",
+      "invariant": "The disclosure source and the workflow literal must agree on class, log, count, and digest without replacing the source-owned format membership test.",
+      "legitimateControl": "The new test parses its own class AST and the unique actual workflow cases literal, derives count and digest, requires exact tuple equality, and requires test_exact_source_owned_format_membership.",
+      "result": "supported",
+      "runtimeRoot": "SyntheticUnknownDisclosureModels.test_workflow_closed_names_pin_matches_actual_disclosure_source"
+    },
+    {
+      "counterexample": "Updating an unrelated fixed pin, changing FMT membership semantics, worker capture, privacy fencing, 688 Go names, or time budgets would expand this fix beyond the stale disclosure list.",
+      "id": "historical-pins-and-runtime-scope",
+      "invariant": "The 47 consumption, 26 contract-evidence, and 43 UNKNOWN evidence fixed baselines and all product/runtime behavior remain unchanged.",
+      "legitimateControl": "The immutable patch changes only the workflow disclosure tuple plus one membership assertion and one synthetic test; the 47, 26, and 43 source-derived hashes recompute unchanged, and no runtime file is modified.",
+      "result": "supported",
+      "runtimeRoot": "existing workflow model baselines and unmodified UNKNOWN worker/product sources"
+    }
+  ],
+  "patch": {
+    "base": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "changedFiles": [
+      ".github/workflows/chengwang-mihomo-lifecycle.yml",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_unknown_worker.py"
+    ],
+    "head": "candidate-after-tree-not-yet-committed",
+    "repository": "zhiwen1987/Jydn-openclash",
+    "sha256": "aeda61bcf50766e4b400cf891759b57d14d883d491762e6dd5d718f682f7d15e",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "AST extracts every direct test_ method in the exact class",
+    "transcript order, cardinality, uniqueness, success terminal, count, and names SHA-256 are all required",
+    "test_exact_source_owned_format_membership remains explicitly required",
+    "existing fixed pins 47, 26, and 43 are unchanged and recompute correctly"
+  ],
+  "recommendation": "merge",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The workflow and synthetic test changes have no migration or persisted state and can be reverted as two text files."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The change is confined to two source files, matches exact manifest afterimages, and the 43 plus 30 relevant models, frozen transcript validator, and seven in-memory counterexamples all pass."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Direct changed-path Python tests and the actual workflow-equivalent AST/transcript contract passed, but the candidate has not yet run in an exact-head Linux workflow and no Go or product runtime was exercised."
+  },
+  "riskDrivers": [
+    "workflow and test source change together, so review must preserve the literal baseline as an independently reviewed contract",
+    "exact-head Linux workflow has not yet run",
+    "the actual post-checker UNKNOWN failure remains outside this patch"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "The stale 28-name pin disagrees with the current 29-name source before this patch, so the UNKNOWN workflow fails before later evidence and Go stages can run."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": false,
+      "summary": "The candidate has not yet run in the exact-head Linux workflow."
+    },
+    {
+      "decisionCritical": false,
+      "summary": "This pin repair does not explain the actual UNKNOWN failure that occurs after the checker gate."
+    }
+  ],
+  "validation": [
+    {
+      "name": "immutable patch and manifest identity",
+      "protects": "Exact 4215-byte patch SHA-256, two declared paths, and both base and after file hashes are bound.",
+      "status": "passed"
+    },
+    {
+      "name": "relevant source parity",
+      "protects": "All 44 other lifecycle-lab files in the candidate match the immutable 1c1fa28 snapshot byte-for-byte.",
+      "status": "passed"
+    },
+    {
+      "name": "direct Python model execution",
+      "protects": "43 SyntheticUnknownEvidenceModels and 30 SyntheticUnknownDisclosureModels ran and passed with zero failures, errors, or skips.",
+      "status": "passed"
+    },
+    {
+      "name": "workflow-equivalent transcript verifier",
+      "protects": "Frozen accepted logs match exact AST names, order, count, hashes, terminal summaries, and required format-membership top.",
+      "status": "passed"
+    },
+    {
+      "name": "bounded negative mutations",
+      "protects": "Missing, replacement, duplicate, wrong count, wrong hash, removed required member, and Unicode-only added names all reject.",
+      "status": "passed"
+    },
+    {
+      "name": "exact-head Linux workflow",
+      "protects": "Required before treating the development integration as exact-head CI accepted; no Linux, Go, or product-runtime result is claimed here.",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "human_review_required"
+}

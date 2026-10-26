@@ -1,0 +1,87 @@
+{
+  "actualReplay": {
+    "actualApply": "PASS",
+    "allAppliedSHA256EqualFrozenAfterImages": true,
+    "baseWasClean": true,
+    "changedPathCount": 3,
+    "retainedSetupFailure": "verify-replay was populated with ambient CRLF before its local autocrlf setting changed; patch rejection is retained and excluded from evidence",
+    "strictApplyCheck": "PASS",
+    "verifier": "verify-replay-lf"
+  },
+  "base": {
+    "commit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "immutableSnapshot": "D:/CodexData/workspace/mihomo-1c1fa28-acceptance-_6kp2rq_/repo",
+    "trackedBlobCountFromParentContract": 1500
+  },
+  "canonicalFiles": {
+    "afterRoot": "after",
+    "beforeRoot": "before",
+    "crlfPairsPerBeforeAndAfterFile": 0,
+    "finalBytePerBeforeAndAfterFile": 10,
+    "lineEndings": "LF"
+  },
+  "changedPaths": [
+    {
+      "afterBytes": 48287,
+      "afterSHA256": "6adf3a0992fc5cc05284b8dca69011b4eb1f2a2ae86bec5ed217c90cc18232af",
+      "beforeBytes": 46197,
+      "beforeSHA256": "4d09690de6723dd740b36b4b995f52019a7d049b0dba01308525dc5d4aa28d2c",
+      "mode": "100644",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py"
+    },
+    {
+      "afterBytes": 70944,
+      "afterSHA256": "f74e2d434127940870da6212599a502eba8291a715bbc771d615c1fedf3670b7",
+      "beforeBytes": 65873,
+      "beforeSHA256": "11c1ac4bd68078703252a56017e9d2d216761c1103ccf24cac9ec6063c2ac264",
+      "mode": "100644",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py"
+    },
+    {
+      "afterBytes": 35610,
+      "afterSHA256": "4b108f4a5347a12744c44d9e341aea220657c5cf08c59ca7c3981ee4fe9ffae9",
+      "beforeBytes": 32976,
+      "beforeSHA256": "af26fb619960db82e48aab8556ec01e053d05ac9847cc4b6a2820621f263e206",
+      "mode": "100644",
+      "path": "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    }
+  ],
+  "independentPolicyReceipt": {
+    "bytes": 10744,
+    "path": "D:/CodexData/home/state/plugins/codex-security/scans/mihomo-continuous-recovery-cleanup-core-candidate-20261026-native56h-v2/artifacts-0fa9e1d4c9e81b10b719947819a5474f65708d651923b56f5a36e2ea02310128/artifacts/reviews/policy-multicore-contract-cleanup-core-v2-p1-review-20261026.json",
+    "sha256": "edcd0cf07d3e77680c4a2e86ac0ee7749b437adafe270ae174930fdde02d3b69",
+    "verdict": "revise"
+  },
+  "model": {
+    "beforeAfterTestTopSetsEqual": true,
+    "command": "python -B -W error::ResourceWarning -m unittest -v test_continuous_recovery_api_model.py",
+    "elapsedSeconds": 7.408,
+    "exitCode": 0,
+    "failed": 0,
+    "passed": 6,
+    "pythonASTCompile": "PASS",
+    "resourceWarnings": 0,
+    "testTopCount": 6
+  },
+  "notRun": [
+    "go",
+    "gofmt",
+    "linux-runtime",
+    "continuous-recovery-31-request-chain",
+    "ci",
+    "http-runtime",
+    "production"
+  ],
+  "patch": {
+    "bytes": 19586,
+    "deletions": 18,
+    "diffCheck": "PASS",
+    "insertions": 157,
+    "path": "candidate.patch",
+    "sha256": "668f5dd0d293fbb93847b7b5ef4649a3854a4d153659eaabe023ade23b89f256",
+    "strictApplyArguments": "git apply --check --whitespace=error-all",
+    "strictApplyCheck": "PASS"
+  },
+  "schema": "chengwang.mihomo-source-candidate-receipt/v1",
+  "status": "SOURCE_CANDIDATE_ONLY_NOT_GO_OR_CI_VERIFIED"
+}

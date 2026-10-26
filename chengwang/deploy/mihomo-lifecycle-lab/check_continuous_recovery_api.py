@@ -275,6 +275,35 @@ def fault(value,state):
             need(step['bodyBytes'] is None and step['eofObserved'] is None and step['closeSucceeded'] is None)
     return calls
 
+def recovery_final_core(value,calls):
+    def selected(kind): return [(index,row['core']) for index,row in enumerate(calls) if row['kind']==kind]
+    stops=selected('RECOVERY_STOP_DISPATCH'); dispatches=selected('RECOVERY_START_DISPATCH')
+    attempts=selected('KERNEL_OS_START_ATTEMPT'); returns=selected('KERNEL_OS_START_RETURN')
+    need(len(stops)==len(dispatches)==len(attempts)==len(returns)==2)
+    initial=value['initialCore']; recovered=value['recoveredCore']; final=returns[1][1]
+    need(initial>0 and recovered>0 and final>0 and len({initial,recovered,final})==3)
+    need([x[1] for x in stops]==[initial,recovered] and [x[1] for x in dispatches]==[0,0] and
+         [x[1] for x in attempts]==[recovered,final] and [x[1] for x in returns]==[recovered,final])
+    need(stops[0][0]<dispatches[0][0]<attempts[0][0]<returns[0][0]<
+         stops[1][0]<dispatches[1][0]<attempts[1][0]<returns[1][0])
+    return final
+
+def cleanup_calls(before_value,pre,post):
+    final=recovery_final_core(before_value,pre); suffix=post[len(pre):]; need(suffix)
+    need(all(row['core']==final for row in suffix))
+    allowed=('OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_KILL_ATTEMPT',
+      'KERNEL_OS_KILL_RETURN','KERNEL_OS_WAIT_ENTER','KERNEL_OS_WAIT_RETURN')
+    need(all(row['kind'] in allowed for row in suffix))
+    positions={kind:[i for i,row in enumerate(suffix) if row['kind']==kind] for kind in allowed}
+    helper=positions['OWNED_STOP_HELPER_ENTER']; term_attempt=positions['KERNEL_OS_TERM_ATTEMPT']
+    term_return=positions['KERNEL_OS_TERM_RETURN']; kill_attempt=positions['KERNEL_OS_KILL_ATTEMPT']
+    kill_return=positions['KERNEL_OS_KILL_RETURN']; wait_enter=positions['KERNEL_OS_WAIT_ENTER']; wait_return=positions['KERNEL_OS_WAIT_RETURN']
+    need(len(helper)==len(term_attempt)==len(term_return)==len(wait_return)==1 and len(wait_enter)<=1 and
+         len(kill_attempt)==len(kill_return) and len(kill_attempt)<=1)
+    need(helper[0]<term_attempt[0]<term_return[0] and term_attempt[0]<wait_return[0] and
+         (not wait_enter or wait_enter[0]<wait_return[0]))
+    need(not kill_attempt or term_return[0]<kill_attempt[0]<kill_return[0])
+
 def validate_report(report,commit,public,binding):
     keys(report,('schema','scope','sourceCommit','outcome','failureCode','http','initial','heads','operations','recoveries','callsBefore','callsAfter','faultBeforeCleanup','faultAfterCleanup','faultClosed','closedPorts','runtimeReturned','runtimeErrorClass','privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven'))
     need(report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v2' and report['scope']==SCOPE and report['sourceCommit']==commit and report['outcome']=='PASS' and report['failureCode']=='NONE')
@@ -353,8 +382,7 @@ def validate_report(report,commit,public,binding):
     before=keys(report['callsBefore'],('reloadInvocations','doInvocations')); after=keys(report['callsAfter'],('reloadInvocations','doInvocations'))
     for k in before: integer(before[k]); integer(after[k]); need(after[k]==before[k]+3)
     pre=fault(report['faultBeforeCleanup'],'TERMINAL'); post=fault(report['faultAfterCleanup'],'TERMINAL'); closed=fault(report['faultClosed'],'CLOSED')
-    need(post[:len(pre)]==pre and closed==post and len(post)>len(pre)); tail={x['kind'] for x in post[len(pre):]}
-    need({'OWNED_STOP_HELPER_ENTER','KERNEL_OS_TERM_ATTEMPT','KERNEL_OS_TERM_RETURN','KERNEL_OS_WAIT_RETURN'}<=tail)
+    need(post[:len(pre)]==pre and closed==post and len(post)>len(pre)); cleanup_calls(report['faultBeforeCleanup'],pre,post)
     ports=report['closedPorts']; need(type(ports) is list and len(ports)==6)
     for row in ports:
         keys(row,('port','connectAttempted','accepted','errorClass')); integer(row['port'],1,65535); need(row['connectAttempted'] is True and row['accepted'] is False and row['errorClass']=='CONNECTION_REFUSED')

@@ -1,0 +1,257 @@
+{
+  "boundSource": {
+    "auditScript": {
+      "bytes": 6100,
+      "path": "D:/CodexData/workspace/mihomo-1c1fa28-normal-diag-unknown-originals-20261026-native56h-v1/audit_originals.py",
+      "sha256": "a18259c87898518bc88b3f88339b9e2354cb0f31afb55e23951c2ce8285b258b"
+    },
+    "lifecycleWorkflowSHA256": "095b65826f7edcc0772b15b24b3f18ce9f04c7494f16541ce979b31ac13a99ff",
+    "normalCheckerSHA256": "10aa2964010059ffc0b16053cc117f64c78db2b6ecbb504048cd937fbae2cbc4",
+    "profileCheckerSHA256": "da9e1926cab523adf078debd997050e94e41103f20748a2ac3eb8fc809e77c20",
+    "profileProducerSHA256": "7f42337ff13bab31d65d6497eff470e99c93bc17c3047317464b0bc1d25eb5f2"
+  },
+  "controlledDownload": {
+    "approveOrRejectCalled": false,
+    "artifacts": [
+      {
+        "artifactID": 12646407015,
+        "bytes": 2737,
+        "custodySHA256": "a3d02f2231505d8403a7a192d508513c420a5e52980dd9f4e4e536774bc68d29",
+        "memberCount": 2,
+        "name": "mihomo-unknown-originals-40315108120-1",
+        "role": "UNKNOWN_PUBLIC_ORIGINALS",
+        "runID": 40315108120,
+        "sha256": "817fd251dc07ce99dc7f336488cc9185279487873c93953c4c53b6225a7133a6"
+      },
+      {
+        "artifactID": 12645998888,
+        "bytes": 277327,
+        "custodySHA256": "9ee6d58b8e1241c48096e91d3429604a5faf474eda9bab80d2e7d47b76f09d78",
+        "memberCount": 14,
+        "name": "mihomo-foundation-contracts-40315108120-1",
+        "role": "NORMAL_FOUNDATION",
+        "runID": 40315108120,
+        "sha256": "0685d0f05d728a1f1c6ce30508b3d487d2bc4f1d299992ca82a3f4dfbdda2ca8"
+      },
+      {
+        "artifactID": 12646477733,
+        "bytes": 311598,
+        "custodySHA256": "3de02aaeaefe2b4fc717dbb79e7b9fdf1902c7d01916a31012da643e99a6442f",
+        "memberCount": 19,
+        "name": "mihomo-capacity-profile-40315107976-1",
+        "role": "DIAGNOSTIC_SINGLE_CASE",
+        "runID": 40315107976,
+        "sha256": "85ca31ca667a2ecfbf4c9bd51242a4c465a3be508b7e50905e2e19c5a78639e7"
+      },
+      {
+        "artifactID": 12646238961,
+        "bytes": 555628,
+        "custodySHA256": "12cd35451504ce7ccaeff11eae64c652fc43f3d9e33a774bd51619473eec7270",
+        "memberCount": 21,
+        "name": "mihomo-capacity-profile-full-40315107976-1",
+        "role": "DIAGNOSTIC_FULL",
+        "runID": 40315107976,
+        "sha256": "5e38d0ee043e23c1137195d5e5c9fb431fd2cf7b14063b9c1ceb1e2e92a5c09a"
+      }
+    ],
+    "authorizationForwardedToStorage": false,
+    "containsURLOrAuthenticationValue": false,
+    "credentialOrURLInCLI": false,
+    "credentialOrURLPersisted": false,
+    "fallbackDownloaderUsed": false,
+    "gitCredentialOperation": "FILL_ONLY",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "metadataHeadDigestSizeCRCPathCasefoldNoOverwriteFsyncReadbackVerified": true,
+    "offlineMaterializerSHA256": "efc5a2aa9dd21827f9d1862c0a7372e571b34a16674172e2ec25f37bbfc3d64f",
+    "peerReviewSHA256": "91300458503baeed3afe31ec863294b2e221de06dc7fd9ea5ef245bed5e0edf7",
+    "ttyUsed": false
+  },
+  "diagnosticFull": {
+    "acceptedAsFullGo": false,
+    "actualGoExit": 1,
+    "captureVerified": true,
+    "events": {
+      "capacityCaseElapsedSeconds": 86.54,
+      "capacityCaseState": "pass",
+      "dataRaceWarningObserved": false,
+      "mihomodeployPackageElapsedSeconds": 180.052,
+      "mihomodeployPackageTimeoutObserved": true,
+      "observedSemanticStatesIncludingSubtests": 1667,
+      "requiredFailed": 0,
+      "requiredNotStarted": 102,
+      "requiredPassed": 585,
+      "requiredSkipped": 0,
+      "requiredTopLevelTotal": 688,
+      "requiredUnfinished": 1,
+      "unfinishedRequiredName": "chengwang/internal/mihomodeploy::TestLifecycleRecoveryVerifiedBoundsUnissuedCopiedAndForeignCapsCannotPublish",
+      "unfinishedTestObservedBeforeAlarmSeconds": 0.138
+    },
+    "formatClean": true,
+    "formatTargetsExact": true,
+    "fullFreshJobID": 121547303947,
+    "fullFreshJobStatus": "SUCCESS",
+    "fullFreshSuccessMeansDiagnosticReportRecomputedNotFullGoAccepted": true,
+    "fullGoAccepted": false,
+    "fullJobID": 121545698099,
+    "fullJobStatus": "FAILURE",
+    "normalStrictEventsAccepted": false,
+    "producerFormatTargetCount": 25,
+    "profile": {
+      "hotspotCauseProven": false,
+      "measuredDurationNanoseconds": 120294870787,
+      "pprofNumericRecomputeProven": false,
+      "sampleRecords": 4973,
+      "shapeDurationNanoseconds": 120144244031,
+      "sourceCumulative": [
+        {
+          "percent": 12.74,
+          "seconds": 15.18,
+          "symbol": "chengwang/internal/mihomodeploy.decodeLifecycleRecord"
+        },
+        {
+          "percent": 12.07,
+          "seconds": 14.38,
+          "symbol": "encoding/json.Marshal"
+        },
+        {
+          "percent": 7.46,
+          "seconds": 8.89,
+          "symbol": "chengwang/internal/mihomodeploy.validateLifecycleRecord"
+        },
+        {
+          "percent": 6.86,
+          "seconds": 8.17,
+          "symbol": "chengwang/internal/mihomodeploy.encodeLifecycleRecord"
+        },
+        {
+          "percent": 6.86,
+          "seconds": 8.17,
+          "symbol": "chengwang/internal/mihomodeploy.prepareLifecycleCandidateAfterVerifiedBase"
+        }
+      ],
+      "stopReason": "TIMER_120_SECONDS",
+      "topFlat": [
+        {
+          "percent": 20.5,
+          "seconds": 24.42,
+          "symbol": "racecall"
+        },
+        {
+          "percent": 16.67,
+          "seconds": 19.86,
+          "symbol": "__tsan_read"
+        },
+        {
+          "percent": 11.88,
+          "seconds": 14.15,
+          "symbol": "__tsan::MemoryAccessRangeT"
+        }
+      ],
+      "totalSamplesSeconds": 119.15
+    },
+    "readerFormatTargetCount": 25,
+    "runID": 40315107976,
+    "savedReportEqualsIndependentRecomputation": true,
+    "unfinishedAlarmVictimIsRootCauseProven": false
+  },
+  "diagnosticSingleCase": {
+    "acceptedAsDiagnosticOnly": true,
+    "bothJobStatuses": "SUCCESS",
+    "captureVerified": true,
+    "formatClean": true,
+    "originalCasePassed": true,
+    "originalGoExit": 0,
+    "packageElapsedSeconds": 55.469,
+    "packageTimeoutObserved": false,
+    "profileFreshJobID": 121546385379,
+    "profileJobID": 121545698210,
+    "profileMeasuredDurationNanoseconds": 54444976807,
+    "profileSampleRecords": 2502,
+    "profileShapeDurationNanoseconds": 54413156136,
+    "runID": 40315107976,
+    "savedReportEqualsIndependentRecomputation": true
+  },
+  "normal": {
+    "accepted": true,
+    "actualOriginalCheckerAccepted": true,
+    "bothJobStatuses": "SUCCESS",
+    "contractsFreshJobID": 121547233975,
+    "contractsJobID": 121545654341,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "ordinary": {
+      "allPassingSemanticTests": 1992,
+      "mandatoryTopLevelTests": 688,
+      "mihomodeployPackageElapsedSeconds": 19.856,
+      "skips": 0
+    },
+    "race": {
+      "allPassingSemanticTests": 1992,
+      "dataRaceWarningObserved": false,
+      "mandatoryTopLevelTests": 688,
+      "mihomodeployPackageElapsedSeconds": 148.35,
+      "skips": 0,
+      "timeoutObserved": false
+    },
+    "runID": 40315108120,
+    "savedReportEqualsIndependentRecomputation": true,
+    "singleSampleStableHeadroomClaimed": false
+  },
+  "overall": {
+    "ciRerunTriggered": false,
+    "crossRunPerformanceCausalityClaimed": false,
+    "localGoRun": false,
+    "localGofmtRun": false,
+    "noFreshGreenUsedAsFullGoAcceptanceSubstitute": true,
+    "noJobStatusUsedAsAcceptanceSubstitute": true,
+    "productionChanged": false,
+    "sourceChanged": false,
+    "status": "NORMAL_ACCEPT_DIAGNOSTIC_SINGLE_ACCEPT_FULL_CAPTURE_ACCEPT_BUT_FULL_GO_TIMEOUT_UNKNOWN_NOT_RUN_DUE_STALE_MODEL_GATE"
+  },
+  "schema": "chengwang.mihomo-normal-diag-unknown-original-audit/v1",
+  "sourceCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+  "sourceSnapshot": {
+    "allWorkingBytesMatchGitBlobs": true,
+    "clean": true,
+    "existingResultPath": "D:/CodexData/workspace/mihomo-1c1fa28-acceptance-_6kp2rq_/result.json",
+    "existingResultSHA256": "da72411f972202614b28d7dbcba3e1b2726bdd16067de4f0a1ecbd9c46eb2e20",
+    "independentlyRecomputedSourceManifestSHA256": "85b5f7ba550ba8dc50910f8e793177a72e1ceb74091cfc40ea6d1c678507b926",
+    "path": "D:/CodexData/workspace/mihomo-1c1fa28-acceptance-_6kp2rq_/repo",
+    "trackedBlobCount": 1500
+  },
+  "unknown": {
+    "accepted": false,
+    "actualHTTPOriginalsPresent": false,
+    "actualWorkerStepRan": false,
+    "afterOriginalHTTPEvidenceStepCouldNotValidateAbsentEvidence": true,
+    "artifactMembers": [
+      "mihomo-unknown-models/disclosure-models.log",
+      "mihomo-unknown-models/unknown-models.log"
+    ],
+    "bothJobStatuses": "FAILURE",
+    "modelStepFailure": "STALE_DISCLOSURE_COUNT_AND_NAMES_HASH_AFTER_ALL_29_TESTS_PASSED",
+    "productUNKNOWNFailureProven": false,
+    "runID": 40315108120,
+    "unknownDisclosureModels": {
+      "allUnitTestsPassed": true,
+      "logObservedCount": 29,
+      "sourceCount": 29,
+      "sourceNamesSHA256": "bf2e7a707197533404c2e22de44770fda745583578332ffaf70d78ad6ddac637",
+      "workflowCountAndHashGatePassed": false,
+      "workflowExpectedCount": 28,
+      "workflowExpectedNamesSHA256": "6d47c25a7a19e905b31ccba621b7a8a3971de340fda9b894d250f3f3330ee0da"
+    },
+    "unknownEvidenceModels": {
+      "allUnitTestsPassed": true,
+      "logObservedCount": 43,
+      "sourceCount": 43,
+      "sourceNamesSHA256": "209af96f8dd88a868c7c388e1202786c3715c10e1ced273fb13b11c08c86e77e",
+      "workflowCountAndHashGatePassed": true,
+      "workflowExpectedCount": 43,
+      "workflowExpectedNamesSHA256": "209af96f8dd88a868c7c388e1202786c3715c10e1ced273fb13b11c08c86e77e"
+    },
+    "unknownFreshCouldNotRecomputeAbsentOriginalEvidence": true,
+    "unknownFreshJobID": 121545844116,
+    "unknownJobID": 121545717336
+  }
+}

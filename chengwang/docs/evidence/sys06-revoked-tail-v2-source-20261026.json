@@ -1,0 +1,176 @@
+{
+  "artifacts": {
+    "measurementInstructionsSHA256": "4b5fbab5ddfea2deea2c8dd2e69e5d26e6c92e414cc7cc76467d2ed6f0b43b6b",
+    "patchSHA256": "a8352a6f2990482c0792f25d6fc90573e2038e933920fdf104e5f8d2485987c5",
+    "pathManifestSHA256": "71bf29663ce43a5fa307c0430f7d8db3d024ca6a77007ecadecd6202f26d5738"
+  },
+  "baselineCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+  "candidateID": "mihomo-1c1fa28-revoked-tail-reuse-candidate-20261026-identity56h-v2",
+  "correctionChain": {
+    "v1DefectsCorrected": [
+      "missing source, terminal-phase, execution, reconciliation, non-tail-ID, and same-plan-different-transaction fixtures",
+      "later-schema fixture previously called a plan reseal helper that fatally rejected V2 with nil Source before the target validator"
+    ],
+    "v1Preserved": true,
+    "v1ReviewErratumSHA256": "52fa253d6b8cfa0e27f1930917f29f5fc0320881de0c388e0492b3ee80981953",
+    "v1ReviewSHA256": "72699e6ea305978d4d5caa5d52b16cdf90050235aff8a89de95a19489f8f9dd6",
+    "v1Verdict": "revise"
+  },
+  "knownActualBaselineEvidence": {
+    "capacityCaseSeconds": 86.54,
+    "capacityCaseState": "PASS",
+    "causalityConclusion": "NONE_DIFFERENT_MODES_AND_RUNS",
+    "fullTaggedProfileSecondsAtTimeout": 180.052,
+    "ordinaryRaceSeconds": 148.35,
+    "receiptPath": "D:/CodexData/workspace/mihomo-1c1fa28-normal-diag-unknown-originals-20261026-native56h-v1/ORIGINAL-AUDIT-RECEIPT.json",
+    "receiptSHA256": "976cfa5444134803fde9d5ea72690169961b8d50e22260490d0461af34503a19"
+  },
+  "measurementBoundary": {
+    "candidateOnlyLinuxRunMayProve": "FORMAT_BUILD_TEST_AND_EXISTING_CONTRACT_COMPATIBILITY_ONLY",
+    "existingPairWorkflowIsOptimizationCausalityAB": false,
+    "existingPairWorkflowMeaning": "SAME_SOURCE_A_NORMAL_RACE_VERSUS_B_TAGGED_FULL_PROFILE",
+    "futureCausalComparison": "TWO_IMMUTABLE_EXACT_SOURCE_INPUTS_SAME_FLAGS_SAME_RUNNER_AB_AND_BA",
+    "runtimeEnvironmentSwitchAuthorized": false,
+    "singleCandidateRunMayProveBenefit": false
+  },
+  "notPerformed": [
+    "go",
+    "gofmt",
+    "test",
+    "build",
+    "runtime",
+    "network",
+    "CI",
+    "production",
+    "merge",
+    "push"
+  ],
+  "recommendation": "HOLD_LINUX_EXECUTION_AND_MEASUREMENT_PENDING_V2_PEER",
+  "requiredNextEvidence": [
+    "new independent peer review of this exact v2 patch and hashes",
+    "Linux gofmt evidence for both changed Go files",
+    "Linux execution of the expanded same-top fixtures and all 688 required top-level tests",
+    "Linux race and full-profile evidence under unchanged 180-second and 256-entry limits",
+    "fresh source manifests before and after execution",
+    "separate exact-source same-flags paired AB/BA evidence before any performance-causality claim"
+  ],
+  "reviewRole": "identity_truth_contract",
+  "rootReseal": {
+    "allTableCasesUseLifecycleV3SealAfterMutation": true,
+    "planResealUsedOnlyWherePlanDigestIsLegallyComputable": true
+  },
+  "sameTopFixtureLedger": [
+    {
+      "claim": "FINAL_VALIDATOR_REJECTION_ONLY_PENDING_EXECUTION",
+      "mutation": "current plan target changes and plan digest is resealed; history tail remains unchanged",
+      "name": "current_only_generic_fallback",
+      "sourceExpectedBoundary": "reuse DeepEqual false, then generic descriptor validation rejects"
+    },
+    {
+      "claim": "HISTORY_EARLY_REJECTION_PENDING_EXECUTION",
+      "mutation": "history tail plan target changes and plan digest is resealed; current remains unchanged",
+      "name": "history_only",
+      "sourceExpectedBoundary": "history validation rejects before the reuse decision"
+    },
+    {
+      "claim": "CURRENT_CONTEXT_FAIL_CLOSED_PENDING_EXECUTION",
+      "mutation": "only current V1 plan receives nonnil Source; PlanSHA stays unchanged because V1 plus Source has no legal plan digest",
+      "name": "source_current_only_fallback",
+      "sourceExpectedBoundary": "reuse Source conjunct false, then V1 planContext rejects nonnil Source before descriptor validation"
+    },
+    {
+      "claim": "CURRENT_TXN_FAIL_CLOSED_PENDING_EXECUTION",
+      "mutation": "only current phase becomes COMPLETED without completion, start, or execution terminal fields",
+      "name": "phase_completed_current_only",
+      "sourceExpectedBoundary": "reuse phase conjunct false, then generic transaction COMPLETED invariants reject"
+    },
+    {
+      "claim": "CURRENT_TXN_FAIL_CLOSED_PENDING_EXECUTION",
+      "mutation": "only current phase becomes FAILED_RECONCILED without failure or reconciliation fields",
+      "name": "phase_failed_reconciled_current_only",
+      "sourceExpectedBoundary": "reuse phase conjunct false, then generic transaction FAILED_RECONCILED invariants reject"
+    },
+    {
+      "claim": "CURRENT_EXECUTION_FAIL_CLOSED_PENDING_EXECUTION",
+      "mutation": "only current receives a zero execution value while remaining REVOKED_UNSTARTED",
+      "name": "execution_current_only_fallback",
+      "sourceExpectedBoundary": "reuse Execution conjunct false, then generic execution-field validation rejects"
+    },
+    {
+      "claim": "CURRENT_RECONCILIATION_FAIL_CLOSED_PENDING_EXECUTION",
+      "mutation": "only current receives a zero reconciliation value while remaining REVOKED_UNSTARTED",
+      "name": "reconciliation_current_only_fallback",
+      "sourceExpectedBoundary": "reuse Reconciliation conjunct false, then generic non-FAILED reconciliation invariant rejects"
+    },
+    {
+      "claim": "POST_REUSE_FINAL_TAIL_GATE_PENDING_EXECUTION",
+      "mutation": "current becomes the complete first valid history transaction while the second transaction remains final tail",
+      "name": "id_seen_non_tail",
+      "sourceExpectedBoundary": "generic current validation remains applicable, then duplicate-ID final-tail DeepEqual gate rejects"
+    },
+    {
+      "claim": "SAME_PLAN_DIGEST_NOT_SUFFICIENT_PENDING_EXECUTION",
+      "mutation": "current keeps identical Plan and PlanSHA but changes revocation reason from one allowed value to another allowed value",
+      "name": "same_plan_digest_txn_nested_diff",
+      "sourceExpectedBoundary": "generic transaction remains structurally valid, then complete final-tail DeepEqual gate rejects"
+    },
+    {
+      "claim": "OWNER_EARLY_REJECTION_PENDING_EXECUTION",
+      "mutation": "owner fence changes",
+      "name": "owner_fence",
+      "sourceExpectedBoundary": "owner invariant rejects before history reuse"
+    },
+    {
+      "claim": "TIME_EARLY_REJECTION_PENDING_EXECUTION",
+      "mutation": "root trusted time moves before final history update",
+      "name": "trusted_time",
+      "sourceExpectedBoundary": "unchanged owner or transaction time invariants reject before reuse"
+    },
+    {
+      "claim": "HISTORY_EARLY_REJECTION_PENDING_EXECUTION",
+      "mutation": "history tail and current schema become V2 while Source remains nil; PlanSHA is intentionally not recomputed because the combination has no legal digest",
+      "name": "later_schema_missing_checkpoint_history_reject",
+      "sourceExpectedBoundary": "history planContext rejects the missing V2 checkpoint before reuse"
+    }
+  ],
+  "schema": "chengwang.revoked-tail-reuse-source-receipt/v2",
+  "scope": {
+    "changedPaths": [
+      "chengwang/internal/mihomodeploy/lifecycle_v3.go",
+      "chengwang/internal/mihomodeploy/lifecycle_v3_test.go"
+    ],
+    "commitCreated": false,
+    "mandatoryTopLevelNames": 688,
+    "newProductHelper": false,
+    "newTopLevelTest": false,
+    "productShortcutEqualsV1": true,
+    "rSourceChanged": false,
+    "repositoryCheckerChanged": false,
+    "repositoryDocsChanged": false,
+    "repositoryWorkflowChanged": false,
+    "runtimeToggle": false,
+    "testCoverageExpanded": true,
+    "testInjectionHook": false
+  },
+  "sourceSafetyFacts": [
+    "The history loop validates each transaction before adding its recovery ID to recoveryIDs.",
+    "The reuse arm requires complete DeepEqual identity to the already validated final history transaction in the same validation call.",
+    "The reuse arm additionally requires V1 schema, nil plan Source, REVOKED_UNSTARTED phase, nil Execution, and nil Reconciliation.",
+    "The existing duplicate-ID/final-tail equality gate remains after the reuse arm.",
+    "All owner, trusted-time, revision, reconciliation, retired-epoch, history, canonical, size, and decode-scope checks remain unchanged."
+  ],
+  "staticChecks": {
+    "beforeImagesExact": true,
+    "changedPathsExact": true,
+    "finalNewline": true,
+    "gitDiffCheck": true,
+    "headExact": true,
+    "jsonParse": true,
+    "lfOnly": true,
+    "patchForwardApplyCheck": true,
+    "patchMatchesCandidateDiff": true,
+    "patchReverseApplyCheck": true,
+    "utf8Strict": true
+  },
+  "verdict": "FROZEN_FOR_NEW_INDEPENDENT_SOURCE_PEER_ONLY"
+}

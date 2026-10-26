@@ -1,0 +1,62 @@
+{
+  "notPerformed": [
+    "prepare stage",
+    "prepare finalize",
+    "patch application",
+    "integrator commit",
+    "integrator push",
+    "Go",
+    "gofmt",
+    "CI",
+    "production mutation",
+    "R mutation"
+  ],
+  "remainingEvidence": [
+    "Actual stage must still prove the supplied config contains the exact five current preimages and all candidate and peer pins.",
+    "Root must apply the generated patch and finalize must byte-verify all images before the integrator is invoked.",
+    "This review does not establish Go, Linux, CI, runtime, performance, or production acceptance."
+  ],
+  "reviewScope": "READ_ONLY_REVIEW_OF_REVISED_PREPARE_SCRIPT",
+  "revisedPrepare": {
+    "bytes": 10888,
+    "path": "D:/CodexData/workspace/prepare-mihomo-unknown-cleanup-tail-integration-20261026.py",
+    "pythonAST": "PASS",
+    "sha256": "20ab2c8b51f992bb6d4289bee017b169fd32ce59220d989f5a4dc17854906f24",
+    "utf8LF": true
+  },
+  "schema": "chengwang.mihomo-unknown-cleanup-tail-coordinator-review/v2",
+  "status": "SOURCE_FIX_ACCEPTED_FOR_STAGE_ATTEMPT",
+  "supersedesFindingOnly": {
+    "finding": "EXISTING_UNTRACKED_ARCHIVES_EMITTED_AS_ADD_FILE",
+    "priorReceipt": "D:/CodexData/workspace/mihomo-unknown-cleanup-tail-coordinator-review-20261026-execution56h-v1/COORDINATOR-REVIEW.json",
+    "priorSHA256": "cedd8f90440c6b9cad60c7a907493e796940043f1cbe1939ed39b021f804dc70",
+    "resolution": "CLOSED_IN_REVISED_SOURCE"
+  },
+  "unchangedVerifiedBoundaries": {
+    "candidatePaths": 7,
+    "cpuTotal": 303,
+    "existingEvidenceDeletedOrOverwrittenBeforePatch": false,
+    "mandatoryGoNames": 688,
+    "privacyWorkerWholeFileBindingRetained": true
+  },
+  "verifiedFix": {
+    "cleanupMode100644GuardAdded": true,
+    "currentFiveArchiveDisposition": {
+      "add": 0,
+      "skip": 1,
+      "update": 4
+    },
+    "originalArtifactSHA256CheckRetained": true,
+    "patchOperationSelection": {
+      "existingTracked": "Update against Git BASE bytes",
+      "existingUntrackedDifferentBytes": "Update against configured, hash-bound worktree preimage bytes",
+      "existingUntrackedSameBytes": "Skip patch hunk",
+      "trulyAbsent": "Add File"
+    },
+    "preexistingByteBinding": "Each configured UTF-8 preimage is SHA-256 checked and stage checks exact worktree bytes before patch creation",
+    "preexistingSetBinding": "preexistingWorkingCopies keys must exactly equal existingUntracked",
+    "provenance": "Git beforeSHA256 remains null for untracked archives while workingPatchPreimageSHA256 records the actual untracked preimage",
+    "semanticJSONCheckRetained": true,
+    "stageFinalizeDeterminism": "Both phases reconstruct working_before from the same input config preimage rather than the post-normalization worktree, so patch and plan bytes remain stable"
+  }
+}

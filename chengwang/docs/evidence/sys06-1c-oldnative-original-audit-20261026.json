@@ -1,0 +1,191 @@
+{
+  "artifacts": {
+    "candidate": {
+      "bytes": 3142,
+      "id": 12646337036,
+      "members": 7,
+      "sha256": "bc9b284d492bbe9371b251f8676c0e1b2c899addca97f09118e69db6039cb81a"
+    },
+    "count": 9,
+    "notCommittedFresh": {
+      "bytes": 12097,
+      "id": 12647225053,
+      "members": 1,
+      "sha256": "804c2fa50d8ca2ac034ad449d8346cc640c322a99c537714bad6ac46a5aa8f26"
+    },
+    "notCommittedOriginals": {
+      "bytes": 81551,
+      "id": 12647090464,
+      "members": 45,
+      "sha256": "940bd1291c2dd587ba0c7093fc51ca0222bec96343e3ae33dea9a1ad7cc26ddd"
+    },
+    "offlineCustodyReceiptSHA256": "6d281a5a5c9747a20a5979b31ab0604939a3790fdc3c2220dbea72acb54c724c",
+    "positiveFresh": {
+      "bytes": 12074,
+      "id": 12645917937,
+      "members": 1,
+      "sha256": "25946c6ba9e273b36579a65bcb285630a076a1b2b40787b0a09a9673123199dc"
+    },
+    "positiveOriginals": {
+      "bytes": 81601,
+      "id": 12646317307,
+      "members": 46,
+      "sha256": "b34f50e9296f92b0b9f3ae034fdd086dd8454991f88f87cb7a47f2df327bd085"
+    },
+    "readbackFresh": {
+      "bytes": 12089,
+      "id": 12647120341,
+      "members": 1,
+      "sha256": "b1c3d364cb83739a8965315dff3cd96003606dba40ac3ecb4769d28f2a507e4d"
+    },
+    "readbackOriginals": {
+      "bytes": 81479,
+      "id": 12646307217,
+      "members": 45,
+      "sha256": "e81715c14251f398414d6d084c35adf625ddc9acc081f488e311184c549cc664"
+    },
+    "unknownFresh": {
+      "bytes": 12090,
+      "id": 12646257993,
+      "members": 1,
+      "sha256": "e93025d3e4e736392b4663e49ab3395e4de517e4747bf5e6e736818d04dfe6f0"
+    },
+    "unknownOriginals": {
+      "bytes": 81403,
+      "id": 12646108129,
+      "members": 45,
+      "sha256": "99ab81cf72794b95eeb80cc037155d36b7fe8ac4a1bd958a9e29ffb8e411b9ca"
+    },
+    "zipMembers": 192
+  },
+  "assessment": "ACCEPT_EXACT_HEAD_ISOLATED_NATIVE_S2_EVIDENCE",
+  "candidate": {
+    "bytes": 2025,
+    "independentByteEqual": true,
+    "production": false,
+    "runtimeExecuted": false,
+    "sha256": "b6643985d5d90a8403f5c63d7238ace271ad715958faaa01a7c1de6ff8344a1a",
+    "state": "PINNED_GZIP_EXPANDED_NOT_EXECUTED",
+    "stderrEmpty": true
+  },
+  "commonModeFacts": {
+    "actualRecoveryResponseBodiesPerMode": 8,
+    "attemptExit": 0,
+    "checkerFunctionalChain": "verify_raw plus stable source and stable input checks plus canonical output",
+    "checkerFunctionalReplay": "PASS_ALL_4",
+    "closedPortsPerMode": 5,
+    "commandClasses": [
+      "SANDBOX",
+      "GO_VERSION",
+      "GOFMT",
+      "GO_TEST"
+    ],
+    "commandExitCodesPerMode": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "controllerReceivedCount": null,
+    "directCheckerMainOnWindows": "REJECTED_RAW_INPUT_SUPPRESSED_NOT_USED_FOR_ACCEPTANCE",
+    "directMainBoundary": "POSIX report writer path is platform-specific; no direct-main success claimed",
+    "formatPatchEmpty": true,
+    "formatStderrEmpty": true,
+    "freshVerificationByteEqual": true,
+    "linuxOriginalVerificationByteEqual": true,
+    "nativeStderrEmpty": true,
+    "packagePassPerMode": 1,
+    "pidfdAcquiredBeforeWait": true,
+    "processEventCountPerMode": 16,
+    "processGrammar": [
+      "START_INTENT",
+      "STARTED",
+      "REFERENCE_ACQUIRED",
+      "WAIT_RETURNED"
+    ],
+    "top": "TestLabRecoveryNativeUnknownStartedReplayReopenAndOwnedCleanup",
+    "topFailPerMode": 0,
+    "topPassPerMode": 1,
+    "topRunPerMode": 1,
+    "topSkipPerMode": 0
+  },
+  "custody": {
+    "apiHeadSizeDigestChecked": true,
+    "exclusiveWriteFsyncReadback": true,
+    "finalAuditedProjection": "D:/CodexData/workspace/mihomo-1c1fa28-oldnative-originals-20261026-implementation56h-v1/originals-audited-v2",
+    "initialOfflineExtractorRejectedUnlistedLogSuffix": true,
+    "initialRejectedProjectionRetainedAt": "D:/CodexData/workspace/mihomo-1c1fa28-oldnative-originals-20261026-implementation56h-v1/originals-audited",
+    "zipCRCPathCasefoldTypeUTF8Checked": true
+  },
+  "method": {
+    "auditScript": "D:/CodexData/workspace/mihomo-1c1fa28-oldnative-originals-20261026-implementation56h-v1/audit_exact_head.py",
+    "auditScriptSHA256": "24b2e74048a27a62cdafd692efdbec3954ac5fed62222c5079964be042454f95",
+    "ciRerun": false,
+    "localGoOrGofmtExecuted": false,
+    "offlineExtractorSHA256": "ba1a365a7e20a89573728f14e88b09dfb98bf78c9a214da44a3000b71596537e",
+    "repositoryModified": false
+  },
+  "modes": {
+    "not-committed": {
+      "failureCode": "NONE",
+      "freshBytes": 32188,
+      "freshSHA256": "b046ff33217fd4f23d32df9f48b68208f49e8472391b6084977e61dcbe8e3455",
+      "outcome": "PASS"
+    },
+    "positive": {
+      "failureCode": "NONE",
+      "freshBytes": 32177,
+      "freshSHA256": "b85c66ed1e04d00dc8b4a115eaf0e41802ab6bb6c73290150d87a68bb0816479",
+      "outcome": "PASS"
+    },
+    "readback": {
+      "failureCode": "NONE",
+      "freshBytes": 32177,
+      "freshSHA256": "51d6b64c472f942f8840fc142fb4eefbe7991be4e7bc978fb59c8e933e24cde2",
+      "outcome": "PASS"
+    },
+    "unknown": {
+      "failureCode": "NONE",
+      "freshBytes": 32175,
+      "freshSHA256": "bf6b9b577566506c5c86ca266e0341e85887b7df68134a75a5917875d1d3f588",
+      "outcome": "PASS"
+    }
+  },
+  "reviewerRole": "implementation56h",
+  "schema": "chengwang.mihomo-old-native-s2-exact-head-independent-audit/v1",
+  "scope": {
+    "completion": false,
+    "fullPrivateWAL": false,
+    "httpRecovery": false,
+    "internet": false,
+    "oldNativeS2Only": true,
+    "ordinaryPublish": false,
+    "production": false,
+    "secondRecovery": false
+  },
+  "snapshot": {
+    "clean": true,
+    "path": "D:/CodexData/workspace/mihomo-1c1fa28-acceptance-_6kp2rq_/repo",
+    "trackedGitBlobPathsVerifiedByRoot": 1500
+  },
+  "sourceBinding": {
+    "production": false,
+    "sourceBeforeAfterByteEqualEachMode": true,
+    "sourceCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "sourceCount": 199,
+    "sourceGitVerified": true
+  },
+  "sourceCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+  "sourceTree": "e55eabaf218d7f9484c0f1c2cc05be6865f378b5",
+  "transport": {
+    "helper": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "serialOnly": true,
+    "signedRedirectPersistedOrLogged": false
+  },
+  "workflow": {
+    "attempt": 1,
+    "headBound": true,
+    "runId": 40315108073
+  }
+}

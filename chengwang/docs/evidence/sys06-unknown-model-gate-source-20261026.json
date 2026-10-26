@@ -1,0 +1,121 @@
+{
+  "acceptedEvidenceLogs": [
+    {
+      "bytes": 7896,
+      "path": "cpu-logs-final-v2/unknown-models.log",
+      "sha256": "5492302a2376f8fea655919338a788df5f9920f3e4b1fe7dc47f54b1c443fb64"
+    },
+    {
+      "bytes": 5424,
+      "path": "cpu-logs-final-v2/disclosure-models.log",
+      "sha256": "35f2f9e285796d55e3c1e6b9361b303b3f4b7804c6a579adb22a195c5508a57c"
+    }
+  ],
+  "base": {
+    "clean": true,
+    "commit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "rawGitBlobCount": 1500,
+    "snapshot": "D:/CodexData/workspace/mihomo-1c1fa28-acceptance-_6kp2rq_/repo",
+    "tree": "e55eabaf218d7f9484c0f1c2cc05be6865f378b5"
+  },
+  "boundaries": {
+    "actualUnknownAfterCheckerFailureExplained": false,
+    "existing180SecondTimeoutChanged": false,
+    "existing25FileFormatterGateChanged": false,
+    "existing688GateChanged": false,
+    "goRun": false,
+    "gofmtRun": false,
+    "linuxCIRun": false,
+    "networkUsed": false,
+    "privacyFenceChanged": false,
+    "productionModified": false,
+    "repositoryRModified": false
+  },
+  "candidate": {
+    "changedPathCount": 2,
+    "cpuTest": {
+      "bytes": 1751,
+      "path": "CPU-TEST.txt",
+      "sha256": "0592e0146b222f992c24e706a745bc83714f88f2f5933e19a26f834207b83bc8"
+    },
+    "directory": "D:/CodexData/workspace/mihomo-1c1fa28-unknown-model-pin-fix-20261026-execution56h-v1",
+    "patch": {
+      "bytes": 4215,
+      "path": "unknown-model-pin-fix.patch",
+      "sha256": "aeda61bcf50766e4b400cf891759b57d14d883d491762e6dd5d718f682f7d15e"
+    },
+    "pathManifest": {
+      "bytes": 1267,
+      "path": "PATH-MANIFEST.json",
+      "sha256": "74d04e6791fef19864dfffd84acb95c8abab98f6b6f3aaf68c25c6716365b55d"
+    },
+    "statusFile": {
+      "bytes": 1436,
+      "path": "STATUS.md",
+      "sha256": "cc0281bf2a536e5343ef7b349e8bb5d463733039834aa5080930cc597d7d4202"
+    },
+    "verifier": {
+      "bytes": 1807,
+      "path": "verify_workflow_models.py",
+      "sha256": "dbf5c7e2303dc73ee05e15ce39d887b21f6bf9db37abf6e2289908599e4979de"
+    }
+  },
+  "retainedSetupFailures": [
+    {
+      "cause": "SPARSE_FIXTURE_PIN_FILE_ABSENT",
+      "path": "cpu-logs/unknown-models.log",
+      "sha256": "67e6a01b159869219c8fdd696321c6109a7cc67b5b0b4185c80a98f4891c9df0"
+    },
+    {
+      "cause": "SPARSE_INTERNAL_FIXTURE_SOURCES_ABSENT",
+      "path": "cpu-logs-final/unknown-models.log",
+      "sha256": "fe1d0b406adc375cf21378ad54b8ec807b20b4e9982103e777c8efb434818867"
+    }
+  ],
+  "rootCause": {
+    "addedMeaningfulTop": "test_exact_source_owned_format_membership",
+    "addedTopIntroducedByCommit": "767fa9a29b50b761e84fe654a829e1d47f74ac4f",
+    "addedTopRemoved": false,
+    "category": "WORKFLOW_CLOSED_NAME_PIN_STALE",
+    "disclosureSuite": {
+      "candidateCount": 30,
+      "candidateNamesSHA256": "3bdd4b6aab96222d0a15495a8ba766f62aa8e04893ef424b6e097aefd1d37fdf",
+      "oldWorkflowCount": 28,
+      "oldWorkflowNamesSHA256": "6d47c25a7a19e905b31ccba621b7a8a3971de340fda9b894d250f3f3330ee0da",
+      "preFixActualCount": 29,
+      "preFixActualNamesSHA256": "bf2e7a707197533404c2e22de44770fda745583578332ffaf70d78ad6ddac637",
+      "result": "PASS"
+    },
+    "expectedRootAggregateCount": 303,
+    "modelSourceDefect": false,
+    "newSourceListRegression": "test_workflow_closed_names_pin_matches_actual_disclosure_source",
+    "productBehaviorDefect": false,
+    "unknownSuite": {
+      "count": 43,
+      "namesSHA256": "209af96f8dd88a868c7c388e1202786c3715c10e1ced273fb13b11c08c86e77e",
+      "result": "PASS"
+    }
+  },
+  "schema": "chengwang.mihomo-unknown-model-pin-source-receipt/v1",
+  "status": "SOURCE_CANDIDATE_HOLD_FOR_EXACT_HEAD_CI",
+  "verification": {
+    "changedSourceLFOnly": true,
+    "diffCheck": "PASS",
+    "errors": 0,
+    "failures": 0,
+    "localSourceListRegression": "PASS",
+    "otherFixedNamePinsRecomputed": {
+      "ContractEvidenceModels": "PASS_26",
+      "SyntheticConsumptionContracts": "PASS_47",
+      "SyntheticUnknownEvidenceModels": "PASS_43"
+    },
+    "patchForwardCheckAgainstImmutableBase": "PASS",
+    "patchReverseCheckAgainstCandidate": "PASS",
+    "pythonWarnings": "error::ResourceWarning",
+    "requiredFormatMembershipTopSelected": true,
+    "skips": 0,
+    "testsPassed": 73,
+    "testsRun": 73,
+    "workflowEquivalentVerifier": "PASS"
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "affectedRuntimeRoots": [
+    "validateLifecycleV3ContentsScoped shared strict record validator",
+    "decodeLifecycleV3RecordScoped external canonical record path",
+    "validateLifecycleV3Contents internal candidate sealer path",
+    "TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit"
+  ],
+  "applicability": {
+    "rationale": "The change is in the active validateLifecycleV3ContentsScoped path used by strict decode and internal sealing; the exact V1 revoked current value can duplicate the already validated final history transaction in that same call.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "persistent_state",
+    "broad_shared_default",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Exact artifact and base identities, both changed files, the complete validator path, charge and memo behavior, execution nil path, preserved downstream checks, and the frozen test matrix were directly inspected. The required-but-absent test cases are explicit in the hash-bound task card."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "high",
+    "rationale": "The patch changes the shared strict lifecycle V3 validator used for persisted recovery records and internal candidate sealing. A mistaken shortcut could admit malformed authority, history, execution or reconciliation state across recovery operations."
+  },
+  "importantCallers": [
+    "validateLifecycleV3RecordScoped",
+    "decodeLifecycleV3RecordScoped",
+    "sealLifecycleV3Candidate through complete content validation",
+    "recovery begin and revoke record publication paths"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A current transaction shares an ID or plan digest with history but differs in any nested transaction field or is not the final tail.",
+      "id": "same_pass_exact_tail_reuse",
+      "invariant": "Validation may skip the current transaction only when the same complete value was already fully validated as the final history item in the same call under identical root time and revision.",
+      "legitimateControl": "The history loop validates before recording the ID, and the shortcut additionally requires nonempty history plus reflect.DeepEqual against the final history transaction.",
+      "result": "supported",
+      "runtimeRoot": "validateLifecycleV3ContentsScoped"
+    },
+    {
+      "counterexample": "A V2/V3 checkpoint, COMPLETED or FAILED_RECONCILED transaction, or transaction carrying execution/reconciliation state reaches the shortcut.",
+      "id": "schema_phase_and_optional_state",
+      "invariant": "Only V1 REVOKED_UNSTARTED values with nil Source, Execution and Reconciliation may reuse validation; every later schema or other phase must take the full current path.",
+      "legitimateControl": "Explicit conjuncts pin labRecoveryPlanSchema, nil Plan.Source, REVOKED_UNSTARTED, nil Execution and nil Reconciliation before DeepEqual reuse.",
+      "result": "supported",
+      "runtimeRoot": "current Recovery arm of validateLifecycleV3ContentsScoped"
+    },
+    {
+      "counterexample": "The second current validation is the only operation that charges scope work, constructs a checkpoint, initializes the target memo, or validates execution side effects.",
+      "id": "charge_memo_and_side_effects",
+      "invariant": "Skipping duplicate validation must not skip a required work charge, decode-scope effect, memo initialization, or semantic state transition.",
+      "legitimateControl": "The function-level charge already includes history plus one current item; V1 planContext only checks Source and returns the existing context; tail validateDescriptor has already processed the exact target; validateLifecycleRecoveryExecutionScoped returns immediately for nil Execution; validators do not grant authority or mutate the record.",
+      "result": "supported",
+      "runtimeRoot": "lifecycle V3 decode scope and V1 recovery plan validation context"
+    },
+    {
+      "counterexample": "A deeply equal tail shortcut returns success before owner/fence or persistent record integrity is checked.",
+      "id": "downstream_authority_and_persistence_gates",
+      "invariant": "Reuse must not bypass current-tail relation, owner/fence, trusted time, retired epochs, root/canonical/hash/size validation, verifiedBase custody, candidate sealing or publish/readback checks.",
+      "legitimateControl": "The shortcut only bypasses the two current transaction validation calls; control continues through the unchanged duplicate/tail gate and the remainder of complete V3 validation, while store custody and publication callers are untouched.",
+      "result": "supported",
+      "runtimeRoot": "shared strict decode, candidate seal, store publication and recovery transitions"
+    },
+    {
+      "counterexample": "The implementation later weakens or reorders a shortcut conjunct for Source, phase, Execution, Reconciliation, non-tail ID reuse or transaction-level divergence without a focused regression failing.",
+      "id": "mandatory_tail_reuse_negative_matrix",
+      "invariant": "The existing model top must reseal and reject every negative category listed in the frozen task card before Linux execution is authorized.",
+      "legitimateControl": "The task card requires direct resealed cases for current-only, history-only, owner, time, later schema, Source, phases, Execution/Reconciliation, non-tail ID collision and same-digest nested divergence.",
+      "result": "contradicted",
+      "runtimeRoot": "TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit"
+    }
+  ],
+  "patch": {
+    "base": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "changedFiles": [
+      "chengwang/internal/mihomodeploy/lifecycle_v3.go",
+      "chengwang/internal/mihomodeploy/lifecycle_v3_test.go"
+    ],
+    "head": "frozen uncommitted two-file afterimages bound by PATH-MANIFEST SHA256 faa5dfdb897e1d39baa8a7ff66e8fca6fe21dfaa8d9620b47b03934cd9f2dc20",
+    "repository": "chengwang immutable 1c1fa285 revoked-tail reuse candidate at D:/CodexData/workspace/mihomo-1c1fa28-revoked-tail-reuse-candidate-20261026-identity56h-v1",
+    "sha256": "17999c819eb4d4f35e423ba6191fce7b15a8a1c4b58bc4639e01114857381e0f",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "The shortcut requires an ID seen in the same history loop, nonempty history, exact V1 schema, nil Source, REVOKED_UNSTARTED, nil Execution, nil Reconciliation, and full reflect.DeepEqual equality with the already validated final history item.",
+    "Every history item is validated before its ID is inserted; duplicate history IDs fail before insertion of a second item.",
+    "The single validation-scope charge still includes the current item, V1 planContext has no decode-scope mutation, nil Execution validation would immediately return, and the exact target descriptor was already inserted or checked by tail validation.",
+    "Downstream current/history duplicate and final-tail equality, owner/fence, trusted-time, retired-epoch, root hash, canonical, size and strict decode checks remain unchanged.",
+    "Patch scope is exactly two Go files and applies cleanly to immutable 1c1fa285."
+  ],
+  "recommendation": "revise",
+  "recoverability": {
+    "rating": "managed",
+    "rationale": "The two-file change is revertible and introduces no migration. Because the validator protects persisted lifecycle records and authority state, any unnoticed false acceptance would require record/evidence review in addition to reverting the shortcut."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "The implementation is narrowly guarded and source tracing did not expose a semantic bypass, but the frozen test delta omits half of the task card's mandatory fail-closed tail-reuse matrix. The changed Go code has also not been compiled, formatted or executed."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The existing top adds a valid generic path, exact revoked-tail positive, and five resealed negatives, while retaining pre-existing per-plan checks. It does not directly exercise non-nil Source, COMPLETED or FAILED_RECONCILED phases, non-nil Execution or Reconciliation, an ID hit whose current value is not the tail, or a same-plan-digest transaction-level nested divergence. No Go test ran."
+  },
+  "riskDrivers": [
+    "The mandatory negative matrix in IDENTITY-PERFORMANCE-OPTIMIZATION-TASK-CARD.md is incomplete in the frozen test delta.",
+    "The optimization is an unconditional shared-validator branch with no rollout switch.",
+    "No Go, gofmt, Linux, exact 688-top, or paired same-flags source comparison evidence exists.",
+    "Performance benefit and full-suite timeout causality are unproven."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "unknown",
+    "rationale": "The repeated current validation is a source-proven duplicate for this exact shape, but its runtime contribution is unmeasured. Existing capacity passed while a different full-suite test was unfinished at timeout, so not applying the optimization has no established correctness risk and an unknown performance cost."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": false,
+      "summary": "A revised candidate's Go formatting, compilation, 688-top Linux behavior, full-suite completion and exact-source same-flags AB/BA measurements remain unknown."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen patch and artifact identity",
+      "protects": "Patch is 5175 bytes with SHA256 17999c819eb4d4f35e423ba6191fce7b15a8a1c4b58bc4639e01114857381e0f; PATH-MANIFEST SHA256 is faa5dfdb897e1d39baa8a7ff66e8fca6fe21dfaa8d9620b47b03934cd9f2dc20; SOURCE-RECEIPT SHA256 is 65b18d42a6cb38658136ef6d200eea928c3c5811533162301410fc549bb55971; actual FSYNC receipt SHA256 is 77b427d791f8a7bfc5ba765d240c0f1a1e65d70781d5ac1c37be67f3d53fa3a1.",
+      "status": "passed"
+    },
+    {
+      "name": "Immutable base and forward apply check",
+      "protects": "Base HEAD and tree are 1c1fa28533d8582e874a1552d5166a271f0727b7 and e55eabaf218d7f9484c0f1c2cc05be6865f378b5; before hashes match, the base is clean, and git apply --check --whitespace=error-all succeeds.",
+      "status": "passed"
+    },
+    {
+      "name": "Same-pass semantic and side-effect trace",
+      "protects": "History validation, ID insertion order, exact-tail equality, root time/revision identity, decode charge, V1 context behavior, target memo state, nil execution behavior and later complete-record gates support the narrow shortcut.",
+      "status": "passed"
+    },
+    {
+      "name": "Frozen task-card negative coverage",
+      "protects": "Only five of ten required negative categories are added. Focused resealed Source, phase, Execution/Reconciliation, non-tail ID and same-digest transaction-divergence cases are absent.",
+      "status": "failed"
+    },
+    {
+      "name": "Scope and contract preservation",
+      "protects": "Only lifecycle_v3.go and lifecycle_v3_test.go change; no workflow, checker, timeout, 256-loop, 2 MiB bound, required-name count or production configuration is modified.",
+      "status": "passed"
+    },
+    {
+      "name": "Go, gofmt, Linux 688-top suite, fresh readers and paired performance runs",
+      "protects": "No formatting, compilation, functional, runtime or causal performance result is claimed.",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "revise"
+}

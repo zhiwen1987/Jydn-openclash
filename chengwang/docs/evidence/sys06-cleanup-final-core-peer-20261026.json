@@ -1,0 +1,159 @@
+{
+  "affectedRuntimeRoots": [
+    "Linux exact-tag continuous-recovery Go acceptance top TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery",
+    "Python continuous-recovery public evidence reader validate_report",
+    "Python continuous-recovery synthetic model contract"
+  ],
+  "applicability": {
+    "rationale": "Immutable 1c1fa285 still uses a weak cleanup kind-presence check. The patch directly strengthens that active exact-tag acceptance path and independently mirrors it in the public evidence reader.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "moderate",
+    "rationale": "Patch identity, current-head applicability, source ordering, ordinal binding, contract preservation and Python behavior are directly evidenced. Confidence is bounded by absent Go compilation, gofmt and Linux execution."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes a Linux-only Go acceptance predicate and its Python evidence reader/model, not production runtime sources or persistent state. Incorrect semantics could falsely accept or reject continuous-recovery diagnostic evidence and gate integration."
+  },
+  "importantCallers": [
+    "continuousRecoverySuccessReportValid",
+    "post-RunWith cleanup observation in the Linux continuous-recovery E2E top",
+    "check_continuous_recovery_api.py validate_report",
+    "test_continuous_recovery_api_model.py complete synthetic reader and mutant checks"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "The second recovery reuses the first recovered core or cleanup binds to RecoveredCore rather than the second start return.",
+      "id": "final_core_ordinal_binding",
+      "invariant": "RecoveredCore identifies only the first recovery; cleanup must bind to the distinct core returned by the second ordered actual OS start.",
+      "legitimateControl": "Require exactly two ordered stop, start-dispatch, start-attempt and start-return groups; bind stops to initial/recovered, starts to recovered/final, and require all three cores distinct and nonzero.",
+      "result": "supported",
+      "runtimeRoot": "continuous-recovery fault observation and Linux cleanup acceptance"
+    },
+    {
+      "counterexample": "A valid trace records TERM_RETURN, WAIT_RETURN, KILL_ATTEMPT and KILL_RETURN because WAIT_RETURN precedes deferred done closure.",
+      "id": "cleanup_source_partial_order",
+      "invariant": "The validator must enforce source-guaranteed cleanup order while accepting every legal WAIT/stop race, including KILL before or after WAIT_RETURN.",
+      "legitimateControl": "Require helper < TERM_ATTEMPT < TERM_RETURN, TERM_ATTEMPT < WAIT_RETURN, optional WAIT_ENTER < WAIT_RETURN, and TERM_RETURN < KILL_ATTEMPT < KILL_RETURN when KILL exists, with no KILL/WAIT relative-order constraint.",
+      "result": "supported",
+      "runtimeRoot": "ownedLabKernel.run and ownedLabKernel.stop observations consumed by Go and Python validators"
+    },
+    {
+      "counterexample": "A report duplicates TERM_RETURN, omits WAIT_RETURN, emits only one KILL endpoint, inserts an unrelated native event, or assigns one suffix row to the recovered core.",
+      "id": "cleanup_cardinality_kind_and_core",
+      "invariant": "The post-cleanup suffix must be append-only, contain only source-defined cleanup kinds, bind every call to finalCore, and have exact mandatory and paired optional cardinality.",
+      "legitimateControl": "Deep prefix equality, seven-kind allowlist, all-row finalCore equality, exactly one helper/TERM pair/WAIT_RETURN, at most one WAIT_ENTER, and zero or one complete KILL pair reject these mutations.",
+      "result": "supported",
+      "runtimeRoot": "post-runtime cleanup observation and independent public reader"
+    },
+    {
+      "counterexample": "One side restores the v2 KILL_ATTEMPT < WAIT_RETURN restriction or accepts a KILL pair reversed on only one side.",
+      "id": "go_python_contract_parity",
+      "invariant": "The Go acceptance predicate and independent Python reader must enforce the same core, cardinality and partial-order contract.",
+      "legitimateControl": "The frozen functions have matching conditions; Python positives and negatives exercise the corrected cases; exhaustive order comparison confirms the Python predicate against the declared shared partial order.",
+      "result": "supported",
+      "runtimeRoot": "Linux Go report production and Python public-evidence verification"
+    },
+    {
+      "counterexample": "An old afterimage restores PASS 0/true/true fields, generic authn.File credentials, or drops bound-credential source members.",
+      "id": "current_head_contract_preservation",
+      "invariant": "The narrow replay must preserve 1c1fa285 PASS null semantics, strict LOSS values, exact-tag credentials, source/FMT/DELIVERY members and existing top count.",
+      "legitimateControl": "The v3 patch is based on exact 1c1fa285, modifies only cleanup helpers/callers and focused fixture cases, preserves those current contracts, and retains the same six model tops.",
+      "result": "supported",
+      "runtimeRoot": "current continuous-recovery checker, E2E top and model"
+    }
+  ],
+  "patch": {
+    "base": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go"
+    ],
+    "head": "frozen uncommitted afterimages bound by SOURCE-RECEIPT SHA256 8b0e7222d490a98b208dc68908ed864feb443b6465e5abb28395dc76df7e90c5",
+    "repository": "chengwang immutable 1c1fa285 source candidate at D:/CodexData/workspace/mihomo-continuous-recovery-cleanup-core-candidate-20261026-native56h-v3",
+    "sha256": "668f5dd0d293fbb93847b7b5ef4649a3854a4d153659eaabe023ade23b89f256",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "The immutable patch applies cleanly with whitespace errors enabled to exact base 1c1fa285 and changes exactly the declared three paths.",
+    "RecoveredCore remains the first recovery core; finalCore is bound to the second ordered OS start attempt/return pair, with exact two-cycle cardinality and distinct nonzero initial/recovered/final cores.",
+    "Cleanup requires an unchanged prefix, final-core binding for every suffix event, a closed kind set, exact mandatory cardinality, optional complete KILL pair, and only source-guaranteed ordering.",
+    "There is deliberately no KILL-versus-WAIT ordering constraint; independent enumeration of 5904 possible suffix orders exactly matched the declared partial-order predicate.",
+    "Current PASS null semantics, strict LOSS values, bound-credential profile, and expanded FMT/DELIVERY/build-source/model closure remain present."
+  ],
+  "recommendation": "merge",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "Only three acceptance/checker/model files change, with no migration, production default, or persisted-state effect. The patch is independently reversible."
+  },
+  "regressionLikelihood": {
+    "rating": "moderate",
+    "rationale": "No source-visible semantic defect remains after the v2 correction, current-head application is exact, and CPU model and exhaustive order checks pass. Likelihood is not low because the changed Go path has not been compiled, formatted, or exercised on Linux."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "Six unchanged Python test tops pass independently with ResourceWarning promoted to error; focused positives cover kill-before-wait, wait-before-TERM-return and kill-after-wait, and negatives cover wrong core, order, reuse and KILL ordering. An independent exhaustive 5904-order comparison found no reader/source-partial-order mismatch. Go, gofmt, Linux runtime, the 31-request chain and CI remain unrun."
+  },
+  "riskDrivers": [
+    "The Go acceptance path has not been compiled, gofmt-checked, or executed under Linux.",
+    "The actual 31-request continuous-recovery chain and fresh public-reader replay have not run at the patched head.",
+    "This is architecture-specific test/checker behavior and cannot qualify for automatic merge."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without this slice, reports with a wrong cleanup core, reused second-start core, invalid order, duplicate/missing cardinality, or unrelated suffix call can satisfy the existing evidence gate."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": false,
+      "summary": "Whether the patched Go source compiles, is gofmt-clean, and passes the exact-tag Linux top, source closure, fresh reader replay and CI is not yet known."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen artifact identity and durability metadata",
+      "protects": "candidate.patch is 19586 bytes with SHA256 668f5dd0d293fbb93847b7b5ef4649a3854a4d153659eaabe023ade23b89f256; SOURCE-RECEIPT SHA256 is 8b0e7222d490a98b208dc68908ed864feb443b6465e5abb28395dc76df7e90c5; FSYNC-RECEIPT SHA256 is 4e3616ee9191ebc87e02143c535bf48c8c0bdc90bf2c4d2ee6de9967f413f209.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent exact-base apply check",
+      "protects": "git apply --check --whitespace=error-all succeeds on clean immutable 1c1fa285; before hashes match current files and frozen after/repo hashes match the source receipt.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent complete Python model run",
+      "protects": "All six unchanged test tops passed in 8.427 seconds with python -B and ResourceWarning promoted to error; no new hidden top count is claimed.",
+      "status": "passed"
+    },
+    {
+      "name": "Independent exhaustive cleanup-order comparison",
+      "protects": "All 5904 permutations across optional WAIT_ENTER and optional KILL pair produced zero mismatches between reader acceptance and the declared source partial order.",
+      "status": "passed"
+    },
+    {
+      "name": "Immutable source-order trace",
+      "protects": "Current source shows WAIT_RETURN before exit/pipes/group completion and deferred done closure, while stop may emit KILL after selecting its grace/context branch; the revised predicate accepts both KILL/WAIT orders.",
+      "status": "passed"
+    },
+    {
+      "name": "Current 1c contract preservation inspection",
+      "protects": "PASS bodyBytes/eofObserved/closeSucceeded remain null; LOSS stays strict integer zero/true/true; bound-credential profile and related source/FMT/DELIVERY/model members remain intact.",
+      "status": "passed"
+    },
+    {
+      "name": "Go, gofmt, Linux native, actual 31-request chain and CI",
+      "protects": "No compilation, formatting, runtime, end-to-end or CI success is claimed; these remain mandatory after root integration.",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "human_review_required"
+}

@@ -3,10 +3,13 @@
 Invented credentials and reports test export refusal, not controller responses,
 UNKNOWN lifecycle semantics, actual private witnesses or production behavior.
 """
+import ast
 import base64
 import copy
+import hashlib
 import json
 from pathlib import Path
+import re
 import unittest
 
 import unknown_worker as W
@@ -33,6 +36,23 @@ class SyntheticUnknownDisclosureModels(unittest.TestCase):
     def fenced(self, report, forbidden):
         for raw in W.report_decoded_bodies(report):
             W.disclosure(raw, forbidden)
+
+    def test_workflow_closed_names_pin_matches_actual_disclosure_source(self):
+        tree = ast.parse(Path(__file__).read_bytes())
+        names = sorted(node.name for parent in tree.body
+                       if isinstance(parent, ast.ClassDef) and parent.name == type(self).__name__
+                       for node in parent.body
+                       if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'))
+        self.assertIn('test_exact_source_owned_format_membership', names)
+        workflow = (Path(__file__).parents[3] / '.github/workflows/chengwang-mihomo-lifecycle.yml').read_text('utf-8')
+        lines = [line.strip() for line in workflow.splitlines()
+                 if line.strip().startswith("cases=[('test_check_unknown'")]
+        self.assertEqual(len(lines), 1)
+        cases = ast.literal_eval(lines[0].split('=', 1)[1])
+        disclosure = [case for case in cases if case[0] == 'test_unknown_worker']
+        self.assertEqual(disclosure, [('test_unknown_worker', type(self).__name__, 'disclosure-models.log',
+                         len(names), hashlib.sha256('\n'.join(names).encode()).hexdigest())])
+        self.assertRegex(lines[0], re.escape(disclosure[0][4]))
 
     def test_unaligned_actual_request_body_secret_is_rejected(self):
         secret = b'synthetic-private-request-token'

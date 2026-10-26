@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"syscall"
 	"testing"
@@ -349,23 +350,75 @@ func continuousRecoveryObserveValid(observation mihomodeploy.LabContinuousRecove
 	return true
 }
 
-func continuousRecoveryCleanupCalls(before, after []mihomodeploy.LabContinuousRecoveryNativeCall) bool {
-	if len(after) <= len(before) {
-		return false
+func continuousRecoveryFinalCore(observation mihomodeploy.LabContinuousRecoveryFaultObservation) (uint64, bool) {
+	type callRef struct {
+		index int
+		core  uint64
 	}
-	want := map[string]bool{"OWNED_STOP_HELPER_ENTER": false, "KERNEL_OS_TERM_ATTEMPT": false,
-		"KERNEL_OS_TERM_RETURN": false, "KERNEL_OS_WAIT_RETURN": false}
-	for _, call := range after[len(before):] {
-		if _, ok := want[call.Kind]; ok {
-			want[call.Kind] = true
+	var stops, dispatches, attempts, returns []callRef
+	for index, call := range observation.NativeCalls {
+		ref := callRef{index: index, core: call.Core}
+		switch call.Kind {
+		case "RECOVERY_STOP_DISPATCH":
+			stops = append(stops, ref)
+		case "RECOVERY_START_DISPATCH":
+			dispatches = append(dispatches, ref)
+		case "KERNEL_OS_START_ATTEMPT":
+			attempts = append(attempts, ref)
+		case "KERNEL_OS_START_RETURN":
+			returns = append(returns, ref)
 		}
 	}
-	for _, present := range want {
-		if !present {
+	if observation.RecoveredCore == nil || len(stops) != 2 || len(dispatches) != 2 || len(attempts) != 2 || len(returns) != 2 {
+		return 0, false
+	}
+	recovered, final := *observation.RecoveredCore, returns[1].core
+	if recovered == 0 || final == 0 || recovered == observation.InitialCore || final == observation.InitialCore || final == recovered ||
+		stops[0].core != observation.InitialCore || stops[1].core != recovered ||
+		dispatches[0].core != 0 || dispatches[1].core != 0 ||
+		attempts[0].core != recovered || returns[0].core != recovered || attempts[1].core != final {
+		return 0, false
+	}
+	if !(stops[0].index < dispatches[0].index && dispatches[0].index < attempts[0].index && attempts[0].index < returns[0].index &&
+		returns[0].index < stops[1].index && stops[1].index < dispatches[1].index && dispatches[1].index < attempts[1].index &&
+		attempts[1].index < returns[1].index) {
+		return 0, false
+	}
+	return final, true
+}
+
+func continuousRecoveryCleanupCalls(before, after mihomodeploy.LabContinuousRecoveryFaultObservation) bool {
+	final, ok := continuousRecoveryFinalCore(before)
+	if !ok || len(after.NativeCalls) <= len(before.NativeCalls) ||
+		!reflect.DeepEqual(after.NativeCalls[:len(before.NativeCalls)], before.NativeCalls) {
+		return false
+	}
+	suffix := after.NativeCalls[len(before.NativeCalls):]
+	positions := make(map[string][]int)
+	for index, call := range suffix {
+		if call.Core != final {
+			return false
+		}
+		switch call.Kind {
+		case "OWNED_STOP_HELPER_ENTER", "KERNEL_OS_TERM_ATTEMPT", "KERNEL_OS_TERM_RETURN", "KERNEL_OS_KILL_ATTEMPT",
+			"KERNEL_OS_KILL_RETURN", "KERNEL_OS_WAIT_ENTER", "KERNEL_OS_WAIT_RETURN":
+			positions[call.Kind] = append(positions[call.Kind], index)
+		default:
 			return false
 		}
 	}
-	return true
+	helper, termAttempt, termReturn, waitReturn := positions["OWNED_STOP_HELPER_ENTER"], positions["KERNEL_OS_TERM_ATTEMPT"],
+		positions["KERNEL_OS_TERM_RETURN"], positions["KERNEL_OS_WAIT_RETURN"]
+	killAttempt, killReturn, waitEnter := positions["KERNEL_OS_KILL_ATTEMPT"], positions["KERNEL_OS_KILL_RETURN"], positions["KERNEL_OS_WAIT_ENTER"]
+	if len(helper) != 1 || len(termAttempt) != 1 || len(termReturn) != 1 || len(waitReturn) != 1 || len(waitEnter) > 1 ||
+		len(killAttempt) != len(killReturn) || len(killAttempt) > 1 ||
+		!(helper[0] < termAttempt[0] && termAttempt[0] < termReturn[0] && termAttempt[0] < waitReturn[0]) {
+		return false
+	}
+	if len(waitEnter) == 1 && waitEnter[0] >= waitReturn[0] {
+		return false
+	}
+	return len(killAttempt) == 0 || termReturn[0] < killAttempt[0] && killAttempt[0] < killReturn[0]
 }
 
 func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool {
@@ -384,7 +437,7 @@ func continuousRecoverySuccessReportValid(report *continuousRecoveryReport) bool
 		report.FaultBeforeCleanup.State != "TERMINAL" || report.FaultAfterCleanup.State != "TERMINAL" ||
 		report.FaultClosed.State != "CLOSED" || !continuousRecoveryObserveValid(*report.FaultBeforeCleanup) ||
 		!continuousRecoveryObserveValid(*report.FaultAfterCleanup) || !continuousRecoveryObserveValid(*report.FaultClosed) ||
-		!continuousRecoveryCleanupCalls(report.FaultBeforeCleanup.NativeCalls, report.FaultAfterCleanup.NativeCalls) {
+		!continuousRecoveryCleanupCalls(*report.FaultBeforeCleanup, *report.FaultAfterCleanup) {
 		return false
 	}
 	for index, item := range report.HTTP {
@@ -631,7 +684,7 @@ func TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery(t *testi
 	}
 	afterCleanup, err := fault.Observe()
 	if err != nil || afterCleanup.State != "TERMINAL" || afterCleanup.Transport.State != "TERMINAL" ||
-		!continuousRecoveryObserveValid(afterCleanup) || !continuousRecoveryCleanupCalls(beforeCleanup.NativeCalls, afterCleanup.NativeCalls) {
+		!continuousRecoveryObserveValid(afterCleanup) || !continuousRecoveryCleanupCalls(beforeCleanup, afterCleanup) {
 		report.FailureCode = "CLEANUP_CALLS"
 		t.Fatal("continuous recovery final owned cleanup callsites missing")
 	}

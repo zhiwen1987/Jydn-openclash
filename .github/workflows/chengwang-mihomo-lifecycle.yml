@@ -869,10 +869,11 @@ jobs:
           from pathlib import Path
           assert unicodedata.unidata_version == '15.0.0'
           root=Path(sys.argv[1])
-          cases=[('test_check_unknown','SyntheticUnknownEvidenceModels','unknown-models.log',43,'209af96f8dd88a868c7c388e1202786c3715c10e1ced273fb13b11c08c86e77e'),('test_unknown_worker','SyntheticUnknownDisclosureModels','disclosure-models.log',28,'6d47c25a7a19e905b31ccba621b7a8a3971de340fda9b894d250f3f3330ee0da')]
+          cases=[('test_check_unknown','SyntheticUnknownEvidenceModels','unknown-models.log',43,'209af96f8dd88a868c7c388e1202786c3715c10e1ced273fb13b11c08c86e77e'),('test_unknown_worker','SyntheticUnknownDisclosureModels','disclosure-models.log',30,'3bdd4b6aab96222d0a15495a8ba766f62aa8e04893ef424b6e097aefd1d37fdf')]
           for module,cls,log,count,pin in cases:
               tree=ast.parse(Path('chengwang/deploy/mihomo-lifecycle-lab',module+'.py').read_bytes())
               names=sorted(n.name for c in tree.body if isinstance(c,ast.ClassDef) and c.name==cls for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+              if module=='test_unknown_worker':assert 'test_exact_source_owned_format_membership' in names
               text=(root/log).read_text(encoding='utf-8').replace('\r\n','\n')
               observed=re.findall(r'^(test_[A-Za-z0-9_]+) \('+module+r'\.'+cls+r'\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',text,re.M)
               assert names and len(names)==len(set(names))==len(observed)==count and all(a==b for a,b in observed) and sorted(a for a,b in observed)==names

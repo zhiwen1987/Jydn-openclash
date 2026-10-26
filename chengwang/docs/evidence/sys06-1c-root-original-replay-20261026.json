@@ -1,0 +1,17 @@
+{
+  "actualNewRuntimeExecuted": false,
+  "continuousOriginalCLIExitZero": true,
+  "fullGoAccepted": false,
+  "fullGoTimeoutRemains": true,
+  "normalOriginalReplayAccepted": true,
+  "originalCustodyUnchanged": true,
+  "priorCoordinatorCRLFOnlyMismatch": "mihomo-1c1fa28-root-original-replay-sqj06w6t",
+  "priorCoordinatorTimeoutShapeMismatch": "mihomo-1c1fa28-root-original-replay-21y93koy",
+  "production": false,
+  "profileCaptureReplayAccepted": true,
+  "sourceCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+  "unknownModelsPassButStaleWorkflowGate": true,
+  "verificationFreshByteEqual": true,
+  "verificationSHA256": "237746335344fbff10b41714aeed935736ea5b751eec8b1c6014f768f2eb6f60",
+  "windowsCLIStdoutConfiguredLF": true
+}

@@ -1,0 +1,54 @@
+{
+  "boundaries": {
+    "exactNewHeadAcceptance": false,
+    "frozenSourceReceiptModified": false,
+    "newCI": false,
+    "newGoRun": false,
+    "newLinuxRuntimeRun": false,
+    "production": false,
+    "sourceBindingForNewHeadProven": false
+  },
+  "originalCustody": {
+    "allInputHashesUnchangedBeforeAndAfterReplay": true,
+    "bindingBytes": 619,
+    "bindingPath": "mihomo-continuous-bound-credentials-model-40315107960-1/source-before.json",
+    "bindingSHA256": "67861c46f3e98028befaab56aa93f87ce2d2fedce2e4cfe0e604d1ce77f16917",
+    "canonicalInputManifestSHA256": "5e5c6bcc0383dfff3cd9b1c148036f796014275ac7c932c508c6028384445961",
+    "httpBodyCount": 31,
+    "httpBodyDigestSequenceSHA256": "f725295d7dddfb3e4dc624114f96315751de45d134bdf85bfcf7ebeeb6d4d804",
+    "httpBodyTotalBytes": 34944,
+    "readOnlyInputCount": 33,
+    "reportBytes": 83401,
+    "reportOrSourceManifestModified": false,
+    "reportPath": "http-original-audited/mihomo-continuous-recovery-public/continuous-recovery-report.json",
+    "reportSHA256": "a2fd35b810910375446b5ef77660aa6e365c1a066005753933e27cc6b04801f2",
+    "root": "D:/CodexData/workspace/mihomo-1c1fa28-continuous-originals-20261026-implementation56h-v1"
+  },
+  "reader": {
+    "entrypointCalled": "validate_report",
+    "path": "after/chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+    "sha256": "6adf3a0992fc5cc05284b8dca69011b4eb1f2a2ae86bec5ed217c90cc18232af",
+    "verifyEntrypointCalled": false
+  },
+  "result": {
+    "cleanupFinalCoreCardinalityAndPartialOrderDidNotRejectActualOriginal": true,
+    "exitCode": 0,
+    "pythonFlags": [
+      "-B",
+      "-W error::ResourceWarning"
+    ],
+    "returnedHTTPIndexCount": 31,
+    "validateReportAccepted": true
+  },
+  "retainedInitialFailure": {
+    "class": "DIAGNOSTIC_COMMAND_CONSTRUCTION_SYNTAX_ERROR",
+    "exitCode": 1,
+    "inputsWereModified": false,
+    "reason": "the first one-line diagnostic command had an unterminated quoted expression; it was not evidence",
+    "validateReportWasCalled": false
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-reader-logic-replay/v1",
+  "sourceCommit": "1c1fa28533d8582e874a1552d5166a271f0727b7",
+  "sourceCommitWasNotRewritten": true,
+  "status": "DIAGNOSTIC_READER_LOGIC_REPLAY_NOT_EXACT_HEAD_ACCEPTANCE"
+}
