@@ -1,0 +1,25 @@
+name: Installer safety checks
+on:
+  pull_request:
+    paths: ["installer/**", ".github/workflows/installer-check.yml"]
+  push:
+    branches: ["main", "codex/**"]
+    paths: ["installer/**", ".github/workflows/installer-check.yml"]
+permissions:
+  contents: read
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Syntax and trust boundary tests
+        run: |
+          python -B -m compileall -q installer
+          python -B -m unittest discover -s installer/tests -v
+          ruby -c installer/agents/router.rb
+          ruby installer/tests/test_router_compile.rb
+          ruby installer/tests/test_router_safety.rb
+          for file in installer/install.sh installer/runtime/upstream/*.sh; do sh -n "$file"; done

@@ -1,0 +1,53 @@
+# Clash Stack 离线安装包
+
+这是应用层安装器：将中心服务部署到一个容器，并生成旁路由的受管配置。它不刷固件、不配置宽带拨号，也不修改爱快或 Windows 的 DNS、系统代理和程序。
+
+## 支持范围
+
+- Docker 主机：Linux x86_64、systemd、Docker Engine 与 Compose v2；SSH 用户须为 root，或能够 `sudo -n`。至少留出 6 GiB 空间，建议 10 GiB。
+- 旁路由：x86_64 OpenWrt/iStoreOS，已有 OpenClash、Ruby/YAML、curl、UCI 和可运行的 Mihomo。当前包严格核对兼容内核 SHA-256；不匹配就停止，不能据此推断支持全部 OpenClash 版本。
+- 操作端：Windows x64 内置独立 Python；Linux x86_64 需要 Python 3.11–3.13、glibc 2.34 或更高。依赖随包提供，无需更改系统 Python。
+- 普通静态 IPv4 管理网络。OpenClash 软件、内核、防火墙依赖的安装属于前置准备，不在不明版本设备上自动替换。
+
+## 开始安装
+
+1. 完整解压发行包，核对发行页公布的 SHA-256；不要在压缩包内直接运行。
+2. Windows 双击 `开始安装.cmd`；Linux 执行 `sh install.sh`。
+3. 按中文向导输入两台设备地址，核对 SSH 主机指纹与旁路由 MAC。密码和订阅地址隐藏输入，不写入站点档案。
+4. 选择全新部署或接管；查看具体变更和备份位置后再执行。全新部署可输入 0 条、1 条或多条公共订阅；空订阅不代表代理业务可用。
+5. 安装器完成本地校验、预检、备份、镜像加载、双端恢复守护、部署和运行验收后输出收据。自动生成的密钥只保存在目标机受限目录。
+
+默认面板为 Docker 主机的 3101（Kuma）、3102（节点能力）、3103（订阅与自建节点）。可在向导调整端口。DNS 默认不发布；选择发布也不会修改 DHCP 或终端 DNS。
+
+首次设置 Kuma 管理员后，会通过 Kuma 原生 API 添加三个中心服务监控。其他业务监控需要根据目标环境接入，不能把别的局域网的 Lucky/ESXi 地址直接复制过来。3103 编辑凭据在目标机 `/opt/clash-stack/<站点>/data/control/subscription-controller/local-source/admin-token`；应在自己的受信管理终端查看，避免复制到工单或 Git。
+
+## 日常命令
+
+Windows 用包内 `start.ps1`，Linux 用 `install.sh`，后面参数相同：
+
+```text
+self-check
+doctor --profile sites/home.json
+plan --profile sites/home.json --output sites/home.plan.json
+install --profile sites/home.json --plan sites/home.plan.json
+verify --profile sites/home.json
+backup --profile sites/home.json
+restore --profile sites/home.json
+```
+
+`doctor` 与 `plan` 只读。计划有 30 分钟有效期，文件或设备状态变化后必须重新预览。已安装同一版本、同一站点档案时，安装只做验证，不重建。升级仍需先备份；Kuma 版本不同会拒绝自动升级，须先做数据库迁移预演。`restore` 每次恢复一个版本；首次安装的恢复会撤销中心容器并保留数据，接管恢复原 Compose。没有自动删除历史数据或整机备份的命令。
+
+## 部署内容与边界
+
+- 一个中心容器包括 Kuma、CoreDNS、订阅发布、持久自建节点、节点能力评估与既有质量控制模块。数据库与配置分别挂载，容器重建不清空它们。
+- 受管配置保留业务分流结构和唯一的 `🔐 自定义节点`。未配置或失效的专属出口使用 REJECT；订阅更新不会覆盖独立自建节点数据。
+- 已有环境的接管保留原挂载、环境变量、DNS、旁路由源配置和业务选择。原宿主机上的 Grok 等独立任务不搬迁、不删除；全新环境不能凭安装收据宣称已具备这些外部任务。
+- 新环境的节点功能、业务地区可用性、账户登录和外网反代必须另行验证。HTTP 探测成功不等于真实对话成功，也不代表任何“几个 9”的互联网可用率。
+- 新站点的宿主机守护每分钟观察容器健康，连续三次 unhealthy 才考虑恢复；每小时最多两次，间隔至少 15 分钟。手动停止的容器不强行拉起。创建站点目录下 `automation-freeze` 可冻结此守护。
+- 不自动开放公网管理端口。管理面板仅应在受信局域网使用；需要远程访问时另行配置认证和加密入口。
+
+## 构建与来源
+
+源代码在本目录；`Dockerfile` 只从已固定 ID 的基础镜像构建，不从生产容器执行 `docker commit`。`build_package.py` 按文件散列生成包，`sources/` 保存核心对应声明版本的源代码和构建上下文，`NOTICE.md` 说明第三方来源。散列用于检查完整性，不代替可信发行来源的签名。
+
+首次交付的测试结果以同目录验收文档为准。没有实测的环境应标为未验收。
