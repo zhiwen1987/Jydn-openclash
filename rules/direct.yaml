@@ -6,6 +6,9 @@ payload:
   - '+.razyy.com'
   - '+.servicewechat.com'
   - '+.wxgateway.com'
+  # 系统总裁 / 驱动总裁官方域名及子域名直连。
+  - '+.sysceo.com'
+  - '+.drvceo.com'
   # AMD 中国域名会跳转到 www.amd.com，两段都保持直连。
   - '+.amd.com'
   - '+.amd.com.cn'
