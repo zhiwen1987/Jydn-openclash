@@ -17,6 +17,23 @@ spec=importlib.util.spec_from_file_location('stack_server_agent',Path(__file__).
 agent=importlib.util.module_from_spec(spec);spec.loader.exec_module(agent)
 
 class RecoveryTests(unittest.TestCase):
+    def test_adoption_updates_package_code_but_preserves_external_overrides(self):
+        for external in (False,True):
+            with self.subTest(external_override=external),tempfile.TemporaryDirectory() as d:
+                base=Path(d);backup=base/'backup'
+                volumes=['/existing/control:/data','/existing/kuma:/app/data','/existing/Corefile:/etc/coredns/Corefile:ro']
+                if external:volumes.append('/operator/capability.py:/node-capability.py:ro')
+                old={'services':{'center':{'container_name':'clash-center','image':'old','volumes':volumes,'environment':{'KEEP':'original'},'ports':['3101:3001']}}}
+                agent.atomic(backup/'compose.before.json',old)
+                t={'old_container':{'id':'old'},'manifest':{'image_id':'pinned'},'release':str(base/'releases/new'),'backup':str(backup),'container_name':'clash-center'}
+                result=agent.render_compose({'site':'production','mode':'adopt'},base,t)['services']['center']
+                self.assertEqual(result['environment'],{'KEEP':'original'});self.assertEqual(result['ports'],['3101:3001'])
+                self.assertEqual(result['image'],'pinned')
+                if external:self.assertEqual(result['volumes'],volumes);self.assertFalse(t.get('managed_code_overlays',False))
+                else:
+                    self.assertEqual(result['volumes'][:3],volumes);self.assertTrue(t['managed_code_overlays'])
+                    self.assertEqual(len(result['volumes']),6)
+
     def test_unconfirmed_first_center_is_retained_by_independent_guard(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d);self.transaction(base)

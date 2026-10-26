@@ -240,16 +240,20 @@ def render_compose(p, base, transaction):
         if not matches and len(services)==1:matches=list(services.items())
         check(len(matches)==1,'adopt_compose_service_ambiguous')
         _,service=matches[0];service['image']=image;service['pull_policy']='never'
-        if p['mode']=='fresh':
-            targets={'/'+name for name in ('node-capability.py','healthcheck.sh','subscription-controller.py')}
+        targets={'/'+name for name in ('node-capability.py','healthcheck.sh','subscription-controller.py')}
+        mounts=service.get('volumes',[])
+        check(all(isinstance(mount,str) for mount in mounts),'structured_mount_upgrade_requires_review')
+        external_override=any(len(parts)>1 and parts[1] in targets and not parts[0].startswith(str(base/'releases')+'/') for parts in (mount.split(':') for mount in mounts))
+        if p['mode']=='fresh' or not external_override:
             preserved=[]
-            for mount in service.get('volumes',[]):
+            for mount in mounts:
                 check(isinstance(mount,str),'structured_mount_upgrade_requires_review')
                 parts=mount.split(':')
                 if len(parts)>1 and parts[1] in targets:
                     check(parts[0].startswith(str(base/'releases')+'/'),'external_code_override_requires_review')
                 else:preserved.append(mount)
             service['volumes']=preserved+code_mounts
+            transaction['managed_code_overlays']=True
         # Legacy bind mounts preserve reviewed runtime code/data; don't replace
         # them with empty package defaults during an adoption.
         service.setdefault('labels',{})['io.jydn.clash-stack.site']=p['site']
@@ -349,7 +353,7 @@ def verify(p, base, accept=False):
     check(x['Image']==t['manifest']['image_id'],'center_image_changed')
     check(x['State'].get('Health',{}).get('Status')=='healthy','center_health_pending')
     checks={}
-    if p['mode']=='fresh':
+    if p['mode']=='fresh' or t.get('managed_code_overlays'):
         for name in ('node-capability.py','healthcheck.sh','subscription-controller.py'):
             source=Path(t['release'])/'payload/center'/name
             mount=next((m for m in x['Mounts'] if m['Destination']=='/'+name),None)
