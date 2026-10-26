@@ -39,6 +39,9 @@ jobs:
       - name: Test runtime empty-group filter
         run: ruby scripts/test_patch_runtime_groups.rb
 
+      - name: Test shared custom selector and independent local provider
+        run: ruby scripts/test_strict_custom.rb
+
       - name: Test R4 candidate builder
         run: ruby scripts/test_build_r4_candidate.rb
 

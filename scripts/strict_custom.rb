@@ -3,6 +3,9 @@
 require 'yaml'
 
 module StrictCustom
+  LOCAL_PROVIDER='Local_Custom'
+  LOCAL_EMPTY='🔐 自建节点 · __EMPTY__'
+  PROBE='🧪 节点能力检测'
   NODE = '🔐 自建节点 · '
   POOL = '🔐 自建节点池 · '
   LEGACY_SINGLE = '🔐 自定义节点 · '
@@ -57,6 +60,10 @@ module StrictCustom
     [parsed.values,compiled]
   end
   def self.apply(config,policy,private_value=nil,locks={'schema'=>1,'bindings'=>{}})
+    if policy.is_a?(Hash) && policy['local_provider_file']
+      policy=Marshal.load(Marshal.dump(policy))
+      policy['local_provider']=StrictCustom.load(policy['local_provider_file'])
+    end
     raise 'configuration_invalid' unless config.is_a?(Hash) && config['proxy-groups'].is_a?(Array)
     raise 'public_policy_invalid' unless policy.is_a?(Hash) && policy['schema']==1 && policy['business_groups'].is_a?(Array)
     targets=policy['business_groups'];raise 'public_business_invalid' unless targets.all?{|n|n.is_a?(String)} && targets.uniq==targets
@@ -78,7 +85,13 @@ module StrictCustom
       end
     end
     raw=Array(config['proxies']).reject{|n|owned?(n['name'])};config['proxies']=raw+nodes
-    config.fetch('proxy-providers',{}).each_value do |provider|
+    if policy['local_provider']
+      raise 'local_provider_invalid' unless policy['local_provider'].is_a?(Hash) && policy['local_provider']['type']=='http'
+      config['proxy-providers']||={}
+      config['proxy-providers'][LOCAL_PROVIDER]=Marshal.load(Marshal.dump(policy['local_provider']))
+    end
+    config.fetch('proxy-providers',{}).each do |key,provider|
+      next if key==LOCAL_PROVIDER && policy['local_provider']
       old=provider['exclude-filter'].to_s
       provider['exclude-filter']=old.empty? ? '^'+NODE : '('+old+')|^'+NODE unless old.include?(NODE)
     end
@@ -89,11 +102,18 @@ module StrictCustom
       names=(raw+nodes).reject{|node|NON_NODE_TYPES.include?(node['type'].to_s.downcase) || node['name'].to_s.match?(Regexp.new(NOTICE_FILTER))}.map{|node|node['name']}
       entry=generated.first;entry['proxies']=(['REJECT']+names).uniq
       entry['use']=config.fetch('proxy-providers',{}).keys unless config.fetch('proxy-providers',{}).empty?
-      entry['exclude-type']=EXCLUDE_TYPES;entry['exclude-filter']=NOTICE_FILTER;entry['empty-fallback']='REJECT'
+      entry['exclude-type']=EXCLUDE_TYPES;entry['exclude-filter']=NOTICE_FILTER+(policy['local_provider'] ? '|^'+Regexp.escape(LOCAL_EMPTY)+'$' : '');entry['empty-fallback']='REJECT'
     end
     groups.each do |g|
       # Private raw nodes never enter public include-all pools.
-      if g['include-all']==true || g['include-all-proxies']==true
+      if policy['local_provider'] && g['name']==PROBE
+        g['use']=(Array(g['use'])+[LOCAL_PROVIDER]).uniq
+        old=g['exclude-filter'].to_s
+        g['exclude-filter']=[old, '^'+Regexp.escape(LOCAL_EMPTY)+'$'].reject(&:empty?).uniq.join('|') unless old.include?(Regexp.escape(LOCAL_EMPTY))
+      elsif policy['local_provider']
+        g['use']=Array(g['use'])-[LOCAL_PROVIDER] if g['use']
+      end
+      if g['name']!=PROBE && (g['include-all']==true || g['include-all-proxies']==true || g['include-all-providers']==true)
         old=g['exclude-filter'].to_s
         unless old.include?(NODE)
           g['exclude-filter']=old.empty? ? '^'+NODE : '('+old+')|^'+NODE
@@ -159,7 +179,8 @@ module StrictCustom
       next unless owned?(group['name'])
       raise 'strict_type_invalid' unless %w[select fallback].include?(group['type'])
       if group['name']==SINGLE && group['empty-fallback']=='REJECT'
-        raise 'all_nodes_selector_invalid' unless group['type']=='select' && group['proxies'].first=='REJECT' && group['exclude-type']==EXCLUDE_TYPES && group['exclude-filter']==NOTICE_FILTER
+        expected_filter=NOTICE_FILTER+(config.fetch('proxy-providers',{}).key?(LOCAL_PROVIDER) ? '|^'+Regexp.escape(LOCAL_EMPTY)+'$' : '')
+        raise 'all_nodes_selector_invalid' unless group['type']=='select' && group['proxies'].first=='REJECT' && group['exclude-type']==EXCLUDE_TYPES && group['exclude-filter']==expected_filter
         raise 'all_nodes_expansion_invalid' if group['include-all'] || group['include-all-proxies'] || group['include-all-providers']
         raise 'all_nodes_provider_invalid' unless Array(group['use']).sort==config.fetch('proxy-providers',{}).keys.sort
         raw=Array(config['proxies']).to_h{|node|[node['name'],node]}

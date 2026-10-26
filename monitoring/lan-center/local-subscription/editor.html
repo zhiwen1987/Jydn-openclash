@@ -1,0 +1,16 @@
+<style>
+#local-editor{margin-top:32px;padding:24px;background:#fff;border:1px solid #d7dfec;border-radius:12px}#local-editor h2{margin-top:0}#local-editor label{display:block;font-weight:600;margin:12px 0 6px}#local-editor input,#local-editor textarea,#local-editor select{box-sizing:border-box;font:inherit;border:1px solid #9aaac1;border-radius:6px;padding:10px;max-width:100%;background:white;color:#182033}#local-editor textarea{width:100%;resize:vertical;min-height:150px}#local-editor input{width:100%;max-width:480px}#local-editor button{font:inherit;min-height:44px;padding:9px 16px;border-radius:6px;border:1px solid #c4cfe0;background:#eff4fc;color:#182033;cursor:pointer}#local-editor button.primary{background:#2457bd;color:white;border-color:#2457bd}#local-editor button:disabled{opacity:.55;cursor:wait}#local-editor :focus-visible{outline:3px solid #2457bd;outline-offset:3px}.local-actions{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.local-note{color:#44546c;line-height:1.6}.local-status{padding:12px;background:#eff4fc;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere}.local-table{overflow:auto}.local-table td{vertical-align:top;overflow-wrap:anywhere}.local-table button{margin:2px}#local-editor [hidden]{display:none!important}@media(max-width:600px){#local-editor{padding:16px}main{padding:14px!important}#local-editor th,#local-editor td{padding:8px}.local-actions button{flex:1}}</style>
+<section id="local-editor" aria-labelledby="local-title">
+<h2 id="local-title">本地自建订阅</h2>
+<p class="local-note">节点仅加入「🔐 自定义节点」和隔离检测入口。业务出口需自行选择；机场订阅更新不会覆盖这里的数据。编辑或删除正在使用的自建节点时，入口先切至 REJECT，避免回落到公共节点。</p>
+<form id="local-login"><label for="local-token">管理密钥</label><input id="local-token" type="password" autocomplete="off" required aria-describedby="local-key-help"><p id="local-key-help" class="local-note">使用 249 上独立生成的订阅管理密钥。密钥不保存在浏览器，也不是机场订阅 Token。</p><div class="local-actions"><button class="primary" type="submit">解锁管理</button></div></form>
+<div id="local-controls" hidden>
+<p id="local-summary" class="local-status" role="status"></p>
+<form id="local-form"><label for="local-mode">导入方式</label><select id="local-mode"><option value="merge">追加节点（自动去重）</option><option value="replace">替换全部自建节点</option></select>
+<label for="local-links">节点链接（每行一条）</label><textarea id="local-links" spellcheck="false" autocomplete="off" aria-describedby="local-format"></textarea>
+<p id="local-format" class="local-note">支持 SS、VMess、VLESS、Trojan、Hysteria2、SOCKS5、HTTP(S) 的受支持参数。未知参数和不兼容格式会明确拒绝，原配置保留；不调用公网转换服务。编辑时请粘贴新的完整链接。</p>
+<div class="local-actions"><button type="button" id="local-preview">解析并校验</button><button class="primary" type="submit" id="local-publish">保存并发布</button><button type="button" id="local-cancel" hidden>取消编辑</button><button type="button" id="local-refresh">刷新状态</button><button type="button" id="local-logout">退出管理</button></div></form>
+<div class="local-table"><table><thead><tr><th>节点备注</th><th>协议</th><th>健康评估</th><th>操作</th></tr></thead><tbody id="local-nodes"></tbody></table></div>
+</div>
+<p id="local-result" class="local-status" role="status" tabindex="-1" aria-live="polite">先解锁管理，再添加节点。未配置时自建来源保持阻断。</p>
+</section><script src="/local-source.js" defer></script>

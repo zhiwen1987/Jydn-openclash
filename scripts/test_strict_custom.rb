@@ -98,4 +98,28 @@ puts 'PASS all_actual_nodes_and_all_providers'
 entry['proxies'] << 'PublicPool'
 begin;StrictCustom.validate(y);raise 'public group accepted';rescue RuntimeError=>e;raise unless e.message=='all_nodes_group_or_direct_escape';end
 puts 'PASS all_nodes_group_escape_rejected'
-puts 'strict_custom_tests='+(tests.length+5).to_s
+y=fixture;before=copy(y);StrictCustom.apply(before,all_policy);y['proxy-providers']={'one'=>{'type'=>'file','path'=>'./one.yaml'}}
+y['proxy-groups'] << {'name'=>StrictCustom::PROBE,'type'=>'select','use'=>['one'],'proxies'=>['public']}
+y['proxy-groups'].find{|g|g['name']=='PublicPool'}['include-all-providers']=true
+local_policy=all_policy.merge('local_provider'=>{'type'=>'http','url'=>'http://127.0.0.1:19003/providers/local-custom.yaml','path'=>'./local.yaml','header'=>{'Authorization'=>['Bearer synthetic-test-only']}})
+StrictCustom.apply(y,local_policy);groups=y['proxy-groups'].to_h{|g|[g['name'],g]}
+assert(y['proxy-providers'][StrictCustom::LOCAL_PROVIDER]['exclude-filter'].nil?,'local nodes filtered out of own provider')
+assert(y['proxy-providers']['one']['exclude-filter'].include?(StrictCustom::NODE),'public provider namespace not protected')
+assert(groups[StrictCustom::PROBE]['use'].include?(StrictCustom::LOCAL_PROVIDER),'probe source missing')
+assert(groups[StrictCustom::SINGLE]['use'].include?(StrictCustom::LOCAL_PROVIDER),'custom source missing')
+assert(groups['PublicPool']['exclude-filter'].include?(StrictCustom::NODE),'private nodes leak to include-all-providers')
+assert(y['rules']==before['rules'] && y['dns']==before['dns'],'local provider changed DNS or rules')
+once=copy(y);StrictCustom.apply(y,local_policy);assert(y==once,'local provider compiler not idempotent')
+puts 'PASS local_provider_isolated_and_idempotent'
+dir=ENV.fetch('TMPDIR','/tmp')+'/strict-local-unit-'+Process.pid.to_s
+Dir.mkdir(dir,0700)
+begin
+ path=dir+'/provider.yaml';File.write(path,YAML.dump(local_policy['local_provider']))
+ p=all_policy.merge('local_provider_file'=>path);y=fixture;StrictCustom.apply(y,p)
+ assert(y['proxy-providers'].key?(StrictCustom::LOCAL_PROVIDER),'direct compiler API did not resolve provider file')
+ensure
+ File.unlink(dir+'/provider.yaml') if File.file?(dir+'/provider.yaml')
+ Dir.rmdir(dir)
+end
+puts 'PASS local_provider_loaded_by_direct_compiler_call'
+puts 'strict_custom_tests='+(tests.length+7).to_s

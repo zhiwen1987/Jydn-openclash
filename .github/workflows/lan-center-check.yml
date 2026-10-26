@@ -44,6 +44,9 @@ jobs:
       - name: Test subscription release controller
         run: python3 monitoring/lan-center/failover/subscription-controller.py --self-test
 
+      - name: Test independent local subscription transactions and URI parsing
+        run: python3 monitoring/lan-center/local-subscription/test_local_source.py
+
       - name: Test isolated OpenClash probe patch
         run: sh monitoring/lan-center/tests/test_node_capability_patch.sh
 
