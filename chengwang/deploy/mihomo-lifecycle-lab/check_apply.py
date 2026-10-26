@@ -20,6 +20,10 @@ import sys
 
 PREFIX = 'chengwang/deploy/mihomo-lifecycle-lab/'
 RUNTIME = 'chengwang/internal/mihomodeploy/runtime_apply_linux_test.go'
+BOUND_CREDENTIAL_SOURCES = (
+    'chengwang/internal/authn/continuous_bound_credentials_linux.go',
+    'chengwang/internal/authn/continuous_bound_credentials_linux_test.go',
+    'chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go')
 
 
 def need(value):
@@ -796,7 +800,8 @@ def _kernel_stdio(out, err):
 
 def verify_raw(raw, sources, commit):
     need(type(raw) is dict and set(raw) == set(PUBLIC) and type(sources) is dict and set(sources) == set(FILES))
-    need(len(FILES) == len(set(FILES)) == 167 and type(commit) is str and COMMIT.fullmatch(commit) is not None)
+    need(len(FILES) == len(set(FILES)) == 170 and set(BOUND_CREDENTIAL_SOURCES).issubset(FILES) and
+         type(commit) is str and COMMIT.fullmatch(commit) is not None)
     need(all(type(v) is bytes and 0 < len(v) <= 1 << 20 for v in sources.values()))
     need(all(type(v) is bytes and len(v) <= 8 << 20 for v in raw.values()))
     contract(sources)
@@ -866,7 +871,7 @@ def source_bindings(repo, commit):
 
     need(git('rev-parse', 'HEAD').strip().decode('ascii') == commit)
     need(Path(os.fsdecode(git('rev-parse', '--show-toplevel').strip())).resolve() == repo)
-    need(len(FILES) == len(set(FILES)) == 167)
+    need(len(FILES) == len(set(FILES)) == 170 and set(BOUND_CREDENTIAL_SOURCES).issubset(FILES))
     sources = {}
     for path in FILES:
         value = C.read(repo / path, 1 << 20, False)

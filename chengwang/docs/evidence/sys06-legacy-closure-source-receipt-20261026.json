@@ -1,0 +1,111 @@
+{
+  "base": {
+    "commit": "eb028fe90aeae56cc66fefeb4fde4a06052cc747",
+    "rawGitBlobCount": 1475,
+    "snapshot": "D:/CodexData/workspace/mihomo-eb028fe-acceptance-1io449ry/repo"
+  },
+  "boundaries": [
+    "No Go, gofmt, product runtime, CI, push or production action was performed.",
+    "Python source models do not prove Linux compilation, formatting or formatter argv membership from runtime evidence.",
+    "The existing contracts, workflows, budgets and continuous delivery set were not changed.",
+    "Root must re-run final-HEAD source binding and Linux lanes after integration."
+  ],
+  "candidate": {
+    "changedPathCount": 8,
+    "diffCheckExit": 0,
+    "manifest": {
+      "allAfterLFOnly": true,
+      "bytes": 4419,
+      "path": "artifacts/PATH-MANIFEST.json",
+      "sha256": "0f4f27fa4d6b726e4369d15e1a236b4d9ebc4b89b1ee30aaffef7f0bf9945706"
+    },
+    "patch": {
+      "bytes": 11053,
+      "path": "artifacts/apply-service-closure.patch",
+      "sha256": "10443e8667c3952c066bf19fa545517f9b82d5ee1248392eccf7b90d459be1a4"
+    },
+    "repo": "D:/CodexData/workspace/mihomo-bound-credentials-apply-service-closure-20261026-execution56h-v1/repo",
+    "strictApplyWhitespaceExit": 0
+  },
+  "closedSets": {
+    "apply": {
+      "count": 170,
+      "derivation": "C.FILES plus fixed eight",
+      "newBoundCredentialMembersExplicitlyRequired": 3
+    },
+    "applyFormatUnchangedCount": 1,
+    "compat": {
+      "count": 162,
+      "derivation": "existing dynamic C.FILES"
+    },
+    "continuousDeliveryUnchangedCount": 30,
+    "contractFilesChanged": false,
+    "service": {
+      "count": 177,
+      "derivation": "apply FILES plus fixed seven"
+    },
+    "serviceFormat": {
+      "added": [
+        "internal/authn/store.go",
+        "internal/serverruntime/runtime.go",
+        "internal/serverruntime/mihomo_continuous_recovery_hook_default.go"
+      ],
+      "count": 8,
+      "oldCount": 5
+    },
+    "unknown": {
+      "count": 183,
+      "derivation": "service FILES plus fixed six",
+      "hardCountChanged": false
+    },
+    "unknownFormat": {
+      "added": [
+        "internal/authn/store.go",
+        "internal/serverruntime/mihomo_lab_runtime.go",
+        "internal/serverruntime/runtime.go",
+        "internal/serverruntime/mihomo_continuous_recovery_hook_default.go"
+      ],
+      "count": 11,
+      "oldCount": 7
+    },
+    "workflowFilesChanged": false
+  },
+  "cpuEvidence": {
+    "closureProjection": "CLOSURE_PASS 162 170 177 183 8 11",
+    "expandedFinalSuite": {
+      "elapsedSeconds": 53.705,
+      "errors": 0,
+      "failures": 0,
+      "modules": 11,
+      "resourceWarningAsError": true,
+      "skips": 0,
+      "tests": 299
+    },
+    "newPythonModelTopCount": 2,
+    "requiredOriginalSuite": {
+      "elapsedSeconds": 44.359,
+      "errors": 0,
+      "failures": 0,
+      "modules": 7,
+      "resourceWarningAsError": true,
+      "skips": 0,
+      "tests": 179
+    }
+  },
+  "evidenceLimit": {
+    "cpuModelsAssertExactProducerFormatTuples": true,
+    "producerFormatMembershipSourceBound": true,
+    "publicEvidenceIndependentlyProvesFormatArgvMembers": false,
+    "reason": "existing command receipt stores commandClass and exit facts but deliberately does not persist argv"
+  },
+  "failureProvenance": {
+    "additionalClosureGap": "service and unknown formatter sets omitted modified default-selected sources",
+    "originalErrors": 4,
+    "originalPass": 81,
+    "originalReceipt": "D:/CodexData/workspace/mihomo-bound-credentials-corrected-integrate-qu7c0e4p/apply-service.stderr",
+    "originalTests": 85,
+    "rootCause": "stale apply and service hard counts after three new compat members"
+  },
+  "schema": "chengwang.mihomo-apply-service-closure-source-receipt/v1",
+  "status": "SOURCE_CANDIDATE_READY_FOR_ROOT_INTEGRATION_REPLAY"
+}

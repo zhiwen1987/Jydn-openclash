@@ -26,7 +26,11 @@ FMT = ('internal/adapter/mihomo/lab_reload_fault_default.go',
        'internal/adapter/mihomo/lab_reload_fault_linux_test.go',
        'internal/mihomodeploy/lab_unknown_acceptance_linux.go',
        'internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
-       'internal/adapter/mihomo/write_client.go')
+       'internal/adapter/mihomo/write_client.go',
+       'internal/authn/store.go',
+       'internal/serverruntime/runtime.go',
+       'internal/serverruntime/mihomo_lab_runtime.go',
+       'internal/serverruntime/mihomo_continuous_recovery_hook_default.go')
 MAPPING = {stage.replace('/', '-')+'-'+name: stage+'/'+name for stage in STAGES for name in CAPTURE}
 MAPPING.update({name: name for name in ('service-journal.jsonl', 'kernel.stdout', 'kernel.stderr')})
 MAPPING.update({'op-01-'+name: 'op-01/'+name for name in ('syntax.json', 'syntax.stdout', 'syntax.stderr')})

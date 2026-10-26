@@ -1,0 +1,147 @@
+{
+  "firstRejectingGates": {
+    "apply": [
+      "check_apply.py:799 hard-codes 167 although the exact set has 170 members",
+      "check_apply.py:869 repeats the stale 167 CLI source-binding count",
+      "test_check_apply.py:219 expects the stale fixture count 167"
+    ],
+    "service": [
+      "check_service.py:398 hard-codes 174 although the exact set has 177 members; this runs before contract verification at line 405",
+      "check_service.py:465 repeats the stale 174 CLI source-binding count",
+      "test_check_service.py:173 expects the stale fixture count 174"
+    ],
+    "unknown": [
+      "check_unknown.py derives its source count as len(check_service.FILES)+6 and therefore resolves to 183 without a stale literal",
+      "test_check_unknown.py compares against len(check_unknown.FILES) and has no stale literal"
+    ]
+  },
+  "formatMembership": {
+    "apply": {
+      "currentCount": 1,
+      "requiredCount": 1,
+      "result": "UNCHANGED_TARGET_PACKAGE_DOES_NOT_COMPILE_THE_NEW_AUTHN_SERVERRUNTIME_FILES"
+    },
+    "service": {
+      "currentCount": 5,
+      "reason": "All three changed files are selected by the ordinary chengwang_mihomo_service serverruntime test build. Exact-only continuous files remain excluded.",
+      "requiredAddedMembers": [
+        "internal/authn/store.go",
+        "internal/serverruntime/runtime.go",
+        "internal/serverruntime/mihomo_continuous_recovery_hook_default.go"
+      ],
+      "requiredCount": 8
+    },
+    "unknown": {
+      "currentCount": 7,
+      "reason": "The chengwang_mihomo_service,chengwang_mihomo_faults build includes serverruntime, compiles the changed untagged lab runtime, and selects the default hook through the faults complement.",
+      "requiredAddedMembers": [
+        "internal/authn/store.go",
+        "internal/serverruntime/mihomo_lab_runtime.go",
+        "internal/serverruntime/runtime.go",
+        "internal/serverruntime/mihomo_continuous_recovery_hook_default.go"
+      ],
+      "requiredCount": 11
+    }
+  },
+  "integratedSnapshot": {
+    "cleanAtReview": true,
+    "head": "eb028fe90aeae56cc66fefeb4fde4a06052cc747",
+    "path": "D:/CodexData/workspace/mihomo-eb028fe-acceptance-1io449ry/repo",
+    "trackedBlobCount": 1475
+  },
+  "minimumCorrectiveExitConditions": [
+    "Replace both stale apply source gates with the independently verified exact 170-member closure and update its positive fixture.",
+    "Replace both stale service source gates with the independently verified exact 177-member closure and update its positive fixture.",
+    "Expand service FMT from 5 to the exact required 8-member tuple and add a member-exact regression assertion.",
+    "Expand unknown FMT from 7 to the exact required 11-member tuple and add a member-exact regression assertion.",
+    "Retain unknown source closure at the derived exact 183 members and prove there are no missing inherited or duplicate members.",
+    "Do not add exact-only tops to the ordinary required set and do not remove the historical 688 ordinary tops.",
+    "Root must rerun the complete authorized gates after integrating a frozen corrective candidate; count alignment alone is insufficient."
+  ],
+  "notEvidence": [
+    "This erratum did not run Go, gofmt, build, product runtime, TLS, HTTP, namespaces, Docker, network access, CI, R, SSH or production operations.",
+    "This erratum is a static corrective review and is not corrective-candidate acceptance, Go acceptance, merge approval or production authorization."
+  ],
+  "observedCpuFailureReceipt": {
+    "bytes": 19596,
+    "errors": 4,
+    "failedSuites": [
+      "test_check_apply",
+      "test_check_service"
+    ],
+    "path": "D:/CodexData/workspace/mihomo-bound-credentials-corrected-integrate-qu7c0e4p/apply-service.stderr",
+    "reviewerDidNotRerunTests": true,
+    "sha256": "c25d78de1339ea252811deafeab3a76333eaad2271025ea095b21e9ae75970ff",
+    "tests": 85
+  },
+  "originalReview": {
+    "bytes": 6847,
+    "mustNotBeUsedAs": "FULL_179_GATE_OR_APPLY_SERVICE_UNKNOWN_CLOSURE",
+    "path": "artifacts/EXTERNAL-STATIC-CLOSURE-REVIEW.json",
+    "preservedUnchanged": true,
+    "sha256": "0c4205bfdfbdada6812cff7aa481c6307df3db4dbbbd06ebc5c349909361315f",
+    "validOnlyForItsEnumeratedNormalDiagnosticCompatibilityOldNativeCompletionContinuousChecks": true
+  },
+  "reviewedDate": "2026-10-26",
+  "schema": "chengwang.mihomo-continuous-bound-credentials-external-static-review-erratum/v1",
+  "sourceMembership": {
+    "apply": {
+      "base": "check_compat.FILES",
+      "count": 170,
+      "exactAddedMembers": [
+        "chengwang/deploy/mihomo-lifecycle-lab/apply_contract.json",
+        "chengwang/deploy/mihomo-lifecycle-lab/apply_worker.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/run_apply.sh",
+        "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/get_projection.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/test_get_projection.py",
+        "chengwang/internal/mihomodeploy/runtime_apply_linux_test.go"
+      ],
+      "missingInheritedMembers": [],
+      "uniqueCount": 170
+    },
+    "compatibility": {
+      "count": 162,
+      "uniqueCount": 162
+    },
+    "service": {
+      "base": "check_apply.FILES",
+      "count": 177,
+      "exactAddedMembers": [
+        "chengwang/deploy/mihomo-lifecycle-lab/check_service.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/service_worker.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/service_contract.json",
+        "chengwang/deploy/mihomo-lifecycle-lab/run_service.sh",
+        "chengwang/deploy/mihomo-lifecycle-lab/test_service_worker.py",
+        "chengwang/internal/serverruntime/subscription_runtime_linux_test.go"
+      ],
+      "missingInheritedMembers": [],
+      "uniqueCount": 177
+    },
+    "unknown": {
+      "base": "check_service.FILES",
+      "count": 183,
+      "exactAddedMembers": [
+        "chengwang/deploy/mihomo-lifecycle-lab/check_unknown.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/test_check_unknown.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/unknown_worker.py",
+        "chengwang/deploy/mihomo-lifecycle-lab/unknown_contract.json",
+        "chengwang/deploy/mihomo-lifecycle-lab/run_unknown.sh",
+        "chengwang/deploy/mihomo-lifecycle-lab/test_unknown_worker.py"
+      ],
+      "missingInheritedMembers": [],
+      "uniqueCount": 183
+    }
+  },
+  "status": "PRIOR_CLOSURE_SCOPE_INCOMPLETE_APPLY_SERVICE_AND_DERIVED_UNKNOWN_NOT_ACCEPTED",
+  "supersedesOriginalArtifact": false,
+  "unchangedBoundaries": {
+    "applyAndServiceContracts": "Contracts pin tag, package, top and budgets but do not encode source or format counts.",
+    "budgets": "No authorization exists to change 180 seconds, 256 events or 2097152 bytes.",
+    "continuousSourcePolicy": "deliveryPaths remains 30 unique members and full tracked sourceCount is derived from Git; unrelated corrective apply/service/unknown files must not be added merely to align a count.",
+    "lifecycleWorkflow": "Apply and service jobs call the fixed checkers and workers; no additional 167 or 174 source literal was found.",
+    "runApplyAndRunService": "Entrypoints only validate fixed arguments and exec their fixed workers; no source or format count is encoded."
+  }
+}

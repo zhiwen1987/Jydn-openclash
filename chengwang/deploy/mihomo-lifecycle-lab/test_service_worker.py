@@ -30,6 +30,17 @@ class SyntheticServiceDisclosureModels(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.fenced(report, {secret})
 
+    def test_exact_source_owned_format_membership(self):
+        self.assertEqual(W.FMT, (
+            'internal/adapter/mihomo/write_client.go',
+            'internal/mihomodeploy/lab_service_acceptance_linux.go',
+            'internal/serverruntime/mihomo_lab_runtime.go',
+            'internal/serverruntime/mihomo_lab_config_test.go',
+            'internal/serverruntime/mihomo_service_e2e_linux_test.go',
+            'internal/authn/store.go',
+            'internal/serverruntime/runtime.go',
+            'internal/serverruntime/mihomo_continuous_recovery_hook_default.go'))
+
     def test_unaligned_response_secret_is_rejected_after_decoding(self):
         secret = b'response-private-model-value'
         with self.assertRaises(ValueError):

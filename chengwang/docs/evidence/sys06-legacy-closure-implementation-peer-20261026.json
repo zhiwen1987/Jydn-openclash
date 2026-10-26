@@ -1,0 +1,177 @@
+{
+  "affectedRuntimeRoots": [
+    "apply evidence checker source closure",
+    "service evidence checker source closure",
+    "service worker formatter argv",
+    "unknown worker formatter argv"
+  ],
+  "applicability": {
+    "rationale": "The stale 167 and 174 assertions are the exact four errors in the preserved 85-test failure, and the modified service/unknown workers are the active producers that build their gofmt argv directly from FMT.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Patch identity, base, all eight before/after byte hashes, LF form, reverse application, source-set derivations, worker call sites, and 299 CPU tests were independently checked. Remaining uncertainty is execution evidence, not source interpretation."
+  },
+  "evidencePlan": [
+    {
+      "action": "Apply the immutable patch once through the sole integrator and rerun the full 179 Python gate with exact final-head source binding.",
+      "outcomes": {
+        "fail": "revise",
+        "pass": "merge"
+      },
+      "question": "Does the complete corrected source gate close the preserved four errors?"
+    },
+    {
+      "action": "Run the service and unknown lanes at the same immutable head and retain command/process receipts plus empty gofmt patch/stderr artifacts; do not infer argv solely from source models.",
+      "outcomes": {
+        "fail": "revise",
+        "pass": "merge"
+      },
+      "question": "Do real Linux producers format the expanded exact sets?"
+    },
+    {
+      "action": "Run the normal workflow gates at the same head and verify apply evidence and continuous delivery/source binding without changing the 30-path delivery set.",
+      "outcomes": {
+        "fail": "revise",
+        "pass": "merge"
+      },
+      "question": "Are adjacent apply and continuous contracts unchanged in execution?"
+    }
+  ],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes evidence source closures and formatter argv for apply, service, and unknown CI lanes. An incorrect member or count can reject valid runs or omit a modified Go source from formatting evidence, but it does not change product Go code or runtime authorization."
+  },
+  "importantCallers": [
+    "check_apply.verify_raw and CLI source checks",
+    "check_service.verify_raw and CLI source checks",
+    "service_worker sandbox producer",
+    "unknown_worker sandbox producer"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "Updating only a hard count accepts a duplicate or omits one of the three bound-credential source files.",
+      "id": "source_closure",
+      "invariant": "The compatibility, apply, service, and unknown source closures must remain exact, duplicate-free, and layered as 162, 170, 177, and 183 members.",
+      "legitimateControl": "The patch requires the exact three bound-credential paths as a subset, retains fixed layered additions, and the independent import shows exact unique counts 162/170/177/183.",
+      "result": "supported",
+      "runtimeRoot": "check_apply.FILES, check_service.FILES, and check_unknown.FILES"
+    },
+    {
+      "counterexample": "A shared runtime/authn/default-hook source is compiled by a lane but omitted from gofmt, or an added list member is claimed without reaching the subprocess argv.",
+      "id": "formatter_coverage",
+      "invariant": "Every shared Go source modified by bound credentials and selected by service or unknown builds must enter that lane's gofmt invocation without changing its Go-test argv.",
+      "legitimateControl": "Both workers expand FMT directly in the single gofmt -d call; full tuple tests pin service 8 and unknown 11. Go-test package, tag, top, timeout, and capture paths are unchanged.",
+      "result": "supported",
+      "runtimeRoot": "service_worker.FMT and unknown_worker.FMT"
+    },
+    {
+      "counterexample": "A closure fix silently expands delivery authority or changes an experimental command.",
+      "id": "unchanged_adjacent_contracts",
+      "invariant": "The repair must not alter apply formatting, continuous delivery membership, contracts, workflows, or evidence semantics.",
+      "legitimateControl": "Only eight declared Python paths changed; apply_worker and continuous worker are unchanged, the apply formatter remains its one exact Go file, and DELIVERY remains the same 30-path tuple.",
+      "result": "supported",
+      "runtimeRoot": "apply_worker format call and continuous_recovery_api_worker.DELIVERY"
+    },
+    {
+      "counterexample": "A Python tuple assertion is treated as proof that Linux executed gofmt with those arguments.",
+      "id": "evidence_claim_boundary",
+      "invariant": "Source-model success must not be presented as proof of Linux formatter execution or a passing integrated CI lane.",
+      "legitimateControl": "The candidate receipt and this review explicitly record that public command evidence does not retain argv and require final-head Linux replay.",
+      "result": "supported",
+      "runtimeRoot": "service and unknown command receipts and final workflow gates"
+    }
+  ],
+  "patch": {
+    "base": "eb028fe90aeae56cc66fefeb4fde4a06052cc747",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/check_service.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/service_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_service_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_unknown_worker.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/unknown_worker.py"
+    ],
+    "head": "path-manifest-sha256:0f4f27fa4d6b726e4369d15e1a236b4d9ebc4b89b1ee30aaffef7f0bf9945706",
+    "repository": "chengwang",
+    "sha256": "10443e8667c3952c066bf19fa545517f9b82d5ee1248392eccf7b90d459be1a4",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "all source collections remain duplicate-free",
+    "new bound credential members are explicitly required by name",
+    "service and unknown tests pin full formatter tuples",
+    "apply worker format command and continuous delivery set are byte-unchanged",
+    "299 independent Python tests pass"
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "Eight Python-only changes are isolated to checkers, workers, and their tests; the patch can be reverted without data migration or runtime state change."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The changes are mechanical, exact-set guards cover every adjusted count and formatter tuple, 299 source-model tests pass independently, and the patch is cleanly reversible. The integrated 179 gate and Linux lanes have not yet run after this fix."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The Python models pin exact 162/170/177/183 source sets, exact service FMT 8 and unknown FMT 11 tuples, and the unchanged continuous delivery count. They do not independently prove the actual Linux gofmt argv or final-head lane artifacts."
+  },
+  "riskDrivers": [
+    "hard-count changes can accidentally admit or omit source members",
+    "formatter membership is source-bound but argv is not persisted in public evidence",
+    "final integrated 179 gate has not rerun"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without the patch the apply/service source checks deterministically reject because the bound-credential closure added three files, and service/unknown formatting evidence omits shared modified default-selected Go sources."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "Whether root's complete 179 source gate passes after applying this exact patch to a new commit."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "Whether Linux service and unknown producers execute gofmt with the exact 8/11 members and produce empty format artifacts."
+    },
+    {
+      "decisionCritical": true,
+      "summary": "Whether the corresponding final-head apply, service, and unknown workflows remain accepted after source closure expansion."
+    }
+  ],
+  "validation": [
+    {
+      "name": "immutable patch and manifest replay",
+      "protects": "Patch/base identity, eight before/after SHA-256 and byte counts, LF-only afterimages, and strict reverse application.",
+      "status": "passed"
+    },
+    {
+      "name": "independent 11-module Python suite",
+      "protects": "299 tests with zero failures, errors, or skips; exact source counts, formatter tuples, checker negatives, and unchanged neighboring models.",
+      "status": "passed"
+    },
+    {
+      "name": "preserved prior failure attribution",
+      "protects": "The original 85-test run has exactly four errors at stale apply/service count gates, with all other tests passing.",
+      "status": "passed"
+    },
+    {
+      "name": "final integrated 179 CPU gate",
+      "protects": "The corrected candidate composes with the complete final-head source replay rather than only the expanded local suite.",
+      "status": "unavailable"
+    },
+    {
+      "name": "Linux formatter and lane execution",
+      "protects": "Actual gofmt argv/empty diff and apply/service/unknown lane behavior at one immutable final head.",
+      "status": "unavailable"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}

@@ -41,6 +41,20 @@ class SyntheticUnknownDisclosureModels(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.fenced(report, {secret})
 
+    def test_exact_source_owned_format_membership(self):
+        self.assertEqual(W.FMT, (
+            'internal/adapter/mihomo/lab_reload_fault_default.go',
+            'internal/adapter/mihomo/lab_reload_fault_linux.go',
+            'internal/adapter/mihomo/lab_reload_fault_unsupported.go',
+            'internal/adapter/mihomo/lab_reload_fault_linux_test.go',
+            'internal/mihomodeploy/lab_unknown_acceptance_linux.go',
+            'internal/serverruntime/mihomo_unknown_e2e_linux_test.go',
+            'internal/adapter/mihomo/write_client.go',
+            'internal/authn/store.go',
+            'internal/serverruntime/runtime.go',
+            'internal/serverruntime/mihomo_lab_runtime.go',
+            'internal/serverruntime/mihomo_continuous_recovery_hook_default.go'))
+
     def test_unaligned_actual_response_body_secret_is_rejected(self):
         secret = b'synthetic-private-response-token'
         with self.assertRaises(ValueError):

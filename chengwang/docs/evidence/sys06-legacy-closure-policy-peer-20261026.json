@@ -1,0 +1,168 @@
+{
+  "artifactVerification": {
+    "allAfterimagesLFOnly": true,
+    "declaredHashesAndLengthsMatch": true,
+    "manifestAfterBytesHashesAndGitBlobsMatchAfterimages": true,
+    "manifestBeforeBytesHashesAndGitBlobsMatchBase": true,
+    "manifestPathsEqualWorkingDiffPaths": true,
+    "manifestPathsUnique": true,
+    "patchWasNotAppliedByReviewer": true,
+    "strictGitApplyCheckWhitespaceErrorAllExit": 0
+  },
+  "base": {
+    "commit": "eb028fe90aeae56cc66fefeb4fde4a06052cc747",
+    "snapshot": "D:/CodexData/workspace/mihomo-eb028fe-acceptance-1io449ry/repo",
+    "trackedBlobCount": 1475
+  },
+  "candidate": {
+    "afterimageRepo": "repo",
+    "changedPathCount": 8,
+    "fsyncReceipt": {
+      "bytes": 627,
+      "path": "artifacts/FSYNC-RECEIPT.json",
+      "sha256": "90f0d1bba34938df3928eeea7c712b93f23106876ae6844bedc14635e7a558ba"
+    },
+    "patch": {
+      "bytes": 11053,
+      "path": "artifacts/apply-service-closure.patch",
+      "sha256": "10443e8667c3952c066bf19fa545517f9b82d5ee1248392eccf7b90d459be1a4"
+    },
+    "pathManifest": {
+      "bytes": 4419,
+      "path": "artifacts/PATH-MANIFEST.json",
+      "sha256": "0f4f27fa4d6b726e4369d15e1a236b4d9ebc4b89b1ee30aaffef7f0bf9945706"
+    },
+    "root": "D:/CodexData/workspace/mihomo-bound-credentials-apply-service-closure-20261026-execution56h-v1",
+    "sourceReceipt": {
+      "bytes": 3419,
+      "path": "artifacts/SOURCE-RECEIPT.json",
+      "sha256": "7c423ce4ea76d80e7482568ad8b84d971cff44613ef160bf483c140fa1784ece"
+    }
+  },
+  "changedPaths": [
+    "chengwang/deploy/mihomo-lifecycle-lab/check_apply.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/check_service.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/service_worker.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_apply.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_check_service.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_service_worker.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_unknown_worker.py",
+    "chengwang/deploy/mihomo-lifecycle-lab/unknown_worker.py"
+  ],
+  "formatArgvEvidenceBoundary": {
+    "noIndependentArgvClaimMade": true,
+    "publicRuntimeEvidenceIndependentlyProvesArgvMembers": false,
+    "pythonSourceRegressionMembership": true,
+    "reason": "The existing process event deliberately omits argv and records only command class and process outcome facts.",
+    "sourceBoundProducerMembership": true
+  },
+  "formatMembership": {
+    "apply": {
+      "changed": false,
+      "count": 1
+    },
+    "exactOnlyContinuousSourcesExcludedFromOrdinaryServiceAndUnknownFormatTuples": true,
+    "result": "PASS_STATIC_PRODUCER_MEMBERSHIP",
+    "service": {
+      "added": [
+        "internal/authn/store.go",
+        "internal/serverruntime/runtime.go",
+        "internal/serverruntime/mihomo_continuous_recovery_hook_default.go"
+      ],
+      "count": 8,
+      "producerTuplePinnedByDedicatedPythonSourceModel": true
+    },
+    "unknown": {
+      "added": [
+        "internal/authn/store.go",
+        "internal/serverruntime/mihomo_lab_runtime.go",
+        "internal/serverruntime/runtime.go",
+        "internal/serverruntime/mihomo_continuous_recovery_hook_default.go"
+      ],
+      "count": 11,
+      "producerTuplePinnedByDedicatedPythonSourceModel": true
+    }
+  },
+  "independentCpuVerification": {
+    "elapsedSeconds": 54.83,
+    "errors": 0,
+    "failures": 0,
+    "newFormatMembershipTestTops": 2,
+    "pythonModules": 11,
+    "pythonTopLevelTests": 299,
+    "resourceWarningAsError": true,
+    "result": "PASS",
+    "skips": 0
+  },
+  "preservedClosures": {
+    "budgetFilesChanged": false,
+    "continuousExactOnlyTopsAddedToOrdinaryRequired": 0,
+    "continuousSourcePolicyDeliveryCount": 30,
+    "continuousSourcePolicyDeliveryUniqueCount": 30,
+    "contractFilesChanged": false,
+    "ordinaryRequiredTopLevelTests": 688,
+    "required180Seconds256EventsAnd2097152BytesNotChangedByPatch": true,
+    "runEntrypointsChanged": false,
+    "workflowFilesChanged": false
+  },
+  "priorReviewCorrectionChain": {
+    "correctedErratumSHA256": "b593aed72f39d545049a9679630ee895c65a32b3ce9602078facdb1cf5702198",
+    "correctedUnknownFormatCount": 11,
+    "originalReviewDoesNotProveApplyServiceUnknownClosure": true,
+    "originalStaticReviewSHA256": "0c4205bfdfbdada6812cff7aa481c6307df3db4dbbbd06ebc5c349909361315f",
+    "preservedIncorrectErratumV1SHA256": "211104ae197f4ede7e4eedfdf5f096fcde2bd35df1e5a4cce12183f11e93733d"
+  },
+  "reviewedDate": "2026-10-26",
+  "reviewerActionsNotPerformed": [
+    "Go",
+    "gofmt",
+    "build",
+    "product runtime",
+    "kernel execution",
+    "Docker",
+    "network",
+    "CI",
+    "R repository mutation",
+    "SSH",
+    "push",
+    "production"
+  ],
+  "reviewerRole": "policy_multicore_contract",
+  "rootExitConditions": [
+    "Apply the immutable patch to the intended integration tree and commit it before clean/source-binding checks.",
+    "Re-run final-HEAD source binding and the complete authorized Linux, Go, gofmt, apply, service, unknown, old-native, completion and continuous lanes.",
+    "Do not treat this static review or Python models as independent formatter argv, Go compilation, runtime, merge, CI or production evidence."
+  ],
+  "schema": "chengwang.mihomo-apply-service-closure-external-static-review/v1",
+  "sourceMembership": {
+    "apply": {
+      "count": 170,
+      "exactDifferenceFromCompatCount": 8,
+      "missingInheritedMembers": [],
+      "uniqueCount": 170
+    },
+    "compat": {
+      "count": 162,
+      "deltaFromBase159": [
+        "chengwang/internal/authn/continuous_bound_credentials_linux.go",
+        "chengwang/internal/authn/continuous_bound_credentials_linux_test.go",
+        "chengwang/internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go"
+      ],
+      "uniqueCount": 162
+    },
+    "result": "PASS_EXACT_SET_DIFFERENCES_NOT_COUNT_ONLY",
+    "service": {
+      "count": 177,
+      "exactDifferenceFromApplyCount": 7,
+      "missingInheritedMembers": [],
+      "uniqueCount": 177
+    },
+    "unknown": {
+      "count": 183,
+      "exactDifferenceFromServiceCount": 6,
+      "missingInheritedMembers": [],
+      "uniqueCount": 183
+    }
+  },
+  "status": "STATIC_SOURCE_CANDIDATE_ACCEPTED_FOR_ROOT_INTEGRATION_AND_LINUX_GATES_ONLY"
+}
