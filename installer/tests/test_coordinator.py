@@ -23,7 +23,7 @@ class PreflightTests(unittest.TestCase):
   c.p={'mode':'fresh','dns':{'publish':True}}
   c.manifest={'version':'test'};c.package='/owned/package'
   c._validate_plan=Mock();c.stage_package=Mock();c.emit=Mock()
-  c.server_action=Mock(side_effect=[{'private':{},'source_count':0}, {'restored':True}])
+  c.server_action=Mock(side_effect=[{'private':{},'source_count':0,'transaction':'1000000000000000000'}, {'restored':True}])
   c.router_action=Mock()
   with self.assertRaisesRegex(Failure,'空订阅'):
    c.install({'inventory':{'server':{}}})
@@ -38,7 +38,7 @@ class PreflightTests(unittest.TestCase):
     c._validate_plan=Mock();c.stage_package=Mock();c.stage_router=Mock();c.emit=Mock()
     def server(action,**args):
      events.append(('server',action,args.get('accept',False)))
-     return {'private':{},'source_count':1,'backup':'/saved'} if action=='prepare' else {'accepted':args.get('accept',False)}
+     return {'private':{},'source_count':1,'backup':'/saved','transaction':'1000000000000000000'} if action=='prepare' else {'accepted':args.get('accept',False)}
     def router(action,**args):
      events.append(('router',action,args.get('accept',False)))
      if fail and action=='verify' and args.get('accept'):raise Failure('injected_commit_failure')

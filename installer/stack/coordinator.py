@@ -37,6 +37,7 @@ class Coordinator:
 
     def plan(self):
         inventory=self.doctor();server=inventory['server'];router=inventory['router']
+        require(not server.get('transaction_pending') and not router.get('transaction_pending'),'存在未完成事务，请先核对两端记录并执行 restore；不会覆盖现有事务')
         if server.get('managed_version'):
             require(server.get('managed_profile_sha256')==server['profile_sha256'],'已安装站点的环境档案发生变化，需要单独评审迁移；不会借升级改变网络接入')
         if self.p['mode']=='fresh':
@@ -96,7 +97,7 @@ class Coordinator:
             server_prepared=True;material=receipt.pop('private')
             require(self.p['mode']!='fresh' or not self.p['dns']['publish'] or receipt['source_count']>0,
                     '空订阅尚无代理解析能力，请先关闭 DNS 发布；配置有效订阅并验收后再启用')
-            self.router_action('prepare',material=material,allow_router_switch=allow_router_switch,expected=plan['inventory']['router']);router_prepared=True
+            self.router_action('prepare',material=material,server_transaction=receipt['transaction'],allow_router_switch=allow_router_switch,expected=plan['inventory']['router']);router_prepared=True
             if self.p['mode']=='fresh':self.stage_router(material,receipt['source_count'])
             self.emit('部署中心服务并启用独立回退保护…')
             self.server_action('install',package=self.package)
@@ -116,7 +117,9 @@ class Coordinator:
             # The router retains its independent rollback until its own acceptance.
             router=self.router_action('verify',accept=True)
             return {'installed':True,'site':self.p['site'],'version':self.manifest['version'],'backup':receipt['backup'],'router':router,'server':server,'pending_user_actions':plan['pending_user_actions']}
-        except BaseException:
+        except BaseException as error:
+            reason=str(error) if isinstance(error,Failure) else type(error).__name__
+            self.emit('验收未通过：'+reason)
             self.emit('安装未通过，正在恢复本次变更…')
             failures=[]
             if router_prepared:
@@ -124,9 +127,9 @@ class Coordinator:
                 except Exception as error:failures.append('旁路由恢复需要检查目标事务记录：'+(str(error) if isinstance(error,Failure) else type(error).__name__))
             # Never remove the center if restoring the router was refused.
             if server_prepared and not failures:
-                try:self.server_action('restore',manual=True)
+                try:self.server_action('restore',manual=True,transaction=receipt['transaction'])
                 except Exception as error:failures.append('中心服务恢复需要检查目标事务记录：'+(str(error) if isinstance(error,Failure) else type(error).__name__))
-            if failures:raise Failure('；'.join(failures)) from None
+            if failures:raise Failure('原始原因：'+reason+'；'+'；'.join(failures)) from None
             raise
 
     def verify(self):
@@ -135,7 +138,7 @@ class Coordinator:
     def restore(self):
         self.emit('恢复上一已记录版本；保留业务数据…')
         router=self.router_action('restore',manual=True)
-        server=self.server_action('restore',manual=True)
+        server=self.server_action('restore',manual=True,transaction=router.get('server_transaction'))
         result={'router':router,'server':server}
         if server.get('previous_managed_version'):
             self.emit('等待恢复后的服务重新就绪…')

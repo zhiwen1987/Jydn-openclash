@@ -119,6 +119,14 @@ def private_path?(proxies,name)
  end
  false
 end
+
+def protect_private_choices(choices,proxies)
+ choices.each do |name,value|
+  next if ['🧪 节点能力检测','🔬 节点归属校验'].include?(name)
+  next unless proxies[name] && proxies[name]['now']!=value
+  assert(!private_path?(proxies,name),'concurrent_private_selection_restore_refused')
+ end
+end
 def identity(p)
  actual=File.read('/sys/class/net/br-lan/address').strip
  assert(actual==p.fetch('router').fetch('mac'),'router_identity_changed')
@@ -130,7 +138,7 @@ def doctor(p)
  version=sh('opkg','status','luci-app-openclash')[/^Version:\s*(\S+)/,1]
  assert(version=='0.48.002','openclash_version_requires_rehearsal')
  source=uci('config_path');runtime=source.empty? ? '' : '/etc/openclash/'+File.basename(source)
- {'mac'=>p['router']['mac'],'architecture'=>sh('uname','-m'),'source'=>source,'source_sha256'=>File.file?(source) ? hash_file(source) : nil,'runtime_sha256'=>File.file?(runtime) ? hash_file(runtime) : nil,'running'=>active?,'enabled'=>uci('enable'),'kernel_sha256'=>hash_file('/etc/openclash/core/clash_meta'),'uci_sha256'=>hash_file('/etc/config/openclash'),'overwrite_sha256'=>File.file?('/etc/openclash/custom/openclash_custom_overwrite.sh') ? hash_file('/etc/openclash/custom/openclash_custom_overwrite.sh') : nil}
+ {'mac'=>p['router']['mac'],'architecture'=>sh('uname','-m'),'source'=>source,'source_sha256'=>File.file?(source) ? hash_file(source) : nil,'runtime_sha256'=>File.file?(runtime) ? hash_file(runtime) : nil,'running'=>active?,'enabled'=>uci('enable'),'kernel_sha256'=>hash_file('/etc/openclash/core/clash_meta'),'uci_sha256'=>hash_file('/etc/config/openclash'),'transaction_pending'=>File.file?('/etc/openclash/custom/clash-stack-'+p['site']+'/transaction.json'),'overwrite_sha256'=>File.file?('/etc/openclash/custom/openclash_custom_overwrite.sh') ? hash_file('/etc/openclash/custom/openclash_custom_overwrite.sh') : nil}
 end
 def prepare(p,base,args)
  identity(p);assert(!File.file?(base+'/transaction.json'),'unfinished_router_transaction')
@@ -155,7 +163,7 @@ def prepare(p,base,args)
   else;files[path]={'missing'=>true};end
  end
  choices=active? ? api('/proxies')['proxies'].select{|_,g|g['type']=='Selector'}.transform_values{|g|g['now']} : {}
- t={'schema'=>1,'profile'=>p,'previous'=>state,'backup'=>backup,'files'=>files,'phase'=>'prepared','was_running'=>active?,'was_enabled'=>uci('enable'),'old_api'=>{'ports'=>{'api'=>uci('cn_port').to_i},'material'=>{'api_secret'=>uci('dashboard_password')}},'source'=>source,'runtime'=>runtime,'target'=>target,'choices'=>choices,'material'=>args['material'],'started_at'=>Time.now.to_i,'owned_sha256'=>{}}
+ t={'schema'=>1,'profile'=>p,'previous'=>state,'backup'=>backup,'files'=>files,'phase'=>'prepared','server_transaction'=>args['server_transaction'],'was_running'=>active?,'was_enabled'=>uci('enable'),'old_api'=>{'ports'=>{'api'=>uci('cn_port').to_i},'material'=>{'api_secret'=>uci('dashboard_password')}},'source'=>source,'runtime'=>runtime,'target'=>target,'choices'=>choices,'material'=>args['material'],'started_at'=>Time.now.to_i,'owned_sha256'=>{}}
  t['dhcp_before']=uci_map('dhcp')
  atomic(base+'/transaction.json',json(t));atomic(backup+'/transaction.json',json(t))
  {'prepared'=>true,'backup'=>backup,'source_preserved'=>p['mode']=='adopt'}
@@ -274,14 +282,11 @@ def restore(p,base,manual=false)
  t=YAML.load_file(base+'/transaction.json')
  if p['mode']=='adopt'
   if t['previous'];atomic(base+'/state.json',json(t['previous']));elsif File.file?(base+'/state.json');File.unlink(base+'/state.json');end
-  File.unlink(base+'/transaction.json');return {'restored'=>true,'routing_changed'=>false}
+  File.unlink(base+'/transaction.json');return {'restored'=>true,'routing_changed'=>false,'server_transaction'=>t['server_transaction']}
  end
  if t['was_running'] && t['routing_applied']
   fresh=api('/proxies','GET',nil,t['settings'])['proxies']
-  t['choices'].each do |name,value|
-   next unless fresh[name] && fresh[name]['now']!=value
-   assert(!private_path?(fresh,name),'concurrent_private_selection_restore_refused')
-  end
+  protect_private_choices(t['choices'],fresh)
  end
  reconcile_service_files(t,base)
  t['owned_sha256'].each{|path,digest|current=File.file?(path) ? hash_file(path) : nil;assert([digest,t['files'].dig(path,'sha256')].include?(current),'router_concurrent_edit_restore_refused')}
@@ -312,7 +317,7 @@ def restore(p,base,manual=false)
  atomic(t['backup']+'/restored-transaction.private.json',json(t))
  File.unlink(base+'/transaction.json')
  if t['guard_unit'];service('/etc/init.d/'+t['guard_unit'],'disable');end
- {'restored'=>true,'backup'=>t['backup']}
+ {'restored'=>true,'backup'=>t['backup'],'server_transaction'=>t['server_transaction']}
 end
 
 def backup(p,base)

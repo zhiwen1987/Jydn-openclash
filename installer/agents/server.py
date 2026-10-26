@@ -96,7 +96,7 @@ def doctor(p):
         port=p['ports']['dns'];ports[str(port)]=socket_free(p['server']['host'],port) and socket_free(p['server']['host'],port,True)
     state_path=Path('/opt/clash-stack')/p['site']/'state.json'
     state=read(state_path) if state_path.exists() else {}
-    return {'platform':'linux/amd64','docker':engine['ServerVersion'],'free_bytes':shutil.disk_usage('/opt').free,'container':shape(current),'managed_version':state.get('manifest',{}).get('version'),'managed_profile_sha256':state.get('profile_sha256'),'ports_free':ports,'container_count':len(all_shapes()),'profile_sha256':hashlib.sha256(json.dumps(p,sort_keys=True).encode()).hexdigest()}
+    return {'platform':'linux/amd64','docker':engine['ServerVersion'],'free_bytes':shutil.disk_usage('/opt').free,'container':shape(current),'managed_version':state.get('manifest',{}).get('version'),'managed_profile_sha256':state.get('profile_sha256'),'transaction_pending':(state_path.parent/'transaction.json').exists(),'recovery_review_required':(state_path.parent/'recovery-status.json').exists(),'ports_free':ports,'container_count':len(all_shapes()),'profile_sha256':hashlib.sha256(json.dumps(p,sort_keys=True).encode()).hexdigest()}
 
 
 def extract_payload(archive, target):
@@ -383,10 +383,13 @@ def verify(p, base, accept=False):
             check(len(raw)>=12,'dns_response_incomplete')
             header=struct.unpack('!6H',raw[:12]);check(header[0]==0x1926 and header[1]&0x8000 and not header[1]&0x0200 and header[1]&15==0 and header[2]==1 and header[3]>0 and raw[12:12+len(question)].lower()==question.lower(),'dns_query_failed')
             checks['dns_tcp' if tcp else 'dns_udp']='ready'
-    current=all_shapes()
-    for name,old in t.get('other_containers',{}).items():
-        if name==t['container_name']:continue
-        check(current.get(name)==old,'unrelated_container_changed')
+    comparison=t['phase']=='installed'
+    if comparison:
+        current=all_shapes()
+        changes=[{'name':name,'before':old,'now':current.get(name)} for name,old in t.get('other_containers',{}).items() if name!=t['container_name'] and current.get(name)!=old]
+        if changes:
+            atomic(base/'unrelated-changes.json',{'at':time.time(),'changes':changes})
+            raise RuntimeError('unrelated_container_changed:'+changes[0]['name'][:64])
     if accept:
         check(t['phase']=='installed','cannot_accept_phase')
         t['phase']='accepted';t['accepted_at']=time.time();t['container_id']=x['Id']
@@ -394,15 +397,24 @@ def verify(p, base, accept=False):
         atomic(Path(t['backup'])/'transaction.json',t)
         atomic(base/'state.json',t);atomic(Path(t['backup'])/'accepted.json',{'at':time.time()})
         (base/'transaction.json').unlink()
+        (base/'recovery-status.json').unlink(missing_ok=True)
         command(['systemctl','stop',t['guard_unit']+'.timer'])
         if p['mode']=='fresh':install_watchdog(p,base)
-    return {'checks':checks,'container_id':x['Id'],'unrelated_containers_unchanged':True,'accepted':t['phase']=='accepted','business_account_acceptance':'pending_real_node_and_account'}
+    return {'checks':checks,'container_id':x['Id'],'unrelated_containers_unchanged':True if comparison else None,'unrelated_comparison':'deployment_window' if comparison else 'not_compared_outside_deployment','accepted':t['phase']=='accepted','business_account_acceptance':'pending_real_node_and_account'}
 
 
 def restore(p, base, manual=False, transaction=None):
     if not (base/'transaction.json').exists():
         if not manual or not (base/'state.json').exists():return {'restored':False,'reason':'no_pending_transaction'}
-        state=read(base/'state.json');saved=read(Path(state['backup'])/'transaction.json')
+        state=read(base/'state.json')
+        if transaction and state['id']!=transaction:
+            history=base/'backups'/transaction if re.fullmatch(r'[0-9]{15,24}',transaction) else None
+            if history and (history/'restore-result.json').exists() and (history/'restored-transaction.private.json').exists():
+                recovered=read(history/'restored-transaction.private.json')
+                if recovered['id']==transaction and (recovered.get('previous') or {}).get('id')==state['id']:
+                    return {'restored':False,'already_recovered':True,'data_retained':True,'previous_managed_version':state.get('manifest',{}).get('version')}
+            raise RuntimeError('restore_transaction_not_current')
+        saved=read(Path(state['backup'])/'transaction.json')
         check(state['manifest']['image_id']==saved['manifest']['image_id'] and state.get('compose_after_sha256')==saved.get('compose_after_sha256'),'restore_is_not_latest_backup')
         actual=docker_info(state['container_name']);check(actual and actual['Id']==state['container_id'],'managed_container_identity_changed')
         saved['new_container_id']=actual['Id']
@@ -413,6 +425,11 @@ def restore(p, base, manual=False, transaction=None):
         current_hash=sha(path) if path.is_file() else None
         check(current_hash in (t['compose_after_sha256'],t['compose_before_sha256']),'concurrent_compose_edit_restore_refused')
     if current and t.get('new_container_id'):check(current['Id']==t['new_container_id'],'container_identity_changed_restore_refused')
+    if not manual and not t['old_container'] and current:
+        # A separate router may still be serving a protected private selection.
+        # Do not tear down its only new center without authenticated orchestration.
+        atomic(base/'recovery-status.json',{'at':time.time(),'transaction':t['id'],'reason':'new_center_retained_until_coordinated_restore','requires_review':True})
+        return {'restored':False,'data_retained':True,'reason':'new_center_retained_until_coordinated_restore'}
     if t['old_container']:
         check(sha(backup/'compose.before.json')==t['compose_before_sha256'],'compose_backup_corrupt')
         shutil.copyfile(backup/'compose.before.json',path);path.chmod(0o600)
@@ -439,6 +456,7 @@ def restore(p, base, manual=False, transaction=None):
     atomic(backup/'restore-result.json',{'at':time.time(),'data_retained':True,'cleanup_warnings':cleanup_warnings})
     atomic(backup/'restored-transaction.private.json',t)
     (base/'transaction.json').unlink()
+    (base/'recovery-status.json').unlink(missing_ok=True)
     if t.get('guard_unit'):
         try:
             if not stop_transient_timer(t['guard_unit']+'.timer'):cleanup_warnings.append('rollback_timer_cleanup_failed')

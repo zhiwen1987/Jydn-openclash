@@ -17,6 +17,30 @@ spec=importlib.util.spec_from_file_location('stack_server_agent',Path(__file__).
 agent=importlib.util.module_from_spec(spec);spec.loader.exec_module(agent)
 
 class RecoveryTests(unittest.TestCase):
+    def test_unconfirmed_first_center_is_retained_by_independent_guard(self):
+        with tempfile.TemporaryDirectory() as d:
+            base=Path(d);self.transaction(base)
+            with patch.object(agent,'docker_info',return_value={'Id':'owned'}),patch.object(agent,'command') as command:
+                result=agent.restore({'site':'lab'},base)
+                self.assertEqual(result['reason'],'new_center_retained_until_coordinated_restore')
+                command.assert_not_called()
+            self.assertTrue((base/'transaction.json').exists())
+            self.assertTrue(agent.read(base/'recovery-status.json')['requires_review'])
+
+    def test_transaction_link_does_not_roll_back_an_older_version_twice(self):
+        with tempfile.TemporaryDirectory() as d:
+            base=Path(d);state={'id':'prior','manifest':{'version':'old'}};agent.atomic(base/'state.json',state)
+            transaction='1000000000000000000';history=base/'backups'/transaction
+            with patch.object(agent,'docker_info') as docker,patch.object(agent,'command') as command:
+                with self.assertRaisesRegex(RuntimeError,'restore_transaction_not_current'):
+                    agent.restore({'site':'lab'},base,manual=True,transaction=transaction)
+                agent.atomic(history/'restore-result.json',{'data_retained':True})
+                agent.atomic(history/'restored-transaction.private.json',{'id':transaction,'previous':{'id':'prior'}})
+                result=agent.restore({'site':'lab'},base,manual=True,transaction=transaction)
+                self.assertTrue(result['already_recovered']);self.assertEqual(result['previous_managed_version'],'old')
+                docker.assert_not_called();command.assert_not_called()
+            self.assertFalse((base/'transaction.json').exists())
+
     def test_collected_transient_timer_is_already_clean(self):
         state=type('Result',(),{'stdout':b'not-found\n','returncode':0})()
         with patch.object(agent.subprocess,'run',return_value=state) as run:

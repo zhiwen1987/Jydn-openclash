@@ -31,6 +31,17 @@ Dir.mktmpdir('stack-router-safety-') do |base|
 end
 assert(private_path?({'business'=>{'now'=>'🔐 自定义节点'}},'business'),'global_private_entry_not_protected')
 assert(!private_path?({'A'=>{'now'=>'B'},'B'=>{'now'=>'A'}},'A'),'cycle_detection_failed')
+probe='🧪 节点能力检测';private_node='🔐 自建节点 · isolated-fixture'
+protect_private_choices({probe=>'public'},{probe=>{'now'=>private_node}})
+['business','GLOBAL','🔐 自定义节点'].each do |name|
+ begin
+  protect_private_choices({name=>'old'},{name=>{'now'=>'🔐 自定义节点'}})
+  raise 'business_private_change_was_ignored'
+ rescue RuntimeError=>e
+  raise unless e.message=='concurrent_private_selection_restore_refused'
+ end
+end
+puts 'probe_rotation_allowed_business_private_choices_protected=PASS'
 started=Process.clock_gettime(Process::CLOCK_MONOTONIC)
 assert(!bounded(['/bin/sh','-c','sleep 10'],0.1),'timeout_did_not_interrupt_child')
 assert(Process.clock_gettime(Process::CLOCK_MONOTONIC)-started<3,'timeout_took_too_long')
