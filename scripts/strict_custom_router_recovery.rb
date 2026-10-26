@@ -30,7 +30,7 @@ module StrictRouterRecovery
     temp=path+'.strict-tmp';File.open(temp,'w',mode){|f|f.write(bytes);f.flush;f.fsync};File.chmod(mode,temp);File.rename(temp,path)
   end
   def self.verify(b)
-    raise 'unexpected_recovery_directory' unless b.start_with?('/root/openclash-backups/shared-custom-20261026-') && File.directory?(b)
+    raise 'unexpected_recovery_directory' unless b.match?(%r{\A/root/openclash-backups/(shared-custom|local-source)-\d{8}-\d+\z}) && File.directory?(b)
     raise 'wrong_router_identity' unless File.read('/sys/class/net/br-lan/address').strip=='00:0c:29:2d:96:e8'
     m=YAML.load_file(b+'/manifest.yaml')
     m['files'].each{|k,item|next if item['missing'];raise 'backup_integrity_failed' unless hash(b+'/'+k+'.before')==item['sha256']}
@@ -53,11 +53,23 @@ module StrictRouterRecovery
   end
   def self.restore(b)
     m=verify(b);a=YAML.load_file(b+'/activated_router.yaml')
+    # Never overwrite bindings or release a newly selected private business
+    # back to an older public choice during a later manual rollback.
+    %w[private_input locks locks_good].each do |key|
+      item=m['files'][key];next unless item && !item['missing']
+      raise 'private_registry_changed_manual_review_required' unless File.file?(item['path']) && hash(item['path'])==item['sha256']
+    end
+    current=api('/proxies')['proxies']
+    raise 'new_private_selection_manual_review_required' if current.any?{|name,g|name!='GLOBAL' && name!='🔐 自定义节点' && g['now']=='🔐 自定义节点' && a['choices'][name]!='🔐 自定义节点'}
     a['owned_sha256'].keys.each do |k|
       item=m['files'][k];current=hash(item['path'])
       raise 'concurrent_configuration_edit' unless [item['sha256'],a['owned_sha256'][k]].include?(current)
     end
-    a['owned_sha256'].keys.each{|k|item=m['files'][k];atomic(item['path'],File.binread(b+'/'+k+'.before'),a['modes'][k])}
+    a['owned_sha256'].keys.each do |k|
+      item=m['files'][k]
+      if item['missing'];File.unlink(item['path']) if File.file?(item['path'])
+      else;atomic(item['path'],File.binread(b+'/'+k+'.before'),a['modes'][k]);end
+    end
     begin;api('/configs?force=true','PUT',{'path'=>m['files']['runtime']['path']})
     rescue StandardError;sh('/etc/init.d/openclash','restart')
     end
