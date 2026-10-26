@@ -1,5 +1,9 @@
 # 澄网：项目任务清单
 
+两项合同修正冻结候选（2026-10-26）：PASS/PASSTHROUGH不观测body读取／关闭，checker改为三项必须null；两LOSS仍严格int0／true／true，拒伪填PASS与LOSS空值／别名，其他31业务、HTTP原字节、source及双fence不变。6d实际报告的纯validate_report复演31通过，33个聚焦负例拒绝，仅为DIAGNOSTIC_READER_LOGIC_REPLAY_NOT_EXACT_HEAD_ACCEPTANCE。另profile producer按独立checker完整顺序补齐25个格式源，新增2个真实argv捕获CPU合同测试和CI前置依赖，180s／256／2MiB未改。两个候选共5个源码路径，不改Go运行语义；待root统一提交后完整302项CPU与新Linux31／fresh。6d normal原件现已独立接受：ordinary/race各1992／1992、688必需、fmt空、race119.437秒；single profile仅诊断接受。full profile仍先拒producer20/checker25，隔离该差异后实际Go180.049秒超时，579通过／1未完／108未开始；容量top89.08秒自身通过不抵消总失败，性能根因仍未证明。生产、main、Registry未动。
+
+6d772开发提交与独立检查器失败（2026-10-26）：提交`6d772592ae103083f52dc3ace21c5ffd695f0e56`已推送并经远端精确读回；root同HEAD完整11模块300项CPU检查、两个source绑定复演通过，独立快照1488个Git blob核对。continuous run40310535727的fault MODEL121530401827与bound MODEL121530402013均终态success，原件独审尚在进行；HTTPS121530713973的实际执行／导出step7成功，但原checker step9失败，fresh121531227593 step4也失败，尚不能称完整31链被接受。首次Completion40310535601与oldnative40310535630仅核到任务success，未代替新HEAD原件审计；normal40310535603失败，diag40310535495另核。本轮安全artifact helper已通过源码复核且对上一HEAD三个原件受控下载成功：真实凭据与302链接仅在同一进程内，禁止旧curl URL参数／session检索；已披露的旧通道缺陷与历史URL回显不因此抹去。生产、main、Registry未动，整套系统仍未完成。
+
 767后续六文件冻结候选（2026-10-26）：测试夹具明确设置并核验0700目录／0600凭据文件，保留0755／0644拒绝负例；RunWith夹具补正必需监听回调与正超时，要求只到TLS失败、监听回调不可触达，并保留manager关闭／不可重arm断言。完整吸收实际Linux Go1.23.12生成的3213字节／3文件格式补丁；尚未把新候选称为最终格式为空。OLD_V5旧五元组原样保留，源码固定active完整新五元组，只更新两枚已审兼容工具指纹，禁止历史fallback／逐文件并集／混搭；新增独立Python回归top。两份独立源码复核允许单一集成后进入Linux，11模块300／300 CPU通过。实际authn上次内部细因仍未唯一观测；不能用源码夹具修复代替新Go结果。生产、main、Registry未动。
 
 767fa9开发提交与新Linux失败（2026-10-26）：最终提交`767fa9a29b50b761e84fe654a829e1d47f74ac4f`已推送且远端读回一致；root同HEAD完整11模块299项CPU检查及两类源码绑定通过，独立快照1480个Git blob核对，原工作区HEAD及3个用户文件保留。continuous run40305246343的旧fault MODEL父项+5子例独立原件接受，前后source绑定完整；新bound MODEL job121512741501实际已编译运行但失败：authn直接8子例2过／6失败，首例只给ErrSnapshotUnavailable；runtime直接4子例3过／1失败，首拒CLAIMED_MANAGER_NOT_RETAINED，两包stderr空、exit1，失败导致after-source缺失，不能称双绑定。源码确认两个fixture前置缺口：authn TempDir未显式保证0700；runtime RunWith Options缺Listen与正ShutdownTimeout，必在claim前返回。前者仅为确定配置缺口，实际细因被折叠，不能称唯一原因。HTTPS job121513004403跳过，fresh缺件次生失败，本提交未执行31链。旧native正例原件实际Go0／PASS，但官方gofmt.patch非空3213字节／3文件，不能接受；首次Completion在Go前SourceCheck被OLD_V5两枚过期工具指纹拒绝，Go未执行。指纹将按历史受控迁移语义保留legacy完整五元组、源码固定active新完整五元组，无逐文件历史并集或fallback。以上修复尚待新源码及新Linux；normal/diag其他原件另审。生产、main、Registry未动。
@@ -50,7 +54,7 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 持久 S2 与 Completion 模型 | `c1f9` 限定隔离验收通过 | 25 ZIP／442 成员；普通／race／full 各 1937 语义、661 必需项；旧 S2 四模式已核 | race 包距 180 秒仅余 3.633 秒；稳定余量、完整私有 WAL 证明仍缺 |
 | 首次真实 Completion | 505四模式限定隔离验收通过 | [505独立审计](evidence/sys06-505-first-completion-audit-20261026.json)：run40280615379，9 ZIP／167成员／1443源；原checker与fresh一致 | 不代证service rebind、产品API、普通发布、第二恢复或完整私有WAL |
 | 当前提交其他三套 CI | 505 normal及diag single/full原件接受 | [505原件](evidence/sys06-505-normal-diag-audit-20261026.json)：ordinary/race各1992 semantic，full 688/688、0fail/skip/unfinished；包128.994秒 | 只接受本次样本，不证明稳定性能、业务API或生产 |
-| 失败恢复协调器与产品 API | 767fa9已推送，299 CPU通过；新bound MODEL失败，HTTPS未执行 | apply/service遗漏已修；同HEAD root全299项及源码绑定通过，Linux fault MODEL成功但新增bound MODEL失败 | 核定新增MODEL真实首因后修复，再验Go／格式／两个MODEL、旧链、完整31原件与checker/fresh |
+| 失败恢复协调器与产品 API | 6d772已推送，300 CPU通过；两MODEL任务成功，HTTP原checker/fresh失败 | fixture／官方格式与OLD_V5原子revision源码已集成；HTTPS执行导出step7成功但整体独立门未接受 | 核定原件首拒原因；两MODEL及完整31原件、原checker/fresh和旧链需各自同HEAD独立接受 |
 | 恢复后普通发布与第二次恢复 | 未验收 | 已有部分模型与外部源码，不能当作实际产品结果 | 完成新 head／epoch 接续、真实 API、普通发布与连续恢复的端到端证据 |
 | 连续恢复后的清理调用归属 | 独立源码候选／CPU通过，尚未集成或运行Go | 外部cleanup-core v2在1463源完整overlay上6项MODEL通过；旧稀疏overlay缺fixture失败记录保留 | 验证最终第二恢复核心的清理归属与源码保证的偏序；不得把首恢复RecoveredCore误当最终核心；需独审、Go及真实Linux证据 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |

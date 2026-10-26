@@ -1,0 +1,85 @@
+{
+  "base": {
+    "clean": true,
+    "commit": "6d772592ae103083f52dc3ace21c5ffd695f0e56",
+    "rawGitBlobCount": 1488,
+    "snapshot": "D:/CodexData/workspace/mihomo-6d77259-acceptance-nive2mbh/repo",
+    "tree": "2df112117129686c0f53832c3135176ecf68d5eb"
+  },
+  "boundaries": {
+    "goRun": false,
+    "gofmtRun": false,
+    "linuxCIRun": false,
+    "performanceFixed": false,
+    "previousFullRunObserved": {
+      "elapsedSecondsApprox": 180.05,
+      "notStarted": 82,
+      "passed": 605,
+      "specificTimeoutTestAttributed": false,
+      "unfinished": 1
+    },
+    "previousFullRunTimeoutUnresolved": true,
+    "productionModified": false,
+    "repositoryRModified": false
+  },
+  "candidate": {
+    "changedPathCount": 3,
+    "cpuTest": {
+      "bytes": 524,
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONWARNINGS=error::ResourceWarning python -B -m unittest -v test_profile_contract",
+      "elapsedSeconds": 0.065,
+      "errors": 0,
+      "failures": 0,
+      "path": "CPU-TEST.txt",
+      "sha256": "c92ed78bf1bcfaa03986a51854ef0ece31ed5cc6377e79b8a7216d0ad05ed451",
+      "skipped": 0,
+      "testsRun": 2
+    },
+    "directory": "D:/CodexData/workspace/mihomo-6d77259-profile-fmt-contract-fix-20261026-execution56h-v1",
+    "patch": {
+      "bytes": 11060,
+      "path": "profile-fmt-contract-fix.patch",
+      "sha256": "d7d4b6c64bf377a2968ceeb20e611fdb324126b2482da95d2cd3be63a3ac68d0"
+    },
+    "pathManifest": {
+      "bytes": 1616,
+      "path": "PATH-MANIFEST.json",
+      "sha256": "90c91b5b72f1d50552b20809aaa15fa2b653e57c68f56ab1d4e58ec4fad42c3a"
+    },
+    "statusFile": {
+      "bytes": 1366,
+      "path": "STATUS.md",
+      "sha256": "b591a0233ccbbb21b52aaf676fd9ffe4296cc9cf3dcdc87c516e00e00a55b16a"
+    }
+  },
+  "contract": {
+    "capacityLimit": 256,
+    "checkerFullFmtCount": 25,
+    "fullGoArgsUnchanged": true,
+    "goTestTimeoutSeconds": 180,
+    "linuxProductExecutionPerformed": false,
+    "normalGoArgsUnchanged": true,
+    "producerActualFormatArgvObservedByModel": true,
+    "producerCheckerOrderedSetEqual": true,
+    "producerFullFmtCountAfter": 25,
+    "producerFullFmtCountBefore": 20,
+    "walLimitBytes": 2097152,
+    "workflowPrerequisiteAdded": "profile-contract-models"
+  },
+  "missingFiveAddedInCheckerOrder": [
+    "internal/authn/continuous_bound_credentials_linux.go",
+    "internal/authn/continuous_bound_credentials_linux_test.go",
+    "internal/authn/store.go",
+    "internal/serverruntime/mihomo_lab_runtime.go",
+    "internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go"
+  ],
+  "schema": "chengwang.mihomo-profile-fmt-contract-source-receipt/v1",
+  "status": "SOURCE_CANDIDATE_HOLD_FOR_EXACT_HEAD_LINUX_EVIDENCE",
+  "verification": {
+    "allChangedSourceBytesLFOnly": true,
+    "deleteReplaceReorderNegatives": "PASS",
+    "patchForwardCheckAgainstImmutableBase": "PASS",
+    "patchReverseCheckAgainstCandidate": "PASS",
+    "whitespaceErrorAll": "PASS"
+  }
+}

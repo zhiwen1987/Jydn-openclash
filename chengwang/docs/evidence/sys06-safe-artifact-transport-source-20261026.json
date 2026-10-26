@@ -1,0 +1,74 @@
+{
+  "fixedRepository": "zhiwen1987/Jydn-openclash",
+  "integration": false,
+  "notRun": [
+    "real git credential fill",
+    "real GitHub REST request",
+    "real artifact download",
+    "Go",
+    "gofmt",
+    "CI",
+    "product HTTP runtime",
+    "production"
+  ],
+  "officialSources": [
+    "https://git-scm.com/docs/git-credential",
+    "https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#download-an-artifact"
+  ],
+  "offlineMaterializer": {
+    "SHA256": "efc5a2aa9dd21827f9d1862c0a7372e571b34a16674172e2ec25f37bbfc3d64f",
+    "bytes": 9242,
+    "path": "D:/CodexData/workspace/materialize-ci-safe-batch-text-v4-20261025.py"
+  },
+  "repositoryModified": false,
+  "schema": "chengwang.git-credential-artifact-helper-source-receipt/v1",
+  "securityProperties": {
+    "approveCalled": false,
+    "credentialAction": "fill-only",
+    "credentialConfigChanged": false,
+    "credentialInArgv": false,
+    "credentialInteractiveInvocationConfig": "never",
+    "defaultAuthorizationRedirectUsed": false,
+    "gitAskPass": "empty",
+    "hostileEnvironmentModel": true,
+    "interactivePromptAllowed": false,
+    "rejectCalled": false,
+    "remoteBodiesInErrors": false,
+    "remoteHeadersInErrors": false,
+    "shellUsed": false,
+    "signedURLInArgv": false,
+    "signedURLOnDisk": false,
+    "sshAskPass": "empty",
+    "storageAuthorizationHeader": false,
+    "storageCookieHeader": false,
+    "traceAllowed": false
+  },
+  "selfTest": {
+    "command": [
+      "python",
+      "-B",
+      "github_artifact_via_git_credential.py",
+      "--self-test"
+    ],
+    "exitCode": 0,
+    "processElapsedSeconds": 2.2266721,
+    "result": {
+      "authorizationOnlyOnAPI": true,
+      "boundedBody": true,
+      "closedErrors": true,
+      "network": false,
+      "offlineMaterializerPinned": true,
+      "realCredential": false,
+      "redirectRequestAuthorization": false,
+      "redirectRequestCookie": false,
+      "selfTest": "PASS"
+    }
+  },
+  "source": {
+    "LFOnly": true,
+    "SHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "bytes": 22475,
+    "path": "github_artifact_via_git_credential.py"
+  },
+  "status": "SOURCE_ONLY_SELF_TEST_PASS_REAL_CREDENTIAL_AND_NETWORK_NOT_RUN"
+}

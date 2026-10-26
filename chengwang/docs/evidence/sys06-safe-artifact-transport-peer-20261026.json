@@ -1,0 +1,63 @@
+{
+  "agentRole": "implementation-56-high",
+  "authorizationBoundary": {
+    "controlledLiveProbeStillRequiresRootDecision": true,
+    "thisReviewAuthorizesMerge": false,
+    "thisReviewAuthorizesProduction": false,
+    "thisReviewRunsLiveCredentialOrNetwork": false
+  },
+  "candidate": {
+    "bytes": 22475,
+    "cardSHA256": "84fcb66e47abfd875815d374b24b79bcfadfc0d13e65346893ec3743d747d1f0",
+    "path": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "sha256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "sourceReceiptSHA256": "b9753a873634567e75c75a98776f2a38eab3e65c810754c10c4f2e3c35dbd77b"
+  },
+  "conclusion": "SOURCE_ACCEPT_FOR_ROOT_CONTROLLED_LIVE_EVIDENCE",
+  "independentChecks": {
+    "candidateModified": false,
+    "fakeSelfTest": "PASS",
+    "fakeSelfTestNetwork": false,
+    "fakeSelfTestRealCredential": false,
+    "liveGitCredentialFill": false,
+    "liveNetwork": false,
+    "v1ToV2DiffReviewed": true
+  },
+  "remainingEvidence": [
+    "A root-authorized controlled invocation must establish that the actual configured credential helper returns the expected fixed GitHub credential without prompting.",
+    "The same invocation must establish the actual GitHub API 302 storage host is inside the explicit allowlist and that size, digest, ZIP custody, and offline materialization succeed.",
+    "Failure must remain a fixed closed category; no real credential, redirect Location, response body, or traceback may appear in command arguments, logs, receipts, or tool-call parameters."
+  ],
+  "retainedBoundaries": {
+    "apiRequest": "fixed api.github.com repository/artifact path with Bearer only on this request",
+    "body": "metadata-bounded expectedSize+1 read followed by exact size and public SHA-256 match",
+    "cliAndErrors": "no credential or signed URL accepted in CLI arguments; emitted failures contain fixed codes without remote body, headers, URL, repr, or traceback",
+    "credentialAction": "fill only; no approve or reject",
+    "credentialInput": "fixed protocol=https, host=github.com, and repository path over child stdin",
+    "credentialOutput": "bounded captured pipes, strict host/protocol/path/username/password parsing, fixed closed errors, no stdout/stderr forwarding",
+    "materializer": "existing offline materializer SHA-256 pin remains exact and retains metadata, ZIP CRC/path/casefold/budget, O_EXCL, fsync, and readback controls",
+    "redirect": "automatic redirect disabled; only HTTP 302 Location is retained in process memory and response is closed without reading its body",
+    "storageRequest": "separate request and opener with no Authorization or Cookie; HTTPS/no-userinfo/default-or-443/no-fragment/explicit Actions storage host checks"
+  },
+  "schema": "chengwang.git-credential-artifact-helper-static-peer/v2",
+  "v1Findings": {
+    "askpassFallback": "FIXED",
+    "gcmDebugAndTraceEnvironment": "FIXED",
+    "noRedirectEarlierPeerMisread": "NOT_A_CANDIDATE_DEFECT"
+  },
+  "verifiedDelta": {
+    "environmentScrub": "All inherited case variants beginning GIT_TRACE, GCM_TRACE, or GCM_DEBUG are removed before fixed disabled values are installed.",
+    "gcmCredentialStore": "GCM_CREDENTIAL_STORE remains preserved so the configured noninteractive credential store is not silently changed.",
+    "gcmInteractive": "GCM_INTERACTIVE=Never",
+    "gitAskpass": "GIT_ASKPASS and SSH_ASKPASS are explicit empty strings, preventing fallback to configured core.askPass and SSH_ASKPASS.",
+    "gitCredentialArgv": [
+      "git",
+      "-c",
+      "credential.interactive=never",
+      "credential",
+      "fill"
+    ],
+    "hostileEnvironmentModel": "A fixed fake environment proves hostile askpass, future trace/debug prefixes, secret/MSAUTH trace flags, and debugger flags are removed or disabled while PATH and GCM_CREDENTIAL_STORE remain exact.",
+    "terminalPrompt": "GIT_TERMINAL_PROMPT=0"
+  }
+}

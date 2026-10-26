@@ -1,0 +1,144 @@
+{
+  "affectedRuntimeRoots": [
+    "chengwang capacity-profile diagnostic producer",
+    "capacity-profile GitHub Actions dependency graph",
+    "independent CPU source-contract model"
+  ],
+  "applicability": {
+    "rationale": "The observed reader rejected the producer's 20-path FORMAT argv before events, while the patched producer now emits the reader's exact 25-path argv.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Patch identity, base tree, all after-images, ordered tuples, mocked command journal, checker source, and workflow needs graph were inspected; the remaining Linux gap is explicit."
+  },
+  "evidencePlan": [
+    {
+      "action": "Commit the exact three-path candidate, then run profile-contract-models and the profile/full Linux workflow without changing 180 seconds, 256, or 2 MiB limits.",
+      "outcomes": {
+        "any changed-path model, source, formatter, or dependency gate fails": "revise",
+        "model and exact formatter/source gates pass with required workflow evidence": "merge"
+      },
+      "question": "Does the exact integrated head satisfy the source contract and Linux formatter/runtime gates?"
+    }
+  ],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes diagnostic CI admission and formatter coverage, so an error can waste or misclassify a full diagnostic run but cannot alter production behavior or persistent state."
+  },
+  "importantCallers": [
+    "profile_evidence.commands FULL_CONTRACTS",
+    "check_profile.verify_raw FULL_CONTRACTS",
+    "profile and full GitHub Actions jobs"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "One new path is omitted, replaced, duplicated, or reordered in either side.",
+      "id": "ordered_formatter_contract",
+      "invariant": "Producer and reader use the same duplicate-free ordered 25-path FULL_FMT tuple.",
+      "legitimateControl": "The independent expected tuple is exact, both modules are compared against it, len and uniqueness are pinned, and delete, replace, and reorder variants are rejected.",
+      "result": "supported",
+      "runtimeRoot": "profile_evidence FORMAT command and check_profile command receipt reader"
+    },
+    {
+      "counterexample": "Constants match but the executed or journaled argv omits paths or changes timeout, tag, selector, or package order.",
+      "id": "actual_command_construction",
+      "invariant": "The producer actually invokes gofmt -d with the exact 25 paths and preserves the Go command contract.",
+      "legitimateControl": "The CPU model mocks Popen, reads commands.jsonl, and exact-compares FORMAT and GO_TEST argv; source inspection confirms the reader builds its expected argv from unchanged FULL_FMT and FULL_GO_ARGS.",
+      "result": "supported",
+      "runtimeRoot": "profile_evidence.commands"
+    },
+    {
+      "counterexample": "The new job exists but profile or full can run without it.",
+      "id": "preflight_dependency",
+      "invariant": "The CPU source-contract model gates both Linux profile jobs.",
+      "legitimateControl": "profile and full each explicitly need development-only and profile-contract-models; downstream fresh jobs remain transitively dependent.",
+      "result": "supported",
+      "runtimeRoot": "chengwang-mihomo-capacity-profile workflow"
+    },
+    {
+      "counterexample": "The patch integrates differently, gofmt emits a diff, or the full run still times out.",
+      "id": "exact_head_linux",
+      "invariant": "The integrated exact head is format-clean and behaves correctly on Linux without claiming the open timeout is fixed.",
+      "legitimateControl": "A final-head workflow replay can independently run the model, producer, reader, formatter, and Go diagnostics while preserving 180 seconds and existing limits.",
+      "result": "unresolved",
+      "runtimeRoot": "capacity-profile Linux workflow"
+    }
+  ],
+  "patch": {
+    "base": "6d772592ae103083f52dc3ace21c5ffd695f0e56 tree 2df112117129686c0f53832c3135176ecf68d5eb",
+    "changedFiles": [
+      ".github/workflows/chengwang-mihomo-capacity-profile.yml",
+      "chengwang/deploy/mihomo-capacity-profile/profile_evidence.py",
+      "chengwang/deploy/mihomo-capacity-profile/test_profile_contract.py"
+    ],
+    "head": "frozen uncommitted three-path afterimage",
+    "repository": "mihomo 6d77259 snapshot",
+    "sha256": "d7d4b6c64bf377a2968ceeb20e611fdb324126b2482da95d2cd3be63a3ac68d0",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Checker remains unchanged at 25 paths",
+    "Exact missing five are inserted in checker order",
+    "Actual producer Popen argv and journal argv are observed",
+    "Normal and full Go argv are fully pinned",
+    "Both profile and full jobs need the CPU model job"
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The three-path CI and test-harness patch has no migration or stateful effect and can be reverted atomically."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The exact ordered 25 paths, actual producer command construction, Go argv, and workflow dependencies are directly pinned and the focused CPU tests pass."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The two focused CPU tests passed independently, but the candidate is not an exact committed head and no Linux workflow, Go, or gofmt evidence has run."
+  },
+  "riskDrivers": [
+    "Ordered command argv is an exact reader contract",
+    "Final Linux execution and formatter cleanliness are unavailable",
+    "The prior approximately 180.05 second full-suite timeout remains unresolved"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without this patch, every full diagnostic remains rejected before event analysis and consumes Linux runtime without usable verification."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "No exact committed-head Linux evidence exists; the prior full run timeout remains open and is neither explained nor fixed by this patch."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen patch, base tree, manifest, and three after-images",
+      "protects": "Immutable subject identity and exact changed bytes",
+      "status": "passed"
+    },
+    {
+      "name": "Strict forward/reverse apply and whitespace checks",
+      "protects": "Base applicability and patch integrity",
+      "status": "passed"
+    },
+    {
+      "name": "Independent test_profile_contract CPU run",
+      "protects": "Ordered tuple, actual producer FORMAT and GO_TEST argv, negative variants, timeout, tag, selector, and package order",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-head Linux Go and gofmt workflow",
+      "protects": "Platform execution, formatter cleanliness, source replay, and remaining full diagnostic behavior",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}

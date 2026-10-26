@@ -24,8 +24,24 @@ jobs:
           set -euo pipefail
           test "$REQUEST_REF" = refs/heads/codex/chengwang-mihomo-lifecycle-20261024
 
-  profile:
+  profile-contract-models:
     needs: development-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify the independent formatter source contract
+        env:
+          PYTHONWARNINGS: error::ResourceWarning
+        run: |
+          set -euo pipefail
+          cd chengwang/deploy/mihomo-capacity-profile
+          python3 -B -m unittest -v test_profile_contract
+
+  profile:
+    needs: [development-only, profile-contract-models]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -127,7 +143,7 @@ jobs:
           if-no-files-found: error
 
   full:
-    needs: development-only
+    needs: [development-only, profile-contract-models]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

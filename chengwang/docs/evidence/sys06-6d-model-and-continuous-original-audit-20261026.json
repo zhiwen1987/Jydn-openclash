@@ -1,0 +1,301 @@
+{
+  "acceptedSubsets": [
+    "bound-credentials MODEL",
+    "fault MODEL"
+  ],
+  "agentRole": "implementation56h-independent-original-auditor",
+  "artifacts": [
+    {
+      "bytes": 5105,
+      "id": 12644237021,
+      "kind": "bound-model",
+      "members": 8,
+      "name": "mihomo-continuous-bound-credentials-model-40310535727-1",
+      "sha256": "807d770a1c9baa624443181418b4c72cf4eb6f005df94e213861fd41e3785742",
+      "zipCRCAndPathVerified": true
+    },
+    {
+      "bytes": 2614,
+      "id": 12643877546,
+      "kind": "fault-model",
+      "members": 6,
+      "name": "mihomo-continuous-fault-model-40310535727-1",
+      "sha256": "3ae8ddd969f00a9475d32d37c4b30b6e72965bfd767f5f85292b2b701d8ef803",
+      "zipCRCAndPathVerified": true
+    },
+    {
+      "bytes": 55653,
+      "expandedBytes": 150447,
+      "id": 12644606714,
+      "kind": "http-original",
+      "members": 57,
+      "name": "mihomo-continuous-recovery-api-originals-40310535727-1",
+      "offlineCustodyReceiptSHA256": "5f8ee3588d2ce48c18171d88b7c8a0b0739a8cdb40a7d3efa291044c472bba6a",
+      "sha256": "f7a75098b0cbf3299dd18f685e227861db581c8ae7db4981c762bf67cfeac585",
+      "zipCRCAndPathVerified": true
+    },
+    {
+      "bytes": 188,
+      "id": 12644327092,
+      "kind": "fresh",
+      "members": 1,
+      "name": "mihomo-continuous-recovery-api-fresh-40310535727-1",
+      "sha256": "05fe8954649e449e68fdc7c94b0489526f300d735b91e19c0a6d8ee770ef14a4",
+      "zipCRCAndPathVerified": true
+    }
+  ],
+  "auditImplementation": {
+    "checkerSourceSHA256": "4e6e9f4b599d0a1659dbbf61e8402c4fdfaa1e0476243e2a4f9ee9d063e3e9d1",
+    "ciRerun": false,
+    "credentialsPrinted": false,
+    "localGoOrGofmtRun": false,
+    "offlineExtractorSHA256": "c013e188168c9a223e02b6a95c2b9a04518be2629b13333efef3265bc7cd90d2",
+    "rawBodiesPrinted": false,
+    "repositoryModified": false,
+    "safeAuditScriptSHA256": "84a952a21e021fb972c16d49713bd4517cfa6e3c89bd0008d4c1e872ba998d5f",
+    "signedURLsPrintedOrPersisted": false
+  },
+  "freshEvidence": {
+    "accepted": false,
+    "boundary": "The zero-byte fresh output is a failure artifact and is not successful byte-equality evidence.",
+    "members": 1,
+    "verificationBytes": 0
+  },
+  "httpEvidence": {
+    "accepted": false,
+    "actualGo": {
+      "eventSHA256": "057ebbfd2249629f29e03d989e89fca361f3d028e12ee467b87c56044747fd65",
+      "exactlyOneRunAndPass": true,
+      "fail": 0,
+      "packagePass": true,
+      "parent": "TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery",
+      "skip": 0
+    },
+    "attemptExit": 0,
+    "boundary": "The actual Go chain and public evidence production completed, and the original checker reached the response-loss validator after validating the 31-case report chain. The independent verifier did not accept the artifact because its PASS-step observation invariant contradicts the source-defined passthrough representation. Later checker gates are independently observed but were not accepted by the original checker in this run.",
+    "commands": {
+      "allExitZero": true,
+      "allObserved": true,
+      "classes": [
+        "SANDBOX",
+        "GO_VERSION",
+        "GOFMT",
+        "GO_TEST"
+      ],
+      "count": 4
+    },
+    "execution": {
+      "formatExit": 0,
+      "goExit": 0,
+      "outcome": "PASS"
+    },
+    "firstReject": {
+      "callLine": 351,
+      "checkerFile": "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "checkerLine": 271,
+      "fixedCases": [
+        "faultBeforeCleanup",
+        "faultAfterCleanup",
+        "faultClosed"
+      ],
+      "mismatches": [
+        {
+          "actualJSONType": "null",
+          "checkerRequires": "integer-zero",
+          "field": "bodyBytes"
+        },
+        {
+          "actualJSONType": "null",
+          "checkerRequires": "boolean-true",
+          "field": "eofObserved"
+        },
+        {
+          "actualJSONType": "null",
+          "checkerRequires": "boolean-true",
+          "field": "closeSucceeded"
+        }
+      ],
+      "sourceCause": {
+        "classification": "PASS returns the response without consuming or closing it; the three observation pointers are only populated by the injected-loss branch, so null is the source-defined PASS representation.",
+        "file": "chengwang/internal/adapter/mihomo/lab_reload_response_schedule_linux.go",
+        "lossObservationLines": [
+          343,
+          348
+        ],
+        "passBranchLines": [
+          312,
+          319
+        ],
+        "sourceSHA256": "b79a722bd0e7580ae0da5ce1c292693324dcbffa39afab6bbdbc4c18217e66b7"
+      },
+      "transportAction": "PASS",
+      "transportState": "PASSTHROUGH",
+      "transportStep": 2
+    },
+    "format": {
+      "continuousStderrBytes": 0,
+      "gofmtPatchBytes": 0,
+      "gofmtStderrBytes": 0
+    },
+    "httpOriginalIndexEntries": 31,
+    "independentReplay": {
+      "accepted": false,
+      "fixedFrames": [
+        443,
+        442,
+        385,
+        351,
+        271,
+        93
+      ],
+      "sameFixedFailure": true,
+      "stderrBytes": 2800,
+      "stderrSHA256": "d4e800167c1762d9f08f49e08520bb95eceeaca898df14311c26a6f3b4b36ffb"
+    },
+    "originalChecker": {
+      "accepted": false,
+      "fixedFrames": [
+        443,
+        442,
+        385,
+        351,
+        271,
+        93
+      ],
+      "stderrBytes": 2690,
+      "stderrSHA256": "9b4565869306beeb9bd468a59d95c8028f3d1c699b6942a8366bca1b3411365e",
+      "terminalClass": "CONTINUOUS_RECOVERY_INDEPENDENT_VERIFICATION_REJECTED"
+    },
+    "privateFsync": {
+      "allFileFsyncObserved": true,
+      "allMode0600": true,
+      "allUidGid10001": true,
+      "directoryFsyncObserved": true,
+      "entries": 3
+    },
+    "processEvents": {
+      "allPidfdAcquired": true,
+      "allWaitExitZero": true,
+      "count": 16,
+      "eachCommandKinds": [
+        "START_INTENT",
+        "SPAWNED",
+        "PIDFD_ACQUIRED",
+        "WAIT_RETURNED"
+      ]
+    },
+    "report": {
+      "failureCode": "NONE",
+      "fullPayloadProven": false,
+      "httpCases": 31,
+      "internetBusinessProven": false,
+      "outcome": "PASS",
+      "privateWALDecodedByTest": false,
+      "production": false,
+      "runtimeErrorClass": "NONE",
+      "runtimeReturned": true,
+      "schema": "chengwang.mihomo-continuous-recovery-http-experiment/v2"
+    }
+  },
+  "jobs": {
+    "boundModel": {
+      "conclusion": "success",
+      "id": 121530402013
+    },
+    "faultModel": {
+      "conclusion": "success",
+      "id": 121530401827
+    },
+    "fresh": {
+      "conclusion": "failure",
+      "id": 121531227593
+    },
+    "httpExperiment": {
+      "actualChainStepSucceeded": true,
+      "checkerStepFailed": true,
+      "conclusion": "failure",
+      "id": 121530713973
+    }
+  },
+  "modelEvidence": {
+    "accepted": true,
+    "boundAuthn": {
+      "eachExactlyOneRunAndPass": true,
+      "eventSHA256": "64df8b86be96a6af2a21d63ce5e638961091d1bfc096e57f8999bc0fdfc24693",
+      "fail": 0,
+      "packagePass": true,
+      "parent": "TestContinuousRecoveryBoundCredentialsV2MODEL",
+      "skip": 0,
+      "stderrBytes": 0,
+      "testNameSetSHA256": "6dd87037378086eda87c0a79d5e964cb2fc7bf92ff8e005d33e5f6ddfb04aa45",
+      "testNames": 27
+    },
+    "boundRuntime": {
+      "eachExactlyOneRunAndPass": true,
+      "eventSHA256": "c784bdaf49dda13616ca9973bf6fae1180bf81ee7ec99470097ace4310597082",
+      "fail": 0,
+      "packagePass": true,
+      "parent": "TestContinuousRecoveryBoundCredentialsSourceArmMODEL",
+      "skip": 0,
+      "stderrBytes": 0,
+      "testNameSetSHA256": "42d6e94881ecdd88f0bd7d035c4d5d40bb68d417daa27e421b0f1a79c7186d8e",
+      "testNames": 9
+    },
+    "fault": {
+      "children": [
+        "create-stage-is-exact-bounded-diagnostic-only",
+        "completed-archive-allows-one-fresh-second-recovery-begin",
+        "second-begin-publication-failure-retains-completed-facade",
+        "second-begin-rejects-changed-archive-before-publication",
+        "terminal-replacement-rejects-execution-injection-and-unpaired-history"
+      ],
+      "eachExactlyOneRunAndPass": true,
+      "eventSHA256": "b3cb58b697e90085d7fc2b96c6b6344842266a87ba7057240066b7f8bc88bb0a",
+      "fail": 0,
+      "packagePass": true,
+      "parent": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+      "skip": 0,
+      "stderrBytes": 0,
+      "testNameSetSHA256": "1d4ce90f3a4da94e3d33b27e53bc6db2be1d5a7244ab12f049f4ebb0e383db10",
+      "testNames": 6
+    }
+  },
+  "notAccepted": [
+    "continuous recovery HTTP independent verification",
+    "fresh replay"
+  ],
+  "notProven": [
+    "production",
+    "full private WAL independent decoding",
+    "internet business availability"
+  ],
+  "overallAccepted": false,
+  "schema": "chengwang.mihomo-continuous-recovery-independent-original-audit/v1",
+  "snapshot": {
+    "clean": true,
+    "index": "2df112117129686c0f53832c3135176ecf68d5eb",
+    "path": "D:/CodexData/workspace/mihomo-6d77259-acceptance-nive2mbh/repo",
+    "trackedBlobs": 1488,
+    "tree": "2df112117129686c0f53832c3135176ecf68d5eb"
+  },
+  "sourceBinding": {
+    "beforeEqualsAfter": true,
+    "commitExact": true,
+    "deliveryCount": 30,
+    "schema": "chengwang.mihomo-continuous-recovery-source-binding/v1",
+    "sha256": "894c2fa5c94d80c89f4dcc7fa9fc4360664e86ac3a58ea1d9dd8461aa59d7b75",
+    "sourceCount": 1488,
+    "treeIndexExact": true
+  },
+  "sourceCommit": "6d772592ae103083f52dc3ace21c5ffd695f0e56",
+  "transport": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v2/github_artifact_via_git_credential.py",
+    "helperSHA256": "91665adc911163ff18f91a758151de5b27a0027b439d1a6e61f8afe16238bb60",
+    "liveUseAuthorizedByRoot": true,
+    "note": "The HTTP ZIP downloaded and matched its API size and digest, but the helper's older offline materializer rejected the safe .exit member suffix. A pinned network-free extractor then verified and materialized the exact saved ZIP. This is a helper applicability boundary, not the checker result.",
+    "serialDownloads": true,
+    "signedURLInToolArguments": false,
+    "signedURLPersisted": false
+  },
+  "workflowRun": 40310535727
+}

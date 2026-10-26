@@ -1,0 +1,68 @@
+{
+  "actionsAfterDetection": {
+    "TTYSecretInputUsed": false,
+    "URLInCommandArgumentsUsed": false,
+    "auditLogsDeletedOrModified": false,
+    "connectorDownloadsStopped": true,
+    "historicalValuesHashed": false,
+    "historicalValuesReRead": false,
+    "privateDownloadConfigWrittenToDisk": false,
+    "secretQueueWrittenToDisk": false,
+    "sessionAndRolloutSearchingStopped": true
+  },
+  "boundedLocalReadback": {
+    "checkedAtUTC": "2026-10-26T10:32:04.0711966Z",
+    "filesPresent": [
+      "DOWNLOAD-ORCHESTRATION-FAILURE.json",
+      "normal-foundation/transport-failure.json"
+    ],
+    "localOriginalZIPs": 0,
+    "localPartialZIPs": 0,
+    "matchingLiveDownloadChildren": 0,
+    "privateConfigOrQueueFiles": 0
+  },
+  "incident": {
+    "URLDigestIncludedInThisRecord": false,
+    "URLValueIncludedInThisRecord": false,
+    "actualURLIncludedInThisRecord": false,
+    "currentRunArtifactURLReturnedByTheLogSearch": false,
+    "historicalValueRepeatedAfterDetection": false,
+    "type": "HISTORICAL_SIGNED_URL_RETURNED_BY_READ_ONLY_SESSION_LOG_SEARCH"
+  },
+  "nextAllowedAction": "Wait for root to provide a reviewed helper source path whose connector file reference is delivered to a non-TTY child stdin without URL command arguments, TTY input, disk secret queue, tool output, or system changes.",
+  "notPerformed": [
+    "artifact download continuation",
+    "Go",
+    "gofmt",
+    "CI rerun",
+    "repository modification",
+    "production operation"
+  ],
+  "preservation": {
+    "deletionAttempted": false,
+    "existingFailureReceiptKept": true,
+    "sessionAndRolloutLogsLeftUntouched": true
+  },
+  "prohibitedSearchActionsThatOccurred": [
+    {
+      "intent": "locate a previously used non-TTY download orchestration",
+      "operation": "recursive ripgrep",
+      "resultBoundary": "tool output unexpectedly included historical session records containing signed URL values",
+      "roots": [
+        "D:/CodexData/home/state",
+        "D:/CodexData/home/sessions"
+      ]
+    },
+    {
+      "intent": "locate Node reset and private-fetch orchestration",
+      "operation": "recursive ripgrep",
+      "resultBoundary": "tool output unexpectedly included historical connector result records containing signed URL values",
+      "roots": [
+        "D:/CodexData/home/sessions/2026/10/25"
+      ]
+    }
+  ],
+  "schema": "chengwang.mihomo-artifact-download-incident-erratum/v1",
+  "scope": "source-only incident record; no artifact acceptance claim",
+  "status": "STOPPED_WAITING_FOR_WHITELISTED_NON_TTY_CHANNEL"
+}

@@ -1,0 +1,135 @@
+{
+  "affectedRuntimeRoots": [
+    "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py fault evidence validator",
+    "continuous recovery API workflow independent checker and fresh replay",
+    "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py synthetic contract tests"
+  ],
+  "applicability": {
+    "rationale": "The modified reader is invoked by the continuous-recovery HTTPS workflow and its fresh replay, and the 6d original checker failed at the exact invariant changed by this patch.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "public_contract",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Patch bytes, base commit, two afterimages, callers, adapter source semantics, actual 6d public evidence, and focused negative partitions were all directly inspected."
+  },
+  "evidencePlan": [],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes only the isolated continuous-recovery evidence reader and its synthetic model, not the Go forwarding adapter or persisted state. A wrong gate could nevertheless falsely accept or reject a recovery evidence set."
+  },
+  "importantCallers": [
+    ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+    "continuous recovery original evidence verification",
+    "continuous recovery fresh independent replay"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A PASS step fabricates bodyBytes zero or EOF or close success and is accepted as if the transport consumed the response.",
+      "id": "pass_passthrough_observation",
+      "invariant": "A PASS/PASSTHROUGH step must preserve the returned response and therefore represent bodyBytes, eofObserved, and closeSucceeded as null, while retaining every other transport binding.",
+      "legitimateControl": "The patched PASS branch requires all three fields to be exactly None after the unchanged action, state, sequence, status, round-trip, injected, and failureCode checks.",
+      "result": "supported",
+      "runtimeRoot": "continuous recovery independent reader fault()"
+    },
+    {
+      "counterexample": "A LOSS step supplies null, false, a boolean alias, or a float zero and bypasses the response-consumption evidence.",
+      "id": "loss_injected_observation",
+      "invariant": "Each LOSS/INJECTED step must still prove an empty body, EOF, close success, one underlying round trip, status 204, injection, and no failure code.",
+      "legitimateControl": "The patched LOSS branch uses integer(value,0,0) plus exact boolean identity checks, and focused actual-report mutants rejected null, false, boolean, and float aliases.",
+      "result": "supported",
+      "runtimeRoot": "continuous recovery independent reader fault()"
+    },
+    {
+      "counterexample": "A report with valid PASS nulls but a forged head relation, wrong actor, altered source, or failed privacy fence is accepted.",
+      "id": "full_report_contract",
+      "invariant": "Changing PASS observation representation must not bypass the 31 HTTP originals, head, operation, recovery, cleanup, native-call, source, command, fsync, privacy, or fresh gates.",
+      "legitimateControl": "The patch changes only the three observation checks inside fault(); all surrounding report and verify gates are unchanged, and direct validate_report replay returned the same 31-entry chain only after those gates passed.",
+      "result": "supported",
+      "runtimeRoot": "validate_report and verify in check_continuous_recovery_api.py"
+    }
+  ],
+  "patch": {
+    "base": "6d772592ae103083f52dc3ace21c5ffd695f0e56",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py"
+    ],
+    "head": "candidate-afterimages checker 4d09690de6723dd740b36b4b995f52019a7d049b0dba01308525dc5d4aa28d2c model 11c1ac4bd68078703252a56017e9d2d216761c1103ccf24cac9ec6063c2ac264",
+    "repository": "chengwang mihomo lifecycle repository",
+    "sha256": "4da19614e36c9ff2edf83ccc4750e0427c89d8b202e84133b432140463bf2449",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "Action, state, sequence, status, round-trip, injected, failureCode, outer snapshot, native-call, recovery-create, and 31-case business gates remain byte-for-byte unchanged.",
+    "LOSS still requires strict integer zero and boolean true observations; bool and float aliases for bodyBytes are rejected.",
+    "PASS now requires all three unavailable observations to be exactly null, so fabricated read or close metadata is rejected.",
+    "The production Go adapter and report producer are unchanged."
+  ],
+  "recommendation": "merge",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The change is two Python files with no migration, persistence change, runtime state mutation, or compatibility encoding. Reverting the two hunks restores the prior reader behavior."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The branch split exactly matches the source adapter: LOSS consumes and closes the response, while PASS returns it untouched. Exact-action and state checks remain before the observation split, and actual captured evidence plus 33 in-memory counterexamples exercised the change."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The candidate has reported 300 CPU tests, strict patch application, direct replay of the actual 6d report, and focused counterexamples. A new exact-head Linux Go 31-request run and fresh checker have not yet run."
+  },
+  "riskDrivers": [
+    "The patch changes an acceptance contract for recovery evidence.",
+    "No new exact-head Linux Go or fresh workflow result exists yet.",
+    "Synthetic tests and implementation reside in the same Python contract module family."
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "high",
+    "rationale": "The current reader deterministically rejects source-defined PASS observations because it requires metadata that the passthrough branch intentionally cannot observe without consuming or closing the returned response."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": false,
+      "summary": "A new integrated HEAD has not yet produced a real Linux 31-request report, source binding, original checker pass, and fresh replay pass."
+    }
+  ],
+  "validation": [
+    {
+      "name": "immutable patch identity and two-path manifest",
+      "protects": "Binds the review to patch SHA 4da19614... and the exact base and LF-only afterimages.",
+      "status": "passed"
+    },
+    {
+      "name": "strict git apply check on immutable 6d snapshot",
+      "protects": "Confirms the exact patch applies with whitespace errors rejected and without modifying the snapshot.",
+      "status": "passed"
+    },
+    {
+      "name": "candidate reported 11-module CPU suite",
+      "protects": "Reports 300 tests with zero failures, errors, or skips, including PASS and LOSS contract mutants.",
+      "status": "passed"
+    },
+    {
+      "name": "actual 6d public report direct validate_report replay",
+      "protects": "Diagnostic only: the unchanged captured report produces 31 accepted HTTP entries under the patched reader logic without modifying report or metadata and without mocking the final source gate.",
+      "status": "passed"
+    },
+    {
+      "name": "actual report focused in-memory counterexamples",
+      "protects": "Rejected 9 fabricated PASS observations, 18 LOSS null observations, and 6 LOSS body type aliases across all three snapshots.",
+      "status": "passed"
+    },
+    {
+      "name": "new exact-head Linux Go 31-request and fresh workflow",
+      "protects": "Required to establish exact-head continuous recovery acceptance after integration; not provided by this source review.",
+      "status": "unavailable"
+    }
+  ],
+  "workflowLabel": "human_review_required"
+}

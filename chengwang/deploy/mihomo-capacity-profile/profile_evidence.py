@@ -21,6 +21,9 @@ FULL_PACKAGES=['./internal/adapter/mihomo','./internal/mihomodeploy','./internal
 FULL_GO_ARGS=['test','-race','-json','-count=1','-timeout=180s','-tags','chengwang_capacity_profile','-run','^Test',*FULL_PACKAGES]
 CAPACITY_FMT=['internal/mihomodeploy/lifecycle_capacity_profile_linux_test.go']
 FULL_FMT=[*CAPACITY_FMT,
+    'internal/authn/continuous_bound_credentials_linux.go',
+    'internal/authn/continuous_bound_credentials_linux_test.go',
+    'internal/authn/store.go',
     'internal/mihomodeploy/lifecycle_recovery_checkpoint.go',
     'internal/mihomodeploy/lifecycle_recovery_completion.go',
     'internal/mihomodeploy/lifecycle_recovery_completion_test.go',
@@ -37,6 +40,8 @@ FULL_FMT=[*CAPACITY_FMT,
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
     'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
     'internal/serverruntime/runtime.go',
+    'internal/serverruntime/mihomo_lab_runtime.go',
+    'internal/serverruntime/mihomo_continuous_recovery_credentials_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
     'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go']

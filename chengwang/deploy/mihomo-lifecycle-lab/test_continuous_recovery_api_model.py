@@ -488,7 +488,8 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         steps=[]
         for i in range(1,4):
             loss=i!=2; steps.append({'sequence':i,'action':'LOSS' if loss else 'PASS','state':'INJECTED' if loss else 'PASSTHROUGH',
-              'underlyingRoundTrips':1,'statusCode':204,'bodyBytes':0,'eofObserved':True,'closeSucceeded':True,'injected':loss,'failureCode':None})
+              'underlyingRoundTrips':1,'statusCode':204,'bodyBytes':0 if loss else None,'eofObserved':True if loss else None,
+              'closeSucceeded':True if loss else None,'injected':loss,'failureCode':None})
         return {'schema':'chengwang.mihomo-continuous-recovery-response-loss/v1','state':state,'boundOperations':3,'observedResults':3,
           'initialCore':1,'recoveredCore':2,'nativeCallsBounded':True,'nativeCalls':calls,
           'recoveryCreatesBounded':True,'recoveryCreates':[{'sequence':1,'stage':'ENTERED'},{'sequence':2,'stage':'ACCEPTED'},
@@ -571,6 +572,9 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); report=self.fixture(root); binding={'schema':'binding'}
             self.assertEqual(len(self.reader.validate_report(report,'a'*40,root,binding)),31)
+            for snapshot in ('faultBeforeCleanup','faultAfterCleanup','faultClosed'):
+                passthrough=report[snapshot]['transport']['steps'][1]
+                self.assertIsNone(passthrough['bodyBytes']); self.assertIsNone(passthrough['eofObserved']); self.assertIsNone(passthrough['closeSucceeded'])
             outputs,worker_report,_=self.worker_outputs(report,[])
             self.assertEqual(worker_report['outcome'],'PASS')
             self.assertEqual(json.loads(outputs['http-originals-index.json'])['entries'][-1]['caseActor'],'CASE_ACTOR_VIEWER')
@@ -636,6 +640,16 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
               lambda x:x.__setitem__('privateWALDecodedByTest',True),
               lambda x:x['heads'][5]['view'].__setitem__('headSHA256',x['heads'][3]['view']['headSHA256']),
               lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('action','PASS'),
+              lambda x:x['faultClosed']['transport']['steps'][1].__setitem__('bodyBytes',0),
+              lambda x:x['faultClosed']['transport']['steps'][1].__setitem__('eofObserved',True),
+              lambda x:x['faultClosed']['transport']['steps'][1].__setitem__('closeSucceeded',True),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('bodyBytes',None),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('bodyBytes',False),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('bodyBytes',0.0),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('eofObserved',None),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('eofObserved',False),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('closeSucceeded',None),
+              lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('closeSucceeded',False),
               lambda x:x['faultClosed'].__setitem__('recoveryCreatesBounded',False),
               lambda x:x['faultClosed']['recoveryCreates'][3].__setitem__('stage','REJECTED_PLAN'),
               lambda x:x['closedPorts'][0].__setitem__('accepted',True)):

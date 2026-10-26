@@ -268,7 +268,11 @@ def fault(value,state):
     need(transport['schema']=='chengwang.mihomo-reload-response-loss-schedule/v1' and transport['state']==state and transport['boundChildren']==transport['underlyingRoundTrips']==3 and transport['injected']==2 and len(transport['steps'])==3)
     for i,step in enumerate(transport['steps'],1):
         keys(step,('sequence','action','state','underlyingRoundTrips','statusCode','bodyBytes','eofObserved','closeSucceeded','injected','failureCode'))
-        loss=i!=2; need(step['sequence']==i and step['action']==('LOSS' if loss else 'PASS') and step['state']==('INJECTED' if loss else 'PASSTHROUGH') and step['underlyingRoundTrips']==1 and step['statusCode']==204 and step['bodyBytes']==0 and step['eofObserved'] is True and step['closeSucceeded'] is True and step['injected'] is loss and step['failureCode'] is None)
+        loss=i!=2; need(step['sequence']==i and step['action']==('LOSS' if loss else 'PASS') and step['state']==('INJECTED' if loss else 'PASSTHROUGH') and step['underlyingRoundTrips']==1 and step['statusCode']==204 and step['injected'] is loss and step['failureCode'] is None)
+        if loss:
+            integer(step['bodyBytes'],0,0); need(step['eofObserved'] is True and step['closeSucceeded'] is True)
+        else:
+            need(step['bodyBytes'] is None and step['eofObserved'] is None and step['closeSucceeded'] is None)
     return calls
 
 def validate_report(report,commit,public,binding):

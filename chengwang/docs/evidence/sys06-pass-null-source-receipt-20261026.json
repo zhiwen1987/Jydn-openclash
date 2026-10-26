@@ -1,0 +1,99 @@
+{
+  "base": {
+    "cleanAtCopy": true,
+    "commit": "6d772592ae103083f52dc3ace21c5ffd695f0e56",
+    "rawGitPathCount": 1488,
+    "snapshot": "D:/CodexData/workspace/mihomo-6d77259-acceptance-nive2mbh/repo"
+  },
+  "candidate": {
+    "diffCheckExit": 0,
+    "newPathCount": 0,
+    "patch": {
+      "bytes": 6101,
+      "path": "artifacts/pass-transport-observation.patch",
+      "sha256": "4da19614e36c9ff2edf83ccc4750e0427c89d8b202e84133b432140463bf2449"
+    },
+    "pathCount": 2,
+    "pathManifest": {
+      "allAfterLFOnly": true,
+      "bytes": 1370,
+      "path": "artifacts/PATH-MANIFEST.json",
+      "sha256": "e97a93a052c34f90ec79e0c6ff54adf977d9258bc7f079098cfa68308f958db0"
+    },
+    "repo": "D:/CodexData/workspace/mihomo-6d77259-pass-transport-observation-20261026-execution56h-v2/repo",
+    "strictApply": {
+      "commandClass": "git apply --check --whitespace=error-all",
+      "exit": 0
+    }
+  },
+  "contractChange": {
+    "lossStep": {
+      "action": "LOSS",
+      "bodyBytes": 0,
+      "closeSucceeded": true,
+      "eofObserved": true,
+      "state": "INJECTED",
+      "strictIntegerBodyBytes": true
+    },
+    "passStep": {
+      "action": "PASS",
+      "bodyBytes": null,
+      "closeSucceeded": null,
+      "eofObserved": null,
+      "reason": "The Go adapter returns the underlying response without reading or closing it, so those observations remain unknown.",
+      "state": "PASSTHROUGH"
+    },
+    "unchangedGates": [
+      "three snapshots and their TERMINAL/TERMINAL/CLOSED states",
+      "three ordered transport steps with two injected losses",
+      "status, injected, failureCode, round-trip and bound-child counters",
+      "31 HTTP response originals, body hashes and business head/recovery/cleanup relationships",
+      "claimed/returned and native dispatch observations",
+      "source, privacy inventory, encoded variants and dual fence policy"
+    ]
+  },
+  "cpuEvidence": {
+    "command": "python -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py'",
+    "elapsedSeconds": 50.756,
+    "errors": 0,
+    "failures": 0,
+    "moduleCount": 11,
+    "negativeCases": {
+      "lossBooleanAndFloatZeroAliasesRejected": true,
+      "lossFalseRejected": true,
+      "lossNullRejected": true,
+      "passFabricatedBodyZeroRejected": true,
+      "passFabricatedCloseTrueRejected": true,
+      "passFabricatedEofTrueRejected": true
+    },
+    "resourceWarningAsError": true,
+    "skips": 0,
+    "syntheticFixtureUsesNullPassObservationsInAllThreeSnapshots": true,
+    "testsRun": 300
+  },
+  "diagnosticActualOriginalReplay": {
+    "acceptedHttpEntries": 31,
+    "classification": "DIAGNOSTIC_READER_LOGIC_REPLAY_NOT_EXACT_HEAD_ACCEPTANCE",
+    "finalSourceGateMocked": false,
+    "readerFunction": "validate_report",
+    "reportBytes": 83388,
+    "reportOrMetadataModified": false,
+    "reportPath": "D:/CodexData/workspace/mihomo-6d77259-continuous-originals-20261026-implementation56h-v1/http-original-audited/mihomo-continuous-recovery-public/continuous-recovery-report.json",
+    "reportSHA256": "e9c7f0e03e4839ef22f61ca71fdfd49697355b2cce366671d7390b7d7d3eb3e0",
+    "sourceCommit": "6d772592ae103083f52dc3ace21c5ffd695f0e56"
+  },
+  "notEvidence": [
+    "No local Go compiler, gofmt, build, runtime, HTTP, network, container, remote host or production execution was performed.",
+    "The diagnostic 6d replay proves only that the changed reader logic accepts the already captured report and original response bytes.",
+    "The diagnostic replay does not establish exact-head source binding, a new 31-request Go run, privacy fence passage, fresh independent checker passage, merge eligibility or production readiness.",
+    "The candidate does not alter the Go forwarding adapter, report producer, private inventory, privacy fence, response bodies or production environment."
+  ],
+  "preparationIntegrity": {
+    "discardedV1CloneWasNotFrozen": true,
+    "discardedV1Reason": "A Windows clone materialized tracked LF files as CRLF and caused unrelated closed-source tests to fail; no gate was weakened and no v1 evidence is used.",
+    "frozenCandidateWasCopiedByteForByteFromTheCleanBaseSnapshot": true
+  },
+  "productionChanged": false,
+  "schema": "chengwang.mihomo-pass-transport-observation-source-receipt/v1",
+  "status": "SOURCE_CANDIDATE_HOLD_FOR_NEW_HEAD_LINUX_GO_GOFMT_CONTINUOUS_HTTPS_AND_FRESH_INDEPENDENT_ACCEPTANCE"
+}

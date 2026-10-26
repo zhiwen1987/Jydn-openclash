@@ -1,0 +1,148 @@
+{
+  "affectedRuntimeRoots": [
+    "continuous recovery independent Python reader",
+    "continuous recovery synthetic reader model",
+    "continuous recovery Linux evidence acceptance workflow"
+  ],
+  "applicability": {
+    "rationale": "The 6d public report contains null PASS transport observations in all three snapshots and strict LOSS observations; the base reader incorrectly required LOSS observations for PASS.",
+    "status": "confirmed"
+  },
+  "autoMergeExclusions": [
+    "architecture_specific_rollout",
+    "other"
+  ],
+  "confidence": {
+    "rating": "high",
+    "rationale": "Exact patch identity, manifest, both after-images, Go producer behavior, reader call graph, focused mutants, and the immutable 6d public originals were independently inspected and replayed."
+  },
+  "evidencePlan": [
+    {
+      "action": "Integrate the exact two-path patch, then run the new-head Linux Go/gofmt continuous HTTPS job and fresh independent source/privacy verification without modifying reports or manifests.",
+      "outcomes": {
+        "all exact-head changed and unchanged gates pass": "merge",
+        "any compile, runtime, source, privacy, or fresh gate fails": "revise"
+      },
+      "question": "Does the exact integrated head reproduce the corrected observations and pass every unchanged gate?"
+    }
+  ],
+  "impact": {
+    "rating": "moderate",
+    "rationale": "The patch changes an independent diagnostic acceptance contract. A defect could falsely accept or reject continuous recovery evidence, but it does not alter the Go adapter, production behavior, persistence, or credentials."
+  },
+  "importantCallers": [
+    "fault transport validation from validate_report",
+    "fresh independent continuous recovery checker",
+    "continuous recovery source and privacy acceptance chain"
+  ],
+  "materialBoundaries": [
+    {
+      "counterexample": "A fabricated PASS claims bodyBytes zero, EOF true, or close success true even though the adapter returned the response without observing those facts.",
+      "id": "pass_observation_truth",
+      "invariant": "A PASS step must report unknown body, EOF, and close observations as null while retaining PASS, PASSTHROUGH, status 204, one round trip, injected false, and no failure.",
+      "legitimateControl": "The reader requires all three values to be None only for step two, and independent mutants for each fabricated value are rejected.",
+      "result": "supported",
+      "runtimeRoot": "check_continuous_recovery_api.fault"
+    },
+    {
+      "counterexample": "A LOSS step supplies null, false, boolean zero, or floating-point zero aliases.",
+      "id": "loss_observation_strictness",
+      "invariant": "Each LOSS step must retain bodyBytes as integer zero and EOF/close as exact true values.",
+      "legitimateControl": "integer uses type(value) is int with range zero-to-zero, EOF and close use identity with True, and focused mutants reject all listed aliases.",
+      "result": "supported",
+      "runtimeRoot": "check_continuous_recovery_api.fault"
+    },
+    {
+      "counterexample": "The patch accepts fewer than 31 originals, changes status/head/recovery relationships, or bypasses final source/privacy checks.",
+      "id": "unchanged_evidence_gates",
+      "invariant": "The transport correction must not weaken HTTP count/body, lifecycle, cleanup, source, privacy, or fence gates.",
+      "legitimateControl": "The immutable diff changes only the three transport observation predicates; validate_http, lifecycle relationships, closed ports, manifests, commands, source tags, inventories, and fences are byte-unchanged.",
+      "result": "supported",
+      "runtimeRoot": "check_continuous_recovery_api.validate_report and final reader"
+    },
+    {
+      "counterexample": "The 6d logic replay is mislabeled as proof that a new source head compiled, ran 31 requests, and passed source/privacy gates.",
+      "id": "exact_head_acceptance",
+      "invariant": "Only a clean new-head Linux run with exact source binding and fresh independent verification can establish overall acceptance.",
+      "legitimateControl": "The receipt labels the replay DIAGNOSTIC_READER_LOGIC_REPLAY_NOT_EXACT_HEAD_ACCEPTANCE and leaves new-head Go, gofmt, 31-request, source, and fresh checks pending.",
+      "result": "unresolved",
+      "runtimeRoot": "continuous recovery Linux and fresh checker jobs"
+    }
+  ],
+  "patch": {
+    "base": "6d772592ae103083f52dc3ace21c5ffd695f0e56",
+    "changedFiles": [
+      "chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py",
+      "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py"
+    ],
+    "head": "frozen uncommitted two-path afterimage",
+    "repository": "mihomo 6d77259 pass transport observation",
+    "sha256": "4da19614e36c9ff2edf83ccc4750e0427c89d8b202e84133b432140463bf2449",
+    "sourceType": "patch_file"
+  },
+  "protectiveFactors": [
+    "PASS accepts only three exact null observations",
+    "LOSS retains strict int zero and exact true observations",
+    "Step action, state, status, counters, injection, and failure code remain strict",
+    "All unrelated report and source/privacy gates are unchanged",
+    "Fabricated PASS and weakened LOSS variants are rejected"
+  ],
+  "recommendation": "hold_for_evidence",
+  "recoverability": {
+    "rating": "easy",
+    "rationale": "The two-path reader-and-test patch has no data migration or runtime state effect and can be reverted atomically."
+  },
+  "regressionLikelihood": {
+    "rating": "low",
+    "rationale": "The split matches the unchanged Go producer semantics: PASS returns the response without reading or closing it, while LOSS records exact consumption and close observations. Strict positive and negative model coverage and an original-report replay support the change."
+  },
+  "regressionProtection": {
+    "exactHeadChecksPassed": false,
+    "rating": "partial",
+    "rationale": "The focused reader model and diagnostic replay passed, and the supplied receipt reports all 300 Python tests passed, but no exact committed-head Linux Go, gofmt, new 31-request run, source binding, or fresh independent acceptance exists."
+  },
+  "riskDrivers": [
+    "Reader acceptance controls whether a security-sensitive recovery experiment is trusted",
+    "New exact-head Linux execution and source binding are unavailable",
+    "Diagnostic replay uses immutable 6d originals rather than a new-head run"
+  ],
+  "schemaVersion": 1,
+  "statusQuoRisk": {
+    "rating": "moderate",
+    "rationale": "Without the patch, authentic public evidence is rejected even though its PASS nulls accurately represent an unread and unclosed passthrough response."
+  },
+  "unknowns": [
+    {
+      "decisionCritical": true,
+      "summary": "The exact integrated new head has not run Linux Go/gofmt, the 31-request experiment, source binding, or fresh independent acceptance."
+    }
+  ],
+  "validation": [
+    {
+      "name": "Frozen patch, manifest, source receipt, strict apply, and two after-images",
+      "protects": "Exact immutable subject and base applicability",
+      "status": "passed"
+    },
+    {
+      "name": "Focused synthetic reader model",
+      "protects": "Three PASS null snapshots plus fabricated PASS and weakened LOSS negative cases",
+      "status": "passed"
+    },
+    {
+      "name": "Reported eleven-module Python suite",
+      "protects": "Reported 300-test existing Python regression suite with ResourceWarning as error; not independently rerun in full",
+      "status": "passed"
+    },
+    {
+      "name": "6d public original validate_report replay",
+      "protects": "DIAGNOSTIC_READER_LOGIC_REPLAY_NOT_EXACT_HEAD_ACCEPTANCE; accepts 31 HTTP entries without altering report or bypassing final source gates",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-head Linux Go, gofmt, new 31-request run, source binding, and fresh checker",
+      "protects": "Compilation, runtime truth, exact source identity, privacy fences, and whole new-head acceptance",
+      "status": "skipped"
+    }
+  ],
+  "workflowLabel": "hold_for_evidence"
+}
