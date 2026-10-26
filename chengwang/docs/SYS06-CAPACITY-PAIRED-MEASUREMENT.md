@@ -13,3 +13,7 @@ Go 的 `-timeout=180s`、256 次实际 history 循环和 2 MiB 上限保持不�
 工作流成功只可能表示测量原件被成功获取和复核。必须分别读取 a.goAccepted 与 b.goAccepted；任一 timeout、skip、未完成或失败不得被报告为 Go 通过。报告中的 productAcceptance、performanceImprovementProven、profileOverheadCausalityProven、identicalSystemLoadProven、production 均为 false。
 
 两次运行仍共享 job cgroup 和主机；没有逐 leg 独立 cgroup，也不能证明负载相同。一次 AB／BA 不证明稳定性能收益。组织级 ruleset 和外部 required workflow 的行为需要实际 CI 观察，不能仅靠本仓库源码推断。
+
+## V3 同轮已验证尾项候选测量
+
+本轮仅测量两个 Go 源文件的窄候选：同一轮完整校验后，当前 V1 REVOKED_UNSTARTED 与最后 history 项逐值完全相等，且无 Source、Execution、Reconciliation 时复用已完成的校验。其他 phase、V2/V3 及跨操作／跨解码缓存全部排除。源审查允许进入 Linux 取证，尚未证明编译、race、180 秒余量或性能收益。原 688 名称、256 次真实循环、2 MiB、race 与 180 秒门均不放宽，测量工作流和读取器逐字节保持。新分支不含独立恢复修复或 stage 诊断；主生命周期工作区保持不变。AB/BA job 成功仍只代表采集与读取成功，必须分别检查四 leg 的 Go 结果。不同 job 的主机／负载相同及因果收益均未证明。

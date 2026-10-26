@@ -51,8 +51,17 @@ func TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit(t *testing.T
 		t.Fatal("MODEL source")
 	}
 	second, err := newLabRecoveryPlan(original, "labrec_"+strings.Repeat("2", 32), p.descriptor().DeclaredInitiatorRef, p.descriptor().TargetArtifact, now, now.Add(time.Minute))
-	if err != nil || s.beginRecovery(owner, &second, s.core.record.core.Revision, s.core.record.core.RecordSHA256, now) != nil || s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
+	if err != nil || s.beginRecovery(owner, &second, s.core.record.core.Revision, s.core.record.core.RecordSHA256, now) != nil {
+		t.Fatal("MODEL valid second begin")
+	}
+	if validateLifecycleV3Record(lifecycleV3Copy(t, s.core.record)) != nil {
+		t.Fatal("MODEL generic current path rejected")
+	}
+	if s.revokeRecovery(owner, "MODEL_revoker", "EXPLICIT_REVOKED", now) != nil {
 		t.Fatal("MODEL valid second archive")
+	}
+	if validateLifecycleV3Record(lifecycleV3Copy(t, s.core.record)) != nil {
+		t.Fatal("MODEL exact revoked tail rejected")
 	}
 	for _, kind := range []string{"digest", "time", "budget", "operation", "intent", "head", "epoch", "provisioning", "target"} {
 		r := lifecycleV3Copy(t, s.core.record)
@@ -92,6 +101,43 @@ func TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit(t *testing.T
 		if validateLifecycleV3Record(r) == nil {
 			t.Fatal("MODEL invalid history accepted in full record")
 		}
+	}
+	for _, tc := range []struct {
+		name   string
+		mutate func(*lifecycleV3Wire)
+	}{
+		{"current_only_generic_fallback", func(w *lifecycleV3Wire) {
+			d := w.Recovery.Plan
+			d.TargetArtifact.SourceSpecBytes++
+			w.Recovery.Plan = labRecoveryPlanModelReseal(t, d)
+		}},
+		{"history_only", func(w *lifecycleV3Wire) {
+			i := len(w.RecoveryHistory) - 1
+			d := w.RecoveryHistory[i].Plan
+			d.TargetArtifact.SourceSpecBytes++
+			w.RecoveryHistory[i].Plan = labRecoveryPlanModelReseal(t, d)
+		}},
+		{"owner_fence", func(w *lifecycleV3Wire) { w.RecoveryOwner.Fence++ }},
+		{"trusted_time", func(w *lifecycleV3Wire) {
+			w.LastTrustedAt = w.RecoveryHistory[len(w.RecoveryHistory)-1].UpdatedAt.Add(-time.Nanosecond)
+		}},
+		{"later_schema_checkpoint", func(w *lifecycleV3Wire) {
+			i := len(w.RecoveryHistory) - 1
+			d := w.RecoveryHistory[i].Plan
+			d.Schema = labRecoveryPlanSchemaV2
+			d = labRecoveryPlanModelReseal(t, d)
+			w.RecoveryHistory[i].Plan = d
+			w.Recovery.Plan = d
+		}},
+	} {
+		t.Run("tail_reuse_rejects_"+tc.name, func(t *testing.T) {
+			r := lifecycleV3Copy(t, s.core.record)
+			tc.mutate(r.core)
+			r = lifecycleV3Seal(t, r)
+			if validateLifecycleV3Record(r) == nil {
+				t.Fatal("MODEL invalid current/history context accepted")
+			}
+		})
 	}
 }
 

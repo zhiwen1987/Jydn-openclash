@@ -587,12 +587,22 @@ func validateLifecycleV3ContentsScoped(w *lifecycleV3Wire, scope *lifecycleV3Dec
 	}
 	if w.Recovery != nil {
 		a := *w.Recovery
-		entryContext, contextErr := planContext(a.Plan)
-		if contextErr != nil || validateLifecycleRecoveryTxn(a, entryContext, w.LastTrustedAt, w.Revision) != nil {
-			return errLifecycleUnsafe
-		}
-		if a.Phase != "FAILED_RECONCILED" && validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil {
-			return errLifecycleUnsafe
+		// A V1 revoked tail has no execution, reconciliation, source checkpoint or
+		// decode-scope work. When Current is the exact value just validated as the
+		// final history item above, its plan context, trusted time and revision are
+		// therefore identical. Later schemas and all other phases deliberately
+		// retain the complete independent validation below.
+		validatedRevokedV1Tail := recoveryIDs[a.Plan.RecoveryID] && len(w.RecoveryHistory) != 0 &&
+			a.Plan.Schema == labRecoveryPlanSchema && a.Plan.Source == nil && a.Phase == "REVOKED_UNSTARTED" &&
+			a.Execution == nil && a.Reconciliation == nil && reflect.DeepEqual(a, w.RecoveryHistory[len(w.RecoveryHistory)-1])
+		if !validatedRevokedV1Tail {
+			entryContext, contextErr := planContext(a.Plan)
+			if contextErr != nil || validateLifecycleRecoveryTxn(a, entryContext, w.LastTrustedAt, w.Revision) != nil {
+				return errLifecycleUnsafe
+			}
+			if a.Phase != "FAILED_RECONCILED" && validateLifecycleRecoveryExecutionScoped(w, a, scope) != nil {
+				return errLifecycleUnsafe
+			}
 		}
 		if recoveryIDs[a.Plan.RecoveryID] {
 			if len(w.RecoveryHistory) == 0 || !reflect.DeepEqual(a, w.RecoveryHistory[len(w.RecoveryHistory)-1]) {

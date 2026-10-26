@@ -1,0 +1,51 @@
+{
+  "baseline": "8d360ed0a358250cc1f855633f133636aac64287",
+  "candidateManifestSHA256": "061d3a0d8b4ae4934b6e9ca94e4ea12a6a8fd05e43761ad849413ce858b6ddad",
+  "candidatePatchSHA256": "6c9936af27d14b611faa6a276a83be470b8ddf06c42a2a42cc0d3b38d187ca36",
+  "causalityProven": false,
+  "excluded": [
+    "COMPLETED",
+    "FAILED_RECONCILED",
+    "V2",
+    "V3",
+    "cross-operation cache",
+    "cross-decode cache",
+    "pointer-only proof"
+  ],
+  "existingTopExtended": "TestLifecycleV3HistoryContextChecksEveryPlanAfterTargetMemoHit",
+  "goExecuted": false,
+  "goTimeoutSeconds": 180,
+  "historyIterations": 256,
+  "independentRecoveryFixIncluded": false,
+  "mainMerged": false,
+  "mandatoryNamesCount": 688,
+  "measurementWorkflowChanged": false,
+  "newGoTops": 0,
+  "peerAssessmentSHA256": "feaba0a4e4738e9c121977a77da5e023b6856d14c0e93536584d32082298ceff",
+  "peerRecommendation": "HOLD_FOR_EVIDENCE",
+  "performanceImprovementProven": false,
+  "priorABBAFailurePreserved": true,
+  "productAccepted": false,
+  "production": false,
+  "raceRequired": true,
+  "recordBytes": 2097152,
+  "registryPublished": false,
+  "sameHostOrLoadProven": false,
+  "sameValueDeepEqualRequired": true,
+  "schema": "chengwang.capacity-perf-source-measurement/v1",
+  "scope": "SOURCE_CANDIDATE_FOR_ISOLATED_LINUX_MEASUREMENT_NOT_ACCEPTANCE",
+  "scopeOfReuse": "SAME_VALIDATION_PASS_EXACT_V1_REVOKED_HISTORY_TAIL_ONLY",
+  "sourceChanges": [
+    {
+      "afterSHA256": "388db0aa0ddec76226be45494dabe7e746c795ba640389f0c2c8aab949324cd2",
+      "beforeSHA256": "b08ce27960dbd9797b125498826f3a09dd8835ed1879a44a0a7c928018e5c049",
+      "path": "chengwang/internal/mihomodeploy/lifecycle_v3.go"
+    },
+    {
+      "afterSHA256": "9db63f906552322ad98ed8ca4d76e0478dbd7dbb4ac32badf34867ce66c1bca6",
+      "beforeSHA256": "e1fba0b3738e07d3e3b567e4c4c0610b1ccd9c5802381d0a514f7e3103ead081",
+      "path": "chengwang/internal/mihomodeploy/lifecycle_v3_test.go"
+    }
+  ],
+  "stageDiagnosticIncluded": false
+}
