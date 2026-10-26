@@ -123,6 +123,9 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                       'matchesPublicIdentityRole':False,'publicIdentityRole':'NOT_APPLICABLE',
                       'lastHTTPCase':None,'lastHTTPStatusObserved':False,
                       'lastHTTPStatusCode':None,'lastHTTPErrorClass':None,
+                      'lastHTTPStateMayHaveChangedObserved':False,'lastHTTPStateMayHaveChanged':None,
+                      'recoveryCreateTraceObserved':False,'recoveryCreateTraceBounded':False,
+                      'recoveryCreateCount':0,'lastRecoveryCreateStage':None,
                       'encodingVariant':variant})
         self.assertIsNone(self.worker.fence_outputs({'clean.json':b'clean'},
           ((b'model-private-value','CONFIG_A','WHOLE_FILE','RAW',False,False,'NOT_APPLICABLE'),),
@@ -191,20 +194,32 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
               'ALL_GENERIC_AND_REPORT_OUTPUTS',1,1,True,31,'NONE',False)
         unknown_code='model-private-unknown-code'
         self.assertEqual(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'}),
-          ('UNKNOWN',False,None,False,None,None))
+          ('UNKNOWN',False,None,False,None,None,False,None,False,False,0,None))
         self.assertNotIn(unknown_code,str(self.worker.report_diagnostic_status({'failureCode':unknown_code,'outcome':'FAIL'})))
         self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL',
           'http':[{'case':'FIRST_UNKNOWN_INSPECT','statusCode':403,'errorClass':'NONE'}]}),
-          ('HTTP_RESULT',False,'FIRST_UNKNOWN_INSPECT',True,403,'NONE'))
+          ('HTTP_RESULT',False,'FIRST_UNKNOWN_INSPECT',True,403,'NONE',False,None,False,False,0,None))
         for invalid in (True,403.0,99,600):
             with self.subTest(invalid_status=invalid):
                 self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL',
                   'http':[{'case':'model-unknown-case','statusCode':invalid,'errorClass':'model-unknown-error'}]}),
-                  ('HTTP_RESULT',False,'UNKNOWN',False,None,'UNKNOWN'))
+                  ('HTTP_RESULT',False,'UNKNOWN',False,None,'UNKNOWN',False,None,False,False,0,None))
         self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL','http':{}}),
-          ('HTTP_RESULT',False,'UNKNOWN',False,None,'UNKNOWN'))
+          ('HTTP_RESULT',False,'UNKNOWN',False,None,'UNKNOWN',False,None,False,False,0,None))
         self.assertEqual(self.worker.report_diagnostic_status({'failureCode':'HTTP_RESULT','outcome':'FAIL','http':[]}),
-          ('HTTP_RESULT',False,None,False,None,None))
+          ('HTTP_RESULT',False,None,False,None,None,False,None,False,False,0,None))
+        error_body=base64.b64encode(json.dumps({'stateMayHaveChanged':True},separators=(',',':')).encode()).decode()
+        traced={'failureCode':'HTTP_RESULT','outcome':'FAIL','http':[{'case':'SECOND_RECOVERY_CREATE','statusCode':503,
+          'errorClass':'NONE','responseBodyB64':error_body}],
+          'faultAfterCleanup':{'recoveryCreatesBounded':True,'recoveryCreates':[
+            {'sequence':1,'stage':'ENTERED'},{'sequence':2,'stage':'ACCEPTED'},
+            {'sequence':3,'stage':'ENTERED'},{'sequence':4,'stage':'REJECTED_PLAN'}]}}
+        self.assertEqual(self.worker.report_diagnostic_status(traced),
+          ('HTTP_RESULT',False,'SECOND_RECOVERY_CREATE',True,503,'NONE',True,True,True,True,4,'REJECTED_PLAN'))
+        mutant=copy.deepcopy(traced); mutant['http'][-1]['responseBodyB64']=base64.b64encode(b'{"stateMayHaveChanged":1}').decode()
+        mutant['faultAfterCleanup']['recoveryCreates'][-1]['stage']='dynamic-private-error'
+        self.assertEqual(self.worker.report_diagnostic_status(mutant),
+          ('HTTP_RESULT',False,'SECOND_RECOVERY_CREATE',True,503,'NONE',False,None,True,True,4,'UNKNOWN'))
         known_code=b'HOOK_ARM'
         with self.assertRaisesRegex(ValueError,r'^isolated continuous Recovery capture rejected$'):
             self.worker.fence_outputs({'collision.json':known_code},
@@ -318,6 +333,8 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
               'underlyingRoundTrips':1,'statusCode':204,'bodyBytes':0,'eofObserved':True,'closeSucceeded':True,'injected':loss,'failureCode':None})
         return {'schema':'chengwang.mihomo-continuous-recovery-response-loss/v1','state':state,'boundOperations':3,'observedResults':3,
           'initialCore':1,'recoveredCore':2,'nativeCallsBounded':True,'nativeCalls':calls,
+          'recoveryCreatesBounded':True,'recoveryCreates':[{'sequence':1,'stage':'ENTERED'},{'sequence':2,'stage':'ACCEPTED'},
+            {'sequence':3,'stage':'ENTERED'},{'sequence':4,'stage':'ACCEPTED'}],
           'transport':{'schema':'chengwang.mihomo-reload-response-loss-schedule/v1','state':'CLOSED' if state=='CLOSED' else 'TERMINAL',
             'boundChildren':3,'underlyingRoundTrips':3,'injected':2,'steps':steps}}
     def candidates(self,current,record_a,config_a,record_b,config_b):
@@ -394,6 +411,8 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
               lambda x:x.__setitem__('privateWALDecodedByTest',True),
               lambda x:x['heads'][5]['view'].__setitem__('headSHA256',x['heads'][3]['view']['headSHA256']),
               lambda x:x['faultClosed']['transport']['steps'][0].__setitem__('action','PASS'),
+              lambda x:x['faultClosed'].__setitem__('recoveryCreatesBounded',False),
+              lambda x:x['faultClosed']['recoveryCreates'][3].__setitem__('stage','REJECTED_PLAN'),
               lambda x:x['closedPorts'][0].__setitem__('accepted',True)):
                 value=copy.deepcopy(report); mutate(value); mutants.append(value)
             for value in mutants:

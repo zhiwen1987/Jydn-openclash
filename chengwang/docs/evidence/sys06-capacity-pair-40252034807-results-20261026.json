@@ -1,0 +1,184 @@
+{
+  "artifacts": {
+    "AB": {
+      "bytes": 928876,
+      "crcAndPathVerified": true,
+      "id": 12621361644,
+      "members": 39,
+      "name": "mihomo-capacity-pair-AB-40252034807-1",
+      "sha256": "6c7f8e10419c620591d62660bbf6e1f810687068b99b222d79468691c769fcf3"
+    },
+    "BA": {
+      "bytes": 900372,
+      "crcAndPathVerified": true,
+      "id": 12620713994,
+      "members": 39,
+      "name": "mihomo-capacity-pair-BA-40252034807-1",
+      "sha256": "85357d45971eb4ff6f26d82d23616b3ae97cf3da92577e01e202abe2ce217d4e"
+    }
+  },
+  "classification": {
+    "githubJobSuccessIsNotLegAcceptance": true,
+    "measurementOnly": true,
+    "productAcceptance": false,
+    "production": false,
+    "runnerExitZeroIsCaptureCompletionOnly": true,
+    "windowsReplayAdapter": "LEXICAL_LINUX_GOROOT_PATH_JOIN_ONLY_CHECKER_FUNCTIONS_UNCHANGED"
+  },
+  "crossOrder": {
+    "allFourSourceSnapshotsExactAndIdentical": true,
+    "artifactMemberClosure": "39_EACH",
+    "fourLegsAccepted": false
+  },
+  "orders": {
+    "AB": {
+      "A": {
+        "capacitySeconds": 65.11,
+        "dataRaceWarningObserved": false,
+        "goAccepted": true,
+        "goCLIWallNanoseconds": 168064298658,
+        "goExit": 0,
+        "mode": "NO_PROFILE_NORMAL_FLAGS",
+        "packageSeconds": 147.288,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "pass",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "targetState": "pass",
+        "timeoutObserved": false
+      },
+      "B": {
+        "capacitySeconds": 64.54,
+        "dataRaceWarningObserved": false,
+        "goAccepted": true,
+        "goCLIWallNanoseconds": 167659304827,
+        "goExit": 0,
+        "mode": "TAGGED_FULL_PROFILE",
+        "packageSeconds": 147.075,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "pass",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "profileDurationNanoseconds": 120179992907,
+        "targetState": "pass",
+        "timeoutObserved": false
+      },
+      "delta": {
+        "bMinusACapacitySeconds": -0.5699999999999932,
+        "bMinusAGoCLIWallNanoseconds": -404993831,
+        "bMinusAPackageSeconds": -0.21300000000002228
+      },
+      "job": "pair-AB",
+      "limits": {
+        "goTestTimeoutSecondsEach": 180,
+        "historyEntries": 256,
+        "jobTimeoutMinutes": 12,
+        "recordBytes": 2097152
+      },
+      "measurementOnlyBoundaries": {
+        "identicalSystemLoadProven": false,
+        "performanceImprovementProven": false,
+        "productAcceptance": false,
+        "production": false,
+        "profileOverheadCausalityProven": false
+      },
+      "pairID": "40252034807:1:AB",
+      "positions": {
+        "A": 1,
+        "B": 2
+      },
+      "strictCheckerReplay": true
+    },
+    "BA": {
+      "A": {
+        "capacitySeconds": 85.38,
+        "dataRaceWarningObserved": false,
+        "goAccepted": false,
+        "goCLIWallNanoseconds": 206334054253,
+        "goExit": 1,
+        "mode": "NO_PROFILE_NORMAL_FLAGS",
+        "packageSeconds": 180.048,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "fail",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "targetState": "pass",
+        "timeoutObserved": true
+      },
+      "B": {
+        "capacitySeconds": 84.53,
+        "dataRaceWarningObserved": false,
+        "goAccepted": false,
+        "goCLIWallNanoseconds": 206762275837,
+        "goExit": 1,
+        "mode": "TAGGED_FULL_PROFILE",
+        "packageSeconds": 180.041,
+        "packageStates": {
+          "chengwang/internal/adapter/mihomo": "pass",
+          "chengwang/internal/api": "pass",
+          "chengwang/internal/authn": "pass",
+          "chengwang/internal/authz": "pass",
+          "chengwang/internal/mihomodeploy": "fail",
+          "chengwang/internal/serverruntime": "pass"
+        },
+        "profileDurationNanoseconds": 120171964162,
+        "targetState": "pass",
+        "timeoutObserved": true
+      },
+      "delta": {
+        "bMinusACapacitySeconds": -0.8499999999999943,
+        "bMinusAGoCLIWallNanoseconds": 428221584,
+        "bMinusAPackageSeconds": -0.007000000000005002
+      },
+      "job": "pair-BA",
+      "limits": {
+        "goTestTimeoutSecondsEach": 180,
+        "historyEntries": 256,
+        "jobTimeoutMinutes": 12,
+        "recordBytes": 2097152
+      },
+      "measurementOnlyBoundaries": {
+        "identicalSystemLoadProven": false,
+        "performanceImprovementProven": false,
+        "productAcceptance": false,
+        "production": false,
+        "profileOverheadCausalityProven": false
+      },
+      "pairID": "40252034807:1:BA",
+      "positions": {
+        "A": 2,
+        "B": 1
+      },
+      "strictCheckerReplay": true
+    }
+  },
+  "remote": {
+    "branch": "codex/chengwang-capacity-measure-20261026-5678018",
+    "head": "8d360ed0a358250cc1f855633f133636aac64287",
+    "jobs": {
+      "pair-AB": "success",
+      "pair-BA": "success"
+    },
+    "runAttempt": 1,
+    "runID": 40252034807
+  },
+  "schema": "chengwang.capacity-pair-campaign-audit/v1",
+  "source": {
+    "clean": true,
+    "head": "8d360ed0a358250cc1f855633f133636aac64287",
+    "snapshot": "D:\\CodexData\\workspace\\mihomo-8d360ed-capacity-acceptance-m84ddcyb\\repo"
+  },
+  "status": "CAMPAIGN_MEASUREMENT_REJECTED"
+}

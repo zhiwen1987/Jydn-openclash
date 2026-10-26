@@ -28,4 +28,38 @@ func TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL(t *testin
 	if json.Unmarshal([]byte(`{"scope":"PRIVATE_CONTINUOUS_RECOVERY_FAULT_NOT_AUTHORIZATION"}`), &zero) == nil {
 		t.Fatal("MODEL JSON reconstructed schedule")
 	}
+	t.Run("create-stage-is-exact-bounded-diagnostic-only", func(t *testing.T) {
+		service := &labServiceCore{}
+		foreign := &labServiceCore{}
+		core := &labContinuousRecoveryFaultCore{service: service, recoveryCreatesBounded: true}
+		core.identity = core
+		diagnostic := &processLabContinuousRecoveryCreateDiagnostic
+		diagnostic.mu.Lock()
+		previous := diagnostic.core
+		diagnostic.core = core
+		diagnostic.mu.Unlock()
+		t.Cleanup(func() {
+			diagnostic.mu.Lock()
+			diagnostic.core = previous
+			diagnostic.mu.Unlock()
+		})
+		labContinuousRecoveryRecoveryCreateStage(foreign, "ENTERED")
+		labContinuousRecoveryRecoveryCreateStage(service, "ENTERED")
+		labContinuousRecoveryRecoveryCreateStage(service, "ACCEPTED")
+		diagnostic.mu.Lock()
+		got := append([]LabContinuousRecoveryCreateStage(nil), core.recoveryCreates...)
+		bounded := core.recoveryCreatesBounded
+		diagnostic.mu.Unlock()
+		if !bounded || len(got) != 2 || got[0].Sequence != 1 || got[0].Stage != "ENTERED" ||
+			got[1].Sequence != 2 || got[1].Stage != "ACCEPTED" {
+			t.Fatal("MODEL create-stage diagnostic lost exact source binding")
+		}
+		labContinuousRecoveryRecoveryCreateStage(service, "dynamic-error-text")
+		diagnostic.mu.Lock()
+		bounded = core.recoveryCreatesBounded
+		diagnostic.mu.Unlock()
+		if bounded {
+			t.Fatal("MODEL dynamic create-stage diagnostic was accepted")
+		}
+	})
 }

@@ -65,6 +65,9 @@ REPORT_FAILURE_CODES = frozenset(('ACK_HEAD','CANDIDATES','CLEANUP','CLEANUP_CAL
   'NONE','NOT_COMPLETED','RECOVERY_APPROVAL','RECOVERY_COMPLETE','RECOVERY_INSPECT','RECOVERY_PLAN',
   'RECOVERY_READBACK','REPORT_CONTRACT','REQUEST_BUILD','REQUEST_ENCODING','RUNTIME_START','SECOND_RECOVERED_HEAD',
   'SECOND_UNKNOWN_HEAD'))
+RECOVERY_CREATE_STAGES = frozenset(('ENTERED','REJECTED_COORDINATOR','REJECTED_INVALID','REJECTED_CONFLICT',
+  'REJECTED_AUTHORIZATION','REJECTED_ID','REJECTED_SNAPSHOT','REJECTED_OWNER','REJECTED_TARGET','REJECTED_PLAN',
+  'REJECTED_EVOLVE','REJECTED_SOURCE_REFRESH','REJECTED_BEGIN','REJECTED_BIND','REJECTED_VIEW','ACCEPTED'))
 MANIFEST_REL = 'chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_source_policy.json'
 MAX_TRACKED = 64 << 20
 COMMIT = re.compile(r'[0-9a-f]{40}')
@@ -76,6 +79,7 @@ FMT = (
  'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+ 'internal/mihomodeploy/lab_recovery_backend.go',
  'internal/mihomodeploy/lab_service.go',
  'internal/serverruntime/runtime.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
@@ -96,6 +100,7 @@ DELIVERY = (
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+ 'chengwang/internal/mihomodeploy/lab_recovery_backend.go',
  'chengwang/internal/mihomodeploy/lab_service.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
@@ -330,9 +335,9 @@ def build_forbidden():
     return forbidden
 
 def report_diagnostic_status(report):
-    if type(report) is not dict: return 'UNKNOWN',False,None,False,None,None
+    if type(report) is not dict: return 'UNKNOWN',False,None,False,None,None,False,None,False,False,0,None
     code=report.get('failureCode'); outcome=report.get('outcome')
-    last_case=status=error_class=None; status_observed=False
+    last_case=status=error_class=state_changed=None; status_observed=state_changed_observed=False
     rows=report.get('http')
     if rows is not None and (type(rows) is not list or rows):
         last_case=error_class='UNKNOWN'
@@ -343,12 +348,37 @@ def report_diagnostic_status(report):
             if type(candidate) is int and 100<=candidate<=599: status=candidate; status_observed=True
             candidate=rows[-1].get('errorClass')
             if type(candidate) is str and candidate in HTTP_ERROR_CLASSES: error_class=candidate
+            encoded=rows[-1].get('responseBodyB64')
+            if type(encoded) is str:
+                try:
+                    envelope=json.loads(base64.b64decode(encoded,validate=True))
+                    candidate=envelope.get('stateMayHaveChanged') if type(envelope) is dict else None
+                    if type(candidate) is bool: state_changed=candidate; state_changed_observed=True
+                except Exception: pass
+    trace_observed=trace_bounded=False; create_count=0; last_create_stage=None
+    for name in ('faultAfterCleanup','faultClosed','faultBeforeCleanup'):
+        observation=report.get(name)
+        if observation is None: continue
+        trace_observed=True; last_create_stage='UNKNOWN'
+        if type(observation) is dict and type(observation.get('recoveryCreatesBounded')) is bool:
+            trace_bounded=observation['recoveryCreatesBounded']
+            creates=observation.get('recoveryCreates')
+            if type(creates) is list and len(creates)<=4:
+                create_count=len(creates)
+                if creates and type(creates[-1]) is dict and creates[-1].get('sequence')==len(creates):
+                    candidate=creates[-1].get('stage')
+                    if type(candidate) is str and candidate in RECOVERY_CREATE_STAGES: last_create_stage=candidate
+                elif not creates: last_create_stage=None
+        break
     return (code if type(code) is str and code in REPORT_FAILURE_CODES else 'UNKNOWN',
-      type(outcome) is str and outcome=='PASS',last_case,status_observed,status,error_class)
+      type(outcome) is str and outcome=='PASS',last_case,status_observed,status,error_class,
+      state_changed_observed,state_changed,trace_observed,trace_bounded,create_count,last_create_stage)
 
 def fence_outputs(outputs, forbidden, phase, format_exit, go_exit, report_observed, http_count,
                   report_failure_code, report_outcome_pass, last_http_case=None, last_http_status_observed=False,
-                  last_http_status_code=None, last_http_error_class=None):
+                  last_http_status_code=None, last_http_error_class=None, last_http_state_changed_observed=False,
+                  last_http_state_changed=None, recovery_create_trace_observed=False,
+                  recovery_create_trace_bounded=False, recovery_create_count=0, last_recovery_create_stage=None):
     need(type(outputs) is dict and phase in FENCE_PHASES and
          type(format_exit) is int and type(go_exit) is int and type(report_observed) is bool and
          type(http_count) is int and 0 <= http_count <= 4096 and
@@ -356,7 +386,12 @@ def fence_outputs(outputs, forbidden, phase, format_exit, go_exit, report_observ
          (last_http_case is None or last_http_case in HTTP_DIAGNOSTIC_CASES|{'UNKNOWN'}) and
          type(last_http_status_observed) is bool and last_http_status_observed is (last_http_status_code is not None) and
          (last_http_status_code is None or type(last_http_status_code) is int and 100<=last_http_status_code<=599) and
-         (last_http_error_class is None or last_http_error_class in HTTP_DIAGNOSTIC_ERROR_CLASSES))
+         (last_http_error_class is None or last_http_error_class in HTTP_DIAGNOSTIC_ERROR_CLASSES) and
+         type(last_http_state_changed_observed) is bool and
+         last_http_state_changed_observed is (type(last_http_state_changed) is bool) and
+         type(recovery_create_trace_observed) is bool and type(recovery_create_trace_bounded) is bool and
+         type(recovery_create_count) is int and 0<=recovery_create_count<=4 and
+         (last_recovery_create_stage is None or last_recovery_create_stage in RECOVERY_CREATE_STAGES|{'UNKNOWN'}))
     for name,body in outputs.items():
         need(type(name) is str and re.fullmatch(r'[a-z0-9][a-z0-9.-]{0,127}',name) is not None and type(body) is bytes)
         for secret,input_class,element_class,variant,matches_environment,matches_role,public_role in forbidden:
@@ -368,7 +403,13 @@ def fence_outputs(outputs, forbidden, phase, format_exit, go_exit, report_observ
                   'reportObserved':report_observed,'httpCount':http_count,'reportFailureCode':report_failure_code,
                   'reportOutcomePass':report_outcome_pass,'lastHTTPCase':last_http_case,
                   'lastHTTPStatusObserved':last_http_status_observed,'lastHTTPStatusCode':last_http_status_code,
-                  'lastHTTPErrorClass':last_http_error_class,'outputLogicalName':name,
+                  'lastHTTPErrorClass':last_http_error_class,
+                  'lastHTTPStateMayHaveChangedObserved':last_http_state_changed_observed,
+                  'lastHTTPStateMayHaveChanged':last_http_state_changed,
+                  'recoveryCreateTraceObserved':recovery_create_trace_observed,
+                  'recoveryCreateTraceBounded':recovery_create_trace_bounded,
+                  'recoveryCreateCount':recovery_create_count,'lastRecoveryCreateStage':last_recovery_create_stage,
+                  'outputLogicalName':name,
                   'secretInputClass':input_class,'secretElementClass':element_class,
                   'matchesPublicLabEnvironment':matches_environment,'matchesPublicIdentityRole':matches_role,
                   'publicIdentityRole':public_role,'encodingVariant':variant})
@@ -430,9 +471,9 @@ def safe_report_outputs(binding, forbidden, format_exit, go_exit):
       'scope':SCOPE,'sourceCommit':binding['sourceCommit'],'sourceBinding':binding,'entries':index,'production':False})+b'\n'
     for public,private in (('kernel.stdout',SERVICE/'kernel.stdout'),('kernel.stderr',SERVICE/'kernel.stderr')):
         outputs[public]=source_file(private,256<<10,empty=True)
-    report_failure_code,report_outcome_pass,last_http_case,last_http_status_observed,last_http_status,last_http_error=report_diagnostic_status(report)
+    diagnostic=report_diagnostic_status(report)
     fence_outputs(outputs,forbidden,'REPORT_AND_HTTP_OUTPUTS',format_exit,go_exit,True,len(report.get('http',[])),
-      report_failure_code,report_outcome_pass,last_http_case,last_http_status_observed,last_http_status,last_http_error)
+      *diagnostic)
     receipts=[]
     for path in (REPORT,SERVICE/'kernel.stdout',SERVICE/'kernel.stderr'):
         info=path.lstat(); body=source_file(path,2<<20,empty=True); fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
@@ -485,10 +526,9 @@ def main(args):
     outputs['execution.json']=canonical({'schema':'chengwang.mihomo-continuous-recovery-execution/v1','scope':SCOPE,
       'sourceCommit':actual,'sourceBinding':binding,'formatExit':state['formatExit'],'goExit':state['goExit'],
       'outcome':outcome,'fullPrivateWALIndependentlyProven':False,'production':False})+b'\n'
-    report_failure_code,report_outcome_pass,last_http_case,last_http_status_observed,last_http_status,last_http_error=report_diagnostic_status(report)
+    diagnostic=report_diagnostic_status(report)
     fence_outputs(outputs,forbidden,'ALL_GENERIC_AND_REPORT_OUTPUTS',state['formatExit'],state['goExit'],
-      report is not None,len(report.get('http',[])) if report is not None else 0,report_failure_code,report_outcome_pass,
-      last_http_case,last_http_status_observed,last_http_status,last_http_error)
+      report is not None,len(report.get('http',[])) if report is not None else 0,*diagnostic)
     need(sum(map(len,outputs.values()))<=c['maxPublicBytes']); a.unchanged_public(state)
     for name,body in outputs.items(): w.write_new(a.EXPORT_ALIAS/name,body,0o644)
     a.sync_output(state); a.unchanged_public(state); need(not state['pending'])

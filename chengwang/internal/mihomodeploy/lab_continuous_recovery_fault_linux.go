@@ -23,16 +23,23 @@ type LabContinuousRecoveryNativeCall struct {
 	At       time.Time `json:"at"`
 }
 
+type LabContinuousRecoveryCreateStage struct {
+	Sequence int    `json:"sequence"`
+	Stage    string `json:"stage"`
+}
+
 type LabContinuousRecoveryFaultObservation struct {
-	Schema             string                                          `json:"schema"`
-	State              string                                          `json:"state"`
-	BoundOperations    int                                             `json:"boundOperations"`
-	ObservedResults    int                                             `json:"observedResults"`
-	InitialCore        uint64                                          `json:"initialCore"`
-	RecoveredCore      *uint64                                         `json:"recoveredCore"`
-	NativeCallsBounded bool                                            `json:"nativeCallsBounded"`
-	NativeCalls        []LabContinuousRecoveryNativeCall               `json:"nativeCalls"`
-	Transport          mihomo.LabReloadResponseLossScheduleObservation `json:"transport"`
+	Schema                 string                                          `json:"schema"`
+	State                  string                                          `json:"state"`
+	BoundOperations        int                                             `json:"boundOperations"`
+	ObservedResults        int                                             `json:"observedResults"`
+	InitialCore            uint64                                          `json:"initialCore"`
+	RecoveredCore          *uint64                                         `json:"recoveredCore"`
+	NativeCallsBounded     bool                                            `json:"nativeCallsBounded"`
+	NativeCalls            []LabContinuousRecoveryNativeCall               `json:"nativeCalls"`
+	RecoveryCreatesBounded bool                                            `json:"recoveryCreatesBounded"`
+	RecoveryCreates        []LabContinuousRecoveryCreateStage              `json:"recoveryCreates"`
+	Transport              mihomo.LabReloadResponseLossScheduleObservation `json:"transport"`
 }
 
 type labContinuousRecoveryFaultIssuer struct {
@@ -42,28 +49,30 @@ type labContinuousRecoveryFaultIssuer struct {
 }
 
 type labContinuousRecoveryFaultCore struct {
-	issuer           *labContinuousRecoveryFaultIssuer
-	identity         *labContinuousRecoveryFaultCore
-	service          *labServiceCore
-	runtime          *labLifecycleRuntimeCore
-	initialStore     *lifecycleStore
-	initialOwner     *lifecycleOwnerToken
-	initialKernel    *ownedLabKernel
-	initialCore      uint64
-	recoveredCore    *uint64
-	nativePrefix     int
-	nativeLast       int
-	transport        *mihomo.LabReloadResponseLossSchedule
-	claims           [3]*labContinuousRecoveryFaultClaim
-	bound            int
-	observed         int
-	firstOperation   string
-	firstPlan        string
-	currentBackend   *lifecycleCurrentEpochBackend
-	currentAnchorSHA string
-	closed           bool
-	poisoned         bool
-	operations       map[string]bool
+	issuer                 *labContinuousRecoveryFaultIssuer
+	identity               *labContinuousRecoveryFaultCore
+	service                *labServiceCore
+	runtime                *labLifecycleRuntimeCore
+	initialStore           *lifecycleStore
+	initialOwner           *lifecycleOwnerToken
+	initialKernel          *ownedLabKernel
+	initialCore            uint64
+	recoveredCore          *uint64
+	nativePrefix           int
+	nativeLast             int
+	transport              *mihomo.LabReloadResponseLossSchedule
+	claims                 [3]*labContinuousRecoveryFaultClaim
+	bound                  int
+	observed               int
+	firstOperation         string
+	firstPlan              string
+	currentBackend         *lifecycleCurrentEpochBackend
+	currentAnchorSHA       string
+	closed                 bool
+	poisoned               bool
+	operations             map[string]bool
+	recoveryCreates        []LabContinuousRecoveryCreateStage
+	recoveryCreatesBounded bool
 }
 
 type LabContinuousRecoveryFaultHandle struct {
@@ -90,6 +99,11 @@ type labContinuousRecoveryFaultClaim struct {
 }
 
 var processLabContinuousRecoveryFaultIssuer labContinuousRecoveryFaultIssuer
+
+var processLabContinuousRecoveryCreateDiagnostic struct {
+	mu   sync.Mutex
+	core *labContinuousRecoveryFaultCore
+}
 
 func (LabContinuousRecoveryFaultHandle) String() string   { return labContinuousRecoveryFaultDebug }
 func (LabContinuousRecoveryFaultHandle) GoString() string { return labContinuousRecoveryFaultDebug }
@@ -160,10 +174,13 @@ func BeginLabContinuousRecoveryResponseLoss(service *LabService) (*LabContinuous
 	}
 	core := &labContinuousRecoveryFaultCore{issuer: i, service: s, runtime: runtime, initialStore: s.store,
 		initialOwner: s.owner, initialKernel: s.kernel, initialCore: initialCore, nativePrefix: len(events), nativeLast: last,
-		transport: transport, operations: map[string]bool{}}
+		transport: transport, operations: map[string]bool{}, recoveryCreatesBounded: true}
 	core.identity = core
 	h := &LabContinuousRecoveryFaultHandle{core: core}
 	i.issued = h
+	processLabContinuousRecoveryCreateDiagnostic.mu.Lock()
+	processLabContinuousRecoveryCreateDiagnostic.core = core
+	processLabContinuousRecoveryCreateDiagnostic.mu.Unlock()
 	return h, nil
 }
 
@@ -227,9 +244,42 @@ func (h *LabContinuousRecoveryFaultHandle) Observe() (LabContinuousRecoveryFault
 		value := *core.recoveredCore
 		recovered = &value
 	}
+	processLabContinuousRecoveryCreateDiagnostic.mu.Lock()
+	creates := append([]LabContinuousRecoveryCreateStage(nil), core.recoveryCreates...)
+	createsBounded := core.recoveryCreatesBounded
+	processLabContinuousRecoveryCreateDiagnostic.mu.Unlock()
 	return LabContinuousRecoveryFaultObservation{Schema: labContinuousRecoveryFaultSchema, State: state,
 		BoundOperations: core.bound, ObservedResults: core.observed, InitialCore: core.initialCore, RecoveredCore: recovered,
-		NativeCallsBounded: bounded, NativeCalls: calls, Transport: transport}, nil
+		NativeCallsBounded: bounded, NativeCalls: calls, RecoveryCreatesBounded: createsBounded,
+		RecoveryCreates: creates, Transport: transport}, nil
+}
+
+// labContinuousRecoveryRecoveryCreateStage records only a bounded fixed enum
+// for the exact warm service owned by this isolated fault schedule. It carries
+// no error text, operation ID, record hash, request path or response body and
+// cannot authorize, retry or alter the Create result.
+func labContinuousRecoveryRecoveryCreateStage(service *labServiceCore, stage string) {
+	diagnostic := &processLabContinuousRecoveryCreateDiagnostic
+	diagnostic.mu.Lock()
+	defer diagnostic.mu.Unlock()
+	root := diagnostic.core
+	if root == nil || root.identity != root || root.service != service {
+		return
+	}
+	switch stage {
+	case "ENTERED", "REJECTED_COORDINATOR", "REJECTED_INVALID", "REJECTED_CONFLICT", "REJECTED_AUTHORIZATION",
+		"REJECTED_ID", "REJECTED_SNAPSHOT", "REJECTED_OWNER", "REJECTED_TARGET", "REJECTED_PLAN",
+		"REJECTED_EVOLVE", "REJECTED_SOURCE_REFRESH", "REJECTED_BEGIN", "REJECTED_BIND", "REJECTED_VIEW", "ACCEPTED":
+	default:
+		root.recoveryCreatesBounded = false
+		return
+	}
+	if !root.recoveryCreatesBounded || len(root.recoveryCreates) >= 4 {
+		root.recoveryCreatesBounded = false
+		return
+	}
+	root.recoveryCreates = append(root.recoveryCreates, LabContinuousRecoveryCreateStage{
+		Sequence: len(root.recoveryCreates) + 1, Stage: stage})
 }
 
 func labContinuousRecoveryCurrentLocked(root *labContinuousRecoveryFaultCore, service *labServiceCore, sequence int) (*lifecycleCurrentEpochBackend, string, error) {

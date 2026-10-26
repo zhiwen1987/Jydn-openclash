@@ -1,0 +1,17 @@
+{
+  "correction": {
+    "businessBranchesAndReturnedStatusIntendedUnchanged": true,
+    "correctMeaning": "No intended business-semantic change.",
+    "defaultHookNoopSourceVerified": true,
+    "goCompileProven": false,
+    "linuxExecutionProven": false,
+    "originalField": "boundaries.productChanged",
+    "originalValue": false,
+    "sharedBackendInstrumented": true
+  },
+  "frozenCandidate": "D:/CodexData/workspace/mihomo-continuous-recovery-create-stage-diagnostic-20261026-execution56h-v1",
+  "frozenPatchSHA256": "08d858a653b3a0f25fa9900ee4b4a475468f947b0dae81982f7364110156cfed",
+  "frozenSourceReceiptSHA256": "0f088bb060379d7d871b3d4eeee2ba530a0ab8ae4a9816b0f1a3067be306c7b4",
+  "overwritesFrozenV1": false,
+  "schema": "chengwang.mihomo-continuous-recovery-create-stage-erratum/v1"
+}

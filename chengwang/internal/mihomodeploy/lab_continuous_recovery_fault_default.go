@@ -12,3 +12,5 @@ func labContinuousRecoveryBeforeReload(*labServiceCore, *mihomo.WriteClient, *Pr
 
 func labContinuousRecoveryAfterReload(*labServiceCore, *mihomo.WriteClient, *PreparedReload, string, string, mihomo.ReloadResult) {
 }
+
+func labContinuousRecoveryRecoveryCreateStage(*labServiceCore, string) {}

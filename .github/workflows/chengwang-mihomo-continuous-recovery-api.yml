@@ -36,6 +36,91 @@ jobs:
           python3 -B -m unittest -v test_continuous_recovery_api_model
           git -C "$GITHUB_WORKSPACE" diff --exit-code
           test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain=v1 --untracked-files=all)"
+  continuous-fault-model:
+    needs: [development-only, source-models]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Bind the exact run HEAD before the isolated fault MODEL
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/mihomo-continuous-fault-model"
+          test ! -e "$out"
+          install -d -m 0755 "$out"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git write-tree)" = "$(git rev-parse "$GITHUB_SHA^{tree}")"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
+            --source-manifest "$GITHUB_WORKSPACE" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/mihomo-continuous-fault-source-before.private.json" \
+            > "$out/source-before.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Run only the exact-tag continuous fault MODEL top
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/mihomo-continuous-fault-model"
+          cd chengwang
+          code=0
+          GOWORK=off GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=1 \
+            /opt/hostedtoolcache/go/1.23.12/x64/bin/go test -json -count=1 -shuffle=off -p=1 \
+              -tags linux,chengwang_mihomo_service,chengwang_mihomo_recovery_native,chengwang_mihomo_recovery_continuous_fault \
+              -run '^TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL$' -timeout=30s \
+              ./internal/mihomodeploy > "$out/go-test.json" 2> "$out/go-test.stderr" || code=$?
+          python3 - "$out/exit.json" "$code" "$GITHUB_SHA" <<'PY'
+          import json,os,sys
+          value={'schema':'chengwang.mihomo-continuous-fault-model-exit/v1','sourceCommit':sys.argv[3],
+                 'exitCode':int(sys.argv[2]),'production':False}
+          with open(sys.argv[1],'x') as f:
+              json.dump(value,f,sort_keys=True,separators=(',',':'));f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+          test "$code" -eq 0
+          python3 - "$out/go-test.json" "$out/verification.json" "$GITHUB_SHA" <<'PY'
+          import json,os,sys
+          target='TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL'
+          package='chengwang/internal/mihomodeploy'
+          rows=[]
+          with open(sys.argv[1],encoding='utf-8') as source:
+              for line in source:
+                  if line.strip(): rows.append(json.loads(line))
+          relevant=[row for row in rows if row.get('Test')==target]
+          assert sum(row.get('Action')=='run' for row in relevant)==1
+          assert sum(row.get('Action')=='pass' for row in relevant)==1
+          assert not any(row.get('Action') in ('fail','skip') for row in rows)
+          assert all(row.get('Package')==package for row in rows)
+          assert all(row.get('Test',target).split('/')[0]==target for row in rows)
+          assert sum('Test' not in row and row.get('Action')=='pass' for row in rows)==1
+          value={'schema':'chengwang.mihomo-continuous-fault-model-verification/v1','sourceCommit':sys.argv[3],
+                 'package':package,'topTest':target,'runCount':1,'passCount':1,'production':False}
+          with open(sys.argv[2],'x') as f:
+              json.dump(value,f,sort_keys=True,separators=(',',':'));f.write('\n');f.flush();os.fsync(f.fileno())
+          PY
+      - name: Rebind the exact run HEAD and prove the MODEL left source unchanged
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/mihomo-continuous-fault-model"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
+            --source-manifest "$GITHUB_WORKSPACE" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/mihomo-continuous-fault-source-after.private.json" \
+            > "$out/source-after.json"
+          cmp "$RUNNER_TEMP/mihomo-continuous-fault-source-before.private.json" \
+            "$RUNNER_TEMP/mihomo-continuous-fault-source-after.private.json"
+          cmp "$out/source-before.json" "$out/source-after.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: mihomo-continuous-fault-model-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-fault-model/*
+          if-no-files-found: error
+          retention-days: 14
   acquisition:
     needs: development-only
     runs-on: ubuntu-24.04
@@ -72,7 +157,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   continuous-recovery-api:
-    needs: [development-only, source-models, acquisition]
+    needs: [development-only, source-models, continuous-fault-model, acquisition]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

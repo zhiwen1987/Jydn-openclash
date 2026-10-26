@@ -25,7 +25,7 @@ FMT=(
  'internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
- 'internal/mihomodeploy/lab_service.go','internal/serverruntime/runtime.go',
+ 'internal/mihomodeploy/lab_recovery_backend.go','internal/mihomodeploy/lab_service.go','internal/serverruntime/runtime.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
  'internal/serverruntime/mihomo_continuous_recovery_hook_linux.go',
  'internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go')
@@ -46,6 +46,7 @@ DELIVERY=(
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_default.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux.go',
  'chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go',
+ 'chengwang/internal/mihomodeploy/lab_recovery_backend.go',
  'chengwang/internal/mihomodeploy/lab_service.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go',
  'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',
@@ -240,8 +241,8 @@ def validate_http(report,public):
     return results,index
 
 def fault(value,state):
-    keys(value,('schema','state','boundOperations','observedResults','initialCore','recoveredCore','nativeCallsBounded','nativeCalls','transport'))
-    need(value['schema']=='chengwang.mihomo-continuous-recovery-response-loss/v1' and value['state']==state and value['boundOperations']==value['observedResults']==3 and value['nativeCallsBounded'] is True)
+    keys(value,('schema','state','boundOperations','observedResults','initialCore','recoveredCore','nativeCallsBounded','nativeCalls','recoveryCreatesBounded','recoveryCreates','transport'))
+    need(value['schema']=='chengwang.mihomo-continuous-recovery-response-loss/v1' and value['state']==state and value['boundOperations']==value['observedResults']==3 and value['nativeCallsBounded'] is True and value['recoveryCreatesBounded'] is True)
     integer(value['initialCore'],1); integer(value['recoveredCore'],1); need(value['initialCore']!=value['recoveredCore'])
     calls=value['nativeCalls']; need(type(calls) is list and calls)
     zero={'RECOVERY_START_DISPATCH','SYNTAX_OS_START_ATTEMPT','SYNTAX_OS_START_RETURN'}
@@ -251,6 +252,9 @@ def fault(value,state):
         keys(call,('sequence','kind','core','at')); sequence=integer(call['sequence'],1); need(call['kind'] in zero|positive)
         if first is None: first=sequence
         need(sequence==first+offset); integer(call['core'],0,0) if call['kind'] in zero else integer(call['core'],1); timestamp(call['at'])
+    creates=value['recoveryCreates']; need(type(creates) is list and len(creates)==4)
+    for i,create in enumerate(creates,1):
+        keys(create,('sequence','stage')); need(create['sequence']==i and create['stage']==('ENTERED' if i in (1,3) else 'ACCEPTED'))
     transport=value['transport']; keys(transport,('schema','state','boundChildren','underlyingRoundTrips','injected','steps'))
     need(transport['schema']=='chengwang.mihomo-reload-response-loss-schedule/v1' and transport['state']==state and transport['boundChildren']==transport['underlyingRoundTrips']==3 and transport['injected']==2 and len(transport['steps'])==3)
     for i,step in enumerate(transport['steps'],1):

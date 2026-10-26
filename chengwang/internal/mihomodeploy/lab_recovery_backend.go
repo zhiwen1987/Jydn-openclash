@@ -559,8 +559,14 @@ func (b *labRecoveryBackend) Scope() authz.ResourceScope {
 }
 
 func (b *labRecoveryBackend) Create(ctx context.Context, headers []string, request LabRecoveryCreateRequest) (LabRecoveryView, error) {
+	if b != nil && b.service != nil {
+		labContinuousRecoveryRecoveryCreateStage(b.service.core, "ENTERED")
+	}
 	c, err := b.coordinator()
 	if err != nil {
+		if b != nil && b.service != nil {
+			labContinuousRecoveryRecoveryCreateStage(b.service.core, "REJECTED_COORDINATOR")
+		}
 		return LabRecoveryView{}, err
 	}
 	return c.create(ctx, headers, request)
@@ -763,6 +769,9 @@ func labRecoveryPlanForCurrentEpoch(source lifecycleV3Record, recoveryID, initia
 func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, request LabRecoveryCreateRequest) (LabRecoveryView, error) {
 	if c == nil || c.service == nil || c.service.core == nil || artifactContext(ctx) != nil || !labServiceValidID(request.UnknownOperationID) ||
 		!lifecycleNonzeroHash(request.OriginalPlanSHA256) || request.Revision == 0 || request.TTLSeconds < 1 || request.TTLSeconds > 300 {
+		if c != nil && c.service != nil {
+			labContinuousRecoveryRecoveryCreateStage(c.service.core, "REJECTED_INVALID")
+		}
 		return LabRecoveryView{}, labServiceError(LabBackendInvalid, false)
 	}
 	s := c.service.core
@@ -770,25 +779,30 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 	defer s.mu.Unlock()
 	if c.closed || s.closed || s.closing || s.busy || c.activeID != "" || len(c.operations) >= labServiceOperationLimit ||
 		s.runtime == nil || s.kernel == nil || s.artifacts == nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 		return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 	}
 	now := time.Now().UTC()
 	initiator, err := c.authority.captureInitiator(headers, now)
 	if err != nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_AUTHORIZATION")
 		return LabRecoveryView{}, labServiceAuthError(err)
 	}
 	defer c.authority.discardInitiator(initiator)
 	actor, err := c.authority.initiatorReference(initiator)
 	if err != nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_AUTHORIZATION")
 		return LabRecoveryView{}, labServiceAuthError(err)
 	}
 	id, err := labRecoveryOperationID()
 	if err != nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_ID")
 		return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 	}
 
 	source, present, err := s.runtime.recoverySnapshot()
 	if err != nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_SNAPSHOT")
 		return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 	}
 	var plan labRecoveryPlan
@@ -800,24 +814,29 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 		original, wireErr := s.wire()
 		if wireErr != nil || original.wire == nil || original.wire.Active == nil || original.wire.Active.Phase != "UNKNOWN" || original.wire.Active.Intent == nil ||
 			original.wire.Active.Plan.OperationID != request.UnknownOperationID || original.wire.Active.Plan.PlanSHA256 != request.OriginalPlanSHA256 || original.wire.Revision != request.Revision {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 			return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 		}
 		target := cloneArtifactDescriptor(original.wire.Active.Plan.Artifact)
 		if labRecoveryExactTarget(ctx, s.artifacts, target) != nil {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_TARGET")
 			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 		}
 		plan, err = newLabRecoveryPlan(original, id, actor, target, now, now.Add(time.Duration(request.TTLSeconds)*time.Second))
 		if err != nil {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_PLAN")
 			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 		}
 		s.ready = false
 		store, err = s.runtime.evolveForRecovery(&plan, time.Now().UTC())
 		if err != nil {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_EVOLVE")
 			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 		}
 		issuedAt := time.Now().UTC()
 		owner, err = store.acquireRecoveryOwner(issuedAt, issuedAt.Add(5*time.Minute))
 		if err != nil {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 		}
 		c.store, c.owner = store, owner
@@ -826,6 +845,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 		revision, digest := x.record.core.Revision, x.record.core.RecordSHA256
 		x.mu.Unlock()
 		if err := store.beginRecovery(owner, &plan, revision, digest, time.Now().UTC()); err != nil {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_BEGIN")
 			return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 		}
 		s.store, s.owner = nil, nil
@@ -836,6 +856,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 				(candidate.cleanup != nil || candidate.sourceCleanup != nil || candidate.reentry.core.cleanupSHA == "") &&
 				candidate.plan.UnknownOperationID == request.UnknownOperationID && candidate.plan.OriginalPlanSHA256 == request.OriginalPlanSHA256 {
 				if terminal != nil {
+					labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 					return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 				}
 				terminal = candidate
@@ -851,6 +872,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 				(terminalTxn.Phase == "FAILED_RECONCILED" && terminalTxn.Failure == nil) ||
 				source.core.Revision != request.Revision || s.runtime.core == nil || s.runtime.core.recovery == nil ||
 				s.runtime.core.current != nil || s.store != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 				return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 			}
 			store = s.runtime.core.recovery
@@ -859,11 +881,13 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 				owner.core.store == store.core && owner.core.fence == terminal.reentry.core.fence+1
 			if reuseOwner {
 				if _, fresh, ownerErr := labRecoveryOwnerExpiry(store, owner, now); ownerErr != nil || !fresh {
+					labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 				}
 			} else {
 				owner, err = store.acquireRecoveryOwner(now, now.Add(5*time.Minute))
 				if err != nil {
+					labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 				}
 				// Preserve the actual new token even if a later source/target check
@@ -872,15 +896,18 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 			}
 			expires, _, ownerErr := labRecoveryOwnerExpiry(store, owner, time.Now().UTC())
 			if ownerErr != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 			}
 			now = time.Now().UTC()
 			planExpires, expiryErr := labRecoveryPlanExpiry(now, request.TTLSeconds, expires)
 			if expiryErr != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 				return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 			}
 			target := cloneArtifactDescriptor(terminal.plan.TargetArtifact)
 			if labRecoveryExactTarget(ctx, s.artifacts, target) != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_TARGET")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 			}
 			if terminalCleanup != nil {
@@ -889,6 +916,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 				plan, err = newLabRecoveryPlanV2Reentry(owner, terminal.reentry, id, actor, target, now, planExpires)
 			}
 			if err != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_PLAN")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 			}
 			x := store.core
@@ -896,6 +924,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 			revision, digest := x.record.core.Revision, x.record.core.RecordSHA256
 			x.mu.Unlock()
 			if err = store.beginRecovery(owner, &plan, revision, digest, time.Now().UTC()); err != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_BEGIN")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 			}
 			sourceCleanup, sourceReentry = terminalCleanup, terminal.reentry
@@ -903,6 +932,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 		} else if source.core == nil || source.core.Current.Active == nil || source.core.Current.Active.Phase != "UNKNOWN" || source.core.Current.Active.Intent == nil ||
 			source.core.Current.Active.Plan.OperationID != request.UnknownOperationID || source.core.Current.Active.Plan.PlanSHA256 != request.OriginalPlanSHA256 || source.core.Revision != request.Revision ||
 			s.runtime.core == nil || s.runtime.core.recovery == nil || s.runtime.core.current != s.store {
+			labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 			return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 		} else {
 			store, owner = s.runtime.core.recovery, c.owner
@@ -912,34 +942,41 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 				// expired under this same live store. acquireRecoveryOwner performs the
 				// durable fence increment and installs the sole new process token.
 				if ownerErr != nil {
+					labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 				}
 				owner, err = store.acquireRecoveryOwner(now, now.Add(5*time.Minute))
 				if err != nil {
+					labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 				}
 				c.owner = owner
 				source, present, err = s.runtime.recoverySnapshot()
 				if err != nil || !present || source.core == nil || source.core.Current.Active == nil || source.core.Current.Active.Phase != "UNKNOWN" ||
 					source.core.Current.Active.Plan.OperationID != request.UnknownOperationID || source.core.Current.Active.Plan.PlanSHA256 != request.OriginalPlanSHA256 {
+					labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_SOURCE_REFRESH")
 					return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 				}
 			}
 			expires, _, ownerErr := labRecoveryOwnerExpiry(store, owner, time.Now().UTC())
 			if ownerErr != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_OWNER")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 			}
 			now = time.Now().UTC()
 			planExpires, expiryErr := labRecoveryPlanExpiry(now, request.TTLSeconds, expires)
 			if expiryErr != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_CONFLICT")
 				return LabRecoveryView{}, labServiceError(LabBackendConflict, false)
 			}
 			target := cloneArtifactDescriptor(source.core.Current.Active.Plan.Artifact)
 			if labRecoveryExactTarget(ctx, s.artifacts, target) != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_TARGET")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 			}
 			plan, err = labRecoveryPlanForCurrentEpoch(source, id, actor, target, now, planExpires)
 			if err != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_PLAN")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, false)
 			}
 			s.ready = false
@@ -949,6 +986,7 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 				err = s.runtime.beginNextRecovery(s.store, store, owner, &plan, source.core.Revision, source.core.RecordSHA256, time.Now().UTC())
 			}
 			if err != nil {
+				labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_BEGIN")
 				return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 			}
 			s.store, s.owner = nil, nil
@@ -956,12 +994,19 @@ func (c *labRecoveryCoordinator) create(ctx context.Context, headers []string, r
 	}
 	session, err := c.authority.bindPlan(initiator, store, owner, time.Now().UTC())
 	if err != nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_BIND")
 		return LabRecoveryView{}, labServiceError(LabBackendUnavailable, true)
 	}
 	op := &labRecoveryOperation{id: id, session: session, store: store, owner: owner, plan: plan.descriptor(),
 		sourceCleanup: sourceCleanup, sourceReentry: sourceReentry}
 	c.store, c.owner, c.operations[id], c.activeID = store, owner, op, id
-	return c.viewLocked(op, false)
+	view, err := c.viewLocked(op, false)
+	if err != nil {
+		labContinuousRecoveryRecoveryCreateStage(s, "REJECTED_VIEW")
+		return LabRecoveryView{}, err
+	}
+	labContinuousRecoveryRecoveryCreateStage(s, "ACCEPTED")
+	return view, nil
 }
 
 func (c *labRecoveryCoordinator) approve(ctx context.Context, headers []string, id string, request LabRecoveryApprovalRequest) (LabRecoveryView, error) {

@@ -1,0 +1,125 @@
+{
+  "collectionBoundary": {
+    "artifactDownloaded": false,
+    "authenticatedGitHubConnectorUsed": true,
+    "privateDirectoryRead": false,
+    "privateValueReadOrPersisted": false,
+    "productionTouched": false,
+    "rawLogEmitted": false,
+    "rawLogPersisted": false,
+    "repositoryModified": false,
+    "roleMetadataExemptionImplemented": false,
+    "secretHashOffsetBodyOrURLPersisted": false,
+    "workflowRerunRequested": false
+  },
+  "conclusion": {
+    "ackFixEffect": "The previous ORDINARY_ACK_HEAD failure was passed far enough for the chain to reach SECOND_RECOVERY_CREATE",
+    "firstFailure": "The actual chain advanced through request 25; request 26 SECOND_RECOVERY_CREATE produced HTTP status 503 with transport errorClass NONE, and the Go harness recorded HTTP_RESULT",
+    "notCompleted": "The report had 26 HTTP rows, goExit 1, failureCode HTTP_RESULT, and outcomePass false; it did not reach the required 31 requests or NONE/PASS",
+    "privacyFence": "The unchanged fail-closed fence rejected export after detecting the JSON-quoted public role VIEWER from IDENTITY_PROFILE role provenance",
+    "secondaryFailures": "Independent checker and fresh-reader failures are downstream of the failed actual experiment and are not classified as the first cause"
+  },
+  "diagnostic": {
+    "encodingVariant": "JSON_QUOTED",
+    "formatExit": 0,
+    "goExit": 1,
+    "httpCount": 26,
+    "lastHTTPCase": "SECOND_RECOVERY_CREATE",
+    "lastHTTPErrorClass": "NONE",
+    "lastHTTPStatusCode": 503,
+    "lastHTTPStatusObserved": true,
+    "matchesPublicIdentityRole": true,
+    "matchesPublicLabEnvironment": false,
+    "outputLogicalName": "continuous-recovery-report.json",
+    "phase": "REPORT_AND_HTTP_OUTPUTS",
+    "publicIdentityRole": "VIEWER",
+    "reportFailureCode": "HTTP_RESULT",
+    "reportObserved": true,
+    "reportOutcomePass": false,
+    "secretElementClass": "JSON_IDENTITY_ROLE",
+    "secretInputClass": "IDENTITY_PROFILE"
+  },
+  "jobs": {
+    "acquisition": {
+      "conclusion": "success",
+      "id": 121340203850
+    },
+    "actualExperiment": {
+      "conclusion": "failure",
+      "firstFailedStep": {
+        "name": "Execute actual continuous Recovery HTTPS chain in fresh namespaces",
+        "number": 7
+      },
+      "id": 121340250500,
+      "preservationStep": {
+        "conclusion": "success",
+        "number": 8
+      },
+      "secondaryIndependentCheckerStep": {
+        "conclusion": "failure",
+        "number": 9
+      }
+    },
+    "developmentOnly": {
+      "conclusion": "success",
+      "id": 121340185897
+    },
+    "freshReader": {
+      "classification": "SECONDARY_TO_ACTUAL_EXPERIMENT_FAILURE",
+      "conclusion": "failure",
+      "id": 121340461424
+    },
+    "sourceModels": {
+      "conclusion": "success",
+      "id": 121340203879
+    }
+  },
+  "observedAt": "2026-10-26T08:39:08.8455673+08:00",
+  "safeDiagnosticContract": {
+    "diagnosticOccurrences": 1,
+    "expectedKeyCount": 18,
+    "sourceBytes": 35210,
+    "sourceGitOID": "1b900054ac7e3c41b87a71e3c36b6f2c88cb1c90",
+    "sourceLines": "52-61,332-378,417-435",
+    "sourcePath": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+    "sourceSHA256": "595393f4ea91ed25ae8f8829132130b9e64c1f5daca543eff32b3d4fd96675d2",
+    "validExactKeyOccurrences": 1
+  },
+  "schema": "chengwang.mihomo-continuous-recovery-safe-diagnostic-receipt/v1",
+  "source": {
+    "commit": "567801836b3d141f13fc84b119d419b769eae96d",
+    "snapshot": "D:/CodexData/workspace/mihomo-5678018-acceptance-ialmzhdo/repo",
+    "snapshotClean": true,
+    "snapshotGitBlobCount": 1426
+  },
+  "sourceBindings": [
+    {
+      "gitOID": "f472dc5f92c98b7859b2794a50c664605c3bca74",
+      "path": ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+      "sha256": "45bca5ab3cf476037c85a642ddf38165427ca61c4b2849190219e94038a6f33c"
+    },
+    {
+      "gitOID": "d04367ef30e0d31476dd7037999aec5ba76af3bd",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/test_continuous_recovery_api_model.py",
+      "sha256": "c038e9aed8f87daea7826596ab27f9ca481610ce95a18d0dcb075984e526540b"
+    },
+    {
+      "gitOID": "faeade3373ade784382e562f34563bf245b561ff",
+      "path": "chengwang/internal/serverruntime/mihomo_continuous_recovery_e2e_linux_test.go",
+      "sha256": "2b28a73b78b041dc0f8168f14ed6be8b7ae9c66bae5c1856681f583a861b7ea5"
+    }
+  ],
+  "status": "ACTUAL_EXACT_HEAD_FAILURE_SAFELY_CLASSIFIED",
+  "workflowRun": {
+    "attempt": 1,
+    "conclusion": "failure",
+    "createdAt": "2026-10-26T00:36:41Z",
+    "event": "push",
+    "headSHA": "567801836b3d141f13fc84b119d419b769eae96d",
+    "id": 40250192418,
+    "name": "Chengwang Isolated Continuous Recovery API",
+    "repository": "zhiwen1987/Jydn-openclash",
+    "status": "completed",
+    "updatedAt": "2026-10-26T00:37:58Z"
+  }
+}

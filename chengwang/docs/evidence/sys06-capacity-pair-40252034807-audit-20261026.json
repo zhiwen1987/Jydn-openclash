@@ -1,0 +1,80 @@
+{
+  "artifacts": {
+    "AB": {
+      "bytes": 928876,
+      "custodySHA256": "cd83987b439733029443091f21ee673c6cf4521c728488b7b0699905e74e61a7",
+      "id": 12621361644,
+      "members": 39,
+      "sha256": "6c7f8e10419c620591d62660bbf6e1f810687068b99b222d79468691c769fcf3"
+    },
+    "BA": {
+      "bytes": 900372,
+      "custodySHA256": "e0dd5833bcb973bfa1819bcf355fb6a177dcb762276c322a98c9bce69c4b138e",
+      "id": 12620713994,
+      "members": 39,
+      "sha256": "85357d45971eb4ff6f26d82d23616b3ae97cf3da92577e01e202abe2ce217d4e"
+    }
+  },
+  "branch": "codex/chengwang-capacity-measure-20261026-5678018",
+  "causality": {
+    "identicalSystemLoadProven": false,
+    "profileOverheadProven": false,
+    "secondPositionProven": false,
+    "sourcePerformanceImprovementProven": false
+  },
+  "evidence": {
+    "auditResultSHA256": "06662b7e4c7717467ef8601210ba59fa8bfa5c60a0c6de8ca9b9aa4d17d4c803",
+    "auditScriptSHA256": "333740b3c0f43a064be63fee964e02c3d98d486549258c9e0853112bfd3ba42e",
+    "initialWindowsReplayFailureSHA256": "13d3d00897fbd748ef71abedc2721ef6b1ef7ee72591a3ba9108e0b866ad529f",
+    "rawEventsSHA256": "c6556a4f2861001a08404edaf44ec0084070fa6aefdb91aa4bad69f7f33d2b05"
+  },
+  "head": "8d360ed0a358250cc1f855633f133636aac64287",
+  "jobs": {
+    "pair-AB": {
+      "conclusion": "success",
+      "id": 121345848871
+    },
+    "pair-BA": {
+      "conclusion": "success",
+      "id": 121345849113
+    }
+  },
+  "legs": {
+    "AB-A": {
+      "goAccepted": true,
+      "goExit": 0,
+      "timeout": false
+    },
+    "AB-B": {
+      "goAccepted": true,
+      "goExit": 0,
+      "timeout": false
+    },
+    "BA-A": {
+      "goAccepted": false,
+      "goExit": 1,
+      "timeout": true
+    },
+    "BA-B": {
+      "goAccepted": false,
+      "goExit": 1,
+      "timeout": true
+    }
+  },
+  "localGoExecuted": false,
+  "productAcceptance": false,
+  "production": false,
+  "rerun": false,
+  "runAttempt": 1,
+  "runID": 40252034807,
+  "schema": "chengwang.capacity-pair-campaign-audit-receipt/v1",
+  "snapshot": "D:/CodexData/workspace/mihomo-8d360ed-capacity-acceptance-m84ddcyb/repo",
+  "status": "CAMPAIGN_MEASUREMENT_REJECTED",
+  "strictReplay": {
+    "apiMetadataDigestSizeHeadBranchRun": true,
+    "comparisonCanonicalExact": true,
+    "sourceBeforeAfterAndCrossOrderBinding": true,
+    "windowsAdapter": "PurePosixPath lexical join only for recorded absolute Linux goRoot; checker functions and gates unchanged",
+    "zipCRCAndExactPathClosure": true
+  }
+}

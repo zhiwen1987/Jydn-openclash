@@ -1,0 +1,47 @@
+{
+  "after": {
+    "actualHarnessNeedsGate": true,
+    "artifactSeparated": true,
+    "businessListener": false,
+    "forbiddenTagsAbsent": [
+      "chengwang_mihomo_faults",
+      "chengwang_mihomo_completion_native"
+    ],
+    "goVersion": "1.23.12",
+    "job": "continuous-fault-model",
+    "jobTimeoutMinutes": 8,
+    "package": "./internal/mihomodeploy",
+    "privateInputs": false,
+    "tags": [
+      "linux",
+      "chengwang_mihomo_service",
+      "chengwang_mihomo_recovery_native",
+      "chengwang_mihomo_recovery_continuous_fault"
+    ],
+    "testTimeout": "30s",
+    "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+    "vendorOffline": true
+  },
+  "notFailure": true,
+  "reason": "The existing continuous job runs one serverruntime top; Go does not compile or execute _test.go files of imported mihomodeploy dependencies. Source Python models are not Go execution, normal builds omit the continuous fault tag, and old native jobs exclude it.",
+  "schema": "chengwang.mihomo-continuous-recovery-create-stage-model-coverage-audit/v1",
+  "source": {
+    "faultTest": {
+      "package": "./internal/mihomodeploy",
+      "path": "chengwang/internal/mihomodeploy/lab_continuous_recovery_fault_linux_test.go",
+      "sha256": "4cb54e4ccb25b34f911cdc5b02bd3577f34ffabf36e93bbcc2017df17378fa08",
+      "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL"
+    },
+    "worker": {
+      "package": "./internal/serverruntime",
+      "path": "chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py",
+      "sha256": "595393f4ea91ed25ae8f8829132130b9e64c1f5daca543eff32b3d4fd96675d2",
+      "top": "TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery"
+    },
+    "workflow": {
+      "path": ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+      "sha256": "45bca5ab3cf476037c85a642ddf38165427ca61c4b2849190219e94038a6f33c"
+    }
+  },
+  "statusBefore": "NOT_RUN"
+}

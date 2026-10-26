@@ -281,8 +281,18 @@ func continuousRecoveryObserveValid(observation mihomodeploy.LabContinuousRecove
 	if !observation.NativeCallsBounded || observation.BoundOperations != 3 || observation.ObservedResults != 3 ||
 		observation.InitialCore == 0 || observation.RecoveredCore == nil || *observation.RecoveredCore == 0 ||
 		*observation.RecoveredCore == observation.InitialCore || observation.Transport.BoundChildren != 3 ||
-		observation.Transport.UnderlyingRoundTrips != 3 || observation.Transport.Injected != 2 || len(observation.Transport.Steps) != 3 {
+		observation.Transport.UnderlyingRoundTrips != 3 || observation.Transport.Injected != 2 || len(observation.Transport.Steps) != 3 ||
+		!observation.RecoveryCreatesBounded || len(observation.RecoveryCreates) != 4 {
 		return false
+	}
+	for index, create := range observation.RecoveryCreates {
+		want := "ENTERED"
+		if index == 1 || index == 3 {
+			want = "ACCEPTED"
+		}
+		if create.Sequence != index+1 || create.Stage != want {
+			return false
+		}
 	}
 	for index, step := range observation.Transport.Steps {
 		sequence := index + 1
