@@ -1,225 +1,80 @@
-# Jydn OpenClash 自用分流模板
+# Jydn OpenClash / Clash Stack
 
-面向 OpenClash 与 Mihomo/alpha-smart 内核的生产分流模板。仓库生成最终的 `metafenliu.ini`，并提供 DNS 防污染、防泄漏覆写模块和对应的 LuCI 设置说明。
+精细业务分流配置，以及集中运行监控、节点评估、订阅发布和 DNS 的单容器中心。提供中文离线安装向导、已有中心接管、备份和受控回退。
 
-> 这套方案能降低公网出口、DNS 和常见 WebRTC 路径暴露中国网络位置的风险，但不能隐藏账号地区、SIM/GPS、时区、语言、Cookie 或浏览器指纹。
+**配置版本、安装器版本和 OpenClash 插件版本分别管理。** 当前部署状态以[生产验收记录](docs/production-deployment-20261026.md)为准，不把历史设计稿当成已上线功能。
 
-> 当前 `codex/r4-ha` 是离线候选版，尚未部署到生产旁路由。设计边界、灰度步骤和回滚门槛见 [`docs/precise-stable-r4-ha-design.md`](docs/precise-stable-r4-ha-design.md) 与 [`docs/precise-stable-r4-ha-acceptance.md`](docs/precise-stable-r4-ha-acceptance.md)。
+## 文档入口
 
-## 地址速查
+| 需要做什么 | 文档 |
+|---|---|
+| 日常使用、选节点、订阅、自建节点、排障 | [系统使用与维护手册](docs/system-guide.zh-CN.md) |
+| 在其他局域网部署或接管已有单容器 | [安装器说明](installer/README.zh-CN.md) |
+| 查看备份、安装中断与回退 | [恢复手册](installer/RECOVERY.zh-CN.md) |
+| 查看测试范围、性能和未覆盖场景 | [安装器验收](installer/ACCEPTANCE.zh-CN.md) |
+| 查看本次生产版本和验收证据 | [生产部署记录](docs/production-deployment-20261026.md) |
+| 理解唯一自定义节点与故障断流 | [专属出口说明](docs/strict-custom-egress.md) |
+| 仅用原有转换模板或维护规则 | [模板维护说明](docs/template-maintenance.zh-CN.md) |
 
-| 用途 | 地址 |
-| --- | --- |
-| 自定义模板 URL | `https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/metafenliu.ini` |
-| DNS/隐私覆写模块 | `https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/modules/openclash-dns-privacy-override.yaml` |
-| OpenClash 默认转换服务 | `https://api.asailor.org/sub` |
-| 备用转换服务 | `https://api.wcc.best/sub` |
+## 运行结构
 
-在线转换服务会接触原始订阅地址，存在隐私风险。信任边界要求较高时，应自建 subconverter；不要把机场订阅地址、Token 或节点信息提交到本仓库。
-
-## 主要功能
-
-- R4-HA 候选版生成 99 个策略/节点组；其中 18 个自动节点池和 1 个由外部控制器选择的 ChatGPT 池。自动池包含两组全局池、当前双订阅实际存在的 8 个国家/地区组、5 个实用/其他组，以及 Claude、Gemini、Netflix 三个业务探测池。未来出现的新地区由全局池和“其他地区”承接，不再为不存在的国家持续生成空测速组。
-- Zashboard 的国家节点组统一使用中文名称，并提供亚洲、欧洲、美洲、中东非洲和大洋洲五个上层导航组；应用策略组使用“中文功能名（品牌名）”，兼顾可读性和品牌识别。
-- 所有功能父组和具体业务组保留原默认策略为第一项，并统一显示 `DIRECT`、隐私代理、稳定自动、自动选择、手动选择、八个国家组、流媒体节点和 `REJECT`，便于在任意业务页面直接切换。本地网络、联网检测和广告拦截属于基础安全控制，保持精简菜单，避免误选国家节点导致局域网不可达或系统误报断网。运行期脚本仅删除确实为空的节点组引用；统计信息统一按“信息”写入 OpenClash 日志，避免正常计数被 LuCI 误标成严重错误。
-- Zashboard“代理组”页面上方标记为“节点组”的外层卡片，按本地使用频率排序：稳定/隐私/手动/自动等常用入口 → 本地与国内业务 → 通用海外与品牌细分 → 线路/国家/地区节点组 → 诊断和高级组。运行期对最终 YAML 的 `proxy-groups` 数组重排，使 Mihomo `GLOBAL` 中的顺序与 Zashboard“节点组”卡片一致。
-- 国家及线路叶子组使用 `REJECT` 作为空组安全兜底；`🧭 手动选择` 使用 `🛟 稳定自动` 作为可用性兜底。所有全局节点池都会过滤流量、到期、官网和订阅刷新提示。
-- 节点国家校验优先让真实流量逐节点经过 `country.is`、`ipwho.is`、`IP.SB`、`countries.dev` 和 Cloudflare：只有成功来源中的严格多数、且至少两个来源返回相同 ISO 国家代码才采用在线结果；无法形成多数时才按国旗、国家、城市或代码名称降级判断。
-- 常规自动组使用 Cloudflare HTTPS 探测地址，间隔 300 秒；Claude、Gemini、Netflix 三个专用池使用对应业务 HTTPS 入口，间隔 900 秒。ChatGPT 使用外部控制器检查真实会话入口并选择节点；无合格节点时回退 `🧠 人工智能`，不回退 DIRECT。
-- `🛟 稳定自动` 优选日本/新加坡 CUCM、专线流媒体线路，并以 `♻️ 自动选择` 作为非直连兜底。
-- 海外功能父组默认通过 `🔒 隐私代理` 出站；ChatGPT、Claude、Gemini 和 Netflix 默认进入自己的业务专用池。ChatGPT 池由 `lan-center` 控制器管理，无可验证节点时保留人工智能父组作为安全退路。其他 AI 品牌仍继承人工智能父组。每个品牌组保留按国家或节点单独改路由的入口。
-- `GEOSITE,geolocation-!cn` 位于 `GEOSITE,cn` 前，国内域名和 IP 最终由 `GEOSITE,cn` / `GEOIP,cn` 直连。
-- `🏠 本地网络` 用精确域名、域名后缀、`IP-CIDR` / `IP-CIDR6` 和 private GEO 双重保护局域网，默认直连。
-- `🌐 联网检测` 使用 classical `RULE-SET`，组合 `DOMAIN`、`DOMAIN-SUFFIX`、`DOMAIN-KEYWORD`、`DOMAIN-WILDCARD`、`DOMAIN-REGEX` 和 NTP 端口逻辑，降低系统误报断网的概率。
-- Telegram、Netflix、Google、Apple 和 Meta 增加了选择性 `IP-ASN` 兜底；不对 Cloudflare 这类大量共享托管网络做宽泛 ASN 强制分流。
-- 银行、政务、国内证券、国内网盘、国内音乐和游戏下载拥有独立策略组，默认 `DIRECT`，遇到线路异常时可单独切换到隐私代理。
-- `GEOSITE,gfw` 强制进入 `🔒 隐私代理`；通用境外应用、`🌐 默认策略`、`🐟 漏网之鱼` 逐层收口到 `🛟 稳定自动`，防止历史地区节点或 DIRECT 选择绕过稳定链路。
-- DNS 模块强制替换旧 `dns` 块，境外 DNS 经 `🔒 隐私代理` 查询，DIRECT 域名使用境内 DoH。
-- TUN 同时接管 TCP/UDP，劫持 UDP 53 与 TCP 53，开启 `strict-route`，默认关闭 IPv6 和中国 IP 内核外旁路。
-- `🛡️ 实时通信（WebRTC）` 默认 `REJECT`；其 classical 规则只针对 `10.88.0.0/24` 客户端，排除路由器 `10.88.0.254`，并用 `AND/OR/NOT + SRC-IP-CIDR + NETWORK + DST-PORT` 分别限定 UDP STUN/TURN 和 TCP 5349。
-- 海外支付和数字货币默认继承 `🧭 手动选择`；该组未手选节点时由稳定自动兜底，手选后可保持固定出口。
-- `🚫 广告拦截` 默认 `REJECT`，也可以在面板临时切换为直连或隐私代理。
-
-## 实用精细版策略层级
-
-规则按“具体品牌 → 功能分类 → 国内/海外兜底”的顺序匹配：
-
-- AI：ChatGPT、Claude、Gemini → 各自专用节点池；Grok、Perplexity、Microsoft Copilot → 人工智能 → 新加坡自动池；GitHub Copilot 默认继承开发服务。
-- 通讯：Telegram、Discord、WhatsApp、Signal、LINE → 即时通讯 → 隐私代理。
-- 社交：Instagram、X、Facebook、Reddit → 社交平台 → 隐私代理。
-- 影音：Netflix → Netflix 专用节点池；YouTube、TikTok、Disney+、HBO、Prime Video、Twitch、Spotify → 海外影音 → 隐私代理。
-- 开发：GitHub、GitLab、Docker、NPM → 开发服务 → 隐私代理；PyPI、Linux 软件源和镜像站由 `rules/development.yaml` 补齐。
-- 游戏：Steam、Epic、Xbox、PlayStation、Nintendo → 游戏服务；游戏下载单独默认直连。
-- 支付交易：PayPal、Wise → 海外支付；OKX、Binance、Bybit → 数字货币；默认进入手选节点。
-- 云服务：Notion、Apple、Google、Cloudflare、Microsoft、OneDrive、Dropbox 分别保留独立策略。
-- 国内服务：国内银行、政务服务、国内证券、国内网盘、国内音乐默认直连。
-
-每个业务组的第一项仍是上述默认路径；后续选项统一提供直连、稳定/最低延迟自动、手选、国家、流媒体和阻断覆盖，不需要离开当前业务菜单。
-
-## 多维规则分层
-
-节点组只负责“可以选哪些节点”，策略组负责“业务默认走哪里”，规则负责“流量如何命中”。三者不互相混合：
-
-1. 本地层：`DOMAIN` / `DOMAIN-SUFFIX` + `IP-CIDR` / `IP-CIDR6` + private `GEOSITE/GEOIP` → `🏠 本地网络`。
-2. 条件层：`SRC-IP-CIDR` + `NETWORK` + `DST-PORT/SRC-PORT` + `AND/OR/NOT` → WebRTC 或联网检测组。
-3. 精确业务层：自建 `clash-domain` / `clash-classic` `RULE-SET` → 银行、政务、网盘、节点校验等独立组。
-4. 应用层：品牌 `GEOSITE` → 功能父组 → 节点策略。
-5. IP 兜底层：只对归属边界明确的自有网络使用 `IP-ASN`，已有可靠分类时再用 `GEOIP`。
-6. 国别层：`GEOSITE,geolocation-!cn` → 隐私代理；`GEOSITE,cn` / `GEOIP,cn` → 直连。
-7. 终止层：`FINAL` 在生成 Mihomo 配置时对应 `MATCH`，只能位于最后。
-
-`IN-NAME` / `IN-TYPE` 和 `SUB-RULE` 没有盲目加入默认模板：OpenClash 运行模式会改变入站，且传统 subconverter 对 `SUB-RULE` 存在参数错位的已知问题。仓库提供了默认不会命中真实流量的 [`modules/openclash-source-inbound-subrule.example.yaml`](modules/openclash-source-inbound-subrule.example.yaml)；只有在爱快固定设备 IP，并从 OpenClash 运行 YAML 确认真实入站名称后，才应复制、替换占位值并启用。
-
-## OpenClash v0.47.156 使用方法
-
-### 1. 添加配置订阅
-
-1. 打开 **服务 → OpenClash → 配置订阅**，点击 **添加**。
-2. **订阅地址**：填写机场提供的原始订阅地址。
-3. 开启 **在线订阅转换**。
-4. **订阅转换服务地址**：选择 `https://api.asailor.org/sub`；不可用时再试 `https://api.wcc.best/sub`。
-5. **模板名称**：选择 **自定义模板**。
-6. **自定义模板 URL**：填写：
-
-   ```text
-   https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/metafenliu.ini
-   ```
-
-7. 建议开启 UDP；保存后更新订阅，并在右上角 **当前配置** 中切换到新配置。
-
-### 2. 安装 DNS/隐私覆写
-
-下载 [`modules/openclash-dns-privacy-override.yaml`](modules/openclash-dns-privacy-override.yaml)，按 [`docs/openclash-v0.47.156-settings.md`](docs/openclash-v0.47.156-settings.md) 的逐按钮说明安装。
-
-如果 iStoreOS 只用一个 LAN 口作为旁路由，请先按 [`docs/istoreos-openclash-one-arm-router.md`](docs/istoreos-openclash-one-arm-router.md) 完成独臂拓扑、DHCP、网关、DNS 和防火墙设置。
-
-模块使用 `<dns>!:` 强制替换完整 DNS 配置。不要同时在 **覆写设置 → DNS 设置** 中再生成另一套自定义 DNS。
-插件级开关请按文档在 LuCI 保存；模块刻意不含 `[General]`，以兼容当前版本的匿名 UCI 覆写处理。
-
-### 3. alpha-smart 与最低延迟
-
-- **插件设置 → 版本更新 → Smart 内核**：启用。
-- **覆写设置 → Smart 设置 → Smart 策略自动切换**：启用时，19 个 `url-test` 节点池会在运行时转换为 Smart。未选中的组保持懒检测，避免所有节点池同时测速。
-- 启用 LightGBM 和模型自动更新，更新间隔设为 72 小时；关闭训练数据采集，避免生成 100 MB CSV 和持续磁盘写入。
-- **Policy Priority** 设为 `0`（不加权），避免地区名称权重长期压过实际延迟和可用性；关闭 Prefer-ASN，减少首次访问前的强制解析。
-- Smart 容差设为 `100 ms`；常规池使用 300 秒健康检查，业务专用池使用 900 秒低频检查以降低风控和限流概率。Smart 还会依据真实目标的连接失败记录重新选路，不只依赖单一测速 URL。
-
-## 仓库结构与生成方式
-
-```text
-custom/groups.ini                       自定义策略组
-custom/rules.ini                        自定义规则引用
-docs/openclash-v0.47.156-settings.md    LuCI 逐按钮设置
-docs/istoreos-openclash-one-arm-router.md  iStoreOS 独臂旁路由设置
-modules/openclash-dns-privacy-override.yaml  DNS/隐私覆写（含智能家居 DNS 生成区）
-modules/openclash-business-group-catalog.json  运行期业务组与代理组选项目录
-modules/openclash-source-inbound-subrule.example.yaml  设备/入站/SUB-RULE 安全模板（默认不命中）
-rules/smarthome-direct.yaml             智能家居域名清单（空 payload 即关闭该功能）
-rules/*.yaml                            自维护 domain/classical 规则提供者
-scripts/build.py                        生成最终模板
-scripts/group_catalog.py                业务策略组与节点类代理组统一目录
-scripts/jydn_group_filter_hook.sh       OpenClash 自定义覆写调用入口
-scripts/patch_runtime_groups.rb         提交前临时修补运行 YAML 的可回滚测试工具
-scripts/test_patch_runtime_groups.rb    空组递归过滤与安全兜底测试
-scripts/validate.py                     一致性检查
-scripts/verify_node_geo.rb              多源在线出口国家校验（在 OpenWrt 运行）
-upstream/metafenliu.ini                 基础模板（唯一基础来源）
-metafenliu.ini                          自动生成结果，不要手改
+```mermaid
+flowchart LR
+    Client[局域网设备] --> Gateway[主路由 / 下一跳策略]
+    Gateway --> OC[OpenClash / Mihomo]
+    OC --> Rules[按顺序匹配规则]
+    Rules --> Direct[DIRECT]
+    Rules --> Business[业务策略组]
+    Rules --> Reject[REJECT]
+    Business --> Shared[默认 / 稳定 / 自动 / 手动 / 地区池]
+    Business --> Custom[唯一自定义节点入口]
+    Custom --> Pinned[指定实际节点；失效断流]
+    Center[clash-center 单容器] --> Kuma[Kuma 监控]
+    Center --> Evaluate[节点能力评估]
+    Center --> Sub[公共订阅 + 持久自建节点]
+    Center --> DNS[CoreDNS]
+    Evaluate --> Probe[隔离检测组 / 认证入站]
+    Probe --> OC
+    Sub --> Provider[认证 provider 发布]
+    Provider --> OC
+    DNS --> Resolver[旁路由现有 DNS 上游]
 ```
 
-原先构建脚本依赖的外部 `clashmetadingyue` 仓库已经不可访问。现在构建完全使用本仓库的 `upstream/metafenliu.ini`，不会因外部基础模板消失而中断。
+中心通过认证 API 读取运行图、操作获准入口和发布 provider，不替换 OpenClash 主程序。评估器 shadow 模式与已有专用控制器是不同模块，不能将其理解成整个系统完全只读。宿主机上的独立 Grok 切换任务不属于安装器自动迁移范围。
 
-`rules/smarthome-direct.yaml` 是智能家居直连例外清单：构建时按它生成 `metafenliu.ini` 中优先于广告分类的 `DIRECT` 规则，以及 DNS 模块中对应的 `fake-ip-filter` real-ip 与 `nameserver-policy` 境内 DoH 条目。空 `payload:` 视为未启用该功能，三个生成区都保持为空。
+## 本环境与安装默认值
 
-修改 `upstream/`、`custom/`、`rules/` 或 `scripts/` 后，GitHub Actions 会重新生成并验证 `metafenliu.ini`、DNS 模块与运行期目录。本地也可以运行：
+| 项目 | 本环境 | 其他局域网 |
+|---|---|---|
+| 中心主机 / 容器 | `10.88.0.249` / `clash-center` | 安装时填写 |
+| Kuma / 能力 / 订阅页面 | `3101` / `3102` / `3103` | 可配置 |
+| 旁路由 / 插件 | `10.88.0.254` / OpenClash `0.48.002` | 须通过插件及内核版本校验 |
+| 活动配置 | `精准稳定-v1-r4-ha-subscription-managed.yaml` | 接管保留原配置，全新安装生成本站点配置 |
+| 运行规则图 | 103 个配置组，API 含 GLOBAL 共 104 个组，142 条规则 | 随实际配置变化 |
+| 中心 DNS | 保留现有 `53/TCP+UDP` 和上游 | 全新向导默认不发布，不自动改 DHCP |
 
-```bash
-python3 scripts/build.py
-python3 scripts/validate.py
-```
+实际安装器版本及验收时间见部署记录。仓库与安装包不含真实密码、订阅 Token、节点密钥或生产数据库。
 
-### 在线核对节点真实出口国家
+## 主要能力
 
-静态模板只能按节点名称生成国家组，不能从订阅转换阶段直接获知每个节点的真实出口 IP。配置应用后，可在路由器上运行：
+- **分流**：业务独立选择出口，规则按实际顺序匹配；国内、海外及用户例外分别验证。
+- **节点判断**：分开记录延迟、通用联网、业务响应、失败类型和结果时效。低延迟不证明业务可用，403/429 也不一律算成功。
+- **订阅**：支持空来源、单来源和多来源；公共源经受控准入发布，异常不直接覆盖已验收版本。空来源不代表代理或 DNS 已可用。
+- **自建节点**：3103 粘贴链接、预览校验并发布，独立持久化；公共订阅更新不重建自建数据。OpenClash 只保留一个 `🔐 自定义节点`，各业务按需引用。
+- **恢复**：在线 SQLite 备份、固定镜像及文件散列、身份核验、双端事务和独立限时回退。接管不借升级改写旁路由业务规则或 DNS。
 
-```bash
-ruby scripts/verify_node_geo.rb --output=/tmp/node-geo-report.yaml
-```
+## 安装与更新
 
-脚本通过 Mihomo API 逐个切换 `🔬 节点归属校验`，并让五个查询站点的请求经当前待测节点发出。它要求成功来源中的严格多数且至少两票一致；无法形成多数才使用模板中的名称正则。检测完毕会恢复该策略组原选择，不修改业务策略组。控制器密钥和代理端口认证会优先从环境变量读取、否则自动读取 OpenClash UCI，且不会被输出或写入报告；报告也不记录出口 IP。
+先核对[前置条件](installer/README.zh-CN.md)，完整解压可信离线包；Windows 运行 `开始安装.cmd`，Linux 运行 `sh install.sh`。源码仓库不是包含镜像及依赖的发行包，不提供未经核验的网络下载执行命令。
 
-如果在线国家和名称国家不同，结果标记 `ONLINE_NAME_MISMATCH`；如果在线识别出模板尚未定义的国家，标记 `UNMAPPED_ONLINE_COUNTRY`。这两类结果都以非零退出码结束，必须人工确认后再调整国家组，不能自动相信节点名称。
+已有中心选择接管：先 doctor、plan，核对备份与恢复后执行。Compose 覆盖文件、外部代码挂载、Kuma 版本差异或设备身份变化必须先审阅，不要删除保护强行覆盖。相同版本、相同档案重复安装只做验证。
 
-先做无网络自检：
+这是应用层安装器，不刷固件、不拨号、不操作 ESXi、爱快或 Windows 应用/代理/DNS。新环境仍需自行接好主路由、网关及 DHCP。
 
-```bash
-ruby scripts/verify_node_geo.rb --self-test
-```
+## 限制与历史资料
 
-## 新增一个应用
+一个容器和一台旁路由仍有单点。升级中心会短暂停顿 Kuma/DNS 等服务，不保证零中断，不承诺“八个 9”。HTTP/DNS 检查不能代替 App 登录、真实对话、支付与全部外网业务验收。
 
-例如新增 `Pinterest`。
+自定义出口约束实际命中所选业务组的流量。`gstatic.com` 等资源可能先命中更高优先级规则；Google、Gemini、YouTube 分别选择，不等于自动锁定整个 Google 域名族。
 
-在 `custom/rules.ini` 添加：
-
-```ini
-ruleset=📌 图片收藏（Pinterest）,[]GEOSITE,pinterest
-```
-
-在 `custom/groups.ini` 添加同名策略组：
-
-```ini
-custom_proxy_group=📌 图片收藏（Pinterest）`select`[]💬 社交平台`[]🔒 隐私代理`[]🧭 手动选择
-```
-
-运行构建后提交。`ruleset=` 的目标名称必须和 `custom_proxy_group=` 名称完全一致，包括 emoji、空格与大小写。
-
-## 新增自己的域名列表
-
-在 `rules/` 新建文件，例如 `rules/mysite.yaml`：
-
-```yaml
-payload:
-  - '+.example.com'
-  - '+.example.net'
-```
-
-然后在 `custom/rules.ini` 添加：
-
-```ini
-ruleset=MySite,clash-domain:https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/rules/mysite.yaml,86400
-```
-
-并在 `custom/groups.ini` 添加同名 `MySite` 组。域名规则文件只放域名；IP/CIDR 应使用单独的 `clash-ipcidr` 或 `clash-classic` 文件。
-
-## 当前已内置的自定义规则
-
-- `🌍 境外网站`：`rules/mygw.yaml` 中需要强制代理的域名。
-- `🇸🇬 指定新加坡`：Massive、富途/moomoo、IBKR 常用域名，默认新加坡组。
-- `💻 开发服务`：Python、Docker、Linux 软件源、Node.js、Go、Rust、Java、Conda 与开发工具下载域名。
-- `🏦 国内银行`、`🏛️ 政务服务`、`📈 国内证券`、`☁️ 国内网盘`、`🎵 国内音乐`：各自规则文件负责精确命中，默认直连。
-- `DIRECT`：运营商、局域网、NTP 及个人维护的其他直连例外；作为分类规则之后的补充。
-
-国内直连的主体是基础模板中的 `GEOSITE,cn` 和 `GEOIP,cn`。`rules/direct.yaml` 只补充无法稳定归类或需要强制直连的例外，不应复制整套中国域名数据库。
-
-## 推荐原则
-
-- 更具体的应用和个人规则放前面，`GEOSITE,cn` / `GEOIP,cn` 放在海外分类之后、最终兜底之前。
-- 海外功能父组默认不直连；Apple、Microsoft 延续直连优先，其余品牌只把 `DIRECT` 作为人工故障切换选项。
-- 金融、交易平台优先固定地区和固定节点，不要跟随频繁切换的全局最低延迟组。
-- 自动组默认使用 `100 ms` 容差，避免延迟轻微波动造成出口频繁切换；不要在生产配置中使用 `0 ms`。
-- 不开启 OpenClash 的“绕过中国大陆 IP”，让所有连接先进入 Mihomo，再由规则决定 `DIRECT`。
-- IPv6 未被 TUN/TProxy、DNS 和防火墙完整接管前保持关闭。
-- 浏览器安全 DNS、Android 私人 DNS、iCloud Private Relay 等独立加密 DNS 通道应单独关闭或纳入接管测试。
-- 每次修改后检查 OpenClash 运行日志，确认没有策略组缺失、GEOSITE 不存在、YAML 解析或规则下载错误。
-
-## 参考
-
-全局单个自定义节点入口及持久断流绑定的用法与恢复办法见 [专属出口操作说明](docs/strict-custom-egress.md)，运行核验见 [全节点入口验收记录](docs/all-nodes-custom-acceptance-20261026.md)。
-
-- [OpenClash 官方仓库](https://github.com/vernesong/OpenClash)
-- [OpenClash 官方覆写模块参数与 YAML 操作符](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/root/etc/openclash/overwrite/default)
-- [OpenClash 官方订阅转换界面定义](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/luasrc/model/cbi/openclash/config-subscribe-edit.lua)
-- [Mihomo DNS 配置](https://wiki.metacubex.one/config/dns/)
-- [Mihomo TUN 配置](https://wiki.metacubex.one/config/inbound/tun/)
-- [subconverter 外部配置说明](https://github.com/tindy2013/subconverter#external-configuration-file)
+历史参考：[R4 设计](docs/precise-stable-r4-ha-design.md)、[旧版 v0.47.156 设置](docs/openclash-v0.47.156-settings.md)、[单臂旁路由说明](docs/istoreos-openclash-one-arm-router.md)。其中历史组数、容器数量与参数不能直接当作当前生产状态。

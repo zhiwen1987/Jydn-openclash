@@ -63,6 +63,15 @@ def bundle(args):
             if p.is_file() and '__pycache__' not in p.parts:copy(p,destination/folder/p.relative_to(ROOT/folder))
     for name in ('clash_stack.py','start.ps1','开始安装.cmd','install.sh','README.zh-CN.md','RECOVERY.zh-CN.md','ACCEPTANCE.zh-CN.md','NOTICE.md'):
         copy(ROOT/name,destination/name)
+    # Keep the offline package self-contained: repository installer documents
+    # live one directory deeper, so adapt only their Markdown link prefixes.
+    (destination/'README.md').write_text((REPO/'README.md').read_text(encoding='utf-8-sig').replace('](installer/',']('),encoding='utf-8')
+    for path in (REPO/'docs').glob('*.md'):
+        target=destination/'docs'/path.name;target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_text(path.read_text(encoding='utf-8-sig').replace('](../installer/','](../'),encoding='utf-8')
+    for name in ('README.zh-CN.md','ACCEPTANCE.zh-CN.md'):
+        target=destination/name
+        target.write_text(target.read_text(encoding='utf-8-sig').replace('](../docs/','](docs/'),encoding='utf-8')
     router=destination/'payload/router'
     for name in ('template.json','strict_custom.rb','strict-custom-policy.json','router_compile.rb'):copy(ROOT/'runtime'/name,router/name)
     copy(capture/'router/core',router/'core')

@@ -1,5 +1,7 @@
 # lan-center
 
+> 当前入口：中心已采用 `clash-center` 单容器架构，Kuma、CoreDNS、订阅和能力评估集中运行。请优先阅读[最新使用手册](../../docs/system-guide.zh-CN.md)、[部署记录](../../docs/production-deployment-20261026.md)与[恢复手册](../../installer/RECOVERY.zh-CN.md)。下面保留的双容器说明、历史组数和检测频率用于追溯，不作为当前生产参数；外置 Grok 宿主机任务仍单独管理。
+
 生产位置：`10.88.0.249:/root/dpanel/compose/lan-center`
 
 完整维护与回滚步骤见 [OPERATIONS.md](./OPERATIONS.md)，基础监控验收见 [ACCEPTANCE-20261013.md](./ACCEPTANCE-20261013.md)，V2 节点能力系统验收见 [ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md](./ACCEPTANCE-NODE-CAPABILITY-V2-20261013.md)，自动订阅控制器验收见 [ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md](./ACCEPTANCE-SUBSCRIPTION-CONTROLLER-20261014.md)。

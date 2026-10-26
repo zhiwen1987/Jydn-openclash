@@ -6,6 +6,8 @@
 
 ## 支持范围
 
+当前生产接管状态、版本和证据见[部署记录](../docs/production-deployment-20261026.md)，日常业务选择、自建节点及故障排查见[系统手册](../docs/system-guide.zh-CN.md)。全新安装和接管的数据路径不同，查看凭据前先确认实际 `/data` 挂载，不能把新站点路径直接当成已有生产路径。
+
 - Docker 主机：Linux x86_64、systemd、Python 3.9 或更高、Docker Engine 与 Compose v2；SSH 用户须为 root，或能够 `sudo -n`。至少留出 6 GiB 空间，建议 10 GiB。
 - 旁路由：x86_64 OpenWrt/iStoreOS，已有 opkg 安装的 OpenClash 0.48.002、Ruby/YAML、curl、UCI 和可运行的 Mihomo。当前包同时核对插件版本和兼容内核 SHA-256；不匹配就停止，不能据此推断支持全部 OpenClash 版本。
 - 操作端：Windows x64 内置独立 Python；Linux x86_64 需要 Python 3.11–3.13、glibc 2.34 或更高。依赖随包提供，无需更改系统 Python。
@@ -42,6 +44,8 @@ restore --profile sites/home.json
 ```
 
 `doctor` 与 `plan` 只读。计划有 30 分钟有效期，文件或设备状态变化后必须重新预览。已安装同一版本、同一站点档案时，安装只做验证，不重建。升级仍需先备份；Kuma 版本不同会拒绝自动升级，须先做数据库迁移预演。`restore` 每次恢复一个版本；首次安装的恢复会撤销中心容器并保留数据，接管恢复原 Compose。没有自动删除历史数据或整机备份的命令。
+
+接管前须核对 Compose 与运行容器是否一致。存在 `docker-compose.override.yml` 时安装器会拒绝直接接管，需人工审阅其有效结果并备份；即使文件为空也不能盲删。配置文件中未实际加载的旧代码挂载也须先核对，防止升级或回退意外启用。并行任务改变其他容器会使部署窗口验收失败，按流程回退；不应修改验收基线来掩盖变化。
 
 ## 部署内容与边界
 
