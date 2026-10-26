@@ -283,9 +283,11 @@ def render_compose(p, base, transaction):
 
 def install(p, base, package):
     t=read(base/'transaction.json');check(t['phase']=='prepared','transaction_phase_invalid')
-    archive=Path(package)/'clash-center.tar.gz';check(sha(archive)==t['manifest']['image_archive_sha256'],'image_archive_checksum_failed')
     check(shutil.disk_usage(base).free>=t['manifest'].get('required_free_bytes',6*1024**3),'insufficient_disk')
-    command(['docker','load','--input',str(archive)],timeout=900)
+    existing=subprocess.run(['docker','image','inspect',t['manifest']['image_id']],capture_output=True,timeout=15)
+    if existing.returncode:
+        archive=Path(package)/'clash-center.tar.gz';check(sha(archive)==t['manifest']['image_archive_sha256'],'image_archive_checksum_failed')
+        command(['docker','load','--input',str(archive)],timeout=900)
     image=json.loads(command(['docker','image','inspect',t['manifest']['image_id']]))[0]
     check(image['Architecture']=='amd64' and image['Os']=='linux','wrong_loaded_image')
     if t['old_container']:

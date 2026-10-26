@@ -4,7 +4,7 @@ require 'yaml'
 root=File.expand_path('..',__dir__)
 Dir.mktmpdir('stack-compile-') do |dir|
  [0,1,2].each do |count|
-  settings={'profile'=>{},'ports'=>{'api'=>19090,'proxy'=>17893,'probe'=>17895,'router_dns'=>17874},'material'=>{'api_secret'=>'test-api-key-not-a-real-secret','proxy_auth'=>'test:fixture','probe_auth'=>'test:fixture','publish_token'=>'test-public-not-a-real-secret','local_provider_token'=>'test-local-not-a-real-secret'},'base'=>'/etc/openclash/custom/clash-stack-fixture','release'=>root+'/runtime','server'=>'192.0.2.10','source_count'=>count}
+  settings={'profile'=>{},'ports'=>{'api'=>19090,'proxy'=>17893,'probe'=>17895,'router_dns'=>17874,'subscription'=>13103},'material'=>{'api_secret'=>'test-api-key-not-a-real-secret','proxy_auth'=>'test:fixture','probe_auth'=>'test:fixture','publish_token'=>'test-public-not-a-real-secret','local_provider_token'=>'test-local-not-a-real-secret'},'base'=>'/etc/openclash/custom/clash-stack-fixture','release'=>root+'/runtime','server'=>'192.0.2.10','source_count'=>count}
   File.write(dir+'/settings.json',JSON.generate(settings))
   ok=system('ruby',root+'/runtime/router_compile.rb',root+'/runtime/template.json',dir+'/settings.json',dir+'/result.yaml')
   raise 'compile_failed' unless ok

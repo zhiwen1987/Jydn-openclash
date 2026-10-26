@@ -1,5 +1,6 @@
 """Linux-only fault tests: all Docker/systemd commands are replaced by stubs."""
 import importlib.util
+import contextlib
 import io
 import json
 import os
@@ -30,11 +31,11 @@ class RecoveryTests(unittest.TestCase):
     def test_sqlite_wal_backup_is_readable_and_preserves_source(self):
         with tempfile.TemporaryDirectory() as d:
             source=Path(d)/'active.db';dest=Path(d)/'saved.db'
-            with sqlite3.connect(source) as conn:
+            with contextlib.closing(sqlite3.connect(source)) as conn:
                 conn.execute('PRAGMA journal_mode=WAL');conn.execute('CREATE TABLE events(value)');conn.execute('INSERT INTO events VALUES (42)');conn.commit()
                 agent.backup_db(source,dest)
                 self.assertEqual(conn.execute('SELECT value FROM events').fetchall(),[(42,)])
-            with sqlite3.connect(dest) as conn:self.assertEqual(conn.execute('SELECT value FROM events').fetchall(),[(42,)])
+            with contextlib.closing(sqlite3.connect(dest)) as conn:self.assertEqual(conn.execute('SELECT value FROM events').fetchall(),[(42,)])
 
     def transaction(self,base):
         path=base/'compose.json';path.write_text('{}')
