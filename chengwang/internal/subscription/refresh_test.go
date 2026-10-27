@@ -1094,6 +1094,32 @@ func TestRefreshV5AllRemainingMutatorsDefiniteCutPreserveOwnedPreimageAndRetry(t
 			t.Fatal("definite cut changed durable or owned in-memory preimage")
 		}
 	}
+	t.Run("clone_preserves_required_collection_presence", func(t *testing.T) {
+		sidecar, _ := refreshTestOpen(t)
+		sidecar.mu.Lock()
+		cloned := cloneRefreshSnapshot(sidecar.state)
+		sidecar.mu.Unlock()
+		if cloned.Ledgers == nil || cloned.Refreshes == nil {
+			t.Fatal("clone lost required empty collection presence")
+		}
+		if err := validateRefreshSnapshot(cloned); err != nil {
+			t.Fatal("valid snapshot clone rejected")
+		}
+		invalid := cloned
+		invalid.Ledgers = nil
+		invalid = cloneRefreshSnapshot(invalid)
+		if invalid.Ledgers != nil {
+			t.Fatal("clone normalized absent required ledger collection")
+		}
+		storeTestCode(t, validateRefreshSnapshot(invalid), CodeStoreUnsafe)
+		invalid = cloned
+		invalid.Refreshes = nil
+		invalid = cloneRefreshSnapshot(invalid)
+		if invalid.Refreshes != nil {
+			t.Fatal("clone normalized absent required refresh collection")
+		}
+		storeTestCode(t, validateRefreshSnapshot(invalid), CodeStoreUnsafe)
+	})
 	t.Run("finalize_checkpoint", func(t *testing.T) {
 		sidecar, dir := refreshTestOpen(t)
 		epoch, _, _, _, err := sidecar.Checkpoint()

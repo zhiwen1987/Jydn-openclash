@@ -1,0 +1,12 @@
+{
+  "schema": "chengwang.refresh-empty-collections-cpu/v1",
+  "sourcePatchSHA256": "74f2ab86b3e0764b24c97af78b61d579602c3b9a32f388602d94ffa519781c87",
+  "tests": 53,
+  "failed": 0,
+  "skipped": 0,
+  "exit": 0,
+  "seconds": 30.459,
+  "logSHA256": "28820cbcbecc90290ab54ac37acb722c22d9312dcee6f81aa7b13d628ddea055",
+  "goExecuted": false,
+  "production": false
+}

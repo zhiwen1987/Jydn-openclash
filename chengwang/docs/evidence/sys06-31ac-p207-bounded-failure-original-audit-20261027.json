@@ -1,0 +1,255 @@
+{
+  "schema": "chengwang.p207a-exact-head-bounded-failure-original-audit/v1",
+  "reviewerRole": "implementation56h",
+  "run": {
+    "id": 40533880771,
+    "attempt": 1,
+    "headSHA": "31ac3c9c895c2c665ae6472a02a1dcb22b4ad002",
+    "branch": "codex/chengwang-p207a-refresh-20261027",
+    "terminal": true,
+    "conclusion": "failure"
+  },
+  "jobs": [
+    {
+      "id": 122293746299,
+      "name": "source-models",
+      "conclusion": "success",
+      "closedGateModelStep": "success",
+      "artifactUploadStep": "success"
+    },
+    {
+      "id": 122293852138,
+      "name": "source-and-go",
+      "conclusion": "failure",
+      "verifyStep": "failure",
+      "acceptedEvidenceUpload": "skipped",
+      "boundedFailureUpload": "success"
+    },
+    {
+      "id": 122294230029,
+      "name": "fresh",
+      "conclusion": "skipped"
+    }
+  ],
+  "artifact": {
+    "id": 12747288902,
+    "name": "p207a-source-go-failure-40533880771-1",
+    "apiBytes": 3902,
+    "apiSHA256": "6b0f744f5d237abffc6a89ed6af51423fa9cf3a7528e7cc09a2ccd94b268941e",
+    "localPath": "p207a-source-go-failure-40533880771-1.original.zip",
+    "localBytes": 3902,
+    "localSHA256": "6b0f744f5d237abffc6a89ed6af51423fa9cf3a7528e7cc09a2ccd94b268941e",
+    "memberCount": 9,
+    "crcAndPathValidation": "PASS",
+    "casefoldAndTraversalValidation": "PASS",
+    "oExclFsyncReadback": "PASS",
+    "originalBytesStable": true,
+    "custodyPath": "p207a-source-go-failure-40533880771-1.custody.json",
+    "custodyBytes": 1961,
+    "custodySHA256": "2b7ddbfe688f085ca29bd81e2a738981d5b8fc91f7fb77e49bb937502b4f7ec0"
+  },
+  "members": [
+    {
+      "path": "source-before.json",
+      "bytes": 872,
+      "sha256": "21c0995f689667631b53c81f652a2c71d1058e6ade6d7bea6e2f84c03f668611"
+    },
+    {
+      "path": "source-after.json",
+      "bytes": 872,
+      "sha256": "21c0995f689667631b53c81f652a2c71d1058e6ade6d7bea6e2f84c03f668611"
+    },
+    {
+      "path": "format-exit.txt",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "go-exit.txt",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "event-check-exit.txt",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "failure-check-exit.txt",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "go-failure-report.json",
+      "bytes": 7598,
+      "sha256": "1b55bbbfb8387161bdbdf5f6743f31576eda8033b7095115b1f321f0fe1677b5"
+    },
+    {
+      "path": "gofmt.patch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "gofmt.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sourceBinding": {
+    "sourceBeforeAfterByteEqual": true,
+    "schema": "chengwang.subscription-refresh-source/v3",
+    "contractSHA256": "815a9d380ef26f8a3ec10fdba0158e5ca6cb86ea36b1d134c76dc777cf694751",
+    "modulePathCount": 825,
+    "moduleContentSHA256": "49e3d18586920b3cd5d255e9c75cab210c415d4e4bf02144170413e4857ab908",
+    "fixturePathCount": 20,
+    "fixtureContentSHA256": "4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf",
+    "packageTestTopCount": 486,
+    "packageTestTopsSHA256": "dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f",
+    "requiredRunTopCount": 481,
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
+    "changedGoSourceCount": 24,
+    "changedGoSourcesSHA256": "851b562120606420e31d3b20ce81e177e51edb8542b8deadbbf3b4eb4ed812cf",
+    "goExecutionProvenBySourceReport": false
+  },
+  "exitsAndFormat": {
+    "formatExit": 0,
+    "goExit": 1,
+    "acceptedEventCheckerExit": 1,
+    "failureProjectionCheckerExit": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0
+  },
+  "boundedFailureReport": {
+    "schema": "chengwang.subscription-refresh-go-failure/v1",
+    "scope": "NON_ACCEPTING_SOURCE_DECLARED_TOP_LEVEL_FAILURE_PROJECTION",
+    "reportOutcome": "FAILURE_DIAGNOSTIC_ONLY",
+    "accepted": false,
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "PACKAGE_TERMINAL_NONPASS",
+    "markerObservation": "NONE",
+    "eventLineCount": 3276,
+    "outputEventCount": 1666,
+    "ignoredSubtestEventCount": 1475,
+    "declaredPackageCount": 7,
+    "declaredTopCount": 481,
+    "passCount": 416,
+    "failCount": 19,
+    "runningCount": 0,
+    "notStartedCount": 46,
+    "packagePartitions": [
+      {
+        "package": "chengwang/internal/api",
+        "pass": 158,
+        "fail": 0,
+        "running": 0,
+        "notStarted": 0
+      },
+      {
+        "package": "chengwang/internal/authn",
+        "pass": 38,
+        "fail": 0,
+        "running": 0,
+        "notStarted": 0
+      },
+      {
+        "package": "chengwang/internal/authz",
+        "pass": 38,
+        "fail": 0,
+        "running": 0,
+        "notStarted": 0
+      },
+      {
+        "package": "chengwang/internal/serverruntime",
+        "pass": 47,
+        "fail": 0,
+        "running": 0,
+        "notStarted": 0
+      },
+      {
+        "package": "chengwang/internal/subscription",
+        "pass": 101,
+        "fail": 19,
+        "running": 0,
+        "notStarted": 0
+      },
+      {
+        "package": "chengwang/internal/subscriptionctl",
+        "pass": 0,
+        "fail": 0,
+        "running": 0,
+        "notStarted": 46
+      },
+      {
+        "package": "chengwang/internal/subscriptionpolicy",
+        "pass": 34,
+        "fail": 0,
+        "running": 0,
+        "notStarted": 0
+      }
+    ],
+    "failedTops": [
+      "chengwang/internal/subscription::TestRefreshV3AttemptIdentityNeverRepeatsAcrossBindingDeleteReaddAndRestart",
+      "chengwang/internal/subscription::TestRefreshV3CandidatePreservesAcceptedVersion",
+      "chengwang/internal/subscription::TestRefreshV3CheckpointRotationRevokesInflightAndSingleStoreMismatchIsVisible",
+      "chengwang/internal/subscription::TestRefreshV3ClockRollbackAndForwardJumpFreeze",
+      "chengwang/internal/subscription::TestRefreshV3DurableReservationIsGlobalBoundedAndUnknownRetained",
+      "chengwang/internal/subscription::TestRefreshV3RestartRecoveryIsSingleUseAndUnknownTerminal",
+      "chengwang/internal/subscription::TestRefreshV3RestoreEpochPreventsAttemptReplayAfterSequenceRollback",
+      "chengwang/internal/subscription::TestRefreshV3SchemaAndStateTruthTableRejectSilentDowngrade",
+      "chengwang/internal/subscription::TestRefreshV3SequenceOverflowAndTenantScopeFailClosed",
+      "chengwang/internal/subscription::TestRefreshV4BindCommandDefiniteFailureRetainsCapabilityForExactRetry",
+      "chengwang/internal/subscription::TestRefreshV4CanonicalReopenRejectsUnreachableProducerStates",
+      "chengwang/internal/subscription::TestRefreshV4CompleteDefiniteFailureRetainsCapabilityForExactRetry",
+      "chengwang/internal/subscription::TestRefreshV4EveryProducerStatePersistsAndReopens",
+      "chengwang/internal/subscription::TestRefreshV4RotateDefiniteFailureRetainsRecoveryCapabilityForExactRetry",
+      "chengwang/internal/subscription::TestRefreshV4UncertainBindPoisonsAndCannotReplayCapability",
+      "chengwang/internal/subscription::TestRefreshV4UncertainCompleteAndRotatePoisonWithoutReplay",
+      "chengwang/internal/subscription::TestRefreshV5AllRemainingMutatorsDefiniteCutPreserveOwnedPreimageAndRetry",
+      "chengwang/internal/subscription::TestRefreshV5CanonicalReopenRejectsPositiveAttemptBelowLedgerHighwater",
+      "chengwang/internal/subscription::TestRefreshV5ReturnedReservationsAreDetachedFromOwnedState"
+    ],
+    "runningTops": [],
+    "notStartedScope": "all 46 required tops in chengwang/internal/subscriptionctl"
+  },
+  "privacy": {
+    "rawGoEventsDownloaded": false,
+    "rawGoStderrDownloaded": false,
+    "jobLogsRead": false,
+    "signedURLPersistedOrPrinted": false,
+    "allPublicReportStringsFixedOrSourceDeclared": true,
+    "failureProjectionPrivacyRejected": false,
+    "failureProjectionExactReprojectionPassed": true
+  },
+  "independentPublicAudit": {
+    "script": "audit_public_failure.py",
+    "scriptBytes": 5577,
+    "scriptSHA256": "e81e59c5081d3ef417fccd14d59fea155e74f49c4a3b628309899a885510e79f",
+    "result": "PASS",
+    "checks": [
+      "exact report schema and key order",
+      "fixed enum and nonaccepting outcome",
+      "contract SHA and seven-package 481-top partition",
+      "sorted unique disjoint source-declared failure/running/not-started names",
+      "package row partitions",
+      "all public strings fixed or source-declared",
+      "exit values and empty format evidence",
+      "source-before/source-after byte equality"
+    ]
+  },
+  "conclusion": {
+    "state": "EXACT_HEAD_BOUNDED_FAILURE_EVIDENCE_ACCEPTED",
+    "goFailureCause": "UNKNOWN",
+    "reason": "The bounded report proves 19 declared subscription tops terminated nonpass and 46 subscriptionctl tops were not started, but intentionally contains no raw Output, stderr, dynamic error, or causal compiler/assertion/panic text.",
+    "successAcceptance": false,
+    "freshAcceptance": false
+  },
+  "notPerformed": [
+    "job log retrieval",
+    "raw event or stderr retrieval",
+    "CI rerun",
+    "local Go or gofmt",
+    "browser or service runtime",
+    "repository modification",
+    "production access"
+  ]
+}

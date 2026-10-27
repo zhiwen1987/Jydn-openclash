@@ -1,0 +1,122 @@
+{
+  "schema": "chengwang.refresh-empty-collections-independent-source-review/v1",
+  "reviewedAt": "2026-10-27T23:58:11.2875194+08:00",
+  "reviewerRole": "diagnostic_reader_peer",
+  "verdict": "SOURCE_ACCEPT",
+  "findings": [],
+  "candidate": "D:/CodexData/workspace/mihomo-31ac-empty-ledger-boundary-incident-pto2871o/isolated-candidate",
+  "candidateForm": "root-frozen isolated working-tree afterimage; no candidate commit",
+  "baseCommit": "31ac3c9c895c2c665ae6472a02a1dcb22b4ad002",
+  "frozenEvidence": {
+    "manifest": {
+      "path": "D:/CodexData/workspace/mihomo-31ac-empty-ledger-boundary-incident-pto2871o/FROZEN-CANDIDATE-MANIFEST.json",
+      "bytes": 3011,
+      "sha256": "1b71d4b6910c778a2ee41ce616ce0525dc50aac4682adc8bdd62c16a0c26c9a4"
+    },
+    "patch": {
+      "path": "D:/CodexData/workspace/mihomo-31ac-empty-ledger-boundary-incident-pto2871o/observed-four-source.git.patch",
+      "bytes": 6936,
+      "sha256": "74f2ab86b3e0764b24c97af78b61d579602c3b9a32f388602d94ffa519781c87",
+      "equalsFreshFullIndexDiff": true
+    },
+    "paths": [
+      {
+        "path": ".github/workflows/chengwang-subscription-refresh.yml",
+        "beforeSHA256": "0b734a2536c4a2c10362aeba084bf7a09b4876319a1fcb93839fb6502dfbdac0",
+        "afterSHA256": "0095cea400bde998174a060cb3c8abb6cdf42e10a0bc9bed2c2a0110cd7ebf7e"
+      },
+      {
+        "path": "chengwang/deploy/subscription-refresh/source_contract.json",
+        "beforeSHA256": "815a9d380ef26f8a3ec10fdba0158e5ca6cb86ea36b1d134c76dc777cf694751",
+        "afterSHA256": "65bb6393e41f801b6393b2211ad768abe735e6280965b58152922f325d31dae1"
+      },
+      {
+        "path": "chengwang/internal/subscription/refresh.go",
+        "beforeSHA256": "da99560ad94c334d799dbea811535b3f521bf8c71654965fd2977a006af5af90",
+        "afterSHA256": "4bf3e8908d40f25124260b098e34e475c695da4d0730e2b8f716b05f8275efe5"
+      },
+      {
+        "path": "chengwang/internal/subscription/refresh_test.go",
+        "beforeSHA256": "9f8c3a8c1aad54c2c61db23d2b80d7f75630d11f5062e68910853bebe5d51284",
+        "afterSHA256": "5d75fe81b1c859254414e9147e6324503e7ec6cb47c8ec20347e93eda25ca7b2"
+      }
+    ],
+    "allBeforeimagesEqualBase": true,
+    "allAfterimagesEqualCandidate": true,
+    "allChangedFilesLFOnly": true,
+    "diffCheck": "PASS"
+  },
+  "sourceReview": {
+    "regressionMechanism": "The valid new-store state initializes Ledgers and Refreshes as non-nil empty slices. The old append-to-nil Ledgers clone converted a valid empty slice to nil, while validateRefreshSnapshot rejects nil collections. The candidate branches on input nilness, uses make+copy for Ledgers and make+per-element clone for Refreshes, preserving all three states: nil, non-nil empty, and non-empty.",
+    "nilness": {
+      "validNonNilEmptyLedgersPreserved": true,
+      "validNonNilEmptyRefreshesPreserved": true,
+      "invalidNilLedgersRemainNil": true,
+      "invalidNilRefreshesRemainNil": true,
+      "validatorRelaxed": false
+    },
+    "nonEmptyIsolation": {
+      "ledgers": "make(len)+copy retains a distinct backing array",
+      "refreshes": "make(len)+cloneRefreshView retains distinct slice storage and clones each Reservation pointer",
+      "existingCoverage": [
+        "TestRefreshV5AllRemainingMutatorsDefiniteCutPreserveOwnedPreimageAndRetry/reconcile exercises fresh-store observe, non-empty reconcile, definite-cut retry, and reopen",
+        "the same existing top covers finalize_checkpoint, observe, claim and reservation mutation paths without deleting any top",
+        "TestRefreshV5ReturnedReservationsAreDetachedFromOwnedState mutates non-empty returned Reservation values and proves owned state/capacity remain unchanged"
+      ]
+    },
+    "newRegression": "One subtest, clone_preserves_required_collection_presence, was added under an existing top. It verifies valid empty clones remain non-nil and validate, while nil Ledgers or Refreshes remain nil through clone and are rejected with CodeStoreUnsafe.",
+    "changedGoTopInventory": "unchanged: package tops 486; required tops 481; no top deleted or renamed",
+    "validatorAndBoundaries": "No diff exists in validateRefreshSnapshot, persistence budgets, privacy logic, event handling, runner selection, timeouts, upload closure, or final success gates."
+  },
+  "pins": {
+    "sourceChecker": "PASS",
+    "modulePathCount": 825,
+    "moduleContentSHA256": "ce4c2877dcc073fdf03d4ff812b1b8c7bacbe635b3d329afaedcb7082367208b",
+    "changedGoSourceCount": 24,
+    "changedGoSourcesSHA256": "26fd9d891afc8daf64a0131a6f63e9dfa5a26c9f8a0d3bb6978cd1500e091933",
+    "contractSHA256": "65bb6393e41f801b6393b2211ad768abe735e6280965b58152922f325d31dae1",
+    "fixtureCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "goExecutionProven": false
+  },
+  "rootCPUReceipt": {
+    "path": "D:/CodexData/workspace/mihomo-31ac-empty-ledger-boundary-incident-pto2871o/ROOT-CANDIDATE-CPU.json",
+    "bytes": 361,
+    "sha256": "b6a6a3b91e0a355bfec3805a303e43accacbf0fbf2927f4806e74ed3c096e350",
+    "reportedResult": "53 passed; 0 failed; 0 skipped; exit 0; 30.459 seconds",
+    "independentRerun": false,
+    "goExecuted": false
+  },
+  "incidentBoundary": {
+    "incident": "refresh_failure_source_diagnosis wrote four uncommitted source afterimages into the formal development worktree instead of an external candidate",
+    "notErasedByVerdict": true,
+    "committed": false,
+    "pushed": false,
+    "productionChanged": false,
+    "rootRestorationMethod": "apply_patch from fsynced beforeimages; no reset/delete",
+    "currentFormalSourceState": "formal R is at base 31ac3c9c895c2c665ae6472a02a1dcb22b4ad002 and has no source diff; only the five protected pending docs are present/modified",
+    "protectedDocsHashesMatchIncidentReceipt": true,
+    "agentStoppedNoLiveProcess": "reported by the incident/root receipt; not independently observed by this source reviewer",
+    "unreviewedCandidateAdopted": false
+  },
+  "sourceEvidenceLocations": [
+    "chengwang/internal/subscription/refresh.go:205 cloneRefreshSnapshot",
+    "chengwang/internal/subscription/refresh.go:311 non-nil empty initial collections",
+    "chengwang/internal/subscription/refresh.go:578 strict validator",
+    "chengwang/internal/subscription/refresh_test.go:1097 new empty/nil regression",
+    "chengwang/internal/subscription/refresh_test.go:1191 existing reconcile/reopen coverage",
+    "chengwang/internal/subscription/refresh_test.go:1322 existing non-empty detached Reservation coverage"
+  ],
+  "requiredNextGate": "After root re-integrates the exact frozen afterimages, run official exact-head Linux gofmt and Go tests, including the affected subscription package, all 481 required tops, event-reader/fresh checks, and the existing failure-preservation gates. SOURCE_ACCEPT does not authorize or predict those results.",
+  "notRun": [
+    "Go",
+    "gofmt",
+    "browser",
+    "service",
+    "network",
+    "SSH",
+    "production"
+  ],
+  "boundary": "SOURCE_ACCEPT is limited to the four frozen afterimages and the cited source/model evidence. It does not establish Go compilation, official formatting, runtime success, Linux acceptance, a unique cause for all prior failing tops, deployment readiness, or production health."
+}

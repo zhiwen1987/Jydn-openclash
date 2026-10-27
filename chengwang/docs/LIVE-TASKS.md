@@ -1,5 +1,13 @@
 # 澄网：项目任务清单
 
+2026-10-27 空集合复制修复已获[独立源码准入](evidence/sys06-31ac-empty-ledger-source-peer-20261027.json)，root已在正式R重新apply冻结4文件。精确source diff应为6936B／SHA74f2ab86b3e0764b24c97af78b61d579602c3b9a32f388602d94ffa519781c87；[相同候选53项CPU](evidence/sys06-31ac-empty-ledger-candidate-cpu-20261027.json)实际通过、source checker通过，非Go证明。此前[误写事故](evidence/sys06-31ac-empty-ledger-write-boundary-incident-20261027.md)及恢复记录保留，本次重新集成由root在peer通过后完成。仅改变nilness-preserving clone、既有top内回归与3个相关source pins；validator／481名称／180秒／隐私／final门不变。新提交、远端读回与Linux Go／官方格式／fresh仍待；subscriptionctl46未启动原因未知，专用build位置诊断另在外部开发。生产不动。
+
+2026-10-27 caed旧恢复链的其余模式已限定复核：[oldnative四模式](evidence/sys06-caed-oldnative-original-audit-20261027.json)及[首次Completion四模式](evidence/sys06-caed-completion-original-audit-20261027.json)各9个original／fresh artifacts通过；root再次核对两最终收据的18／19项证据文件哈希。oldnative原始语义验证函数未改，但Windows不支持原CLI POSIX落盘，报告sink替换为二进制O_EXCL，不能称原CLI整条执行成功。Completion报告checker通过，source manifest CLI因CRLF拒绝后仅以原source函数＋二进制sink重算；失败副本保留。均绑定caed，不外推31ac、完整私有WAL或生产，P207失败仍未关闭。
+
+2026-10-27 新诊断已实际捕获失败：[31ac P207原件](evidence/sys06-31ac-p207-bounded-failure-original-audit-20261027.json)为PACKAGE_TERMINAL／PACKAGE_TERMINAL_NONPASS、marker NONE，总416通过／19失败／0运行／46未开始；subscription为101通过＋19失败，其余五包315通过，subscriptionctl46未开始。root独立核ZIP／9成员／哈希／计数，运行器failure reader exit0；未公开raw，不能本机重投影或知道断言细因。[源码缺陷](evidence/sys06-31ac-refresh-empty-ledger-source-defect-20261027.md)经root与独立子代理确认：clone把有效非nil空Ledgers变nil，首次observe→persist被严格validator拒绝；同时必须避免Refreshes把无效nil正常化。外部最小修复及回归候选在开发，尚未集成或运行Go。subscriptionctl未启动原因另查，不能归因于上述缺陷；生产不动。
+
+2026-10-27 新诊断开发提交 `31ac3c9c895c2c665ae6472a02a1dcb22b4ad002` 已形成：5源／13路径，root53项CPU通过，最终HEAD source checker通过且goExecutionProven=false。两个既有开发ref已atomic普通快进推送并分别精确远端读回，main／Registry／生产未改。新P207 run40533880771与continuous40533880833等6条隔离workflow已真实触发，metadata仍in_progress／queued；尚无新Go结果或原件接受，旧caed31链通过保留其精确HEAD范围。本条为提交后进度，未另行提交，避免仅为记录反复触发验收。
+
 2026-10-27 root集成后53项纯CPU实际通过（47.365秒、零失败／skip），源差异仍精确等于冻结v2；准备提交与开发ref推送。此结果只证明本次5个非Go源的模型检查，不是Go／Linux执行。新提交的source checker与远端读回、实际Go失败诊断仍待后续步骤；生产／main／Registry不动。
 
 2026-10-27 诊断v2已由root单一集成5个非Go源文件：逐文件完整冻结后像通过apply_patch写入，staged full-index diff与独立peer冻结补丁54234B／SHA c4e23d16d0dc0ce3bf5113f5c074ac36e74b12efe497ef2b96f4b5643bdf79d0逐字节相等；[独立源码复核](evidence/sys06-caed-go-failure-diagnostic-v2-source-peer-20261027.json)53项及8类篡改／隐私负例通过。root同源53项CPU正在运行，尚未提交或新Linux重跑。reader必须使用同一runner-local事件及两项真实exit重投影，并精确比较整份报告；raw仍不上传，失败诊断accepted恒false，原验收门不放宽。协调者生成的另一个外部chunk在副本上后像不一致，已判无效且保留，root未使用该chunk；未冻结handoff manifest。Go原失败原因仍UNKNOWN，不能把诊断源码通过称为Go修复。

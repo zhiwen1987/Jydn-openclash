@@ -205,10 +205,15 @@ func cloneRefreshView(in RefreshView) RefreshView {
 func cloneRefreshSnapshot(in refreshSnapshot) refreshSnapshot {
 	out := in
 	out.IdentityKey = append([]byte(nil), in.IdentityKey...)
-	out.Ledgers = append([]RefreshLedger(nil), in.Ledgers...)
-	out.Refreshes = make([]RefreshView, len(in.Refreshes))
-	for i := range in.Refreshes {
-		out.Refreshes[i] = cloneRefreshView(in.Refreshes[i])
+	if in.Ledgers != nil {
+		out.Ledgers = make([]RefreshLedger, len(in.Ledgers))
+		copy(out.Ledgers, in.Ledgers)
+	}
+	if in.Refreshes != nil {
+		out.Refreshes = make([]RefreshView, len(in.Refreshes))
+		for i := range in.Refreshes {
+			out.Refreshes[i] = cloneRefreshView(in.Refreshes[i])
+		}
 	}
 	return out
 }
