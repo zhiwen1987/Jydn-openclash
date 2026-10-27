@@ -197,7 +197,7 @@ class Controller:
         except Exception as error:
             self.state["switches"][-1]["result"]="rolled_back"
             self.state["switches"][-1]["reason"]=type(error).__name__
-            info.setdefault("rejected_until",{})[best]=now+900
+            info.setdefault("rejected_until",{})[best]=now+3600
             self.recover_trial()
             info["phase"]="rollback_cooldown"
             self.save("trial_rolled_back")
@@ -224,6 +224,10 @@ class Controller:
         return group
 
     def tick(self):
+        from health_policy import acceptance_hold
+        if acceptance_hold():self.save('deployment_acceptance_hold');return False
+        from clash_measurement import batch_paused
+        if batch_paused(self.clock()):self.save('detector_suspected_outage');return False
         with exclusive(STATE.parent/"routing-owner.lock") as acquired:
             if not acquired:
                 self.save("publication_owns_routing");return False
@@ -284,6 +288,11 @@ class Controller:
                 if node_regions[n["name"]] not in regions:
                     candidates.append(n["name"]);regions.add(node_regions[n["name"]])
                 if len(candidates) >= 4:break
+            oldest=sorted((n['name'] for n in nodes if n['name'] in allowed and n['name']!=current),
+                key=lambda name:((self.state['samples'].get(business+':'+hashlib.sha256(name.encode()).hexdigest()[:16]) or [{'at':0}])[-1]['at'],name))
+            if oldest and oldest[0] not in candidates:
+                if len(candidates)>=4:candidates[-1]=oldest[0]
+                else:candidates.append(oldest[0])
             if len(candidates) < 4:
                 candidates += [n["name"] for n in nodes if n["name"] in allowed and n["name"] not in candidates][:4-len(candidates)]
             # Provider nodes need not appear in /proxies. Pool membership is authoritative.
@@ -315,6 +324,9 @@ class Controller:
                 sample = {"ok": False, "ms": 8000, "reason": "probe_group_changed", "http": "000"}
             if latest.get("now") == name and old_probe in latest.get("all", []):self.select(probe_group, old_probe)
         now = int(self.clock());sample["at"] = now
+        from health_policy import error_scope
+        if error_scope(sample.get('reason',''))=='detector':
+            self.save('detector_wait');return True
         samples = self.state["samples"].setdefault(key, [])
         samples.append(sample);del samples[:-30]
         info = self.state["businesses"][business]
@@ -358,6 +370,9 @@ class Controller:
         self.state.update(epoch=now,enabled=bool(policy.get("enabled")),detail="business_quality")
         # Bound historical state across subscription churn and renamed nodes.
         active_keys = set()
+        all_names={n['name'] for n in self.node_status()['nodes']}
+        for b in BUSINESSES:
+            active_keys.update(b+':'+hashlib.sha256(n.encode()).hexdigest()[:16] for n in all_names)
         for b, item in self.state["businesses"].items():
             active_keys.update(b+":"+hashlib.sha256(n.encode()).hexdigest()[:16] for n in item.get("candidates",[]))
         self.state["samples"] = {k:v for k,v in self.state["samples"].items() if k in active_keys}

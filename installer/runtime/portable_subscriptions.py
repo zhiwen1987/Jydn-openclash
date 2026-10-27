@@ -14,6 +14,8 @@ sys.path.insert(0,'/local-subscription')
 # existing /data mount. Its private directory is owned by the deployment receipt.
 USAGE_CODE=Path('/data/subscription-usage/code')
 if USAGE_CODE.is_dir():sys.path.insert(0,str(USAGE_CODE))
+HEALTH_CODE=Path('/data/node-health/code')
+if HEALTH_CODE.is_dir():sys.path.insert(0,str(HEALTH_CODE))
 
 
 def install_usage_bridge():
@@ -64,7 +66,7 @@ def resume_metadata_reload(module):
 
 
 def load():
-    spec=importlib.util.spec_from_file_location('subscription_impl','/subscription_impl.py')
+    spec=importlib.util.spec_from_file_location('subscription_impl',str(HEALTH_CODE/'subscription_impl.py') if (HEALTH_CODE/'subscription_impl.py').is_file() else '/subscription_impl.py')
     module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
     return module
 
@@ -94,6 +96,13 @@ def scheduler(module):
     def run():
         resume_metadata_reload(module)
         while True:
+            if HEALTH_CODE.is_dir():
+                from health_policy import acceptance_hold
+                if acceptance_hold():
+                    value=json.loads(Path('/data/node-health/acceptance-hold.json').read_text())
+                    health=dict(value.get('health',{}));health.update(epoch=module.now(),reason='deployment_acceptance_hold')
+                    module.atomic_json(module.HEALTH_PATH,health)
+                    time.sleep(5);continue
             started=time.monotonic();delay=30
             try:
                 with module.LOCK:

@@ -22,4 +22,6 @@ jobs:
           ruby -c installer/agents/router.rb
           ruby installer/tests/test_router_compile.rb
           ruby installer/tests/test_router_safety.rb
-          for file in installer/install.sh installer/runtime/upstream/*.sh; do sh -n "$file"; done
+          ruby -c installer/agents/node_health_router.rb
+          ruby installer/tests/test_native_admission.rb
+          for file in installer/install.sh installer/runtime/native_admission.sh installer/runtime/upstream/*.sh; do sh -n "$file"; done

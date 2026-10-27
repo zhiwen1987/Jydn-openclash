@@ -18,6 +18,8 @@ import sqlite3
 import statistics
 import subprocess
 import sys
+from pathlib import Path
+if Path("/data/node-health/code").is_dir():sys.path.insert(0,"/data/node-health/code")
 import tempfile
 import threading
 import time
@@ -182,6 +184,10 @@ CREATE TABLE IF NOT EXISTS egress_observations (
   last_checked INTEGER NOT NULL,
   FOREIGN KEY(node_id) REFERENCES nodes(id)
 );
+CREATE TABLE IF NOT EXISTS probe_schedule (
+ node_id TEXT NOT NULL,business TEXT NOT NULL,record_json TEXT NOT NULL,
+ PRIMARY KEY(node_id,business)
+);
 CREATE TABLE IF NOT EXISTS route_audits (
   probe TEXT PRIMARY KEY,
   category TEXT NOT NULL,
@@ -301,6 +307,14 @@ def discover_nodes() -> list[dict[str, str]]:
         for entry in definition.get("proxies", []):
             by_name.setdefault(entry.get("name"), provider_name)
     discovered = []
+    identities={}
+    try:
+        import subscription_impl as release
+        manifest=release.current_manifest() or {}
+        for item in manifest.get('sources',[]):
+            raw=(release.RELEASES/manifest['release_id']/item['file']).read_bytes()
+            for node in release.parse_nodes(raw):identities[(item.get('provider_name',item['id']),node['name'])]=release.fingerprint(node)
+    except Exception:pass
     for name in group.get("all", []):
         proxy = all_proxies.get(name, {})
         proxy_type = str(proxy.get("type", "Unknown"))
@@ -308,8 +322,8 @@ def discover_nodes() -> list[dict[str, str]]:
             continue
         if proxy_type in GROUP_TYPES:
             continue
-        fingerprint = str(proxy.get("id") or "")
         provider = str(proxy.get("provider-name") or by_name.get(name) or "")
+        fingerprint = identities.get((provider,name)) or str(proxy.get("id") or "")
         identity = f"mihomo:{fingerprint}" if fingerprint else f"name:{name}"
         discovered.append({
             "id": node_id(identity), "name": name, "type": proxy_type,
@@ -497,7 +511,7 @@ def record_result(connection: sqlite3.Connection, nid: str, probe: str, business
 
 
 def update_capability(connection: sqlite3.Connection, nid: str, business: str,
-                      success: bool, score: float, epoch: int, reason: str = "") -> None:
+                      success: bool, score: float, epoch: int, reason: str = "", observed_at=None) -> None:
     previous = connection.execute(
         "SELECT * FROM capabilities WHERE node_id=? AND business=?", (nid, business)
     ).fetchone()
@@ -505,7 +519,21 @@ def update_capability(connection: sqlite3.Connection, nid: str, business: str,
     consecutive_failure = (previous["consecutive_failure"] if previous and not success else 0) + int(not success)
     last_success = epoch if success else (previous["last_success"] if previous else None)
     last_failure = epoch if not success else (previous["last_failure"] if previous else None)
-    status = "available" if success else "unavailable"
+    from health_policy import transition
+    prior=connection.execute("SELECT record_json FROM probe_schedule WHERE node_id=? AND business=?",(nid,business)).fetchone()
+    state=json.loads(prior[0]) if prior else {'status':previous['status'] if previous else 'unknown',
+        'success_streak':previous['consecutive_success'] if previous else 0,
+        'failure_streak':previous['consecutive_failure'] if previous and previous['consecutive_failure']>=3 else 0,
+        'cooldown_until':(previous['last_failure'] or 0)+3600 if previous and previous['consecutive_failure']>=3 else 0,
+        'last_observation':previous['last_checked'] if previous else 0}
+    state=transition(state,success,epoch,reason,observed_at)
+    if state.get('status')=='available' and not state.get('detector_error'):
+        state['next_due']=epoch+(HEALTHY_RECHECK if business=='general' else BUSINESS_RECHECK)
+    connection.execute("INSERT INTO probe_schedule VALUES(?,?,?) ON CONFLICT(node_id,business) DO UPDATE SET record_json=excluded.record_json",(nid,business,json.dumps(state)))
+    status=state.get('status','checking')
+    consecutive_success=state.get('success_streak',0);consecutive_failure=state.get('failure_streak',0)
+    if state.get('detector_error'):
+        return
     sample_count = connection.execute(
         "SELECT COUNT(*) AS total FROM probe_results WHERE node_id=? AND business=? AND created_at>=?",
         (nid, business, epoch - 7 * 86_400),
@@ -535,7 +563,9 @@ def due_businesses(connection: sqlite3.Connection, nid: str, epoch: int) -> list
         row = connection.execute(
             "SELECT last_checked FROM capabilities WHERE node_id=? AND business=?", (nid, business)
         ).fetchone()
-        if row is None or epoch - row["last_checked"] >= BUSINESS_RECHECK:
+        policy=connection.execute('SELECT record_json FROM probe_schedule WHERE node_id=? AND business=?',(nid,business)).fetchone()
+        scheduled=json.loads(policy[0]) if policy else None
+        if row is None or (scheduled is not None and scheduled.get('next_due',0)<=epoch) or (scheduled is None and epoch - row["last_checked"] >= BUSINESS_RECHECK):
             due.append(definition)
     return due
 
@@ -600,7 +630,7 @@ def calculate_score(connection: sqlite3.Connection, nid: str,
     uptime = float(uptime) if uptime is not None else recent_rate
 
     successful_latencies = [entry["latency"] for entry in current_general if entry["success"]]
-    latency = statistics.mean(successful_latencies) if successful_latencies else PROBE_TIMEOUT * 1000.0
+    latency = statistics.mean(successful_latencies) if successful_latencies else 0.0
     jitter = statistics.pstdev(successful_latencies) if len(successful_latencies) > 1 else 0.0
     current_ratio = sum(entry["success"] for entry in current_general) / len(current_general)
     target_results: dict[str, list[bool]] = {}
@@ -621,7 +651,7 @@ def calculate_score(connection: sqlite3.Connection, nid: str,
     )
 
     quality = max(0.0, 1.0 - min(jitter, 1000.0) / 1000.0)
-    latency_quality = max(0.0, min(1.0, (1500.0 - latency) / 1200.0))
+    latency_quality = max(0.0, min(1.0, (1500.0 - latency) / 1200.0)) if successful_latencies else 0.0
     score = round(
         business_rate * 50.0
         + recent_rate * 20.0
@@ -641,8 +671,10 @@ def calculate_score(connection: sqlite3.Connection, nid: str,
         if fresh_capabilities else 0.0
     )
     confidence = round(100.0 * (general_confidence * 0.6 + business_confidence * 0.4), 1)
-    if target_ratio < 2 / 3:
-        state = "cooling" if consecutive_failure < 2 else "unavailable"
+    policy=connection.execute("SELECT record_json FROM probe_schedule WHERE node_id=? AND business='general'",(nid,)).fetchone()
+    policy=json.loads(policy[0]) if policy else {}
+    if policy and policy.get('status')!='available':
+        state='unavailable' if policy.get('status')=='unavailable' else 'cooling'
     elif fresh_capabilities and business_rate < 1.0:
         state = "business-limited"
     elif score >= 85:
@@ -656,24 +688,35 @@ def probe_node(entry: dict[str, str]) -> dict[str, Any]:
     started = time.monotonic()
     nid = entry["id"]
     epoch = now()
-    select_probe_node(entry["name"])
-    time.sleep(SETTLE_SECONDS)
 
-    general_results = []
-    for probe, url, method, expected, content_hint in GENERAL_PROBES:
-        for _attempt in range(GENERAL_ATTEMPTS):
-            result = curl_probe(url, method, expected, content_hint)
-            result["probe"] = probe
-            general_results.append(result)
-
+    from clash_measurement import measure
+    with db_session() as connection:
+        previous=connection.execute("SELECT record_json FROM probe_schedule WHERE node_id=? AND business='general'",(nid,)).fetchone()
+    force=previous is not None and json.loads(previous[0]).get('status')!='available'
+    result=measure(api_request,entry,now(),force=force)
+    epoch=now()
+    from clash_measurement import suspect_batch,pause_batch
+    if suspect_batch(entry,result,epoch):
+        with db_session() as connection:
+            reference=connection.execute("SELECT n.id,n.name,n.provider FROM nodes n JOIN capabilities c ON c.node_id=n.id WHERE n.active=1 AND c.business='general' AND c.status='available' AND n.id!=? ORDER BY c.last_success DESC LIMIT 1",(nid,)).fetchone()
+        confirmation=measure(api_request,dict(reference),epoch,force=True) if reference else {'success':False}
+        if not confirmation['success']:
+            pause_batch(epoch);result.update(error_category='detector_batch_failure',success=False)
+    result.setdefault('probe','clash_https');result.setdefault('code',0)
+    result.setdefault('content_type','');result.setdefault('error',result.get('error_category','unknown'))
+    if result.get('error_category','').startswith('detector_'):
+        with db_session() as connection:
+            update_capability(connection,nid,'general',False,0,epoch,result['error_category'])
+        return {'state':'checking','score':0,'confidence':0,'duration':round(time.monotonic()-started,3),'phase':'detector_wait'}
+    general_results=[result]
+    general_result=result
     with db_session() as connection:
         for result in general_results:
-            record_result(connection, nid, result["probe"], "general", result, epoch)
-        target_successes = sum(
-            all(result["success"] for result in general_results if result["probe"] == probe)
-            for probe, *_rest in GENERAL_PROBES
-        )
-        general_success = target_successes >= 2
+            stamp=int(result.get('observed_at',epoch))
+            if not connection.execute("SELECT 1 FROM probe_results WHERE node_id=? AND business='general' AND probe=? AND created_at=? LIMIT 1",(nid,result['probe'],stamp)).fetchone():
+                record_result(connection, nid, result["probe"], "general", result, stamp)
+        general_success=bool(general_results[0]['success'])
+        target_successes=int(general_success)
         general_failures = [
             result.get("error_category", "unknown")
             for result in general_results if not result["success"]
@@ -682,8 +725,8 @@ def probe_node(entry: dict[str, str]) -> dict[str, Any]:
             Counter(general_failures).most_common(1)[0][0] if general_failures else "unknown"
         )
         update_capability(connection, nid, "general", general_success,
-                          100.0 * target_successes / len(GENERAL_PROBES), epoch,
-                          general_reason)
+                          100.0 * target_successes, epoch,
+                          general_reason, int(result.get('observed_at',epoch)))
 
         remaining_unknown = connection.execute(
             """SELECT COUNT(*) AS total FROM nodes n
@@ -700,6 +743,10 @@ def probe_node(entry: dict[str, str]) -> dict[str, Any]:
             previous_egress is None or epoch-previous_egress["last_checked"] >= BUSINESS_RECHECK)
 
     # External requests must never run while holding a SQLite write transaction.
+    # Only business/body/egress checks need the isolated selector. Basic delay
+    # came from Clash's actual node object and never changed a selector.
+    if definitions or egress_due:
+        select_probe_node(entry['name']);time.sleep(min(SETTLE_SECONDS,.3))
     observation = probe_egress() if egress_due else {}
     business_results = [
         (business, curl_probe(url, method, expected, content_hint))
@@ -716,6 +763,10 @@ def probe_node(entry: dict[str, str]) -> dict[str, Any]:
         score, state, ratio, latency, jitter, confidence = calculate_score(
             connection, nid, general_results
         )
+        record=connection.execute("SELECT record_json FROM probe_schedule WHERE node_id=? AND business='general'",(nid,)).fetchone()
+        schedule=json.loads(record[0]) if record else {}
+        schedule.update(latency_source=general_result.get('origin','unknown'),latency_sample_at=general_result.get('observed_at',epoch))
+        connection.execute("UPDATE probe_schedule SET record_json=? WHERE node_id=? AND business='general'",(json.dumps(schedule),nid))
         fresh_until = epoch + (
             HEALTHY_RECHECK if state in {"healthy", "degraded", "business-limited"}
             else UNHEALTHY_RECHECK
@@ -771,6 +822,8 @@ def set_scheduler_value(connection: sqlite3.Connection, key: str, value: Any) ->
 
 def choose_candidate(nodes: list[dict[str, str]], retry_after: dict[str, int]) -> dict[str, str] | None:
     epoch = now()
+    from clash_measurement import batch_paused
+    if batch_paused(epoch):return None
     node_map = {entry["id"]: entry for entry in nodes}
     with db_session() as connection:
         rows = connection.execute(
@@ -786,8 +839,18 @@ def choose_candidate(nodes: list[dict[str, str]], retry_after: dict[str, int]) -
     )
     if unknown:
         return node_map.get(unknown[0]["id"])
-    from upgrade_policy import next_probe_due
-    deadline=lambda row:next_probe_due(row["state"],row["fresh_until"],row["updated_at"],row["failures"],UNHEALTHY_RECHECK)
+    from health_policy import due
+    with db_session() as connection:
+        schedules={};business_due={}
+        for r in connection.execute('SELECT node_id,business,record_json FROM probe_schedule'):
+            value=json.loads(r[2])
+            if r[1]=='general':schedules[r[0]]=value
+            else:business_due[r[0]]=min(business_due.get(r[0],float('inf')),due(value,epoch))
+    def deadline(row):
+        if row['id'] in schedules:
+            r=schedules[row['id']]
+            if r.get('status')!='available' or r.get('detector_error'):return due(r,epoch)
+        return min(int(row['fresh_until'] or 0),business_due.get(row['id'],float('inf')))
     due=sorted((row for row in eligible if deadline(row)<=epoch),key=lambda row:(deadline(row),int(row["updated_at"] or 0),row["name"]))
     return node_map.get(due[0]["id"]) if due else None
 
@@ -821,6 +884,17 @@ def scheduler() -> None:
             log("status=error reason=duplicate_probe_scheduler")
             return
         _scheduler()
+
+
+def admission_scheduler() -> None:
+    # A single separate lane tests unloaded nodes in its own native core. It
+    # never owns the shared business probe selector, so slow onboarding cannot
+    # stall current/backup business observations or create selector races.
+    import admission_queue,subscription_impl
+    while True:
+        try:admission_queue.tick(subscription_impl)
+        except Exception as error:log('status=admission_queue_error reason='+type(error).__name__)
+        time.sleep(15)
 
 
 def _scheduler() -> None:
@@ -938,6 +1012,8 @@ def status_payload() -> dict[str, Any]:
             """SELECT e.* FROM egress_observations e JOIN nodes n ON n.id=e.node_id
                WHERE n.active=1"""
         ).fetchall()
+        schedules={r[0]:json.loads(r[1]) for r in connection.execute("SELECT node_id,record_json FROM probe_schedule WHERE business='general'")}
+        latency_values={r['id']:[v[0] for v in connection.execute("SELECT latency_ms FROM probe_results WHERE node_id=? AND probe='clash_https' AND success=1 ORDER BY created_at DESC LIMIT 30",(r['id'],))] for r in rows}
         route_audits = []
         for row in connection.execute(
             "SELECT * FROM route_audits ORDER BY category,probe"
@@ -954,6 +1030,10 @@ def status_payload() -> dict[str, Any]:
         item["fresh"] = bool(item["fresh_until"] >= epoch)
         if item["updated_at"] and not item["fresh"]:
             item["state"] = "stale"
+        item['health_schedule']=schedules.get(row['id'],{})
+        item['latency_kind']='Clash HTTPS HEAD' if item['health_schedule'].get('latency_source') in ('clash_api','clash_history') else 'legacy_http'
+        from health_policy import latency_summary
+        item['latency_summary']=latency_summary(latency_values[row['id']])
         item["egress"] = {}
         by_node[row["id"]] = item
     for row in capabilities:
@@ -1003,14 +1083,14 @@ DASHBOARD = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"
 <div class=\"section\">业务能力概览</div><div class=\"cards\" id=\"business\"></div>
 <div class=\"section\">当前生产分流验证</div><div class=\"cards\" id=\"routes\"></div>
 <div class=\"toolbar\"><input id=\"query\" placeholder=\"搜索节点或提供商\"><select id=\"filter\"><option value=\"\">全部状态</option><option value=\"healthy\">健康</option><option value=\"business-limited\">业务受限</option><option value=\"unavailable\">不可用</option><option value=\"unknown\">未评估</option><option value=\"stale\">数据过期</option></select></div>
-<table><thead><tr><th>节点</th><th>状态</th><th>评分/可信度</th><th>延迟</th><th class=\"hide-sm\">出口</th><th>业务能力</th><th class=\"hide-sm\">最后检测</th></tr></thead><tbody id=\"rows\"></tbody></table></div>
+<table><thead><tr><th>节点</th><th>状态</th><th>评分/可信度</th><th>HTTPS耗时</th><th class=\"hide-sm\">出口</th><th>业务能力</th><th class=\"hide-sm\">最后检测</th></tr></thead><tbody id=\"rows\"></tbody></table></div>
 <script>const labels={healthy:'健康',degraded:'降级','business-limited':'业务受限',cooling:'冷却观察',unavailable:'不可用',unknown:'未评估',stale:'数据过期'};let latest=null;
 function pill(t,c,title=''){const s=document.createElement('span');s.className='pill '+c;s.textContent=t;s.title=title;return s}function td(tr){const x=document.createElement('td');tr.appendChild(x);return x}function card(root,value,label){const x=document.createElement('div');x.className='card';const b=document.createElement('b');b.textContent=value;x.append(b,document.createTextNode(label));root.appendChild(x)}
 function render(d){latest=d;const p=document.querySelector('#progress');p.textContent='';const g=d.progress||{};card(p,(g.evaluated||0)+' / '+(g.active_nodes||d.nodes.length),'已评估');card(p,g.unknown||0,'未评估');card(p,g.eta_seconds?Math.ceil(g.eta_seconds/60)+' 分钟':'-','首轮预计剩余');card(p,g.ema_probe_seconds?g.ema_probe_seconds+' 秒':'-','单节点平均检测');
 const cards=document.querySelector('#cards');cards.textContent='';Object.entries(d.states).forEach(([k,v])=>card(cards,v,labels[k]||k));
 const business=document.querySelector('#business');business.textContent='';Object.entries(d.business_summary).forEach(([k,v])=>card(business,v.available+'/'+d.nodes.length,(d.business_labels[k]||k)+' 可用'));
 const routes=document.querySelector('#routes');routes.textContent='';(d.route_audits||[]).forEach(a=>{const x=document.createElement('div');x.className='card';x.appendChild(pill(a.status==='available'?'正常':(a.status==='checking'?'复核中':'异常'),a.status,a.reason));x.appendChild(document.createElement('br'));x.appendChild(document.createTextNode((d.route_labels[a.probe]||a.probe)+' · '+a.latency_ms+' ms'));routes.appendChild(x)});
-const q=document.querySelector('#query').value.toLowerCase();const f=document.querySelector('#filter').value;const rows=document.querySelector('#rows');rows.textContent='';d.nodes.filter(n=>(!f||n.state===f)&&(!q||(n.name+' '+n.provider).toLowerCase().includes(q))).forEach(n=>{const tr=document.createElement('tr');const name=td(tr);name.textContent=n.name;if(n.provider){const small=document.createElement('div');small.className='muted';small.textContent=n.provider;name.appendChild(small)}td(tr).appendChild(pill(labels[n.state]||n.state,n.state));td(tr).textContent=n.score.toFixed(1)+' / '+Math.round(n.confidence)+'%';td(tr).textContent=Math.round(n.latency_ms)+' ms';const e=td(tr);e.className='hide-sm';e.textContent=n.egress.country?(n.egress.country+' / '+n.egress.colo):'-';const c=td(tr);c.className='caps';Object.entries(n.capabilities).filter(([k])=>k!=='general').forEach(([k,v])=>c.appendChild(pill(d.business_labels[k]||k,v.status,(v.reason||'')+' · 可信度 '+Math.round(v.confidence)+'%')));const u=td(tr);u.className='hide-sm';u.textContent=n.updated_at?new Date(n.updated_at*1000).toLocaleString():'-';rows.appendChild(tr)});}
+const q=document.querySelector('#query').value.toLowerCase();const f=document.querySelector('#filter').value;const rows=document.querySelector('#rows');rows.textContent='';d.nodes.filter(n=>(!f||n.state===f)&&(!q||(n.name+' '+n.provider).toLowerCase().includes(q))).forEach(n=>{const tr=document.createElement('tr');const name=td(tr);name.textContent=n.name;if(n.provider){const small=document.createElement('div');small.className='muted';small.textContent=n.provider;name.appendChild(small)}td(tr).appendChild(pill(labels[n.state]||n.state,n.state));td(tr).textContent=n.score.toFixed(1)+' / '+Math.round(n.confidence)+'%';td(tr).textContent=n.general_success_ratio>0?Math.round(n.latency_ms)+' ms':'未取得';const e=td(tr);e.className='hide-sm';e.textContent=n.egress.country?(n.egress.country+' / '+n.egress.colo):'-';const c=td(tr);c.className='caps';Object.entries(n.capabilities).filter(([k])=>k!=='general').forEach(([k,v])=>c.appendChild(pill(d.business_labels[k]||k,v.status,(v.reason||'')+' · 可信度 '+Math.round(v.confidence)+'%')));const u=td(tr);u.className='hide-sm';u.textContent=n.updated_at?new Date(n.updated_at*1000).toLocaleString():'-';rows.appendChild(tr)});}
 async function load(){const d=await fetch('/api/nodes',{cache:'no-store'}).then(r=>r.json());render(d);try{const q=await fetch('/api/quality',{cache:'no-store'}).then(r=>r.json());const r=document.querySelector('#routes');Object.entries(q.businesses||{}).forEach(([k,v])=>{const m=v.metrics||{};const name={gemini:'Gemini',chatgpt:'ChatGPT',default:'默认境外出口'}[k]||k;const state=!q.fresh?'数据过期':v.manual_override?'手动接管':({normal:'正常',slow:'缓慢',down:'故障'}[v.status]||'评估中');card(r,state,name+' · 首次成功 '+Math.round((m.success_ratio||0)*100)+'% · 慢请求 '+Math.round((m.slow_ratio||0)*100)+'% · 中位 '+(m.median_ms||0)+'ms · '+(q.enabled?'自动优化':'观察中'))})}catch(e){}}document.querySelector('#query').addEventListener('input',()=>latest&&render(latest));document.querySelector('#filter').addEventListener('change',()=>latest&&render(latest));load().catch(()=>{});setInterval(()=>load().catch(()=>{}),30000);</script></body></html>"""
 
 
@@ -1093,6 +1173,7 @@ def self_test() -> int:
                      "", "", "ok", now()),
                 )
             for business in ("chatgpt", "gemini", "claude", "netflix"):
+                update_capability(connection, "abc", business, True, 100.0, now()-11)
                 update_capability(connection, "abc", business, True, 100.0, now())
             metrics = [
                 {"probe": probe, "success": True, "latency": latency + attempt * 5}
@@ -1151,6 +1232,8 @@ def main() -> int:
         ThreadingHTTPServer(("0.0.0.0",PORT),Handler).serve_forever();return 0
     thread = threading.Thread(target=scheduler, name="capability-scheduler", daemon=True)
     thread.start()
+    if os.getenv('SUBSCRIPTION_ISOLATED_ADMISSION','0')=='1':
+        threading.Thread(target=admission_scheduler,name='admission-queue',daemon=True).start()
     route_thread = threading.Thread(
         target=route_audit_scheduler, name="route-audit-scheduler", daemon=True
     )

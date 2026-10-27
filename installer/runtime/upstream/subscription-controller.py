@@ -649,26 +649,10 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
     quarantined = 0
     seen_fingerprints: set[str] = set()
     name_counts: dict[str, int] = {}
-    admission_budget=max(1,min(4,int(os.getenv("SUBSCRIPTION_ADMISSION_BUDGET","2"))))
-    admission_cache_path=DATA/"admission-cache.json"
-    try:
-        admission_cache=json.loads(admission_cache_path.read_text())
-        if not isinstance(admission_cache,dict):admission_cache={}
-    except (OSError,ValueError):admission_cache={}
-    admission_cache={k:v for k,v in admission_cache.items() if isinstance(v,dict) and type(v.get("ok")) is bool
-                     and type(v.get("at")) in (int,float) and math.isfinite(v["at"])}
-    if not bootstrap and os.getenv("SUBSCRIPTION_ISOLATED_ADMISSION","0")=="1":
-        from node_admission import validate
-        unseen={fingerprint(n):n for batch in source_nodes.values() for n in batch if fingerprint(n) not in previous}
-        pending=[]
-        for fp,node in unseen.items():
-            record=admission_cache.get(fp,{})
-            if not isinstance(record,dict):record={}
-            age=now()-record.get("at",0)
-            if not 0<=age<(3600 if record.get("ok") else 21600):pending.append((record.get("at",0),fp,node))
-        for _,fp,node in sorted(pending,key=lambda item:item[:2])[:admission_budget]:
-            ok,detail=validate(node)
-            admission_cache[fp]={"ok":ok,"at":now(),"reason":detail}
+    from admission_queue import read_cache
+    from health_policy import eligible
+    admission_cache_path=DATA/'admission-cache.json'
+    admission_cache=read_cache(admission_cache_path)
     for nodes in source_nodes.values():
         for node in nodes:
             name_counts[str(node.get("name"))] = name_counts.get(str(node.get("name")), 0) + 1
@@ -685,7 +669,7 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
                 # Never inherit another endpoint's capability merely because names match.
                 record=admission_cache.get(fp,{})
                 if not isinstance(record,dict):record={}
-                ok=record.get("ok") is True and 0<=now()-record.get("at",0)<3600
+                ok=eligible(record,now())
             if source.source_id in RETAINED_SOURCES:
                 ok = fp in previous
             if not ok:
@@ -707,8 +691,6 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
             raise ControllerError("source_empty_after_admission:"+source.source_id)
         approved[source.source_id] = accepted_nodes
     # Only bounded fingerprint/status records are kept; no endpoints or credentials.
-    admission_cache={k:v for k,v in admission_cache.items() if isinstance(v,dict) and 0<=now()-v.get("at",0)<86400}
-    atomic_json(admission_cache_path,admission_cache)
     total = sum(map(len, approved.values()))
     previous_total = int((previous_manifest or {}).get("node_count", 0))
     source_drops = []
