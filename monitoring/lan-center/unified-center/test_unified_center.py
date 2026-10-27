@@ -152,6 +152,18 @@ def env(**updates):
 
 
 class ComposeTests(unittest.TestCase):
+    def test_dns_probe_evidence_reaches_ui_with_only_public_fields(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            center = Center(namespace(temporary), FakeManager(temporary), FakeAccess())
+            evidence = values()
+            evidence["dns"]["probes"] = {
+                "health": {"state": "ok", "status": 200, "checked_at": 123, "private": "canary"},
+                "ready": {"state": "error", "status": 503},
+                "private": {"secret": "canary"},
+            }
+            result = center.compose(evidence, {})["dns"]["probes"]
+            self.assertEqual(result, {"health": {"state": "ok", "status": 200, "checked_at": 123}, "ready": {"state": "error", "status": 503}})
+
     def test_three_information_sources_are_not_node_sources_and_partial_failure_survives(self):
         with tempfile.TemporaryDirectory() as temporary:
             center = Center(namespace(temporary), FakeManager(temporary), FakeAccess())

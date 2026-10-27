@@ -721,7 +721,11 @@ class Center:
             "sync": {"state": sync_state, "stages": stages, "information_sources": info_sources, "node_sources": node_sources},
             "services": services, "businesses": businesses, "nodes": nodes,
             "subscriptions": {"providers": provider_rows, "source_sync": source_sync},
-            "dns": {"state": dns_state, "upstreams": dns_raw.get("upstreams", []), "detail": ("Corefile 配置可读，且 health/ready 均通过" if dns_state == "ok" and dns_raw.get("config_state") == "ok" else "Corefile 配置读取与 DNS health/ready 是独立证据，当前未全部通过")},
+            "dns": {"state": dns_state, "upstreams": dns_raw.get("upstreams", []), "probes": {
+                name: {key: probe.get(key) for key in ("state", "status", "checked_at") if key in probe}
+                for name in ("health", "ready")
+                if isinstance((probe := dns_raw.get("probes", {}).get(name)), dict)
+            }, "detail": ("Corefile 配置可读，且 health/ready 均通过" if dns_state == "ok" and dns_raw.get("config_state") == "ok" else "Corefile 配置读取与 DNS health/ready 是独立证据，当前未全部通过")},
             "monitors": monitors, "backups": backups, "events": events, "issues": issues,
             "capabilities": {"writes": self.write_enabled, "advanced_monitor_path": "/dashboard", "advanced_router_path": "/cgi-bin/luci/"},
             "evidence": {
