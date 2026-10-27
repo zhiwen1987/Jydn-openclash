@@ -194,5 +194,90 @@ class Fixture(unittest.TestCase):
         self.assertEqual(result,{'error':'http_429','retry_after':1200});self.assertEqual(len(calls),1)
         self.assertNotIn('synthetic',repr(calls[0][0]));self.assertIn('synthetic',calls[0][1]['input'])
 
+    def test_names_plain_base64_mime_rfc5987_and_filename(self):
+        import base64
+        title='测试机场 · A'
+        encoded=base64.b64encode(title.encode()).decode().rstrip('=')
+        for headers in ['profile-title: '+title,'profile-title: base64:'+encoded,
+                        'profile-title: =?UTF-8?B?'+base64.b64encode(title.encode()).decode()+'?=',
+                        "content-disposition: attachment; filename*=UTF-8''%E6%B5%8B%E8%AF%95%E6%9C%BA%E5%9C%BA%20%C2%B7%20A.yaml"]:
+            self.assertEqual(usage.subscription_name(headers),title)
+        self.assertEqual(usage.subscription_name('Content-Disposition: attachment; filename="Airport B.yml"'),'Airport B')
+
+    def test_name_final_response_only_and_title_precedence(self):
+        self.assertEqual(usage.subscription_name('HTTP/1.1 302 Found\r\nprofile-title: Old\r\n\r\nHTTP/2 200\r\nContent-Disposition: attachment;filename="New.yml"\r\n'),'New')
+        self.assertEqual(usage.subscription_name('profile-title: Explicit Title\r\nContent-Disposition: attachment;filename="Fallback.yml"'),'Explicit Title')
+
+    def test_bad_name_never_breaks_usage_or_echoes_credentials(self):
+        for value in ['profile-title: base64:!!!','profile-title: https://private.example/?token=synthetic',
+                      'content-disposition: attachment;filename="clash.yaml"',
+                      "content-disposition: attachment;filename*=unknown-charset''%FF"]:
+            self.assertIsNone(usage.subscription_name(value))
+        raw='HTTP/2 200\r\nprofile-title: base64:!!!\r\nsubscription-userinfo: upload=1;download=2;total=100\r\n\n__JYDN_HTTP__=200'
+        with patch.object(usage.subprocess,'run',return_value=type('Response',(),{'returncode':0,'stdout':raw})()):
+            result=usage.Fetcher()('https://origin.example/')
+        self.assertEqual(result['metrics']['total'],100);self.assertIsNone(result['reported_name'])
+
+    def test_generic_labels_use_discovered_names_but_manual_names_win(self):
+        self.write([dict(source('one'),name='source-1'),dict(source('two'),display_name='我的专用机场')])
+        c=self.collector(lambda _: {'metrics':GOOD,'reported_name':'自动机场'})
+        data=self.settle(c)
+        self.assertEqual([p['name'] for p in data['providers']],['自动机场','我的专用机场'])
+        self.assertEqual([p['name_origin'] for p in data['providers']],['subscription_header','configured'])
+
+    def test_unknown_name_is_explicit_and_not_guessed_from_domain(self):
+        self.write([dict(source('one'),name='source-1')]);data=self.settle(self.collector())
+        self.assertEqual(data['providers'][0]['name'],'未识别机场 · source-1')
+        self.assertEqual(data['providers'][0]['name_origin'],'unidentified')
+
+    def test_name_cached_on_failure_and_restarted_without_extra_fetch(self):
+        self.write([dict(source('one'),name='source-1')]);result=[{'metrics':GOOD,'reported_name':'已识别机场'}]
+        c=self.collector(lambda _:result[0]);self.settle(c);result[0]={'error':'http_429','retry_after':900};self.now[0]+=61
+        d=self.settle(c,lambda d:d['providers'][0]['usage_status']=='cached');self.assertEqual(d['providers'][0]['name'],'已识别机场')
+        c.close();self.collectors.remove(c);newer=self.collector(lambda _:self.fail('rate limit must survive restart'))
+        newer.tick();self.assertEqual(newer.snapshot()['providers'][0]['name'],'已识别机场')
+
+    def test_new_account_cannot_keep_old_airport_name(self):
+        self.write([dict(source('one'),name='source-1')]);c=self.collector(lambda _: {'metrics':GOOD,'reported_name':'旧机场'})
+        self.settle(c);self.write([dict(source('one'),name='source-1',url='https://new.example/sub')]);c.tick()
+        self.assertNotEqual(c.snapshot()['providers'][0]['name'],'旧机场')
+
+    def test_account_name_works_even_without_usage_header(self):
+        self.write([dict(source('one'),name='source-1')]);c=self.collector(lambda _: {'error':'information_header_missing','reported_name':'只有名称的机场'})
+        d=self.settle(c,lambda d:d['providers'][0]['usage_status']=='unavailable')
+        self.assertEqual(d['providers'][0]['name'],'只有名称的机场');self.assertIsNone(d['providers'][0]['metrics'])
+
+    def test_old_cache_migration_preserves_rate_limit_and_metrics(self):
+        c=self.collector();self.settle(c);c.close();self.collectors.remove(c)
+        path=self.root/'data/cache.json';cache=json.loads(path.read_text())
+        for item in cache['records'].values():item.pop('name_checked',None);item.pop('reported_name',None)
+        cache['records']['two'].update(error='http_429',next_due=self.now[0]+900)
+        path.write_text(json.dumps(cache));calls=[]
+        newer=self.collector(lambda url:calls.append(url) or {'metrics':GOOD,'reported_name':'新识别机场'})
+        self.settle(newer,lambda d:len(calls)==1 and newer.records['one'].get('name_checked') is True)
+        self.assertEqual(len(calls),1);self.assertTrue('/one?' in calls[0]);self.assertEqual(newer.records['two']['metrics'],GOOD)
+
+    def test_n_sources_and_node_counts_are_independent_of_fixed_positions(self):
+        import hashlib
+        for n in [0,1,2,3,7,16,64,128,17,0]:
+            entries=[dict(source('s'+str(i)),node_count=[0,1,100000][i%3]) for i in range(n)]
+            self.write(entries)
+            c=self.collector(lambda url:{'metrics':dict(GOOD,download=int(hashlib.sha256(url.encode()).hexdigest()[:4],16))})
+            d=self.settle(c);self.assertEqual([p['id'] for p in d['providers']],[e['id'] for e in entries])
+            self.assertLessEqual(len(c.pending),2)
+            self.write(list(reversed(entries)));c.tick();self.assertEqual([p['id'] for p in c.snapshot()['providers']],[e['id'] for e in reversed(entries)])
+            self.write(entries[::2]);d=self.settle(c);self.assertEqual({p['id'] for p in d['providers']},{e['id'] for e in entries[::2]})
+            c.close();self.collectors.remove(c)
+
+    def test_new_untried_source_precedes_retries_in_large_inventory(self):
+        self.write([source('old'+str(i)) for i in range(10)]+[source('new')])
+        event=threading.Event();c=self.collector(lambda _:event.wait(.1) or {'metrics':GOOD});c._registry()
+        for sid,r in c.records.items():r['next_due']=900 if sid!='new' else 0
+        c.tick();self.assertIn('new',c.pending);self.assertLessEqual(len(c.pending),2);event.set()
+
+    def test_over_limit_registry_preserves_last_valid_inventory(self):
+        c=self.collector();self.settle(c);self.write([source('n'+str(i)) for i in range(129)]);c.tick()
+        d=c.snapshot();self.assertEqual(d['registry_state'],'error');self.assertEqual({p['id'] for p in d['providers']},{'one','two'})
+
 
 if __name__=='__main__':unittest.main()

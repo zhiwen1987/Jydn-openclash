@@ -1,5 +1,9 @@
 """Independent, bounded subscription-account metadata; never publishes nodes."""
 import concurrent.futures
+import base64
+import codecs
+from email.header import decode_header, make_header
+from email.message import Message
 import hashlib
 import hmac
 import json
@@ -24,6 +28,57 @@ ROOT = Path(__file__).parent
 
 class UsageError(ValueError):
     pass
+
+
+def clean_name(value):
+    if not isinstance(value, str):
+        return None
+    value = re.sub(r'[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069<>]', '', value).strip()[:80]
+    if (not value or '\ufffd' in value or '://' in value
+            or re.search(r'[?&](?:token|key|OwO|auth)=', value, re.I)):
+        return None
+    return value
+
+
+def generic_name(value, source_id=''):
+    return (value == source_id or bool(re.fullmatch(
+        r'(?i)(?:source[-_ ]?\d+|provider_[a-z0-9]+|来源\s*\d+|(?:clash|clashmeta|mihomo|config|subscribe|subscription|proxies|provider)(?:\.(?:yaml|yml|conf))?)', value)))
+
+
+def subscription_name(headers):
+    """Only explicit final-response titles; never infer a brand from a URL."""
+    final = re.split(r'(?im)^HTTP/\S+\s+\d{3}[^\r\n]*\r?\n', headers)[-1]
+    titles = re.findall(r'^profile-title:\s*([^\r\n]+)', final, re.I | re.M)
+    filenames = re.findall(r'^content-disposition:\s*([^\r\n]+)', final, re.I | re.M)
+    candidates = []
+    if titles:
+        try:
+            title = titles[-1].strip()
+            if title.lower().startswith('base64:'):
+                encoded = title[7:]
+                title = base64.b64decode(encoded+'='*(-len(encoded)%4), altchars=b'-_', validate=True).decode('utf-8')
+            else:
+                title = str(make_header(decode_header(title)))
+            candidates.append(title)
+        except (ValueError, UnicodeError, LookupError):
+            pass
+    if filenames:
+        try:
+            message = Message(); message['Content-Disposition'] = filenames[-1]
+            encoded_filename = message.get_param('filename', header='content-disposition')
+            if isinstance(encoded_filename, tuple) and encoded_filename[0]:
+                codecs.lookup(encoded_filename[0])
+            filename = message.get_filename()
+            if filename:
+                filename = filename.replace('\\', '/').rsplit('/', 1)[-1]
+                candidates.append(re.sub(r'\.(?:yaml|yml|conf)$', '', filename, flags=re.I))
+        except (ValueError, UnicodeError, LookupError):
+            pass
+    for candidate in candidates:
+        name = clean_name(candidate)
+        if name and not generic_name(name):
+            return name
+    return None
 
 
 def atomic(path, value):
@@ -79,11 +134,10 @@ def inventory(document):
         except (UsageError, ValueError):
             error = 'ambiguous_information_origin' if isinstance(original, str) and '|' in original else 'invalid_information_url'
             url = None
-        raw_name = str(item.get('name') or sid)
-        name = re.sub(r'[\x00-\x1f\x7f<>]', '', raw_name)[:80]
-        if '://' in name or re.search(r'[?&](?:token|key|OwO)=', name, re.I):
-            name = sid
-        result[sid] = {'id': sid, 'name': name or sid, 'url': url, 'configuration_error': error,
+        override = clean_name(item.get('display_name'))
+        name = override or clean_name(item.get('name')) or sid
+        manual_name = bool(override or not generic_name(name, sid))
+        result[sid] = {'id': sid, 'name': name, 'manual_name': manual_name, 'url': url, 'configuration_error': error,
                        'identity': hashlib.sha256((url or repr(original)).encode()).hexdigest()}
     return result
 
@@ -127,7 +181,7 @@ class Fetcher:
                     '--proto', '=http,https', '--proto-redir', '=https', '--connect-timeout', '3',
                     '--max-time', str(self.timeout), '--write-out', '\n__JYDN_HTTP__=%{http_code}', '--config', '-']
             try:
-                result = subprocess.run(args, input=config, text=True, stdout=subprocess.PIPE,
+                result = subprocess.run(args, input=config, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE,
                                         stderr=subprocess.DEVNULL, timeout=self.timeout+2)
             except subprocess.TimeoutExpired:
                 result = None
@@ -140,10 +194,12 @@ class Fetcher:
                 retry = re.findall(r'^retry-after:\s*(\d+)\s*$', raw, re.I | re.M)
                 return {'error': 'http_429', 'retry_after': min(3600, max(60, int(retry[-1]))) if retry else 900}
             if result and result.returncode == 0 and status == 200:
+                answer = {'reported_name': subscription_name(raw)}
                 try:
-                    return {'metrics': parse_userinfo(raw)}
+                    answer['metrics'] = parse_userinfo(raw)
                 except UsageError as error:
-                    return {'error': str(error)}
+                    answer['error'] = str(error)
+                return answer
             reason = 'http_'+str(status) if status else 'transport_unavailable'
         return {'error': reason}
 
@@ -181,12 +237,18 @@ class Collector:
                         clean['next_due'], clean['last_success'] = 0, 0
                     error = item.get('error')
                     clean['error'] = error if isinstance(error, str) and re.fullmatch(r'[a-z0-9_]{1,100}', error) else None
+                    clean['name_checked'] = item.get('name_checked') is True
+                    clean['reported_name'] = clean_name(item.get('reported_name'))
                     metrics = item.get('metrics')
                     if isinstance(metrics, dict):
                         try:
                             clean['metrics'] = parse_userinfo('subscription-userinfo: '+'; '.join(k+'='+str(v) for k,v in metrics.items() if k in ('upload','download','total','expire')))
                         except UsageError:
                             clean['last_success'] = 0
+                    # Upgrade old successful caches once for title discovery;
+                    # failed/rate-limited sources retain their retry deadlines.
+                    if not clean['name_checked'] and not clean['error']:
+                        clean['next_due'] = 0
                     self.records[sid] = clean
         except (OSError, ValueError, TypeError, AttributeError):
             pass
@@ -245,6 +307,10 @@ class Collector:
                     result = {'error': 'metadata_worker_invalid_result'}
                 record = self.records[key]
                 record['last_attempt'] = now
+                record['name_checked'] = True
+                discovered = clean_name(result.get('reported_name'))
+                if discovered and not generic_name(discovered):
+                    record['reported_name'] = discovered
                 metrics = result.get('metrics')
                 if metrics is not None:
                     try:
@@ -266,7 +332,10 @@ class Collector:
                 dirty = True
             busy = set(self.pending)
             # At most two tasks exist, rather than an unbounded executor queue.
-            for sid, source in self.active.items():
+            # Older due times (including never-tried/new sources) precede
+            # retries, so an early failing source cannot starve a later one.
+            ordered = sorted(self.active.items(), key=lambda row: self.records[row[0]].get('next_due', 0))
+            for sid, source in ordered:
                 if len(self.pending) >= 2:
                     break
                 record = self.records[sid]
@@ -289,7 +358,10 @@ class Collector:
                 metrics = record.get('metrics')
                 valid = isinstance(metrics, dict) and 0 <= age
                 status = ('cached' if record.get('error') or age > self.stale_after else 'ok') if valid else ('unavailable' if record.get('error') else 'checking')
-                rows.append({'id': sid, 'name': source['name'], 'usage_status': status,
+                reported = clean_name(record.get('reported_name'))
+                name = source['name'] if source['manual_name'] else (reported or '未识别机场 · '+source['name'])
+                name_origin = 'configured' if source['manual_name'] else ('subscription_header' if reported else 'unidentified')
+                rows.append({'id': sid, 'name': name, 'name_origin': name_origin, 'usage_status': status,
                              'metrics': metrics if valid else None, 'last_success': last if valid else None,
                              'age_seconds': round(age) if valid else None, 'error': record.get('error'),
                              'stale': bool(valid and age > self.stale_after), 'next_due': record.get('next_due')})

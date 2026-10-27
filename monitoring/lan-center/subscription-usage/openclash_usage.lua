@@ -37,6 +37,7 @@ end
 
 local function request(endpoint, token)
     local nixio=require 'nixio'
+    require 'nixio.util'
     local input_read,input_write=nixio.pipe()
     local output_read,output_write=nixio.pipe()
     if not input_read or not output_read then
