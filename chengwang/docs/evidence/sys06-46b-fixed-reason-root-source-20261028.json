@@ -1,0 +1,14 @@
+{
+  "schema": "chengwang.fixed-reason-root-source/v1",
+  "base": "46b214690dc4680e5de2e812ddbf54fcf406a584",
+  "sourcePaths": 3,
+  "authoredPatchSHA256": "b657345e3007af9b0e506c12d0939ac9e2e152f90c628e4b9f4fa47050f0da82",
+  "canonicalFullIndexPatchSHA256": "346e339254024df2eb67c66d024531fb7b9fbe6f4b1dc41fbde28f99f7890455",
+  "canonicalPatchBytes": 17977,
+  "rawPatchEqual": false,
+  "onlyDifference": "authored index OIDs abbreviated to 8 hex; canonical full OIDs have exactly matching prefixes and mode100644; other bytes equal",
+  "allBeforeAfterSHA256Verified": true,
+  "goExecuted": false,
+  "production": false,
+  "initialGateFailures": "peer required Windows long path prefix; raw diff equality stopped on abbreviated OIDs; neither gate failure was bypassed before source/metadata proof"
+}

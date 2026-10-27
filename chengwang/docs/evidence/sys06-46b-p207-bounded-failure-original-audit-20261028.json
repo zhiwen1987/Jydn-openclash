@@ -1,0 +1,106 @@
+{
+  "schema": "chengwang.p207a-source-go-failure-audit/v2",
+  "reviewerRole": "implementation56h",
+  "auditOutcome": "FAILURE_ARTIFACT_AUTHENTIC_AND_BOUNDED_DIAGNOSTIC_REJECTED_GO_RUN",
+  "run": {
+    "id": 40540262884,
+    "attempt": 1,
+    "headSHA": "46b214690dc4680e5de2e812ddbf54fcf406a584",
+    "sourceModelsJob": 122316439148,
+    "sourceModelsConclusion": "success",
+    "sourceAndGoJob": 122316568513,
+    "sourceAndGoConclusion": "failure",
+    "freshJob": 122316980098,
+    "freshConclusion": "skipped",
+    "jobMetadataSource": "authenticated fixed API metadata; no job logs"
+  },
+  "transport": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/github_artifact_via_git_credential.py",
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/materialize-ci-safe-batch-text-v5-20261026.py",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "singleSerialDownloadProcess": true,
+    "jobLogsRead": false,
+    "rawPrivateStreamsDownloaded": false
+  },
+  "artifact": {
+    "id": 12750232422,
+    "name": "p207a-source-go-failure-40540262884-1",
+    "bytes": 3469,
+    "sha256": "91334dcf189693e3854fa71e24281107789c8cc161b7737fd69c1d96bc29ebb9",
+    "memberCount": 9,
+    "custodyBytes": 1535,
+    "custodySHA256": "a188db8f54f08444ab24ef62c40289730b4e4ab3b1a229bf2960fe803b63e37c",
+    "crcPathSizeAndDigestVerifiedByPinnedMaterializer": true,
+    "originalBytesStable": true
+  },
+  "sourceBinding": {
+    "beforeAfterByteEqual": true,
+    "beforeSHA256": "4de67006de57ced39eebeed4ab7b1bd471b9392759cfe2e66dc67f6b31bb3acb",
+    "afterSHA256": "4de67006de57ced39eebeed4ab7b1bd471b9392759cfe2e66dc67f6b31bb3acb",
+    "schema": "chengwang.subscription-refresh-source/v3",
+    "modulePathCount": 825,
+    "fixturePathCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "changedGoSourceCount": 24,
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
+    "goExecutionProvenBySourceReport": false
+  },
+  "format": {
+    "exit": 0,
+    "patchBytes": 0,
+    "patchSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 0,
+    "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "diagnostic": {
+    "reportBytes": 5828,
+    "reportSHA256": "264d7fdd4bafb0915418e32a7d30ec7633ff8d09fcad58e891925632610b03a0",
+    "schema": "chengwang.subscription-refresh-go-failure/v2",
+    "reportOutcome": "FAILURE_DIAGNOSTIC_ONLY",
+    "accepted": false,
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "failureCheckExit": 0,
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "PACKAGE_TERMINAL_NONPASS",
+    "markerObservation": "NONE",
+    "buildDiagnosticStatus": "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
+    "buildDiagnosticLocations": [],
+    "passCount": 435,
+    "failCount": 0,
+    "runningCount": 0,
+    "notStartedCount": 46,
+    "failedTops": [],
+    "subscription": {
+      "passCount": 120,
+      "failCount": 0,
+      "runningCount": 0,
+      "notStartedCount": 0
+    },
+    "subscriptionctl": {
+      "passCount": 0,
+      "failCount": 0,
+      "runningCount": 0,
+      "notStartedCount": 46
+    }
+  },
+  "comparisonTo041": {
+    "clockFixtureTopPreviouslyFailed": "chengwang/internal/subscription::TestRefreshV3CandidatePreservesAcceptedVersion",
+    "clockFixtureTopFailureStillPresent": false,
+    "previousPassFailRunningNotStarted": [434, 1, 0, 46],
+    "currentPassFailRunningNotStarted": [435, 0, 0, 46]
+  },
+  "boundaries": {
+    "goRunAccepted": false,
+    "freshAccepted": false,
+    "rootCauseKnown": false,
+    "subscriptionctlBlockedByAnotherPackageClaimed": false,
+    "buildLocationObserved": false,
+    "localGoOrGofmtRun": false,
+    "ciRerun": false,
+    "formalRepositoryModified": false,
+    "productionTouched": false
+  }
+}

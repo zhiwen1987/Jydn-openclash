@@ -165,13 +165,31 @@ class GoFailureProjectionModels(unittest.TestCase):
         self.assertEqual(result["stage"], "PACKAGE_TERMINAL")
         self.assertEqual(result["failureClass"], "PACKAGE_TERMINAL_NONPASS")
         self.assertEqual(result["notStartedCount"], 481)
+        self.assertEqual(result["buildDiagnosticReason"], "NO_SOURCE_POSITION")
+        self.assertEqual(result["buildStderrClass"], "EMPTY")
+        self.assertEqual(result["buildSourcePositionCount"], "0")
         self.assertNotIn(secret, json.dumps(result))
+        unlocated_secret = "PRIVATE_COMPILER_TEXT_WITHOUT_POSITION"
+        unlocated = self.project(
+            self.encode([
+                {"Action": "start", "Package": package},
+                {"Action": "fail", "Package": package},
+            ]),
+            b"# source-declared-package\n" + unlocated_secret.encode() + b"\n",
+        )
+        self.assertEqual(unlocated["buildDiagnosticReason"], "NO_SOURCE_POSITION")
+        self.assertEqual(unlocated["buildStderrClass"], "NONEMPTY")
+        self.assertEqual(unlocated["buildSourcePositionCount"], "0")
+        self.assertNotIn(unlocated_secret, json.dumps(unlocated))
 
     def test_source_declared_location_is_bounded_and_message_is_never_exported(self) -> None:
         secret = "PRIVATE_COMPILER_TEXT_AND_SYMBOL"
         stderr = self.location_line(message=secret)
         result = self.project(b"", stderr)
         self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_OBSERVED")
+        self.assertEqual(result["buildDiagnosticReason"], "OBSERVED")
+        self.assertEqual(result["buildStderrClass"], "NONEMPTY")
+        self.assertEqual(result["buildSourcePositionCount"], "1")
         self.assertEqual(result["buildDiagnosticLocations"], [{
             "source": "chengwang/internal/subscriptionctl/service.go", "line": 1, "column": 1,
         }])
@@ -198,25 +216,37 @@ class GoFailureProjectionModels(unittest.TestCase):
             with self.subTest(stderr=stderr[:40]):
                 result = self.project(b"", stderr)
                 self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+                self.assertEqual(result["buildDiagnosticReason"], "UNMATCHED_GO_POSITION")
                 self.assertEqual(result["buildDiagnosticLocations"], [])
 
     def test_invalid_utf8_controls_position_overflow_and_bracketed_origin_are_unknown(self) -> None:
         variants = (
-            b"\xffinternal/subscriptionctl/service.go:1:1: PRIVATE\n",
-            self.location_line(message="PRIVATE\x1b[31m"),
-            b"internal/subscriptionctl/service.go:0:1: PRIVATE\n",
-            b"internal/subscriptionctl/service.go:9999999:1: PRIVATE\n",
-            b"internal/subscriptionctl/service.go:1:255: PRIVATE\n",
-            b"internal/subscriptionctl/service.go:1[foreign.go:2:3]: PRIVATE\n",
+            (b"\xffinternal/subscriptionctl/service.go:1:1: PRIVATE\n", "INVALID_UTF8"),
+            (self.location_line(message="PRIVATE\x1b[31m"), "CONTROL_BYTE"),
+            (b"internal/subscriptionctl/service.go:0:1: PRIVATE\n", "POSITION_SYNTAX"),
+            (b"internal/subscriptionctl/service.go:9999999:1: PRIVATE\n", "POSITION_RANGE"),
+            (b"internal/subscriptionctl/service.go:1:255: PRIVATE\n", "POSITION_RANGE"),
+            (b"internal/subscriptionctl/service.go:1[foreign.go:2:3]: PRIVATE\n", "POSITION_SYNTAX"),
+            (b"internal/subscriptionctl/service.go:not-a-position\n", "POSITION_SYNTAX"),
+            (b"x" * (F.MAX_LINE_BYTES + 1) + b"\n", "LINE_OVER_BUDGET"),
         )
-        for stderr in variants:
-            with self.subTest(stderr=stderr[:40]):
-                self.assertEqual(self.project(b"", stderr)["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+        for stderr, reason in variants:
+            with self.subTest(reason=reason):
+                result = self.project(b"", stderr)
+                self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+                self.assertEqual(result["buildDiagnosticReason"], reason)
+                self.assertEqual(result["buildSourcePositionCount"], "0")
+                self.assertNotIn("PRIVATE", json.dumps(result))
 
     def test_more_than_eight_locations_and_oversized_stderr_are_unknown(self) -> None:
         stderr = b"".join(self.location_line(line=line, column=1) for line in range(1, 10))
-        self.assertEqual(self.project(b"", stderr)["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
-        self.assertEqual(self.project(b"", b"x" * (F.MAX_STDERR_BYTES + 1))["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+        overflow = self.project(b"", stderr)
+        self.assertEqual(overflow["buildDiagnosticReason"], "LOCATION_COUNT_OVERFLOW")
+        self.assertEqual(overflow["buildSourcePositionCount"], "OVER8")
+        over_budget = self.project(b"", b"x" * (F.MAX_STDERR_BYTES + 1))
+        self.assertEqual(over_budget["buildDiagnosticReason"], "STDERR_OVER_BUDGET")
+        self.assertEqual(over_budget["buildStderrClass"], "OVER_BUDGET")
+        self.assertEqual(over_budget["buildSourcePositionCount"], "0")
 
     def test_location_is_not_projected_after_target_top_started(self) -> None:
         package = F.BUILD_LOCATION_TARGET_PACKAGE
@@ -227,12 +257,18 @@ class GoFailureProjectionModels(unittest.TestCase):
         ])
         result = self.project(events, self.location_line())
         self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+        self.assertEqual(result["buildDiagnosticReason"], "NOT_ELIGIBLE")
+        self.assertEqual(result["buildStderrClass"], "NONEMPTY")
+        self.assertEqual(result["buildSourcePositionCount"], "0")
 
     def test_reader_reprojects_private_stderr_and_rejects_location_tampering(self) -> None:
         stderr = self.location_line()
         result = self.project(b"", stderr)
         mutations = []
-        status = json.loads(json.dumps(result)); status["buildDiagnosticStatus"] = "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN"; status["buildDiagnosticLocations"] = []; mutations.append(status)
+        status = json.loads(json.dumps(result)); status["buildDiagnosticStatus"] = "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN"; status["buildDiagnosticReason"] = "NO_SOURCE_POSITION"; status["buildSourcePositionCount"] = "0"; status["buildDiagnosticLocations"] = []; mutations.append(status)
+        reason = json.loads(json.dumps(result)); reason["buildDiagnosticReason"] = "POSITION_RANGE"; mutations.append(reason)
+        stderr_class = json.loads(json.dumps(result)); stderr_class["buildStderrClass"] = "EMPTY"; mutations.append(stderr_class)
+        position_count = json.loads(json.dumps(result)); position_count["buildSourcePositionCount"] = "2"; mutations.append(position_count)
         path = json.loads(json.dumps(result)); path["buildDiagnosticLocations"][0]["source"] = "chengwang/internal/subscriptionctl/foreign.go"; mutations.append(path)
         line = json.loads(json.dumps(result)); line["buildDiagnosticLocations"][0]["line"] = 2; mutations.append(line)
         column = json.loads(json.dumps(result)); column["buildDiagnosticLocations"][0]["column"] = None; mutations.append(column)

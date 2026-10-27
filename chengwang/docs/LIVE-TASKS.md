@@ -1,5 +1,17 @@
 # 澄网：项目任务清单
 
+2026-10-28 [root集成后61项纯CPU](evidence/sys06-46b-fixed-reason-root-cpu-20261028.json)实际30.379秒通过、零skip；3源后像仍与冻结候选完全一致。即将形成下一开发提交，最终HEAD source checker与远端读回另验；Go／官方格式／481全完成及UNKNOWN真实原因仍须新Linux原件，不以CPU代证。生产不动。
+
+2026-10-28 UNKNOWN固定原因诊断已获[独立源码准入](evidence/sys06-46b-fixed-reason-source-peer-20261028.md)并由root集成3个非Go源：11个固定reason／3个stderr class／0..8与OVER8计数桶，原位置解析、max8、ctl46 eligibility、原始输出上传禁令与final／fresh门不变。[root源核对](evidence/sys06-46b-fixed-reason-root-source-20261028.json)确认全部前后像；作者patch SHA b657345e…使用8位abbrev index，root full-index SHA346e3392…，逐index OID前缀／100644模式精确一致且其他diff字节相等，非代码差异。第一次长路径与raw diff门已停止后重核，无未验强行提交。root同源61CPU正在运行，尚未提交或新Linux重跑，实际UNKNOWN原因仍待。
+
+2026-10-28 [46b P207原件](evidence/sys06-46b-p207-bounded-failure-original-audit-20261028.json)实际报告435通过／0失败／0运行／46未开始，subscription120项全部通过；Go／accepted reader仍exit1、fresh跳过，因此整体验收仍拒。build定位为UNKNOWN／空列表，未得到可信源码位置，不能把ctl未启动原因说成编译或依赖阻断。下一外部诊断仅增加UNKNOWN固定分支原因及有界计数，不读／上传raw，不放宽接受门。
+
+2026-10-28 archive原v3六件已在新目录完成[事后字节级恢复](evidence/sys06-sealed-archive-v3-post-hoc-recovery-20261028.json)，root逐项核原大小／SHA全部匹配；明确不是事前备份，覆盖事故及原REVISE继续保留。冻结审查的早期peer／drift收据已原字节归档；源目录后来完善的final报告不是原收据字节，后续须以新身份保存，不能回写替代。A0/A1仍未实现，修订只能新v4目录。生产不动。
+
+2026-10-28 新组合开发提交 `46b214690dc4680e5de2e812ddbf54fcf406a584` 已提交／推送／双开发ref精确读回，13路径中7个源与冻结combo diff逐字节相等；最终HEAD source checker通过，goExecutionProven=false。P207 run40540262884、continuous40540261306及其余4条隔离workflow已触发，当前metadata in_progress；实际Go与原件接受尚待，不外推旧HEAD通过事实。生产／main／Registry未改。本条为提交后进度，尚未另提交。
+
+2026-10-28 长期archive仍design-only：[原v3设计复核拒绝](evidence/sys06-sealed-archive-v3-design-rejection-20261028.json)指出R01承诺pre-intent发现变化，但唯一主序列无此观测步骤。作者在冻结审查期间原地覆盖了部分文档，[输入漂移](evidence/sys06-sealed-archive-v3-input-drift-20261028.json)已独立记录；root已停止其写入与新版本审查，要求仅新目录、按原完整SHA逐字节验证的事后恢复，无法恢复部分须保留缺口。旧hash及REVISE不是“作废”可抹去的历史；未通过新冻结独立复核前禁止A0/A1实现。本支线未改正式产品源或生产。
+
 2026-10-28 下一最小批次已由root集成7源：仅既有候选测试一行domain时钟同步、privacy-safe构建位置诊断与对应source pins。冻结组合patch32576B／SHA77678b8c99dd57f31c7a53ad2fcab433ea060fab16812c0ae4ca6506c5790722，[combo独立复核](evidence/sys06-041-clock-build-combo-source-peer-20261028.md)与[clock单叶复核](evidence/sys06-041-clock-fixture-source-peer-20261028.md)均SOURCE_ACCEPT；[同源61项CPU](evidence/sys06-041-clock-build-combo-cpu-20261028.json)36.708秒通过，sourcechecker825／24／486／481通过。workflow的三个fixture pins与诊断checker/model pins在新组合中逐项复核；最多8个声明源码位置或UNKNOWN，原始stderr／events不上传，运行器同源重投影严格比较，成功／fresh门不变。实际Go／官方gofmt／新报告仍待；不宣称测试时间混用已被实测为唯一首因。
 
 2026-10-28 [31ac normal／diag原件](evidence/sys06-31ac-normal-diag-original-audit-20261028.json)独立复核完成，root再核11项审计输入：ordinary通过，normal race在mihomodeploy包180秒超时；single profile通过，full诊断捕获可复算但Go仍失败，120秒只为该包采样窗且fullGoAccepted=false。Windows仅执行原始语义函数与明确的路径／二进制sink适配，未称Linux-only CLI整条成功。观察到的未完测试不能当根因；两性能源before Git blob仍精确匹配历史外部优化候选，但候选未集成、无稳定收益证明。生产不动。
@@ -119,14 +131,14 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 固定双配置正常发布与 UNKNOWN 不重发 | 限定隔离验收通过 | 已接受 `2bba397` 的真实正常服务、响应丢失及独立复算；参见 SYS-06 文档 | 不等于全部故障、互联网业务或生产验收 |
 | 旧 native S2 | b5 四模式限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：旧S2 9ZIP／192成员，Go／原checker核心／fresh分别通过 | 仅证明旧S2；不代证HTTP接续、完整私有WAL或生产 |
 | 首次真实 Completion | b5 四模式限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：9ZIP／167成员，各模式Go、原checker main和fresh通过 | 不代证service rebind、普通发布、第二恢复或完整私有WAL |
-| 当前开发提交与 normal／diagnostic | 当前后端caed；历史480 ordinary通过、normal／full race拒绝 | [480原件](evidence/sys06-480c-normal-diag-original-audit-20261027.json)：ordinary2016语义／689必需／零skip通过；normal180.038秒、full180.051秒超时。caed的新normal／diag原件尚未独立接受 | 两种timeout仍未关闭；历史结果不外推新HEAD，fresh诊断不替代Go通过，不证明稳定性能收益 |
+| 当前开发提交与 normal／diagnostic | 当前后端46b2146；31ac normal／full race仍拒绝 | [31ac原件](evidence/sys06-31ac-normal-diag-original-audit-20261028.json)：ordinary通过；normal race为180秒包超时，single profile通过，full诊断捕获可复算但Go拒绝。46b的新normal／diag原件尚未独立接受 | 两种timeout仍未关闭；观察到的unfinished测试不当根因，历史结果不外推新HEAD，诊断不替代Go通过 |
 | 失败恢复协调器与产品 API | b5 31链限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：31HTTPS、三个MODEL top、原checker/fresh与1541源绑定通过 | 不代证完整故障矩阵、完整私有WAL、真实互联网业务或生产 |
 | 恢复后普通发布与第二次恢复 | b5 31步限定隔离验收通过 | UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复原件及fresh一致 | 单次隔离样本不证明容量稳定或完整故障覆盖 |
-| P207A 订阅刷新 | caed Linux已执行；Go失败、具体原因未知 | [caed原件](evidence/sys06-caed-p207a-go-exit1-original-audit-20261027.json)：39模型通过、source前后一致、官方选择与空格式门通过；Go exit1，event-check exit1，fresh跳过。v4拒绝及v5源码准入记录仍保留历史范围 | 公开7成员失败包不足以区分编译／断言／panic／timeout；有界诊断v2正在外部修订与独立复核。七包ordinary481、IO cut、专用race及长期sealed archive均未接受，不称上线 |
+| P207A 订阅刷新 | 46b实际435通过／0失败／46未开始，整体验收拒绝 | [46b原件](evidence/sys06-46b-p207-bounded-failure-original-audit-20261028.json)：subscription120项全通过，官方格式空；Go／accepted reader仍exit1、fresh跳过，subscriptionctl46项未开始，build位置UNKNOWN | 原因仍未知；下一固定reason诊断仅定位UNKNOWN分支，不放宽验收。七包481全部完成、专用race、完整IO-cut覆盖与长期archive仍未证明，不称上线 |
 | P1 配对测量 | 原件完整；四腿 Go 均拒绝 | [原件审计](evidence/sys06-p1-pair-original-audit-20261026.json)：AB／BA 共2ZIP／186成员；原 verify/encoded 复算与Linux报告逐字节一致，569 Go源绑定；四腿格式与ordinary688均接受 | 四次race180.033–180.040秒超时，-p=1未消除本次失败；不代证fd产品修复、稳定收益或因果；Windows CLI报告写出器闭锁如实保留 |
 | 连续恢复后的清理调用归属 | b5 31链限定隔离验收通过 | 同一原件验证source-owned固定来源观测、finalCore清理归属及port/fresh | 仅覆盖显式插桩源码调用；不证明全部OS syscall、完整私有WAL或生产 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
-| 后端与前端统一开发快照 | 尚未形成联合验收候选 | 后端caed929与前端6db41db是两条隔离开发线，各自证据只能覆盖其精确HEAD | 必须在统一开发候选中整合两线、更新全部source pins、验证API／RBAC／真实HTTPS与浏览器互通；单线通过不代证联合闭环，更不代生产 |
+| 后端与前端统一开发快照 | 已有只读冲突／验收清单，尚未形成联合候选 | 后端46b2146与前端6db41db仍是两条隔离开发线；前端7个可执行文件独有，P207 module与contract pins须重算，任务文档须语义合并 | 必须在新的统一开发候选整合两线并完成同HEAD API／RBAC／HTTPS／浏览器互通；不得把冲突清单或单线通过当联合闭环或生产 |
 
 详见 [SYS-06 实施与逐次证据](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)。新源码的 CPU 模型、Linux CI 终态、原件复算和产品／生产验收分别记录。平台9槽；root加8子代理同时running已有[实际列表证据](evidence/eight-child-concurrency-observed-20261026.json)，不是配置推断。执行子代理沿用 GPT-5.6-sol / high；当前活跃数量另查实时代理列表，不能把历史峰值当当前运行数。
 

@@ -1,0 +1,13 @@
+{
+  "schema": "chengwang.fixed-reason-root-cpu/v1",
+  "authoredPatchSHA256": "b657345e3007af9b0e506c12d0939ac9e2e152f90c628e4b9f4fa47050f0da82",
+  "fullIndexPatchSHA256": "346e339254024df2eb67c66d024531fb7b9fbe6f4b1dc41fbde28f99f7890455",
+  "tests": 61,
+  "failed": 0,
+  "skipped": 0,
+  "exit": 0,
+  "seconds": 30.379,
+  "logSHA256": "313c900cf960813debe2035ed711419b132f78313593dc20027d99b17c9b0c7a",
+  "goExecuted": false,
+  "production": false
+}

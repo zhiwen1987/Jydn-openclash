@@ -1,0 +1,78 @@
+{
+  "schema": "chengwang.p207a-sealed-archive-contract-independent-peer/v3",
+  "reviewRole": "independent_source_design_peer",
+  "reviewedAt": "2026-10-28T00:21:15+08:00",
+  "verdict": "REVISE",
+  "scope": "ORIGINAL_FROZEN_DESIGN_AND_FIXED_SOURCE_ONLY",
+  "model": "UNKNOWN",
+  "originalFrozenInputsVerifiedBeforeDrift": {
+    "contract": {"bytes": 28682, "sha256": "4a3f0f70054a9004148aae6a2615f094a2500af459692189d71904e3904e095a"},
+    "matrix": {"bytes": 18043, "sha256": "f85841de2b2d523d48a2388f870afb074ed95834602cb5d3387831ad0027682d"},
+    "changelog": {"bytes": 5786, "sha256": "ad06d776dc0340a03123d36cc9041bd707340671d7d880f747b3e9fa1cfe7813"},
+    "sourceEvidence": {"bytes": 4332, "sha256": "88b39f593fcbda232fc00fbae4657e5d4f67f197318d02f40f0981bc4ad100d7"},
+    "designFsyncReceipt": {"bytes": 3026, "sha256": "0859c1b99b225d618cd99647da76f580447e19d58d47d0052ac4140761c1d3ef"}
+  },
+  "originalByteCustody": {
+    "peerCreatedCopyBeforeDrift": false,
+    "reconstructedFromConsoleOrSummary": false,
+    "exactOriginalBackupPendingSeparateCustodyReport": true
+  },
+  "v2P1ClosureAssessment": {
+    "cryptoKindSeparatedFromSafeBasename": "CLOSED_IN_ORIGINAL_V3",
+    "candidatesR1GenesisR2ReceiptOrder": "CLOSED_IN_ORIGINAL_V3",
+    "existingOnlyNoCreateNoRepairSnapshots": "CLOSED_IN_ORIGINAL_V3"
+  },
+  "blockingFindings": [
+    {
+      "priority": "P1",
+      "id": "R01_PRE_INTENT_DETECTION_WITHOUT_R0",
+      "finding": "The original matrix R01 required a source change after initial freeze but before intent to abort before intent, while the original authoritative sequence had no live-source reread between freeze and intent. Planning was defined from frozen inputs, so the promised pre-intent detection was not implementable from the stated state machine.",
+      "requiredRevision": "Choose one explicit behavior: add a bounded R0 live-source revalidation before intent, or state that planning uses frozen bytes, exact intent/candidate remnants may persist, and mandatory R1 is the pre-genesis enforcement point. Freeze the correction as a new version and obtain a new independent review."
+    }
+  ],
+  "sourceTruth": {
+    "revision": "041e5a207169b06219888119acd876c95ac79372",
+    "tree": "5dfffd4b7728428556f3c027d5121f1edf902b68",
+    "relevantBlobIdentitiesMatchSourceEvidence": true,
+    "ordinaryEvidenceOpenIsCreateCapable": true,
+    "ordinaryMainOpenIsCreateCapable": true,
+    "ordinaryRefreshOpenIsCreateCapable": true,
+    "ordinaryMutableStoreRenameCanReplace": true,
+    "sealedArchiveImplementationPresent": false
+  },
+  "preservedBoundaries": {
+    "a0CodecOnly": true,
+    "a1LosslessShadowOnly": true,
+    "a1ReleasesCapacity": false,
+    "bReleasesCapacity": false,
+    "capacityReleaseFirstPhase": "C",
+    "maintenancePhase": "D",
+    "linuxAmd64Renameat2NoReplaceRequired": true,
+    "unsafeRenameFallbackAllowed": false,
+    "sameRootHmacIsWorm": false,
+    "wholeAnchorRollbackLocallyDetectable": false,
+    "oldBinaryConstrainedByLocalMarker": false
+  },
+  "durabilityEvidenceBoundary": {
+    "windowsFileFlushReportedSuccessful": true,
+    "windowsDirectoryFlushReportedSuccessful": false,
+    "windowsDirectoryFlushObservation": "UNAVAILABLE_WIN32_ACCESS_DENIED_5_NOT_CLAIMED",
+    "linuxTargetDurabilityProven": false
+  },
+  "nonClaims": [
+    "NO_IMPLEMENTATION",
+    "NO_GO_TEST_BUILD_OR_FORMAT",
+    "NO_RUNTIME_CI_BROWSER_SERVICE_SSH_OR_PRODUCTION",
+    "NO_LINUX_DURABILITY_PROOF",
+    "NO_ACTIVATION_OR_CAPACITY_RELIEF",
+    "NO_WORM_EXTERNAL_WITNESS_OR_DOWNGRADE_PREVENTION",
+    "NO_ACCEPTANCE_OF_IN_PLACE_POST_DRIFT_CONTENT"
+  ],
+  "mutations": {
+    "formalRepository": false,
+    "formalR": false,
+    "service": false,
+    "production": false,
+    "externalPeerReceiptOnly": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "chengwang.p207a-sealed-archive-input-drift/v1",
+  "observedAt": "2026-10-28T00:20:34+08:00",
+  "status": "ORIGINAL_V3_DIRECTORY_MUTATED_DURING_INDEPENDENT_REVIEW",
+  "originalDirectory": "D:/CodexData/workspace/mihomo-p207a-sealed-archive-contract-v3-20261028-000654",
+  "originalFrozenSHA256": {
+    "P207A-SEALED-ARCHIVE-COMPACTION-CONTRACT-v3.md": "4a3f0f70054a9004148aae6a2615f094a2500af459692189d71904e3904e095a",
+    "P207A-SEALED-ARCHIVE-STATE-FAILURE-MATRIX-v3.md": "f85841de2b2d523d48a2388f870afb074ed95834602cb5d3387831ad0027682d",
+    "P207A-v2-to-v3-CHANGELOG.md": "ad06d776dc0340a03123d36cc9041bd707340671d7d880f747b3e9fa1cfe7813",
+    "SOURCE-EVIDENCE.txt": "88b39f593fcbda232fc00fbae4657e5d4f67f197318d02f40f0981bc4ad100d7",
+    "DESIGN-FSYNC-RECEIPT.json": "0859c1b99b225d618cd99647da76f580447e19d58d47d0052ac4140761c1d3ef"
+  },
+  "postDriftObservedSHA256": {
+    "P207A-SEALED-ARCHIVE-COMPACTION-CONTRACT-v3.md": "a4ca94198d74ed31ecbed2ffe7d32111ad4b51ab5c3fc0bac1472cd224988790",
+    "P207A-SEALED-ARCHIVE-STATE-FAILURE-MATRIX-v3.md": "e5cbdbe397a61a568276a109a41f7f17969633d432072a9379ccc07a204ffebd",
+    "P207A-v2-to-v3-CHANGELOG.md": "a9d234eea02c8daad249de20550ee6066558c06cac4f0d720a910f73e3d3a47a",
+    "SOURCE-EVIDENCE.txt": "88b39f593fcbda232fc00fbae4657e5d4f67f197318d02f40f0981bc4ad100d7",
+    "DESIGN-FSYNC-RECEIPT.json": "e63256b0dd11d91a514fd1d959001027aedee181f6b44389e9c6caaf6ef1b6bb",
+    "SHA256SUMS": "446fcd8f1df1230c7e54a1c314c0c5f47a6a17571c465b5413173859ed4a435d"
+  },
+  "unchangedArtifact": "SOURCE-EVIDENCE.txt",
+  "changeReasonReportedByRevisionAuthor": "Correct original matrix R01 pre-intent detection contradiction without implementation changes.",
+  "peerDisposition": "POST_DRIFT_CONTENT_NOT_ACCEPTED_AS_V3; MUST_MOVE_TO_NEW_V4_DIRECTORY_AND_MANIFEST",
+  "originalBytesReconstructed": false,
+  "formalRepositoryModifiedByPeer": false
+}

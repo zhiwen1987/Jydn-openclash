@@ -1,0 +1,61 @@
+{
+  "schema": "chengwang.p207a-sealed-archive-post-hoc-recovery/v1",
+  "status": "POST_HOC_BYTE_EXACT_RECOVERY",
+  "completedAt": "2026-10-28T00:24:22.9132723+08:00",
+  "recoveryDirectory": "D:/CodexData/workspace/mihomo-p207a-sealed-archive-contract-v3-post-hoc-recovery-20261028-002307",
+  "overwrittenDirectoryPreserved": "D:/CodexData/workspace/mihomo-p207a-sealed-archive-contract-v3-20261028-000654",
+  "classification": {
+    "preOverwriteIndependentBackup": false,
+    "postHocRecovery": true,
+    "incidentErasedOrSuperseded": false,
+    "overwrittenDirectoryModifiedByRecovery": false,
+    "sourceRepositoryModifiedByRecovery": false
+  },
+  "method": [
+    "Copied the current six-file v3 set into this new external recovery directory through apply_patch without changing the overwritten v3 directory.",
+    "Applied the exact inverse of the retained in-context delta: restored the original contract section 8.2 paragraph, original matrix R01 row, removed the added changelog bullet, restored the original receipt artifact sizes and hashes, and restored the original SHA256SUMS entries.",
+    "Removed one copy-transport-added final LF from each copied file; every resulting byte length and SHA-256 was then compared with the pre-overwrite identity.",
+    "No session, rollout, joblog, secret, browser, Go command, service, SSH, source repository, or production system was read or changed for recovery."
+  ],
+  "recoveredArtifacts": [
+    {
+      "name": "P207A-SEALED-ARCHIVE-COMPACTION-CONTRACT-v3.md",
+      "bytes": 28682,
+      "sha256": "4a3f0f70054a9004148aae6a2615f094a2500af459692189d71904e3904e095a",
+      "match": true
+    },
+    {
+      "name": "P207A-SEALED-ARCHIVE-STATE-FAILURE-MATRIX-v3.md",
+      "bytes": 18043,
+      "sha256": "f85841de2b2d523d48a2388f870afb074ed95834602cb5d3387831ad0027682d",
+      "match": true
+    },
+    {
+      "name": "P207A-v2-to-v3-CHANGELOG.md",
+      "bytes": 5786,
+      "sha256": "ad06d776dc0340a03123d36cc9041bd707340671d7d880f747b3e9fa1cfe7813",
+      "match": true
+    },
+    {
+      "name": "SOURCE-EVIDENCE.txt",
+      "bytes": 4332,
+      "sha256": "88b39f593fcbda232fc00fbae4657e5d4f67f197318d02f40f0981bc4ad100d7",
+      "match": true,
+      "note": "This file had not changed in the overwritten directory."
+    },
+    {
+      "name": "DESIGN-FSYNC-RECEIPT.json",
+      "bytes": 3026,
+      "sha256": "0859c1b99b225d618cd99647da76f580447e19d58d47d0052ac4140761c1d3ef",
+      "match": true
+    },
+    {
+      "name": "SHA256SUMS",
+      "bytes": 499,
+      "sha256": "c31efdfd24852011aac2a943906e47ab2712c4a8addd4fad7e259decee739eba",
+      "match": true
+    }
+  ],
+  "knownGap": "The original v3 files were overwritten in place before any independent byte backup was created. This exact post-hoc recovery preserves the old bytes in a new directory but is not evidence that an independent backup existed before the incident.",
+  "nextRevisionBoundary": "Any corrected contract must be authored in a new v4 directory. Neither this recovery directory nor the overwritten v3 directory may be edited for that purpose."
+}

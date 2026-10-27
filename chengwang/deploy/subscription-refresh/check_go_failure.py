@@ -14,7 +14,7 @@ from pathlib import Path, PurePosixPath
 import re
 
 
-SCHEMA = "chengwang.subscription-refresh-go-failure/v2"
+SCHEMA = "chengwang.subscription-refresh-go-failure/v3"
 SCOPE = "NON_ACCEPTING_SOURCE_DECLARED_TOP_LEVEL_FAILURE_PROJECTION"
 MAX_EVENTS_BYTES = 64 << 20
 MAX_CONTRACT_BYTES = 8 << 20
@@ -46,6 +46,21 @@ BUILD_DIAGNOSTIC_STATUSES = (
     "BUILD_DIAGNOSTIC_LOCATION_OBSERVED",
     "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
 )
+BUILD_DIAGNOSTIC_REASONS = (
+    "NOT_ELIGIBLE",
+    "STDERR_OVER_BUDGET",
+    "CONTROL_BYTE",
+    "INVALID_UTF8",
+    "LINE_OVER_BUDGET",
+    "UNMATCHED_GO_POSITION",
+    "POSITION_SYNTAX",
+    "POSITION_RANGE",
+    "NO_SOURCE_POSITION",
+    "LOCATION_COUNT_OVERFLOW",
+    "OBSERVED",
+)
+BUILD_STDERR_CLASSES = ("EMPTY", "NONEMPTY", "OVER_BUDGET")
+BUILD_POSITION_COUNTS = tuple(str(value) for value in range(MAX_BUILD_LOCATIONS + 1)) + ("OVER8",)
 BUILD_LOCATION_TARGET_PACKAGE = "chengwang/internal/subscriptionctl"
 BUILD_LOCATION_SOURCES = {
     "chengwang/internal/subscriptionctl/access.go": "01872130f73000775a3d1b051447f837a576639f8a0428d671f8d392aae708e4",
@@ -128,16 +143,28 @@ def build_location_sources(repo: Path) -> list[tuple[str, bytes]]:
     return result
 
 
-def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tuple[str, list[dict]]:
-    unknown = ("BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", [])
-    if not eligible or len(stderr_raw) > MAX_STDERR_BYTES:
-        return unknown
+def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tuple[str, str, str, str, list[dict]]:
+    stderr_class = (
+        "OVER_BUDGET" if len(stderr_raw) > MAX_STDERR_BYTES
+        else "EMPTY" if len(stderr_raw) == 0
+        else "NONEMPTY"
+    )
+
+    def unknown(reason: str, count: int = 0) -> tuple[str, str, str, str, list[dict]]:
+        need(reason in BUILD_DIAGNOSTIC_REASONS and reason != "OBSERVED", "unknown build diagnostic reason")
+        need(0 <= count <= MAX_BUILD_LOCATIONS, "unknown build diagnostic count")
+        return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", reason, stderr_class, str(count), []
+
+    if not eligible:
+        return unknown("NOT_ELIGIBLE")
+    if len(stderr_raw) > MAX_STDERR_BYTES:
+        return unknown("STDERR_OVER_BUDGET")
     if any(byte in stderr_raw for byte in (0, 13, 27)):
-        return unknown
+        return unknown("CONTROL_BYTE")
     try:
         text = stderr_raw.decode("utf-8")
     except UnicodeDecodeError:
-        return unknown
+        return unknown("INVALID_UTF8")
     sources = build_location_sources(repo)
     root_prefix = repo.resolve().as_posix().rstrip("/") + "/"
     prefixes = []
@@ -155,7 +182,7 @@ def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tu
         if line == "":
             continue
         if len(line.encode("utf-8")) > MAX_LINE_BYTES:
-            return unknown
+            return unknown("LINE_OVER_BUDGET", len(observed))
         matched = False
         for relative, prefix in prefixes:
             if not line.startswith(prefix):
@@ -163,24 +190,31 @@ def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tu
             matched = True
             match = LOCATION_TAIL.fullmatch(line[len(prefix):])
             if match is None:
-                return unknown
+                return unknown("POSITION_SYNTAX", len(observed))
             line_number = int(match.group("line"))
             column_text = match.group("column")
             column = int(column_text) if column_text is not None else None
             lines = source_lines[relative]
             if line_number > len(lines):
-                return unknown
+                return unknown("POSITION_RANGE", len(observed))
             if column is not None and (column > 254 or column > len(lines[line_number - 1]) + 1):
-                return unknown
+                return unknown("POSITION_RANGE", len(observed))
             observed.add((relative, line_number, column))
+            if len(observed) > MAX_BUILD_LOCATIONS:
+                return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", "LOCATION_COUNT_OVERFLOW", stderr_class, "OVER8", []
             break
         if not matched and LOCATION_LIKE.search(line) is not None:
-            return unknown
-    if not observed or len(observed) > MAX_BUILD_LOCATIONS:
-        return unknown
+            return unknown("UNMATCHED_GO_POSITION", len(observed))
+    if not observed:
+        return unknown("NO_SOURCE_POSITION")
+    if len(observed) > MAX_BUILD_LOCATIONS:
+        return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", "LOCATION_COUNT_OVERFLOW", stderr_class, "OVER8", []
     ordered = sorted(observed, key=lambda item: (source_order[item[0]], item[1], -1 if item[2] is None else item[2]))
     return (
         "BUILD_DIAGNOSTIC_LOCATION_OBSERVED",
+        "OBSERVED",
+        stderr_class,
+        str(len(ordered)),
         [{"source": source, "line": line, "column": column} for source, line, column in ordered],
     )
 
@@ -397,7 +431,9 @@ def project(
         BUILD_LOCATION_TARGET_PACKAGE in state
         and all(value == "NOT_STARTED" for value in state[BUILD_LOCATION_TARGET_PACKAGE].values())
     )
-    build_status, build_locations = project_build_locations(stderr_raw, repo, target_zero_top)
+    build_status, build_reason, build_stderr_class, build_position_count, build_locations = project_build_locations(
+        stderr_raw, repo, target_zero_top,
+    )
     return {
         "schema": SCHEMA,
         "scope": SCOPE,
@@ -410,6 +446,9 @@ def project(
         "failureClass": failure_class,
         "markerObservation": marker,
         "buildDiagnosticStatus": build_status,
+        "buildDiagnosticReason": build_reason,
+        "buildStderrClass": build_stderr_class,
+        "buildSourcePositionCount": build_position_count,
         "buildDiagnosticLocations": build_locations,
         "eventLineCount": event_count,
         "outputEventCount": output_count,
@@ -440,7 +479,8 @@ def verify_report(
     report = decode_json(report_raw)
     keys = (
         "schema", "scope", "reportOutcome", "accepted", "contractSHA256", "goExit", "eventCheckExit",
-        "stage", "failureClass", "markerObservation", "buildDiagnosticStatus", "buildDiagnosticLocations", "eventLineCount", "outputEventCount",
+        "stage", "failureClass", "markerObservation", "buildDiagnosticStatus", "buildDiagnosticReason",
+        "buildStderrClass", "buildSourcePositionCount", "buildDiagnosticLocations", "eventLineCount", "outputEventCount",
         "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount",
         "runningCount", "notStartedCount", "packages", "failedTops", "runningTops", "notStartedTops",
     )
@@ -454,6 +494,9 @@ def verify_report(
     need(report["goExit"] != 0 or report["eventCheckExit"] != 0, "report failure exits")
     need(report["stage"] in STAGES and report["failureClass"] in FAILURE_CLASSES and report["markerObservation"] in MARKERS, "report enums")
     need(report["buildDiagnosticStatus"] in BUILD_DIAGNOSTIC_STATUSES, "build diagnostic status")
+    need(report["buildDiagnosticReason"] in BUILD_DIAGNOSTIC_REASONS, "build diagnostic reason")
+    need(report["buildStderrClass"] in BUILD_STDERR_CLASSES, "build stderr class")
+    need(report["buildSourcePositionCount"] in BUILD_POSITION_COUNTS, "build source-position count")
     locations = report["buildDiagnosticLocations"]
     need(type(locations) is list and len(locations) <= MAX_BUILD_LOCATIONS, "build diagnostic locations")
     for value in locations:
@@ -463,8 +506,11 @@ def verify_report(
         need(value["column"] is None or type(value["column"]) is int and 0 < value["column"] <= 254, "build diagnostic column")
     if report["buildDiagnosticStatus"] == "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN":
         need(locations == [], "unknown build diagnostic must be empty")
+        need(report["buildDiagnosticReason"] != "OBSERVED", "unknown build diagnostic reason")
     else:
         need(len(locations) > 0, "observed build diagnostic must have locations")
+        need(report["buildDiagnosticReason"] == "OBSERVED", "observed build diagnostic reason")
+        need(report["buildSourcePositionCount"] == str(len(locations)), "observed build diagnostic count")
     for name in ("eventLineCount", "outputEventCount", "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount", "runningCount", "notStartedCount"):
         need(type(report[name]) is int and report[name] >= 0, "report count")
     need(report["declaredPackageCount"] == len(packages) and report["declaredTopCount"] == 481, "report declared cardinality")
