@@ -10,16 +10,18 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 
 
-SCHEMA = "chengwang.subscription-refresh-go-failure/v1"
+SCHEMA = "chengwang.subscription-refresh-go-failure/v2"
 SCOPE = "NON_ACCEPTING_SOURCE_DECLARED_TOP_LEVEL_FAILURE_PROJECTION"
 MAX_EVENTS_BYTES = 64 << 20
 MAX_CONTRACT_BYTES = 8 << 20
+MAX_STDERR_BYTES = 8 << 20
 MAX_LINE_BYTES = 1 << 20
 MAX_EVENT_LINES = 1_000_000
+MAX_BUILD_LOCATIONS = 8
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
 TOP = re.compile(r"^Test[A-Za-z0-9_]+$")
 ACTIONS = {"start", "run", "pause", "cont", "pass", "fail", "output", "skip"}
@@ -40,6 +42,22 @@ FAILURE_CLASSES = (
     "UNKNOWN_NONZERO_EXIT",
 )
 MARKERS = ("NONE", "TIMEOUT_TEXT", "PANIC_TEXT", "TIMEOUT_AND_PANIC_TEXT")
+BUILD_DIAGNOSTIC_STATUSES = (
+    "BUILD_DIAGNOSTIC_LOCATION_OBSERVED",
+    "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
+)
+BUILD_LOCATION_TARGET_PACKAGE = "chengwang/internal/subscriptionctl"
+BUILD_LOCATION_SOURCES = {
+    "chengwang/internal/subscriptionctl/access.go": "01872130f73000775a3d1b051447f837a576639f8a0428d671f8d392aae708e4",
+    "chengwang/internal/subscriptionctl/access_test.go": "f6dea00963efd7395b2be60f68354c00c66590ca49c645f282d0f33573eab1dd",
+    "chengwang/internal/subscriptionctl/contract.go": "8bf567cf6294dc6907d1932b240e244f2f80fe03ae17f277e098b2523cca2637",
+    "chengwang/internal/subscriptionctl/refresh.go": "6ca1bdc725b035b9d6eed26724e77aafd5abd6a06b1f60d69c49dfa92b26cf0d",
+    "chengwang/internal/subscriptionctl/service.go": "28d72d50d061cfc6d8c6263a6d941520a238186b791640c9f2bc3e76d1d392aa",
+    "chengwang/internal/subscriptionctl/service_linux_test.go": "e6fa709c9da4451616e51b3973d9a36c1dbe92ec428ab246780ea8564ab0b285",
+    "chengwang/internal/subscriptionctl/service_read_linux_test.go": "2e3c28a09a2962b1fc385ab03246f6a8787caf42c676e8829b54d0079ef636cf",
+}
+LOCATION_TAIL = re.compile(r"^(?P<line>[1-9][0-9]{0,6})(?::(?P<column>[1-9][0-9]{0,2}))?: .+$")
+LOCATION_LIKE = re.compile(r"\.go:[0-9]")
 
 
 class FailureDiagnosticError(AssertionError):
@@ -78,6 +96,93 @@ def safe_read(path: Path, maximum: int) -> bytes:
         raw = source.read(maximum + 1)
     need(len(raw) <= maximum, "input exceeds budget")
     return raw
+
+
+def safe_read_stderr(path: Path) -> bytes:
+    need(path.is_file() and not path.is_symlink(), "missing/non-regular stderr")
+    with path.open("rb") as source:
+        return source.read(MAX_STDERR_BYTES + 1)
+
+
+def build_location_sources(repo: Path) -> list[tuple[str, bytes]]:
+    root = repo.resolve()
+    need(root.is_dir() and not root.is_symlink(), "repository root")
+    need(list(BUILD_LOCATION_SOURCES) == sorted(BUILD_LOCATION_SOURCES), "build source declaration order")
+    result = []
+    for relative, expected_sha in BUILD_LOCATION_SOURCES.items():
+        pure = PurePosixPath(relative)
+        need(
+            relative == pure.as_posix()
+            and not pure.is_absolute()
+            and ".." not in pure.parts
+            and pure.parent.as_posix() == BUILD_LOCATION_TARGET_PACKAGE
+            and relative.endswith(".go"),
+            "build source declaration",
+        )
+        path = root.joinpath(*pure.parts)
+        need(path.is_file() and not path.is_symlink(), "missing/non-regular build source")
+        need(path.resolve().is_relative_to(root), "build source escapes repository")
+        raw = path.read_bytes()
+        need(sha(raw) == expected_sha, "build source pin")
+        result.append((relative, raw))
+    return result
+
+
+def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tuple[str, list[dict]]:
+    unknown = ("BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", [])
+    if not eligible or len(stderr_raw) > MAX_STDERR_BYTES:
+        return unknown
+    if any(byte in stderr_raw for byte in (0, 13, 27)):
+        return unknown
+    try:
+        text = stderr_raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return unknown
+    sources = build_location_sources(repo)
+    root_prefix = repo.resolve().as_posix().rstrip("/") + "/"
+    prefixes = []
+    source_lines = {}
+    source_order = {}
+    for index, (relative, raw) in enumerate(sources):
+        module_relative = relative.removeprefix("chengwang/")
+        prefixes.append((relative, relative + ":"))
+        prefixes.append((relative, module_relative + ":"))
+        prefixes.append((relative, root_prefix + relative + ":"))
+        source_lines[relative] = raw.splitlines()
+        source_order[relative] = index
+    observed: set[tuple[str, int, int | None]] = set()
+    for line in text.split("\n"):
+        if line == "":
+            continue
+        if len(line.encode("utf-8")) > MAX_LINE_BYTES:
+            return unknown
+        matched = False
+        for relative, prefix in prefixes:
+            if not line.startswith(prefix):
+                continue
+            matched = True
+            match = LOCATION_TAIL.fullmatch(line[len(prefix):])
+            if match is None:
+                return unknown
+            line_number = int(match.group("line"))
+            column_text = match.group("column")
+            column = int(column_text) if column_text is not None else None
+            lines = source_lines[relative]
+            if line_number > len(lines):
+                return unknown
+            if column is not None and (column > 254 or column > len(lines[line_number - 1]) + 1):
+                return unknown
+            observed.add((relative, line_number, column))
+            break
+        if not matched and LOCATION_LIKE.search(line) is not None:
+            return unknown
+    if not observed or len(observed) > MAX_BUILD_LOCATIONS:
+        return unknown
+    ordered = sorted(observed, key=lambda item: (source_order[item[0]], item[1], -1 if item[2] is None else item[2]))
+    return (
+        "BUILD_DIAGNOSTIC_LOCATION_OBSERVED",
+        [{"source": source, "line": line, "column": column} for source, line, column in ordered],
+    )
 
 
 def write_new(path: Path, raw: bytes) -> None:
@@ -143,7 +248,15 @@ def event_shape(event: object) -> bool:
     return True
 
 
-def project(events_raw: bytes, contract_raw: bytes, contract_sha256: str, go_exit: int, event_check_exit: int) -> dict:
+def project(
+    events_raw: bytes,
+    stderr_raw: bytes,
+    repo: Path,
+    contract_raw: bytes,
+    contract_sha256: str,
+    go_exit: int,
+    event_check_exit: int,
+) -> dict:
     need(type(contract_sha256) is str and DIGEST.fullmatch(contract_sha256) is not None, "contract digest")
     need(sha(contract_raw) == contract_sha256, "contract pin")
     need(type(go_exit) is int and 0 <= go_exit <= 255, "Go exit")
@@ -280,6 +393,11 @@ def project(events_raw: bytes, contract_raw: bytes, contract_sha256: str, go_exi
         else:
             failure_class = "PANIC_TEXT_MARKER_OBSERVED"
     marker = "TIMEOUT_AND_PANIC_TEXT" if timeout_marker and panic_marker else "TIMEOUT_TEXT" if timeout_marker else "PANIC_TEXT" if panic_marker else "NONE"
+    target_zero_top = (
+        BUILD_LOCATION_TARGET_PACKAGE in state
+        and all(value == "NOT_STARTED" for value in state[BUILD_LOCATION_TARGET_PACKAGE].values())
+    )
+    build_status, build_locations = project_build_locations(stderr_raw, repo, target_zero_top)
     return {
         "schema": SCHEMA,
         "scope": SCOPE,
@@ -291,6 +409,8 @@ def project(events_raw: bytes, contract_raw: bytes, contract_sha256: str, go_exi
         "stage": stage,
         "failureClass": failure_class,
         "markerObservation": marker,
+        "buildDiagnosticStatus": build_status,
+        "buildDiagnosticLocations": build_locations,
         "eventLineCount": event_count,
         "outputEventCount": output_count,
         "ignoredSubtestEventCount": ignored_subtest_count,
@@ -310,6 +430,8 @@ def project(events_raw: bytes, contract_raw: bytes, contract_sha256: str, go_exi
 def verify_report(
     report_raw: bytes,
     events_raw: bytes,
+    stderr_raw: bytes,
+    repo: Path,
     contract_raw: bytes,
     contract_sha256: str,
     go_exit: int,
@@ -318,7 +440,7 @@ def verify_report(
     report = decode_json(report_raw)
     keys = (
         "schema", "scope", "reportOutcome", "accepted", "contractSHA256", "goExit", "eventCheckExit",
-        "stage", "failureClass", "markerObservation", "eventLineCount", "outputEventCount",
+        "stage", "failureClass", "markerObservation", "buildDiagnosticStatus", "buildDiagnosticLocations", "eventLineCount", "outputEventCount",
         "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount",
         "runningCount", "notStartedCount", "packages", "failedTops", "runningTops", "notStartedTops",
     )
@@ -331,6 +453,18 @@ def verify_report(
     need(type(report["eventCheckExit"]) is int and 0 <= report["eventCheckExit"] <= 255, "report event exit")
     need(report["goExit"] != 0 or report["eventCheckExit"] != 0, "report failure exits")
     need(report["stage"] in STAGES and report["failureClass"] in FAILURE_CLASSES and report["markerObservation"] in MARKERS, "report enums")
+    need(report["buildDiagnosticStatus"] in BUILD_DIAGNOSTIC_STATUSES, "build diagnostic status")
+    locations = report["buildDiagnosticLocations"]
+    need(type(locations) is list and len(locations) <= MAX_BUILD_LOCATIONS, "build diagnostic locations")
+    for value in locations:
+        need(type(value) is dict and tuple(value) == ("source", "line", "column"), "build diagnostic location shape")
+        need(value["source"] in BUILD_LOCATION_SOURCES, "build diagnostic source")
+        need(type(value["line"]) is int and value["line"] > 0, "build diagnostic line")
+        need(value["column"] is None or type(value["column"]) is int and 0 < value["column"] <= 254, "build diagnostic column")
+    if report["buildDiagnosticStatus"] == "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN":
+        need(locations == [], "unknown build diagnostic must be empty")
+    else:
+        need(len(locations) > 0, "observed build diagnostic must have locations")
     for name in ("eventLineCount", "outputEventCount", "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount", "runningCount", "notStartedCount"):
         need(type(report[name]) is int and report[name] >= 0, "report count")
     need(report["declaredPackageCount"] == len(packages) and report["declaredTopCount"] == 481, "report declared cardinality")
@@ -376,8 +510,8 @@ def verify_report(
     }
     if report["markerObservation"] != "NONE":
         need(report["failureClass"] == marker_classes[report["markerObservation"]], "marker class")
-    expected_report = project(events_raw, contract_raw, contract_sha256, go_exit, event_check_exit)
-    need(report == expected_report, "report does not match runner-private events")
+    expected_report = project(events_raw, stderr_raw, repo, contract_raw, contract_sha256, go_exit, event_check_exit)
+    need(report == expected_report, "report does not match runner-private events/stderr/exits")
     return report
 
 
@@ -387,6 +521,8 @@ def main() -> None:
     modes.add_argument("--output")
     modes.add_argument("--report")
     parser.add_argument("--events", required=True)
+    parser.add_argument("--stderr", required=True)
+    parser.add_argument("--repo", required=True)
     parser.add_argument("--contract", required=True)
     parser.add_argument("--contract-sha256", required=True)
     parser.add_argument("--go-exit", required=True, type=int)
@@ -394,13 +530,17 @@ def main() -> None:
     args = parser.parse_args()
     contract_raw = safe_read(Path(args.contract), MAX_CONTRACT_BYTES)
     events_raw = safe_read(Path(args.events), MAX_EVENTS_BYTES)
+    stderr_raw = safe_read_stderr(Path(args.stderr))
+    repo = Path(args.repo)
     if args.output is not None:
-        result = project(events_raw, contract_raw, args.contract_sha256, args.go_exit, args.event_check_exit)
+        result = project(events_raw, stderr_raw, repo, contract_raw, args.contract_sha256, args.go_exit, args.event_check_exit)
         write_new(Path(args.output), json.dumps(result, separators=(",", ":"), ensure_ascii=True).encode() + b"\n")
     else:
         result = verify_report(
             safe_read(Path(args.report), MAX_CONTRACT_BYTES),
             events_raw,
+            stderr_raw,
+            repo,
             contract_raw,
             args.contract_sha256,
             args.go_exit,

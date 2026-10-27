@@ -1,0 +1,12 @@
+{
+  "schema": "chengwang.clock-build-combo-cpu/v1",
+  "patchSHA256": "77678b8c99dd57f31c7a53ad2fcab433ea060fab16812c0ae4ca6506c5790722",
+  "tests": 61,
+  "failures": 0,
+  "skipped": 0,
+  "exit": 0,
+  "seconds": 36.708,
+  "logSHA256": "d40169c861317b87caf71223c55ffe7b55faff51a668de80082321cee3bb5d5e",
+  "goExecuted": false,
+  "production": false
+}

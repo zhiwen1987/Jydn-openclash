@@ -1,0 +1,96 @@
+{
+  "schema": "chengwang.p207a-source-go-failure-audit/v1",
+  "reviewerRole": "implementation56h",
+  "auditOutcome": "FAILURE_ARTIFACT_AUTHENTIC_AND_BOUNDED_DIAGNOSTIC_REJECTED_GO_RUN",
+  "run": {
+    "id": 40536787493,
+    "attempt": 1,
+    "headSHA": "041e5a207169b06219888119acd876c95ac79372",
+    "sourceModelsJob": 122304072462,
+    "sourceModelsJobOutcome": "SUCCESS_FROM_ROOT_FIXED_METADATA",
+    "sourceAndGoJob": 122304194191,
+    "sourceAndGoJobOutcome": "FAILURE_FROM_ROOT_FIXED_METADATA",
+    "freshOutcome": "SKIPPED_FROM_ROOT_FIXED_METADATA"
+  },
+  "transport": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/github_artifact_via_git_credential.py",
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/materialize-ci-safe-batch-text-v5-20261026.py",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "singleSerialProcess": true,
+    "signedURLInToolArgumentsOrPersistedFiles": false,
+    "jobLogsRead": false
+  },
+  "artifact": {
+    "id": 12747459400,
+    "name": "p207a-source-go-failure-40536787493-1",
+    "bytes": 3453,
+    "sha256": "88c9879d19c45c92e9312af2f3ba31fee607e327b13ac07ff4f590a695303e8f",
+    "memberCount": 9,
+    "crcAndPathPolicyVerifiedByPinnedMaterializer": true,
+    "originalBytesStable": true
+  },
+  "sourceBinding": {
+    "beforeAfterByteEqual": true,
+    "beforeSHA256": "bdff000db362b3a9d3519b069a5197cd5b3cfc168dbd04efa5e91367e08e8bc9",
+    "afterSHA256": "bdff000db362b3a9d3519b069a5197cd5b3cfc168dbd04efa5e91367e08e8bc9",
+    "schema": "chengwang.subscription-refresh-source/v3",
+    "requiredRunTopCount": 481,
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
+    "packageTestTopCount": 486,
+    "packageTestTopsSHA256": "dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f",
+    "goExecutionProven": false
+  },
+  "format": {
+    "exit": 0,
+    "patchBytes": 0,
+    "patchSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 0,
+    "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "diagnostic": {
+    "reportSHA256": "5606c025ce1511faad1717be5432a10816da1f63ee1619a2d1f6baae18cfeff6",
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "failureCheckExit": 0,
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "PACKAGE_TERMINAL_NONPASS",
+    "markerObservation": "NONE",
+    "passCount": 434,
+    "failCount": 1,
+    "runningCount": 0,
+    "notStartedCount": 46,
+    "failedTops": [
+      "chengwang/internal/subscription::TestRefreshV3CandidatePreservesAcceptedVersion"
+    ],
+    "subscription": {
+      "passCount": 119,
+      "failCount": 1,
+      "runningCount": 0,
+      "notStartedCount": 0
+    },
+    "subscriptionctl": {
+      "passCount": 0,
+      "failCount": 0,
+      "runningCount": 0,
+      "notStartedCount": 46
+    }
+  },
+  "comparisonTo31ac": {
+    "previousSubscriptionFailCount": 19,
+    "currentSubscriptionFailCount": 1,
+    "previousSubscriptionctlNotStartedCount": 46,
+    "currentSubscriptionctlNotStartedCount": 46
+  },
+  "boundaries": {
+    "goRunAccepted": false,
+    "freshAccepted": false,
+    "rootCauseKnown": false,
+    "subscriptionctlBlockedBySubscriptionFailureClaimed": false,
+    "rawEventsOrStderrPresentInArtifact": false,
+    "localGoRun": false,
+    "ciRerun": false,
+    "productionTouched": false,
+    "formalRepositoryModified": false
+  }
+}

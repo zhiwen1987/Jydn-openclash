@@ -5,7 +5,7 @@
   "moduleClosure": {
     "pathCount": 825,
     "pathsSHA256": "ccd84f24bd5249c46363a4cf4be91e0cae9c645dcf0a704a0d87d3b2b540697b",
-    "contentSHA256": "ce4c2877dcc073fdf03d4ff812b1b8c7bacbe635b3d329afaedcb7082367208b"
+    "contentSHA256": "3fc092335a0c408dea820ee0b73216fb57d6580c50c4ba5ae7b71d2d221525ba"
   },
   "fixtureClosure": {
     "additionalPaths": [],
@@ -51,7 +51,7 @@
     "chengwang/internal/serverruntime/subscription_config_test.go": "8f1c09d28287d5474fe0da2c4a6d10b9d7132bd5fecd019c642b1dd28fddb8b6",
     "chengwang/internal/subscription/control.go": "d575b574385c51daa5d4796112cb4ebd6e4d7e5f7807ec5533064efe38955f33",
     "chengwang/internal/subscription/refresh.go": "4bf3e8908d40f25124260b098e34e475c695da4d0730e2b8f716b05f8275efe5",
-    "chengwang/internal/subscription/refresh_test.go": "5d75fe81b1c859254414e9147e6324503e7ec6cb47c8ec20347e93eda25ca7b2",
+    "chengwang/internal/subscription/refresh_test.go": "5cfc0825df5e691865652e4a941e613b6c2439ef2473aa62a7b68d40ab5d4444",
     "chengwang/internal/subscription/store.go": "54988b394d4290f546da3140b8ca2efbfd783068a3d01fd5faeb50a70fe844da",
     "chengwang/internal/subscriptionctl/contract.go": "8bf567cf6294dc6907d1932b240e244f2f80fe03ae17f277e098b2523cca2637",
     "chengwang/internal/subscriptionctl/refresh.go": "6ca1bdc725b035b9d6eed26724e77aafd5abd6a06b1f60d69c49dfa92b26cf0d",
@@ -61,7 +61,7 @@
     "chengwang/internal/subscriptionpolicy/catalog_access.go": "672c622cc8d5e2ea749b0de33545923678ea244f58244243ff6d1be8c1f39ab9",
     "chengwang/internal/subscriptionpolicy/refresh_test.go": "d9d894dee528995bcd244ca4eeecadd990c320d473be0315c04f67bae9cdd6f6"
   },
-  "changedGoSourcesSHA256": "26fd9d891afc8daf64a0131a6f63e9dfa5a26c9f8a0d3bb6978cd1500e091933",
+  "changedGoSourcesSHA256": "33a729e2070523b5f8ec8398818c5aac5273c67d869facf8aa29722afe81d7ab",
   "goTest": {
     "packages": [
       "chengwang/internal/api",

@@ -318,6 +318,7 @@ func TestRefreshV3CandidatePreservesAcceptedVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	now = now.Add(time.Minute)
+	domain.now = func() time.Time { return now }
 	attempt, ok, err := sidecar.ClaimLive(source.Scope, source.ID, refreshTestCapacity(), now)
 	if err != nil || !ok {
 		t.Fatal("claim failed")

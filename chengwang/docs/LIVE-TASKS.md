@@ -1,5 +1,13 @@
 # 澄网：项目任务清单
 
+2026-10-28 下一最小批次已由root集成7源：仅既有候选测试一行domain时钟同步、privacy-safe构建位置诊断与对应source pins。冻结组合patch32576B／SHA77678b8c99dd57f31c7a53ad2fcab433ea060fab16812c0ae4ca6506c5790722，[combo独立复核](evidence/sys06-041-clock-build-combo-source-peer-20261028.md)与[clock单叶复核](evidence/sys06-041-clock-fixture-source-peer-20261028.md)均SOURCE_ACCEPT；[同源61项CPU](evidence/sys06-041-clock-build-combo-cpu-20261028.json)36.708秒通过，sourcechecker825／24／486／481通过。workflow的三个fixture pins与诊断checker/model pins在新组合中逐项复核；最多8个声明源码位置或UNKNOWN，原始stderr／events不上传，运行器同源重投影严格比较，成功／fresh门不变。实际Go／官方gofmt／新报告仍待；不宣称测试时间混用已被实测为唯一首因。
+
+2026-10-28 [31ac normal／diag原件](evidence/sys06-31ac-normal-diag-original-audit-20261028.json)独立复核完成，root再核11项审计输入：ordinary通过，normal race在mihomodeploy包180秒超时；single profile通过，full诊断捕获可复算但Go仍失败，120秒只为该包采样窗且fullGoAccepted=false。Windows仅执行原始语义函数与明确的路径／二进制sink适配，未称Linux-only CLI整条成功。观察到的未完测试不能当根因；两性能源before Git blob仍精确匹配历史外部优化候选，但候选未集成、无稳定收益证明。生产不动。
+
+2026-10-28 [041 P207失败原件](evidence/sys06-041-p207-bounded-failure-original-audit-20261028.json)已审计并由root独立核ZIP／CRC／9成员／source相等／report摘要／退出码：总434通过／1失败／46未开始，subscription119通过＋唯一失败TestRefreshV3CandidatePreservesAcceptedVersion，前轮19失败减少18项；subscriptionctl46仍未开始。官方格式空，failure reader exit0，Go与accepted reader exit1、fresh跳过；不能以诊断门通过称Go通过。正在核唯一测试的未来PreparedAt与domain真实CompletedAt混用，尚无实际首失败行；ctl构建位置诊断另在外部候选开发。生产不动。
+
+2026-10-28 修复开发提交 `041e5a207169b06219888119acd876c95ac79372` 已完成root重新集成、12路径提交、最终HEAD source checker通过；双开发ref atomic普通快进推送并精确远端读回。4源diff与冻结补丁逐字节一致，53CPU是在相同源码候选上运行，不能称Go已通过。新P207 run40536787493、continuous40536784361等6条隔离workflow已真实触发，当前metadata为in_progress／queued，实际Go与原件尚待。此前误写、保存、恢复、独立peer及root重新集成全部保留，不回写抹去历史；本条提交后进度未另提交，生产／main／Registry未改。
+
 2026-10-27 空集合复制修复已获[独立源码准入](evidence/sys06-31ac-empty-ledger-source-peer-20261027.json)，root已在正式R重新apply冻结4文件。精确source diff应为6936B／SHA74f2ab86b3e0764b24c97af78b61d579602c3b9a32f388602d94ffa519781c87；[相同候选53项CPU](evidence/sys06-31ac-empty-ledger-candidate-cpu-20261027.json)实际通过、source checker通过，非Go证明。此前[误写事故](evidence/sys06-31ac-empty-ledger-write-boundary-incident-20261027.md)及恢复记录保留，本次重新集成由root在peer通过后完成。仅改变nilness-preserving clone、既有top内回归与3个相关source pins；validator／481名称／180秒／隐私／final门不变。新提交、远端读回与Linux Go／官方格式／fresh仍待；subscriptionctl46未启动原因未知，专用build位置诊断另在外部开发。生产不动。
 
 2026-10-27 caed旧恢复链的其余模式已限定复核：[oldnative四模式](evidence/sys06-caed-oldnative-original-audit-20261027.json)及[首次Completion四模式](evidence/sys06-caed-completion-original-audit-20261027.json)各9个original／fresh artifacts通过；root再次核对两最终收据的18／19项证据文件哈希。oldnative原始语义验证函数未改，但Windows不支持原CLI POSIX落盘，报告sink替换为二进制O_EXCL，不能称原CLI整条执行成功。Completion报告checker通过，source manifest CLI因CRLF拒绝后仅以原source函数＋二进制sink重算；失败副本保留。均绑定caed，不外推31ac、完整私有WAL或生产，P207失败仍未关闭。

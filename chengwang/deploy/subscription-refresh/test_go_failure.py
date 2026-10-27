@@ -16,7 +16,8 @@ SPEC.loader.exec_module(F)
 
 class GoFailureProjectionModels(unittest.TestCase):
     def setUp(self) -> None:
-        self.packages = [f"example/p{index}" for index in range(7)]
+        self.repo = HERE.parents[2]
+        self.packages = [F.BUILD_LOCATION_TARGET_PACKAGE] + [f"example/p{index}" for index in range(6)]
         remaining = 481
         self.names = {}
         for index, package in enumerate(self.packages):
@@ -50,14 +51,19 @@ class GoFailureProjectionModels(unittest.TestCase):
             values.append({"Action": "pass", "Package": package})
         return values
 
-    def project(self, events: bytes, go_exit: int = 1, event_exit: int = 1):
+    def project(self, events: bytes, stderr: bytes = b"", go_exit: int = 1, event_exit: int = 1):
         contract = self.raw_contract()
-        return F.project(events, contract, F.sha(contract), go_exit, event_exit)
+        return F.project(events, stderr, self.repo, contract, F.sha(contract), go_exit, event_exit)
 
-    def roundtrip(self, result: dict, events: bytes, go_exit: int = 1, event_exit: int = 1) -> dict:
+    def roundtrip(self, result: dict, events: bytes, stderr: bytes = b"", go_exit: int = 1, event_exit: int = 1) -> dict:
         raw = json.dumps(result, separators=(",", ":")).encode() + b"\n"
         contract = self.raw_contract()
-        return F.verify_report(raw, events, contract, F.sha(contract), go_exit, event_exit)
+        return F.verify_report(raw, events, stderr, self.repo, contract, F.sha(contract), go_exit, event_exit)
+
+    def location_line(self, source: str = "chengwang/internal/subscriptionctl/service.go", line: int = 1, column: int | None = 1, message: str = "PRIVATE_MESSAGE") -> bytes:
+        relative = source.removeprefix("chengwang/")
+        suffix = f":{line}" + (f":{column}" if column is not None else "") + f": {message}\n"
+        return (relative + suffix).encode()
 
     def test_declared_top_failure_projects_only_source_names_and_counts(self) -> None:
         package = self.packages[0]
@@ -161,6 +167,86 @@ class GoFailureProjectionModels(unittest.TestCase):
         self.assertEqual(result["notStartedCount"], 481)
         self.assertNotIn(secret, json.dumps(result))
 
+    def test_source_declared_location_is_bounded_and_message_is_never_exported(self) -> None:
+        secret = "PRIVATE_COMPILER_TEXT_AND_SYMBOL"
+        stderr = self.location_line(message=secret)
+        result = self.project(b"", stderr)
+        self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_OBSERVED")
+        self.assertEqual(result["buildDiagnosticLocations"], [{
+            "source": "chengwang/internal/subscriptionctl/service.go", "line": 1, "column": 1,
+        }])
+        self.assertNotIn(secret, json.dumps(result))
+        self.assertEqual(self.roundtrip(result, b"", stderr), result)
+
+    def test_line_only_and_exact_trusted_absolute_source_forms_are_supported(self) -> None:
+        source = "chengwang/internal/subscriptionctl/service.go"
+        absolute = self.repo.resolve().as_posix().rstrip("/") + "/" + source
+        stderr = (absolute + ":1: PRIVATE\n").encode()
+        result = self.project(b"", stderr)
+        self.assertEqual(result["buildDiagnosticLocations"], [{"source": source, "line": 1, "column": None}])
+
+    def test_foreign_absolute_traversal_url_and_suffix_collisions_are_unknown(self) -> None:
+        valid = self.location_line()
+        variants = (
+            b"/tmp/foreign/service.go:1:1: PRIVATE\n",
+            b"../internal/subscriptionctl/service.go:1:1: PRIVATE\n",
+            b"https://example.invalid/service.go:1:1: PRIVATE\n",
+            b"/foreign/prefix/chengwang/internal/subscriptionctl/service.go:1:1: PRIVATE\n",
+            valid + b"/tmp/foreign.go:2:2: PRIVATE\n",
+        )
+        for stderr in variants:
+            with self.subTest(stderr=stderr[:40]):
+                result = self.project(b"", stderr)
+                self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+                self.assertEqual(result["buildDiagnosticLocations"], [])
+
+    def test_invalid_utf8_controls_position_overflow_and_bracketed_origin_are_unknown(self) -> None:
+        variants = (
+            b"\xffinternal/subscriptionctl/service.go:1:1: PRIVATE\n",
+            self.location_line(message="PRIVATE\x1b[31m"),
+            b"internal/subscriptionctl/service.go:0:1: PRIVATE\n",
+            b"internal/subscriptionctl/service.go:9999999:1: PRIVATE\n",
+            b"internal/subscriptionctl/service.go:1:255: PRIVATE\n",
+            b"internal/subscriptionctl/service.go:1[foreign.go:2:3]: PRIVATE\n",
+        )
+        for stderr in variants:
+            with self.subTest(stderr=stderr[:40]):
+                self.assertEqual(self.project(b"", stderr)["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+
+    def test_more_than_eight_locations_and_oversized_stderr_are_unknown(self) -> None:
+        stderr = b"".join(self.location_line(line=line, column=1) for line in range(1, 10))
+        self.assertEqual(self.project(b"", stderr)["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+        self.assertEqual(self.project(b"", b"x" * (F.MAX_STDERR_BYTES + 1))["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+
+    def test_location_is_not_projected_after_target_top_started(self) -> None:
+        package = F.BUILD_LOCATION_TARGET_PACKAGE
+        name = self.names[package][0]
+        events = self.encode([
+            {"Action": "start", "Package": package},
+            {"Action": "run", "Package": package, "Test": name},
+        ])
+        result = self.project(events, self.location_line())
+        self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+
+    def test_reader_reprojects_private_stderr_and_rejects_location_tampering(self) -> None:
+        stderr = self.location_line()
+        result = self.project(b"", stderr)
+        mutations = []
+        status = json.loads(json.dumps(result)); status["buildDiagnosticStatus"] = "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN"; status["buildDiagnosticLocations"] = []; mutations.append(status)
+        path = json.loads(json.dumps(result)); path["buildDiagnosticLocations"][0]["source"] = "chengwang/internal/subscriptionctl/foreign.go"; mutations.append(path)
+        line = json.loads(json.dumps(result)); line["buildDiagnosticLocations"][0]["line"] = 2; mutations.append(line)
+        column = json.loads(json.dumps(result)); column["buildDiagnosticLocations"][0]["column"] = None; mutations.append(column)
+        for value in mutations:
+            with self.subTest(value=value), self.assertRaises(F.FailureDiagnosticError):
+                self.roundtrip(value, b"", stderr)
+
+    def test_location_report_never_changes_failure_or_acceptance_gates(self) -> None:
+        result = self.project(b"", self.location_line(), go_exit=1, event_exit=0)
+        self.assertIs(result["accepted"], False)
+        self.assertEqual(result["reportOutcome"], "FAILURE_DIAGNOSTIC_ONLY")
+        self.assertEqual(result["goExit"], 1)
+        self.assertEqual(result["eventCheckExit"], 0)
+
     def test_skip_is_a_nonpass_bucket_without_dynamic_reason(self) -> None:
         package = self.packages[0]
         name = self.names[package][0]
@@ -223,7 +309,7 @@ class GoFailureProjectionModels(unittest.TestCase):
         contract = self.raw_contract()
         for go_exit, event_exit in ((True, 1), (1.0, 1), (1, False), (1, 1.0), (0, 0)):
             with self.subTest(go_exit=go_exit, event_exit=event_exit), self.assertRaises(F.FailureDiagnosticError):
-                F.project(b"", contract, F.sha(contract), go_exit, event_exit)
+                F.project(b"", b"", self.repo, contract, F.sha(contract), go_exit, event_exit)
 
 
 if __name__ == "__main__":

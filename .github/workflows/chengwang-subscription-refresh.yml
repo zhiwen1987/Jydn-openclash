@@ -22,17 +22,17 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 65bb6393e41f801b6393b2211ad768abe735e6280965b58152922f325d31dae1
-  CHECKER_SHA256: 76362bdf2c2f2cbdf48222840ef4bd9dbfa703baeff9a45c93a265e2179b3a53
-  MODEL_SHA256: 49f0a5f9fc59c8925b1d13eaec622ff8e37799b3b48d70e61e7debe7dee3588e
+  CONTRACT_SHA256: e8a7cc890030c44bdc5012c01cbcada43bf808f68df9fcd4d654f21105d1fcb1
+  CHECKER_SHA256: f2729f1322c6b7211e18ccf8b9c95ceff5debdb39ce5e475b2c7d29ea31cc7ea
+  MODEL_SHA256: f07e350b12050f95ee8e62165457bff9d5bca93ba9da70fa9dfe99639391650f
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
   EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
-  FAILURE_CHECKER_SHA256: 077ac2092936a270f6c9848508f31ab046bf41c7f9b10599ae713492cd86b2f2
-  FAILURE_MODEL_SHA256: 11af6dacd6cb19536833f0ceb31940acd62f364c757757093ebe9b0158c480db
+  FAILURE_CHECKER_SHA256: 68c5e09e986151cced49e81791407d44af962e9b16225ce1d62f652e82257d53
+  FAILURE_MODEL_SHA256: acf6cb5c50623b8f13e1b3557631c0daf49b46b248b968a14fe8fc8521859ea3
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
   MODULE_COUNT: '825'
-  MODULE_SHA256: ce4c2877dcc073fdf03d4ff812b1b8c7bacbe635b3d329afaedcb7082367208b
+  MODULE_SHA256: 3fc092335a0c408dea820ee0b73216fb57d6580c50c4ba5ae7b71d2d221525ba
   FIXTURE_COUNT: '20'
   FIXTURE_SHA256: 4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf
   TEST_TOP_COUNT: '486'
@@ -40,7 +40,7 @@ env:
   RUN_TOP_COUNT: '481'
   RUN_TOPS_SHA256: 34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0
   CHANGED_GO_COUNT: '24'
-  CHANGED_GO_SHA256: 26fd9d891afc8daf64a0131a6f63e9dfa5a26c9f8a0d3bb6978cd1500e091933
+  CHANGED_GO_SHA256: 33a729e2070523b5f8ec8398818c5aac5273c67d869facf8aa29722afe81d7ab
 
 jobs:
   source-models:
@@ -66,11 +66,11 @@ jobs:
               names.extend(filename+'::'+node.name for item in tree.body if isinstance(item,ast.ClassDef)
                            for node in item.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'))
           names=sorted(names)
-          assert len(names)==len(set(names))==53
-          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='8eaa9856bce3d431c97e4e5b21b72863d0bd995c4a8e109627293476e7da9b19'
+          assert len(names)==len(set(names))==61
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='1093918bbaafd00a40b06a4d7e9856126a89a18c53cf7ff2d9a52864170b48bd'
           text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
           source_contract_checker.verify_source_model_log(text,files,names)
-          print('P207A_SOURCE_MODELS=PASS count=53 go_execution_proven=false')
+          print('P207A_SOURCE_MODELS=PASS count=61 go_execution_proven=false')
           PY
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -178,13 +178,15 @@ jobs:
           if test "$code" != 0 || test "$eventCode" != 0; then
             set +e
             python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py \
-              --events "$out/go-events.private.jsonl" --go-exit "$code" --event-check-exit "$eventCode" \
+              --events "$out/go-events.private.jsonl" --stderr "$out/go.stderr" --repo "$GITHUB_WORKSPACE" \
+              --go-exit "$code" --event-check-exit "$eventCode" \
               --contract "$CONTRACT" --contract-sha256 "$CONTRACT_SHA256" \
               --output "$out/go-failure-report.json"
             failureCode=$?
             if test "$failureCode" = 0; then
               python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py \
                 --report "$out/go-failure-report.json" --events "$out/go-events.private.jsonl" \
+                --stderr "$out/go.stderr" --repo "$GITHUB_WORKSPACE" \
                 --go-exit "$code" --event-check-exit "$eventCode" --contract "$CONTRACT" \
                 --contract-sha256 "$CONTRACT_SHA256"
               failureCode=$?

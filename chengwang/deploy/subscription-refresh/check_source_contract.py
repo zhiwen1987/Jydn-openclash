@@ -344,9 +344,11 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
         '          failureCode=0',
         '          if test "$code" != 0 || test "$eventCode" != 0; then',
         '            python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py',
-        '--events "$out/go-events.private.jsonl" --go-exit "$code" --event-check-exit "$eventCode"',
+        '--events "$out/go-events.private.jsonl" --stderr "$out/go.stderr" --repo "$GITHUB_WORKSPACE"',
+        '--go-exit "$code" --event-check-exit "$eventCode"',
         '--output "$out/go-failure-report.json"',
         '--report "$out/go-failure-report.json" --events "$out/go-events.private.jsonl"',
+        '--stderr "$out/go.stderr" --repo "$GITHUB_WORKSPACE"',
         '--go-exit "$code" --event-check-exit "$eventCode" --contract "$CONTRACT"',
         '          printf \'%s\\n\' "$failureCode" > "$out/failure-check-exit.txt"',
         '          test "$formatCode" = 0',
@@ -364,6 +366,7 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
     for required_private in (
         '> "$out/go-events.private.jsonl" 2> "$out/go.stderr"',
         '--events "$out/go-events.private.jsonl"',
+        '--stderr "$out/go.stderr"',
     ):
         need(required_private in text, "workflow private Go stream remains runner-local")
     for required_original in (
