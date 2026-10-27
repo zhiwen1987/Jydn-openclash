@@ -2,7 +2,7 @@
 
 环境地址和版本以[生产部署记录](production-deployment-20261026.md)为准。新局域网必须重新填写地址、网段、SSH 指纹和端口。
 
-本文是日常操作总览。[管理页面完整操作手册](management-pages.zh-CN.md)逐项介绍 OpenClash 首页、Metacubexd/Zashboard、Kuma、3102、3103、DPanel，以及按钮影响、状态字段、操作流程和只读检查。[当前问题记录](diagnostics-20261027.md)区分已验证结果与尚未修复项；其中第一来源信息已按[独立事务](subscription-info-binding-20261027.md)恢复，第二来源和准入锁仍待处理，不能只凭文档已同步判断全部问题完成。
+本文是日常操作总览。[管理页面完整操作手册](management-pages.zh-CN.md)逐项介绍 OpenClash 首页、Metacubexd/Zashboard、Kuma、3102、3103、DPanel，以及按钮影响、状态字段、操作流程和只读检查。[当前问题记录](diagnostics-20261027.md)区分已验证结果与尚未修复项；两个订阅来源用量已由[自动显示事务](subscription-usage-auto-20261027.md)恢复，后续增删自动同步。既有准入问题不属于本次用量维护范围，不能只凭文档已同步判断全部问题完成。
 
 ## 1. 页面与权限
 
@@ -64,7 +64,7 @@
 
 3103 的来源数量、候选 `node_count`、当前发布及内核运行数是不同口径；“未变化”也可能伴随保留旧来源的 degraded。当前已发现隔离测试进程持锁及 busy 长冷却，仍待修复，不能把所有未准入节点认定为失效，详见[节点数量取证](diagnostics-20261027.md)。
 
-OpenClash 配置卡片的“无订阅信息”指套餐元数据没有取得；249 的两个发布响应没有 `subscription-userinfo`。本实例已为 Provider_BFFC55 单独绑定原始信息地址并验收，节点拉取仍经 249；第二来源未绑定。恢复显示与更新节点是不同操作，不能用内核运行流量冒充套餐用量，详见[实施与回退记录](subscription-info-binding-20261027.md)。
+OpenClash 配置卡片的“无订阅信息”指套餐元数据没有取得，不能用内核运行流量冒充套餐用量。当前已改为 249 自动识别所有启用的公共订阅来源，分别取数、缓存、退避，在 3103 与 OpenClash 卡片显示。两家实际取数及真实 HTTP 已验收，节点拉取仍经原地址；新增、停用、删除无需逐条再绑 OpenClash。失败无历史时显示未获取，有历史时明确标缓存及时间，详见[自动显示与双端恢复](subscription-usage-auto-20261027.md)。
 
 能力数据库为控制目录的 `node-capability.db`；健康状态为 `node-capability.health`，订阅状态为 `subscription-controller/health.json`。这是持续检测得到的本地历史，不是第三方“全球业务可用节点数据库”。未评估、结果过期和业务受限应分别判断。
 

@@ -43,7 +43,8 @@ def context(capture):
     assert sha(capture/'router/core')==CORE_SHA
     for path in (ROOT/'runtime').rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:copy(path,output/'runtime'/path.relative_to(ROOT/'runtime'))
-    for name in ['node_links.py','local_source.py','local_web.py','editor.html','editor.js']:
+    for name in ['node_links.py','local_source.py','local_web.py','editor.html','editor.js',
+                 'subscription_usage.py','usage.html','usage_ui.js']:
         copy(REPO/'monitoring/lan-center/local-subscription'/name,output/'local-subscription'/name)
     copy(capture/'router/core',output/'core');copy(ROOT/'Dockerfile',output/'Dockerfile')
     tar_directory(output,ROOT/'.build/context.tar.gz')
