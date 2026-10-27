@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "report_type": "isolated_subscription_restore_acceptance",
+  "date": "2026-10-27",
+  "timezone": "Asia/Shanghai",
+  "passed": true,
+  "tested_code_baseline": "077f6af0c5fadbf43a1c5051fb1b4aca44ae390b",
+  "scope": "订阅元数据组件真实入口及持久卷恢复，不是生产中心整套重启验收",
+  "case_count": 17,
+  "cases": [
+    {
+      "id": "cold_start_two_sources",
+      "title": "首次启动恢复两个来源",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "upstream_update_same_subscription_url",
+      "title": "同一订阅地址的名称和用量更新",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "add_third",
+      "title": "新增第三个来源",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "delete_second",
+      "title": "删除第二个来源",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "same_id_new_subscription_no_old_name",
+      "title": "同 ID 更换订阅不沿用旧名称",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "subscription_process_restart",
+      "title": "订阅进程重启恢复",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "production_interval_600_restored",
+      "title": "隔离缓存测试恢复600秒周期",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "actual_container_restart_upstream_offline",
+      "title": "上游离线时实际重启隔离容器",
+      "passed": true,
+      "source_count": 2,
+      "cache_timestamp_preserved": true
+    },
+    {
+      "id": "container_recreated_same_data_volume",
+      "title": "保留数据卷删除并重建隔离容器",
+      "passed": true,
+      "source_count": 2
+    },
+    {
+      "id": "new_source_without_cache_not_fabricated",
+      "title": "新增无缓存来源不伪造用量",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "restart_preserves_full_inventory_with_failed_source",
+      "title": "重启保留含失败来源的完整清单",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "upstream_recovers_without_manual_rebind",
+      "title": "上游恢复后自动取数无须重新绑定",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "corrupt_cache_rebuilt_from_live_origin",
+      "title": "缓存损坏时从在线上游重新获取",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "lost_cache_and_offline_clear_unavailable",
+      "title": "缓存丢失且上游离线时明确未获取",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "lost_cache_recovers_when_origin_returns",
+      "title": "缓存丢失后上游返回自动补齐",
+      "passed": true,
+      "source_count": 3
+    },
+    {
+      "id": "all_128_warm_cached_sources_restore",
+      "title": "128来源热缓存完整恢复",
+      "passed": true,
+      "source_count": 128,
+      "cache_seeded_through_real_collector": true
+    },
+    {
+      "id": "empty_inventory_stays_empty_after_restart",
+      "title": "空来源清单重启后仍为空",
+      "passed": true,
+      "source_count": 0
+    }
+  ],
+  "production_protection": {
+    "router_files_unchanged": true,
+    "rules_unchanged": true,
+    "business_choices_unchanged": true,
+    "business_choice_count": 84,
+    "core_pid_unchanged": true,
+    "no_pending_uci_edits": true,
+    "host_files_unchanged": true,
+    "production_container_unchanged": true,
+    "dns_kuma_processes_unchanged": true,
+    "passed": true
+  },
+  "source_fingerprints": {
+    "monitoring/lan-center/local-subscription/subscription_usage.py": "24eef4d32374700b058cbaee18a06cb390851d3ac3096aaeff1612093033ff2e",
+    "monitoring/lan-center/local-subscription/usage_ui.js": "f23cd46272ecda24c8ffbf21145d14d788d36b1a19c422c149614f3a64bf0b52",
+    "monitoring/lan-center/local-subscription/usage.html": "7e2a00145b0618611742ac197e291d6d2f93193295ac7a27e32acfc1e4772314",
+    "installer/runtime/portable_subscriptions.py": "8f8011594af391a2c5af9d4dca3f979de17fc8d572de1504767aa63afb948740"
+  },
+  "test_timing": "更新场景将隔离采集周期设为3秒，缓存重启场景恢复600秒；生产周期未改",
+  "capacity_note": "128来源场景用实际采集器生成隔离缓存，验证重启读取完整性，不代表128个真实上游都重新联网取数",
+  "boundaries": [
+    "持久数据卷及来源清单必须保留",
+    "坏缓存且上游离线时名称/用量无法凭空恢复，明确未获取；上游返回后自动补齐已测",
+    "未做宿主机断电或生产容器实际重启"
+  ],
+  "test_harness_note": "首次隔离启动未就绪，不计通过；对齐隔离启动器模块路径和固定端口/路径后通过。被测生产代码散列未变。",
+  "cleanup": {
+    "containers_removed": true,
+    "guards_stopped": 2
+  },
+  "private_report_sha256": "0fff232e782efedf29a11ff85da72e517b72ec59efd95e6d91b5751a7d70a4e8",
+  "redaction": "只发布脱敏验收摘要；不发布完整私有报告、配置、凭据、用量账户值或测试运行日志",
+  "source_authority": {
+    "registry": "3103 control directory: subscription-sources.json",
+    "imports_luci_config_subscribe_automatically": false,
+    "scope": "17项来源增删与恢复基于该清单，不验证两个入口自动联动"
+  },
+  "followup_read_only_observation": {
+    "date": "2026-10-27",
+    "conversion_saved_address_count": 3,
+    "registry_enabled_source_count": 2,
+    "first_two_addresses_exactly_match": true,
+    "third_address_present_in_registry": false,
+    "configuration_changed_by_this_inspection": false,
+    "note": "当次只读采样，不发布真实订阅地址；不属于17项模拟来源用例"
+  }
+}
