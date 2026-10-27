@@ -12,7 +12,7 @@ import gzip
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import tarfile
@@ -97,31 +97,177 @@ def file_manifest(root: Path) -> dict[str, str]:
     }
 
 
+OCI_MANIFEST = "application/vnd.oci.image.manifest.v1+json"
+OCI_INDEX = "application/vnd.oci.image.index.v1+json"
+OCI_CONFIG = "application/vnd.oci.image.config.v1+json"
+OCI_GZIP_LAYER = "application/vnd.oci.image.layer.v1.tar+gzip"
+DOCKER_GZIP_LAYER = "application/vnd.docker.image.rootfs.diff.tar.gzip"
+DIGEST = re.compile(r"sha256:([0-9a-f]{64})")
+
+
+def strict_json_bytes(payload: bytes, code: str):
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise RuntimeError("docker_archive_json_duplicate_key")
+            value[key] = item
+        return value
+    try:
+        return json.loads(payload, object_pairs_hook=unique)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise RuntimeError(code) from None
+
+
 def validate_docker_archive(path: Path, image_id: str) -> None:
-    expected = image_id.removeprefix("sha256:")
+    expected_match = DIGEST.fullmatch(image_id)
+    if not expected_match:
+        raise RuntimeError("invalid_image_id")
+    expected = expected_match.group(1)
     try:
         with tarfile.open(path, "r:*") as archive:
-            members = archive.getmembers()
-            for member in members:
-                relative = Path(member.name)
-                if relative.is_absolute() or ".." in relative.parts or not (member.isfile() or member.isdir()):
+            members: dict[str, tarfile.TarInfo] = {}
+            for member in archive.getmembers():
+                name = member.name
+                raw = name[:-1] if member.isdir() and name.endswith("/") else name
+                parts = raw.split("/")
+                relative = PurePosixPath(raw)
+                if (not raw or "\\" in raw or relative.is_absolute()
+                        or any(part in ("", ".", "..") for part in parts)
+                        or not (member.isfile() or member.isdir())):
                     raise RuntimeError("unsafe_docker_archive_member")
-            manifest_member = archive.getmember("manifest.json")
-            with archive.extractfile(manifest_member) as stream:
-                manifest = json.load(stream)
-            if not isinstance(manifest, list) or len(manifest) != 1:
-                raise RuntimeError("docker_archive_image_count_invalid")
-            config_name = manifest[0].get("Config")
-            if not isinstance(config_name, str):
-                raise RuntimeError("docker_archive_config_missing")
-            with archive.extractfile(archive.getmember(config_name)) as stream:
-                config = stream.read()
-            if hashlib.sha256(config).hexdigest() != expected:
-                raise RuntimeError("docker_archive_image_id_mismatch")
-            names = {member.name for member in members}
-            if not all(isinstance(layer, str) and layer in names for layer in manifest[0].get("Layers", [])):
-                raise RuntimeError("docker_archive_layer_missing")
-    except (tarfile.TarError, KeyError, json.JSONDecodeError):
+                if name in members:
+                    raise RuntimeError("duplicate_docker_archive_member")
+                members[name] = member
+
+            def member_bytes(name: str, max_size: int = 16 * 1024 * 1024) -> bytes:
+                member = members.get(name)
+                if not member or not member.isfile():
+                    raise RuntimeError("docker_archive_referenced_file_missing")
+                if member.size > max_size:
+                    raise RuntimeError("docker_archive_json_too_large")
+                stream = archive.extractfile(member)
+                if stream is None:
+                    raise RuntimeError("docker_archive_referenced_file_missing")
+                with stream:
+                    return stream.read()
+
+            blob_members: dict[str, tarfile.TarInfo] = {}
+            for name, member in members.items():
+                if not member.isfile() or not name.startswith("blobs/"):
+                    continue
+                match = re.fullmatch(r"blobs/sha256/([0-9a-f]{64})", name)
+                if not match:
+                    raise RuntimeError("docker_archive_blob_path_invalid")
+                value = hashlib.sha256()
+                stream = archive.extractfile(member)
+                if stream is None:
+                    raise RuntimeError("docker_archive_blob_missing")
+                with stream:
+                    while block := stream.read(1024 * 1024):
+                        value.update(block)
+                if value.hexdigest() != match.group(1):
+                    raise RuntimeError("docker_archive_blob_digest_mismatch")
+                blob_members[match.group(1)] = member
+
+            def descriptor_blob(descriptor: object, media_types: set[str], read_payload: bool = True) -> tuple[str, bytes]:
+                if not isinstance(descriptor, dict):
+                    raise RuntimeError("docker_archive_descriptor_media_type_invalid")
+                media_type = descriptor.get("mediaType")
+                if not isinstance(media_type, str) or media_type not in media_types:
+                    raise RuntimeError("docker_archive_descriptor_media_type_invalid")
+                digest_value = descriptor.get("digest")
+                digest_match = DIGEST.fullmatch(digest_value) if isinstance(digest_value, str) else None
+                size = descriptor.get("size")
+                if not digest_match or isinstance(size, bool) or not isinstance(size, int) or size < 0:
+                    raise RuntimeError("docker_archive_descriptor_invalid")
+                encoded = digest_match.group(1)
+                member = blob_members.get(encoded)
+                if member is None:
+                    raise RuntimeError("docker_archive_descriptor_blob_missing")
+                if member.size != size:
+                    raise RuntimeError("docker_archive_descriptor_size_mismatch")
+                return encoded, member_bytes("blobs/sha256/" + encoded) if read_payload else b""
+
+            has_layout = "oci-layout" in members or "index.json" in members
+            if has_layout:
+                if "oci-layout" not in members or "index.json" not in members:
+                    raise RuntimeError("docker_archive_oci_layout_incomplete")
+                layout = strict_json_bytes(member_bytes("oci-layout"), "docker_archive_oci_layout_invalid")
+                if not isinstance(layout, dict) or layout.get("imageLayoutVersion") != "1.0.0":
+                    raise RuntimeError("docker_archive_oci_layout_invalid")
+                index = strict_json_bytes(member_bytes("index.json"), "docker_archive_oci_index_invalid")
+                if (not isinstance(index, dict) or index.get("schemaVersion") != 2
+                        or index.get("mediaType") != OCI_INDEX
+                        or not isinstance(index.get("manifests"), list)
+                        or len(index["manifests"]) != 1):
+                    raise RuntimeError("docker_archive_oci_root_count_invalid")
+                root = index["manifests"][0]
+                platform = root.get("platform") if isinstance(root, dict) else None
+                if platform is not None and (not isinstance(platform, dict)
+                        or platform.get("os") != "linux" or platform.get("architecture") != "amd64"):
+                    raise RuntimeError("docker_archive_oci_platform_invalid")
+                root_digest, manifest_payload = descriptor_blob(root, {OCI_MANIFEST})
+                if root_digest != expected:
+                    raise RuntimeError("docker_archive_image_id_mismatch")
+                manifest = strict_json_bytes(manifest_payload, "docker_archive_oci_manifest_invalid")
+                if (not isinstance(manifest, dict) or manifest.get("schemaVersion") != 2
+                        or manifest.get("mediaType") != OCI_MANIFEST
+                        or not isinstance(manifest.get("layers"), list) or not manifest["layers"]):
+                    raise RuntimeError("docker_archive_oci_manifest_invalid")
+                config_digest, config_payload = descriptor_blob(manifest.get("config"), {OCI_CONFIG})
+                config = strict_json_bytes(config_payload, "docker_archive_oci_config_invalid")
+                if not isinstance(config, dict) or config.get("os") != "linux" or config.get("architecture") != "amd64":
+                    raise RuntimeError("docker_archive_oci_platform_invalid")
+                layer_paths: list[str] = []
+                layer_descriptors: list[tuple[str, tarfile.TarInfo]] = []
+                for descriptor in manifest["layers"]:
+                    layer_digest, _ = descriptor_blob(descriptor, {OCI_GZIP_LAYER, DOCKER_GZIP_LAYER}, read_payload=False)
+                    layer_paths.append("blobs/sha256/" + layer_digest)
+                    layer_descriptors.append((layer_digest, blob_members[layer_digest]))
+                rootfs = config.get("rootfs")
+                diff_ids = rootfs.get("diff_ids") if isinstance(rootfs, dict) else None
+                if (not isinstance(rootfs, dict) or rootfs.get("type") != "layers"
+                        or not isinstance(diff_ids, list) or len(diff_ids) != len(layer_descriptors)
+                        or not all(isinstance(value, str) and DIGEST.fullmatch(value) for value in diff_ids)):
+                    raise RuntimeError("docker_archive_oci_diff_ids_invalid")
+                uncompressed: dict[str, str] = {}
+                for index_value, (layer_digest, member) in enumerate(layer_descriptors):
+                    if layer_digest not in uncompressed:
+                        value = hashlib.sha256()
+                        stream = archive.extractfile(member)
+                        if stream is None:
+                            raise RuntimeError("docker_archive_layer_missing")
+                        try:
+                            with stream, gzip.GzipFile(fileobj=stream) as expanded:
+                                while block := expanded.read(1024 * 1024):
+                                    value.update(block)
+                        except (OSError, EOFError):
+                            raise RuntimeError("docker_archive_layer_compression_invalid") from None
+                        uncompressed[layer_digest] = value.hexdigest()
+                    if diff_ids[index_value] != "sha256:" + uncompressed[layer_digest]:
+                        raise RuntimeError("docker_archive_layer_diff_id_mismatch")
+                legacy = strict_json_bytes(member_bytes("manifest.json"), "docker_archive_manifest_invalid")
+                if not isinstance(legacy, list) or len(legacy) != 1 or not isinstance(legacy[0], dict):
+                    raise RuntimeError("docker_archive_image_count_invalid")
+                if legacy[0].get("Config") != "blobs/sha256/" + config_digest:
+                    raise RuntimeError("docker_archive_legacy_config_mismatch")
+                if legacy[0].get("Layers") != layer_paths:
+                    raise RuntimeError("docker_archive_legacy_layers_mismatch")
+            else:
+                legacy = strict_json_bytes(member_bytes("manifest.json"), "docker_archive_manifest_invalid")
+                if not isinstance(legacy, list) or len(legacy) != 1 or not isinstance(legacy[0], dict):
+                    raise RuntimeError("docker_archive_image_count_invalid")
+                config_name = legacy[0].get("Config")
+                if not isinstance(config_name, str):
+                    raise RuntimeError("docker_archive_config_missing")
+                config_payload = member_bytes(config_name)
+                if hashlib.sha256(config_payload).hexdigest() != expected:
+                    raise RuntimeError("docker_archive_image_id_mismatch")
+                layers = legacy[0].get("Layers")
+                if not isinstance(layers, list) or not all(isinstance(layer, str) and layer in members and members[layer].isfile() for layer in layers):
+                    raise RuntimeError("docker_archive_layer_missing")
+    except (tarfile.TarError, KeyError):
         raise RuntimeError("docker_archive_invalid") from None
 
 

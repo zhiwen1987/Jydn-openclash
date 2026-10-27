@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import hashlib
+import gzip
 import io
 from pathlib import Path
 import sqlite3
@@ -75,6 +76,65 @@ def write_json(path, value):
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
+def make_oci_archive(path, *, multi_root=False, corrupt_unreferenced=False,
+                     duplicate_member=False, traversal=False, legacy_mismatch=False,
+                     wrong_platform=False, wrong_root_size=False):
+    def encoded(value):
+        return json.dumps(value, separators=(",", ":"), sort_keys=True).encode()
+
+    expanded = b"one deterministic tar layer\n"
+    compressed = gzip.compress(expanded, mtime=0)
+    layer_hex = hashlib.sha256(compressed).hexdigest()
+    diff_id = "sha256:" + hashlib.sha256(expanded).hexdigest()
+    config = encoded({
+        "architecture": "amd64", "os": "linux",
+        "rootfs": {"type": "layers", "diff_ids": [diff_id, diff_id]},
+        "config": {"Labels": {"fixture": "oci-containerd"}},
+    })
+    config_hex = hashlib.sha256(config).hexdigest()
+    layers = [
+        {"mediaType": build.OCI_GZIP_LAYER, "digest": "sha256:" + layer_hex, "size": len(compressed)},
+        {"mediaType": build.DOCKER_GZIP_LAYER, "digest": "sha256:" + layer_hex, "size": len(compressed)},
+    ]
+    manifest = encoded({
+        "schemaVersion": 2, "mediaType": build.OCI_MANIFEST,
+        "config": {"mediaType": build.OCI_CONFIG, "digest": "sha256:" + config_hex, "size": len(config)},
+        "layers": layers,
+    })
+    manifest_hex = hashlib.sha256(manifest).hexdigest()
+    root = {"mediaType": build.OCI_MANIFEST, "digest": "sha256:" + manifest_hex,
+            "size": len(manifest) + (1 if wrong_root_size else 0)}
+    if wrong_platform:
+        root["platform"] = {"os": "linux", "architecture": "arm64"}
+    roots = [root]
+    if multi_root:
+        roots.append({**root, "platform": {"os": "linux", "architecture": "arm64"}})
+    index = encoded({"schemaVersion": 2, "mediaType": build.OCI_INDEX, "manifests": roots})
+    layer_path = "blobs/sha256/" + layer_hex
+    legacy_config = "blobs/sha256/" + (layer_hex if legacy_mismatch else config_hex)
+    legacy = encoded([{"Config": legacy_config, "RepoTags": ["fixture:oci"], "Layers": [layer_path, layer_path]}])
+    unreferenced = b"valid unreferenced OCI content"
+    unreferenced_hex = hashlib.sha256(unreferenced).hexdigest()
+    entries = [
+        ("oci-layout", encoded({"imageLayoutVersion": "1.0.0"})),
+        ("index.json", index), ("manifest.json", legacy),
+        ("blobs/sha256/" + manifest_hex, manifest),
+        ("blobs/sha256/" + config_hex, config),
+        (layer_path, compressed),
+        ("blobs/sha256/" + unreferenced_hex, b"corrupt" if corrupt_unreferenced else unreferenced),
+    ]
+    if duplicate_member:
+        entries.append(("index.json", index))
+    if traversal:
+        entries.append(("../escape", b"not allowed"))
+    with tarfile.open(path, "w") as archive:
+        for name, payload in entries:
+            info = tarfile.TarInfo(name)
+            info.size = len(payload)
+            archive.addfile(info, io.BytesIO(payload))
+    return "sha256:" + manifest_hex, "sha256:" + config_hex
+
+
 class FakeRunner:
     def __init__(self):
         self.calls = []
@@ -144,6 +204,49 @@ class ComposePatchTests(unittest.TestCase):
 
 
 class BuildContractTests(unittest.TestCase):
+    def test_containerd_oci_archive_uses_unique_root_manifest_as_image_id(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            archive = Path(temporary) / "oci.tar"
+            image_id, config_id = make_oci_archive(archive)
+            self.assertNotEqual(image_id, config_id)
+            build.validate_docker_archive(archive, image_id)
+
+    def test_oci_archive_rejects_multiple_roots_and_hidden_blob_corruption(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            multi = root / "multi.tar"
+            image_id, _ = make_oci_archive(multi, multi_root=True)
+            with self.assertRaisesRegex(RuntimeError, "docker_archive_oci_root_count_invalid"):
+                build.validate_docker_archive(multi, image_id)
+            corrupt = root / "corrupt.tar"
+            image_id, _ = make_oci_archive(corrupt, corrupt_unreferenced=True)
+            with self.assertRaisesRegex(RuntimeError, "docker_archive_blob_digest_mismatch"):
+                build.validate_docker_archive(corrupt, image_id)
+            platform = root / "platform.tar"
+            image_id, _ = make_oci_archive(platform, wrong_platform=True)
+            with self.assertRaisesRegex(RuntimeError, "docker_archive_oci_platform_invalid"):
+                build.validate_docker_archive(platform, image_id)
+            size = root / "size.tar"
+            image_id, _ = make_oci_archive(size, wrong_root_size=True)
+            with self.assertRaisesRegex(RuntimeError, "docker_archive_descriptor_size_mismatch"):
+                build.validate_docker_archive(size, image_id)
+
+    def test_oci_archive_rejects_duplicate_traversal_and_legacy_mismatch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            duplicate = root / "duplicate.tar"
+            image_id, _ = make_oci_archive(duplicate, duplicate_member=True)
+            with self.assertRaisesRegex(RuntimeError, "duplicate_docker_archive_member"):
+                build.validate_docker_archive(duplicate, image_id)
+            traversal = root / "traversal.tar"
+            image_id, _ = make_oci_archive(traversal, traversal=True)
+            with self.assertRaisesRegex(RuntimeError, "unsafe_docker_archive_member"):
+                build.validate_docker_archive(traversal, image_id)
+            mismatch = root / "legacy-mismatch.tar"
+            image_id, _ = make_oci_archive(mismatch, legacy_mismatch=True)
+            with self.assertRaisesRegex(RuntimeError, "docker_archive_legacy_config_mismatch"):
+                build.validate_docker_archive(mismatch, image_id)
+
     def test_rootfs_lineage_accepts_complete_audited_base_prefix(self):
         base = {"Id": deploy.BASE_IMAGE_ID, "RootFS": {"Type": "layers", "Layers": ["sha256:a", "sha256:b"]}}
         image = {

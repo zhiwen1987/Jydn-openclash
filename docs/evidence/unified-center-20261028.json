@@ -1,0 +1,315 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Asia/Shanghai",
+  "scope": "unified-center-ui-image",
+  "version": "0.2.0",
+  "production": {
+    "accepted": true,
+    "accepted_at": 1793130570.135984,
+    "container_id": "88870aadddf76aab8d4d4f612fde9beb981cddb1c2ae652f4a64983baf3a8d31",
+    "image_id": "sha256:f6aca74281a21bbe5276bdcf247e37a90b7678a2471d868b7df4c91d08a3bb57",
+    "source_commit": "dd2bd9df1574323303a3699d6a21b5dab4c4dea8",
+    "apply_command_seconds": 40.93,
+    "apply_time_is_not_measured_lan_outage": true,
+    "metrics": {
+      "nodes": 43,
+      "subscriptions": 3,
+      "selectors": 84,
+      "rules": 144
+    },
+    "image_sources_verified": 35,
+    "information_sources": 3,
+    "node_sources": 2,
+    "services_at_verification": {
+      "controller": "warning",
+      "nodes": "ok",
+      "usage": "ok",
+      "clash": "ok",
+      "dns": "ok",
+      "kuma": "ok"
+    }
+  },
+  "tests": {
+    "linux_installer_tests": 67,
+    "linux_unified_tests": 33,
+    "linux_local_subscription_tests": 50,
+    "legacy_self_tests": 2,
+    "all_passed": true,
+    "actual_isolated_http_steps": 9,
+    "actual_isolated_http_passed": true,
+    "isolated_restart": {
+      "owned_lab_restarted": true,
+      "same_container_id": "80f71b958fcf2a78b6e0ef4b8e4491e677848fd5d4d71850db286690f49ab5d3",
+      "recovered_metrics": {
+        "nodes": 43,
+        "subscriptions": 3,
+        "selectors": 84,
+        "rules": 144
+      },
+      "protected_files_and_backups_preserved": 6,
+      "information_sources": 3,
+      "node_sources": 2,
+      "old_management_session_invalidated": true,
+      "recovery_observation_seconds": 29.46,
+      "production_not_restarted": true
+    },
+    "browser_viewports": [
+      [
+        1478,
+        1066
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "browser_plugin_available": false,
+    "browser_fallback": "existing Playwright",
+    "real_metrics_shape_and_expired_capabilities_verified": true,
+    "real_kuma_socketio_duplex_verified": true,
+    "kuma_login_form_rendered_no_account_login": true,
+    "offline_archive_deployment_tests": 22,
+    "archive_format_additional_tests": 3
+  },
+  "preservation": {
+    "router_protected_files": 7,
+    "business_choices_preserved": 84,
+    "runtime_rules_preserved": 144,
+    "core_pid_preserved": "424",
+    "dns_and_node_pull_addresses_preserved": true,
+    "source_and_runtime_yaml_unchanged": true,
+    "corefile_sha256": "b56eeb5c70de928390675acbb8182330f369ad5f8144ef47090b89482471d11d",
+    "kuma_configuration_tables_preserved": 9,
+    "other_containers_unchanged_in_switch_window": 41,
+    "unchanged_source_registry_and_credentials_files": [
+      {
+        "name": "admin-token",
+        "unchanged": true
+      },
+      {
+        "name": "provider-token",
+        "unchanged": true
+      },
+      {
+        "name": "subscription-sources.json",
+        "unchanged": true
+      },
+      {
+        "name": "information-sources.json",
+        "unchanged": true
+      },
+      {
+        "name": "provider-token",
+        "unchanged": true
+      }
+    ],
+    "windows_system_proxy_or_dns_changed": false,
+    "lucky_esxi_ikuai_changed": false
+  },
+  "business_observations": {
+    "before": {
+      "domestic": {
+        "http_status": 200,
+        "seconds": 0.435623,
+        "curl_code": 0,
+        "account_flow_tested": false
+      },
+      "google_transport": {
+        "http_status": 204,
+        "seconds": 0.481534,
+        "curl_code": 0,
+        "account_flow_tested": false
+      },
+      "grok_home": {
+        "http_status": 200,
+        "seconds": 1.144325,
+        "curl_code": 0,
+        "account_flow_tested": false
+      }
+    },
+    "first_after": {
+      "domestic": {
+        "http_status": 200,
+        "seconds": 0.336806,
+        "curl_code": 0,
+        "account_flow_tested": false
+      },
+      "google_transport": {
+        "http_status": 0,
+        "seconds": 4.001158,
+        "curl_code": 28,
+        "account_flow_tested": false
+      },
+      "grok_home": {
+        "http_status": 200,
+        "seconds": 1.669216,
+        "curl_code": 0,
+        "account_flow_tested": false
+      }
+    },
+    "later_google_rechecks": [
+      {
+        "attempt": 1,
+        "http_status": 204,
+        "curl_code": 0,
+        "seconds": 0.225934
+      },
+      {
+        "attempt": 2,
+        "http_status": 204,
+        "curl_code": 0,
+        "seconds": 2.464994
+      },
+      {
+        "attempt": 3,
+        "http_status": 204,
+        "curl_code": 0,
+        "seconds": 0.390852
+      }
+    ],
+    "google_transport_detail": {
+      "host_path_tests": {
+        "www.gstatic.com": {
+          "returncode": 0,
+          "summary": "204\t1.626970",
+          "stages": [
+            "* Connected to 10.88.0.254 (10.88.0.254) port 7893",
+            "* CONNECT tunnel: HTTP/1.1 negotiated",
+            "* Establish HTTP proxy tunnel to www.gstatic.com:443",
+            "> CONNECT www.gstatic.com:443 HTTP/1.1",
+            "< HTTP/1.1 200 Connection established",
+            "* CONNECT tunnel established, response 200",
+            "* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / X25519 / id-ecPublicKey",
+            "< HTTP/2 204 "
+          ]
+        },
+        "www.google.com": {
+          "returncode": 28,
+          "summary": "000\t4.002213",
+          "stages": [
+            "* Connected to 10.88.0.254 (10.88.0.254) port 7893",
+            "* CONNECT tunnel: HTTP/1.1 negotiated",
+            "* Establish HTTP proxy tunnel to www.google.com:443",
+            "> CONNECT www.google.com:443 HTTP/1.1",
+            "< HTTP/1.1 200 Connection established",
+            "* CONNECT tunnel established, response 200",
+            "curl: (28) SSL connection timeout"
+          ]
+        },
+        "cp.cloudflare.com": {
+          "returncode": 0,
+          "summary": "204\t0.262980",
+          "stages": [
+            "* Connected to 10.88.0.254 (10.88.0.254) port 7893",
+            "* CONNECT tunnel: HTTP/1.1 negotiated",
+            "* Establish HTTP proxy tunnel to cp.cloudflare.com:443",
+            "> CONNECT cp.cloudflare.com:443 HTTP/1.1",
+            "< HTTP/1.1 200 Connection established",
+            "* CONNECT tunnel established, response 200",
+            "* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / X25519 / id-ecPublicKey",
+            "< HTTP/2 204 "
+          ]
+        }
+      },
+      "google_chain": [
+        "🔎 谷歌服务（Google）",
+        "🔒 隐私代理",
+        "🛡️ 稳定业务出口",
+        "🇯🇵日本高速06|BGP|CTCU"
+      ]
+    },
+    "all_account_flows_tested": false
+  },
+  "publication": {
+    "latest_before_and_after": {
+      "before": {
+        "id": "20261028-032147-c1fe06bcb0b3",
+        "created_at": 1793128931,
+        "status": "accepted",
+        "reason": "independent_probation_passed"
+      },
+      "after": {
+        "id": "20261028-034126-7924c9ead7d9",
+        "created_at": 1793130133,
+        "status": "rolled_back",
+        "reason": "production_smoke_failed:google:0,github:0"
+      }
+    },
+    "publish_attempt_was_existing_startup_scheduler": true,
+    "candidate_automatically_rolled_back": true,
+    "was_not_counted_as_successful_new_node_release": true
+  },
+  "recovery": {
+    "backup": "/opt/clash-center-ui/backups/1793129830767687354",
+    "router_backup": "/root/clash-stack-backups/unified-ui-production-1793129826",
+    "sqlite_integrity": "ok",
+    "sqlite_database_copies": 4,
+    "manual_script": "/opt/clash-center-ui/rollback.sh",
+    "guard_seconds": 600,
+    "guard_stopped_after_accept": true,
+    "legacy_installation_identity_synchronized": true,
+    "production_fault_injection_performed": false,
+    "code_restore_does_not_restore_old_databases": true
+  },
+  "limits": [
+    "No claim every node or logged-in business flow works",
+    "Google TLS instability remains visible; no DNS/shared-node repair performed",
+    "Claude capability error remains visible",
+    "LuCI unauthenticated 403 preserved, same as direct router; no privileged LuCI changes tested",
+    "No installed clash-stack watchdog systemd unit found; legacy state identity updated, not a claim of a running external watchdog",
+    "Existing container supervisor/restart policy retained",
+    "0.1.1 Windows installer ZIP not rebuilt; new image is a separate existing-site upgrade artifact",
+    "Deploy helper supports this audited legacy three-code-bind migration; subsequent image-to-image upgrades need a fresh compatibility check"
+  ],
+  "image_archive": {
+    "roundtrip": {
+      "image_load_roundtrip_passed": true,
+      "image_id": "sha256:f6aca74281a21bbe5276bdcf247e37a90b7678a2471d868b7df4c91d08a3bb57",
+      "archive_bytes": 661018403,
+      "production_container_not_recreated": true,
+      "seconds": 54.73
+    },
+    "content_validation": {
+      "ok": true,
+      "image_id": "sha256:f6aca74281a21bbe5276bdcf247e37a90b7678a2471d868b7df4c91d08a3bb57",
+      "source_commit": "dd2bd9df1574323303a3699d6a21b5dab4c4dea8",
+      "oci_content_chain_verified": true,
+      "files": [
+        {
+          "name": "Clash-Center-0.2.0-linux-amd64.tar.gz",
+          "bytes": 661018403,
+          "sha256": "cc7d19f68857b833feabfb3a5ed8c62f94d4ad43ec27b92e039c650dbeffc37d"
+        },
+        {
+          "name": "context.manifest.json",
+          "bytes": 4329,
+          "sha256": "5c54ae25a3dafeff31bc42f223c1eb94633aed08298ba04256f088615597cfb7"
+        },
+        {
+          "name": "manifest.json",
+          "bytes": 4608,
+          "sha256": "caec9382dc1b07e2237d656494e37ffd6ccb427854b7783f71eda52ab599c35a"
+        },
+        {
+          "name": "unified_center_deploy.py",
+          "bytes": 48123,
+          "sha256": "35037aca6906df243de8ef1c7c3d2ff085acc4703a9243336ca25592862782a8"
+        },
+        {
+          "name": "operations.zh-CN.md",
+          "bytes": 12682,
+          "sha256": "6be58680aeb648ccedc30d534e966ea9f3077ba6343a6a2baee3fec36a4d9d29"
+        },
+        {
+          "name": "SHA256SUMS",
+          "bytes": 449,
+          "sha256": "9a69625e7ff330f06de5ce10bb273cc82559d42cbcd61cb4f4fbdcfc70e0705d"
+        }
+      ],
+      "elapsed_seconds": 67.17,
+      "production_data_included": false
+    },
+    "release_tag": "v0.2.0-unified",
+    "download_pending_upload": true
+  }
+}
