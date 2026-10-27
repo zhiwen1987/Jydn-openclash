@@ -1,0 +1,25 @@
+ARG BASE_IMAGE=lan-center-base:verified-eb0271488325
+FROM ${BASE_IMAGE}
+ARG BASE_IMAGE_ID=sha256:eb0271488325b6f8801f7eebcf36ecf363c82b8ed7a3a8f9145250239771a8f2
+
+USER root
+LABEL io.jydn.clash-center.base-image="${BASE_IMAGE_ID}" \
+      io.jydn.clash-center.build-method="docker-build-offline-increment"
+
+# Rebuild the accepted runtime from reviewed repository sources.  The image is
+# deliberately self-contained; production /data and host-side patch releases
+# are never part of this build context.
+COPY runtime/upstream/ /
+RUN mv /subscription-controller.py /subscription_impl.py
+COPY runtime/portable_subscriptions.py /subscription-controller.py
+COPY local-subscription/ /local-subscription/
+COPY unified-center/ /unified-center/
+
+RUN chmod 700 /*.sh && \
+    python3 -B -m compileall -q \
+      /local-subscription /unified-center \
+      /subscription-controller.py /subscription_impl.py && \
+    sh -n /failover.sh
+
+# Entrypoint, supervisor wiring and healthcheck are inherited unchanged from
+# the audited production base image.
