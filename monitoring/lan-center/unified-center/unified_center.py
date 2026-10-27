@@ -1153,11 +1153,16 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
         if path.is_symlink() or not _inside(path, ASSETS) or not path.is_file():
             raise CenterError("asset_not_found", 404)
         payload = path.read_bytes()
+        if relative == "index.html":
+            for name in ("app.js", "app.css", "logo.png"):
+                digest = hashlib.sha256((ASSETS / name).read_bytes()).hexdigest()[:16]
+                asset = ("/center-assets/" + name).encode()
+                payload = payload.replace(asset + b'"', asset + ("?v=" + digest).encode() + b'"')
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         handler.send_response(200)
         handler.send_header("Content-Type", content_type + ("; charset=utf-8" if content_type.startswith("text/") or content_type in {"application/javascript", "application/json"} else ""))
         handler.send_header("Content-Length", str(len(payload)))
-        handler.send_header("Cache-Control", "public, max-age=300")
+        handler.send_header("Cache-Control", "no-store" if relative == "index.html" else "public, max-age=300")
         handler.send_header("X-Content-Type-Options", "nosniff")
         handler.end_headers()
         handler.wfile.write(payload)

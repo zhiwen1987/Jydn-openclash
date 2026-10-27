@@ -522,6 +522,19 @@ class HttpIntegrationTests(unittest.TestCase):
         except urllib.error.HTTPError as error:
             return error.code, json.loads(error.read())
 
+    def test_index_is_uncached_and_assets_have_content_fingerprints(self):
+        import hashlib
+        import unified_center
+        with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/", timeout=3) as response:
+            self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+            html = response.read()
+        for name in ("app.js", "app.css", "logo.png"):
+            digest = hashlib.sha256((unified_center.ASSETS / name).read_bytes()).hexdigest()[:16]
+            self.assertIn(("/center-assets/" + name + "?v=" + digest).encode(), html)
+        status, payload = self.request("/center-assets/app.js?v=previous-version")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, (unified_center.ASSETS / "app.js").read_bytes())
+
     def test_session_auth_origin_conflict_and_node_probe_does_not_select(self):
         status, result = self.request("/api/center/session", origin=False, csrf=False)
         self.assertEqual((status, result), (200, {"authenticated": False}))
