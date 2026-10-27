@@ -1,0 +1,138 @@
+{
+  "schema": "chengwang.p207a-sealed-archive-a0-wire-sufficiency-peer/v1",
+  "reviewedAt": "2026-10-28T01:22:04+08:00",
+  "reviewRole": "independent_wire_contract_peer",
+  "verdict": "REVISE_BEFORE_FULL_A0_WIRE_IMPLEMENTATION",
+  "model": "UNKNOWN",
+  "scopeCorrection": {
+    "priorV4PeerReceiptSHA256": "450d828f3f888b32a36849ffe6be3afeeb976fd09547a19cd482386025cf766d",
+    "priorReceiptModified": false,
+    "v4ArchitectureAcceptanceRetained": true,
+    "retainedFor": [
+      "R01_NO_R0_STATE_MACHINE",
+      "CRYPTO_KIND_PATHNAME_SEPARATION",
+      "EXISTING_ONLY_NO_CREATE_NO_REPAIR_A1_SOURCE_BOUNDARY",
+      "A0_A1_B_C_D_AUTHORITY_AND_CAPACITY_BOUNDARIES",
+      "SAME_ROOT_HMAC_NON_WORM_BOUNDARY",
+      "EXTERNAL_WITNESS_AND_OLD_BINARY_BOUNDARIES",
+      "LINUX_RENAMEAT2_NOREPLACE_WITHOUT_UNSAFE_FALLBACK"
+    ],
+    "notSufficientFor": "INVENTING_OR_FREEZING_OBSERVABLE_A0_WIRE_BYTES_IDS_OR_ACCEPTANCE_LANGUAGE",
+    "fullA0WireImplementationReady": false,
+    "newNormativeDesignIdentityRequired": "V5_OR_LATER"
+  },
+  "inputs": {
+    "planningRoot": "D:/CodexData/workspace/mihomo-p207a-a0-implementation-plan-20261028-005602",
+    "taskCard": {"bytes": 29509, "sha256": "500094f9a46bf6ff8a0267ae7f91f3073cb974a7421b09e1f57eef2698652916"},
+    "sourceIdentity": {"bytes": 5201, "sha256": "b69bac4c75f45ab885fcc46f99899ee072d110a73b0565400013631c9038dc6e"},
+    "manifest": {"bytes": 3893, "sha256": "9b2ac9ba7a3e77259b91958542578bc80658267acafe7f14993bb0c4520cc05b"},
+    "planningFsyncReceipt": {"bytes": 3672, "sha256": "5c85b463b1f8f1b69b1d5197a02f1d940f4a7035dd5fced6801fc5563486395a"},
+    "sha256Sums": {"bytes": 362, "sha256": "77fe9678af1e41b3cea71404edaaf188cb74354775e1122abd18740e35367bc4", "listedEntriesVerified": 4},
+    "frozenV4ContractSHA256": "ee4e5b8411f546741f9a024df91d674d647ebae24e6312afe72b3ed74f9d463f"
+  },
+  "sourceTruth": {
+    "fixedRevision": "0766c7f7475b5e31633d6093e952d0d360872d4d",
+    "fixedTree": "631313e86168c36310b61500601339410f08fe78",
+    "reviewedProductionFilesEqualV4Revision": true,
+    "onlyReviewedDifferenceFrom041": "chengwang/internal/subscription/refresh_test.go test-only fixed-clock injection",
+    "currentMutableHeadUsedAsEvidence": false,
+    "maxInputBytes": 1048576,
+    "maxStoreBytes": 16777216,
+    "maxScalarBytes": 4096,
+    "storeValidationRequiresUTCZ": false,
+    "storeEncodingUsesGoTimeJSON": true,
+    "storeCommandsAndApprovalsUseOmitEmpty": true
+  },
+  "gapAssessment": [
+    {"id": 1, "topic": "PER_KIND_ENVELOPE_SCHEMA_STRINGS", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Schema is HMAC input and changes reference and seal bytes."},
+    {"id": 2, "topic": "INTENT_CORE_MIGRATION_ID_EPOCH_ENVELOPE_DAG", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Core fields/order/schema and whether envelope reference equals migrationID are unspecified; a naive payload can be self-referential."},
+    {"id": 3, "topic": "NONCE_FIELD_SIZE_AND_ENCODING", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Nonce changes canonical intent bytes and all derived identifiers."},
+    {"id": 4, "topic": "SOURCE_ROOT_AND_ABSENCE_ANCHOR_DTOS", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Semantic anchor lists do not fix fields, types, encodings, ordering, or canonical entry-set identity."},
+    {"id": 5, "topic": "RECEIPT_BLOCKER_ENUM_COUNTS_AND_FIELDS", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Different field or enum choices change receipt bytes, reference, and seal."},
+    {"id": 6, "topic": "HISTORY_SEGMENT_PAYLOAD", "classification": "TRUE_BLOCKER_FOR_FULL_A0", "reason": "A0 includes fixture validation, but sequence, previous-reference, through-hash, entry, empty-segment, and ordering semantics are absent."},
+    {"id": 7, "topic": "ORDINAL_ORIGIN_AND_RANGE", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Original ordinal does not choose zero-based versus one-based or an exact wire integer type."},
+    {"id": 8, "topic": "JSON_SCALAR_BUDGET", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "The production 4096-byte scalar bound cannot apply blanketly to padded base64 for a legal 1 MiB raw candidate; exceptions or an exact archive limit are required."},
+    {"id": 9, "topic": "ARCHIVE_Z_TIME_VS_LOSSLESS_V1_TIME", "classification": "TRUE_SEMANTIC_CONFLICT", "reason": "Production v1 accepts nonzero ordered time.Time values without requiring UTC; direct JSON encoding preserves a valid non-Z offset, while blanket archive Z would reject or normalization would lose exact v1 bytes."},
+    {"id": 10, "topic": "EMBEDDED_V1_NIL_EMPTY_AND_OPTIONAL_FIELDS", "classification": "TRUE_NORMATIVE_BLOCKER", "reason": "Existing commands, approvals, results, and several fields have omitempty or nil semantics; blanket fixed-field rules do not define the exemption needed for lossless v1."},
+    {"id": 11, "topic": "FRAME_FIELD_AND_TOTAL_LIMITS", "classification": "TRUE_BLOCKER_FOR_FINAL_ACCEPTANCE_LANGUAGE", "reason": "The framing bytes are defined, but exact rejection thresholds are observable and only described as bounded."}
+  ],
+  "additionalBlockingObservation": {
+    "id": "TOP_LEVEL_WIRE_DTOS_NOT_CLOSED",
+    "classification": "TRUE_NORMATIVE_BLOCKER",
+    "reason": "The task card's meta, candidate, genesis, intent, history, and receipt structs are explicitly proposals. V4 does not fully fix their JSON field names, types, order, required/optional forms, and per-field bounds. This broadens gaps 1, 2, 4, 5, 6, 7, 9, and 10 rather than creating permission to choose them in code."
+  },
+  "routineImplementationChoicesThatDoNotNeedV5": [
+    "GO_FILE_SPLIT_AND_PRIVATE_HELPER_NAMES",
+    "UNEXPORTED_ENUM_BACKING_INTEGER_VALUES",
+    "LOOP_ALLOCATION_AND_COPY_STRATEGY_WITHIN_FIXED_BOUNDS",
+    "TABLE_DRIVEN_TEST_ORGANIZATION",
+    "PRIVATE_HELPER_DECOMPOSITION_THAT_DOES_NOT_CHANGE_ACCEPTED_BYTES_OR_ERRORS"
+  ],
+  "coherentPrimitiveSubsetCandidateForSeparateAuthorization": [
+    "CLOSED_CRYPTO_KIND_TEXT_PARSE_WITHOUT_PER_KIND_OBJECT_SCHEMAS",
+    "CLOSED_SAFE_BASENAME_GENERATION_AND_RECOGNITION",
+    "LOWERCASE_32_BYTE_DIGEST_HEX_PARSE_AND_FORMAT",
+    "FRAME_BYTE_CONSTRUCTION_WITH_ONLY_FORMAT_MANDATED_UINT32_AND_ARITHMETIC_OVERFLOW_GUARDS",
+    "KREF_KSEAL_KEY_ID_REFERENCE_SEAL_AND_EPOCH_PRIMITIVES_OVER_CALLER_SUPPLIED_ALREADY_CANONICAL_VALUES",
+    "CONSTANT_TIME_SEAL_COMPARISON",
+    "NON_WIRE_CHECKED_ADDITION_AND_HARD_COUNT_BYTE_CONSTANTS",
+    "PRIVATE_V1_DECODE_VALIDATE_ENCODE_ROUNDTRIP_FIXTURES_INCLUDING_NON_Z_OFFSET_PRESERVATION",
+    "ERROR_REDACTION_TEST_INFRASTRUCTURE_WITHOUT_FREEZING_NEW_ARCHIVE_ERROR_CODE_STRINGS"
+  ],
+  "primitiveSubsetConditions": [
+    "ROOT_MUST_SEPARATELY_AUTHORIZE_CODE",
+    "NO_OBJECT_DTO_OR_ENVELOPE_BYTES",
+    "NO_PER_KIND_SCHEMA_SELECTION",
+    "NO_INTENT_MIGRATION_ID_OR_NONCE_BUILDER",
+    "NO_ANCHOR_RECEIPT_OR_HISTORY_SERIALIZATION",
+    "NO_FINAL_SCALAR_TIME_OPTIONAL_OR_FRAME_LIMIT_POLICY",
+    "NO_GOLDEN_VECTOR_PRESENTED_AS_FINAL_WIRE_PROTOCOL",
+    "NO_FILESYSTEM_RANDOM_CLOCK_NETWORK_STORE_OPEN_OR_A1_BEHAVIOR"
+  ],
+  "blockedUntilV5": [
+    "ARCHIVE_META_WIRE_DOCUMENT",
+    "CANDIDATE_ENVELOPE_AND_PAYLOAD",
+    "GENESIS_ENVELOPE_AND_PAYLOAD",
+    "INTENT_CORE_PERSISTED_PAYLOAD_AND_ENVELOPE",
+    "HISTORY_SEGMENT_ENVELOPE_AND_PAYLOAD",
+    "RECEIPT_ENVELOPE_AND_PAYLOAD",
+    "CANONICAL_GOLDEN_BYTES_REFERENCES_SEALS_MIGRATION_IDS_AND_EPOCHS_FOR_THOSE_OBJECTS",
+    "FULL_A0_ACCEPTANCE_MATRIX"
+  ],
+  "recommendedV5Minimum": [
+    "EXACT_SCHEMA_STRINGS_AND_ALL_DTO_FIELD_NAMES_TYPES_ORDER_REQUIRED_OPTIONAL_FORMS",
+    "NON_CIRCULAR_DERIVATION_DAG_FOR_INTENT_CORE_MIGRATION_ID_EPOCH_ENVELOPE_REFERENCE_AND_SEAL",
+    "EXACT_KEY_CONTEXTS_NONCE_SIZE_ENCODING_AND_ID_FORMATS",
+    "EXACT_SOURCE_ROOT_FILE_ABSENCE_ENTRY_SET_AND_REVISION_ANCHOR_DTOS",
+    "CLOSED_RECEIPT_BLOCKER_ENUM_COUNTS_AND_LIMITATION_FIELDS",
+    "EXACT_HISTORY_SEGMENT_SEMANTICS",
+    "ZERO_OR_ONE_BASED_ORDINAL_AND_WIRE_TYPE",
+    "EXACT_TOKEN_DEPTH_SCALAR_FIELD_AND_TOTAL_FRAME_BOUNDS_WITH_RAW_BASE64_EXCEPTION",
+    "ARCHIVE_NATIVE_TIME_ONLY_Z_RULE_AND_LOSSLESS_EMBEDDED_V1_TIME_POLICY",
+    "EXPLICIT_EMBEDDED_V1_OPTIONAL_NIL_EMPTY_EXEMPTIONS"
+  ],
+  "authorizationBoundary": {
+    "rootAuthorizedA0Code": false,
+    "thisReceiptAuthorizesCode": false,
+    "fullA0MustNotBegin": true,
+    "a1MustNotBegin": true,
+    "v4MustRemainImmutable": true,
+    "correctionLocation": "NEW_V5_OR_LATER_IDENTITY"
+  },
+  "nonClaims": [
+    "NO_A0_OR_A1_IMPLEMENTATION",
+    "NO_GO_GOFMT_BUILD_OR_TEST",
+    "NO_BROWSER_SERVICE_SSH_PRODUCTION_SESSION_ROLLOUT_OR_JOBLOG",
+    "NO_RUNTIME_CI_OR_LINUX_DURABILITY",
+    "NO_ACTIVATION_CAPACITY_RELIEF_WORM_WITNESS_OR_DOWNGRADE_PREVENTION"
+  ],
+  "mutations": {
+    "v4": false,
+    "priorFinalReceipt": false,
+    "planningDirectory": false,
+    "formalRepository": false,
+    "formalR": false,
+    "production": false,
+    "newExternalSupplementalReceiptOnly": true
+  }
+}

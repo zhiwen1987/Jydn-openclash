@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -109,6 +111,9 @@ class ClosedSourceContractModels(unittest.TestCase):
         list_lines = " ".join(relative_packages)
         self.workflow.write_text(
             "env:\n  GOOS: linux\n  GOARCH: amd64\n  CGO_ENABLED: '0'\n"
+            "          assert len(names)==len(set(names))==0\n"
+            "          assert hashlib.sha256('\\n'.join(names).encode()).hexdigest()=='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\n"
+            "          print('P207A_SOURCE_MODELS=PASS count=0 go_execution_proven=false')\n"
             "run: |\n          fmt=(\n"
             + "".join("            " + path + "\n" for path in changed)
             + "          )\n          go list -json " + list_lines + " > go-list.private.json\n"
@@ -135,10 +140,45 @@ class ClosedSourceContractModels(unittest.TestCase):
             + "            set -e\n"
             + "          fi\n"
             + "          printf '%s\\n' \"$failureCode\" > \"$out/failure-check-exit.txt\"\n"
+            + "          # BEGIN P207A_ACCEPTED_GATE\n"
             + "          test \"$formatCode\" = 0\n"
-            + "          test ! -s \"$out/gofmt.patch\" && test ! -s \"$out/gofmt.stderr\"\n"
-            + "          test \"$code\" = 0 && test \"$eventCode\" = 0\n"
+            + "          test -f \"$out/gofmt.patch\"\n"
+            + "          test ! -s \"$out/gofmt.patch\"\n"
+            + "          test -f \"$out/gofmt.stderr\"\n"
+            + "          test ! -s \"$out/gofmt.stderr\"\n"
+            + "          test \"$code\" = 0\n"
+            + "          test \"$eventCode\" = 0\n"
+            + "          test \"$failureCode\" = 0\n"
+            + "          test -f \"$out/go.stderr\"\n"
             + "          test ! -s \"$out/go.stderr\"\n"
+            + "          test -s \"$out/source-before.json\"\n"
+            + "          test -s \"$out/source-after.json\"\n"
+            + "          test -s \"$out/go-list-report.json\"\n"
+            + "          test -s \"$out/go-events-report.json\"\n"
+            + "          test -s \"$out/format-exit.txt\"\n"
+            + "          test -s \"$out/go-exit.txt\"\n"
+            + "          test -s \"$out/event-check-exit.txt\"\n"
+            + "          test \"$(cat \"$out/format-exit.txt\")\" = 0\n"
+            + "          test \"$(cat \"$out/go-exit.txt\")\" = 0\n"
+            + "          test \"$(cat \"$out/event-check-exit.txt\")\" = 0\n"
+            + "          # END P207A_ACCEPTED_GATE\n"
+            + "          # BEGIN P207A_FRESH_GATE\n"
+            + "          test -s \"$root/source-before.json\"\n"
+            + "          test -s \"$root/source-after.json\"\n"
+            + "          test -s \"$root/go-list-report.json\"\n"
+            + "          test -s \"$root/go-events-report.json\"\n"
+            + "          test -s \"$root/format-exit.txt\"\n"
+            + "          test -s \"$root/go-exit.txt\"\n"
+            + "          test -s \"$root/event-check-exit.txt\"\n"
+            + "          test -f \"$root/gofmt.patch\"\n"
+            + "          test ! -s \"$root/gofmt.patch\"\n"
+            + "          test -f \"$root/gofmt.stderr\"\n"
+            + "          test ! -s \"$root/gofmt.stderr\"\n"
+            + "          test \"$(cat \"$root/format-exit.txt\")\" = 0\n"
+            + "          test \"$(cat \"$root/go-exit.txt\")\" = 0\n"
+            + "          test \"$(cat \"$root/event-check-exit.txt\")\" = 0\n"
+            + "          # END P207A_FRESH_GATE\n"
+            + "          cmp \"$root/source-before.json\" \"$root/source-after.json\"\n"
             + "      - uses: actions/upload-artifact@pinned\n"
             + "        with:\n"
             + "          name: p207a-source-models-${{ github.run_id }}-${{ github.run_attempt }}\n"
@@ -315,6 +355,96 @@ class ClosedSourceContractModels(unittest.TestCase):
         for label, log in invalid.items():
             with self.subTest(label=label), self.assertRaises(C.ContractError):
                 C.verify_source_model_log(log, files, names)
+
+    def test_workflow_fixed_gate_is_bash_fail_closed_and_rejects_and_lists(self) -> None:
+        if os.name == "nt":
+            git = shutil.which("git")
+            self.assertIsNotNone(git)
+            bash = Path(git).resolve().parents[1] / "bin/bash.exe"
+            self.assertTrue(bash.is_file())
+        else:
+            located = shutil.which("bash")
+            self.assertIsNotNone(located)
+            bash = Path(located)
+        script = C.workflow_accepted_gate_script(self.workflow.read_text(encoding="utf-8"))
+
+        def run_case(*, format_code="0", go_code="0", event_code="0", failure_code="0",
+                     patch=b"", format_stderr=b"", go_stderr=b"", missing=None) -> int:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                out = root / "out"
+                out.mkdir()
+                content = {
+                    "source-before.json": b"{}\n",
+                    "source-after.json": b"{}\n",
+                    "go-list-report.json": b"{}\n",
+                    "go-events-report.json": b"{}\n",
+                    "format-exit.txt": (format_code + "\n").encode(),
+                    "go-exit.txt": (go_code + "\n").encode(),
+                    "event-check-exit.txt": (event_code + "\n").encode(),
+                    "gofmt.patch": patch,
+                    "gofmt.stderr": format_stderr,
+                    "go.stderr": go_stderr,
+                }
+                for name, raw in content.items():
+                    if name != missing:
+                        (out / name).write_bytes(raw)
+                environment = os.environ.copy()
+                for name in ("BASH_ENV", "ENV", "SHELLOPTS", "BASHOPTS"):
+                    environment.pop(name, None)
+                environment.update({
+                    "out": "out", "formatCode": format_code, "code": go_code,
+                    "eventCode": event_code, "failureCode": failure_code,
+                })
+                completed = subprocess.run(
+                    [str(bash), "--noprofile", "--norc", "-euo", "pipefail"],
+                    cwd=root,
+                    env=environment,
+                    input=script.encode(),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                )
+                self.assertEqual(completed.stdout, b"")
+                return completed.returncode
+
+        self.assertEqual(run_case(), 0)
+        cases = (
+            {"go_code": "1", "event_code": "1"},
+            {"event_code": "1"},
+            {"patch": b"FORMAT_DIFF\n"},
+            {"format_stderr": b"FORMAT_ERROR\n"},
+            {"missing": "go-events-report.json"},
+        )
+        for case in cases:
+            with self.subTest(case=case):
+                self.assertNotEqual(run_case(**case), 0)
+        for required in (
+            "source-before.json", "source-after.json", "go-list-report.json", "go-events-report.json",
+            "format-exit.txt", "go-exit.txt", "event-check-exit.txt", "gofmt.patch", "gofmt.stderr",
+        ):
+            with self.subTest(missing=required):
+                self.assertNotEqual(run_case(missing=required), 0)
+
+        original = self.workflow.read_text(encoding="utf-8")
+        pins = self.pins()
+        variants = (
+            original.replace(
+                '          test ! -s "$out/gofmt.patch"\n          test -f "$out/gofmt.stderr"\n          test ! -s "$out/gofmt.stderr"',
+                '          test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"',
+                1,
+            ),
+            original.replace(
+                '          test "$code" = 0\n          test "$eventCode" = 0',
+                '          test "$code" = 0 && test "$eventCode" = 0',
+                1,
+            ),
+        )
+        for value in variants:
+            with self.subTest(and_list=value):
+                self.workflow.write_text(value, encoding="utf-8", newline="\n")
+                with self.assertRaisesRegex(C.ContractError, "workflow fixed gate"):
+                    self.verify(pins)
 
     def test_deleted_source_is_rejected(self) -> None:
         self.assert_rejected(lambda: (self.root / "chengwang/internal/authz/source.go").unlink())

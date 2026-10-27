@@ -1,0 +1,17 @@
+{
+  "schema": "chengwang.errexit-control-flow-reproduction/v1",
+  "sourceCommit": "abd20d2ff14c4fe5282e8814daa69fcdffa4a2f8",
+  "runtime": "existing Git Bash, --noprofile --norc, builtin commands only",
+  "oldPattern": "set -e; test 1 = 0 && test 1 = 0; test 0 = 0; printf REACHED",
+  "oldExit": 0,
+  "oldReachedSuccess": true,
+  "correctedPattern": "set -e; test 1 = 0; test 1 = 0; test 0 = 0; printf REACHED",
+  "correctedExit": 1,
+  "correctedReachedSuccess": false,
+  "reproducesControlFlowShapeOnly": true,
+  "doesNotRerunGoOrProveGoFailureCause": true,
+  "filesystemMutation": false,
+  "network": false,
+  "wsl": false,
+  "production": false
+}

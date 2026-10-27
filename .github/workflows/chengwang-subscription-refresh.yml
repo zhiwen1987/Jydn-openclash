@@ -23,8 +23,8 @@ concurrency:
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
   CONTRACT_SHA256: 1b564ed1f61e54d4c382c8160d544037a38c9c8ecb18a89df1c9c0abcc7afc2e
-  CHECKER_SHA256: f2729f1322c6b7211e18ccf8b9c95ceff5debdb39ce5e475b2c7d29ea31cc7ea
-  MODEL_SHA256: f07e350b12050f95ee8e62165457bff9d5bca93ba9da70fa9dfe99639391650f
+  CHECKER_SHA256: 6bc314b72183c81ee0b459bf6325aa4d5d12c1daf5db5a0501a005025319c886
+  MODEL_SHA256: 29fe76c712b31a81dce1fae3d4da1526a6a982502a29b7e204dd84020d65ea6b
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
   EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
   FAILURE_CHECKER_SHA256: 85f2e66de69e6700c6de3528b6fdad45cc43a67796a7b391211f117d44c62dd6
@@ -66,11 +66,11 @@ jobs:
               names.extend(filename+'::'+node.name for item in tree.body if isinstance(item,ast.ClassDef)
                            for node in item.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'))
           names=sorted(names)
-          assert len(names)==len(set(names))==62
-          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='a90810c3944e4dc681825364ab1595c9e90c172a1d0e987f32795ca6113493c6'
+          assert len(names)==len(set(names))==63
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd'
           text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
           source_contract_checker.verify_source_model_log(text,files,names)
-          print('P207A_SOURCE_MODELS=PASS count=62 go_execution_proven=false')
+          print('P207A_SOURCE_MODELS=PASS count=63 go_execution_proven=false')
           PY
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -194,10 +194,28 @@ jobs:
             set -e
           fi
           printf '%s\n' "$failureCode" > "$out/failure-check-exit.txt"
+          # BEGIN P207A_ACCEPTED_GATE
           test "$formatCode" = 0
-          test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"
-          test "$code" = 0 && test "$eventCode" = 0
+          test -f "$out/gofmt.patch"
+          test ! -s "$out/gofmt.patch"
+          test -f "$out/gofmt.stderr"
+          test ! -s "$out/gofmt.stderr"
+          test "$code" = 0
+          test "$eventCode" = 0
+          test "$failureCode" = 0
+          test -f "$out/go.stderr"
           test ! -s "$out/go.stderr"
+          test -s "$out/source-before.json"
+          test -s "$out/source-after.json"
+          test -s "$out/go-list-report.json"
+          test -s "$out/go-events-report.json"
+          test -s "$out/format-exit.txt"
+          test -s "$out/go-exit.txt"
+          test -s "$out/event-check-exit.txt"
+          test "$(cat "$out/format-exit.txt")" = 0
+          test "$(cat "$out/go-exit.txt")" = 0
+          test "$(cat "$out/event-check-exit.txt")" = 0
+          # END P207A_ACCEPTED_GATE
       - name: Upload bounded accepted evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -248,7 +266,22 @@ jobs:
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/p207a-refresh-readback"
-          test -f "$root/source-before.json" && test -f "$root/source-after.json"
+          # BEGIN P207A_FRESH_GATE
+          test -s "$root/source-before.json"
+          test -s "$root/source-after.json"
+          test -s "$root/go-list-report.json"
+          test -s "$root/go-events-report.json"
+          test -s "$root/format-exit.txt"
+          test -s "$root/go-exit.txt"
+          test -s "$root/event-check-exit.txt"
+          test -f "$root/gofmt.patch"
+          test ! -s "$root/gofmt.patch"
+          test -f "$root/gofmt.stderr"
+          test ! -s "$root/gofmt.stderr"
+          test "$(cat "$root/format-exit.txt")" = 0
+          test "$(cat "$root/go-exit.txt")" = 0
+          test "$(cat "$root/event-check-exit.txt")" = 0
+          # END P207A_FRESH_GATE
           cmp "$root/source-before.json" "$root/source-after.json"
           python3 -I -B chengwang/deploy/subscription-refresh/check_source_contract.py \
             --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" \
@@ -263,10 +296,6 @@ jobs:
             --run-tops-sha256 "$RUN_TOPS_SHA256" --changed-go-count "$CHANGED_GO_COUNT" \
             --changed-go-sha256 "$CHANGED_GO_SHA256" > "$root/source-fresh.json"
           cmp "$root/source-before.json" "$root/source-fresh.json"
-          test "$(cat "$root/format-exit.txt")" = 0
-          test "$(cat "$root/go-exit.txt")" = 0
-          test "$(cat "$root/event-check-exit.txt")" = 0
-          test ! -s "$root/gofmt.patch" && test ! -s "$root/gofmt.stderr"
           python3 -I -B chengwang/deploy/subscription-refresh/check_go_list.py \
             --report "$root/go-list-report.json" --contract "$CONTRACT" \
             --contract-sha256 "$CONTRACT_SHA256"

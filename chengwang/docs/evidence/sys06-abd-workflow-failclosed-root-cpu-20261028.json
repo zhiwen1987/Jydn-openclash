@@ -1,0 +1,16 @@
+{
+  "schema": "chengwang.failclosed-root-cpu/v1",
+  "sourceFullIndexSHA256": "c1cbd45530c20b847dcef90fa730d9111035a980277b36166088b0a390a30a8c",
+  "tests": 63,
+  "failed": 0,
+  "skipped": 0,
+  "exit": 0,
+  "seconds": 32.051,
+  "logSHA256": "cc12e334b09496dda6f828c3381cdf6f7e2718a6d9964d3d8bc6401c0099ff0f",
+  "actualASTNamesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+  "allPrior62NamesPreserved": true,
+  "strictActualLogReplayPassed": true,
+  "existingGitBashGateRegressionExecuted": true,
+  "goExecuted": false,
+  "production": false
+}

@@ -1,5 +1,13 @@
 # 澄网：项目任务清单
 
+2026-10-28 P207 fail-closed修复已root集成3个非Go源并获[独立SOURCE_ACCEPT](evidence/sys06-abd-workflow-failclosed-source-peer-20261028.md)：producer／fresh全部必需条件改独立test，accepted上传前逐项验证9个public成员及非空报告，raw仍不上传，失败仍走有界诊断。[root同源63CPU／真实Git Bash负例／AST与实际日志复演](evidence/sys06-abd-workflow-failclosed-root-cpu-20261028.json)32.051秒通过，原62模型名全保留；[源核对](evidence/sys06-abd-workflow-failclosed-root-source-20261028.json)author patch c701af82…与canonical full-index c1cbd455…只有已验证OID表示差。新提交／最终HEAD source／真实Linux Go与fresh仍待，不称Go已修复。
+
+2026-10-28 [其余5条workflow与9个shell wrapper只读审计](evidence/sys06-abd-five-workflow-andlist-audit-20261028.json)未发现P207同类必需AND漏门；capacity coherent失败原件的captureVerified与fullGoAccepted=false为有意分层，不能将fresh绿色当Go通过。审计只含源码与现有Git Bash最小复现，未运行新Go／Linux／生产。
+
+2026-10-28 [A0 wire sufficiency独审](evidence/sys06-archive-a0-wire-sufficiency-rejection-20261028.json)确认11项＋DTO完整字段规则缺口，状态REVISE_BEFORE_FULL_A0_WIRE_IMPLEMENTATION；v4架构／阶段／安全设计接受仍保留，但不得扩张为full DTO实施许可。新v5规范仅在root指定新目录补齐，当前未实现A0/A1，不以设计文件代证运行或容量释放。
+
+2026-10-28 必须更正abd CI绿色解读：[abd真实原件拒绝](evidence/sys06-abd-p207-false-green-rejection-20261028.json)及root独立ZIP／CRC／退出文件核对证明Go exit1、event reader exit1，8成员accepted名包缺必需go-events-report；481通过／零skip没有证明。source-and-go元数据success来自末门`test code=0 && test eventCode=0`在errexit下首项失败可被后续空stderr成功覆盖，非Go通过；fresh正确在GO_EXIT_MUST_BE_ZERO拒绝。root此前“CI显示执行门通过”的中间更新已向用户明确更正。下一隔离候选修复独立必执行门、逐一必需文件与真实Bash回归，Go业务根因仍须重新导出的失败诊断，不猜测。
+
 2026-10-28 root新5源组合已集成：测试helper第4返回从SourceView纠正为实际Receipt（caller均只用SourceID或丢弃）；诊断仅在完整有界流全部校验后返回最多8个稳定位置并标TRUNCATED，9后任何foreign／invalid仍UNKNOWN空表，Go与fresh门不变。[旧3源leaf因模型名漂移REVISE](evidence/sys06-0766-truncated-leaf-source-rejection-20261028.md)保留，不作为准入；root新组合保留全部原61模型名、新增正确命名positive1并同步workflow62／a90810c3…，source／BUILD_LOCATION_SOURCES／model pins全闭合。[同源62CPU及实际日志严格复演](evidence/sys06-0766-receipt-truncated-combo-cpu-20261028.json)38.221秒通过，[新组合独立SOURCE_ACCEPT](evidence/sys06-0766-receipt-truncated-combo-source-peer-20261028.md)0 findings。Go类型矛盾是源码确定事实，尚未读取真实compiler首行；提交、最终HEAD绑定与新Linux481全运行仍待。生产不动。
 
 2026-10-28 archive新v4设计已在root指定新目录冻结，并获[独立DESIGN_ACCEPT_FOR_A0_A1_IMPLEMENTATION](evidence/sys06-sealed-archive-v4-design-peer-20261028.json)：7件输入开始／结束SHA稳定，R01的残留允许边界与R1／R2／receipt权威全局一致。仅解除设计门；A0/A1代码、Linux耐久、激活、容量释放仍未实现或验收。原v3覆盖事故／REVISE／事后恢复记录全部保留，v4与旧目录均不再原地修订。性能候选另在独立0766快照准备，不混主线诊断，具体9路径闭包／新ref／原Go预算保持按独立source复核进入后续Linux。
@@ -137,14 +145,14 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 固定双配置正常发布与 UNKNOWN 不重发 | 限定隔离验收通过 | 已接受 `2bba397` 的真实正常服务、响应丢失及独立复算；参见 SYS-06 文档 | 不等于全部故障、互联网业务或生产验收 |
 | 旧 native S2 | b5 四模式限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：旧S2 9ZIP／192成员，Go／原checker核心／fresh分别通过 | 仅证明旧S2；不代证HTTP接续、完整私有WAL或生产 |
 | 首次真实 Completion | b5 四模式限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：9ZIP／167成员，各模式Go、原checker main和fresh通过 | 不代证service rebind、普通发布、第二恢复或完整私有WAL |
-| 当前开发提交与 normal／diagnostic | 当前后端46b2146；31ac normal／full race仍拒绝 | [31ac原件](evidence/sys06-31ac-normal-diag-original-audit-20261028.json)：ordinary通过；normal race为180秒包超时，single profile通过，full诊断捕获可复算但Go拒绝。46b的新normal／diag原件尚未独立接受 | 两种timeout仍未关闭；观察到的unfinished测试不当根因，历史结果不外推新HEAD，诊断不替代Go通过 |
+| 当前开发提交与 normal／diagnostic | 当前后端abd20d2；31ac normal／full race仍拒绝 | [31ac原件](evidence/sys06-31ac-normal-diag-original-audit-20261028.json)：ordinary通过；normal race为180秒包超时，single profile通过，full捕获可复算但Go拒绝。新HEAD normal／diag原件尚未独立接受，性能9源候选仅外部冻结 | 两种timeout仍未关闭；未完测试不当根因，历史结果不外推新HEAD。性能候选须在修复已知CI漏门与更新基线后独立Linux实测 |
 | 失败恢复协调器与产品 API | b5 31链限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：31HTTPS、三个MODEL top、原checker/fresh与1541源绑定通过 | 不代证完整故障矩阵、完整私有WAL、真实互联网业务或生产 |
 | 恢复后普通发布与第二次恢复 | b5 31步限定隔离验收通过 | UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复原件及fresh一致 | 单次隔离样本不证明容量稳定或完整故障覆盖 |
-| P207A 订阅刷新 | 46b实际435通过／0失败／46未开始，整体验收拒绝 | [46b原件](evidence/sys06-46b-p207-bounded-failure-original-audit-20261028.json)：subscription120项全通过，官方格式空；Go／accepted reader仍exit1、fresh跳过，subscriptionctl46项未开始，build位置UNKNOWN | 原因仍未知；下一固定reason诊断仅定位UNKNOWN分支，不放宽验收。七包481全部完成、专用race、完整IO-cut覆盖与长期archive仍未证明，不称上线 |
+| P207A 订阅刷新 | abd实际Go exit1；步骤假绿，fresh正确拒绝 | [abd原件](evidence/sys06-abd-p207-false-green-rejection-20261028.json)：格式／7包选择通过，但event reader exit1且缺必需事件接受报告，最新通过／失败计数未知；0766的435／0／46仅保留历史范围 | 先修独立退出门、九项必需件及真Bash回归，再取安全失败报告；不得以job绿色证明481通过。专用race、完整IO-cut覆盖、长期archive及上线均未验收 |
 | P1 配对测量 | 原件完整；四腿 Go 均拒绝 | [原件审计](evidence/sys06-p1-pair-original-audit-20261026.json)：AB／BA 共2ZIP／186成员；原 verify/encoded 复算与Linux报告逐字节一致，569 Go源绑定；四腿格式与ordinary688均接受 | 四次race180.033–180.040秒超时，-p=1未消除本次失败；不代证fd产品修复、稳定收益或因果；Windows CLI报告写出器闭锁如实保留 |
 | 连续恢复后的清理调用归属 | b5 31链限定隔离验收通过 | 同一原件验证source-owned固定来源观测、finalCore清理归属及port/fresh | 仅覆盖显式插桩源码调用；不证明全部OS syscall、完整私有WAL或生产 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
-| 后端与前端统一开发快照 | 已有只读冲突／验收清单，尚未形成联合候选 | 后端46b2146与前端6db41db仍是两条隔离开发线；前端7个可执行文件独有，P207 module与contract pins须重算，任务文档须语义合并 | 必须在新的统一开发候选整合两线并完成同HEAD API／RBAC／HTTPS／浏览器互通；不得把冲突清单或单线通过当联合闭环或生产 |
+| 后端与前端统一开发快照 | 已有只读冲突／验收清单，尚未形成联合候选 | 后端abd20d2与前端6db41db仍是两条隔离开发线；前端7个可执行文件独有，P207 module与contract pins须重算，任务文档须语义合并 | 必须在新的统一开发候选整合两线并完成同HEAD API／RBAC／HTTPS／浏览器互通；不得把冲突清单或单线通过当联合闭环或生产 |
 
 详见 [SYS-06 实施与逐次证据](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)。新源码的 CPU 模型、Linux CI 终态、原件复算和产品／生产验收分别记录。平台9槽；root加8子代理同时running已有[实际列表证据](evidence/eight-child-concurrency-observed-20261026.json)，不是配置推断。执行子代理沿用 GPT-5.6-sol / high；当前活跃数量另查实时代理列表，不能把历史峰值当当前运行数。
 

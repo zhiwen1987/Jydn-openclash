@@ -1,0 +1,13 @@
+{
+  "schema": "chengwang.failclosed-root-source/v1",
+  "base": "abd20d2ff14c4fe5282e8814daa69fcdffa4a2f8",
+  "sourcePaths": 3,
+  "authoredSHA256": "c701af826ae20ae447245d5401515eb068f4793ace9b72b6f612d5ebef5cba52",
+  "fullIndexSHA256": "c1cbd45530c20b847dcef90fa730d9111035a980277b36166088b0a390a30a8c",
+  "fullIndexBytes": 23097,
+  "rawDiffEqual": false,
+  "indexPrefixesModesAndAllOtherDiffBytesEqual": true,
+  "allAfterimagesExact": true,
+  "goExecuted": false,
+  "production": false
+}

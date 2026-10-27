@@ -1,0 +1,84 @@
+{
+  "schema": "chengwang.p207a-exact-head-public-artifact-audit/v1",
+  "assessment": "REJECT_EXACT_HEAD_GO_ACCEPTANCE_AND_FRESH_READBACK",
+  "run": {
+    "id": 40547912819,
+    "attempt": 1,
+    "headSHA": "abd20d2ff14c4fe5282e8814daa69fcdffa4a2f8",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "snapshot": {
+    "path": "D:/CodexData/workspace/mihomo-abd20d2-acceptance-20261028-implementation56h-v1/repo",
+    "headSHA": "abd20d2ff14c4fe5282e8814daa69fcdffa4a2f8",
+    "trackedPathCount": 1610,
+    "trackedGitBlobMismatches": 0,
+    "clean": true
+  },
+  "jobs": {
+    "sourceModels": {"id": 122343431807, "conclusion": "success"},
+    "sourceAndGo": {"id": 122343529779, "conclusion": "success"},
+    "fresh": {"id": 122343900272, "conclusion": "failure", "failedStep": "Recompute source and read bounded reports"}
+  },
+  "artifact": {
+    "id": 12754425620,
+    "name": "p207a-source-go-40547912819-1",
+    "metadataHeadSHA": "abd20d2ff14c4fe5282e8814daa69fcdffa4a2f8",
+    "metadataExpired": false,
+    "bytes": 2579,
+    "sha256": "cdef10dd437276465de157d00cb1eb52af7b92a73c512e314efd9d6a49feaff7",
+    "memberCount": 8,
+    "crcFailures": 0,
+    "pathPolicy": "PASS",
+    "exclusiveMaterialization": "PASS",
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608"
+  },
+  "publicEvidence": {
+    "sourceBeforeAfterByteEqual": true,
+    "sourceReportSHA256": "11a0eeb99a3677ba7a3ebbd8ef2e7eff30b65cbe539bdba24bac194b2502d6de",
+    "exactHeadSourceChecker": "PASS",
+    "exactHeadSourceCheckerMatchesReportAfterLineEndingNormalization": true,
+    "modulePathCount": 825,
+    "fixturePathCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "changedGoSourceCount": 24,
+    "selectedPackageCount": 7,
+    "goListReportReader": "PASS",
+    "formatExit": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "goEventsReportPresent": false,
+    "actualRequiredTopPassCountProven": false,
+    "actualSkipCountProvenZero": false
+  },
+  "freshFailure": {
+    "firstFixedGate": "GO_EXIT_MUST_BE_ZERO",
+    "observedGoExit": 1,
+    "acceptedReportUnavailable": true,
+    "sourceAndFormatPredecessors": "PASS_FROM_PUBLIC_ARTIFACT_AND_EXACT_HEAD_REPLAY",
+    "causeOfGoExit": "UNKNOWN_PRIVATE_RAW_NOT_EXPORTED"
+  },
+  "workflowControlFinding": {
+    "status": "CONFIRMED_SOURCE_CONTROL_FLOW_GAP",
+    "detail": "The source-and-go script uses `test code = 0 && test eventCode = 0` under errexit. A false first test is an ignored non-final AND-list command, then the following empty-stderr test succeeds, so the step can conclude success while persisted goExit and eventCheckExit are both 1.",
+    "effect": "The job conclusion and accepted artifact name do not prove successful Go execution or 481 passing required tops."
+  },
+  "privacy": {
+    "jobLogsRead": false,
+    "privateGoEventsRead": false,
+    "privateGoStderrRead": false,
+    "signedURLPersistedOrPrinted": false,
+    "rawDynamicErrorExported": false
+  },
+  "notProven": [
+    "481 required Go tops passed",
+    "zero skips",
+    "exact Go failure cause",
+    "fresh accepted report readback",
+    "race execution"
+  ]
+}

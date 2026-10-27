@@ -9,6 +9,7 @@ by the contract.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import importlib.util
 import json
@@ -42,12 +43,56 @@ GATE_FILES = (
     "chengwang/deploy/subscription-refresh/test_go_list.py",
     "chengwang/deploy/subscription-refresh/test_source_contract.py",
 )
+SOURCE_MODEL_FILES = (
+    "test_source_contract.py",
+    "test_go_events.py",
+    "test_go_failure.py",
+    "test_go_list.py",
+)
 TEST = re.compile(
     r"^func\s+(Test[A-Za-z0-9_]+)\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s+\*testing\.T\s*\)\s*\{",
     re.M,
 )
 EMBED = re.compile(r"^\s*//go:embed\s+(.+?)\s*$", re.M)
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
+ACCEPTED_GATE_LINES = (
+    'test "$formatCode" = 0',
+    'test -f "$out/gofmt.patch"',
+    'test ! -s "$out/gofmt.patch"',
+    'test -f "$out/gofmt.stderr"',
+    'test ! -s "$out/gofmt.stderr"',
+    'test "$code" = 0',
+    'test "$eventCode" = 0',
+    'test "$failureCode" = 0',
+    'test -f "$out/go.stderr"',
+    'test ! -s "$out/go.stderr"',
+    'test -s "$out/source-before.json"',
+    'test -s "$out/source-after.json"',
+    'test -s "$out/go-list-report.json"',
+    'test -s "$out/go-events-report.json"',
+    'test -s "$out/format-exit.txt"',
+    'test -s "$out/go-exit.txt"',
+    'test -s "$out/event-check-exit.txt"',
+    'test "$(cat "$out/format-exit.txt")" = 0',
+    'test "$(cat "$out/go-exit.txt")" = 0',
+    'test "$(cat "$out/event-check-exit.txt")" = 0',
+)
+FRESH_GATE_LINES = (
+    'test -s "$root/source-before.json"',
+    'test -s "$root/source-after.json"',
+    'test -s "$root/go-list-report.json"',
+    'test -s "$root/go-events-report.json"',
+    'test -s "$root/format-exit.txt"',
+    'test -s "$root/go-exit.txt"',
+    'test -s "$root/event-check-exit.txt"',
+    'test -f "$root/gofmt.patch"',
+    'test ! -s "$root/gofmt.patch"',
+    'test -f "$root/gofmt.stderr"',
+    'test ! -s "$root/gofmt.stderr"',
+    'test "$(cat "$root/format-exit.txt")" = 0',
+    'test "$(cat "$root/go-exit.txt")" = 0',
+    'test "$(cat "$root/event-check-exit.txt")" = 0',
+)
 
 
 class ContractError(AssertionError):
@@ -163,6 +208,26 @@ def names_digest(names: list[str]) -> str:
     return sha("\n".join(names).encode("utf-8"))
 
 
+def source_model_names(root: Path) -> list[str]:
+    gate = PurePosixPath("chengwang/deploy/subscription-refresh")
+    names: list[str] = []
+    for filename in SOURCE_MODEL_FILES:
+        try:
+            tree = ast.parse(read_bound(root, (gate / filename).as_posix()).decode("utf-8"))
+        except (UnicodeDecodeError, SyntaxError) as exc:
+            raise ContractError("source model AST") from exc
+        names.extend(
+            filename + "::" + method.name
+            for item in tree.body
+            if isinstance(item, ast.ClassDef)
+            for method in item.body
+            if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)) and method.name.startswith("test_")
+        )
+    names.sort()
+    need(len(names) == len(set(names)), "source model names duplicate")
+    return names
+
+
 def source_model_inventory(text: str, files: tuple[str, ...]) -> list[str]:
     need(type(text) is str and type(files) is tuple, "source model log inputs")
     observed: list[str] = []
@@ -270,6 +335,25 @@ def automatic_fixture_paths(root: Path, tracked: list[str], go_paths: list[str])
     return sorted(set(package_non_go) | set(observed_embed_paths(root, tracked, [path for path in go_paths if path.endswith(".go")])))
 
 
+def workflow_gate_script(text: str, name: str, expected: tuple[str, ...]) -> str:
+    need(type(text) is str and re.fullmatch(r"P207A_[A-Z_]+_GATE", name) is not None, "workflow gate inputs")
+    pattern = re.compile(
+        r"^          # BEGIN " + re.escape(name) + r"\n"
+        r"(?P<body>(?:^          [^\n]+\n)+)"
+        r"^          # END " + re.escape(name) + r"$",
+        re.M,
+    )
+    matches = list(pattern.finditer(text))
+    need(len(matches) == 1, "workflow fixed gate markers")
+    lines = tuple(line.removeprefix("          ") for line in matches[0].group("body").splitlines())
+    need(lines == expected, "workflow fixed gate commands")
+    return "set -euo pipefail\n" + "\n".join(lines) + "\n"
+
+
+def workflow_accepted_gate_script(text: str) -> str:
+    return workflow_gate_script(text, "P207A_ACCEPTED_GATE", ACCEPTED_GATE_LINES)
+
+
 def workflow_upload_paths(text: str) -> dict[str, tuple[str, ...]]:
     blocks = re.findall(r"(?ms)^      - (?P<body>.*?)(?=^      - |^  [A-Za-z0-9_-]+:|\Z)", text)
     uploads: dict[str, tuple[str, ...]] = {}
@@ -311,6 +395,17 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
     except UnicodeDecodeError as exc:
         raise ContractError("workflow is not utf-8") from exc
     need("\r" not in text, "workflow must be LF")
+    accepted_gate = workflow_accepted_gate_script(text)
+    fresh_gate = workflow_gate_script(text, "P207A_FRESH_GATE", FRESH_GATE_LINES)
+    need("&&" not in accepted_gate and "&&" not in fresh_gate, "workflow fixed gates must not use AND lists")
+    model_names = source_model_names(root)
+    model_digest = names_digest(model_names)
+    need(text.count(f"          assert len(names)==len(set(names))=={len(model_names)}\n") == 1,
+         "workflow source-model count pin")
+    need(text.count("          assert hashlib.sha256('\\n'.join(names).encode()).hexdigest()=="
+                    f"'{model_digest}'\n") == 1, "workflow source-model names pin")
+    need(text.count(f"          print('P207A_SOURCE_MODELS=PASS count={len(model_names)} go_execution_proven=false')\n") == 1,
+         "workflow source-model result pin")
     match = re.search(r"^          fmt=\(\n(?P<body>(?:^            [^\n]+\n)+)^          \)$", text, re.M)
     need(match is not None, "workflow formatter block")
     observed = [line.strip() for line in match.group("body").splitlines()]
@@ -351,18 +446,34 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
         '--stderr "$out/go.stderr" --repo "$GITHUB_WORKSPACE"',
         '--go-exit "$code" --event-check-exit "$eventCode" --contract "$CONTRACT"',
         '          printf \'%s\\n\' "$failureCode" > "$out/failure-check-exit.txt"',
+        '          # BEGIN P207A_ACCEPTED_GATE',
         '          test "$formatCode" = 0',
-        '          test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"',
-        '          test "$code" = 0 && test "$eventCode" = 0',
+        '          test -f "$out/gofmt.patch"',
+        '          test ! -s "$out/gofmt.patch"',
+        '          test -f "$out/gofmt.stderr"',
+        '          test ! -s "$out/gofmt.stderr"',
+        '          test "$code" = 0',
+        '          test "$eventCode" = 0',
+        '          test "$failureCode" = 0',
+        '          test -f "$out/go.stderr"',
         '          test ! -s "$out/go.stderr"',
+        '          test -s "$out/go-events-report.json"',
+        '          # END P207A_ACCEPTED_GATE',
     )
     cursor = -1
     for marker in markers:
         cursor = text.find(marker, cursor + 1)
         need(cursor >= 0, "workflow capture/final-gate order")
     go_test_at = text.index("          go test -json -count=1 -timeout=180s -run '^Test' ")
-    format_gate = '          test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"'
+    format_gate = '          test ! -s "$out/gofmt.patch"'
     need(text.find(format_gate) > go_test_at, "workflow formatting gate must follow Go execution")
+    accepted_upload = "          name: p207a-source-go-${{ github.run_id }}-${{ github.run_attempt }}"
+    accepted_upload_at = text.find(accepted_upload)
+    need(accepted_upload_at >= 0, "workflow accepted artifact identity missing")
+    need(text.find("          # END P207A_ACCEPTED_GATE") < accepted_upload_at,
+         "workflow accepted gate must precede upload")
+    need(text.find("          # END P207A_FRESH_GATE") < text.find('          cmp "$root/source-before.json" "$root/source-after.json"'),
+         "workflow fresh gate must precede report reads")
     for required_private in (
         '> "$out/go-events.private.jsonl" 2> "$out/go.stderr"',
         '--events "$out/go-events.private.jsonl"',
