@@ -23,6 +23,7 @@ jobs:
       - name: Collector, recovery, patch and scheduling boundaries
         run: |
           python -B -m unittest discover -s monitoring/lan-center/local-subscription -p test_subscription_usage.py -v
+          python -B -m unittest discover -s monitoring/lan-center/local-subscription -p test_usage_http_lifecycle.py -v
           python -B -m unittest discover -s monitoring/lan-center/subscription-usage -v
           python -B -m unittest discover -s installer/tests -p test_subscription_scheduler.py -v
           node --check monitoring/lan-center/local-subscription/usage_ui.js

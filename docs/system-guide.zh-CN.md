@@ -66,6 +66,8 @@
 
 OpenClash 配置卡片的“无订阅信息”指套餐元数据没有取得，不能用内核运行流量冒充套餐用量。当前已改为 249 自动识别所有启用的公共订阅来源，分别取数、缓存、退避，在 3103 与 OpenClash 卡片显示。两家实际取数及真实 HTTP 已验收，节点拉取仍经原地址；新增、停用、删除无需逐条再绑 OpenClash。失败无历史时显示未获取，有历史时明确标缓存及时间，详见[自动显示与双端恢复](subscription-usage-auto-20261027.md)。
 
+后续已补充[机场名称与 N 来源验收](subscription-usage-names-acceptance-20261027.md)：中文和编码标题自动识别，手工显示名优先，改账户不继承旧名称。保护上限内按实际来源清单增删重排，不将节点数量等同于套餐数量；同页有最新增量备份和恢复命令。
+
 能力数据库为控制目录的 `node-capability.db`；健康状态为 `node-capability.health`，订阅状态为 `subscription-controller/health.json`。这是持续检测得到的本地历史，不是第三方“全球业务可用节点数据库”。未评估、结果过期和业务受限应分别判断。
 
 域名/IP 分流数据库与上述节点能力数据库不同。原 OpenClash 四库每日自动更新保留；新增 MetaCubeX 候选每 6 小时收集校验，只写 `geodata-trial/state/`，尚未替换生产库。`candidate_ready` 表示数据校验和当前内核兼容检查通过，不代表全量域名分流与业务验收完成，详见[候选任务及停止方法](routing-maintenance-20261027.md)。
