@@ -1,0 +1,123 @@
+{
+  "schema": "chengwang.p207a-public-artifact-audit/v1",
+  "createdAt": "2026-10-26T18:13:01.2475618Z",
+  "status": "SOURCE_AND_FORMAT_PASSED_GO_EXECUTED_EXIT1_EXACT_FAILURE_UNKNOWN",
+  "acceptance": false,
+  "run": {
+    "id": 40374747749,
+    "attempt": 1,
+    "workflow": "Chengwang Subscription Refresh Closed Lane",
+    "headSHA": "caed92981dcfbdade8a741d3635d6db7f26bb72d",
+    "headBranch": "codex/chengwang-p207a-refresh-20261027",
+    "conclusion": "failure"
+  },
+  "jobs": {
+    "sourceModels": {
+      "id": 121754623004,
+      "conclusion": "success",
+      "testsRun": 39,
+      "logConclusion": "OK"
+    },
+    "sourceAndGo": {
+      "id": 121754959409,
+      "conclusion": "failure",
+      "failedStep": "Verify source, official selection, formatting, and exact Go events"
+    },
+    "fresh": {
+      "id": 121755281165,
+      "conclusion": "skipped"
+    }
+  },
+  "artifacts": [
+    {
+      "name": "p207a-source-models-40374747749-1",
+      "zipBytes": 958,
+      "zipSHA256": "a2ed9330c7588768516dd7c801ec90c1a0a93e05e6dde7f1b7628d99631f8dac",
+      "memberCount": 1,
+      "uncompressedBytes": 5301,
+      "custodyBytes": 477,
+      "custodySHA256": "10f5a8f25bbb5bad70d6f3a5aa02563db5118f63c2c9f3bafbb55ff4cf12cb67"
+    },
+    {
+      "name": "p207a-source-go-failure-40374747749-1",
+      "zipBytes": 1822,
+      "zipSHA256": "b591274266d824cdb107ecd2e427e0b3e13eef54332c3f1555a75cdafe9df246",
+      "memberCount": 7,
+      "uncompressedBytes": 1750,
+      "custodyBytes": 1252,
+      "custodySHA256": "c96915ceb184e466d92d2a98b58fbc7c36a825234179501f4f99b61e8a365095"
+    }
+  ],
+  "failureArtifactMembers": [
+    "source-before.json",
+    "source-after.json",
+    "format-exit.txt",
+    "go-exit.txt",
+    "event-check-exit.txt",
+    "gofmt.patch",
+    "gofmt.stderr"
+  ],
+  "typedEvidence": {
+    "sourceBeforeAfterByteEqual": true,
+    "sourceReportBytesEach": 872,
+    "sourceReportSHA256": "21c0995f689667631b53c81f652a2c71d1058e6ade6d7bea6e2f84c03f668611",
+    "formatExit": 0,
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "goListAndSelectionCompleted": true,
+    "goCommandExecuted": true,
+    "eventCheckerExecuted": true
+  },
+  "sourceReport": {
+    "schema": "chengwang.subscription-refresh-source/v3",
+    "additionalFixturePathCount": 0,
+    "automaticFixturePathCount": 20,
+    "baselinePackageTestTopCount": 453,
+    "baselineRequiredRunTopCount": 448,
+    "changedGoSourceCount": 24,
+    "changedGoSourcesSHA256": "851b562120606420e31d3b20ce81e177e51edb8542b8deadbbf3b4eb4ed812cf",
+    "fixtureContentSHA256": "4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf",
+    "fixturePathCount": 20,
+    "foundationCurrentCount": 689,
+    "foundationPreviousCount": 688,
+    "goExecutionProven": false,
+    "moduleContentSHA256": "49e3d18586920b3cd5d255e9c75cab210c415d4e4bf02144170413e4857ab908",
+    "modulePathCount": 825,
+    "p207aAddedTestTopCount": 33,
+    "packageTestTopCount": 486,
+    "packageTestTopsSHA256": "dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f",
+    "requiredRunTopCount": 481,
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0"
+  },
+  "provenSequence": [
+    "source-before verified",
+    "go list and official selection check completed",
+    "format command completed with exit 0",
+    "Go command executed and returned 1",
+    "source-after verified and matched source-before",
+    "event checker executed and returned 1",
+    "final compound gate rejected"
+  ],
+  "notAvailableInPublicFailureArtifact": [
+    "go-list-report.json",
+    "Go event stream",
+    "go.stderr",
+    "event-report.json",
+    "compile-versus-test-versus-panic-versus-race-versus-timeout classification",
+    "failing package name",
+    "failing test top name"
+  ],
+  "boundaries": {
+    "acceptedEvidenceUploaded": false,
+    "freshExecuted": false,
+    "exactFailureCauseKnown": false,
+    "jobLogsRead": false,
+    "privateRawRead": false,
+    "localGoRun": false,
+    "sourceModified": false,
+    "ciRerun": false,
+    "productionTouched": false
+  }
+}

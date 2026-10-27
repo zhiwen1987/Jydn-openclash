@@ -33,10 +33,12 @@ MODULE_METADATA = ("chengwang/go.mod", "chengwang/go.sum", "chengwang/vendor/mod
 GATE_FILES = (
     ".github/workflows/chengwang-subscription-refresh.yml",
     "chengwang/deploy/subscription-refresh/check_go_events.py",
+    "chengwang/deploy/subscription-refresh/check_go_failure.py",
     "chengwang/deploy/subscription-refresh/check_go_list.py",
     "chengwang/deploy/subscription-refresh/check_source_contract.py",
     "chengwang/deploy/subscription-refresh/source_contract.json",
     "chengwang/deploy/subscription-refresh/test_go_events.py",
+    "chengwang/deploy/subscription-refresh/test_go_failure.py",
     "chengwang/deploy/subscription-refresh/test_go_list.py",
     "chengwang/deploy/subscription-refresh/test_source_contract.py",
 )
@@ -339,6 +341,14 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
         '          set +e\n          python3 -I -B chengwang/deploy/subscription-refresh/check_go_events.py',
         '          eventCode=$?\n          set -e',
         '          printf \'%s\\n\' "$eventCode" > "$out/event-check-exit.txt"',
+        '          failureCode=0',
+        '          if test "$code" != 0 || test "$eventCode" != 0; then',
+        '            python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py',
+        '--events "$out/go-events.private.jsonl" --go-exit "$code" --event-check-exit "$eventCode"',
+        '--output "$out/go-failure-report.json"',
+        '--report "$out/go-failure-report.json" --events "$out/go-events.private.jsonl"',
+        '--go-exit "$code" --event-check-exit "$eventCode" --contract "$CONTRACT"',
+        '          printf \'%s\\n\' "$failureCode" > "$out/failure-check-exit.txt"',
         '          test "$formatCode" = 0',
         '          test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"',
         '          test "$code" = 0 && test "$eventCode" = 0',
@@ -360,6 +370,7 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
         '${{ runner.temp }}/p207a-refresh/format-exit.txt',
         '${{ runner.temp }}/p207a-refresh/go-exit.txt',
         '${{ runner.temp }}/p207a-refresh/event-check-exit.txt',
+        '${{ runner.temp }}/p207a-refresh/failure-check-exit.txt',
     ):
         need(required_original in text, "workflow failure originals")
     expected_uploads = {
@@ -383,6 +394,8 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
             "${{ runner.temp }}/p207a-refresh/format-exit.txt",
             "${{ runner.temp }}/p207a-refresh/go-exit.txt",
             "${{ runner.temp }}/p207a-refresh/event-check-exit.txt",
+            "${{ runner.temp }}/p207a-refresh/failure-check-exit.txt",
+            "${{ runner.temp }}/p207a-refresh/go-failure-report.json",
             "${{ runner.temp }}/p207a-refresh/gofmt.patch",
             "${{ runner.temp }}/p207a-refresh/gofmt.stderr",
         ),
@@ -395,7 +408,8 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
     exact_keys(
         pins,
         (
-            "contractSHA256", "checkerSHA256", "modelSHA256", "eventCheckerSHA256", "eventModelSHA256", "goListCheckerSHA256", "goListModelSHA256", "moduleCount", "moduleSHA256",
+            "contractSHA256", "checkerSHA256", "modelSHA256", "eventCheckerSHA256", "eventModelSHA256",
+            "failureCheckerSHA256", "failureModelSHA256", "goListCheckerSHA256", "goListModelSHA256", "moduleCount", "moduleSHA256",
             "fixtureCount", "fixtureSHA256", "testTopCount", "testTopsSHA256",
             "runTopCount", "runTopsSHA256", "changedGoCount", "changedGoSHA256",
         ),
@@ -430,6 +444,8 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
     need(sha(read_bound(root, (gate_dir / "test_source_contract.py").as_posix())) == strict_digest(pins["modelSHA256"]), "workflow model pin")
     need(sha(read_bound(root, (gate_dir / "check_go_events.py").as_posix())) == strict_digest(pins["eventCheckerSHA256"]), "workflow event checker pin")
     need(sha(read_bound(root, (gate_dir / "test_go_events.py").as_posix())) == strict_digest(pins["eventModelSHA256"]), "workflow event model pin")
+    need(sha(read_bound(root, (gate_dir / "check_go_failure.py").as_posix())) == strict_digest(pins["failureCheckerSHA256"]), "workflow failure checker pin")
+    need(sha(read_bound(root, (gate_dir / "test_go_failure.py").as_posix())) == strict_digest(pins["failureModelSHA256"]), "workflow failure model pin")
     need(sha(read_bound(root, (gate_dir / "check_go_list.py").as_posix())) == strict_digest(pins["goListCheckerSHA256"]), "workflow go-list checker pin")
     need(sha(read_bound(root, (gate_dir / "test_go_list.py").as_posix())) == strict_digest(pins["goListModelSHA256"]), "workflow go-list model pin")
 
@@ -556,7 +572,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--contract", required=True)
-    for name in ("contract-sha256", "checker-sha256", "model-sha256", "event-checker-sha256", "event-model-sha256", "go-list-checker-sha256", "go-list-model-sha256", "module-sha256", "fixture-sha256", "test-tops-sha256", "run-tops-sha256", "changed-go-sha256"):
+    for name in ("contract-sha256", "checker-sha256", "model-sha256", "event-checker-sha256", "event-model-sha256", "failure-checker-sha256", "failure-model-sha256", "go-list-checker-sha256", "go-list-model-sha256", "module-sha256", "fixture-sha256", "test-tops-sha256", "run-tops-sha256", "changed-go-sha256"):
         parser.add_argument("--" + name, required=True)
     for name in ("module-count", "fixture-count", "test-top-count", "run-top-count", "changed-go-count"):
         parser.add_argument("--" + name, required=True, type=int)
@@ -567,6 +583,8 @@ def main() -> None:
         "modelSHA256": args.model_sha256,
         "eventCheckerSHA256": args.event_checker_sha256,
         "eventModelSHA256": args.event_model_sha256,
+        "failureCheckerSHA256": args.failure_checker_sha256,
+        "failureModelSHA256": args.failure_model_sha256,
         "goListCheckerSHA256": args.go_list_checker_sha256,
         "goListModelSHA256": args.go_list_model_sha256,
         "moduleCount": args.module_count,

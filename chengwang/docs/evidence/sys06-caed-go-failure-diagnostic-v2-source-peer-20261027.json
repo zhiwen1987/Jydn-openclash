@@ -1,0 +1,98 @@
+{
+  "schema": "chengwang.p207a-private-go-failure-diagnostic-independent-review/v2",
+  "reviewedAt": "2026-10-27T20:27:41.5754024+08:00",
+  "reviewerRole": "diagnostic_reader_peer",
+  "candidate": "D:/CodexData/workspace/mihomo-caed-p207a-private-failure-diagnostic-20261027-implementation56h-v2",
+  "candidateForm": "frozen working-tree afterimage; no candidate commit",
+  "baseCommit": "caed92981dcfbdade8a741d3635d6db7f26bb72d",
+  "verdict": "SOURCE_ACCEPT_FOR_EXACT_HEAD_LINUX_CI_RETEST",
+  "findings": [],
+  "scope": {
+    "trackedChangedPathCount": 5,
+    "trackedChangedPaths": [
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/subscription-refresh/check_go_failure.py",
+      "chengwang/deploy/subscription-refresh/check_source_contract.py",
+      "chengwang/deploy/subscription-refresh/test_go_failure.py",
+      "chengwang/deploy/subscription-refresh/test_source_contract.py"
+    ],
+    "goBusinessSourceChanged": false
+  },
+  "frozenEvidence": {
+    "fullIndexPatch": {
+      "bytes": 54234,
+      "sha256": "c4e23d16d0dc0ce3bf5113f5c074ac36e74b12efe497ef2b96f4b5643bdf79d0",
+      "artifactEqualsFreshGitDiff": true
+    },
+    "sourceManifest": {
+      "bytes": 5536,
+      "sha256": "a782c7442ccd8b650a50070e20af2c721dcefb1efb897144e56fb685237086d6"
+    },
+    "implementationSourceReceipt": {
+      "bytes": 4550,
+      "sha256": "ffddeafa378a9eb5585abdfca85a8ec1c0dc7f30e2da4a573c138ea3b1c67b6a"
+    },
+    "fsyncReceipt": {
+      "bytes": 1262,
+      "sha256": "63e6b3de67d62efd55568cc2690d1cc1bc07a18c1cc1909a437f42b0e2b9fe0c"
+    },
+    "afterimages": {
+      ".github/workflows/chengwang-subscription-refresh.yml": "0b734a2536c4a2c10362aeba084bf7a09b4876319a1fcb93839fb6502dfbdac0",
+      "chengwang/deploy/subscription-refresh/check_go_failure.py": "077ac2092936a270f6c9848508f31ab046bf41c7f9b10599ae713492cd86b2f2",
+      "chengwang/deploy/subscription-refresh/check_source_contract.py": "76362bdf2c2f2cbdf48222840ef4bd9dbfa703baeff9a45c93a265e2179b3a53",
+      "chengwang/deploy/subscription-refresh/test_go_failure.py": "11af6dacd6cb19536833f0ceb31940acd62f364c757757093ebe9b0158c480db",
+      "chengwang/deploy/subscription-refresh/test_source_contract.py": "49f0a5f9fc59c8925b1d13eaec622ff8e37799b3b48d70e61e7debe7dee3588e"
+    }
+  },
+  "independentChecks": {
+    "diffCheck": "PASS",
+    "candidatePythonModels": "PASS 53/53; 0 failures; 0 skips; 42.069 seconds",
+    "exactSourceCheckerReplay": {
+      "status": "PASS",
+      "modulePathCount": 825,
+      "packageTestTopCount": 486,
+      "requiredRunTopCount": 481,
+      "foundationCurrentCount": 689,
+      "foundationPreviousCount": 688,
+      "changedGoSourceCount": 24,
+      "goExecutionProven": false
+    },
+    "realContractTamperMatrix": {
+      "status": "PASS 8/8",
+      "rejected": [
+        "coordinated stage and failureClass replacement",
+        "failureClass replacement",
+        "coordinated markerObservation and failureClass replacement",
+        "coordinated aggregate, package count and declared-name state replacement",
+        "declared running-top name replacement",
+        "Go exit rebinding",
+        "event-check exit rebinding"
+      ],
+      "notEmitted": "private URL, private 64-character value hash, and dynamic subtest name"
+    },
+    "readerBinding": "PASS: reader receives the same runner-private event path and exact captured Go/event-check exits, reprojects with project(), then requires whole-report dictionary equality",
+    "workflowArgv": "PASS: exactly two failure-checker invocations; producer and reader each contain the frozen event, exit, contract, digest, and output/report arguments; source models reject omission of reader event or exit bindings",
+    "uploadClosure": "PASS: three explicit artifact sets; no glob; accepted upload excludes failure report; failure upload contains only bounded report and fixed evidence files; go-events.private.jsonl and go.stderr are absent from every upload",
+    "failureDoesNotGreen": "PASS: diagnostics run before unchanged final tests requiring formatCode=0, empty gofmt outputs, code=0, eventCode=0, and empty go.stderr",
+    "successAndFreshGates": "PASS: successful evidence upload remains closed and fresh still requires both captured exits zero plus bounded report readers"
+  },
+  "securityAndPrivacyBoundary": {
+    "reportAcceptedAlways": false,
+    "rawEventsUploaded": false,
+    "rawStderrUploaded": false,
+    "dynamicSubtestNamesUploaded": false,
+    "privateValuesOrHashesUploaded": false,
+    "timeoutOrPanicMeaning": "fixed marker-observation enums only; no causal claim"
+  },
+  "notRun": [
+    "local Go",
+    "gofmt",
+    "race",
+    "browser",
+    "network service",
+    "SSH",
+    "production",
+    "new Linux CI"
+  ],
+  "boundary": "This is a source and Python-model review of the frozen afterimage. It does not prove Go compilation, Go test success, runtime behavior, performance, deployment readiness, or the cause of the existing Go exit 1. The failure cause remains UNKNOWN until an authorized exact-head Linux run produces runner-local evidence."
+}

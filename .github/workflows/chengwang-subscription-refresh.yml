@@ -23,10 +23,12 @@ concurrency:
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
   CONTRACT_SHA256: 815a9d380ef26f8a3ec10fdba0158e5ca6cb86ea36b1d134c76dc777cf694751
-  CHECKER_SHA256: ba47a9b16a719851a621c635889d700cee4058b104fb1abba6044d3794245bb4
-  MODEL_SHA256: b7de989d2b4d8a0f2d75bcf508808f28a775d10abb70147ee9593f90a2c39eec
+  CHECKER_SHA256: 76362bdf2c2f2cbdf48222840ef4bd9dbfa703baeff9a45c93a265e2179b3a53
+  MODEL_SHA256: 49f0a5f9fc59c8925b1d13eaec622ff8e37799b3b48d70e61e7debe7dee3588e
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
   EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
+  FAILURE_CHECKER_SHA256: 077ac2092936a270f6c9848508f31ab046bf41c7f9b10599ae713492cd86b2f2
+  FAILURE_MODEL_SHA256: 11af6dacd6cb19536833f0ceb31940acd62f364c757757093ebe9b0158c480db
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
   MODULE_COUNT: '825'
@@ -52,23 +54,23 @@ jobs:
         working-directory: chengwang/deploy/subscription-refresh
         run: |
           set -euo pipefail
-          python3 -B -m unittest -v test_source_contract test_go_events test_go_list > source-models.log 2>&1
+          python3 -B -m unittest -v test_source_contract test_go_events test_go_failure test_go_list > source-models.log 2>&1
           python3 - <<'PY'
           import ast,hashlib
           from pathlib import Path
           import check_source_contract as source_contract_checker
-          files=('test_source_contract.py','test_go_events.py','test_go_list.py')
+          files=('test_source_contract.py','test_go_events.py','test_go_failure.py','test_go_list.py')
           names=[]
           for filename in files:
               tree=ast.parse(Path(filename).read_text(encoding='utf-8'))
               names.extend(filename+'::'+node.name for item in tree.body if isinstance(item,ast.ClassDef)
                            for node in item.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'))
           names=sorted(names)
-          assert len(names)==len(set(names))==39
-          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='83990a795e696af0e5962fadef2f6360f739df38e7af067a965e3cc29fdf90d1'
+          assert len(names)==len(set(names))==53
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='8eaa9856bce3d431c97e4e5b21b72863d0bd995c4a8e109627293476e7da9b19'
           text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
           source_contract_checker.verify_source_model_log(text,files,names)
-          print('P207A_SOURCE_MODELS=PASS count=39 go_execution_proven=false')
+          print('P207A_SOURCE_MODELS=PASS count=53 go_execution_proven=false')
           PY
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -105,7 +107,8 @@ jobs:
               --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" \
               --contract-sha256 "$CONTRACT_SHA256" --checker-sha256 "$CHECKER_SHA256" \
               --model-sha256 "$MODEL_SHA256" --event-checker-sha256 "$EVENT_CHECKER_SHA256" \
-              --event-model-sha256 "$EVENT_MODEL_SHA256" --go-list-checker-sha256 "$GO_LIST_CHECKER_SHA256" \
+              --event-model-sha256 "$EVENT_MODEL_SHA256" --failure-checker-sha256 "$FAILURE_CHECKER_SHA256" \
+              --failure-model-sha256 "$FAILURE_MODEL_SHA256" --go-list-checker-sha256 "$GO_LIST_CHECKER_SHA256" \
               --go-list-model-sha256 "$GO_LIST_MODEL_SHA256" --module-count "$MODULE_COUNT" \
               --module-sha256 "$MODULE_SHA256" --fixture-count "$FIXTURE_COUNT" \
               --fixture-sha256 "$FIXTURE_SHA256" --test-top-count "$TEST_TOP_COUNT" \
@@ -171,6 +174,24 @@ jobs:
           eventCode=$?
           set -e
           printf '%s\n' "$eventCode" > "$out/event-check-exit.txt"
+          failureCode=0
+          if test "$code" != 0 || test "$eventCode" != 0; then
+            set +e
+            python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py \
+              --events "$out/go-events.private.jsonl" --go-exit "$code" --event-check-exit "$eventCode" \
+              --contract "$CONTRACT" --contract-sha256 "$CONTRACT_SHA256" \
+              --output "$out/go-failure-report.json"
+            failureCode=$?
+            if test "$failureCode" = 0; then
+              python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py \
+                --report "$out/go-failure-report.json" --events "$out/go-events.private.jsonl" \
+                --go-exit "$code" --event-check-exit "$eventCode" --contract "$CONTRACT" \
+                --contract-sha256 "$CONTRACT_SHA256"
+              failureCode=$?
+            fi
+            set -e
+          fi
+          printf '%s\n' "$failureCode" > "$out/failure-check-exit.txt"
           test "$formatCode" = 0
           test ! -s "$out/gofmt.patch" && test ! -s "$out/gofmt.stderr"
           test "$code" = 0 && test "$eventCode" = 0
@@ -202,6 +223,8 @@ jobs:
             ${{ runner.temp }}/p207a-refresh/format-exit.txt
             ${{ runner.temp }}/p207a-refresh/go-exit.txt
             ${{ runner.temp }}/p207a-refresh/event-check-exit.txt
+            ${{ runner.temp }}/p207a-refresh/failure-check-exit.txt
+            ${{ runner.temp }}/p207a-refresh/go-failure-report.json
             ${{ runner.temp }}/p207a-refresh/gofmt.patch
             ${{ runner.temp }}/p207a-refresh/gofmt.stderr
           if-no-files-found: warn
@@ -229,7 +252,8 @@ jobs:
             --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" \
             --contract-sha256 "$CONTRACT_SHA256" --checker-sha256 "$CHECKER_SHA256" \
             --model-sha256 "$MODEL_SHA256" --event-checker-sha256 "$EVENT_CHECKER_SHA256" \
-            --event-model-sha256 "$EVENT_MODEL_SHA256" --go-list-checker-sha256 "$GO_LIST_CHECKER_SHA256" \
+            --event-model-sha256 "$EVENT_MODEL_SHA256" --failure-checker-sha256 "$FAILURE_CHECKER_SHA256" \
+            --failure-model-sha256 "$FAILURE_MODEL_SHA256" --go-list-checker-sha256 "$GO_LIST_CHECKER_SHA256" \
             --go-list-model-sha256 "$GO_LIST_MODEL_SHA256" --module-count "$MODULE_COUNT" \
             --module-sha256 "$MODULE_SHA256" --fixture-count "$FIXTURE_COUNT" \
             --fixture-sha256 "$FIXTURE_SHA256" --test-top-count "$TEST_TOP_COUNT" \

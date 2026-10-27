@@ -1,0 +1,50 @@
+{
+  "base": "caed92981dcfbdade8a741d3635d6db7f26bb72d",
+  "paths": [
+    {
+      "path": ".github/workflows/chengwang-subscription-refresh.yml",
+      "status": "modified",
+      "beforeBytes": 12782,
+      "beforeSHA256": "64e951c15721f8b5531619978044aeb1bd9401c689955e6aa959f33de7c41cc7",
+      "afterBytes": 14336,
+      "afterSHA256": "0b734a2536c4a2c10362aeba084bf7a09b4876319a1fcb93839fb6502dfbdac0"
+    },
+    {
+      "path": "chengwang/deploy/subscription-refresh/check_go_failure.py",
+      "status": "added",
+      "beforeBytes": 0,
+      "beforeSHA256": null,
+      "afterBytes": 19319,
+      "afterSHA256": "077ac2092936a270f6c9848508f31ab046bf41c7f9b10599ae713492cd86b2f2"
+    },
+    {
+      "path": "chengwang/deploy/subscription-refresh/check_source_contract.py",
+      "status": "modified",
+      "beforeBytes": 31605,
+      "beforeSHA256": "ba47a9b16a719851a621c635889d700cee4058b104fb1abba6044d3794245bb4",
+      "afterBytes": 33094,
+      "afterSHA256": "76362bdf2c2f2cbdf48222840ef4bd9dbfa703baeff9a45c93a265e2179b3a53"
+    },
+    {
+      "path": "chengwang/deploy/subscription-refresh/test_go_failure.py",
+      "status": "added",
+      "beforeBytes": 0,
+      "beforeSHA256": null,
+      "afterBytes": 12519,
+      "afterSHA256": "11af6dacd6cb19536833f0ceb31940acd62f364c757757093ebe9b0158c480db"
+    },
+    {
+      "path": "chengwang/deploy/subscription-refresh/test_source_contract.py",
+      "status": "modified",
+      "beforeBytes": 23357,
+      "beforeSHA256": "b7de989d2b4d8a0f2d75bcf508808f28a775d10abb70147ee9593f90a2c39eec",
+      "afterBytes": 26976,
+      "afterSHA256": "49f0a5f9fc59c8925b1d13eaec622ff8e37799b3b48d70e61e7debe7dee3588e"
+    }
+  ],
+  "diffSHA256": "c4e23d16d0dc0ce3bf5113f5c074ac36e74b12efe497ef2b96f4b5643bdf79d0",
+  "appliedVia": "root apply_patch complete frozen afterimages; no normalized Git hunk conversion",
+  "sourceOnly": true,
+  "runtimeProven": false,
+  "production": false
+}

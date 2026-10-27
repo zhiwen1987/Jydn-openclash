@@ -38,12 +38,16 @@ class ClosedSourceContractModels(unittest.TestCase):
         self.model = self.gate / "test_source_contract.py"
         self.event_checker = self.gate / "check_go_events.py"
         self.event_model = self.gate / "test_go_events.py"
+        self.failure_checker = self.gate / "check_go_failure.py"
+        self.failure_model = self.gate / "test_go_failure.py"
         self.go_list_checker = self.gate / "check_go_list.py"
         self.go_list_model = self.gate / "test_go_list.py"
         self.checker.write_bytes((HERE / "check_source_contract.py").read_bytes())
         self.model.write_bytes(b"# independently workflow-pinned model\n")
         self.event_checker.write_bytes(b"# independently workflow-pinned event checker\n")
         self.event_model.write_bytes(b"# independently workflow-pinned event model\n")
+        self.failure_checker.write_bytes(b"# independently workflow-pinned failure checker\n")
+        self.failure_model.write_bytes(b"# independently workflow-pinned failure model\n")
         self.go_list_checker.write_bytes(b"# independently workflow-pinned go-list checker\n")
         self.go_list_model.write_bytes(b"# independently workflow-pinned go-list model\n")
         self.foundation = self.root / "chengwang/deploy/foundation.py"
@@ -119,6 +123,18 @@ class ClosedSourceContractModels(unittest.TestCase):
             + "          set +e\n          python3 -I -B chengwang/deploy/subscription-refresh/check_go_events.py --events \"$out/go-events.private.jsonl\"\n"
             + "          eventCode=$?\n          set -e\n"
             + "          printf '%s\\n' \"$eventCode\" > \"$out/event-check-exit.txt\"\n"
+            + "          failureCode=0\n"
+            + "          if test \"$code\" != 0 || test \"$eventCode\" != 0; then\n"
+            + "            set +e\n"
+            + "            python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py --events \"$out/go-events.private.jsonl\" --go-exit \"$code\" --event-check-exit \"$eventCode\" --output \"$out/go-failure-report.json\"\n"
+            + "            failureCode=$?\n"
+            + "            if test \"$failureCode\" = 0; then\n"
+            + "              python3 -I -B chengwang/deploy/subscription-refresh/check_go_failure.py --report \"$out/go-failure-report.json\" --events \"$out/go-events.private.jsonl\" --go-exit \"$code\" --event-check-exit \"$eventCode\" --contract \"$CONTRACT\"\n"
+            + "              failureCode=$?\n"
+            + "            fi\n"
+            + "            set -e\n"
+            + "          fi\n"
+            + "          printf '%s\\n' \"$failureCode\" > \"$out/failure-check-exit.txt\"\n"
             + "          test \"$formatCode\" = 0\n"
             + "          test ! -s \"$out/gofmt.patch\" && test ! -s \"$out/gofmt.stderr\"\n"
             + "          test \"$code\" = 0 && test \"$eventCode\" = 0\n"
@@ -149,6 +165,8 @@ class ClosedSourceContractModels(unittest.TestCase):
             + "            ${{ runner.temp }}/p207a-refresh/format-exit.txt\n"
             + "            ${{ runner.temp }}/p207a-refresh/go-exit.txt\n"
             + "            ${{ runner.temp }}/p207a-refresh/event-check-exit.txt\n"
+            + "            ${{ runner.temp }}/p207a-refresh/failure-check-exit.txt\n"
+            + "            ${{ runner.temp }}/p207a-refresh/go-failure-report.json\n"
             + "            ${{ runner.temp }}/p207a-refresh/gofmt.patch\n"
             + "            ${{ runner.temp }}/p207a-refresh/gofmt.stderr\n",
             encoding="utf-8",
@@ -207,6 +225,8 @@ class ClosedSourceContractModels(unittest.TestCase):
             "modelSHA256": C.sha(self.model.read_bytes()),
             "eventCheckerSHA256": C.sha(self.event_checker.read_bytes()),
             "eventModelSHA256": C.sha(self.event_model.read_bytes()),
+            "failureCheckerSHA256": C.sha(self.failure_checker.read_bytes()),
+            "failureModelSHA256": C.sha(self.failure_model.read_bytes()),
             "goListCheckerSHA256": C.sha(self.go_list_checker.read_bytes()),
             "goListModelSHA256": C.sha(self.go_list_model.read_bytes()),
             "moduleCount": value["moduleClosure"]["pathCount"],
@@ -244,6 +264,8 @@ class ClosedSourceContractModels(unittest.TestCase):
             "MODEL_SHA256": "modelSHA256",
             "EVENT_CHECKER_SHA256": "eventCheckerSHA256",
             "EVENT_MODEL_SHA256": "eventModelSHA256",
+            "FAILURE_CHECKER_SHA256": "failureCheckerSHA256",
+            "FAILURE_MODEL_SHA256": "failureModelSHA256",
             "GO_LIST_CHECKER_SHA256": "goListCheckerSHA256",
             "GO_LIST_MODEL_SHA256": "goListModelSHA256",
             "MODULE_COUNT": "moduleCount",
@@ -390,6 +412,42 @@ class ClosedSourceContractModels(unittest.TestCase):
         )
         with self.assertRaisesRegex(C.ContractError, "workflow upload path must be explicit"):
             self.verify(pins)
+
+    def test_workflow_failure_diagnostic_paths_are_exactly_scoped(self) -> None:
+        pins = self.pins()
+        original = self.workflow.read_text(encoding="utf-8")
+        accepted_marker = "            ${{ runner.temp }}/p207a-refresh/go-events-report.json\n"
+        failure_marker = (
+            "          name: p207a-source-go-failure-${{ github.run_id }}-${{ github.run_attempt }}\n"
+            "          path: |\n"
+        )
+        variants = (
+            original.replace(
+                accepted_marker,
+                accepted_marker + "            ${{ runner.temp }}/p207a-refresh/go-failure-report.json\n",
+                1,
+            ),
+            original.replace(
+                failure_marker,
+                failure_marker + "            ${{ runner.temp }}/p207a-refresh/arbitrary-dynamic.json\n",
+                1,
+            ),
+        )
+        for value in variants:
+            with self.subTest(value=value):
+                self.workflow.write_text(value, encoding="utf-8", newline="\n")
+                with self.assertRaisesRegex(C.ContractError, "workflow upload artifact path sets"):
+                    self.verify(pins)
+        reader_events = '--report "$out/go-failure-report.json" --events "$out/go-events.private.jsonl"'
+        reader_exits = '--go-exit "$code" --event-check-exit "$eventCode" --contract "$CONTRACT"'
+        for value in (
+            original.replace(reader_events, '--report "$out/go-failure-report.json"', 1),
+            original.replace(reader_exits, '--contract "$CONTRACT"', 1),
+        ):
+            with self.subTest(reader_binding=value):
+                self.workflow.write_text(value, encoding="utf-8", newline="\n")
+                with self.assertRaisesRegex(C.ContractError, "workflow capture/final-gate order"):
+                    self.verify(pins)
 
     def test_renamed_test_top_is_rejected(self) -> None:
         path = self.root / "chengwang/internal/authn/source_test.go"

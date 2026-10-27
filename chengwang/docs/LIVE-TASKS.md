@@ -1,5 +1,15 @@
 # 澄网：项目任务清单
 
+2026-10-27 root集成后53项纯CPU实际通过（47.365秒、零失败／skip），源差异仍精确等于冻结v2；准备提交与开发ref推送。此结果只证明本次5个非Go源的模型检查，不是Go／Linux执行。新提交的source checker与远端读回、实际Go失败诊断仍待后续步骤；生产／main／Registry不动。
+
+2026-10-27 诊断v2已由root单一集成5个非Go源文件：逐文件完整冻结后像通过apply_patch写入，staged full-index diff与独立peer冻结补丁54234B／SHA c4e23d16d0dc0ce3bf5113f5c074ac36e74b12efe497ef2b96f4b5643bdf79d0逐字节相等；[独立源码复核](evidence/sys06-caed-go-failure-diagnostic-v2-source-peer-20261027.json)53项及8类篡改／隐私负例通过。root同源53项CPU正在运行，尚未提交或新Linux重跑。reader必须使用同一runner-local事件及两项真实exit重投影，并精确比较整份报告；raw仍不上传，失败诊断accepted恒false，原验收门不放宽。协调者生成的另一个外部chunk在副本上后像不一致，已判无效且保留，root未使用该chunk；未冻结handoff manifest。Go原失败原因仍UNKNOWN，不能把诊断源码通过称为Go修复。
+
+2026-10-27 当前后端caed的[连续恢复原件审计](evidence/sys06-caed-continuous-original-audit-20261027.json)已限定通过：run40374724372的5个ZIP与14项审计输入哈希经root再次核对；exact caed checker、31个原始HTTP响应（26×200／5×201）、两次恢复、6端口拒绝连接、空格式门、前后source绑定及producer／独立复算／fresh报告字节一致。仅使用v2最终收据，初次CRLF副本拒绝与v1收据路径错误均保留；不是本机Linux重跑，也不证明生产、完整私有WAL或互联网业务。P207 Go失败仍独立存在，诊断v2已获源码准入，尚待root集成和新Linux实际执行；不能以31链通过抵消该失败。
+
+2026-10-27 前端开发线 `6db41db55f14fd137f7cd8032c52af043870f28b` 的[真实原件审计](evidence/sys06-6db-overview-readonly-original-audit-20261027.json)已完成：CDP／Playwright各两种配置，producer、独立检查器及CI fresh三向报告逐字节一致，236项source CPU通过。仅接受只读错误／UNKNOWN Overview 场景，authorization仍BLOCKED；不证明全部业务或生产就绪。成功包没有独立发布worker关系直方图，不能据此声称零worker或唯一修复因果。后端仍为caed且P207 Go exit1原因未明；两开发线尚未统一集成验收。生产／main／Registry不动。
+
+2026-10-27 新后端 `caed92981dcfbdade8a741d3635d6db7f26bb72d`：17源／25路径已提交并双开发ref推送精确读回，root最终39项source-model复跑通过。专用[run40374747749原件](evidence/sys06-caed-p207a-go-exit1-original-audit-20261027.json)确认Linux39模型、源码before／after一致、按固定workflow顺序的official selection及空格式门已过；Go命令确实执行exit1、事件检查exit1，fresh未跑。公开失败包无events／stderr或declared-top失败字段，编译／测试／panic／timeout及具体失败名均未知；只读job metadata或这7个成员不能补足。外部下一最小修订正在添加仅允许固定schema／source-declared名字与有界位置的诊断，raw仍runner-local，Go失败不能绿化。新同HEAD旧native／continuous／Completion metadata success，原件待分别验收；不代证未过的P207或normal race。[480旧31链原件](evidence/sys06-480c-continuous-format-rejection-20261027.json)虽有实际Go与31HTTP通过事实，但精确旧reader被非空格式门拒，整体仍拒且只保留历史范围。此段与新两收据尚未提交；main／Registry／生产未改。
+
 2026-10-27 后端最小修订开发集成：root已按19个顺序chunk集成17源，完整Git diff逐字节等于冻结补丁SHA721f12d72fe4ebd6eb6d99fb2047f7158467c4c7d21e2c6becdda8a28ecdee17；6份原待归档文档及用户原工作区保留。[独立peer](evidence/sys06-508-parser-format-source-peer-20261027.json)实际342项纯CPU通过，确认13个Go后像精确来自官方Linux完整格式补丁、实际Linux39模型日志重放与method backref／五类负例严格拒绝、原688与689／481名称及预算／privacy／capture门保持。[root源记录](evidence/sys06-508-parser-format-root-source-integration-20261027.json)仅证明源码集成，最终HEAD的39模型复跑及新Linux格式／official-list／编译／ordinary481／fresh仍待；race／typed失败定位／长期archive并未因本修订完成。新的性能ownership候选仍在外部独审，未混入本次修订。生产／main／Registry不动，下方旧HEAD运行失败保留。
 
 2026-10-27 23fe真实浏览器原件已限定闭合：[8 ZIP独立审计](evidence/sys06-23fe-overview-original-audit-20261027.json)确认两Playwright配置的原CLI／CI fresh／producer三向字节一致，四图已目视，但仅接受只读error／UNKNOWN UI流，authorization仍BLOCKED且不证明整套业务。两CDP均无accepted independent report，extraWorkers=2且CHROME_EXTENSION=2、context均MATCH、opener均MISSING，守卫在CDP_POST_TARGETS拒绝；这不证明扩展worker授权归属。前端下一外部最小候选正在依据精确Chrome／Chromium与已pin Playwright源码约束direct CDP启动扩展功能，尚未集成或运行；guard／RPC／超时／retry不放宽。root最终236纯CPU报告与本次原件分别保留，不相互代证。
@@ -93,13 +103,14 @@ f9实际结果与HTTP6源码修复（2026-10-26）：首次Completion四mode的9
 | 固定双配置正常发布与 UNKNOWN 不重发 | 限定隔离验收通过 | 已接受 `2bba397` 的真实正常服务、响应丢失及独立复算；参见 SYS-06 文档 | 不等于全部故障、互联网业务或生产验收 |
 | 旧 native S2 | b5 四模式限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：旧S2 9ZIP／192成员，Go／原checker核心／fresh分别通过 | 仅证明旧S2；不代证HTTP接续、完整私有WAL或生产 |
 | 首次真实 Completion | b5 四模式限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：9ZIP／167成员，各模式Go、原checker main和fresh通过 | 不代证service rebind、普通发布、第二恢复或完整私有WAL |
-| 当前提交 normal／diagnostic | b5 ordinary通过；normal／full race拒绝 | [原件](evidence/sys06-b5-normal-diag-original-audit-20261026.json)：ordinary688／2012通过；normal180.047秒超时，full180.043秒超时；single容量78.10秒仅诊断接受 | 两种timeout均未解决；fresh诊断不替代Go通过，不证明稳定性能收益 |
+| 当前开发提交与 normal／diagnostic | 当前后端caed；历史480 ordinary通过、normal／full race拒绝 | [480原件](evidence/sys06-480c-normal-diag-original-audit-20261027.json)：ordinary2016语义／689必需／零skip通过；normal180.038秒、full180.051秒超时。caed的新normal／diag原件尚未独立接受 | 两种timeout仍未关闭；历史结果不外推新HEAD，fresh诊断不替代Go通过，不证明稳定性能收益 |
 | 失败恢复协调器与产品 API | b5 31链限定隔离验收通过 | [三链原件](evidence/sys06-b5-three-chain-original-audit-20261026.json)：31HTTPS、三个MODEL top、原checker/fresh与1541源绑定通过 | 不代证完整故障矩阵、完整私有WAL、真实互联网业务或生产 |
 | 恢复后普通发布与第二次恢复 | b5 31步限定隔离验收通过 | UNKNOWN→恢复→普通ACK→第二UNKNOWN→第二恢复原件及fresh一致 | 单次隔离样本不证明容量稳定或完整故障覆盖 |
-| P207A 订阅刷新 | v5 后端＋CI v3 已集成开发源码；Linux待验 | [v4拒绝](evidence/sys06-p207a-v4-go-source-rejection-20261027.json)保留；[v5 Go-only peer](evidence/sys06-p207a-v5-go-source-peer-20261027.json)及[CI v3 peer](evidence/sys06-p207a-v5-ci-source-peer-20261027.json)仅准入；[root](evidence/sys06-p207a-v5-root-source-integration-20261027.json)逐项核对49源／50chunks，342纯CPU通过 | exact HEAD格式、编译、七包ordinary481与IO cut实际结果仍待；专用race／typed故障定位／长期sealed archive未完成，不称上线 |
+| P207A 订阅刷新 | caed Linux已执行；Go失败、具体原因未知 | [caed原件](evidence/sys06-caed-p207a-go-exit1-original-audit-20261027.json)：39模型通过、source前后一致、官方选择与空格式门通过；Go exit1，event-check exit1，fresh跳过。v4拒绝及v5源码准入记录仍保留历史范围 | 公开7成员失败包不足以区分编译／断言／panic／timeout；有界诊断v2正在外部修订与独立复核。七包ordinary481、IO cut、专用race及长期sealed archive均未接受，不称上线 |
 | P1 配对测量 | 原件完整；四腿 Go 均拒绝 | [原件审计](evidence/sys06-p1-pair-original-audit-20261026.json)：AB／BA 共2ZIP／186成员；原 verify/encoded 复算与Linux报告逐字节一致，569 Go源绑定；四腿格式与ordinary688均接受 | 四次race180.033–180.040秒超时，-p=1未消除本次失败；不代证fd产品修复、稳定收益或因果；Windows CLI报告写出器闭锁如实保留 |
 | 连续恢复后的清理调用归属 | b5 31链限定隔离验收通过 | 同一原件验证source-owned固定来源观测、finalCore清理归属及port/fresh | 仅覆盖显式插桩源码调用；不证明全部OS syscall、完整私有WAL或生产 |
 | 整套系统、灰度及生产读回 | 未完成／本轮未执行 | SYS-01–30 原范围保留 | DNS、多内核、业务分流、企业治理、UI、容量／浸泡、备份回滚、授权灰度及生产读回 |
+| 后端与前端统一开发快照 | 尚未形成联合验收候选 | 后端caed929与前端6db41db是两条隔离开发线，各自证据只能覆盖其精确HEAD | 必须在统一开发候选中整合两线、更新全部source pins、验证API／RBAC／真实HTTPS与浏览器互通；单线通过不代证联合闭环，更不代生产 |
 
 详见 [SYS-06 实施与逐次证据](SYS06-MIHOMO-LIFECYCLE-IMPLEMENTATION.md)。新源码的 CPU 模型、Linux CI 终态、原件复算和产品／生产验收分别记录。平台9槽；root加8子代理同时running已有[实际列表证据](evidence/eight-child-concurrency-observed-20261026.json)，不是配置推断。执行子代理沿用 GPT-5.6-sol / high；当前活跃数量另查实时代理列表，不能把历史峰值当当前运行数。
 

@@ -1,0 +1,88 @@
+{
+  "schema": "chengwang.overview-browser-public-artifact-audit/v1",
+  "status": "ACCEPTED_FOR_DECLARED_OVERVIEW_READONLY_LAB_SCOPE",
+  "acceptance": true,
+  "run": {
+    "id": 40376871534,
+    "attempt": 1,
+    "workflow": "Chengwang Real Overview Evidence UI Browser",
+    "headSHA": "6db41db55f14fd137f7cd8032c52af043870f28b",
+    "headBranch": "codex/chengwang-overview-browser-20261024",
+    "conclusion": "success"
+  },
+  "source": {
+    "repo": "D:/CodexData/workspace/chengwang-overview-browser-3acoku9y/r",
+    "headSHA": "6db41db55f14fd137f7cd8032c52af043870f28b",
+    "clean": true
+  },
+  "artifacts": [
+    {"name":"overview-ui-evidence_disabled-chrome-cdp-40376871534-1","zipBytes":1658740,"zipSHA256":"4c602c08d6e53546fc86fc84f597995484ede26bfcc12dbf51305bc0f2f66793","memberCount":56,"expandedBytes":2581794,"custodyBytes":8612,"custodySHA256":"0663a7f6da7fa140cfe7c23e7f350ca9098e06d397551bba0749d6ba5f8838ca"},
+    {"name":"overview-ui-evidence_disabled-playwright-40376871534-1","zipBytes":1648880,"zipSHA256":"16fa5678ecaa8da3f435a462ca28ef10f54019873df1c2858e2abad9a529a5d0","memberCount":56,"expandedBytes":2572496,"custodyBytes":8614,"custodySHA256":"1960c291ae80e8a8101689658f3d4bdf531bdeb185b650553f3af280e012eeca"},
+    {"name":"overview-ui-evidence_enabled_unknown-chrome-cdp-40376871534-1","zipBytes":1967981,"zipSHA256":"d2cafea0cd1808379ebd4e4ae1f0eba61a6b4370b0e20cd6bef0e0eff2e5a2d0","memberCount":56,"expandedBytes":2961318,"custodyBytes":8625,"custodySHA256":"11c6163a531bfd65e80c99f08db33266879240b75f5f3fcaf58bbb0ef74eef73"},
+    {"name":"overview-ui-evidence_enabled_unknown-playwright-40376871534-1","zipBytes":1966164,"zipSHA256":"c4d97fd790d9dc5b5400edc22df775e3564fa2a9e2d99925ec7fe656247616c5","memberCount":56,"expandedBytes":2960487,"custodyBytes":8622,"custodySHA256":"c3b86234550b00c193c5e31eda32f198463e3e0f880c417ccca8b05613d5bdee"},
+    {"name":"overview-ui-fresh-evidence_disabled-chrome-cdp-40376871534-1","zipBytes":6276,"zipSHA256":"d90f292d4731d7708af22a88adc198056e0b36c0e33b7293db95e56b867af610","memberCount":6,"expandedBytes":11753,"custodyBytes":1210,"custodySHA256":"eabfef7ddc39eb56a041c9c5fbf04a484fcad7f98c0107cd5ff37b33aa7a98c2"},
+    {"name":"overview-ui-fresh-evidence_disabled-playwright-40376871534-1","zipBytes":6274,"zipSHA256":"16c34b35513df489611bc50e11fbe3fd247358050b6dd7143c319b6bba5b7333","memberCount":6,"expandedBytes":11753,"custodyBytes":1210,"custodySHA256":"18d67ea835ef040cabf9e14aa21ea42f6a747edbb4f99d21dd8cebbbd43311f8"},
+    {"name":"overview-ui-fresh-evidence_enabled_unknown-chrome-cdp-40376871534-1","zipBytes":6185,"zipSHA256":"f4fb159130335c4eb05317aaf7da35c8e1b61adac1d46f131c89cb01b5eb19a8","memberCount":6,"expandedBytes":11151,"custodyBytes":1217,"custodySHA256":"e20bfa452c5cc81616b1b0bcc57680caf6d604573cb059bd91fb14c7f93e96b0"},
+    {"name":"overview-ui-fresh-evidence_enabled_unknown-playwright-40376871534-1","zipBytes":6188,"zipSHA256":"47be99a81160b23190539866606db0ba96686c7f88c6fd8e307ae1e4b1452c0e","memberCount":6,"expandedBytes":11151,"custodyBytes":1215,"custodySHA256":"8762f60c917f94c53a4de3d279d6f9a2935acda9ac463712f45b1495ab892ceb"}
+  ],
+  "profiles": [
+    {"profile":"evidence_disabled","engine":"chrome-cdp","syntheticTests":236,"syntheticSkipped":0,"requests":12,"http200":6,"http503":6,"domCheckpoints":11,"driverEvents":61,"screenshots":8,"screenshotBytes":1283549,"processRecords":3,"controllerExit":0,"serverExit":0,"browserExit":0,"forcedSignals":0,"noLiveOwnedProcesses":true,"portStartBefore":1024,"portStartAfter":1024,"freshReportsByteEqual":true,"originalReplayByteEqual":true},
+    {"profile":"evidence_disabled","engine":"playwright","syntheticTests":236,"syntheticSkipped":0,"requests":12,"http200":6,"http503":6,"domCheckpoints":11,"driverEvents":61,"screenshots":8,"screenshotBytes":1272800,"processRecords":3,"controllerExit":0,"serverExit":0,"browserExit":0,"forcedSignals":0,"noLiveOwnedProcesses":true,"portStartBefore":1024,"portStartAfter":1024,"freshReportsByteEqual":true,"originalReplayByteEqual":true},
+    {"profile":"evidence_enabled_unknown","engine":"chrome-cdp","syntheticTests":236,"syntheticSkipped":0,"requests":17,"http200":17,"http503":0,"domCheckpoints":17,"driverEvents":69,"screenshots":8,"screenshotBytes":1587096,"processRecords":3,"controllerExit":0,"serverExit":0,"browserExit":0,"forcedSignals":0,"noLiveOwnedProcesses":true,"portStartBefore":1024,"portStartAfter":1024,"freshReportsByteEqual":true,"originalReplayByteEqual":true},
+    {"profile":"evidence_enabled_unknown","engine":"playwright","syntheticTests":236,"syntheticSkipped":0,"requests":17,"http200":17,"http503":0,"domCheckpoints":17,"driverEvents":69,"screenshots":8,"screenshotBytes":1584808,"processRecords":3,"controllerExit":0,"serverExit":0,"browserExit":0,"forcedSignals":0,"noLiveOwnedProcesses":true,"portStartBefore":1024,"portStartAfter":1024,"freshReportsByteEqual":true,"originalReplayByteEqual":true}
+  ],
+  "commonActualFacts": {
+    "production": false,
+    "runtime": true,
+    "mockedResponses": false,
+    "injectedFetch": false,
+    "tlsBypass": false,
+    "upstreamBeforeListening": false,
+    "upstreamAfterListening": false,
+    "upstreamReachabilityObserved": false,
+    "storageMutationCountsAllZero": true,
+    "screenshotDesktopCountPerProfile": 5,
+    "screenshotMobileCountPerProfile": 3,
+    "screenshotsSHAAndDimensionsVerified": true,
+    "keyScreenshotsVisuallyInspected": true
+  },
+  "freshReportSHA256": {
+    "evidence_disabled/chrome-cdp": {"overview":"18129598f3192fcc1173ea197bbd4f73d7cc627a7afaee7dcfe3d926ab7e11ba","independent":"e585ccebf5e1661810903cf02a7e881366a4ebfb5d3eb0b0a4aa79ddfaa7ba1c","dependency":"8e6914dd5552c6fe95ed13035cecd90895b43e1a194a72c0b04e3a22d12efd78"},
+    "evidence_disabled/playwright": {"overview":"24a55d556926a338a3e215d5ba83785f70471f41774aa738114513de529b3b7f","independent":"773af461c4badb3d954d3d1ad774d70d2ff1bcacbdd8076d792a3159aae3fadf","dependency":"808a38f06c88fe537dd212e2427d4290e3ddbed16a23879ef68d314d5b7e27bf"},
+    "evidence_enabled_unknown/chrome-cdp": {"overview":"d78a6fa91a7f26ab6b81b7c01edff7a8d1cb6833057c4d206073aee94bdb1215","independent":"e37a223177a15ace725f1f64b064c08d7f96b51e2a5ec5f46db12530db878314","dependency":"25c2e6fb712e0e1f32ce5178419218a58fa1a8620a4fd0ec40e497af537f1553"},
+    "evidence_enabled_unknown/playwright": {"overview":"351d975746288fba190ded5d3e7ad19485777b31b45dcbf40d83959600277223","independent":"b66f91cd75384805e8c8cd48d82d28db37fecd072a498edd2fa35b43620f7a0a","dependency":"7b43064903e7c0ffdc4d9864e3bdcf9c588316d62d2b2f48093d659f208787de"}
+  },
+  "offlineReplay": {
+    "originalCheckerUsed": true,
+    "allFourProfilesPassed": true,
+    "reportsByteEqual": true,
+    "childPathOnlyOpenSSL": "C:/Program Files/Git/usr/bin/openssl.exe",
+    "openSSLBytes": 1004516,
+    "openSSLSHA256": "6e6a931dbf6029e3033c26f40fbda7e191ed84576d50aa9c3fee0471e94fd62b",
+    "networkUsed": false
+  },
+  "targetProjectionBoundary": {
+    "rawTargetIdsPublished": false,
+    "successWorkerSchemeHistogramPublished": false,
+    "successOpenerRelationHistogramPublished": false,
+    "successContextRelationHistogramPublished": false,
+    "absenceTreatedAsAuthorizationOrOwnershipProof": false
+  },
+  "notProven": [
+    "production authorization",
+    "production connectivity",
+    "business availability",
+    "browser-internal attestation independent of the trusted CI source boundary",
+    "causality or stability attributable to the added browser flag",
+    "raw successful worker target identity or authorization"
+  ],
+  "boundaries": {
+    "jobLogsRead": false,
+    "sessionOrRolloutLogsRead": false,
+    "localBrowserRun": false,
+    "localProductRun": false,
+    "sourceModified": false,
+    "ciRerun": false,
+    "productionTouched": false
+  }
+}

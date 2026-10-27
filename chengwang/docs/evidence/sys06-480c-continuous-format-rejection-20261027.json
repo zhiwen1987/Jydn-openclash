@@ -1,0 +1,163 @@
+{
+  "schema": "chengwang.mihomo-historical-continuous-recovery-original-audit/v1",
+  "status": "REJECTED_BY_FORMAT_GATE_WITH_VALIDATED_PRE_GATE_REPORT_AND_PASSING_GO_EVIDENCE",
+  "auditedAt": "2026-10-26T18:05:15Z",
+  "historicalOnly": true,
+  "doesNotAcceptLaterHeads": true,
+  "run": {
+    "runID": 40367041755,
+    "attempt": 1,
+    "workflow": "Chengwang Isolated Continuous Recovery API",
+    "workflowPath": ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+    "sourceHead": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "jobs": {
+    "developmentOnly": "success",
+    "acquisition": "success",
+    "sourceModels": "success",
+    "continuousFaultModel": "success",
+    "continuousBoundCredentialsModel": "success",
+    "continuousRecoveryAPI": "failure_execution_wrapper_and_independent_verification",
+    "continuousRecoveryFresh": "failure_exact_head_recompute"
+  },
+  "artifacts": [
+    {"name":"mihomo-continuous-bound-credentials-model-40367041755-1","bytes":5111,"sha256":"c5bc4d85cb519e6228eb89899cb4a8ba87d9956acc73f90faedeb35f4c04ed75","memberCount":8,"uncompressedBytes":43137,"custodyBytes":1435,"custodySHA256":"d7eaee0a7031c81fe5f59c43042c4752c2a6cf9823083fed93db10c8411f471e"},
+    {"name":"mihomo-continuous-recovery-candidate-40367041755-1","bytes":3142,"sha256":"d9eb7f2714d1ce73e811ab1a9c2b2b0749a1b01ab60a7ef6e1193cd8a8e95984","memberCount":7,"uncompressedBytes":4192,"custodyBytes":1272,"custodySHA256":"47932a27cae10083f6294f9f9e389f521f6634e1e4461d440ac562b2235e56c3"},
+    {"name":"mihomo-continuous-fault-model-40367041755-1","bytes":2721,"sha256":"212fbc7f9dcf3d9cfd1ecc08cc345147ce78471ccff7c2308aa27500b2af31be","memberCount":6,"uncompressedBytes":10676,"custodyBytes":1141,"custodySHA256":"c23795ac2c7c6e44594e3ebc287c1ead65674c06fb78efcb57c988eb0a47c402"},
+    {"name":"mihomo-continuous-recovery-api-fresh-40367041755-1","bytes":188,"sha256":"4f7824f3b9dd97ac9a88a7610e8302c5980770734671e7a73aba8bca402debaa","memberCount":1,"uncompressedBytes":0,"custodyBytes":501,"custodySHA256":"3996afdffbb1f6769d10c99e72423d19d09178a673bdfb3644a125096ae394b0"},
+    {"name":"mihomo-continuous-recovery-api-originals-40367041755-1","bytes":56437,"sha256":"5ce534e203e4703b33777ae868e4e88d9fe5f42ee16a9112be6b66fd87163eb8","memberCount":57,"uncompressedBytes":152993,"custodyBytes":10157,"custodySHA256":"c865e848cb0d5c65f165dd3925cbebc82f97c4955e30c59477dc9584dc98b943"}
+  ],
+  "execution": {
+    "goExit": 0,
+    "formatExit": 0,
+    "outcome": "PASS",
+    "production": false,
+    "scope": "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION",
+    "goTop": "TestMihomoContinuousRecoveryHTTPSUnknownRecoveryAckUnknownRecovery",
+    "goTopRun": 1,
+    "goTopPass": 1,
+    "goTopElapsedSeconds": 29.83,
+    "packagePass": 1,
+    "packageElapsedSeconds": 29.84,
+    "goFailOrSkipObserved": false,
+    "goVersion": "go1.23.12 linux/amd64"
+  },
+  "report": {
+    "schema": "chengwang.mihomo-continuous-recovery-http-experiment/v3",
+    "outcome": "PASS",
+    "failureCode": "NONE",
+    "runtimeReturned": true,
+    "runtimeErrorClass": "NONE",
+    "httpCount": 31,
+    "httpMethods": {"GET":16,"POST":15},
+    "httpStatuses": {"200":26,"201":5},
+    "recoveryCreate201Count": 2,
+    "httpIndexUniqueSequentialAndDigestExact": true,
+    "headCount": 6,
+    "headStages": ["INITIAL","FIRST_UNKNOWN","FIRST_RECOVERED","ORDINARY_ACK","SECOND_UNKNOWN","SECOND_RECOVERED"],
+    "ordinaryOperationCount": 3,
+    "ordinaryOperationPhases": ["UNKNOWN","COMPLETED","UNKNOWN"],
+    "recoveryCount": 2,
+    "recoveryPhases": ["COMPLETED","COMPLETED"],
+    "responseLossActions": ["LOSS","PASS","LOSS"],
+    "injectedResponseLossCount": 2,
+    "doInvocations": 3,
+    "reloadInvocations": 3,
+    "closedPortCount": 6,
+    "allClosedPortsConnectionRefused": true,
+    "nativeCallsBeforeCleanup": 24,
+    "nativeCallsAfterCleanup": 30,
+    "nativeCallsClosed": 30,
+    "fullPayloadProven": false,
+    "internetBusinessProven": false,
+    "privateWALDecodedByTest": false,
+    "production": false,
+    "publicProjectionPresent": true
+  },
+  "format": {
+    "clean": false,
+    "patchBytes": 3630,
+    "patchSHA256": "d2e8b755bf85c1be5e0904da80641ced884e6a4bdcab9a65dcf22350f5170356",
+    "paths": ["internal/authn/store.go","internal/serverruntime/runtime.go"],
+    "changeLinesExactToFoundation13CorrespondingSections": true
+  },
+  "checkerReplay": {
+    "checkerGitBlobSHA1": "c3f282e4c29a2a6abb293077de7e18bff6811af1",
+    "remoteExact": true,
+    "exitCode": 1,
+    "stdoutBytes": 0,
+    "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 2211,
+    "stderrSHA256": "45713d0f1ca05fbfe9e9033a15e75f492a3ceb42c4dfb6bbaca2931795bde528",
+    "firstRejectingGate": "NONEMPTY_GO_FMT_PATCH",
+    "preGateSourceBindingValidated": true,
+    "preGateReportValidated": true,
+    "preGateHTTPIndexValidated": true,
+    "preGateExecutionRecordValidated": true,
+    "rawGoAndCommandGatesReached": false,
+    "acceptedVerificationProduced": false,
+    "freshOutputBytes": 0,
+    "freshAccepted": false
+  },
+  "postRejectBoundedReadOnlyObservations": {
+    "commandReceiptCount": 4,
+    "allCommandExitCodesZero": true,
+    "processEventCount": 16,
+    "pidfdAcquiredCount": 4,
+    "waitReturnedZeroCount": 4,
+    "sourceReadOnly": true,
+    "goReadOnly": true,
+    "hostBeforeAfterByteExact": true,
+    "privateFsyncEntryCount": 3,
+    "allPrivateEntriesFsyncObserved": true,
+    "directoryFsyncObserved": true,
+    "candidateConsumptionProducerIndependentByteExact": true,
+    "independentAcceptance": false
+  },
+  "models": {
+    "continuousFault": {
+      "top": "TestLabContinuousRecoveryFaultZeroAndDebugRemainNonAuthorityMODEL",
+      "runCount": 1,
+      "passCount": 1,
+      "exitCode": 0,
+      "stderrEmpty": true,
+      "sourceBeforeAfterByteExact": true
+    },
+    "boundCredentials": [
+      {"package":"chengwang/internal/authn","top":"TestContinuousRecoveryBoundCredentialsV2MODEL","runCount":1,"passCount":1,"exitCode":0,"stderrEmpty":true},
+      {"package":"chengwang/internal/serverruntime","top":"TestContinuousRecoveryBoundCredentialsSourceArmMODEL","runCount":1,"passCount":1,"exitCode":0,"stderrEmpty":true}
+    ],
+    "sourceBeforeAfterByteExact": true,
+    "actualHTTPSAcceptanceSubstitute": false
+  },
+  "sourceBinding": {
+    "sourceCommit": "480c8693d0b12cc910d17b693ea84cbb9d47acb6",
+    "sourceCount": 1569,
+    "deliveryCount": 33,
+    "sourceTree": "cf46a6640f5f5b2bb1df7dd849c1cd3e0683a38c",
+    "indexTree": "cf46a6640f5f5b2bb1df7dd849c1cd3e0683a38c",
+    "sourceSetSHA256": "ea8d69f07ca38a161d2e32020a3d2e752e5e5d390cccf2f9a131548cf07ab790",
+    "deliverySetSHA256": "c37f3c1c7c19914317f4d64f35c1bf84e8273b9bdc002c0616473a6f076aac6f"
+  },
+  "limits": {
+    "privateWALIndependentlyProven": false,
+    "fullPayloadProven": false,
+    "internetBusinessProven": false,
+    "production": false,
+    "laterCleanupContractAppliedRetroactively": false,
+    "laterHeadAccepted": false
+  },
+  "safety": {
+    "jobLogsRead": false,
+    "sessionOrRolloutSearched": false,
+    "signedURLInArgumentsOrOutput": false,
+    "ciRerun": false,
+    "localGoOrGofmtRun": false,
+    "localProductRuntimeRun": false,
+    "repositoryModified": false,
+    "productionTouched": false,
+    "privateWALRead": false
+  }
+}
