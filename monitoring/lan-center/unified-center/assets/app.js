@@ -766,6 +766,12 @@
     if (freshUntil !== null && freshUntil <= Date.now() / 1000) {
       return { state: 'stale', label: '样本已过期', detail: `有效期截止于 ${formatTime(freshUntil)}` };
     }
+    if (ownsFresh && node.fresh === false) {
+      return {
+        state: 'stale', label: '样本已过期',
+        detail: freshUntil === null ? '接口已明确标记样本不新鲜' : `接口未标记为新鲜；返回的有效期至 ${formatTime(freshUntil)}`
+      };
+    }
     return {
       state: 'unknown',
       label: ownsFresh ? '未确认新鲜' : '未返回新鲜度',
@@ -808,14 +814,19 @@
 
   function capabilityTable(node) {
     const capabilities = node.capabilities && typeof node.capabilities === 'object' && !Array.isArray(node.capabilities) ? node.capabilities : {};
+    const parentStale = nodeFreshness(node).state === 'stale';
     const rows = Object.entries(capabilities).slice(0, 32).map(([name, recordValue]) => {
       const record = recordValue && typeof recordValue === 'object' ? recordValue : {};
       const success = finiteNumber(record.consecutive_success);
       const failure = finiteNumber(record.consecutive_failure);
       const streak = success === null && failure === null ? '未知' : `成功 ${success === null ? '未知' : success} / 失败 ${failure === null ? '未知' : failure}`;
+      const previousLabel = evidenceLabel(record.status);
+      const statusCell = parentStale
+        ? h('td', {}, badge('stale', '已过期'), h('div', { class: 'cell-sub', text: `上次${previousLabel}` }))
+        : h('td', {}, badge(evidenceState(record.status), previousLabel));
       return h('tr', {},
         titleCell(name),
-        h('td', {}, badge(evidenceState(record.status), evidenceLabel(record.status))),
+        statusCell,
         detailCell(formatTime(record.last_checked)),
         detailCell(formatConfidence(record.confidence)),
         detailCell(streak),
@@ -836,7 +847,9 @@
     const sampleAt = schedule.latency_sample_at || node.updated_at;
     const nextDue = schedule.next_due ? formatTime(schedule.next_due) : '未安排';
     const cooldown = schedule.cooldown_until ? formatTime(schedule.cooldown_until) : '无冷却截止证据';
-    const scheduleValue = h('div', { class: 'cell-actions' }, badge(evidenceState(schedule.status), evidenceLabel(schedule.status)));
+    const scheduleValue = freshness.state === 'stale'
+      ? h('div', {}, badge('stale', '已过期'), h('div', { class: 'cell-sub', text: `历史状态：${evidenceLabel(schedule.status)}` }))
+      : h('div', { class: 'cell-actions' }, badge(evidenceState(schedule.status), evidenceLabel(schedule.status)));
     const egressName = [egress.country, egress.colo].filter(Boolean).join(' / ') || '未知';
     const median = finiteNumber(summary.median_ms);
     const p95 = finiteNumber(summary.p95_ms);
@@ -969,15 +982,67 @@
   }
 
   function subscriptionUsage(provider) {
-    const usage = provider.usage && typeof provider.usage === 'object' ? provider.usage : provider;
-    const used = finiteNumber(usage.used_bytes ?? usage.used);
-    const total = finiteNumber(usage.total_bytes ?? usage.total ?? usage.quota_bytes);
-    if (used === null && total === null) return h('span', { class: 'cell-sub', text: '未返回用量' });
-    const text = `${used === null ? '未知' : formatBytes(used)} / ${total === null ? '未知' : formatBytes(total)}`;
-    if (used === null || total === null || total <= 0) return h('span', { text });
+    const metrics = provider.metrics && typeof provider.metrics === 'object' && !Array.isArray(provider.metrics) ? provider.metrics : null;
+    const usage = provider.usage && typeof provider.usage === 'object' && !Array.isArray(provider.usage) ? provider.usage : provider;
+    const validBytes = value => {
+      if (typeof value === 'boolean') return null;
+      const number = finiteNumber(value);
+      return number !== null && number >= 0 ? number : null;
+    };
+    let used;
+    let totalRaw;
+    if (metrics) {
+      const upload = validBytes(metrics.upload);
+      const download = validBytes(metrics.download);
+      const combined = upload !== null && download !== null ? upload + download : null;
+      used = combined !== null && Number.isFinite(combined) ? combined : null;
+      totalRaw = validBytes(metrics.total);
+    } else {
+      used = validBytes(usage.used_bytes ?? usage.used);
+      totalRaw = validBytes(usage.total_bytes ?? usage.total ?? usage.quota_bytes);
+    }
+    const unlimitedOrUnknown = totalRaw === 0;
+    const total = totalRaw !== null && totalRaw > 0 ? totalRaw : null;
+    if (used === null && total === null && !unlimitedOrUnknown) return h('span', { class: 'cell-sub', text: '未返回用量' });
+    const usedText = used === null ? '已用未知' : formatBytes(used);
+    const totalText = unlimitedOrUnknown ? '总量未知或不限量' : total === null ? '总量未提供' : formatBytes(total);
+    const text = `${usedText} / ${totalText}`;
+    if (used === null || total === null) return h('span', { text });
     const percent = Math.max(0, Math.min(100, used / total * 100));
     const level = percent >= 95 ? 'error' : percent >= 80 ? 'warning' : '';
     return h('div', {}, h('div', { text: `${text} · ${percent.toFixed(1)}%` }), h('div', { class: 'usage-track', 'aria-hidden': 'true' }, h('div', { class: `usage-fill ${level}`, style: { width: `${percent}%` } })));
+  }
+
+  function subscriptionExpiry(provider) {
+    const metrics = provider.metrics && typeof provider.metrics === 'object' && !Array.isArray(provider.metrics) ? provider.metrics : null;
+    let provided = false;
+    let value;
+    if (metrics && Object.prototype.hasOwnProperty.call(metrics, 'expire')) {
+      provided = true;
+      value = metrics.expire;
+    } else {
+      for (const key of ['expires_at', 'expire_at']) {
+        if (Object.prototype.hasOwnProperty.call(provider, key)) {
+          provided = true;
+          value = provider[key];
+          break;
+        }
+      }
+    }
+    if (!provided || value === null || value === undefined || value === '') return '未提供到期时间';
+    if (typeof value === 'boolean') return '到期时间无效';
+    const timestamp = finiteNumber(value);
+    if (timestamp === 0) return '无到期时间';
+    if (timestamp === null || timestamp < 0) return '到期时间无效';
+    return formatTime(timestamp, '到期时间无效');
+  }
+
+  function subscriptionLastSuccess(provider) {
+    const value = Object.prototype.hasOwnProperty.call(provider, 'last_success')
+      ? provider.last_success
+      : provider.updated_at || provider.checked_at;
+    if (typeof value === 'boolean') return '无成功记录';
+    return formatTime(value, '无成功记录');
   }
 
   function renderSourceSync(sync) {
@@ -996,16 +1061,16 @@
     const rows = providers.map(provider => h('tr', {},
       titleCell(provider.name || provider.id, provider.detail || ''),
       h('td', {}, subscriptionUsage(provider)),
-      detailCell(formatTime(provider.expires_at || provider.expire_at), ''),
+      detailCell(subscriptionExpiry(provider), ''),
       h('td', {}, badge(provider.state || provider.sync_state)),
-      detailCell(formatTime(provider.updated_at || provider.checked_at))
+      detailCell(subscriptionLastSuccess(provider))
     ));
     const sourceBody = h('div', {},
       h('div', { class: 'two-column', style: { padding: '16px 16px 0' } },
         panel('来源同步', renderSourceSync(subscriptions.source_sync), { flush: true }),
         panel('语义边界', h('div', {}, notice('信息来源数仅表示已读取用量/到期等信息，不等于已发布节点数。', 'info'), notice('“Clash 已加载”只展示接口已取得的名称/数量比对等证据，不表示所有端点与业务全部通过。', 'warning')))
       ),
-      table(['订阅来源', '用量', '到期时间', '同步状态', '最后更新'], rows, '暂无订阅来源', '接口当前未返回 provider 来源、用量或同步证据。')
+      table(['订阅来源', '用量', '到期时间', '同步状态', '最后成功'], rows, '暂无订阅来源', '接口当前未返回 provider 来源、用量或同步证据。')
     );
     const current = state.activeTabs.subscriptions;
     const body = current === 'sources' ? sourceBody : embeddedFrame('/classic/subscriptions', '原生订阅编辑器');
