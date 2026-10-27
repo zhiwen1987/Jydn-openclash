@@ -47,6 +47,9 @@ def resume_metadata_reload(module):
         stop_at=time.monotonic()+deadline-now
         while time.monotonic()<stop_at:
             time.sleep(min(30,max(1,stop_at-time.monotonic())))
+            if value.get('information_only_acceptance') is True:
+                health['epoch']=module.now();module.atomic_json(module.HEALTH_PATH,health)
+                continue
             try:
                 module.maintain_probation()
                 if module.repair_pointer():

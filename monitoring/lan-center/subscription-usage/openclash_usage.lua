@@ -32,6 +32,7 @@ function M.adapt(data)
     end
     return {schema=1, auto_mode=true, providers=providers, source_count=#providers,
         registry_state=data.registry_state, registry_error=data.registry_error,
+        source_sync=data.source_sync,
         get_time=os.time(), refresh_seconds=30}
 end
 

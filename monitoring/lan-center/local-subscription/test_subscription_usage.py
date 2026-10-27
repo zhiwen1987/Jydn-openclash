@@ -114,6 +114,11 @@ class Fixture(unittest.TestCase):
 
     def test_header_validation_and_expiry_not_fabricated(self):
         self.assertEqual(usage.parse_userinfo('Subscription-Userinfo: upload=0; download=0; total=0'),{'upload':0,'download':0,'total':0})
+        self.assertEqual(usage.parse_userinfo('Subscription-Userinfo: upload=1;download=2;total=100;expire='),{'upload':1,'download':2,'total':100})
+        for text in ['upload=1;download=2;total=100;expire=;expire=0',
+                     'upload=;download=2;total=100;expire=',
+                     'upload=1;download=2;total=100;expire=unknown']:
+            with self.assertRaises(usage.UsageError):usage.parse_userinfo('subscription-userinfo: '+text)
         for text in ['upload=1;total=5','upload=-1;download=1;total=5','upload=1;upload=2;download=1;total=5',
                      'upload=1;download=2;total=9999999999999999']:
             with self.assertRaises(usage.UsageError):usage.parse_userinfo('subscription-userinfo: '+text)
@@ -278,6 +283,34 @@ class Fixture(unittest.TestCase):
     def test_over_limit_registry_preserves_last_valid_inventory(self):
         c=self.collector();self.settle(c);self.write([source('n'+str(i)) for i in range(129)]);c.tick()
         d=c.snapshot();self.assertEqual(d['registry_state'],'error');self.assertEqual({p['id'] for p in d['providers']},{'one','two'})
+
+    def test_information_registry_activation_does_not_modify_publisher_sources(self):
+        before=self.sources.read_bytes();c=self.collector();self.settle(c)
+        info=c.root/'information-sources.json';info.write_text(json.dumps({'sources':[source('one'),source('two'),source('three')]}))
+        d=self.settle(c);self.assertEqual(len(d['providers']),3);self.assertEqual(before,self.sources.read_bytes())
+        self.assertEqual(c.sources,info)
+
+    def test_independent_registry_empty_does_not_fall_back_to_node_sources(self):
+        c=self.collector();(c.root/'source-mode.json').write_text('{"mode":"luci_info_sync"}')
+        info=c.root/'information-sources.json';info.write_text('{"sources":[]}')
+        d=self.settle(c);self.assertEqual(d['providers'],[]);self.assertEqual(d['registry_state'],'ok')
+
+    def test_information_registry_corrupt_restart_recovers_last_good(self):
+        c=self.collector();good={'sources':[source('three')]};(c.root/'information-sources.json').write_text(json.dumps(good));self.settle(c)
+        (c.root/'information-sources.good.json').write_text(json.dumps(good));c.close();self.collectors.remove(c)
+        (c.root/'information-sources.json').write_text('{bad')
+        newer=self.collector(lambda _:self.fail('fresh cache must survive registry recovery'))
+        newer.tick();d=newer.snapshot();self.assertEqual(d['registry_state'],'error');self.assertEqual([r['id'] for r in d['providers']],['three']);self.assertEqual(d['providers'][0]['metrics'],GOOD)
+
+    def test_information_registry_missing_does_not_adopt_node_publishers(self):
+        c=self.collector();(c.root/'source-mode.json').write_text('{"mode":"luci_info_sync"}');c.tick();d=c.snapshot()
+        self.assertEqual(d['registry_state'],'error');self.assertEqual(d['providers'],[])
+
+    def test_sync_status_is_sanitized_and_stale_timer_visible(self):
+        c=self.collector();(c.root/'information-sources.json').write_text('{"sources":[]}')
+        (c.root/'sync-state.json').write_text(json.dumps({'schema':1,'state':'ok','source_name':'https://secret.example/?token=private','last_attempt':1000,'last_success':1000,'url':'private'}))
+        d=self.settle(c);self.assertEqual(d['source_sync']['state'],'ok');self.assertNotIn('private',json.dumps(d));self.now[0]+=121
+        self.assertEqual(c.snapshot()['source_sync']['state'],'stale')
 
 
 if __name__=='__main__':unittest.main()

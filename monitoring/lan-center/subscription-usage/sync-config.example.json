@@ -1,0 +1,6 @@
+{
+  "directory": "/root/dpanel/compose/lan-center/data/failover/subscription-usage",
+  "key": "/opt/clash-stack/production/subscription-info-sync/id_ed25519",
+  "known_hosts": "/opt/clash-stack/production/subscription-info-sync/known_hosts",
+  "target": "root@10.88.0.254"
+}
