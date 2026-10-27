@@ -12,6 +12,7 @@ from pathlib import Path
 from local_source import Invalid, Manager, native_validator
 
 ROOT = Path(__file__).parent
+SUBSCRIPTION_USAGE_INTEGRATED = True
 
 
 class Access:
@@ -172,6 +173,12 @@ def install(namespace, manager=None):
             time.sleep(30)
 
     threading.Thread(target=recovery, name='local-source-recovery', daemon=True).start()
+    try:
+        from subscription_usage import install as install_usage
+        install_usage(namespace)
+    except Exception as error:
+        if callable(namespace.get('log')):
+            namespace['log']('subscription_usage_unavailable', type(error).__name__, 'warning')
     return manager
 
 

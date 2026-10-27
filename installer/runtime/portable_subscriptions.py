@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+from pathlib import Path
 import re
 import sys
 import threading
@@ -9,6 +10,54 @@ import time
 import urllib.parse
 
 sys.path.insert(0,'/local-subscription')
+# The incremental metadata extension is code-only and persists through the
+# existing /data mount. Its private directory is owned by the deployment receipt.
+USAGE_CODE=Path('/data/subscription-usage/code')
+if USAGE_CODE.is_dir():sys.path.insert(0,str(USAGE_CODE))
+
+
+def install_usage_bridge():
+    import local_web
+    if getattr(local_web,'SUBSCRIPTION_USAGE_INTEGRATED',False):return
+    try:
+        from subscription_usage import install as install_usage
+    except ImportError:return
+    previous=local_web.install
+    def install(namespace,*args,**kwargs):
+        result=previous(namespace,*args,**kwargs)
+        try:install_usage(namespace)
+        except Exception as error:
+            if callable(namespace.get('log')):namespace['log']('subscription_usage_unavailable',type(error).__name__,'warning')
+        return result
+    local_web.install=install
+
+
+def resume_metadata_reload(module):
+    """Keep the old publisher deadline on a UI-only process reload."""
+    path=module.DATA/'usage-reload-defer.json'
+    try:
+        value=json.loads(path.read_text());path.unlink()
+        now=module.now();deadline=value.get('until');release=module.current_manifest()
+        if (type(deadline) not in (int,float) or not now<=deadline<=now+3600
+                or not release or release.get('release_id')!=value.get('release_id')):return
+        health=dict(value.get('health',{}));health.update(epoch=now,current_release=release['release_id'],
+            reason='schedule_preserved_after_metadata_reload',metadata_reload_deferred=True,
+            previous_cycle_epoch=value.get('health',{}).get('epoch'),next_cycle_epoch=deadline)
+        module.atomic_json(module.HEALTH_PATH,health)
+        stop_at=time.monotonic()+deadline-now
+        while time.monotonic()<stop_at:
+            time.sleep(min(30,max(1,stop_at-time.monotonic())))
+            try:
+                module.maintain_probation()
+                if module.repair_pointer():
+                    with module.exclusive(module.DATA.parent/'routing-owner.lock') as acquired:
+                        if acquired:
+                            module.refresh_providers(module.load_sources())
+                            (module.DATA/'recovery-refresh.json').unlink(missing_ok=True)
+            except Exception as error:
+                module.log('metadata_reload_maintenance_error',type(error).__name__,'warning')
+            health['epoch']=module.now();module.atomic_json(module.HEALTH_PATH,health)
+    except (OSError,ValueError,TypeError):return
 
 
 def load():
@@ -40,6 +89,7 @@ def install_public_header(module):
 
 def scheduler(module):
     def run():
+        resume_metadata_reload(module)
         while True:
             started=time.monotonic();delay=30
             try:
@@ -108,7 +158,7 @@ def scheduler(module):
 
 
 def main():
-    module=load();install_public_header(module)
+    module=load();install_public_header(module);install_usage_bridge()
     load_sources=module.load_sources
     def load_optional_sources():
         try:return load_sources()
