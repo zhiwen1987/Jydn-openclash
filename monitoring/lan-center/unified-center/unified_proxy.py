@@ -52,6 +52,13 @@ _WS_MAX_BYTES = min(max(int(os.getenv("UNIFIED_PROXY_WS_MAX_BYTES", str(64 * 102
 _WS_SEND_TIMEOUT = min(max(float(os.getenv("UNIFIED_PROXY_WS_SEND_TIMEOUT", "10")), 1), 60)
 _SSE_MAX_SECONDS = min(max(float(os.getenv("UNIFIED_PROXY_SSE_MAX_SECONDS", "300")), 10), 1800)
 
+_SERVICE_WORKER_PATH = "/serviceWorker.js"
+_RETIRED_SERVICE_WORKER = (
+    b'"use strict";\n'
+    b'self.addEventListener("install",()=>self.skipWaiting());\n'
+    b'self.addEventListener("activate",event=>event.waitUntil(self.registration.unregister()));\n'
+)
+
 _RESERVED = ("/center-assets", "/api/center", "/api/local", "/classic/subscriptions")
 _KUMA_ADMIN = (
     "/dashboard", "/edit", "/clone", "/add", "/list", "/settings",
@@ -201,6 +208,18 @@ def _respond(handler, status, code):
     if handler.command != "HEAD":
         handler.wfile.write(raw)
     handler.close_connection = True
+
+
+def _retire_service_worker(handler):
+    """Replace Kuma's root-scope worker with a no-interception unregistering worker."""
+    handler.send_response(200)
+    handler.send_header("Content-Type", "application/javascript; charset=utf-8")
+    handler.send_header("Content-Length", str(len(_RETIRED_SERVICE_WORKER)))
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("X-Content-Type-Options", "nosniff")
+    handler.end_headers()
+    if handler.command != "HEAD":
+        handler.wfile.write(_RETIRED_SERVICE_WORKER)
 
 
 def _read_body(handler):
@@ -566,6 +585,13 @@ def proxy_request(handler, access=None):
     """
     try:
         split, path = _safe_path(handler.path)
+        if path == _SERVICE_WORKER_PATH:
+            if handler.command not in ("GET", "HEAD"):
+                raise _ProxyError(405, "proxy_method_not_allowed")
+            if not _has_access(access, handler.headers.get("Cookie", "")):
+                raise _ProxyError(401, "management_session_required")
+            _retire_service_worker(handler)
+            return True
         route = _route(path)
         if route is None:
             return False

@@ -193,12 +193,48 @@ def normalized_mounts(values: dict[str, str], compose_directory: Path) -> dict[s
     return result
 
 
-def patch_compose(text: str, service: str, image: str) -> tuple[str, dict[str, str]]:
-    """Conservatively patch only one YAML service block.
+def patch_compose_json(text: str, service: str, image: str) -> tuple[str, dict[str, str]]:
+    try:
+        document = json.loads(text)
+    except json.JSONDecodeError:
+        raise RuntimeError("compose_json_invalid") from None
+    check(isinstance(document, dict), "compose_json_root_invalid")
+    services = document.get("services")
+    check(isinstance(services, dict), "compose_services_block_missing")
+    selected = services.get(service)
+    check(isinstance(selected, dict), "compose_service_source_ambiguous")
+    check(selected.get("container_name") == DEFAULT_CONTAINER, "compose_container_name_mismatch")
+    environment = selected.get("environment")
+    check(isinstance(environment, dict), "structured_or_missing_environment_requires_review")
+    volumes = selected.get("volumes")
+    check(isinstance(volumes, list), "compose_volumes_block_missing_or_ambiguous")
+    removed: dict[str, str] = {}
+    preserved: list[str] = []
+    for mount in volumes:
+        check(isinstance(mount, str), "structured_or_invalid_mount_requires_review")
+        source, target = parse_short_mount(mount)
+        if target in PROTECTED_IMAGE_TARGETS and target not in MANAGED_CODE_TARGETS:
+            raise RuntimeError("private_image_code_override_requires_review")
+        if target in MANAGED_CODE_TARGETS:
+            check(target not in removed, "duplicate_managed_code_mount")
+            removed[target] = source
+        else:
+            preserved.append(mount)
+    check(set(removed) == MANAGED_CODE_TARGETS, "managed_code_mount_set_changed")
+    selected["image"] = image
+    environment["CENTER_UI_ENABLED"] = "1"
+    selected["volumes"] = preserved
+    return json.dumps(document, ensure_ascii=False, indent=2) + "\n", removed
 
-    JSON Compose and advanced YAML constructs are deliberately refused because
-    a lossy rewrite could destroy interpolation, comments or private settings.
+
+def patch_compose(text: str, service: str, image: str) -> tuple[str, dict[str, str]]:
+    """Conservatively patch one service in JSON or simple block YAML.
+
+    JSON preserves every unrelated parsed value. Advanced YAML constructs are
+    refused because a lossy rewrite could destroy comments or private settings.
     """
+    if text.lstrip().startswith("{"):
+        return patch_compose_json(text, service, image)
     lines = text.splitlines(keepends=True)
     services_index = next((i for i, line in enumerate(lines) if re.fullmatch(r"services:\s*\r?\n?", line)), None)
     check(services_index is not None, "compose_services_block_missing")

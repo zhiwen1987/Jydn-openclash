@@ -10,6 +10,7 @@ import tempfile
 import threading
 import time
 import tarfile
+import types
 import unittest
 import urllib.error
 import urllib.request
@@ -497,6 +498,13 @@ class HttpIntegrationTests(unittest.TestCase):
             def do_POST(self):
                 self.send(404, "application/json", b'{"error":"legacy_not_found"}')
 
+            def do_HEAD(self):
+                if self.path == "/legacy-head":
+                    self.send_response(204)
+                    self.end_headers()
+                else:
+                    self.send_error(404)
+
         self.ns.update({"Handler": Handler, "dashboard": lambda: b"<html>classic</html>"})
         self.env = env(CENTER_UI_ENABLED=1, LOCAL_SOURCE_HOSTS="127.0.0.1")
         self.env.__enter__()
@@ -546,6 +554,50 @@ class HttpIntegrationTests(unittest.TestCase):
         status, payload = self.request("/center-assets/app.js?v=previous-version")
         self.assertEqual(status, 200)
         self.assertEqual(payload, (unified_center.ASSETS / "app.js").read_bytes())
+
+    def test_head_is_offered_to_proxy_then_legacy_without_get_body(self):
+        calls = []
+
+        def proxy_request(handler, access=None):
+            calls.append((handler.command, handler.path, access))
+            if handler.path == "/serviceWorker.js":
+                handler.send_response(200)
+                handler.send_header("Content-Type", "application/javascript")
+                handler.send_header("Content-Length", "17")
+                handler.end_headers()
+                return True
+            return False
+
+        proxy = types.ModuleType("unified_proxy")
+        proxy.proxy_request = proxy_request
+        with mock.patch.dict(sys.modules, {"unified_proxy": proxy}):
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{self.port}/serviceWorker.js", method="HEAD"
+            )
+            with urllib.request.urlopen(request, timeout=3) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.read(), b"")
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{self.port}/legacy-head", method="HEAD"
+            )
+            with urllib.request.urlopen(request, timeout=3) as response:
+                self.assertEqual(response.status, 204)
+                self.assertEqual(response.read(), b"")
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{self.port}/api/center/overview", method="HEAD"
+            )
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(request, timeout=3)
+            self.assertEqual(caught.exception.code, 404)
+            self.assertEqual(caught.exception.read(), b"")
+
+        self.assertEqual([item[:2] for item in calls], [
+            ("HEAD", "/serviceWorker.js"),
+            ("HEAD", "/legacy-head"),
+            ("HEAD", "/api/center/overview"),
+        ])
 
     def test_session_auth_origin_conflict_and_node_probe_does_not_select(self):
         status, result = self.request("/api/center/session", origin=False, csrf=False)

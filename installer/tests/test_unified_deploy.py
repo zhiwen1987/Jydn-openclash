@@ -40,6 +40,35 @@ services:
     image: never/change:1
 """
 
+COMPOSE_JSON_OBJECT = {
+    "name": "lan-center",
+    "services": {
+        "center": {
+            "container_name": "clash-center",
+            "image": "old/image:1",
+            "restart": "unless-stopped",
+            "environment": {"EXISTING": "kept", "CENTER_UI_ENABLED": "0"},
+            "ports": ["3101:3001", "3102:8081", "3103:8082"],
+            "volumes": [
+                "/srv/failover:/data",
+                "/srv/kuma:/app/data",
+                "/release/Corefile:/etc/coredns/Corefile:ro",
+                "/release/node-capability.py:/node-capability.py:ro",
+                "/release/subscription-controller.py:/subscription-controller.py:ro",
+                "/release/healthcheck.sh:/healthcheck.sh:ro",
+            ],
+            "labels": {"preserve": "exact-value"},
+        },
+        "unrelated": {
+            "container_name": "unrelated-service",
+            "image": "never/change:1",
+            "environment": {"UNCHANGED": "yes"},
+        },
+    },
+    "networks": {"default": {"name": "lan-center_default", "external": True}},
+    "x-private-shape": {"nested": [1, True, None, {"keep": "所有字段"}]},
+}
+
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +85,38 @@ class FakeRunner:
 
 
 class ComposePatchTests(unittest.TestCase):
+    def test_json_compose_changes_only_owned_center_fields(self):
+        original = json.loads(json.dumps(COMPOSE_JSON_OBJECT, ensure_ascii=False))
+        patched, removed = deploy.patch_compose(
+            json.dumps(original, ensure_ascii=False, separators=(",", ":")),
+            "center", "unified@sha256:new",
+        )
+        actual = json.loads(patched)
+        expected = json.loads(json.dumps(original, ensure_ascii=False))
+        target = expected["services"]["center"]
+        target["image"] = "unified@sha256:new"
+        target["environment"]["CENTER_UI_ENABLED"] = "1"
+        target["volumes"] = target["volumes"][:3]
+        self.assertEqual(actual, expected)
+        self.assertEqual(removed, {
+            "/node-capability.py": "/release/node-capability.py",
+            "/subscription-controller.py": "/release/subscription-controller.py",
+            "/healthcheck.sh": "/release/healthcheck.sh",
+        })
+        self.assertEqual(actual["services"]["unrelated"], original["services"]["unrelated"])
+        self.assertEqual(actual["networks"], original["networks"])
+        self.assertEqual(actual["x-private-shape"], original["x-private-shape"])
+
+    def test_json_compose_rejects_structured_volume_and_private_override(self):
+        structured = json.loads(json.dumps(COMPOSE_JSON_OBJECT))
+        structured["services"]["center"]["volumes"][0] = {"type": "bind", "source": "/srv/failover", "target": "/data"}
+        with self.assertRaisesRegex(RuntimeError, "structured_or_invalid_mount_requires_review"):
+            deploy.patch_compose(json.dumps(structured), "center", "new")
+        private = json.loads(json.dumps(COMPOSE_JSON_OBJECT))
+        private["services"]["center"]["volumes"].insert(0, "/private/ui:/unified-center:ro")
+        with self.assertRaisesRegex(RuntimeError, "private_image_code_override_requires_review"):
+            deploy.patch_compose(json.dumps(private), "center", "new")
+
     def test_only_correct_service_is_patched(self):
         patched, removed = deploy.patch_compose(COMPOSE, "center", "unified@sha256:abc")
         self.assertEqual(set(removed), deploy.MANAGED_CODE_TARGETS)

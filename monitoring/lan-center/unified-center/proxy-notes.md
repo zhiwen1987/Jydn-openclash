@@ -41,6 +41,20 @@ browser, then de-namespaced only for the corresponding fixed target. This
 prevents one advanced application and the center session from being sent to
 the other application.
 
+### Service worker boundary
+
+The unified origin does not enable Uptime Kuma's offline PWA worker. A Kuma
+worker registered at the root scope could otherwise control or cache the
+center, local-source, and LuCI paths that share this origin. The proxy owns
+`/serviceWorker.js` itself: authenticated `GET`/`HEAD` requests receive a
+`no-store` retirement worker with only `install`/`activate` lifecycle handlers.
+It calls `skipWaiting()` and unregisters itself, and has no request interception,
+cache storage, upstream access, navigation, or center-path rewriting. It is
+never fetched from Kuma.
+
+The original separately published Kuma endpoint on port `3101` is unchanged
+and retains Kuma's original PWA behavior and full standalone functionality.
+
 ## Fixed-target and transport boundary
 
 - Kuma is hard-coded to `http://127.0.0.1:3001`.

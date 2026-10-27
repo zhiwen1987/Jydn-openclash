@@ -83,6 +83,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
 
+    def do_HEAD(self):
+        if not proxy.proxy_request(self, Access()):
+            self.send_error(404)
+
     def do_POST(self):
         if not proxy.proxy_request(self, Access()):
             self.send_error(404)
@@ -172,6 +176,33 @@ class UnifiedProxyTests(unittest.TestCase):
             for path in ("/status/public", "/status-page"):
                 status, _, _ = self.request(front, "GET", path)
                 self.assertEqual(status, 200)
+
+    def test_service_worker_is_authenticated_local_retirement_response(self):
+        with self.stack() as (front, _):
+            status, _, body = self.request(front, "GET", "/serviceWorker.js")
+            self.assertEqual(status, 401)
+            self.assertEqual(json.loads(body)["error"], "management_session_required")
+
+            cookie = {"Cookie": "local_session=valid"}
+            with mock.patch.object(proxy, "_connection", side_effect=AssertionError("upstream must not be used")):
+                status, headers, body = self.request(front, "GET", "/serviceWorker.js", headers=cookie)
+                self.assertEqual(status, 200)
+                self.assertEqual(headers["Content-Type"], "application/javascript; charset=utf-8")
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                self.assertEqual(int(headers["Content-Length"]), len(body))
+                lowered = body.lower()
+                for forbidden in (b"fetch", b"cache", b"upstream", b"/api/center", b"/center-assets", b"location"):
+                    self.assertNotIn(forbidden, lowered)
+                self.assertIn(b"skipwaiting", lowered)
+                self.assertIn(b"registration.unregister", lowered)
+
+                status, headers, body = self.request(front, "HEAD", "/serviceWorker.js", headers=cookie)
+                self.assertEqual((status, body), (200, b""))
+                self.assertEqual(int(headers["Content-Length"]), len(proxy._RETIRED_SERVICE_WORKER))
+
+            status, _, body = self.request(front, "POST", "/serviceWorker.js", b"", cookie)
+            self.assertEqual(status, 405)
+            self.assertEqual(json.loads(body)["error"], "proxy_method_not_allowed")
 
     def test_http_query_cookie_isolation_and_set_cookie_namespace(self):
         with self.stack() as (front, upstream):

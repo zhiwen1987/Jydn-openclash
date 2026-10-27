@@ -1125,6 +1125,7 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
     Handler = namespace["Handler"]
     center = Center(namespace, manager, access)
     previous_get, previous_post = Handler.do_GET, Handler.do_POST
+    previous_head = getattr(Handler, "do_HEAD", None)
     classic_dashboard = namespace["dashboard"]
 
     def send_json(handler: Any, status: int, value: Any) -> None:
@@ -1224,6 +1225,14 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
         except Exception:
             send_json(handler, 500, {"error": "center_operation_failed"})
 
-    Handler.do_GET, Handler.do_POST = get, post
+    def head(handler: Any) -> None:
+        if maybe_proxy(handler):
+            return
+        if previous_head is not None:
+            previous_head(handler)
+        else:
+            handler.send_error(404)
+
+    Handler.do_GET, Handler.do_POST, Handler.do_HEAD = get, post, head
     namespace["unified_center"] = center
     return center
