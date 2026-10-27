@@ -311,5 +311,31 @@
     },
     "release_tag": "v0.2.0-unified",
     "download_pending_upload": true
+  },
+  "followup_provider_audit": {
+    "read_only": true,
+    "node_source_registry_unchanged_from_backup": true,
+    "information_registry_unchanged_from_backup": true,
+    "sources": [
+      {
+        "name": "良心云",
+        "id": "Provider_BFFC55",
+        "information_only": false,
+        "runtime_nodes_at_followup": 27
+      },
+      {
+        "name": "🐮牛逼",
+        "id": "Provider_7CAD88",
+        "information_only": false,
+        "runtime_nodes_at_followup": 18
+      },
+      {
+        "name": "🧸 貓七七",
+        "id": "Info_03fd7d0180bb75aebaa9",
+        "information_only": true,
+        "runtime_nodes_at_followup": null
+      }
+    ],
+    "new_source_publication_performed_by_audit": false
   }
 }
