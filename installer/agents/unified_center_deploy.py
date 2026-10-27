@@ -34,7 +34,7 @@ import urllib.request
 
 
 BASE_IMAGE_ID = "sha256:eb0271488325b6f8801f7eebcf36ecf363c82b8ed7a3a8f9145250239771a8f2"
-DEFAULT_STATE_DIR = Path("/opt/lan-center-unified")
+DEFAULT_STATE_DIR = Path("/opt/clash-center-ui")
 DEFAULT_COMPOSE = Path("/root/dpanel/compose/lan-center/docker-compose.yml")
 LEGACY_STATE = Path("/opt/clash-stack/production/state.json")
 DEFAULT_CONTAINER = "clash-center"
