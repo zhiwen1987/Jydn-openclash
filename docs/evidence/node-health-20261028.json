@@ -1,0 +1,136 @@
+{
+  "scope": "node_health_coordination",
+  "operator_date": "2026-10-28",
+  "production_applied": true,
+  "test_suites": {
+    "python_tests": 48,
+    "python_passed": true,
+    "legacy_self_tests": 2,
+    "legacy_self_tests_passed": true,
+    "router_lifecycle_tests": 4,
+    "hard_parent_kill_covered": true,
+    "cooldown_3600_boundary": "isolated_virtual_clock",
+    "actual_production_one_hour_fault_injection": false
+  },
+  "native_measurement_lab": {
+    "passed": true,
+    "native_lifecycle_tests": 4,
+    "clone_api_verified": true,
+    "successful_delay_ms": 204,
+    "api_wall_ms": 231.07,
+    "fixture_head": "controlled HEAD fixture at 200ms",
+    "failed_proxy_status": 503,
+    "production_selectors_touched": false
+  },
+  "live_measurement": {
+    "api_equals_exact_target_history": true,
+    "sample_ms": 766.0,
+    "core_return_used_not_api_wall": true
+  },
+  "live_admission": {
+    "native_admission_success": true,
+    "reason": "native_exit_two_endpoints_passed",
+    "seconds": 11.79,
+    "production_node_inserted": false,
+    "previous_active_nodes": 43,
+    "current_active_nodes": 43,
+    "preserved_active_identities": 43,
+    "historical_rows_preserved": true
+  },
+  "live_initial_queue": {
+    "background_retests": 2,
+    "statuses": [
+      {
+        "reason": "isolated_transport_failed",
+        "state": "checking",
+        "retry_in_seconds": 30,
+        "failure_streak": 1
+      },
+      {
+        "reason": "isolated_transport_failed",
+        "state": "checking",
+        "retry_in_seconds": 30,
+        "failure_streak": 1
+      }
+    ],
+    "busy_lock_recurring": false,
+    "current_release_unchanged": true,
+    "scheduler_clock_persisted": true
+  },
+  "production_preservation": {
+    "choices": 84,
+    "rules": 144,
+    "core_unchanged": true,
+    "test_core_flock_inheritance": 0,
+    "container_not_restarted": true,
+    "dns_and_kuma_processes_unchanged": true,
+    "dns_files_unchanged": true,
+    "dns_udp_tcp": {
+      "UDP": {
+        "rcode": 0,
+        "answers": 4
+      },
+      "TCP": {
+        "rcode": 0,
+        "answers": 4
+      }
+    },
+    "source_and_runtime_config_unchanged": true,
+    "node_pull_urls_unchanged": true,
+    "node_sources_unchanged": true,
+    "dns_and_system_proxy_modified": false
+  },
+  "post_release": {
+    "nodes": 43,
+    "health": "ok",
+    "publisher": {
+      "status": "degraded",
+      "reason": "same_as_current",
+      "hold_released": true
+    },
+    "usage_sources": 3,
+    "usage_states": [
+      "ok",
+      "ok",
+      "ok"
+    ],
+    "quality_detail": "business_quality",
+    "quality_sample_age": 6,
+    "queue_updated_records": 19,
+    "queue_last_attempt_age": 18,
+    "queue_old_busy": 27,
+    "queue_new_busy": 0,
+    "schedule_counts": {
+      "chatgpt": 7,
+      "claude": 7,
+      "disney": 7,
+      "gemini": 7,
+      "general": 36,
+      "github": 7,
+      "netflix": 7,
+      "telegram": 7,
+      "youtube": 7
+    },
+    "recent_error_categories": [],
+    "container_not_restarted": true,
+    "node_sources_unchanged": true,
+    "rollback_check": {
+      "rollback_precheck": true
+    }
+  },
+  "rollback": {
+    "host": "/var/backups/clash-node-health-1793118412",
+    "router": "/root/clash-stack-backups/node-health-1793118409",
+    "precheck_passed_both": true,
+    "isolated_restore_preserves_history": true,
+    "later_operator_edits_refused": true,
+    "temporary_holds_removed": true
+  },
+  "limits": [
+    "No production container or host restart injected",
+    "No claim all nodes or logged-in business flows available",
+    "Old 0.1.1 ZIP not rebuilt",
+    "Publisher retains current release with degraded/same_as_current",
+    "Untested legacy delay values remain labelled legacy_http"
+  ]
+}
