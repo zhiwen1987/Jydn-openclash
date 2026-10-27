@@ -1,6 +1,6 @@
 # lan-center
 
-> 当前入口：中心已采用 `clash-center` 单容器架构，Kuma、CoreDNS、订阅和能力评估集中运行。请优先阅读[管理页面完整手册](../../docs/management-pages.zh-CN.md)、[最新使用手册](../../docs/system-guide.zh-CN.md)、[部署记录](../../docs/production-deployment-20261026.md)与[恢复手册](../../installer/RECOVERY.zh-CN.md)。[后续问题记录](../../docs/diagnostics-20261027.md)中的准入锁和套餐元数据仍待修复。下面保留的双容器说明、历史组数和检测频率用于追溯，不作为当前生产参数；外置 Grok 宿主机任务仍单独管理。
+> 当前入口：中心已采用 `clash-center` 单容器架构，Kuma、CoreDNS、订阅和能力评估集中运行。请优先阅读[管理页面完整手册](../../docs/management-pages.zh-CN.md)、[最新使用手册](../../docs/system-guide.zh-CN.md)、[部署记录](../../docs/production-deployment-20261026.md)与[恢复手册](../../installer/RECOVERY.zh-CN.md)。第一来源套餐信息已按[独立事务](../../docs/subscription-info-binding-20261027.md)绑定；[后续问题记录](../../docs/diagnostics-20261027.md)中的准入锁仍待修复，第二来源信息仍待绑定。下面保留的双容器说明、历史组数和检测频率用于追溯，不作为当前生产参数；外置 Grok 宿主机任务仍单独管理。
 
 生产位置：`10.88.0.249:/root/dpanel/compose/lan-center`
 
