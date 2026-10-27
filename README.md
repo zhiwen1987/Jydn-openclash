@@ -11,6 +11,7 @@
 | 日常使用、选节点、订阅、自建节点、排障 | [系统使用与维护手册](docs/system-guide.zh-CN.md) |
 | 管理页面逐项说明、按钮、指标与实际操作 | [管理页面完整操作手册](docs/management-pages.zh-CN.md) |
 | 无订阅信息、IPv6 出口、节点数量与待修复项 | [当前问题与只读核验记录](docs/diagnostics-20261027.md) |
+| 第一来源套餐信息绑定、验收和专用回退 | [订阅信息实施记录](docs/subscription-info-binding-20261027.md) |
 | 在其他局域网部署或接管已有单容器 | [安装器说明](installer/README.zh-CN.md) |
 | 查看备份、安装中断与回退 | [恢复手册](installer/RECOVERY.zh-CN.md) |
 | 查看测试范围、性能和未覆盖场景 | [安装器验收](installer/ACCEPTANCE.zh-CN.md) |
