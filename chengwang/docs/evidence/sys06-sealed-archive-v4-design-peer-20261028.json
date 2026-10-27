@@ -1,0 +1,108 @@
+{
+  "schema": "chengwang.p207a-sealed-archive-contract-independent-peer/v4",
+  "reviewRole": "independent_source_design_peer",
+  "reviewedAt": "2026-10-28T00:45:25+08:00",
+  "verdict": "DESIGN_ACCEPT_FOR_A0_A1_IMPLEMENTATION",
+  "scope": "FROZEN_V4_DESIGN_AND_FIXED_SOURCE_IDENTITY_ONLY",
+  "model": "UNKNOWN",
+  "inputs": {
+    "artifactDirectory": "D:/CodexData/workspace/mihomo-p207a-sealed-archive-v4-root-yhdn6lu3",
+    "contract": {"bytes": 31694, "sha256": "ee4e5b8411f546741f9a024df91d674d647ebae24e6312afe72b3ed74f9d463f"},
+    "matrix": {"bytes": 19331, "sha256": "dcee2e9f7cf2b585bd39acf5c3b6b15dd1823c4e3699d583c39ce7b7dcf5a885"},
+    "changelog": {"bytes": 5823, "sha256": "967293bad5832f1e1a9cd9ba7efbb75e43681dd897536753fc0cc79370fa075f"},
+    "sourceEvidence": {"bytes": 6222, "sha256": "0ffa32825e2ed78cb86de862f3c74de8de7ee878feb23a33280d2046904e2223"},
+    "manifest": {"bytes": 4233, "sha256": "fc256942cf9f572f92c33d29a79ee85cca60c378d604efe1939072c20415f7c2"},
+    "sha256Sums": {"bytes": 493, "sha256": "f2691743b8d1cc1154db88882fba7cffd5b0da53611daee8a4897d7dace16150", "listedEntriesVerified": 5},
+    "designFsyncReceipt": {"bytes": 4722, "sha256": "1571300146821fefd9b6bea703f208c8ff138b438f55ffe817c8619862259f5e"}
+  },
+  "sourceIdentity": {
+    "revision": "041e5a207169b06219888119acd876c95ac79372",
+    "tree": "5dfffd4b7728428556f3c027d5121f1edf902b68",
+    "nineRelevantBlobIdentitiesVerified": true,
+    "origin": "INHERITED_FROM_POST_HOC_BYTE_EXACT_RECOVERED_V3_EVIDENCE",
+    "v4MutableWorktreeEqualityClaimed": false,
+    "implementationMustRefreshIfRelevantSourceDiffers": true
+  },
+  "p1Closure": {
+    "id": "R01_PRE_INTENT_DETECTION_WITHOUT_R0",
+    "closed": true,
+    "selectedResolution": "BEHAVIOR_B_NO_R0",
+    "planningInput": "INITIAL_FROZEN_BYTES_ONLY",
+    "preIntentLiveSourceReread": false,
+    "preIntentChangeDetectionClaimed": false,
+    "allowedDurableRemnantsAfterPostFreezeMismatch": "EXACT_INTENT_AND_ZERO_PARTIAL_OR_ALL_CANDIDATES",
+    "firstPostFreezeReread": "R1_BEFORE_GENESIS",
+    "r1MismatchResult": "NO_GENESIS_NO_RECEIPT_INCOMPLETE_NON_ACTIVATABLE",
+    "genesisAuthority": "PROVES_R1_SUCCEEDED_AT_GENESIS_TRANSITION_BUT_IS_NOT_ACTIVATABLE_WITHOUT_EXACT_RECEIPT",
+    "receiptAuthority": "PUBLISHED_ONLY_AFTER_R2_AND_PROVES_A1_SHADOW_ONLY"
+  },
+  "carriedV2P1Closures": {
+    "cryptoKindSeparatedFromClosedSafeBasenameMapping": true,
+    "candidateR1GenesisR2ReceiptIsOnlyAuthorityOrder": true,
+    "existingOnlyNoCreateNoRepairSourceSnapshotBoundary": true,
+    "ordinaryCreateCapableOpenOrWrapperForbidden": true
+  },
+  "blockingFindings": [],
+  "preservedBoundaries": {
+    "a0CodecAndInMemoryFixturesOnly": true,
+    "a1LosslessShadowOnly": true,
+    "a1Activatable": false,
+    "a1ReleasesCapacity": false,
+    "bActivationRequiresIndependentRefreeze": true,
+    "bReleasesCapacity": false,
+    "capacityReleaseFirstPhase": "C",
+    "maintenanceAndOperationalAcceptancePhase": "D",
+    "sameRootHmacIsWorm": false,
+    "keyAwareCoherentLocalRewriteDetected": false,
+    "wholeAnchorRollbackLocallyDetectable": false,
+    "externalMonotonicWitnessRequiredForWholeAnchorRollback": true,
+    "oldBinaryConstrainedByLocalArchiveMarker": false,
+    "linuxAmd64Renameat2NoReplaceRequired": true,
+    "ordinaryRenameFallbackAllowed": false,
+    "checkThenRenameFallbackAllowed": false,
+    "linkUnlinkFallbackAllowed": false
+  },
+  "incidentAndAuthoringBoundary": {
+    "v3BaselineKind": "POST_HOC_BYTE_EXACT_RECOVERY",
+    "v3PreOverwriteIndependentBackupExisted": false,
+    "v3OverwriteIncidentErased": false,
+    "v4CreateMethod": "APPLY_PATCH_ADD_FILE_AFTER_TARGET_ABSENCE_AND_RESOLVED_PARENT_ASSERTION",
+    "kernelOExclObserved": false,
+    "kernelOExclClaimed": false,
+    "listedFileFlushesReportedSuccessful": true,
+    "windowsDirectoryFlushReportedSuccessful": false,
+    "windowsDirectoryFlushObservation": "UNAVAILABLE_WIN32_ERROR_5_NOT_CLAIMED",
+    "linuxTargetDurabilityProven": false
+  },
+  "implementationGate": {
+    "a0A1DesignGatePassed": true,
+    "implementationPresent": false,
+    "newExistingOnlySnapshotApisRequired": true,
+    "ordinaryEvidenceOpenAllowed": false,
+    "ordinaryMainOpenAllowed": false,
+    "ordinaryRefreshOpenAllowed": false,
+    "createCapableStoreOpenDiskAllowed": false,
+    "linuxNoReplaceAndCrashCutAcceptanceStillRequired": true,
+    "anyV4CorrectionRequiresNewV5Identity": true
+  },
+  "nonClaims": [
+    "NO_ARCHIVE_IMPLEMENTATION",
+    "NO_GO_TEST_BUILD_OR_FORMAT",
+    "NO_RUNTIME_BROWSER_CI_SERVICE_SSH_OR_PRODUCTION",
+    "NO_LINUX_FILESYSTEM_DURABILITY_PROOF",
+    "NO_ACTIVE_V2_EQUIVALENCE_OR_ACTIVATION",
+    "NO_CAPACITY_RELIEF",
+    "NO_BACKUP_RESTORE_OR_MAINTENANCE_ACCEPTANCE",
+    "NO_WORM_EXTERNAL_WITNESS_OR_DOWNGRADE_PREVENTION"
+  ],
+  "mutations": {
+    "v4Directory": false,
+    "recoveredV3": false,
+    "priorPeerReceipts": false,
+    "formalRepository": false,
+    "formalR": false,
+    "service": false,
+    "production": false,
+    "newExternalFinalReceiptOnly": true
+  }
+}

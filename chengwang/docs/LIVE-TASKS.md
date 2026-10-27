@@ -1,5 +1,11 @@
 # 澄网：项目任务清单
 
+2026-10-28 root新5源组合已集成：测试helper第4返回从SourceView纠正为实际Receipt（caller均只用SourceID或丢弃）；诊断仅在完整有界流全部校验后返回最多8个稳定位置并标TRUNCATED，9后任何foreign／invalid仍UNKNOWN空表，Go与fresh门不变。[旧3源leaf因模型名漂移REVISE](evidence/sys06-0766-truncated-leaf-source-rejection-20261028.md)保留，不作为准入；root新组合保留全部原61模型名、新增正确命名positive1并同步workflow62／a90810c3…，source／BUILD_LOCATION_SOURCES／model pins全闭合。[同源62CPU及实际日志严格复演](evidence/sys06-0766-receipt-truncated-combo-cpu-20261028.json)38.221秒通过，[新组合独立SOURCE_ACCEPT](evidence/sys06-0766-receipt-truncated-combo-source-peer-20261028.md)0 findings。Go类型矛盾是源码确定事实，尚未读取真实compiler首行；提交、最终HEAD绑定与新Linux481全运行仍待。生产不动。
+
+2026-10-28 archive新v4设计已在root指定新目录冻结，并获[独立DESIGN_ACCEPT_FOR_A0_A1_IMPLEMENTATION](evidence/sys06-sealed-archive-v4-design-peer-20261028.json)：7件输入开始／结束SHA稳定，R01的残留允许边界与R1／R2／receipt权威全局一致。仅解除设计门；A0/A1代码、Linux耐久、激活、容量释放仍未实现或验收。原v3覆盖事故／REVISE／事后恢复记录全部保留，v4与旧目录均不再原地修订。性能候选另在独立0766快照准备，不混主线诊断，具体9路径闭包／新ref／原Go预算保持按独立source复核进入后续Linux。
+
+2026-10-28 固定原因诊断提交 `0766c7f7475b5e31633d6093e952d0d360872d4d` 已完成最终source checker／双开发ref推送及精确读回。[新P207原件](evidence/sys06-0766-p207-fixed-reason-original-audit-20261028.json)仍435通过／0失败／46未开始，实际reason为LOCATION_COUNT_OVERFLOW、stderrClass NONEMPTY、sourcePositionCount OVER8；原failclosed规则在第9个声明位置丢弃列表，未读到位置内容，业务根因仍未知。下一外部修订只在完整流逐位置校验全部通过后给max8确定性位置并标记截断；所有非overflow拒绝门与Go／fresh接受条件保持，不读／上传原始错误文本。源/原件准入仍不能代替481全完成或上线。
+
 2026-10-28 [root集成后61项纯CPU](evidence/sys06-46b-fixed-reason-root-cpu-20261028.json)实际30.379秒通过、零skip；3源后像仍与冻结候选完全一致。即将形成下一开发提交，最终HEAD source checker与远端读回另验；Go／官方格式／481全完成及UNKNOWN真实原因仍须新Linux原件，不以CPU代证。生产不动。
 
 2026-10-28 UNKNOWN固定原因诊断已获[独立源码准入](evidence/sys06-46b-fixed-reason-source-peer-20261028.md)并由root集成3个非Go源：11个固定reason／3个stderr class／0..8与OVER8计数桶，原位置解析、max8、ctl46 eligibility、原始输出上传禁令与final／fresh门不变。[root源核对](evidence/sys06-46b-fixed-reason-root-source-20261028.json)确认全部前后像；作者patch SHA b657345e…使用8位abbrev index，root full-index SHA346e3392…，逐index OID前缀／100644模式精确一致且其他diff字节相等，非代码差异。第一次长路径与raw diff门已停止后重核，无未验强行提交。root同源61CPU正在运行，尚未提交或新Linux重跑，实际UNKNOWN原因仍待。

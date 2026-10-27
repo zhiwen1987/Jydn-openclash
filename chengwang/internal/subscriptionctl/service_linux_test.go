@@ -373,7 +373,7 @@ func TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore(t *testing.T) 
 	ctlTestError(t, err, CodeConflict, false)
 }
 
-func ctlTestRefreshWorker(t *testing.T) (*ctlTestEnv, *subscription.RefreshStore, *Service, subscription.SourceView, *ctlTestRefreshIdentity) {
+func ctlTestRefreshWorker(t *testing.T) (*ctlTestEnv, *subscription.RefreshStore, *Service, Receipt, *ctlTestRefreshIdentity) {
 	t.Helper()
 	e := ctlTestOpen(t)
 	created := e.create("v5-worker-source-key-01")

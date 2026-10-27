@@ -14,7 +14,7 @@ from pathlib import Path, PurePosixPath
 import re
 
 
-SCHEMA = "chengwang.subscription-refresh-go-failure/v3"
+SCHEMA = "chengwang.subscription-refresh-go-failure/v4"
 SCOPE = "NON_ACCEPTING_SOURCE_DECLARED_TOP_LEVEL_FAILURE_PROJECTION"
 MAX_EVENTS_BYTES = 64 << 20
 MAX_CONTRACT_BYTES = 8 << 20
@@ -44,6 +44,7 @@ FAILURE_CLASSES = (
 MARKERS = ("NONE", "TIMEOUT_TEXT", "PANIC_TEXT", "TIMEOUT_AND_PANIC_TEXT")
 BUILD_DIAGNOSTIC_STATUSES = (
     "BUILD_DIAGNOSTIC_LOCATION_OBSERVED",
+    "BUILD_DIAGNOSTIC_LOCATION_TRUNCATED",
     "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
 )
 BUILD_DIAGNOSTIC_REASONS = (
@@ -68,7 +69,7 @@ BUILD_LOCATION_SOURCES = {
     "chengwang/internal/subscriptionctl/contract.go": "8bf567cf6294dc6907d1932b240e244f2f80fe03ae17f277e098b2523cca2637",
     "chengwang/internal/subscriptionctl/refresh.go": "6ca1bdc725b035b9d6eed26724e77aafd5abd6a06b1f60d69c49dfa92b26cf0d",
     "chengwang/internal/subscriptionctl/service.go": "28d72d50d061cfc6d8c6263a6d941520a238186b791640c9f2bc3e76d1d392aa",
-    "chengwang/internal/subscriptionctl/service_linux_test.go": "e6fa709c9da4451616e51b3973d9a36c1dbe92ec428ab246780ea8564ab0b285",
+    "chengwang/internal/subscriptionctl/service_linux_test.go": "ecacaf5cf16e09b70e95779a75b75478f70578df99f203e2042ad228d3de3680",
     "chengwang/internal/subscriptionctl/service_read_linux_test.go": "2e3c28a09a2962b1fc385ab03246f6a8787caf42c676e8829b54d0079ef636cf",
 }
 LOCATION_TAIL = re.compile(r"^(?P<line>[1-9][0-9]{0,6})(?::(?P<column>[1-9][0-9]{0,2}))?: .+$")
@@ -143,17 +144,17 @@ def build_location_sources(repo: Path) -> list[tuple[str, bytes]]:
     return result
 
 
-def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tuple[str, str, str, str, list[dict]]:
+def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tuple[str, str, str, str, bool, list[dict]]:
     stderr_class = (
         "OVER_BUDGET" if len(stderr_raw) > MAX_STDERR_BYTES
         else "EMPTY" if len(stderr_raw) == 0
         else "NONEMPTY"
     )
 
-    def unknown(reason: str, count: int = 0) -> tuple[str, str, str, str, list[dict]]:
+    def unknown(reason: str, count: str = "0") -> tuple[str, str, str, str, bool, list[dict]]:
         need(reason in BUILD_DIAGNOSTIC_REASONS and reason != "OBSERVED", "unknown build diagnostic reason")
-        need(0 <= count <= MAX_BUILD_LOCATIONS, "unknown build diagnostic count")
-        return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", reason, stderr_class, str(count), []
+        need(count in BUILD_POSITION_COUNTS, "unknown build diagnostic count")
+        return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", reason, stderr_class, count, False, []
 
     if not eligible:
         return unknown("NOT_ELIGIBLE")
@@ -177,12 +178,17 @@ def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tu
         prefixes.append((relative, root_prefix + relative + ":"))
         source_lines[relative] = raw.splitlines()
         source_order[relative] = index
-    observed: set[tuple[str, int, int | None]] = set()
+
+    def location_key(value: tuple[str, int, int | None]) -> tuple[int, int, int]:
+        return source_order[value[0]], value[1], -1 if value[2] is None else value[2]
+
+    selected: list[tuple[str, int, int | None]] = []
+    overflow = False
     for line in text.split("\n"):
         if line == "":
             continue
         if len(line.encode("utf-8")) > MAX_LINE_BYTES:
-            return unknown("LINE_OVER_BUDGET", len(observed))
+            return unknown("LINE_OVER_BUDGET", "OVER8" if overflow else str(len(selected)))
         matched = False
         for relative, prefix in prefixes:
             if not line.startswith(prefix):
@@ -190,32 +196,48 @@ def project_build_locations(stderr_raw: bytes, repo: Path, eligible: bool) -> tu
             matched = True
             match = LOCATION_TAIL.fullmatch(line[len(prefix):])
             if match is None:
-                return unknown("POSITION_SYNTAX", len(observed))
+                return unknown("POSITION_SYNTAX", "OVER8" if overflow else str(len(selected)))
             line_number = int(match.group("line"))
             column_text = match.group("column")
             column = int(column_text) if column_text is not None else None
             lines = source_lines[relative]
             if line_number > len(lines):
-                return unknown("POSITION_RANGE", len(observed))
+                return unknown("POSITION_RANGE", "OVER8" if overflow else str(len(selected)))
             if column is not None and (column > 254 or column > len(lines[line_number - 1]) + 1):
-                return unknown("POSITION_RANGE", len(observed))
-            observed.add((relative, line_number, column))
-            if len(observed) > MAX_BUILD_LOCATIONS:
-                return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", "LOCATION_COUNT_OVERFLOW", stderr_class, "OVER8", []
+                return unknown("POSITION_RANGE", "OVER8" if overflow else str(len(selected)))
+            location = (relative, line_number, column)
+            if location not in selected:
+                if len(selected) < MAX_BUILD_LOCATIONS:
+                    selected.append(location)
+                    selected.sort(key=location_key)
+                else:
+                    overflow = True
+                    if location_key(location) < location_key(selected[-1]):
+                        selected[-1] = location
+                        selected.sort(key=location_key)
             break
         if not matched and LOCATION_LIKE.search(line) is not None:
-            return unknown("UNMATCHED_GO_POSITION", len(observed))
-    if not observed:
+            return unknown("UNMATCHED_GO_POSITION", "OVER8" if overflow else str(len(selected)))
+    if not selected:
         return unknown("NO_SOURCE_POSITION")
-    if len(observed) > MAX_BUILD_LOCATIONS:
-        return "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN", "LOCATION_COUNT_OVERFLOW", stderr_class, "OVER8", []
-    ordered = sorted(observed, key=lambda item: (source_order[item[0]], item[1], -1 if item[2] is None else item[2]))
+    ordered = sorted(selected, key=location_key)
+    locations = [{"source": source, "line": line, "column": column} for source, line, column in ordered]
+    if overflow:
+        return (
+            "BUILD_DIAGNOSTIC_LOCATION_TRUNCATED",
+            "LOCATION_COUNT_OVERFLOW",
+            stderr_class,
+            "OVER8",
+            True,
+            locations,
+        )
     return (
         "BUILD_DIAGNOSTIC_LOCATION_OBSERVED",
         "OBSERVED",
         stderr_class,
         str(len(ordered)),
-        [{"source": source, "line": line, "column": column} for source, line, column in ordered],
+        False,
+        locations,
     )
 
 
@@ -431,7 +453,7 @@ def project(
         BUILD_LOCATION_TARGET_PACKAGE in state
         and all(value == "NOT_STARTED" for value in state[BUILD_LOCATION_TARGET_PACKAGE].values())
     )
-    build_status, build_reason, build_stderr_class, build_position_count, build_locations = project_build_locations(
+    build_status, build_reason, build_stderr_class, build_position_count, build_truncated, build_locations = project_build_locations(
         stderr_raw, repo, target_zero_top,
     )
     return {
@@ -449,6 +471,7 @@ def project(
         "buildDiagnosticReason": build_reason,
         "buildStderrClass": build_stderr_class,
         "buildSourcePositionCount": build_position_count,
+        "buildDiagnosticTruncated": build_truncated,
         "buildDiagnosticLocations": build_locations,
         "eventLineCount": event_count,
         "outputEventCount": output_count,
@@ -480,7 +503,8 @@ def verify_report(
     keys = (
         "schema", "scope", "reportOutcome", "accepted", "contractSHA256", "goExit", "eventCheckExit",
         "stage", "failureClass", "markerObservation", "buildDiagnosticStatus", "buildDiagnosticReason",
-        "buildStderrClass", "buildSourcePositionCount", "buildDiagnosticLocations", "eventLineCount", "outputEventCount",
+        "buildStderrClass", "buildSourcePositionCount", "buildDiagnosticTruncated", "buildDiagnosticLocations",
+        "eventLineCount", "outputEventCount",
         "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount",
         "runningCount", "notStartedCount", "packages", "failedTops", "runningTops", "notStartedTops",
     )
@@ -497,6 +521,7 @@ def verify_report(
     need(report["buildDiagnosticReason"] in BUILD_DIAGNOSTIC_REASONS, "build diagnostic reason")
     need(report["buildStderrClass"] in BUILD_STDERR_CLASSES, "build stderr class")
     need(report["buildSourcePositionCount"] in BUILD_POSITION_COUNTS, "build source-position count")
+    need(type(report["buildDiagnosticTruncated"]) is bool, "build diagnostic truncated flag")
     locations = report["buildDiagnosticLocations"]
     need(type(locations) is list and len(locations) <= MAX_BUILD_LOCATIONS, "build diagnostic locations")
     for value in locations:
@@ -506,11 +531,18 @@ def verify_report(
         need(value["column"] is None or type(value["column"]) is int and 0 < value["column"] <= 254, "build diagnostic column")
     if report["buildDiagnosticStatus"] == "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN":
         need(locations == [], "unknown build diagnostic must be empty")
-        need(report["buildDiagnosticReason"] != "OBSERVED", "unknown build diagnostic reason")
-    else:
+        need(report["buildDiagnosticReason"] not in {"OBSERVED", "LOCATION_COUNT_OVERFLOW"}, "unknown build diagnostic reason")
+        need(report["buildDiagnosticTruncated"] is False, "unknown build diagnostic truncation")
+    elif report["buildDiagnosticStatus"] == "BUILD_DIAGNOSTIC_LOCATION_OBSERVED":
         need(len(locations) > 0, "observed build diagnostic must have locations")
         need(report["buildDiagnosticReason"] == "OBSERVED", "observed build diagnostic reason")
         need(report["buildSourcePositionCount"] == str(len(locations)), "observed build diagnostic count")
+        need(report["buildDiagnosticTruncated"] is False, "observed build diagnostic truncation")
+    else:
+        need(len(locations) == MAX_BUILD_LOCATIONS, "truncated build diagnostic locations")
+        need(report["buildDiagnosticReason"] == "LOCATION_COUNT_OVERFLOW", "truncated build diagnostic reason")
+        need(report["buildSourcePositionCount"] == "OVER8", "truncated build diagnostic count")
+        need(report["buildDiagnosticTruncated"] is True, "truncated build diagnostic flag")
     for name in ("eventLineCount", "outputEventCount", "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount", "runningCount", "notStartedCount"):
         need(type(report[name]) is int and report[name] >= 0, "report count")
     need(report["declaredPackageCount"] == len(packages) and report["declaredTopCount"] == 481, "report declared cardinality")

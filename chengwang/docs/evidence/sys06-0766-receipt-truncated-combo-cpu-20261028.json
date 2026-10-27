@@ -1,0 +1,15 @@
+{
+  "schema": "chengwang.receipt-truncated-combo-cpu/v1",
+  "sourcePatchSHA256": "97c412228dead761fdbcdef00480a03b02b6bd0ee23e1c1642d645b80b824bff",
+  "tests": 62,
+  "failed": 0,
+  "skipped": 0,
+  "exit": 0,
+  "seconds": 38.221,
+  "logSHA256": "624493dea51e238257089a01a3eee1ddbd23bad71d2f12b0ad77403f62791bab",
+  "sameWorkflowASTInventoryCount": 62,
+  "sameWorkflowASTNamesSHA256": "a90810c3944e4dc681825364ab1595c9e90c172a1d0e987f32795ca6113493c6",
+  "strictSourceModelLogReplayPassed": true,
+  "goExecuted": false,
+  "production": false
+}

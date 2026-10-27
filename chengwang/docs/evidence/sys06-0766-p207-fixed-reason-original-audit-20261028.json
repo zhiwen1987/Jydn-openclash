@@ -1,0 +1,108 @@
+{
+  "schema": "chengwang.p207a-source-go-failure-audit/v3",
+  "reviewerRole": "implementation56h",
+  "auditOutcome": "FAILURE_ARTIFACT_AUTHENTIC_LOCATION_COUNT_OVERFLOW_GO_RUN_REJECTED",
+  "run": {
+    "id": 40544127348,
+    "attempt": 1,
+    "headSHA": "0766c7f7475b5e31633d6093e952d0d360872d4d",
+    "sourceModelsJob": 122330033702,
+    "sourceModelsConclusion": "success",
+    "sourceAndGoJob": 122330201445,
+    "sourceAndGoConclusion": "failure",
+    "freshJob": 122330605967,
+    "freshConclusion": "skipped",
+    "jobMetadataSource": "authenticated fixed API metadata; no job logs"
+  },
+  "transport": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/github_artifact_via_git_credential.py",
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/materialize-ci-safe-batch-text-v5-20261026.py",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "singleSerialDownloadProcess": true,
+    "jobLogsRead": false,
+    "rawPrivateStreamsDownloaded": false
+  },
+  "artifact": {
+    "id": 12752606291,
+    "name": "p207a-source-go-failure-40544127348-1",
+    "bytes": 3518,
+    "sha256": "b6806120b4b717da6486fda599de2eb66d300d519f772def5aaf5b07365e0bd3",
+    "memberCount": 9,
+    "custodyBytes": 1535,
+    "custodySHA256": "82f955f6505066cdde9f0e73af21f5ab4d8b1a685e70a74efb3f87e4619d98d6",
+    "crcPathSizeAndDigestVerifiedByPinnedMaterializer": true,
+    "originalBytesStable": true
+  },
+  "sourceBinding": {
+    "beforeAfterByteEqual": true,
+    "beforeSHA256": "4de67006de57ced39eebeed4ab7b1bd471b9392759cfe2e66dc67f6b31bb3acb",
+    "afterSHA256": "4de67006de57ced39eebeed4ab7b1bd471b9392759cfe2e66dc67f6b31bb3acb",
+    "schema": "chengwang.subscription-refresh-source/v3",
+    "modulePathCount": 825,
+    "fixturePathCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "changedGoSourceCount": 24,
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
+    "goExecutionProvenBySourceReport": false
+  },
+  "format": {
+    "exit": 0,
+    "patchBytes": 0,
+    "patchSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 0,
+    "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "diagnostic": {
+    "reportBytes": 5943,
+    "reportSHA256": "ac59723179080a923c8e6829ad271079e965b39b11167c2c03317c31a82354f0",
+    "schema": "chengwang.subscription-refresh-go-failure/v3",
+    "reportOutcome": "FAILURE_DIAGNOSTIC_ONLY",
+    "accepted": false,
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "failureCheckExit": 0,
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "PACKAGE_TERMINAL_NONPASS",
+    "markerObservation": "NONE",
+    "buildDiagnosticStatus": "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
+    "buildDiagnosticReason": "LOCATION_COUNT_OVERFLOW",
+    "buildStderrClass": "NONEMPTY",
+    "buildSourcePositionCount": "OVER8",
+    "buildDiagnosticLocations": [],
+    "passCount": 435,
+    "failCount": 0,
+    "runningCount": 0,
+    "notStartedCount": 46,
+    "failedTops": [],
+    "subscription": {
+      "passCount": 120,
+      "failCount": 0,
+      "runningCount": 0,
+      "notStartedCount": 0
+    },
+    "subscriptionctl": {
+      "passCount": 0,
+      "failCount": 0,
+      "runningCount": 0,
+      "notStartedCount": 46
+    }
+  },
+  "comparisonTo46b": {
+    "passFailRunningNotStartedUnchanged": true,
+    "previousBuildDiagnosticReasonHiddenByV2": true,
+    "currentFixedReason": "LOCATION_COUNT_OVERFLOW"
+  },
+  "boundaries": {
+    "goRunAccepted": false,
+    "freshAccepted": false,
+    "businessRootCauseKnown": false,
+    "individualOverflowLocationsDisclosed": false,
+    "subscriptionctlBlockedByAnotherPackageClaimed": false,
+    "localGoOrGofmtRun": false,
+    "ciRerun": false,
+    "formalRepositoryModified": false,
+    "productionTouched": false
+  }
+}

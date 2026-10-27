@@ -190,6 +190,7 @@ class GoFailureProjectionModels(unittest.TestCase):
         self.assertEqual(result["buildDiagnosticReason"], "OBSERVED")
         self.assertEqual(result["buildStderrClass"], "NONEMPTY")
         self.assertEqual(result["buildSourcePositionCount"], "1")
+        self.assertIs(result["buildDiagnosticTruncated"], False)
         self.assertEqual(result["buildDiagnosticLocations"], [{
             "source": "chengwang/internal/subscriptionctl/service.go", "line": 1, "column": 1,
         }])
@@ -236,17 +237,62 @@ class GoFailureProjectionModels(unittest.TestCase):
                 self.assertEqual(result["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
                 self.assertEqual(result["buildDiagnosticReason"], reason)
                 self.assertEqual(result["buildSourcePositionCount"], "0")
+                self.assertIs(result["buildDiagnosticTruncated"], False)
+                self.assertEqual(result["buildDiagnosticLocations"], [])
                 self.assertNotIn("PRIVATE", json.dumps(result))
 
     def test_more_than_eight_locations_and_oversized_stderr_are_unknown(self) -> None:
-        stderr = b"".join(self.location_line(line=line, column=1) for line in range(1, 10))
-        overflow = self.project(b"", stderr)
-        self.assertEqual(overflow["buildDiagnosticReason"], "LOCATION_COUNT_OVERFLOW")
-        self.assertEqual(overflow["buildSourcePositionCount"], "OVER8")
-        over_budget = self.project(b"", b"x" * (F.MAX_STDERR_BYTES + 1))
+        nine = b"".join(self.location_line(line=line, column=1) for line in range(1, 10))
+        stderr = nine + b"x" * (F.MAX_STDERR_BYTES + 1 - len(nine))
+        over_budget = self.project(b"", stderr)
+        self.assertEqual(over_budget["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
         self.assertEqual(over_budget["buildDiagnosticReason"], "STDERR_OVER_BUDGET")
         self.assertEqual(over_budget["buildStderrClass"], "OVER_BUDGET")
         self.assertEqual(over_budget["buildSourcePositionCount"], "0")
+        self.assertIs(over_budget["buildDiagnosticTruncated"], False)
+        self.assertEqual(over_budget["buildDiagnosticLocations"], [])
+
+    def test_more_than_eight_locations_are_deterministically_truncated_only_after_full_validation(self) -> None:
+        eight = b"".join(self.location_line(line=line, column=1) for line in range(1, 9))
+        observed = self.project(b"", eight)
+        self.assertEqual(observed["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_OBSERVED")
+        self.assertEqual(observed["buildSourcePositionCount"], "8")
+        self.assertIs(observed["buildDiagnosticTruncated"], False)
+        self.assertEqual([value["line"] for value in observed["buildDiagnosticLocations"]], list(range(1, 9)))
+
+        nine_lines = [self.location_line(line=line, column=1) for line in range(1, 10)]
+        overflow = self.project(b"", b"".join(nine_lines))
+        self.assertEqual(overflow["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_TRUNCATED")
+        self.assertEqual(overflow["buildDiagnosticReason"], "LOCATION_COUNT_OVERFLOW")
+        self.assertEqual(overflow["buildSourcePositionCount"], "OVER8")
+        self.assertIs(overflow["buildDiagnosticTruncated"], True)
+        self.assertEqual([value["line"] for value in overflow["buildDiagnosticLocations"]], list(range(1, 9)))
+        self.assertEqual(self.project(b"", b"".join(reversed(nine_lines)))["buildDiagnosticLocations"], overflow["buildDiagnosticLocations"])
+        duplicates = self.project(b"", eight + eight)
+        self.assertEqual(duplicates["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_OBSERVED")
+        self.assertEqual(duplicates["buildSourcePositionCount"], "8")
+
+        after_overflow = (
+            (b"/tmp/foreign.go:2:2: PRIVATE\n", "UNMATCHED_GO_POSITION", "OVER8"),
+            (b"internal/subscriptionctl/service.go:not-a-position\n", "POSITION_SYNTAX", "OVER8"),
+            (b"internal/subscriptionctl/service.go:1:1: PRIVATE\x1b\n", "CONTROL_BYTE", "0"),
+            (b"\xff", "INVALID_UTF8", "0"),
+        )
+        for suffix, reason, count in after_overflow:
+            with self.subTest(reason=reason):
+                invalid = self.project(b"", b"".join(nine_lines) + suffix)
+                self.assertEqual(invalid["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN")
+                self.assertEqual(invalid["buildDiagnosticReason"], reason)
+                self.assertEqual(invalid["buildSourcePositionCount"], count)
+                self.assertIs(invalid["buildDiagnosticTruncated"], False)
+                self.assertEqual(invalid["buildDiagnosticLocations"], [])
+                self.assertNotIn("PRIVATE", json.dumps(invalid))
+
+        prefix = b"internal/subscriptionctl/service.go:1:1: "
+        boundary = self.project(b"", prefix + b"P" * (F.MAX_LINE_BYTES - len(prefix)) + b"\n")
+        self.assertEqual(boundary["buildDiagnosticStatus"], "BUILD_DIAGNOSTIC_LOCATION_OBSERVED")
+        self.assertEqual(boundary["buildSourcePositionCount"], "1")
+        self.assertNotIn("PPP", json.dumps(boundary))
 
     def test_location_is_not_projected_after_target_top_started(self) -> None:
         package = F.BUILD_LOCATION_TARGET_PACKAGE
@@ -269,12 +315,25 @@ class GoFailureProjectionModels(unittest.TestCase):
         reason = json.loads(json.dumps(result)); reason["buildDiagnosticReason"] = "POSITION_RANGE"; mutations.append(reason)
         stderr_class = json.loads(json.dumps(result)); stderr_class["buildStderrClass"] = "EMPTY"; mutations.append(stderr_class)
         position_count = json.loads(json.dumps(result)); position_count["buildSourcePositionCount"] = "2"; mutations.append(position_count)
+        truncated = json.loads(json.dumps(result)); truncated["buildDiagnosticTruncated"] = True; mutations.append(truncated)
         path = json.loads(json.dumps(result)); path["buildDiagnosticLocations"][0]["source"] = "chengwang/internal/subscriptionctl/foreign.go"; mutations.append(path)
         line = json.loads(json.dumps(result)); line["buildDiagnosticLocations"][0]["line"] = 2; mutations.append(line)
         column = json.loads(json.dumps(result)); column["buildDiagnosticLocations"][0]["column"] = None; mutations.append(column)
         for value in mutations:
             with self.subTest(value=value), self.assertRaises(F.FailureDiagnosticError):
                 self.roundtrip(value, b"", stderr)
+
+        overflow_stderr = b"".join(self.location_line(line=line, column=1) for line in range(1, 10))
+        overflow = self.project(b"", overflow_stderr)
+        overflow_mutations = []
+        coherent_status = json.loads(json.dumps(overflow)); coherent_status["buildDiagnosticStatus"] = "BUILD_DIAGNOSTIC_LOCATION_OBSERVED"; coherent_status["buildDiagnosticReason"] = "OBSERVED"; coherent_status["buildSourcePositionCount"] = "8"; coherent_status["buildDiagnosticTruncated"] = False; overflow_mutations.append(coherent_status)
+        flag = json.loads(json.dumps(overflow)); flag["buildDiagnosticTruncated"] = False; overflow_mutations.append(flag)
+        missing = json.loads(json.dumps(overflow)); missing["buildDiagnosticLocations"].pop(); overflow_mutations.append(missing)
+        reordered = json.loads(json.dumps(overflow)); reordered["buildDiagnosticLocations"].reverse(); overflow_mutations.append(reordered)
+        replaced = json.loads(json.dumps(overflow)); replaced["buildDiagnosticLocations"][-1]["line"] = 9; overflow_mutations.append(replaced)
+        for value in overflow_mutations:
+            with self.subTest(overflow=value), self.assertRaises(F.FailureDiagnosticError):
+                self.roundtrip(value, b"", overflow_stderr)
 
     def test_location_report_never_changes_failure_or_acceptance_gates(self) -> None:
         result = self.project(b"", self.location_line(), go_exit=1, event_exit=0)
