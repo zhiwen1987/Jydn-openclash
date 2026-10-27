@@ -2,13 +2,15 @@
 
 精细业务分流配置，以及集中运行监控、节点评估、订阅发布和 DNS 的单容器中心。提供中文离线安装向导、已有中心接管、备份和受控回退。
 
-**配置版本、安装器版本和 OpenClash 插件版本分别管理。** 当前部署状态以[生产验收记录](docs/production-deployment-20261026.md)为准，不把历史设计稿当成已上线功能。
+**配置版本、安装器版本和 OpenClash 插件版本分别管理。** 进源Clash Center `0.2.0` 已于 2026-10-28 接受生产切换，统一入口为 `http://10.88.0.249:3103/`。镜像身份、保留项、告警与恢复见[本轮生产验收记录](docs/unified-center-production-20261028.md)；原安装基线见[2026-10-26 部署记录](docs/production-deployment-20261026.md)。技术验收通过不等于所有业务和节点正常。
 
 ## 文档入口
 
 | 需要做什么 | 文档 |
 |---|---|
 | 日常使用、选节点、订阅、自建节点、排障 | [系统使用与维护手册](docs/system-guide.zh-CN.md) |
+| 构建、准备、切换、接受及回退 0.2.0 unified 镜像 | [统一镜像操作手册](docs/unified-image-operations.zh-CN.md) |
+| 查看 0.2.0 最终镜像、日期及生产证据 | [统一中心生产验收记录](docs/unified-center-production-20261028.md) |
 | 管理页面逐项说明、按钮、指标与实际操作 | [管理页面完整操作手册](docs/management-pages.zh-CN.md) |
 | 无订阅信息、IPv6 出口、节点数量与待修复项 | [当前问题与只读核验记录](docs/diagnostics-20261027.md) |
 | 3103 清单内各订阅来源自动显示独立用量、状态及回退 | [自动用量显示说明与验收](docs/subscription-usage-auto-20261027.md) |
@@ -70,6 +72,10 @@ flowchart LR
 
 ## 主要能力
 
+- **0.2.0 统一入口**：主入口为 `http://10.88.0.249:3103/`，提供 `#/overview`、`#/routing`、`#/nodes`、`#/subscriptions`、`#/dns`、`#/monitors`、`#/backups`、`#/activity` 八页。原 3101 Kuma 和 3102 能力页面暂时保留兼容，不作为新 UI 的主入口；原订阅管理页可由 3103 同源 `/classic/subscriptions` 打开。
+- **认证与真实状态**：统一中心沿用本地管理登录，写操作必须具备登录会话、同源和 CSRF；Kuma 继续使用自己的账号认证。页面只呈现接口取得的证据，无法取得时显示“未知”，超过新鲜度显示“已过期”，单模块失败不伪造成全局正常，也不在前端或文档保存密码、Token 或密钥。
+- **同步边界**：信息来源读取、节点检测、受控发布和运行加载是不同阶段。“信息来源 N 家”不等于“已发布 N 家节点”；刷新观测不会触发发布、改 DNS 或切换业务选择。备份页创建的是中心数据/配置备份，不是路由器或整机灾备，下载仍需有效管理会话。
+
 - **分流**：业务独立选择出口，规则按实际顺序匹配；国内、海外及用户例外分别验证。
 - **节点判断**：基础测速复用 Clash 中同目标的真实历史，必要时调用单节点接口；业务响应另行验证。首次失败复核，三次确认故障后冷却一小时、到期重测，恢复需要独立成功两次；设施故障不当作节点失效。详见[协同、验收与限制](docs/node-health-coordination-20261028.md)。
 - **订阅**：支持空来源、单来源和多来源；公共源经受控准入发布，异常不直接覆盖已验收版本。空来源不代表代理或 DNS 已可用。
@@ -81,6 +87,12 @@ flowchart LR
 - **恢复**：在线 SQLite 备份、固定镜像及文件散列、身份核验、双端事务和独立限时回退。接管不借升级改写旁路由业务规则或 DNS。
 
 ## 安装与更新
+
+**0.2.0 下载：** [统一镜像发行页](https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.2.0-unified) · [Linux amd64 镜像归档](https://github.com/zhiwen1987/Jydn-openclash/releases/download/v0.2.0-unified/Clash-Center-0.2.0-linux-amd64.tar.gz) · [SHA256SUMS](https://github.com/zhiwen1987/Jydn-openclash/releases/download/v0.2.0-unified/SHA256SUMS)。完整归档为 661018403 字节，不包含生产数据和凭据；使用前核对清单与恢复条件，不是原 0.1.1 Windows ZIP 的重打包。
+
+**0.2.0 unified 镜像：** 采用固定已审计基镜像的离线增量构建，操作顺序为 `prepare → apply → verify → accept`，需要恢复时使用 `rollback`。`prepare` 先核验镜像谱系、Compose/容器/挂载/state 所有权、空间和 SQLite 完整备份；`apply` 只重建 `center` 服务并启动独立超时守卫；`accept` 只能在运行验收完成后执行；`rollback` 仅恢复本事务拥有的镜像、Compose 和代码挂载，保留上线后产生的数据。详细命令见[统一镜像操作手册](docs/unified-image-operations.zh-CN.md)。最终是否生产启用只以[统一中心生产验收记录](docs/unified-center-production-20261028.md)为准。
+
+`clash-center` 同时承载 CoreDNS、Kuma 和中心服务，切换或回退容器会让 DNS、Kuma、3101/3102/3103 短时不可用，不能宣称零中断。恢复要求原备份完整，当前 Compose、容器 ID、统一安装 state 和旧安装器 state 仍由同一事务拥有；发现人工修改或身份漂移必须停止自动覆盖。程序回退不把旧数据库回灌到生产，数据库损坏恢复需另行审阅。
 
 **0.1.1 离线发行版：** [下载页面与发行说明](https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.1.1) · [完整安装包](https://github.com/zhiwen1987/Jydn-openclash/releases/download/v0.1.1/Clash-Stack-0.1.1-x64.zip) · [SHA-256 校验文件](https://github.com/zhiwen1987/Jydn-openclash/releases/download/v0.1.1/Clash-Stack-0.1.1-x64.zip.sha256.txt)。Release 中的 Source code 是仓库源码，不包含镜像与随包依赖，不能代替完整安装包。
 

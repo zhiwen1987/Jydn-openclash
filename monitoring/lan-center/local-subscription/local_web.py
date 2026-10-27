@@ -60,6 +60,7 @@ def install(namespace, manager=None):
         return namespace['api_request'](method, path, json.dumps(body, ensure_ascii=False).encode() if body is not None else None)
     manager = manager or Manager(namespace['DATA'] / 'local-source', api, lambda nodes: native_validator(os.getenv('LOCAL_SOURCE_CORE', '/local-subscription/core'), nodes))
     access = Access(manager.credential)
+    session_cookie_path = '/' if os.getenv('CENTER_UI_ENABLED', '0') == '1' else '/api/local'
     previous_get, previous_post = Handler.do_GET, Handler.do_POST
     dashboard = namespace['dashboard']
     fragment = (ROOT / 'editor.html').read_text()
@@ -128,7 +129,7 @@ def install(namespace, manager=None):
                 raise Invalid('request_object_required')
             if path == '/api/local/login':
                 sid, csrf = access.login(h.client_address[0], req.get('token'))
-                respond(h, 200, {'csrf': csrf}, 'local_session=' + sid + '; HttpOnly; SameSite=Strict; Path=/api/local; Max-Age=1800' + ('; Secure' if os.getenv('LOCAL_SOURCE_HTTPS') == '1' else ''))
+                respond(h, 200, {'csrf': csrf}, 'local_session=' + sid + '; HttpOnly; SameSite=Strict; Path=' + session_cookie_path + '; Max-Age=1800' + ('; Secure' if os.getenv('LOCAL_SOURCE_HTTPS') == '1' else ''))
                 return
             sid, session = access.session(h.headers.get('Cookie', ''))
             if not session or not hmac.compare_digest(h.headers.get('X-CSRF-Token', ''), session['csrf']):
@@ -137,7 +138,7 @@ def install(namespace, manager=None):
             if path == '/api/local/logout':
                 with access.lock:
                     access.sessions.pop(sid, None)
-                respond(h, 200, {'status': 'logged_out'}, 'local_session=; HttpOnly; SameSite=Strict; Path=/api/local; Max-Age=0')
+                respond(h, 200, {'status': 'logged_out'}, 'local_session=; HttpOnly; SameSite=Strict; Path=' + session_cookie_path + '; Max-Age=0')
             elif path == '/api/local/preview':
                 nodes = manager.canonical(req.get('text', ''))
                 manager.validator([{**n['proxy'], 'name': n['name']} for n in nodes])
@@ -179,6 +180,16 @@ def install(namespace, manager=None):
     except Exception as error:
         if callable(namespace.get('log')):
             namespace['log']('subscription_usage_unavailable', type(error).__name__, 'warning')
+    if os.getenv('CENTER_UI_ENABLED', '0') == '1':
+        try:
+            import sys
+            if '/unified-center' not in sys.path:
+                sys.path.insert(0, '/unified-center')
+            from unified_center import install as install_center
+            install_center(namespace, manager, access)
+        except Exception as error:
+            if callable(namespace.get('log')):
+                namespace['log']('unified_center_unavailable', type(error).__name__, 'warning')
     return manager
 
 
