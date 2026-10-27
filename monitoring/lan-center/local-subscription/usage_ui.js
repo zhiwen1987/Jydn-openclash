@@ -36,6 +36,11 @@
     if (data.registry_state === 'error') summary += ' · 来源配置读取失败，保留上次清单';
     else if (data.registry_state !== 'ok') summary += ' · 用量服务暂不可用，等待恢复';
     root.appendChild(node('p', summary, 'jydn-usage-summary'));
+    if (data.source_sync) {
+      const sync=data.source_sync;
+      const label=sync.state==='ok'?'同步正常':sync.state==='stale'?'同步已超时，保留上次清单':'同步暂不可用，保留上次有效清单';
+      root.appendChild(node('p','来源：OpenClash「转换」 · '+label+' · 最后成功：'+date(sync.last_success),'jydn-usage-summary jydn-usage-meta'));
+    }
     if (!rows.length) {
       root.appendChild(node('p', data.registry_state === 'ok' ? '暂无启用的订阅来源。' : '暂时无法读取来源，未将其标成零用量。'));
       return;

@@ -146,7 +146,8 @@ def apply(receipt):
         # cycle on this web-worker reload. Ordinary scheduling resumes afterward.
         defer = CONTROL/'subscription-controller/usage-reload-defer.json'
         assert not defer.exists(), 'existing_reload_defer_requires_review'
-        write(defer, {'until': time.time()+300, 'release_id': manifest['release_id'], 'health': health})
+        write(defer, {'until': time.time()+300, 'release_id': manifest['release_id'], 'health': health,
+                      'information_only_acceptance': True})
         for name,v in j['files'].items():
             atomic(name, Path(v['stage']).read_bytes(), v['mode'], Path(name)==WRAPPER)
         restart_subscription()

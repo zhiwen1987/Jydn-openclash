@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh information-only subscription inventory
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=30s
+AccuracySec=1s
+RandomizedDelaySec=2s
+Unit=clash-subscription-info-sync.service
+[Install]
+WantedBy=timers.target

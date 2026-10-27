@@ -146,7 +146,7 @@ def parse_userinfo(headers):
     values = re.findall(r'^subscription-userinfo:\s*([^\r\n]+)', headers, re.I | re.M)
     if not values:
         raise UsageError('information_header_missing')
-    fields = {}
+    fields, seen = {}, set()
     for part in values[-1].split(';'):
         if not part.strip():
             continue
@@ -154,7 +154,14 @@ def parse_userinfo(headers):
         key = key.lower().strip()
         if key not in ('upload', 'download', 'total', 'expire'):
             continue
-        if not sep or key in fields or not re.fullmatch(r'\d{1,16}', value.strip()):
+        if not sep or key in seen:
+            raise UsageError('information_header_invalid')
+        seen.add(key)
+        # Some origins serialize an unknown optional expiry as `expire=`.
+        # Preserve valid byte counters without inventing an expiry or lifetime.
+        if key == 'expire' and not value.strip():
+            continue
+        if not re.fullmatch(r'\d{1,16}', value.strip()):
             raise UsageError('information_header_invalid')
         fields[key] = int(value)
         if fields[key] > MAX_INTEGER:
@@ -207,6 +214,7 @@ class Fetcher:
 class Collector:
     def __init__(self, sources, root, fetcher=None, clock=time.time, interval=600, stale_after=1800):
         self.sources, self.root = Path(sources), Path(root)
+        self.legacy_sources = self.sources
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.fetcher = fetcher or Fetcher(os.getenv('PROXY', ''), os.getenv('PROXY_AUTH', ''))
         self.clock, self.interval, self.stale_after = clock, interval, stale_after
@@ -265,15 +273,19 @@ class Collector:
 
     def _registry(self):
         now = self.clock()
+        independent=False
         try:
+            information=self.root/'information-sources.json'
+            independent=(self.root/'source-mode.json').exists() or information.exists() or (self.root/'information-sources.good.json').exists()
+            self.sources=information if independent else self.legacy_sources
             stat = self.sources.stat()
-            stamp = (stat.st_mtime_ns, stat.st_size, stat.st_ino)
+            stamp = (str(self.sources), stat.st_mtime_ns, stat.st_size, stat.st_ino)
             if stamp == self._registry_stamp and now-self._last_registry_read < 30:
                 return
             self._last_registry_read = now
             if stat.st_size > 2*1024**2:
                 raise UsageError('source_inventory_too_large')
-            sources = inventory(yaml.safe_load(self.sources.read_text()))
+            sources = inventory(yaml.safe_load(self.sources.read_text(encoding='utf-8')))
             fresh = {}
             for sid, source in sources.items():
                 prior = self.records.get(sid, {})
@@ -288,6 +300,34 @@ class Collector:
         except Exception as error:
             self.registry_state = 'error'
             self.registry_error = str(error) if isinstance(error, UsageError) else 'source_inventory_unreadable'
+            # Recover only the independent last-good registry. Never switch
+            # back to the node publisher's source list after sync activation.
+            if independent and not self.active:
+                try:
+                    good=self.root/'information-sources.good.json'
+                    if good.stat().st_size>2*1024**2:raise UsageError('source_inventory_too_large')
+                    recovered=inventory(json.loads(good.read_text(encoding='utf-8')))
+                    self.active=recovered
+                    self.records={sid:self.records.get(sid,{}) if self.records.get(sid,{}).get('identity')==source['identity'] else {'identity':source['identity'],'failures':0,'next_due':0} for sid,source in recovered.items()}
+                except Exception:pass
+
+    def sync_snapshot(self):
+        if self.sources==self.legacy_sources:return None
+        now=self.clock();result={'source_name':'转换','state':'unavailable'}
+        try:
+            path=self.root/'sync-state.json'
+            if path.stat().st_size>16384:return result
+            data=json.loads(path.read_text(encoding='utf-8'))
+            if data.get('schema')!=1:return result
+            for key in ('last_attempt','last_success','last_change','managed_count','manual_count'):
+                value=data.get(key)
+                if type(value) in (int,float) and math.isfinite(value) and value>=0:result[key]=value
+            state=data.get('state')
+            if state in ('ok','error'):result['state']=state
+            age=now-result.get('last_attempt',0)
+            if not 0<=age<=120:result['state']='stale'
+        except (OSError,ValueError,TypeError,AttributeError):pass
+        return result
 
     def tick(self):
         with self.lock:
@@ -368,7 +408,8 @@ class Collector:
             healthy = self.last_tick and 0 <= now-self.last_tick < 20
             return {'schema': SCHEMA, 'auto_mode': True, 'get_time': int(now), 'providers': rows,
                     'registry_state': self.registry_state if healthy else 'worker_unavailable',
-                    'registry_error': self.registry_error, 'source_count': len(rows), 'refresh_seconds': 30}
+                    'registry_error': self.registry_error, 'source_count': len(rows), 'refresh_seconds': 30,
+                    'source_sync': self.sync_snapshot()}
 
     def start(self):
         def run():

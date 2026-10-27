@@ -29,3 +29,4 @@ jobs:
           python -B -m unittest discover -s installer/tests -p test_subscription_scheduler.py -v
           node --check monitoring/lan-center/local-subscription/usage_ui.js
           ruby -c monitoring/lan-center/subscription-usage/deploy_router.rb
+          ruby -c monitoring/lan-center/subscription-usage/deploy_exporter.rb
