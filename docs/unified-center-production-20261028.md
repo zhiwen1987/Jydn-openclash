@@ -109,7 +109,7 @@ SHA-256：cc7d19f68857b833feabfb3a5ed8c62ff94d4ad43ec27b92e039c650dbeffc37d
 
 Docker/containerd 的 OCI manifest 身份与 config blob 摘要不同。此次归档根 manifest 为 `f6aca742…`，config 为 `ebd3cd06…`，不能把两者当成同一个散列；校验器分别验证根、配置、压缩层、解压层，以及 legacy manifest 的交叉引用，不通过放宽身份检查来绕过差异。参考 [Docker containerd image store](https://docs.docker.com/engine/storage/containerd/) 和 [containerd Content Flow](https://containerd.io/docs/2.4/content-flow/)。
 
-上传完成后在 GitHub `v0.2.0-unified` 发行页提供归档、manifest、源码清单、SHA256SUMS、部署代理及操作手册。完整源码仍在仓库；归档和公开清单均不包含生产数据、订阅 Token、密码或私钥。公开[构建输入清单](evidence/unified-center-0.2.0-context.json)可用于核对运行源码。
+六项发行资产已上传并逐项核对 GitHub 返回的大小和 SHA-256：[0.2.0 发行页](https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.2.0-unified)提供归档、manifest、源码清单、SHA256SUMS、部署代理及操作手册。完整源码仍在仓库；归档和公开清单均不包含生产数据、订阅 Token、密码或私钥。公开[构建输入清单](evidence/unified-center-0.2.0-context.json)可用于核对运行源码。源码合并后发布此发行版；镜像内源码仍以清单中的构建提交为准，不把后续文档提交当作重新构建。
 
 ## 7. “代理商少了订阅”的只读核对
 
@@ -124,3 +124,5 @@ Docker/containerd 的 OCI manifest 身份与 config blob 摘要不同。此次�
 因此当次共 45 个机场运行节点；前文 43 个是切换验收时的快照，后台原有检测、准入和发布会继续运行，不把历史验收数字写成永久固定数量。`Local_Custom` 的占位项和 `Compatible` 类型的策略组不能冒充额外机场或重复计入真实订阅节点。
 
 此前单向同步方案明确只采集名称/用量、不触发节点发布。要让第三家提供节点，需另行纳入节点来源、检测准入、受控发布及相关组引用；本次只读诊断没有执行该改动。后续可在每个来源增加“仅用量/候选检测/已发布/已加载”标识，属于待实现的界面改进，不在本轮已验收功能中冒充完成。
+
+进一步核对代码和线上发布链：`source_sync.py` 生成 `purpose=subscription_information_only` 的信息清单；`subscription-controller.py` 的 `load_sources()` 只读取 `subscription-sources.json`。第三家信息条目的 owner 为 `openclash:转换`，启用状态正常，但不在节点来源清单、当前 release 的节点文件或 OpenClash `proxy-providers` 定义中。其节点尚未进入该控制器的检测/发布流程，不能归因为检测失败或 Clash 拒绝加载。两家当前发布文件分别有 27/18 个节点，Clash 实际加载数量一致，配置中分别被 24/23 个组引用。此次仅只读检查，没有把第三家自动接入生产。

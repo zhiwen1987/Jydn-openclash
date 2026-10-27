@@ -4,6 +4,8 @@
 
 本文是日常操作总览。[管理页面完整操作手册](management-pages.zh-CN.md)逐项介绍 OpenClash 首页、Metacubexd/Zashboard、Kuma、3102、3103、DPanel，以及按钮影响、状态字段、操作流程和只读检查。[历史问题记录](diagnostics-20261027.md)区分当时已验证与未修复项；订阅名称与用量见[单向同步](subscription-info-sync-20261027.md)，后续节点准入与检测修复见[2026-10-28 协同维护](node-health-coordination-20261028.md)。不能只凭文档已同步判断全部问题完成。
 
+镜像归档、部署代理及校验清单见 [0.2.0 发行页](https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.2.0-unified)。升级前按[统一镜像操作手册](unified-image-operations.zh-CN.md)核验兼容条件；发行资产不包含本环境的订阅、密钥或运行数据库。
+
 ## 1. 页面与权限
 
 | 本环境入口 | 用途 | 权限 |

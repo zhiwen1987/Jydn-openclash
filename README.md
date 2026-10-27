@@ -88,6 +88,8 @@ flowchart LR
 
 ## 安装与更新
 
+**0.2.0 下载：** [统一镜像发行页](https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.2.0-unified) · [Linux amd64 镜像归档](https://github.com/zhiwen1987/Jydn-openclash/releases/download/v0.2.0-unified/Clash-Center-0.2.0-linux-amd64.tar.gz) · [SHA256SUMS](https://github.com/zhiwen1987/Jydn-openclash/releases/download/v0.2.0-unified/SHA256SUMS)。完整归档为 661018403 字节，不包含生产数据和凭据；使用前核对清单与恢复条件，不是原 0.1.1 Windows ZIP 的重打包。
+
 **0.2.0 unified 镜像：** 采用固定已审计基镜像的离线增量构建，操作顺序为 `prepare → apply → verify → accept`，需要恢复时使用 `rollback`。`prepare` 先核验镜像谱系、Compose/容器/挂载/state 所有权、空间和 SQLite 完整备份；`apply` 只重建 `center` 服务并启动独立超时守卫；`accept` 只能在运行验收完成后执行；`rollback` 仅恢复本事务拥有的镜像、Compose 和代码挂载，保留上线后产生的数据。详细命令见[统一镜像操作手册](docs/unified-image-operations.zh-CN.md)。最终是否生产启用只以[统一中心生产验收记录](docs/unified-center-production-20261028.md)为准。
 
 `clash-center` 同时承载 CoreDNS、Kuma 和中心服务，切换或回退容器会让 DNS、Kuma、3101/3102/3103 短时不可用，不能宣称零中断。恢复要求原备份完整，当前 Compose、容器 ID、统一安装 state 和旧安装器 state 仍由同一事务拥有；发现人工修改或身份漂移必须停止自动覆盖。程序回退不把旧数据库回灌到生产，数据库损坏恢复需另行审阅。

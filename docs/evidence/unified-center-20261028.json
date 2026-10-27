@@ -310,7 +310,40 @@
       "production_data_included": false
     },
     "release_tag": "v0.2.0-unified",
-    "download_pending_upload": true
+    "download_pending_upload": false,
+    "release_url": "https://github.com/zhiwen1987/Jydn-openclash/releases/tag/v0.2.0-unified",
+    "github_assets": [
+      {
+        "name": "Clash-Center-0.2.0-linux-amd64.tar.gz",
+        "bytes": 661018403,
+        "digest": "sha256:cc7d19f68857b833feabfb3a5ed8c62f94d4ad43ec27b92e039c650dbeffc37d"
+      },
+      {
+        "name": "context.manifest.json",
+        "bytes": 4329,
+        "digest": "sha256:5c54ae25a3dafeff31bc42f223c1eb94633aed08298ba04256f088615597cfb7"
+      },
+      {
+        "name": "manifest.json",
+        "bytes": 4608,
+        "digest": "sha256:caec9382dc1b07e2237d656494e37ffd6ccb427854b7783f71eda52ab599c35a"
+      },
+      {
+        "name": "unified_center_deploy.py",
+        "bytes": 48123,
+        "digest": "sha256:35037aca6906df243de8ef1c7c3d2ff085acc4703a9243336ca25592862782a8"
+      },
+      {
+        "name": "operations.zh-CN.md",
+        "bytes": 12682,
+        "digest": "sha256:6be58680aeb648ccedc30d534e966ea9f3077ba6343a6a2baee3fec36a4d9d29"
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 449,
+        "digest": "sha256:9a69625e7ff330f06de5ce10bb273cc82559d42cbcd61cb4f4fbdcfc70e0705d"
+      }
+    ]
   },
   "followup_provider_audit": {
     "read_only": true,
@@ -336,6 +369,81 @@
         "runtime_nodes_at_followup": null
       }
     ],
-    "new_source_publication_performed_by_audit": false
+    "new_source_publication_performed_by_audit": false,
+    "publication_chain_verified": {
+      "publication_source_ids": [
+        "Provider_BFFC55",
+        "Provider_7CAD88"
+      ],
+      "published_files": [
+        {
+          "source_id": "Provider_BFFC55",
+          "provider": "Provider_BFFC55",
+          "node_count": 27,
+          "file_present": true,
+          "actual_file_nodes": 27
+        },
+        {
+          "source_id": "Provider_7CAD88",
+          "provider": "Provider_7CAD88",
+          "node_count": 18,
+          "file_present": true,
+          "actual_file_nodes": 18
+        }
+      ],
+      "information_sources": [
+        {
+          "id": "Provider_BFFC55",
+          "owner": "openclash:转换",
+          "enabled": true,
+          "registered_for_publication": true
+        },
+        {
+          "id": "Provider_7CAD88",
+          "owner": "openclash:转换",
+          "enabled": true,
+          "registered_for_publication": true
+        },
+        {
+          "id": "Info_03fd7d0180bb75aebaa9",
+          "owner": "openclash:转换",
+          "enabled": true,
+          "registered_for_publication": false
+        }
+      ]
+    },
+    "router_verified": {
+      "configured_providers": [
+        {
+          "name": "Provider_BFFC55",
+          "type": "http",
+          "referenced_by_group_count": 24
+        },
+        {
+          "name": "Provider_7CAD88",
+          "type": "http",
+          "referenced_by_group_count": 23
+        },
+        {
+          "name": "Local_Custom",
+          "type": "http",
+          "referenced_by_group_count": 1
+        }
+      ],
+      "loaded_http_providers": [
+        {
+          "name": "Local_Custom",
+          "nodes": 1
+        },
+        {
+          "name": "Provider_7CAD88",
+          "nodes": 18
+        },
+        {
+          "name": "Provider_BFFC55",
+          "nodes": 27
+        }
+      ]
+    }
   }
 }
