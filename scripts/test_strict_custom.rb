@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'yaml'
 require_relative 'strict_custom'
+require_relative 'routing_controls'
 def copy(v);Marshal.load(Marshal.dump(v));end
 def assert(v,message);raise message unless v;end
 def fixture
@@ -79,6 +80,13 @@ StrictCustom.apply(y,POLICY,nil,locks);g=y['proxy-groups'].to_h{|v|[v['name'],v]
 assert(g['Google']['proxies']==[StrictCustom::SINGLE,'REJECT'] && g[StrictCustom::SINGLE]['proxies']==['REJECT'],'missing durable target escapes')
 puts 'PASS persistent_missing_node_rejects'
 y=fixture
+y['proxy-groups'] << {'name'=>'🛟 稳定自动','type'=>'url-test','proxies'=>['public']}
+RoutingControls.apply(y,{'business_groups'=>['Google']},{'stable_choice'=>'🛟 稳定自动','additional_selectors'=>[],'direct_domains'=>[]})
+assert(y['proxy-groups'].find{|group|group['name']=='Google'}['proxies'].include?('🛟 稳定自动'),'routing_control_fixture_missing')
+StrictCustom.apply(y,POLICY,PRIVATE,locks);locked=y['proxy-groups'].find{|group|group['name']=='Google'}['proxies']
+assert(locked==[StrictCustom::SINGLE,'REJECT'] && !locked.include?('🛟 稳定自动'),'strict_hook_must_run_last')
+puts 'PASS routing_controls_before_strict_keeps_locked_menu_closed'
+y=fixture
 %w[Google Gemini].each do |name|
  old_single=StrictCustom::LEGACY_SINGLE+name;old_group=StrictCustom::LEGACY_GROUP+name
  y['proxy-groups'].find{|g|g['name']==name}['proxies'] += [old_single,old_group]
@@ -122,4 +130,4 @@ ensure
  Dir.rmdir(dir)
 end
 puts 'PASS local_provider_loaded_by_direct_compiler_call'
-puts 'strict_custom_tests='+(tests.length+7).to_s
+puts 'strict_custom_tests='+(tests.length+8).to_s
