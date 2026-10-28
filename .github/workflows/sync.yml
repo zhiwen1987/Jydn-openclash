@@ -6,7 +6,6 @@ on:
     paths:
       - "scripts/**"
       - "modules/**"
-      - "monitoring/lan-center/strict-custom/**"
   push:
     branches:
       - main
@@ -16,7 +15,6 @@ on:
       - "rules/**"
       - "modules/**"
       - "scripts/**"
-      - "monitoring/lan-center/strict-custom/**"
 
 permissions:
   contents: write
@@ -27,6 +25,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Verify rules-only repository boundary
+        run: python3 scripts/check_rules_repository.py
 
       - name: Build generated artifacts
         run: python3 scripts/build.py
@@ -43,8 +44,8 @@ jobs:
       - name: Test strict private selectors
         run: ruby scripts/test_strict_custom.rb
 
-      - name: Test strict controller protections
-        run: python3 -m unittest discover -s monitoring/lan-center/strict-custom -p test_strict_control.py -v
+      - name: Test public rule export allowlist
+        run: python3 scripts/test_publish_public_rules.py
 
   sync:
     if: github.event_name != 'pull_request'
