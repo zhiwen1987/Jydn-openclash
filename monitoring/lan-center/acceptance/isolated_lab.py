@@ -87,6 +87,17 @@ def _private_regular(path: Path, *, directory: bool = False) -> None:
         raise LabFailure("private_input_permissions:" + path.name)
 
 
+def _repository_source(path: Path) -> None:
+    """Accept a normal checked-out source file without weakening private inputs.
+
+    Git does not preserve a 0600 mode for tracked source files, so a Linux
+    checkout is normally 0644.  Repository source must still be a direct,
+    regular file; only operator-supplied private inputs require 0600.
+    """
+    if path.is_symlink() or not path.is_file():
+        raise LabFailure("repository_source_invalid:" + path.name)
+
+
 def _tree_safe(root: Path) -> None:
     _private_regular(root, directory=True)
     for path in root.rglob("*"):
@@ -285,7 +296,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         topology = _generate_mihomo(input_root, output_root, private)
         (output_root / "control" / "lab-mihomo").mkdir(mode=0o700, parents=True, exist_ok=True)
         acceptance_source = Path(__file__).with_name("acceptance.py")
-        _private_regular(acceptance_source)
+        _repository_source(acceptance_source)
         shutil.copyfile(acceptance_source, output_root / "lab" / "acceptance.py")
         os.chmod(output_root / "lab" / "acceptance.py", 0o600)
         shutil.copyfile(input_root / "private.env", output_root / "private.env")

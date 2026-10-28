@@ -112,6 +112,22 @@ class IsolatedLabTests(unittest.TestCase):
             with self.assertRaisesRegex(LAB.LabFailure, "unknown_or_missing"):
                 LAB._read_env(path)
 
+    def test_repository_source_allows_normal_checkout_mode_but_refuses_symlink(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "acceptance.py"
+            source.write_text("# public repository source\n", encoding="utf-8")
+            os.chmod(source, 0o644)
+            LAB._repository_source(source)
+
+            alias = root / "acceptance-link.py"
+            try:
+                alias.symlink_to(source)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unavailable on this host")
+            with self.assertRaisesRegex(LAB.LabFailure, "repository_source_invalid"):
+                LAB._repository_source(alias)
+
     def test_destroy_refuses_container_without_isolated_scope_label(self):
         with tempfile.TemporaryDirectory() as temporary:
             bundle = Path(temporary)
