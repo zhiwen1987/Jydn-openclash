@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import contextlib,hashlib,io,json,sys,tempfile,unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"tools"))
 import build_routing_samples as builder
 import simulate_routing as simulator
+import routing_sources
 
 class RoutingSimulatorTests(unittest.TestCase):
  def test_corpus_writer_uses_stable_utf8_lf_bytes(self):
@@ -18,9 +20,12 @@ class RoutingSimulatorTests(unittest.TestCase):
    self.assertNotIn(b"\r",target.read_bytes())
 
  def test_corpus_is_large_unique_and_reproducible(self):
+  self.assertEqual({p.name for p in (ROOT/"tests/routing-sources").iterdir()},{"NOTICE.md"})
   rows=[json.loads(line) for line in simulator.CORPUS.read_text(encoding="utf-8").splitlines() if line]
   self.assertGreaterEqual(len(rows),2000);self.assertEqual(len(rows),len({row["domain"] for row in rows}))
-  manifest=json.loads(simulator.MANIFEST.read_text(encoding="utf-8"));loaded=simulator.frozen_sources(manifest)
+  manifest=json.loads(simulator.MANIFEST.read_text(encoding="utf-8"));loaded=simulator.verified_sources(manifest)
+  self.assertNotIn("snapshot_pack_sha256",manifest)
+  self.assertTrue(all("text" not in source for source in manifest["sources"]))
   self.assertEqual({row["name"] for row in manifest["sources"]},set(loaded))
   for row in rows:
    self.assertEqual(row["memberships"],sorted(name for name,rule in loaded.items() if builder.matches(rule,row["domain"])))
@@ -54,21 +59,33 @@ class RoutingSimulatorTests(unittest.TestCase):
   with contextlib.redirect_stdout(io.StringIO()):summary,results=simulator.run(False)
   self.assertGreaterEqual(summary["samples"],2000);self.assertEqual(summary["samples"],len(results));self.assertEqual(summary["unknown"],0)
 
- def test_corrupt_pack_and_corpus_fail_closed(self):
-  manifest=json.loads(simulator.MANIFEST.read_text(encoding="utf-8"));old_pack=simulator.PACK;old_corpus=simulator.CORPUS;old_manifest=simulator.MANIFEST
+ def test_cached_downloads_and_corrupt_corpus_fail_closed(self):
+  raw=b"payload:\n  - '+.example.com'\n"
+  source={"name":"fixture","status":"loaded","revision":"a"*40,"sha256":hashlib.sha256(raw).hexdigest(),
+          "url":"https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/"+"a"*40+"/fixture.yaml"}
   with tempfile.TemporaryDirectory() as directory:
-   directory=Path(directory);bad_pack=directory/"bad.gz";bad_pack.write_bytes(old_pack.read_bytes()+b"x")
-   simulator.PACK=bad_pack
-   with self.assertRaises(SystemExit):simulator.frozen_sources(manifest)
-   simulator.PACK=old_pack
-   bad_corpus=directory/"samples.jsonl";bad_corpus.write_bytes(old_corpus.read_bytes()+b"\n")
-   simulator.CORPUS=bad_corpus
-   with self.assertRaises(SystemExit),contextlib.redirect_stdout(io.StringIO()):simulator.run(False)
-   rows=old_corpus.read_text(encoding="utf-8").splitlines();first=json.loads(rows[0]);first["memberships"]=[];rows[0]=json.dumps(first,ensure_ascii=False,sort_keys=True)
-   bad_corpus.write_text("\n".join(rows)+"\n",encoding="utf-8");changed=dict(manifest);changed["corpus_sha256"]=hashlib.sha256(bad_corpus.read_bytes()).hexdigest()
-   bad_manifest=directory/"manifest.json";bad_manifest.write_text(json.dumps(changed),encoding="utf-8");simulator.MANIFEST=bad_manifest
-   with self.assertRaises(SystemExit),contextlib.redirect_stdout(io.StringIO()):simulator.run(False)
-  simulator.PACK=old_pack;simulator.CORPUS=old_corpus;simulator.MANIFEST=old_manifest
+   directory=Path(directory)
+   with patch.object(routing_sources,"urlopen",return_value=io.BytesIO(raw)) as request:
+    self.assertEqual(routing_sources.verified_source(source,directory),raw.decode());self.assertEqual(request.call_count,1)
+   with patch.object(routing_sources,"urlopen",side_effect=AssertionError("cache must avoid network")):
+    self.assertEqual(routing_sources.verified_source(source,directory),raw.decode())
+    (directory/(source["sha256"]+".raw")).write_bytes(b"corrupt")
+    with self.assertRaisesRegex(RuntimeError,"sha256 mismatch"):routing_sources.verified_source(source,directory)
+   (directory/(source["sha256"]+".raw")).unlink()
+   with patch.object(routing_sources,"urlopen",return_value=io.BytesIO(b"wrong upstream")):
+    with self.assertRaisesRegex(RuntimeError,"sha256 mismatch"):routing_sources.verified_source(source,directory)
+   self.assertFalse((directory/(source["sha256"]+".raw")).exists())
+   with patch.object(routing_sources,"urlopen",side_effect=OSError("offline")):
+    with self.assertRaises(OSError):routing_sources.verified_source(source,directory)
+   with self.assertRaises(RuntimeError):routing_sources.source_texts({"sources":[dict(source,status="failed")]},directory)
+   with self.assertRaises(RuntimeError):routing_sources.source_texts({"sources":[dict(source,url=source["url"].replace("a"*40,"main"))]},directory)
+   manifest=json.loads(simulator.MANIFEST.read_text(encoding="utf-8"))
+   bad_corpus=directory/"samples.jsonl";bad_corpus.write_bytes(simulator.CORPUS.read_bytes()+b"\n")
+   with patch.object(simulator,"CORPUS",bad_corpus),self.assertRaises(SystemExit),contextlib.redirect_stdout(io.StringIO()):simulator.run(False)
+   rows=simulator.CORPUS.read_text(encoding="utf-8").splitlines();first=json.loads(rows[0]);first["memberships"]=[];rows[0]=json.dumps(first,ensure_ascii=False,sort_keys=True)
+   bad_corpus.write_text("\n".join(rows)+"\n",encoding="utf-8",newline="\n");changed=dict(manifest);changed["corpus_sha256"]=hashlib.sha256(bad_corpus.read_bytes()).hexdigest()
+   bad_manifest=directory/"manifest.json";bad_manifest.write_text(json.dumps(changed),encoding="utf-8")
+   with patch.object(simulator,"CORPUS",bad_corpus),patch.object(simulator,"MANIFEST",bad_manifest),self.assertRaises(SystemExit),contextlib.redirect_stdout(io.StringIO()):simulator.run(False)
 
  def test_first_domain_rule_wins(self):
   old=simulator.TARGET_ROOT

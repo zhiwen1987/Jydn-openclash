@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Offline domain-stage simulation of generated OpenClash rule order."""
-import argparse,gzip,hashlib,json,re
+"""Manifest-pinned domain-stage simulation of generated OpenClash rule order."""
+import argparse,hashlib,json,re
 from collections import Counter
 from pathlib import Path
 from build_routing_samples import matches,patterns
+from routing_sources import source_texts
 ROOT=Path(__file__).resolve().parents[1];CORPUS=ROOT/"tests/routing_samples.jsonl"
 MANIFEST=ROOT/"tests/routing_snapshot_manifest.json";EVIDENCE=ROOT/"reports/routing-sample-audit.json"
 REPORT=ROOT/"docs/routing-sample-audit-20261028.md"
 TARGET_ROOT=ROOT
-PACK=ROOT/"tests/routing-sources/snapshots.json.gz"
 
 def local_patterns(path,classical=False):
  text=path.read_text(encoding="utf-8")
@@ -67,18 +67,12 @@ def hierarchy_review(expected,actual):
         ("🟣 游戏平台（Epic）","⬇️ 游戏下载")}
  return (expected,actual) in pairs
 
-def frozen_sources(manifest):
- if hashlib.sha256(PACK.read_bytes()).hexdigest()!=manifest["snapshot_pack_sha256"]:raise SystemExit("snapshot pack hash mismatch")
- packed=json.loads(gzip.decompress(PACK.read_bytes()).decode("utf-8"));expected={row["name"]:row for row in manifest["sources"]}
- if set(packed)!=set(expected):raise SystemExit("snapshot source set mismatch")
- loaded={}
- for name,source in packed.items():
-  meta=expected[name];raw=source["text"].encode()
-  if meta["status"]!="loaded" or not meta.get("revision") or hashlib.sha256(raw).hexdigest()!=meta["sha256"]:
-   raise SystemExit("snapshot source mismatch: "+name)
-  rule,unsupported=patterns(source["text"]);entries=sum(len(rule[key]) for key in ("exact","suffix","keyword","regex"))
+def verified_sources(manifest):
+ texts=source_texts(manifest);loaded={}
+ for meta in manifest["sources"]:
+  name=meta["name"];rule,unsupported=patterns(texts[name]);entries=sum(len(rule[key]) for key in ("exact","suffix","keyword","regex"))
   if unsupported or unsupported!=meta["unsupported_entries"] or entries!=meta["entries"]:
-   raise SystemExit("snapshot semantics mismatch: "+name)
+   raise SystemExit("source semantics mismatch: "+name)
   loaded[name]=rule
  return loaded
 
@@ -86,7 +80,7 @@ def run(write=False):
  rows=[json.loads(x) for x in CORPUS.read_text(encoding="utf-8").splitlines() if x]
  manifest=json.loads(MANIFEST.read_text(encoding="utf-8"))
  if hashlib.sha256(CORPUS.read_bytes()).hexdigest()!=manifest["corpus_sha256"]:raise SystemExit("corpus hash mismatch")
- loaded=frozen_sources(manifest)
+ loaded=verified_sources(manifest)
  for row in rows:
   calculated=sorted(name for name,rule in loaded.items() if matches(rule,row["domain"]))
   if calculated!=row["memberships"]:raise SystemExit("materialized membership mismatch: "+row["domain"])
@@ -111,7 +105,7 @@ def run(write=False):
  if write:
   EVIDENCE.parent.mkdir(exist_ok=True);EVIDENCE.write_text(json.dumps(evidence,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
   categories=category_counts;anchors={r["domain"]:r for r in results if r["seed_source"]=="user-policy"}
-  lines=["# 分流样本离线审计（2026-10-28）","",f"- 样本：{len(results)} 条唯一上游规则域名样本；严格计分 {len(strict)} 条；政策待确认 {summary['policy_review']} 条。",
+  lines=["# 分流样本域名阶段审计（2026-10-28）","",f"- 样本：{len(results)} 条唯一上游规则域名样本；严格计分 {len(strict)} 条；政策待确认 {summary['policy_review']} 条。",
    f"- 严格计分集的政策一致率：{matched}/{len(strict)} = {summary['policy_oracle_consistency_percent']}%。期望大多由固定分类快照和仓库政策映射推导，并非独立网络事实。",
    f"- 人工政策锚点：{summary['human_policy_anchors_matched']}/{summary['human_policy_anchors']}；政策待确认样本中实际一致 {summary['policy_review_matched']}、不一致 {summary['policy_review_mismatched']}。",
    "- 模拟边界：固定上游快照、仅域名匹配；不连接设备，不覆盖 IP、端口、进程或复杂 classical 条件，也不声称实时网络封锁状态。",
@@ -131,6 +125,9 @@ def run(write=False):
    f"- 政策冲突待确认 {summary['policy_review']} 条，其中目标不一致 {summary['policy_review_mismatched']} 条；广告与业务、国内分类与海外业务等重叠不自动视为代码缺陷。",
    f"- 国内政策非 DIRECT 目标共 {categories['国内策略域名却进入非 DIRECT 目标']} 条；除已有独立政策证据外不自动加入直连。",
    "- DNS 覆写键属于设备配置问题，本次仅记录，未经单独批准不修改。"]
+  lines += ["","## 数据获取与许可","",
+   "按 manifest 固定 commit 联网获取并校验 SHA-256；原文仅放被忽略的 .cache/routing-audit/，不分发原文快照包。",
+   "MetaCubeX/meta-rules-dat 声明 GPL-3.0；Aethersailor 原创内容 CC BY-SA 4.0，第三方材料各自许可。来源和固定版本见 tests/routing-sources/NOTICE.md。"]
   REPORT.write_text("\n".join(lines)+"\n",encoding="utf-8")
  print(json.dumps(summary,ensure_ascii=False,sort_keys=True));return summary,results
 

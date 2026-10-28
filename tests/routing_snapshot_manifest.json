@@ -3,11 +3,11 @@
   "notes": [
     "Pinned public snapshots; not the database installed on any router.",
     "gfw is a source-list policy label, not a live reachability measurement.",
-    "Domain-only audit: IP, port, process and complex classical rules are outside coverage."
+    "Domain-only audit: IP, port, process and complex classical rules are outside coverage.",
+    "Upstream originals are fetched by pinned commit and verified SHA-256; only an ignored local cache stores raw bytes."
   ],
   "sample_count": 2567,
-  "schema": 3,
-  "snapshot_pack_sha256": "117463a8ab9a30c5bc3f4cd3beff222a62da877f328cfb00db6779ba207906f5",
+  "schema": 4,
   "sources": [
     {
       "entries": 14,

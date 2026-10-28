@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 """Rebuild the corpus from immutable public rule snapshots (networked tool)."""
 from __future__ import annotations
-import gzip, hashlib, io, json, re, urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import hashlib, json, re
+from routing_sources import source_texts
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/"tests/routing_samples.jsonl"; MANIFEST=ROOT/"tests/routing_snapshot_manifest.json"
-PACK=ROOT/"tests/routing-sources/snapshots.json.gz"
-META_REV="9f2b7462c7508ad85a1137e70d502b783c89794d"
-AETHER_REV="ce364895f9b55317159b43c0397788933f0f8448"
-META_BASE=f"https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/{META_REV}/geo/geosite"
-AETHER_BASE=f"https://raw.githubusercontent.com/Aethersailor/Custom_OpenClash_Rules/{AETHER_REV}/rule"
 SEED_QUOTAS={"geolocation-cn":420,"gfw":420,"category-ads-all":380,"category-games":300,
  "category-entertainment":300,"category-finance":220,"cloudflare":180,"google":160,
  "github":140,"openai":100,"youtube":100,"netflix":80,"paypal":60,"wise":50}
@@ -47,11 +42,6 @@ POLICY_ANCHORS={"fonts.googleapis.com":("🔎 谷歌服务（Google）","busines
  "developer.amd.com.cn":("DIRECT","domestic"),"6wz.net":("DIRECT","domestic"),
  "kefu.me":("DIRECT","domestic"),"52ojk.com":("DIRECT","domestic"),"lla8.com":("DIRECT","domestic"),
  "6ta.net":("DIRECT","domestic")}
-
-def fetch(url):
- request=urllib.request.Request(url,headers={"User-Agent":"Jydn-routing-corpus/1"})
- with urllib.request.urlopen(request,timeout=30) as response:raw=response.read()
- return raw.decode("utf-8"),hashlib.sha256(raw).hexdigest()
 
 def patterns(text):
  result={"exact":set(),"suffix":set(),"keyword":set(),"regex":[]}; unsupported=0
@@ -119,27 +109,17 @@ def write_corpus(rows,path):
 def main():
  config=(ROOT/"metafenliu.ini").read_text(encoding="utf-8")
  categories=set(re.findall(r"\[\]GEOSITE,([^\r\n,]+)",config))|set(SEED_QUOTAS)|{x[0] for x in SPECIFIC}
- jobs={name:f"{META_BASE}/{name}.yaml" for name in categories}
- jobs.update({"external-direct":f"{AETHER_BASE}/Custom_Direct_Domain.yaml",
-              "external-proxy":f"{AETHER_BASE}/Custom_Proxy_Domain.yaml"})
- loaded={};raw_sources={};failures=[];manifest={"schema":3,"notes":["Pinned public snapshots; not the database installed on any router.",
-  "gfw is a source-list policy label, not a live reachability measurement.",
-  "Domain-only audit: IP, port, process and complex classical rules are outside coverage."],"sources":[]}
- with ThreadPoolExecutor(max_workers=12) as pool:
-  futures={pool.submit(fetch,url):name for name,url in jobs.items()}
-  for future in as_completed(futures):
-   name=futures[future]
-   try:text,digest=future.result();rule,unsupported=patterns(text);loaded[name]=rule
-   except Exception as error:
-    manifest["sources"].append({"name":name,"revision":META_REV if name in categories else AETHER_REV,
-      "status":"unsupported","error":type(error).__name__});failures.append(name);continue
-   if unsupported:failures.append(name)
-   raw_sources[name]={"revision":META_REV if name in categories else AETHER_REV,"text":text,"sha256":digest,"url":jobs[name]}
-   entries=sum(len(rule[k]) for k in ("exact","suffix","keyword","regex"))
-   manifest["sources"].append({"name":name,"revision":META_REV if name in categories else AETHER_REV,
-    "sha256":digest,"entries":entries,"unsupported_entries":unsupported,"status":"loaded","url":jobs[name]})
- if failures or set(loaded)!=set(jobs):
-  raise RuntimeError("required source snapshot failed: "+", ".join(sorted(set(failures)|(set(jobs)-set(loaded)))))
+ manifest=json.loads(MANIFEST.read_text(encoding="utf-8"))
+ required=categories|{"external-direct","external-proxy"}
+ if {source["name"] for source in manifest["sources"]}!=required:
+  raise RuntimeError("template sources differ from the reviewed manifest; explicit review required")
+ texts=source_texts(manifest);loaded={}
+ for source in manifest["sources"]:
+  rule,unsupported=patterns(texts[source["name"]])
+  entries=sum(len(rule[k]) for k in ("exact","suffix","keyword","regex"))
+  if unsupported or entries!=source["entries"] or unsupported!=source["unsupported_entries"]:
+   raise RuntimeError("source semantics mismatch: "+source["name"])
+  loaded[source["name"]]=rule
  selected=[];seen=set()
  for source,quota in SEED_QUOTAS.items():
   rule=loaded.get(source,{"exact":set(),"suffix":set()});candidates=sorted(rule["exact"]|rule["suffix"]);count=0
@@ -160,11 +140,6 @@ def main():
  selected.sort(key=lambda row:row["domain"]);write_corpus(selected,OUT)
  manifest["sources"].sort(key=lambda row:row["name"]);manifest["sample_count"]=len(selected)
  manifest["corpus_sha256"]=hashlib.sha256(OUT.read_bytes()).hexdigest()
- PACK.parent.mkdir(parents=True,exist_ok=True)
- packed=json.dumps(raw_sources,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode()
- buffer=io.BytesIO()
- with gzip.GzipFile(filename="",mode="wb",fileobj=buffer,mtime=0) as stream:stream.write(packed)
- PACK.write_bytes(buffer.getvalue());manifest["snapshot_pack_sha256"]=hashlib.sha256(PACK.read_bytes()).hexdigest()
  MANIFEST.write_text(json.dumps(manifest,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8",newline="\n")
  print(json.dumps({"samples":len(selected),"corpus_sha256":manifest["corpus_sha256"]}))
 

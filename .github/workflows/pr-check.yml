@@ -55,7 +55,7 @@ jobs:
       - name: Test public rule export allowlist
         run: python3 scripts/test_publish_public_rules.py
 
-      - name: Test offline routing sample simulator
+      - name: Test manifest-pinned routing sample simulator
         run: python3 tests/test_routing_simulator.py
 
       - name: Check retained configuration hook syntax

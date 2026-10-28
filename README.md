@@ -26,7 +26,7 @@
 
 维护步骤见[规则与模板维护](docs/template-maintenance.zh-CN.md)，检查范围见[校验与恢复](docs/rules-validation.zh-CN.md)。
 
-离线域名样本审计见[分流样本报告](docs/routing-sample-audit-20261028.md)。报告使用冻结上游快照重放规则目标，不代表设备当前出口或网站实时可用性。
+固定版本域名样本审计见[分流样本报告](docs/routing-sample-audit-20261028.md)。工具按 manifest 固定提交联网获取并校验上游文件，本地缓存不入库；报告重放规则目标，不代表设备当前出口或网站实时可用性。
 
 ## 自动更新
 

@@ -19,8 +19,12 @@ PR 执行规则仓边界检查、模板构建、静态语义验证，以及空�
 
 完整备份位置和具体收据仅在所有者的私有工作记录中保存，不把系统交接资料重新放回公开规则仓库。原提交记录保留，因此本次不代表历史数据擦除或凭据轮换。
 
-## 离线分流样本
+## 固定版本分流样本
 
-`python tools/simulate_routing.py` 使用仓库内冻结的上游快照，对 2000 条以上域名样本按生成模板顺序重放；`python tests/test_routing_simulator.py` 校验快照哈希、成员关系和域名匹配语义。结果见 `docs/routing-sample-audit-20261028.md` 与 `reports/routing-sample-audit.json`。
+`python tools/simulate_routing.py` 按 `tests/routing_snapshot_manifest.json` 中的固定 commit 联网获取上游文件并校验 SHA-256，对 2000 条以上域名样本按生成模板顺序重放；`python tests/test_routing_simulator.py` 校验下载与缓存哈希、成员关系和域名匹配语义。结果见 `docs/routing-sample-audit-20261028.md` 与 `reports/routing-sample-audit.json`。
 
 该数值是固定分类政策与规则目标的离线一致率。它不读取设备、策略组当前选择、DNS、IP/端口规则或网站实时可用性，不能当作生产出口准确率。
+
+首次运行需要访问 manifest 中的固定公开源；缓存位于 `.cache/routing-audit/`，已由 `.gitignore` 排除。每次使用缓存前仍校验 SHA-256。下载失败、缓存损坏或上游哈希不符会停止，不会回退到未验证数据，也不会自动更新 manifest。删除该缓存后可重新获取。CI 不上传原文缓存或将其作为公开 artifact。
+
+来源与许可见 [NOTICE](../tests/routing-sources/NOTICE.md)：MetaCubeX/meta-rules-dat 声明 GPL-3.0；Aethersailor 原创内容声明 CC BY-SA 4.0，第三方材料保留各自条款。仓库只保留样本、匹配结果、来源地址和指纹，不附上游规则文件原文。
