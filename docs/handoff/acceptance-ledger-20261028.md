@@ -120,3 +120,5 @@ python3 monitoring/lan-center/acceptance/isolated_lab.py destroy \
 ## 9. GitHub 首次快照 CI 发现
 
 开发快照 e695c663 上传后，Installer/source-checks、verify、usage-checks 通过；unified-checks 未通过。失败发生在隔离验收工具 prepare 测试：对公开源码 acceptance.py 错误施加私有文件权限检查；Git checkout 的 Linux 常规 0644 与该检查不兼容。该缺陷正在修复，不能把本地通过直接当作 GitHub CI 通过。原记录见 [Actions 40612838901](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40612838901)。修复后的新提交/CI 结果应另行记录。
+
+修复记录：提交 `6a3aa1bb6ea0bb3969a04b374c54e3ddffe7247b` 仅修正隔离工具对公开源码权限的误判，仍严格检查私有输入 0600 并拒绝符号链接。修复后 GitHub Linux [unified-checks 与 verify](https://github.com/zhiwen1987/Jydn-openclash/actions/runs/40613435135) 已通过。该结果只闭合 CI 权限缺陷，不替代最终镜像和生产验收。Installer/source-checks、usage-checks 的通过证据来自前一源码快照，本次只改验收工具并未重跑这些不受影响的工作流。

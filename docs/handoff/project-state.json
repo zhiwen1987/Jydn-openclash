@@ -14,7 +14,9 @@
     "branch": "codex/integrated-control-20261028",
     "runtime_snapshot_commit": "e695c6631323948227e1058ce9afa43e45e9fcf9",
     "target": "0.3.0",
-    "status": "implemented; final artifact acceptance pending; not deployed"
+    "status": "implemented; final artifact acceptance pending; not deployed",
+    "latest_verified_source_commit": "6a3aa1bb6ea0bb3969a04b374c54e3ddffe7247b",
+    "ci_status": "unified-checks and verify passed on latest source; installer and usage checks passed on preceding runtime snapshot"
   },
   "user_decisions": [
     "third-source HTTP502 does not block feature rollout; third-source real admission remains unverified",
