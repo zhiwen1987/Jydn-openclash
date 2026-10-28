@@ -58,7 +58,7 @@ A 固定快照中，`hhyunerp.com` 与 `www.hhyunerp.com` 不属于前置 GeoSit
 | 待决定政策样本 | 303（其中41不一致） | 303（其中41不一致） |
 | 域名阶段未建模目标 | 0 | 0 |
 
-目标变化仅 `hhyunerp.com` 与 `www.hhyunerp.com` 两条，均为兜底组到 DIRECT；其余2565条目标不变。完整对照见 [`routing-rule-fix-comparison-20261028.json`](../reports/routing-rule-fix-comparison-20261028.json)。样本与模拟器归属 A 的独立 PR，不在本 PR 复制工具或快照。
+目标变化仅 `hhyunerp.com` 与 `www.hhyunerp.com` 两条，均为兜底组到 DIRECT；其余2565条目标不变。完整对照见 [`routing-rule-fix-comparison-20261028.json`](../reports/routing-rule-fix-comparison-20261028.json)。样本与模拟器归属 [A 的独立 PR #26](https://github.com/zhiwen1987/Jydn-openclash/pull/26)，不在本 PR 复制工具或快照。对照证据记录了实际使用的模拟器提交和 LF 字节哈希；生成器另有 Windows/Linux 换行一致性回归测试。
 
 上述百分比是固定公共分类政策与规则顺序的**离线一致率**，不是独立人工逐站验证的分流正确率，更不是现网准确率或网络可用率。303条政策待确认样本不进入2264条严格计分分母。未建模目标为0也只限明确声明的域名阶段；IP、端口、进程和复合条件未被纳入该指标。
 
