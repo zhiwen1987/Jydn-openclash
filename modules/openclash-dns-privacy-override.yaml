@@ -11,18 +11,15 @@ profile:
   store-selected: true
   store-fake-ip: true
 
-# 为转换后的 Smart 组补充健康检查参数和 100 ms 防抖容差。
-# 300 秒检测间隔减少生产网络中的频繁重测与出口抖动。
-# 失败阈值从 Mihomo 默认 5 降为 2，并要求探测端点返回 HTTP 204。
+# 为转换后的 Smart 组补充失败阈值、超时和 100 ms 防抖容差。
+# 不覆写 interval 与 expected-status，保留各业务组自己的探测周期和响应契约。
 <proxy-groups>*:
   where:
     type: smart
   set:
-    interval: 300
     tolerance: 100
     timeout: 5000
     max-failed-times: 2
-    expected-status: 204
 
 # 合并 OpenClash 已生成的 tun 块，只改严格路由与 53 端口劫持。
 # strict-route 若造成 Docker、虚拟机或旁路网关异常，改为 false 后测试。
