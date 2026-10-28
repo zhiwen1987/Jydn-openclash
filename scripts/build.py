@@ -91,7 +91,7 @@ def smarthome_dns_blocks() -> tuple[str, str]:
     # nameserver-policy 每个键只出现一次，值用数组承载全部 DoH，
     # 避免同一域名两个 DoH 生成同名 YAML 键被静默覆盖（旧缺陷）。
     policy_lines = [
-        f'    "DOMAIN-SUFFIX,{domain}": [{", ".join(DIRECT_DOH_SERVERS)}]'
+        f'    "+.{domain}": [{", ".join(DIRECT_DOH_SERVERS)}]'
         for domain in domains
     ]
     return "\n".join(filter_lines), "\n".join(policy_lines)
