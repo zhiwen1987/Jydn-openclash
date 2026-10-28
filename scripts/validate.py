@@ -800,15 +800,32 @@ def validate_overwrite(errors: list[str]) -> None:
         "[YAML]",
         "<proxy-groups>*:",
         "type: smart",
-        "interval: 300",
         "tolerance: 100",
         "timeout: 5000",
         "max-failed-times: 2",
-        "expected-status: 204",
     )
     for marker in required:
         if marker not in text:
             errors.append(f"覆写模块缺少自动组健康检查设置：{marker}")
+
+    lines = text.splitlines()
+    try:
+        smart_start = lines.index("<proxy-groups>*:")
+    except ValueError:
+        smart_block = []
+    else:
+        smart_block = []
+        for line in lines[smart_start + 1:]:
+            stripped = line.strip()
+            if stripped and not line[0].isspace() and not stripped.startswith("#"):
+                break
+            smart_block.append(line)
+    for forbidden in ("interval:", "expected-status:"):
+        if any(line.strip().startswith(forbidden) for line in smart_block):
+            errors.append(
+                "Smart 全局覆写不得设置 " + forbidden
+                + "；应保留各业务组自己的探测周期和响应契约"
+            )
     if "[General]" in text:
         errors.append("覆写模块不应包含 [General]；插件参数应由 LuCI/UCI 持久化")
 
