@@ -852,6 +852,35 @@ def validate_runtime_group_filter(errors: list[str]) -> None:
                 errors.append(f"{path.relative_to(ROOT)} 缺少关键逻辑：{marker}")
 
 
+def validate_nameserver_policy_keys(dns_text: str, errors: list[str]) -> None:
+    """Reject rule syntax where Mihomo expects domain matching keys."""
+    forbidden_prefixes = (
+        "DOMAIN,",
+        "DOMAIN-SUFFIX,",
+        "DOMAIN-KEYWORD,",
+        "DOMAIN-REGEX,",
+        "GEOSITE,",
+    )
+    in_nameserver_policy = False
+    for line in dns_text.splitlines():
+        if line == "  nameserver-policy:":
+            in_nameserver_policy = True
+            continue
+        if not in_nameserver_policy:
+            continue
+        if not line.strip() or line.lstrip().startswith(("#", ";")):
+            continue
+        if line and not line.startswith(" "):
+            break
+        if line.startswith("  ") and not line.startswith("    ") and line.strip():
+            break
+        match = re.match(r'^\s{4}(["\']?)([^"\']+)\1\s*:', line)
+        if match and match.group(2).startswith(forbidden_prefixes):
+            errors.append(
+                f"DNS nameserver-policy 不得使用规则语法键：{match.group(2)}"
+            )
+
+
 def validate_smarthome(errors: list[str]) -> None:
     """Smarthome routing + DNS consistency and order checks."""
     if not SMARTHOME_RULE_FILE.is_file():
@@ -870,6 +899,7 @@ def validate_smarthome(errors: list[str]) -> None:
     config_text = CONFIG.read_text(encoding="utf-8")
     config_lines = active_lines(config_text)
     dns_text = OVERWRITE.read_text(encoding="utf-8")
+    validate_nameserver_policy_keys(dns_text, errors)
     if not domains:
         # 空清单默认关闭：生成物不得残留任何智能家居域名。
         for domain in SMARTHOME_DOMAINS:
@@ -896,7 +926,7 @@ def validate_smarthome(errors: list[str]) -> None:
     # 一个域名对应一个 nameserver-policy 键，值用数组承载全部 DoH；
     # 重复键会被 YAML 解析器静默覆盖，导致一个 DoH 名存实亡。
     policy_line_prefixes = {
-        domain: f'    "DOMAIN-SUFFIX,{domain}":'
+        domain: f'    "+.{domain}":'
         for domain in SMARTHOME_DOMAINS
     }
     policy_block_markers = (
