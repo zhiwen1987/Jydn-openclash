@@ -53,7 +53,7 @@
 | --- | --- | --- |
 | `homebrew.bintray.com` | 已退役服务 | JFrog 确认 Bintray 于 2021-05-01 停服。可列入后续清理 PR，但删除前仍应核对是否需要兼容历史客户端。 |
 | `k8s.gcr.io` | 遗留且冻结，尚非注册过期 | Kubernetes 已将其重定向 `registry.k8s.io`，2023-04-03 后不再更新镜像。保留可兼容旧镜像引用；不建议仅因“旧”就直接删除。 |
-| `pypi.python.org` | 遗留且重定向，尚非注册过期 | PyPA 说明 `pypi.org` 在 2017 年取代旧域名，旧域名仍重定向。建议保留兼容性，或在有使用数据后再清理。 |
+| `pypi.python.org` | 遗留且重定向，尚非注册过期 | PyPA 说明旧域名上传于 2017-07-03 停用，`pypi.org` 于 2018-04-13 成为 PyPI 的 URL；旧域名浏览链接仍重定向。建议保留兼容性，或在有使用数据后再清理。 |
 
 一手证据：[JFrog Bintray 停服说明](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/)；[Kubernetes 镜像仓库迁移说明](https://kubernetes.io/blog/2023/03/10/image-registry-redirect/)；[PyPA PyPI 域名迁移说明](https://packaging.python.org/en/latest/guides/migrating-to-pypi-org/)。
 
