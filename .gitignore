@@ -17,3 +17,6 @@ reports/shared-custom-*/
 reports/installer-*/
 installer/dist/
 installer/.build/
+
+# Verified upstream audit bytes are local cache, never public artifacts.
+.cache/routing-audit/
