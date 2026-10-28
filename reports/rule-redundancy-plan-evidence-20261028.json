@@ -1,0 +1,149 @@
+{
+  "inputs": {
+    "input_commit": "a56f233676ea5ff87cc68540fe292c01ed131363",
+    "rules_tree_files": 18,
+    "rules_tree_sha256": "36ba421a449c975bf36a823a21857e0d8184357a3f183460671884e2d894798e",
+    "template_sha256": "bbc1b87a101b57c9551a2b255d3f58c6c716c4a1a7fba88a570616830e286440"
+  },
+  "proposal_only": true,
+  "recomputed": {
+    "decision_counts": {
+      "delete_candidate_full_template_only": 270,
+      "retain_nonredundant": 246,
+      "retain_unsupported_or_non_domain": 15
+    },
+    "domain_matchers": 516,
+    "duplicate_copies": 147,
+    "previous_audit": {
+      "duplicates": 147,
+      "shadowing": 270
+    },
+    "previous_counts_still_match": true,
+    "rule_entries": 531,
+    "static_shadowed": 270
+  },
+  "schema": 1,
+  "simulation": {
+    "boundary": "domain stage only; fixed public snapshots plus candidate-derived witnesses; no IP, IPv6, port, process, DNS, node selection, or live-device behavior",
+    "candidate_witnesses": {
+      "changes_by_field": {
+        "actual": 0,
+        "rule_kind": 0,
+        "rule_line": 0,
+        "rule_source": 0
+      },
+      "compared_fields": [
+        "actual",
+        "rule_line",
+        "rule_kind",
+        "rule_source"
+      ],
+      "samples": 514,
+      "source": "root plus one synthetic subdomain for every suffix candidate"
+    },
+    "manifest_pinned_corpus": {
+      "changes_by_field": {
+        "actual": 0,
+        "rule_kind": 0,
+        "rule_line": 0,
+        "rule_source": 0
+      },
+      "compared_fields": [
+        "actual",
+        "rule_line",
+        "rule_kind",
+        "rule_source"
+      ],
+      "corpus_sha256": "d2527b08a35bc338cc21dfc7cff0ee113fdc495eb4dc7a97daf923c6ff0fc301",
+      "samples": 2567
+    }
+  },
+  "sizes": {
+    "all_rule_yaml": {
+      "after_bytes": 8924,
+      "after_gzip_bytes": 4659,
+      "before_bytes": 14570,
+      "before_gzip_bytes": 6109,
+      "saved_bytes": 5646,
+      "saved_gzip_bytes": 1450
+    },
+    "candidate_files": {
+      "rules/bank-cn.yaml": {
+        "after_bytes": 397,
+        "after_gzip_bytes": 224,
+        "before_bytes": 819,
+        "before_gzip_bytes": 325,
+        "saved_bytes": 422,
+        "saved_gzip_bytes": 101
+      },
+      "rules/cloud-drive-cn.yaml": {
+        "after_bytes": 793,
+        "after_gzip_bytes": 318,
+        "before_bytes": 975,
+        "before_gzip_bytes": 372,
+        "saved_bytes": 182,
+        "saved_gzip_bytes": 54
+      },
+      "rules/development.yaml": {
+        "after_bytes": 1727,
+        "after_gzip_bytes": 594,
+        "before_bytes": 2546,
+        "before_gzip_bytes": 750,
+        "saved_bytes": 819,
+        "saved_gzip_bytes": 156
+      },
+      "rules/direct.yaml": {
+        "after_bytes": 3120,
+        "after_gzip_bytes": 1292,
+        "before_bytes": 6517,
+        "before_gzip_bytes": 2163,
+        "saved_bytes": 3397,
+        "saved_gzip_bytes": 871
+      },
+      "rules/government-cn.yaml": {
+        "after_bytes": 119,
+        "after_gzip_bytes": 123,
+        "before_bytes": 556,
+        "before_gzip_bytes": 262,
+        "saved_bytes": 437,
+        "saved_gzip_bytes": 139
+      },
+      "rules/music-cn.yaml": {
+        "after_bytes": 486,
+        "after_gzip_bytes": 239,
+        "before_bytes": 618,
+        "before_gzip_bytes": 284,
+        "saved_bytes": 132,
+        "saved_gzip_bytes": 45
+      },
+      "rules/securities-cn.yaml": {
+        "after_bytes": 149,
+        "after_gzip_bytes": 141,
+        "before_bytes": 406,
+        "before_gzip_bytes": 225,
+        "saved_bytes": 257,
+        "saved_gzip_bytes": 84
+      }
+    },
+    "definition": "UTF-8 file bytes and sum of per-file gzip-9 bytes with mtime=0",
+    "loaded_memory": {
+      "illustrative_model": "matcher bytes + entries * (32..96 bytes) + labels * (0..48 bytes)",
+      "illustrative_model_bytes": {
+        "high": 62855,
+        "low": 11879
+      },
+      "measured": false,
+      "model_inputs": {
+        "candidate_entries": 270,
+        "domain_labels": 702,
+        "matcher_utf8_bytes": 3239
+      },
+      "planning_range_bytes": {
+        "high": 98304,
+        "low": 0
+      },
+      "planning_range_caveat": "0 allows parser/provider deduplication or allocator rounding; 96 KiB rounds the illustrative high scenario upward. This is not a measured Mihomo range.",
+      "reason": "no same-version Mihomo binary was supplied; file bytes are not RSS"
+    }
+  }
+}
