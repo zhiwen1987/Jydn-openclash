@@ -39,3 +39,5 @@ git log -5 --oneline
 开发源码：[codex/integrated-control-20261028](https://github.com/zhiwen1987/Jydn-openclash/tree/codex/integrated-control-20261028)。
 
 源码快照提交：`e695c6631323948227e1058ce9afa43e45e9fcf9`。机器可读状态见 [project-state.json](docs/handoff/project-state.json)。
+
+后续验收工具修复及最新已校验开发提交：`6a3aa1bb6ea0bb3969a04b374c54e3ddffe7247b`。GitHub unified-checks/verify 已通过，最终镜像和生产验收仍未完成。
