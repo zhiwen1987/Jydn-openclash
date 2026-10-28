@@ -6,6 +6,9 @@ payload:
   - '+.razyy.com'
   - '+.servicewechat.com'
   - '+.wxgateway.com'
+  - '+.snssdk.com'
+  - '+.mmstat.com'
+  - '+.futunn.com'
   # 系统总裁 / 驱动总裁官方域名及子域名直连。
   - '+.sysceo.com'
   - '+.drvceo.com'
