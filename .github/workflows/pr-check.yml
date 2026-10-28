@@ -30,6 +30,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify rules-only repository boundary
+        run: python3 scripts/check_rules_repository.py
+
       - name: Build generated artifacts
         run: python3 scripts/build.py
 
@@ -45,17 +48,8 @@ jobs:
       - name: Test shared custom selector and independent local provider
         run: ruby scripts/test_strict_custom.rb
 
-      - name: Test R4 candidate builder
-        run: ruby scripts/test_build_r4_candidate.rb
+      - name: Test public rule export allowlist
+        run: python3 scripts/test_publish_public_rules.py
 
-      - name: Test subscription-managed candidate builder
-        run: ruby scripts/test_build_subscription_managed_candidate.rb
-
-      - name: Check subscription-managed candidate verifier syntax
-        run: ruby -c scripts/verify_subscription_managed_candidate.rb
-
-      - name: Check provider validation builder syntax
-        run: ruby -c scripts/build_provider_validation_config.rb
-
-      - name: Check production shell scripts
-        run: sh -n scripts/openclash_r4_rollback_guard.sh scripts/openclash_subscription_switch_guard.sh scripts/select_r4_business_defaults.sh
+      - name: Check retained configuration hook syntax
+        run: sh -n scripts/jydn_group_filter_hook.sh scripts/jydn_routing_controls_hook.sh scripts/jydn_strict_custom_hook.sh

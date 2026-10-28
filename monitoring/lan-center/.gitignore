@@ -1,7 +1,0 @@
-.env
-data/
-backups/
-*.tar.gz
-*.db
-*.db-shm
-*.db-wal

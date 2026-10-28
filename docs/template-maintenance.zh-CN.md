@@ -1,33 +1,33 @@
-# 模板与规则维护
+# 规则与模板维护
 
-仅使用转换模板或维护规则时参考本页；完整系统见[安装说明](../installer/README.zh-CN.md)，生产事实见[部署记录](production-deployment-20261026.md)。
+## 构建
 
-## 模板地址
+```sh
+python3 scripts/check_rules_repository.py
+python3 scripts/build.py
+python3 scripts/validate.py
+ruby scripts/test_patch_runtime_groups.rb
+ruby scripts/test_routing_controls.rb
+ruby scripts/test_strict_custom.rb
+python3 scripts/test_publish_public_rules.py
+```
 
-| 内容 | 地址 |
-|---|---|
-| 转换模板 | `https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/metafenliu.ini` |
-| DNS/隐私覆写 | `https://raw.githubusercontent.com/zhiwen1987/Jydn-openclash/refs/heads/main/modules/openclash-dns-privacy-override.yaml` |
+建议使用与 CI 相同的 Linux、Python 3 和 Ruby/YAML。上述脚本只校验/生成本地文件，不需要 SSH、生产账号或运行中的 Clash Center。
 
-在线转换服务能接触原始订阅。使用信任的服务或自建转换器，不将订阅、Token 和节点信息提交仓库。模板更新不等于生产已加载，须核对活动源文件和实际 API。
+## 修改位置
 
-DNS 覆写会改变解析行为，不能当作无影响的模板附件直接套用。本次中心接管保留原 DNS。旧版 LuCI 教程见[历史说明](openclash-v0.47.156-settings.md)，当前插件版本另外核实。
+业务规则与分组维护 `custom/rules.ini`、`custom/groups.ini`，对应规则 payload 放在 `rules/`；上游输入在 `upstream/metafenliu.ini`。运行 build 后审阅生成的 `metafenliu.ini`、`modules/openclash-dns-privacy-override.yaml`、`modules/openclash-business-group-catalog.json`。
 
-## 文件职责
+规则先后顺序是实际匹配语义的一部分；核对国内、海外、私网和用户例外，避免用共享 CDN 或整个 ASN 粗暴替代业务域名。模板、生成文件、设备活动配置与真实新连接的匹配结果是不同层次，不能把生成成功当作生产已加载。
 
-| 路径 | 用途 |
-|---|---|
-| `upstream/`、`custom/` | 上游模板与自定义输入 |
-| `rules/` | 业务域名、网段等规则数据 |
-| `modules/` | 可选覆写模块 |
-| `scripts/build.py`、`scripts/validate.py` | 构建与静态校验 |
-| `scripts/strict_custom.rb` 等 | 自定义入口编译及限制 |
-| `metafenliu.ini` | 构建产物，持久修改应维护源输入 |
-| `monitoring/lan-center/` | 中心模块源码及历史操作记录 |
-| `installer/` | 单容器离线安装与恢复代理 |
+`strict_custom.rb` 是纯配置编译器，空/无效私有输入保持 REJECT；`routing_controls.rb` 和 `patch_runtime_groups.rb` 维护配置菜单及空组语义。相关 Shell hook 只是配置覆写适配，不包含中心的 HTTP、监控或节点发布服务。部署这些覆写属于另外的设备变更任务。
 
-维护前阅读相关脚本参数和 CI，修改输入后运行构建、校验及对应回归，审阅生成差异。域名规则按顺序匹配；国内、海外、私网及用户例外一起测。避免为单个共享 CDN 域名宽泛绑定整个 ASN。
+## 公开导出
 
-模板、provider、源配置、运行配置和 API 图是不同层次。判断流量出口应查看新连接实际规则和完整 chains，而不是只看模板或节点名称。
+```sh
+python3 scripts/publish_public_rules.py --output /tmp/jydn-public-rules
+```
 
-自建节点使用 3103 持久入口；手工添加到机场下载文件可能被覆盖。唯一自定义入口及故障断流边界见[说明](strict-custom-egress.md)。
+输出目录必须尚不存在。导出只允许 README、转换模板、17 个模板引用规则和额外的 smarthome-direct 规则；不会复制运行代码或交接资料。现场 WebRTC 规则导出为空占位，其他非通用私网、凭据 URL、Token、私钥或非 payload YAML 默认拒绝。
+
+保持工作流名称 `Build OpenClash Template`，因为公开发布器按这个名称监听成功构建。不要擅自替换模板中的源仓库 URL：校验器和发布器共同维护 URL 转换契约；实际生产迁移应作为单独任务执行。
