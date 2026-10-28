@@ -1,0 +1,73 @@
+name: Publish public OpenClash rules
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "custom/**"
+      - "rules/**"
+      - "upstream/metafenliu.ini"
+      - "metafenliu.ini"
+      - "scripts/build.py"
+      - "scripts/publish_public_rules.py"
+      - "scripts/test_publish_public_rules.py"
+      - ".github/workflows/publish-public-rules.yml"
+  workflow_run:
+    workflows: ["Build OpenClash Template"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-public-openclash-rules
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Build and test the public allowlist
+        run: |
+          echo "PUBLIC_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          python3 scripts/build.py
+          python3 -m unittest -v scripts/test_publish_public_rules.py
+          python3 scripts/publish_public_rules.py --output "$RUNNER_TEMP/public-rules"
+
+      - name: Configure the dedicated deploy key
+        env:
+          RULES_PUBLISH_SSH_KEY: ${{ secrets.RULES_PUBLISH_SSH_KEY }}
+        run: |
+          test -n "$RULES_PUBLISH_SSH_KEY"
+          install -d -m 700 "$RUNNER_TEMP/publisher-ssh"
+          printf '%s\n' "$RULES_PUBLISH_SSH_KEY" > "$RUNNER_TEMP/publisher-ssh/id_ed25519"
+          chmod 600 "$RUNNER_TEMP/publisher-ssh/id_ed25519"
+          cat > "$RUNNER_TEMP/publisher-ssh/known_hosts" <<'EOF'
+          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+          EOF
+          chmod 600 "$RUNNER_TEMP/publisher-ssh/known_hosts"
+          echo "GIT_SSH_COMMAND=ssh -i $RUNNER_TEMP/publisher-ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$RUNNER_TEMP/publisher-ssh/known_hosts" >> "$GITHUB_ENV"
+
+      - name: Publish only after the complete export passes
+        run: |
+          git clone --depth 1 git@github.com:zhiwen1987/Jydn-openclash-rules.git "$RUNNER_TEMP/target"
+          rsync -a --delete --exclude='.git/' "$RUNNER_TEMP/public-rules/" "$RUNNER_TEMP/target/"
+          cd "$RUNNER_TEMP/target"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "publish rules from ${GITHUB_REPOSITORY}@${PUBLIC_SOURCE_SHA}"
+          git push origin HEAD:main
