@@ -9,6 +9,8 @@ on:
       - "rules/**"
       - "modules/**"
       - "scripts/**"
+      - "tools/**"
+      - "tests/**"
   push:
     branches:
       - "codex/**"
@@ -19,6 +21,8 @@ on:
       - "rules/**"
       - "modules/**"
       - "scripts/**"
+      - "tools/**"
+      - "tests/**"
 
 permissions:
   contents: read
@@ -50,6 +54,9 @@ jobs:
 
       - name: Test public rule export allowlist
         run: python3 scripts/test_publish_public_rules.py
+
+      - name: Test offline routing sample simulator
+        run: python3 tests/test_routing_simulator.py
 
       - name: Check retained configuration hook syntax
         run: sh -n scripts/jydn_group_filter_hook.sh scripts/jydn_routing_controls_hook.sh scripts/jydn_strict_custom_hook.sh

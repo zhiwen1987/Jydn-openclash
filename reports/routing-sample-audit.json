@@ -1,0 +1,5834 @@
+{
+  "mismatches": [
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "100classicbooks.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasdepresentesdeitunes.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.cl",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.co",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.co.cr",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.co.ni",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.co.ve",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.com.co",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.com.hn",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.com.ni",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.com.ve",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.cr",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.gt",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.hn",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12diasderegalosdeitunes.pe",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "12joursdecadeauxdeitunes.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "2k.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "2kcoretech.online",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "2kct.onl",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "2kgames.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "2ksports.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "2kweb.online",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "3lateral.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "573.jp",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "a.ppy.sh",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "a4e8s8k3.map2.ssl.hwcdn.net",
+      "expected": "🎮 游戏平台（Steam）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "steam"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🪙 数字货币",
+      "classification": "其他错配",
+      "domain": "aave.com",
+      "expected": "🔒 隐私代理",
+      "family": "proxy-required-policy",
+      "memberships": [
+        "category-cryptocurrency",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 201,
+      "rule_source": "category-cryptocurrency",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "abematv.akamaized.net",
+      "expected": "🎞️ 海外影音",
+      "family": "streaming",
+      "memberships": [
+        "category-entertainment",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "ac-pocketcamp.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "acesofthunder.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "activematter.game",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "activision.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "activisionblizzard.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "activisionblizzardmedia.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🟥 创意软件（Adobe）",
+      "classification": "其他错配",
+      "domain": "advertising.adobe.com",
+      "expected": "REJECT",
+      "family": "advertising",
+      "memberships": [
+        "adobe",
+        "category-ads-all",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 19,
+      "rule_source": "adobe",
+      "seed_source": "category-ads-all"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "age.tv",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "agedm.app",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "agefans.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🔵 对话助手（Gemini）",
+      "classification": "应走业务组却被抢先",
+      "domain": "ai.google.dev",
+      "expected": "🧠 人工智能",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "geolocation-!cn",
+        "gfw",
+        "google"
+      ],
+      "policy_review": true,
+      "rule_kind": "domain",
+      "rule_line": 132,
+      "rule_source": "ai.google.dev",
+      "seed_source": "google"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "需代理政策域名却命中 DIRECT",
+      "domain": "akamaihd.net",
+      "expected": "🔒 隐私代理",
+      "family": "proxy-required-policy",
+      "memberships": [
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "amiibo.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "amp-api-edge-lb-cn.itunes-apple.com.akadns.net",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "amp-api-edge-lb.itunes-apple.com.akadns.net",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "amp-api-edge.music.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "amp-api.music.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "amp-api.podcasts.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "anthemgame.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "anthemthegame.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🟠 对话助手（Claude）",
+      "classification": "应走业务组却被抢先",
+      "domain": "anthropic.com",
+      "expected": "🧠 人工智能",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "domain-suffix",
+      "rule_line": 130,
+      "rule_source": "anthropic.com",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "aod-ssl.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "aod.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "apexlegends.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "api.steampowered.com",
+      "expected": "🎮 游戏平台（Steam）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "gfw",
+        "steam"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "apple-tv-plus-press.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusic.berlin",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusic.co",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusic.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusic.com.au",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusic.hamburg",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusic.wang",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusicconnect.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applemusicfestival.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "applepodcasts.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "apptrailers.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "arcraiders.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "argotunnel.com",
+      "expected": "☁️ 网络服务（Cloudflare）",
+      "family": "cdn",
+      "memberships": [
+        "cloudflare",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "cloudflare"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "arma3.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "armaplatform.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "artstation.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "artstationmedia.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "artstorm.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "assets.ppy.sh",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "audio-ak-spotify-com.akamaized.net",
+      "expected": "🎧 音乐服务（Spotify）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "external-direct",
+        "geolocation-!cn",
+        "spotify"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "audio4-ak-spotify-com.akamaized.net",
+      "expected": "🎧 音乐服务（Spotify）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "external-direct",
+        "geolocation-!cn",
+        "spotify"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "avatargarenanow-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "awayoutgame.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "ayudanintendo.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bag.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "bahamut.akamaized.net",
+      "expected": "🎞️ 海外影音",
+      "family": "streaming",
+      "memberships": [
+        "category-entertainment",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battle.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlebreakers.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefield.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefield1943.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefield3.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefield4.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefield5.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefieldbadcompany2.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefieldheroes.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefieldv.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefront2.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlefrontii.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "battlelog.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🟥 创意软件（Adobe）",
+      "classification": "其他错配",
+      "domain": "behance.net",
+      "expected": "🔒 隐私代理",
+      "family": "proxy-required-policy",
+      "memberships": [
+        "adobe",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 19,
+      "rule_source": "adobe",
+      "seed_source": "gfw"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bejeweledstars.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bejewled-stars.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "benefitsforeveryworld.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "beth.games",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bethesda.net",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bethesdagamestudios.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bethsoft.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bioware.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "biowarestore.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bistudio.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "blackboxgames.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "blizzard.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "blizzard.nefficient.co.kr",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "blizzardgearstore.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "blizzcon-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "blox.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bluearchive.jp",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "blz-contentstack.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "blzddist1-a.akamaihd.net",
+      "expected": "⬇️ 游戏下载",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-game-platforms-download",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "blzddistkr1-a.akamaihd.net",
+      "expected": "⬇️ 游戏下载",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-game-platforms-download",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "blzmedia-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "blznav.akamaized.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "bnetcmsus-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "bnetproduct-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "bnetshopus.akamaized.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bohemia.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bookkeeper.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "boombeach.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "bowsersinsidestory.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "brawlstars.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "brawlstarsgame.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "c.ppy.sh",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "callersbane.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "callofduty.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "callofdutyendowment.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "callofdutyendowment.org",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "callofdutyleague.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "callofdutymobile.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "camelot-europe.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "camelotherald.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "camelotherald.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "candycrush.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "capitalgames.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "capturingreality.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "cdngarenanow-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cdpred.services",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cdprojekt.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cdprojekt.red",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cdprojektred.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "championshipseriesleague.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🚀 手动选择",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "checkin.gstatic.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "external-proxy",
+        "geolocation-!cn",
+        "gfw",
+        "google",
+        "google-cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 60,
+      "rule_source": "external-proxy",
+      "seed_source": "google"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "chii.in",
+      "expected": "🎞️ 海外影音",
+      "family": "streaming",
+      "memberships": [
+        "category-entertainment",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "chillingo.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "chunkbase.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "clash.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "clashmini.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "clashofclans.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "clashroyale.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "clashroyaleapp.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "client-api.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🚀 手动选择",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "clientservices.googleapis.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "external-proxy",
+        "geolocation-!cn",
+        "gfw",
+        "google",
+        "google-cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 60,
+      "rule_source": "external-proxy",
+      "seed_source": "google"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cloudsync-prod.s3.amazonaws.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cma.itunes.apple.com",
+      "expected": "🍎 苹果服务（Apple）",
+      "family": "business",
+      "memberships": [
+        "apple",
+        "category-entertainment",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cncrivals.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "commandandconquer.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🚀 手动选择",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "connectivitycheck.gstatic.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "external-proxy",
+        "geolocation-!cn",
+        "gfw",
+        "google",
+        "google-cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 60,
+      "rule_source": "external-proxy",
+      "seed_source": "google"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "conquerwithcharacter.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "convrgencegame.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🧑‍💻 编程助手（GitHub Copilot）",
+      "classification": "应走业务组却被抢先",
+      "domain": "copilot-proxy.githubusercontent.com",
+      "expected": "🛠️ 代码托管（GitHub）",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "category-dev",
+        "geolocation-!cn",
+        "gfw",
+        "github",
+        "microsoft"
+      ],
+      "policy_review": true,
+      "rule_kind": "domain",
+      "rule_line": 141,
+      "rule_source": "copilot-proxy.githubusercontent.com",
+      "seed_source": "github"
+    },
+    {
+      "actual": "🧠 人工智能",
+      "classification": "应走业务组却被抢先",
+      "domain": "copilot-telemetry-service.githubusercontent.com",
+      "expected": "🛠️ 代码托管（GitHub）",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "category-dev",
+        "geolocation-!cn",
+        "gfw",
+        "github",
+        "microsoft"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 143,
+      "rule_source": "category-ai-!cn",
+      "seed_source": "github"
+    },
+    {
+      "actual": "🧠 人工智能",
+      "classification": "应走业务组却被抢先",
+      "domain": "copilot-telemetry.githubusercontent.com",
+      "expected": "🛠️ 代码托管（GitHub）",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "category-dev",
+        "geolocation-!cn",
+        "gfw",
+        "github",
+        "microsoft"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 143,
+      "rule_source": "category-ai-!cn",
+      "seed_source": "github"
+    },
+    {
+      "actual": "🧠 人工智能",
+      "classification": "应走业务组却被抢先",
+      "domain": "copilot-workspace.githubnext.com",
+      "expected": "🛠️ 代码托管（GitHub）",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "category-dev",
+        "geolocation-!cn",
+        "github",
+        "microsoft"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 143,
+      "rule_source": "category-ai-!cn",
+      "seed_source": "github"
+    },
+    {
+      "actual": "🧠 人工智能",
+      "classification": "应走业务组却被抢先",
+      "domain": "copilotprodattachments.blob.core.windows.net",
+      "expected": "🛠️ 代码托管（GitHub）",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "category-dev",
+        "geolocation-!cn",
+        "github",
+        "microsoft"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 143,
+      "rule_source": "category-ai-!cn",
+      "seed_source": "github"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "crashbandicoot.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "crossout.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "crsed.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "crysis.jp",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cubicmotion.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cubicodyssey.game",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "curseforge.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "cxacg.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cyberpunk.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cygames.co.jp",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "cygames.jp",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "d1unuk07s6td74.cloudfront.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "d348twzf7a8p5.cloudfront.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "dandanplay.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-entertainment"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "daoc.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "darkageofcamelot.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "darkness-risen.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "datarouter.apps.netherrealm.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dawngate.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dawngatechronicles.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dayz.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "deadspacegame.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🟥 创意软件（Adobe）",
+      "classification": "其他错配",
+      "domain": "demdex.net",
+      "expected": "REJECT",
+      "family": "advertising",
+      "memberships": [
+        "adobe",
+        "category-ads-all"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 19,
+      "rule_source": "adobe",
+      "seed_source": "category-ads-all"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "demonware.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "devforum-uploads.s3.dualstack.us-east-2.amazonaws.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "diablo.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "diablo3.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "diablo4.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "diabloimmortal.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dialga.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dice.se",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dicela.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dicela.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "diddykongracing.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dinopoloclub.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dkr.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "dlgarenanow-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "dlmobilegarena-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dodi-repacks.download",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dodi-repacks.site",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "donkeykongcountryreturns.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "doom.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dota2.com",
+      "expected": "🎮 游戏平台（Steam）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "steam"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "doy2mn9upadnk.cloudfront.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dragonage.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dragonagekeep.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dragonagemovie.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "drmario-world.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "dungeonkeeper.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "ea-anz-press.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "ea.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🟥 创意软件（Adobe）",
+      "classification": "应走业务组却被抢先",
+      "domain": "ea.tt.omtrdc.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "adobe",
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 19,
+      "rule_source": "adobe",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eaaccess.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "eaassets-a.akamaihd.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn",
+        "gfw"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eablackbox.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eac-cdn.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eacashcard.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eacodigos.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eafootballworld.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eakorea.co.kr",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eamirrorsedge.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eamobile.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eamythic.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eamythic.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eanordic.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eaplay.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easports.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easports.jp",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easportsactive.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easportsactiveonline.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easportsfootball.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easportsfootballclub.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easportsmma.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easportsworld.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eastore.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easy.ac",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "easyanticheat.net",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "⬇️ 游戏下载",
+      "classification": "应走业务组却被抢先",
+      "domain": "edge.steam-dns.top.comcast.net",
+      "expected": "🎮 游戏平台（Steam）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-game-platforms-download",
+        "category-games",
+        "geolocation-!cn",
+        "steam"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 68,
+      "rule_source": "category-game-platforms-download",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "eft-store.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "⬇️ 游戏下载",
+      "classification": "应走业务组却被抢先",
+      "domain": "egdownload.fastly-edge.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-game-platforms-download",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 68,
+      "rule_source": "category-game-platforms-download",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "elderscrolls.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "electronicarts.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "electronicarts.fr",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "embark-studios.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "embark.games",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "enlisted.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "epicgames.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "epicgames.dev",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "epicgamescdn.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "escapefromtarkov.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "europeanwarzoneseries.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "excitebots.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "f3b7q2p3.ssl.hwcdn.net",
+      "expected": "🎮 游戏平台（Steam）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "steam"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fab.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fabricmc.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "faceit-cdn.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "faceit.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fanatical.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "ficgs.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fifastreet.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fifastreet3.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "💳 海外支付",
+      "classification": "应走业务组却被抢先",
+      "domain": "finance.ozon.ru",
+      "expected": "🛒 海外电商",
+      "family": "business",
+      "memberships": [
+        "category-ecommerce",
+        "category-finance",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 202,
+      "rule_source": "category-finance",
+      "seed_source": "category-finance"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fire-emblem-heroes.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fireemblemawakening.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "firesidegatherings.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fitgirl-repacks.site",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "flipnotestudio.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "fonts.googleapis.com",
+      "expected": "🔎 谷歌服务（Google）",
+      "family": "business",
+      "memberships": [
+        "geolocation-!cn",
+        "gfw",
+        "google",
+        "google-cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 64,
+      "rule_source": "google-cn",
+      "seed_source": "user-policy"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "forgecdn.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "fortnite-vod.akamaized.net",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "fortnite.com",
+      "expected": "🟣 游戏平台（Epic）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "epicgames",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "forza.net",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "forzamotorsport.net",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "forzaracingchampionship.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "forzarc.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "frostbite.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "futpromos.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "futunited.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gaijin.net",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gaijinent.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "game-repack.site",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gamebanana.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "gamedownloads-rockstargames-com.akamaized.net",
+      "expected": "⬇️ 游戏下载",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-game-platforms-download",
+        "category-games",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gamepass.com",
+      "expected": "🟩 游戏平台（Xbox）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "microsoft",
+        "xbox"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gamesfirsthelsinki.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gamesplanet.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gametap.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.co.id",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.co.th",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.live",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.my",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.ph",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.sg",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.tv",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.tw",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garena.vn",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "garenanow.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "genshinimpact.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "cn",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "ghostgames.com",
+      "expected": "🕹️ 游戏服务",
+      "family": "game",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "giratina.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🧑‍💻 编程助手（GitHub Copilot）",
+      "classification": "应走业务组却被抢先",
+      "domain": "githubcopilot.com",
+      "expected": "🛠️ 代码托管（GitHub）",
+      "family": "business",
+      "memberships": [
+        "category-ai-!cn",
+        "category-dev",
+        "geolocation-!cn",
+        "gfw",
+        "github",
+        "microsoft"
+      ],
+      "policy_review": true,
+      "rule_kind": "domain-suffix",
+      "rule_line": 140,
+      "rule_source": "githubcopilot.com",
+      "seed_source": "github"
+    },
+    {
+      "actual": "🎞️ 海外影音",
+      "classification": "应走业务组却被抢先",
+      "domain": "gloryofheracles.com",
+      "expected": "🔴 游戏平台（Nintendo）",
+      "family": "business",
+      "memberships": [
+        "category-entertainment",
+        "category-games",
+        "geolocation-!cn",
+        "nintendo"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 176,
+      "rule_source": "category-entertainment",
+      "seed_source": "category-games"
+    },
+    {
+      "actual": "🐟 漏网之鱼",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "hhyunerp.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [],
+      "policy_review": false,
+      "rule_kind": "final",
+      "rule_line": 228,
+      "rule_source": null,
+      "seed_source": "user-policy"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "hsbc.com.hk",
+      "expected": "💳 海外支付",
+      "family": "finance",
+      "memberships": [
+        "category-finance",
+        "external-direct",
+        "geolocation-!cn"
+      ],
+      "policy_review": true,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "category-finance"
+    },
+    {
+      "actual": "DIRECT",
+      "classification": "应走业务组却被抢先",
+      "domain": "iq.com",
+      "expected": "🎞️ 海外影音",
+      "family": "streaming",
+      "memberships": [
+        "cn",
+        "external-direct"
+      ],
+      "policy_review": false,
+      "rule_kind": "membership",
+      "rule_line": 51,
+      "rule_source": "external-direct",
+      "seed_source": "user-policy"
+    },
+    {
+      "actual": "🐟 漏网之鱼",
+      "classification": "国内策略域名却进入非 DIRECT 目标",
+      "domain": "www.hhyunerp.com",
+      "expected": "DIRECT",
+      "family": "domestic",
+      "memberships": [],
+      "policy_review": false,
+      "rule_kind": "final",
+      "rule_line": 228,
+      "rule_source": null,
+      "seed_source": "user-policy"
+    }
+  ],
+  "summary": {
+    "categories": {
+      "matched": 2253,
+      "其他错配": 4,
+      "国内策略域名却进入非 DIRECT 目标": 12,
+      "应走业务组却被抢先": 297,
+      "需代理政策域名却命中 DIRECT": 1
+    },
+    "domain_stage_only": true,
+    "human_policy_anchors": 18,
+    "human_policy_anchors_matched": 14,
+    "matched": 1991,
+    "policy_oracle_consistency_percent": 87.942,
+    "policy_review": 303,
+    "policy_review_matched": 262,
+    "policy_review_mismatched": 41,
+    "samples": 2567,
+    "schema": 2,
+    "source_snapshot": {
+      "115": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "2e30e9bde786e447a1b11b3edfa72616ad685c1ec2ff92b32545a8a53c2cf95c",
+        "status": "loaded"
+      },
+      "adobe": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "7ee5c5815a4706bd242fd8b218edfd431eea5d5348e34f17905ff3576b584fc6",
+        "status": "loaded"
+      },
+      "aliyun-drive": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "7f843d6864e06665f26777040dfe2a00c4658fe4b43b054cbbd94c17bc10d91e",
+        "status": "loaded"
+      },
+      "apple": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "384ac4870979f208410b584bce6f305806df0b2ad8d2aa5c7a29f2d939b2d41c",
+        "status": "loaded"
+      },
+      "apple-cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "97a0f9d9d843280516f88ee6473cf76c50ffd4c819680b9512b1de9d0335d928",
+        "status": "loaded"
+      },
+      "baidu": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "cd4b526f5a17139c057cfbcf4554f0026e9360e81ea76d830027b8cfde4dd3dd",
+        "status": "loaded"
+      },
+      "binance": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "633f22b6b9a0544ed64865ed0707c18127b175a175590fd93acb5a0bbd3581c3",
+        "status": "loaded"
+      },
+      "bybit": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "6638edd2c012821876db64f6c27c00149ee2bef52ec4a0a97d1f6a95d78d103a",
+        "status": "loaded"
+      },
+      "category-ads-all": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "7151ccf7d0833580614f5634e560ea31e51a8f8fe29b31217c9a93d4179adb4e",
+        "status": "loaded"
+      },
+      "category-ai-!cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "2f3b87d8dcd6ade66fbb7f78d2d9b30eef20b18ffa3deebaba7cbd9a54c1d8e1",
+        "status": "loaded"
+      },
+      "category-bank-cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "b7897ca79e4d7e62067e0d3d78654f5aaadddae12b9e575167c88bf96505b138",
+        "status": "loaded"
+      },
+      "category-communication": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "8e8f8414f33cbf657e8fc033f6d9b02ae049cd7d6d2ef1f3bc186a393e1cba69",
+        "status": "loaded"
+      },
+      "category-cryptocurrency": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "cc9d8f9534151858c9a436cdcab26bdf070407e3e4d54ad798addca503e14fcc",
+        "status": "loaded"
+      },
+      "category-dev": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "71e6eb9feb73c11ac37f60694e34d19aa37dae796464acd76b307124b1e23379",
+        "status": "loaded"
+      },
+      "category-ecommerce": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "d9e40d13897b9d97074c9e6122b32e2a2106766072bf8f7b5ee45c33158b5245",
+        "status": "loaded"
+      },
+      "category-entertainment": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "9660df5d9c08039ea5df477b563e36778060c3d6672324c55ea838aee76de286",
+        "status": "loaded"
+      },
+      "category-finance": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "85e5a9b9e955ea415baa73a1859daa081fda5f2e4b5f96bdda0ccb89ee489274",
+        "status": "loaded"
+      },
+      "category-game-platforms-download": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "7c817090cb6a7e763439d9615ab5198b35a7db584e6d1562dba4bb85afa4c49d",
+        "status": "loaded"
+      },
+      "category-games": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "6f9006abc8a0be9056b359efa9a81322731fd418a5b9a3d5935c1483302e99db",
+        "status": "loaded"
+      },
+      "category-games@cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "2ed89efb42eabe87cf3524a9fc2849fefb6237e3522b4ae0ad04f868aeb8cd1b",
+        "status": "loaded"
+      },
+      "category-public-tracker": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "8549ed51f77fdaa4263d01bc790692fcfbdce14f908c6abc6ac4984383a7e5c6",
+        "status": "loaded"
+      },
+      "category-scholar-!cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "a06f0538dbc0b186f9daaf29673cf4cc67b91e7d04833a0b4ca08a129eac5755",
+        "status": "loaded"
+      },
+      "category-social-media-!cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "83dcd46c0a464a200f5b0360d0e96bdaf35c7d40ac483ca73cd5c87a2f9f5f90",
+        "status": "loaded"
+      },
+      "category-speedtest": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "60cb7f2702d98693e1f8f54f36a547d8362a2364d7c78f1f7435d435512e2789",
+        "status": "loaded"
+      },
+      "cloudflare": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "e9e9928f3b951309627d7b3e3f25bb6a3115a4f959bdb2b9b464127a32377fe8",
+        "status": "loaded"
+      },
+      "cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "f03c301bc6ef21349da52b377e164aa1518f5549188575bc08b4e4436651b620",
+        "status": "loaded"
+      },
+      "discord": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "b066c5e8bcf3f5ceb00eac510414cbd3b61b36485f2aed0a672e07f6a50a6f17",
+        "status": "loaded"
+      },
+      "disney": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "21fee1a588ef81d49cb45714f7efa4d85c05af2b315443f6d55a4fbab6168391",
+        "status": "loaded"
+      },
+      "docker": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "3aea2a4360d163b3f0c3229e750bb0d5ed1f7dd407d23ea4e7670e13570b1091",
+        "status": "loaded"
+      },
+      "dropbox": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "0b79496b3fb153ae7df3e8c8943b4cc2a5bf651f3055122bce52ef40917ee35b",
+        "status": "loaded"
+      },
+      "epicgames": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "11e2dfd036cbbce4e9913dacc47114d85eb2c037e889320847a98ffcd9ddb222",
+        "status": "loaded"
+      },
+      "external-direct": {
+        "revision": "ce364895f9b55317159b43c0397788933f0f8448",
+        "sha256": "a5f6d12e96f1d01e86c25639eeebb2e59d6ca61b8ddfad57fba376471703a80a",
+        "status": "loaded"
+      },
+      "external-proxy": {
+        "revision": "ce364895f9b55317159b43c0397788933f0f8448",
+        "sha256": "608cc5c2bc6523cebb5aa90b930e1f2361040febdbfd5674953a049e0aaef25d",
+        "status": "loaded"
+      },
+      "facebook": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "7bf95664c32f3baeac0e506412b234589d708cafdb5e58258d39ccd3aa5df3c5",
+        "status": "loaded"
+      },
+      "geolocation-!cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "cd1f4504d16c35a3a46efea24ed9fcfefec0220263fef22b70bb6e9abd59cb4f",
+        "status": "loaded"
+      },
+      "geolocation-cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "a33680fa3e0ef92311de84b2b044706afb96fbd4c24df62e4851312558acc6bf",
+        "status": "loaded"
+      },
+      "gfw": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "1b894ad9e5d3d3f191cc1f918f75433925f2f0552c2f4da8d4c33a6647cf66be",
+        "status": "loaded"
+      },
+      "github": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "a4cde29dee08b937d6c2fabf256e032b9ceb3583942cffe05cf53fc9571d45b4",
+        "status": "loaded"
+      },
+      "gitlab": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "ce8c4424ed88659f6db7bff7153b202c6b50bd597d26e6f66692c40829e0e142",
+        "status": "loaded"
+      },
+      "google": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "38bc4b43837119ba900e0aa3cfde49e8d84b88058998e4978fa2b397b012f9ee",
+        "status": "loaded"
+      },
+      "google-cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "02137f62d4e1bded77f475e13e49b3bd83ec3c510c9c3452632367f75f2a803b",
+        "status": "loaded"
+      },
+      "hbo": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "cbc98f5511023616dd4d169012978b9dd13d218b7cae0eae85ab0f5266a47ff1",
+        "status": "loaded"
+      },
+      "instagram": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "aa8722b7c1a314a1087660c516076ffd3017b017d726b726d6d775d785bb95c4",
+        "status": "loaded"
+      },
+      "line": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "bc555ae0d41072e7ceb0eab7f4d9e0f2b31b046a34430932e083dbdcd445fe0f",
+        "status": "loaded"
+      },
+      "microsoft": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "5c294cf0c223ae1ab91359c40f28a62cd5dde26c984f6affc34a5b23c47a9b80",
+        "status": "loaded"
+      },
+      "microsoft@cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "be4294dc90ac400e8db57f6af6e028ed117bb70202b066d61b4bf785cad56aae",
+        "status": "loaded"
+      },
+      "netflix": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "8df5a09035034ed72169f566ccc08779f30cebc2bf47681bf512fceef1296a68",
+        "status": "loaded"
+      },
+      "nintendo": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "29d3122c2777a6dba5be5da400b1d68999a2faaf6041da36e2b183bcd2a8d41c",
+        "status": "loaded"
+      },
+      "notion": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "f7959c18a3c3c531ed1680562379bccbb814380dad9f85d730b9c749a997ef91",
+        "status": "loaded"
+      },
+      "npmjs": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "0a59df135aaeb75c7791c7f650ca1fa43ce1ccb3506950e4aa7f545c520d98a3",
+        "status": "loaded"
+      },
+      "okx": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "4326065de15c90f44a0c0f9c7767c60857ee96c161f00abf2baa0eca55c8e8f1",
+        "status": "loaded"
+      },
+      "onedrive": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "f892e0c94d56b72c6fdb7e12aab431b4203c5806edcc7453a46eb46433591005",
+        "status": "loaded"
+      },
+      "openai": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "6aede2e962e4101b061a851f5615a5db3376a4c198b3b91177b36317e9faeffb",
+        "status": "loaded"
+      },
+      "paypal": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "3b13b6dfcb94d207c474bf7ae4ee754d13aabac93f649e8e07bd3a6df8b785c3",
+        "status": "loaded"
+      },
+      "playstation": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "4ce187a25fe79284addebf59cc7848cd31f5bbaae05cc83537a1345af5c49201",
+        "status": "loaded"
+      },
+      "primevideo": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "69e06a9273c19da61fc7fee1a026272f8d10e49928b5f06cfe7cf1917b848561",
+        "status": "loaded"
+      },
+      "private": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "7f396a73bf5c01725cf4a51e6089239491a0d8cb3c808bd1c524d78391221440",
+        "status": "loaded"
+      },
+      "reddit": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "f9a29e5feefa0ff76887c7a8a3d581e68fef0df06b3fdb3173905b557c319ed3",
+        "status": "loaded"
+      },
+      "signal": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "f243aca1f3aa949aedc1b0bf094a4ebb3f199b649894aef46bf84789943cbd69",
+        "status": "loaded"
+      },
+      "spotify": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "385c642d4b578412e43efb6594fa5de3d296f3b31959e5e1520d39213e452347",
+        "status": "loaded"
+      },
+      "steam": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "47ad4e79ea85ae5c2d31cd9b8d7d9e5206cc09d371dba11d8d20e10d9da720c9",
+        "status": "loaded"
+      },
+      "steam@cn": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "0681b5fe90979c22cb6165f9b33e8bd451bbbe26e0537bd9bcc1fa69f437f6a9",
+        "status": "loaded"
+      },
+      "telegram": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "4712014d6fcb434daf8b03b4740e37445109b42bc0e824f6acbce733ef92abb0",
+        "status": "loaded"
+      },
+      "tiktok": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "a5f9d0dd4e265d6542b101f59f5788082d8db3c99230cf6dd69a15005dfead88",
+        "status": "loaded"
+      },
+      "twitch": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "9b63fc83955f30a8a437fd1dbaf65bf03b5e24f974bcf7157ba1f8847582d73f",
+        "status": "loaded"
+      },
+      "twitter": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "e21969caac51ecd0534345a8b19166d7a0c31cd595a8eef167e1d82f5ed1d414",
+        "status": "loaded"
+      },
+      "whatsapp": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "91cf23a84c186c66f86908ad1b3b7658f325bd16c82b1c60f753ac43575513fe",
+        "status": "loaded"
+      },
+      "wise": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "455de2a34868a8ca636098779d2ba912c81ac158fe12920ba03ae8426707ce86",
+        "status": "loaded"
+      },
+      "xbox": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "c5cb5e82bd5dcd2e7287054cb934e8a6de6846d4874e7d9ee34f05a2b128f53f",
+        "status": "loaded"
+      },
+      "youtube": {
+        "revision": "9f2b7462c7508ad85a1137e70d502b783c89794d",
+        "sha256": "ec32854438b8ad4e2f2f2ee0d578834c667f1d0cec4c82357e34629452d2fc5d",
+        "status": "loaded"
+      }
+    },
+    "strict_samples": 2264,
+    "unknown": 0
+  }
+}

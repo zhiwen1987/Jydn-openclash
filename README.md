@@ -26,6 +26,8 @@
 
 维护步骤见[规则与模板维护](docs/template-maintenance.zh-CN.md)，检查范围见[校验与恢复](docs/rules-validation.zh-CN.md)。
 
+离线域名样本审计见[分流样本报告](docs/routing-sample-audit-20261028.md)。报告使用冻结上游快照重放规则目标，不代表设备当前出口或网站实时可用性。
+
 ## 自动更新
 
 `Build OpenClash Template` 保留模板构建、校验和生成产物提交；`Publish public OpenClash rules` 在合格构建后，使用原有专用发布凭据，把严格允许的通用规则和模板同步到 [Jydn-openclash-rules](https://github.com/zhiwen1987/Jydn-openclash-rules)。单个任务失败不会删除上个公开版本。
