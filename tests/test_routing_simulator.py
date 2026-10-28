@@ -8,6 +8,15 @@ import build_routing_samples as builder
 import simulate_routing as simulator
 
 class RoutingSimulatorTests(unittest.TestCase):
+ def test_corpus_writer_uses_stable_utf8_lf_bytes(self):
+  rows=[{"domain":"example.com","expected":"策略"},{"domain":"sub.example.com","expected":"DIRECT"}]
+  with tempfile.TemporaryDirectory() as directory:
+   target=Path(directory)/"nested"/"samples.jsonl"
+   builder.write_corpus(rows,target)
+   expected="".join(json.dumps(row,ensure_ascii=False,sort_keys=True)+"\n" for row in rows).encode("utf-8")
+   self.assertEqual(target.read_bytes(),expected)
+   self.assertNotIn(b"\r",target.read_bytes())
+
  def test_corpus_is_large_unique_and_reproducible(self):
   rows=[json.loads(line) for line in simulator.CORPUS.read_text(encoding="utf-8").splitlines() if line]
   self.assertGreaterEqual(len(rows),2000);self.assertEqual(len(rows),len({row["domain"] for row in rows}))

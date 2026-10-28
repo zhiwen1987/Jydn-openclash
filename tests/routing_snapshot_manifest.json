@@ -1,5 +1,5 @@
 {
-  "corpus_sha256": "2d24a8c53877b87dcaefe823a87afc0fa351227e03979e8bab1b41ffd2ab887e",
+  "corpus_sha256": "d2527b08a35bc338cc21dfc7cff0ee113fdc495eb4dc7a97daf923c6ff0fc301",
   "notes": [
     "Pinned public snapshots; not the database installed on any router.",
     "gfw is a source-list policy label, not a live reachability measurement.",

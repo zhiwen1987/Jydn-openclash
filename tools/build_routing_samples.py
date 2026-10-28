@@ -112,6 +112,10 @@ def expectation(tags,domain):
  if "geolocation-!cn" in tags:return "🌐 默认策略","proxy",review
  return "UNKNOWN","unclassified",review
 
+def write_corpus(rows,path):
+ path.parent.mkdir(parents=True,exist_ok=True)
+ path.write_text("".join(json.dumps(row,ensure_ascii=False,sort_keys=True)+"\n" for row in rows),encoding="utf-8",newline="\n")
+
 def main():
  config=(ROOT/"metafenliu.ini").read_text(encoding="utf-8")
  categories=set(re.findall(r"\[\]GEOSITE,([^\r\n,]+)",config))|set(SEED_QUOTAS)|{x[0] for x in SPECIFIC}
@@ -153,8 +157,7 @@ def main():
   selected.append({"domain":domain,"expected":route,"family":family,"seed_source":"user-policy",
    "memberships":sorted(tags),"policy_review":False});seen.add(domain)
  if len(selected)<2000:raise RuntimeError(f"corpus too small: {len(selected)}")
- selected.sort(key=lambda row:row["domain"]);OUT.parent.mkdir(exist_ok=True)
- OUT.write_text("".join(json.dumps(row,ensure_ascii=False,sort_keys=True)+"\n" for row in selected),encoding="utf-8")
+ selected.sort(key=lambda row:row["domain"]);write_corpus(selected,OUT)
  manifest["sources"].sort(key=lambda row:row["name"]);manifest["sample_count"]=len(selected)
  manifest["corpus_sha256"]=hashlib.sha256(OUT.read_bytes()).hexdigest()
  PACK.parent.mkdir(parents=True,exist_ok=True)
@@ -162,7 +165,7 @@ def main():
  buffer=io.BytesIO()
  with gzip.GzipFile(filename="",mode="wb",fileobj=buffer,mtime=0) as stream:stream.write(packed)
  PACK.write_bytes(buffer.getvalue());manifest["snapshot_pack_sha256"]=hashlib.sha256(PACK.read_bytes()).hexdigest()
- MANIFEST.write_text(json.dumps(manifest,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+ MANIFEST.write_text(json.dumps(manifest,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8",newline="\n")
  print(json.dumps({"samples":len(selected),"corpus_sha256":manifest["corpus_sha256"]}))
 
 if __name__=="__main__":main()
