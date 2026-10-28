@@ -19,7 +19,7 @@ class SchedulerTests(unittest.TestCase):
    data=Path(directory);clock=[100];health=[];maintenance=[]
    path=data/'usage-reload-defer.json'
    path.write_text(json.dumps({'until':160,'release_id':'accepted','health':{'epoch':90,'status':'ok'}}))
-   module=types.SimpleNamespace(DATA=data,HEALTH_PATH=data/'health.json',now=lambda:clock[0],current_manifest=lambda:{'release_id':'accepted'},atomic_json=lambda p,v:health.append(dict(v)),maintain_probation=lambda:maintenance.append(clock[0]),repair_pointer=lambda:False,log=lambda *a:None)
+   module=types.SimpleNamespace(DATA=data,HEALTH_PATH=data/'health.json',now=lambda:clock[0],current_manifest=lambda:{'release_id':'accepted'},atomic_json=lambda p,v:health.append(dict(v)),maintain_probation=lambda:maintenance.append(clock[0]),repair_and_refresh=lambda:False,log=lambda *a:None,exclusive=lambda _path:contextlib.nullcontext(True))
    def sleep(seconds):clock[0]+=seconds
    with patch.object(wrapper.time,'monotonic',side_effect=lambda:clock[0]),patch.object(wrapper.time,'sleep',side_effect=sleep):wrapper.resume_metadata_reload(module)
    self.assertEqual(clock[0],160);self.assertEqual(maintenance,[130,160]);self.assertFalse(path.exists())
@@ -37,7 +37,7 @@ class SchedulerTests(unittest.TestCase):
   def sleep(seconds):
    if clock[0]>=30:raise EndRun()
    clock[0]+=seconds
-  module=types.SimpleNamespace(LOCK=contextlib.nullcontext(),MODE='automatic',HEALTH_PATH=Path('/not-written'),DATA=Path('/not-written'),now=lambda:clock[0],load_sources=lambda:queries.append(clock[0]) or [],atomic_json=lambda path,data:health.append(data),maintain_probation=lambda:maintenance.append(clock[0]),repair_pointer=lambda:False,log=lambda *a:None)
+  module=types.SimpleNamespace(LOCK=contextlib.nullcontext(),MODE='automatic',HEALTH_PATH=Path('/not-written'),DATA=Path('/not-written'),now=lambda:clock[0],load_sources=lambda:queries.append(clock[0]) or [],atomic_json=lambda path,data:health.append(data),maintain_probation=lambda:maintenance.append(clock[0]),repair_and_refresh=lambda:False,log=lambda *a:None,exclusive=lambda _path:contextlib.nullcontext(True),ControllerError=RuntimeError,reconcile_requested=lambda:False)
   with patch.object(wrapper.time,'monotonic',side_effect=lambda:clock[0]),patch.object(wrapper.time,'sleep',side_effect=sleep):
    with self.assertRaises(EndRun):wrapper.scheduler(module)()
   self.assertEqual(maintenance,[30]);self.assertEqual(queries,[0,30])

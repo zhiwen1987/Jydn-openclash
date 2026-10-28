@@ -15,6 +15,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+      - name: Existing runtime YAML dependency
+        run: python -m pip install PyYAML==6.0.3
       - name: Syntax and trust boundary tests
         run: |
           python -B -m compileall -q installer
@@ -24,4 +26,6 @@ jobs:
           ruby installer/tests/test_router_safety.rb
           ruby -c installer/agents/node_health_router.rb
           ruby installer/tests/test_native_admission.rb
+          ruby -c installer/agents/managed_sources_router.rb
+          ruby installer/tests/test_managed_sources_router.rb
           for file in installer/install.sh installer/runtime/native_admission.sh installer/runtime/upstream/*.sh; do sh -n "$file"; done

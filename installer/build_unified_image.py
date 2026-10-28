@@ -28,6 +28,7 @@ LOCAL_FILES = (
     "editor.js", "subscription_usage.py", "usage.html", "usage_ui.js",
 )
 REQUIRED_UNIFIED = ("unified_center.py", "unified_proxy.py", "assets/logo.png")
+UNIFIED_RUNTIME_SUFFIXES = {".py", ".js"}
 PRIVATE_NAMES = re.compile(
     r"(?:^|[-_.])(token|secret|credential|private|password|passwd|\.env|data|db|sqlite)(?:$|[-_.])",
     re.IGNORECASE,
@@ -72,7 +73,7 @@ def checked_copy(source: Path, target: Path) -> None:
 def deterministic_tar(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("wb") as raw, gzip.GzipFile(
-        fileobj=raw, mode="wb", compresslevel=6, mtime=0
+        filename="", fileobj=raw, mode="wb", compresslevel=6, mtime=0
     ) as compressed, tarfile.open(fileobj=compressed, mode="w|") as archive:
         for path in sorted(source.rglob("*"), key=lambda item: item.as_posix()):
             if path.is_symlink():
@@ -272,10 +273,17 @@ def validate_docker_archive(path: Path, image_id: str) -> None:
 
 
 def build_context(output: Path, version: str, source_commit: str) -> dict[str, object]:
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", version):
+        raise RuntimeError("invalid_release_version")
     if output.exists() and any(output.iterdir()):
         raise RuntimeError("context_output_not_empty")
     output.mkdir(parents=True, exist_ok=True)
     checked_copy(HERE / "Dockerfile.unified", output / "Dockerfile")
+    dockerfile = output / "Dockerfile"
+    rendered = dockerfile.read_text(encoding="utf-8").replace(
+        "ARG RELEASE_VERSION=0.3.0", "ARG RELEASE_VERSION=" + version,
+    )
+    dockerfile.write_text(rendered, encoding="utf-8", newline="\n")
     runtime = HERE / "runtime"
     for path in sorted((runtime / "upstream").rglob("*")):
         if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
@@ -288,6 +296,20 @@ def build_context(output: Path, version: str, source_commit: str) -> dict[str, o
     unified = REPO / "monitoring/lan-center/unified-center"
     for name in REQUIRED_UNIFIED:
         checked_copy(unified / name, output / "unified-center" / name)
+    # Runtime extensions are deliberately discovered rather than maintained in
+    # a second hand-written list.  This keeps independently reviewed DNS,
+    # monitor and subscription adapters in the same immutable image while
+    # excluding tests and documentation from the production layer.
+    for path in sorted(unified.iterdir(), key=lambda item: item.name):
+        if (path.is_file() and not path.name.startswith("test_")
+                and path.suffix.lower() in UNIFIED_RUNTIME_SUFFIXES):
+            checked_copy(path, output / "unified-center" / path.name)
+    extensions = unified / "extensions"
+    if extensions.is_dir():
+        for path in sorted(extensions.rglob("*.py"), key=lambda item: item.as_posix()):
+            if "__pycache__" in path.parts or path.name.startswith("test_"):
+                continue
+            checked_copy(path, output / "unified-center" / path.relative_to(unified))
     # Only runtime assets enter the image.  Tests, notes and __pycache__ remain
     # source-side evidence and cannot accidentally enlarge the production image.
     for path in sorted((unified / "assets").rglob("*")):
@@ -297,6 +319,13 @@ def build_context(output: Path, version: str, source_commit: str) -> dict[str, o
                 raise RuntimeError("unsupported_unified_asset_type:" + check_suffix.lstrip("."))
             checked_copy(path, output / "unified-center" / path.relative_to(unified))
     files = file_manifest(output)
+    forbidden_runtime_roots = ("/data/node-health/code", "/data/subscription-usage/code")
+    for path in sorted(output.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in {".py", ".js", ".sh", ".rb"}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if any(root in text for root in forbidden_runtime_roots):
+            raise RuntimeError("persistent_code_overlay_still_active:" + path.relative_to(output).as_posix())
     manifest = {
         "schema": SCHEMA,
         "kind": "unified-center-build-context",
@@ -308,6 +337,7 @@ def build_context(output: Path, version: str, source_commit: str) -> dict[str, o
         "contains_production_data": False,
         "build_method": "docker_build_then_docker_image_save",
         "forbidden_method": "docker_commit",
+        "runtime_code_policy": "image_only",
     }
     atomic_json(output / "context.manifest.json", manifest)
     archive = output.parent / (output.name + ".tar.gz")
@@ -326,6 +356,8 @@ def bundle(context: Path, image_archive: Path, image_id: str, output: Path, vers
     if output.exists() and any(output.iterdir()):
         raise RuntimeError("bundle_output_not_empty")
     context_manifest = json.loads((context / "context.manifest.json").read_text(encoding="utf-8"))
+    if context_manifest.get("version") != version:
+        raise RuntimeError("bundle_version_mismatch")
     if context_manifest.get("base_image_id") != BASE_IMAGE:
         raise RuntimeError("base_image_identity_changed")
     expected = context_manifest.get("files", {})
@@ -347,12 +379,14 @@ def bundle(context: Path, image_archive: Path, image_id: str, output: Path, vers
         "image_id": image_id,
         "image_archive": copied.name,
         "image_archive_sha256": digest(copied),
+        "image_archive_bytes": copied.stat().st_size,
         "context_manifest": copied_context_manifest.name,
         "context_manifest_sha256": digest(copied_context_manifest),
         "source_commit": context_manifest.get("source_commit"),
         "context_files": expected,
         "contains_production_data": False,
         "build_method": "docker_build_then_docker_image_save",
+        "runtime_code_policy": context_manifest.get("runtime_code_policy"),
     }
     atomic_json(output / "manifest.json", manifest)
     sums = (

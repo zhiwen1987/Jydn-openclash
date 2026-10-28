@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -7,6 +8,12 @@ import types
 import unittest
 import urllib.error
 from unittest.mock import patch
+if sys.platform == "win32":
+ # Windows unit tests exercise queue semantics with a process-local lock shim;
+ # Linux rehearsal/production still exercise the real non-blocking flock.
+ fake_fcntl=types.ModuleType('fcntl');fake_fcntl.LOCK_EX=1;fake_fcntl.LOCK_NB=2
+ fake_fcntl.flock=lambda _stream,_mode:None
+ sys.modules.setdefault('fcntl',fake_fcntl)
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'runtime/upstream'))
 import health_policy as hp
 import clash_measurement as cm
@@ -93,6 +100,28 @@ class QueueTests(unittest.TestCase):
   p=self.module.DATA/'admission-cache.json';p.write_text('{broken')
   with self.assertRaises(ValueError):aq.tick(self.module,lambda n:(True,'ok'),epoch=1000)
   self.assertEqual(p.read_text(),'{broken')
+ def test_bounded_batch_and_per_source_progress_have_no_fake_percentage(self):
+  rows=[{'name':f'fixture-{i}','type':'ss','server':f'{i}.example.test','port':1} for i in range(3)]
+  (self.module.CACHE/'source.yaml').write_text(json.dumps({'proxies':rows}))
+  self.module.fingerprint=lambda n:(str(rows.index(n)+1)*64)[:64]
+  calls=[]
+  with patch.dict(os.environ,{'SUBSCRIPTION_ADMISSION_BATCH_SIZE':'2'}):
+   self.assertTrue(aq.tick(self.module,lambda n:(calls.append(n['name']) or (True,'ok')),epoch=1000))
+  self.assertEqual(len(calls),2)
+  progress=json.loads((self.root/'node-health'/'admission-progress.json').read_text())
+  source=progress['sources'][0]
+  self.assertEqual((source['parsed_count'],source['candidate_count'],source['tested_count']),(3,3,2))
+  self.assertNotIn('percent',json.dumps(progress).lower())
+ def test_batch_is_fair_across_sources_before_second_node(self):
+  rows_a=[{'name':f'a-{i}','type':'ss','server':f'a{i}.test','port':1} for i in range(3)]
+  rows_b=[{'name':'b-0','type':'ss','server':'b0.test','port':1}]
+  (self.module.CACHE/'a.yaml').write_text(json.dumps({'proxies':rows_a}))
+  (self.module.CACHE/'b.yaml').write_text(json.dumps({'proxies':rows_b}))
+  self.module.load_sources=lambda:[types.SimpleNamespace(source_id='a'),types.SimpleNamespace(source_id='b')]
+  self.module.fingerprint=lambda n:__import__('hashlib').sha256(n['server'].encode()).hexdigest()
+  calls=[]
+  aq.tick(self.module,lambda n:(calls.append(n['name']) or (True,'ok')),epoch=1000)
+  self.assertEqual({name.split('-',1)[0] for name in calls},{'a','b'})
 
 class IntegratedPolicyTests(unittest.TestCase):
  def setUp(self):

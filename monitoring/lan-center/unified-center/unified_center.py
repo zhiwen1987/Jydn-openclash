@@ -16,6 +16,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import sys
 import tarfile
 import tempfile
 import threading
@@ -23,7 +24,7 @@ import time
 import urllib.parse
 import urllib.request
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -109,6 +110,7 @@ class Center:
         self.cache: dict[str, Any] | None = None
         self.cache_at = 0.0
         self.refreshing = False
+        self.refresh_thread: threading.Thread | None = None
         self.pool = ThreadPoolExecutor(max_workers=6, thread_name_prefix="unified-center")
         self.jobs: dict[str, dict[str, Any]] = {}
         self.jobs_lock = threading.Lock()
@@ -118,6 +120,10 @@ class Center:
         self.write_enabled = os.getenv("CENTER_WRITES_ENABLED", "1") == "1"
         self.routing_lock = Path(getattr(manager, "routing_lock", self.data_root / "routing-owner.lock"))
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from control_operations import ControlPlane
+        self.operations = ControlPlane(self)
 
     def audit(self, action: str, result: str, **fields: Any) -> None:
         row = {"at": int(time.time()), "action": action, "result": result}
@@ -393,8 +399,22 @@ class Center:
         }
         futures = {self.pool.submit(function): name for name, function in collectors.items()}
         values, errors = {}, {}
-        try:
-            for future in as_completed(futures, timeout=_clamp_env("CENTER_OVERVIEW_TIMEOUT", 9, 2, 20)):
+        pending = set(futures)
+        budget = _clamp_env("CENTER_OVERVIEW_TIMEOUT", 9, 2, 20)
+        # Leave a fixed scheduling/serialization reserve inside the advertised
+        # wall-clock budget.  Windows can resume a timed wait several hundred
+        # milliseconds late under CPU pressure; using the whole budget here
+        # previously let a nominal 2 s fan-out escape past the HTTP deadline.
+        reserve = min(1.5, max(.75, budget * .6))
+        deadline = time.monotonic() + max(.25, budget - reserve)
+        while pending:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            done, pending = wait(pending, timeout=remaining, return_when=FIRST_COMPLETED)
+            if not done:
+                break
+            for future in done:
                 name = futures[future]
                 try:
                     value = future.result()
@@ -402,8 +422,6 @@ class Center:
                 except Exception:
                     errors[name] = "unavailable"
                     values[name] = {}
-        except FuturesTimeout:
-            pass
         for future, name in futures.items():
             if name not in values:
                 future.cancel()
@@ -423,29 +441,109 @@ class Center:
             errors["clash"] = "unavailable"
         return values, errors
 
-    def overview(self, force: bool = False) -> dict[str, Any]:
-        now_mono = time.monotonic()
-        with self.cache_lock:
-            if not force and self.cache is not None and now_mono - self.cache_at < self.cache_ttl:
-                return self.cache
-            if self.refreshing:
-                self.cache_lock.wait(timeout=max(3, self.remote_timeout * 6))
-                if self.cache is not None:
-                    return self.cache
-                # One probe is already in flight.  Preserve bounded concurrency
-                # rather than starting a duplicate fan-out for another viewer.
-                return self.compose({}, {name: "unavailable" for name in ("controller", "manifest", "nodes", "usage", "clash", "files", "dns", "kuma")})
-            self.refreshing = True
+    @staticmethod
+    def _collector_error_map(state: str = "unavailable") -> dict[str, str]:
+        return {
+            name: state for name in
+            ("controller", "manifest", "nodes", "usage", "clash", "files", "dns", "kuma")
+        }
+
+    def _refresh_overview(self) -> None:
         try:
-            values, errors = self._collect()
-            result = self.compose(values, errors)
+            try:
+                values, errors = self._collect()
+                result = self.compose(values, errors)
+            except Exception:
+                # A collector integration failure must produce explicit evidence
+                # loss, never an empty-but-green dashboard.
+                result = self.compose({}, self._collector_error_map())
             with self.cache_lock:
                 self.cache, self.cache_at = result, time.monotonic()
-            return result
         finally:
             with self.cache_lock:
                 self.refreshing = False
+                self.refresh_thread = None
                 self.cache_lock.notify_all()
+
+    def _start_overview_refresh_locked(self) -> None:
+        if self.refreshing:
+            return
+        self.refreshing = True
+        thread = threading.Thread(
+            target=self._refresh_overview, name="unified-overview-refresh", daemon=True,
+        )
+        self.refresh_thread = thread
+        thread.start()
+
+    def _pending_overview(self) -> dict[str, Any]:
+        epoch = int(time.time())
+        stages = [
+            {"id": key, "label": label, "state": "pending", "detail": "后台正在采集真实证据", "last_success": None, "next_due": None}
+            for key, label in (
+                ("information", "信息来源读取"), ("evaluation", "节点检测"),
+                ("publication", "受控发布"), ("runtime", "运行加载"),
+            )
+        ]
+        services = [
+            {"id": key, "name": label, "state": "pending", "checked_at": None,
+             "detail": "尚未完成首轮采集，不代表服务异常"}
+            for key, label in (
+                ("controller", "订阅发布"), ("nodes", "节点检测"), ("usage", "用量采集"),
+                ("clash", "Clash 运行时"), ("dns", "DNS"), ("kuma", "Kuma 监控"),
+            )
+        ]
+        environment = "isolated" if os.getenv("CENTER_ENVIRONMENT", "production").strip().lower() == "isolated" else "production"
+        return {
+            "schema": SCHEMA, "updated_at": epoch, "environment": environment,
+            "stale": False, "refreshing": True, "evidence_age_seconds": None,
+            "overall": {"state": "pending", "title": "正在采集", "detail": "首轮真实证据正在后台采集；空列表不代表数量为零"},
+            "metrics": {"nodes": None, "subscriptions": None, "selectors": None, "rules": None},
+            "sync": {"state": "pending", "stages": stages, "information_sources": None, "node_sources": None},
+            "services": services, "businesses": [], "nodes": [],
+            "subscriptions": {"providers": [], "source_sync": {}},
+            "dns": {"state": "pending", "upstreams": [], "probes": {}, "detail": "等待 DNS 诊断证据"},
+            "monitors": [], "backups": [], "events": [],
+            "issues": [{"id": "overview-collecting", "title": "正在采集系统状态", "detail": "结果将在后台刷新，未使用假数据补齐", "page": "overview", "state": "pending"}],
+            "capabilities": {
+                "writes": self.write_enabled, "advanced_monitor_path": "/#/monitors",
+                "native_monitor_proxy": False, "advanced_router_path": "/cgi-bin/luci/",
+            },
+            "evidence": {"files": {}, "runtime_config": {}},
+        }
+
+    def _cached_overview(self, age: float, stale: bool) -> dict[str, Any]:
+        assert self.cache is not None
+        # Composed snapshots are immutable after publication; a shallow top-level
+        # copy is sufficient for cache metadata and avoids duplicating a large
+        # node inventory on every viewer request.
+        result = dict(self.cache)
+        result["stale"] = stale
+        result["refreshing"] = self.refreshing
+        result["evidence_age_seconds"] = round(max(0.0, age), 3)
+        if stale:
+            previous = result.get("overall") if isinstance(result.get("overall"), dict) else {}
+            result["overall"] = {
+                "state": "stale", "title": "数据已过期",
+                "detail": "正在后台更新；上次状态：" + _safe_text(previous.get("state"), 24),
+            }
+            issues = result.get("issues") if isinstance(result.get("issues"), list) else []
+            result["issues"] = [{
+                "id": "overview-cache-stale", "title": "总览证据已过期",
+                "detail": "页面已立即返回上次证据，后台单飞刷新中",
+                "page": "overview", "state": "stale",
+            }] + [item for item in issues if isinstance(item, dict) and item.get("id") != "overview-cache-stale"]
+        return result
+
+    def overview(self, force: bool = False) -> dict[str, Any]:
+        now_mono = time.monotonic()
+        with self.cache_lock:
+            age = now_mono - self.cache_at if self.cache is not None else None
+            fresh = age is not None and age < self.cache_ttl
+            if force or not fresh:
+                self._start_overview_refresh_locked()
+            if self.cache is None:
+                return self._pending_overview()
+            return self._cached_overview(age or 0.0, stale=not fresh)
 
     def compose(self, values: dict[str, Any], errors: dict[str, str]) -> dict[str, Any]:
         epoch = int(time.time())
@@ -727,7 +825,12 @@ class Center:
                 if isinstance((probe := dns_raw.get("probes", {}).get(name)), dict)
             }, "detail": ("Corefile 配置可读，且 health/ready 均通过" if dns_state == "ok" and dns_raw.get("config_state") == "ok" else "Corefile 配置读取与 DNS health/ready 是独立证据，当前未全部通过")},
             "monitors": monitors, "backups": backups, "events": events, "issues": issues,
-            "capabilities": {"writes": self.write_enabled, "advanced_monitor_path": "/dashboard", "advanced_router_path": "/cgi-bin/luci/"},
+            "capabilities": {
+                "writes": self.write_enabled,
+                "advanced_monitor_path": "/#/monitors",
+                "native_monitor_proxy": False,
+                "advanced_router_path": "/cgi-bin/luci/",
+            },
             "evidence": {
                 "files": files,
                 "runtime_config": {
@@ -930,6 +1033,29 @@ class Center:
         self.audit("node-test", "ok", provider=provider, name=name)
         return {"state": "ok", "provider": provider, "name": name, "delay_ms": int(delay), "origin": _safe_text(result.get("origin"), 32)}
 
+    def management_snapshot(self) -> dict[str, Any]:
+        return self.operations.snapshot()
+
+    def start_operation(self, request: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return self.operations.start(request)
+        except Exception as error:
+            code = getattr(error, "code", "operation_failed")
+            status = getattr(error, "status", 500)
+            if not isinstance(code, str) or not IDENTIFIER.fullmatch(code):
+                code, status = "operation_failed", 500
+            raise CenterError(code, status) from None
+
+    def bind_kuma(self, request: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return self.operations.start_sensitive_bind(request)
+        except Exception as error:
+            code = getattr(error, "code", "kuma_binding_failed")
+            status = getattr(error, "status", 500)
+            if not isinstance(code, str) or not IDENTIFIER.fullmatch(code):
+                code, status = "kuma_binding_failed", 500
+            raise CenterError(code, status) from None
+
     def start_backup(self) -> dict[str, Any]:
         if not self.write_enabled:
             raise CenterError("writes_disabled", 503)
@@ -1080,6 +1206,9 @@ class Center:
     def job_status(self, job_id: str) -> dict[str, Any]:
         if not IDENTIFIER.fullmatch(job_id):
             raise CenterError("job_not_found", 404)
+        operation = self.operations.job_status(job_id)
+        if operation is not None:
+            return operation
         with self.jobs_lock:
             job = dict(self.jobs.get(job_id, {}))
         if job:
@@ -1140,6 +1269,24 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
         handler.wfile.write(payload)
 
     def maybe_proxy(handler: Any) -> bool:
+        path = urllib.parse.urlsplit(handler.path).path
+        # Kuma is managed through the native center API.  Its original admin
+        # GUI and websocket are not a second management entry.  Public status
+        # pages remain independently usable and are not an admin interface.
+        # The retired root service worker remains handled by unified_proxy so
+        # older browsers can unregister it; LuCI proxying remains unchanged.
+        kuma_roots = (
+            "/dashboard", "/edit", "/clone", "/add", "/list", "/settings",
+            "/manage-status-page", "/add-status-page", "/maintenance",
+            "/add-maintenance", "/setup", "/setup-database",
+            "/setup-database-info", "/empty", "/socket.io", "/metrics",
+            "/api/auth",
+        )
+        if os.getenv("CENTER_KUMA_NATIVE_PROXY_ENABLED", "0") != "1" and (
+            any(path == root or path.startswith(root + "/") for root in kuma_roots)
+        ):
+            send_json(handler, 410, {"error": "kuma_native_ui_retired"})
+            return True
         try:
             from unified_proxy import proxy_request
         except ImportError:
@@ -1169,6 +1316,14 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
         handler.send_header("Content-Length", str(len(payload)))
         handler.send_header("Cache-Control", "no-store" if relative == "index.html" else "public, max-age=300")
         handler.send_header("X-Content-Type-Options", "nosniff")
+        if relative == "index.html":
+            handler.send_header(
+                "Content-Security-Policy",
+                "default-src 'self'; script-src 'self'; style-src 'self'; "
+                "img-src 'self' data:; font-src 'self'; "
+                "connect-src 'self' https://*.t.dnsleak.dev; "
+                "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+            )
         handler.end_headers()
         handler.wfile.write(payload)
 
@@ -1186,6 +1341,9 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
             elif path == "/api/center/session":
                 _, session = center.session(handler)
                 send_json(handler, 200, {"authenticated": True, "csrf": session["csrf"]} if session else {"authenticated": False})
+            elif path == "/api/center/manage/snapshot":
+                center.require_auth(handler)
+                send_json(handler, 200, center.management_snapshot())
             elif (match := re.fullmatch(r"/api/center/jobs/([A-Za-z0-9_.-]{1,96})", path)):
                 center.require_auth(handler)
                 send_json(handler, 200, center.job_status(match.group(1)))
@@ -1218,6 +1376,10 @@ def install(namespace: dict[str, Any], manager: Any, access: Any) -> Center | No
                 if request:
                     raise CenterError("backup_body_must_be_empty")
                 send_json(handler, 202, center.start_backup())
+            elif path == "/api/center/operations":
+                send_json(handler, 202, center.start_operation(request))
+            elif path == "/api/center/kuma/bind":
+                send_json(handler, 202, center.bind_kuma(request))
             else:
                 raise CenterError("not_found", 404)
         except CenterError as error:

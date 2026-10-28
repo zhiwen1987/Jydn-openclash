@@ -19,7 +19,6 @@ import statistics
 import subprocess
 import sys
 from pathlib import Path
-if Path("/data/node-health/code").is_dir():sys.path.insert(0,"/data/node-health/code")
 import tempfile
 import threading
 import time

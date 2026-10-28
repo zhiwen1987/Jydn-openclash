@@ -140,8 +140,12 @@ def install(namespace, manager=None):
                     access.sessions.pop(sid, None)
                 respond(h, 200, {'status': 'logged_out'}, 'local_session=; HttpOnly; SameSite=Strict; Path=' + session_cookie_path + '; Max-Age=0')
             elif path == '/api/local/preview':
-                nodes = manager.canonical(req.get('text', ''))
-                manager.validator([{**n['proxy'], 'name': n['name']} for n in nodes])
+                # Preview and every Clash-changing path share the same global
+                # routing-owner lock.  Manager.update already takes this lock
+                # internally for publish, so it must not be wrapped again.
+                with routing_lock(manager):
+                    nodes = manager.canonical(req.get('text', ''))
+                    manager.validator([{**n['proxy'], 'name': n['name']} for n in nodes])
                 respond(h, 200, {'count': len(nodes), 'nodes': [{'id': n['id'], 'label': n['label'], 'type': n['proxy']['type']} for n in nodes]})
             elif path == '/api/local/publish':
                 respond(h, 200, manager.update(req))
@@ -196,3 +200,8 @@ def install(namespace, manager=None):
 def manager_lock(manager):
     from local_source import locked
     return locked(manager.root / 'writer.lock')
+
+
+def routing_lock(manager):
+    from local_source import locked
+    return locked(manager.routing_lock)

@@ -10,12 +10,10 @@ import time
 import urllib.parse
 
 sys.path.insert(0,'/local-subscription')
-# The incremental metadata extension is code-only and persists through the
-# existing /data mount. Its private directory is owned by the deployment receipt.
-USAGE_CODE=Path('/data/subscription-usage/code')
-if USAGE_CODE.is_dir():sys.path.insert(0,str(USAGE_CODE))
-HEALTH_CODE=Path('/data/node-health/code')
-if HEALTH_CODE.is_dir():sys.path.insert(0,str(HEALTH_CODE))
+# Runtime code is immutable image content.  Persistent /data directories are
+# deliberately state/history only and must never shadow the reviewed image.
+SUBSCRIPTION_IMPL=Path('/subscription_impl.py')
+ACCEPTANCE_HOLD=Path('/data/node-health/acceptance-hold.json')
 
 
 def install_usage_bridge():
@@ -54,11 +52,7 @@ def resume_metadata_reload(module):
                 continue
             try:
                 module.maintain_probation()
-                if module.repair_pointer():
-                    with module.exclusive(module.DATA.parent/'routing-owner.lock') as acquired:
-                        if acquired:
-                            module.refresh_providers(module.load_sources())
-                            (module.DATA/'recovery-refresh.json').unlink(missing_ok=True)
+                module.repair_and_refresh()
             except Exception as error:
                 module.log('metadata_reload_maintenance_error',type(error).__name__,'warning')
             health['epoch']=module.now();module.atomic_json(module.HEALTH_PATH,health)
@@ -66,7 +60,7 @@ def resume_metadata_reload(module):
 
 
 def load():
-    spec=importlib.util.spec_from_file_location('subscription_impl',str(HEALTH_CODE/'subscription_impl.py') if (HEALTH_CODE/'subscription_impl.py').is_file() else '/subscription_impl.py')
+    spec=importlib.util.spec_from_file_location('subscription_impl',str(SUBSCRIPTION_IMPL))
     module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
     return module
 
@@ -96,16 +90,19 @@ def scheduler(module):
     def run():
         resume_metadata_reload(module)
         while True:
-            if HEALTH_CODE.is_dir():
+            # The hold document is mutable state.  Its evaluator is immutable
+            # image code and is imported only when a hold actually exists.
+            if ACCEPTANCE_HOLD.is_file():
                 from health_policy import acceptance_hold
-                if acceptance_hold():
-                    value=json.loads(Path('/data/node-health/acceptance-hold.json').read_text())
+                if acceptance_hold(ACCEPTANCE_HOLD):
+                    value=json.loads(ACCEPTANCE_HOLD.read_text())
                     health=dict(value.get('health',{}));health.update(epoch=module.now(),reason='deployment_acceptance_hold')
                     module.atomic_json(module.HEALTH_PATH,health)
                     time.sleep(5);continue
             started=time.monotonic();delay=30
             try:
-                with module.LOCK:
+                with module.LOCK, module.exclusive(module.DATA/'reconcile.lock') as acquired:
+                    if not acquired:raise module.ControllerError('deferred_reconcile_busy')
                     sources=module.load_sources()
                     if not sources:
                         module.atomic_json(module.HEALTH_PATH,{'status':'awaiting_sources','mode':module.MODE,'epoch':module.now(),'node_count':0})
@@ -115,26 +112,38 @@ def scheduler(module):
                             # bootstrap, after syntax/native validation. It doesn't
                             # switch business selections or relax future admission.
                             module.api_request('GET','/version')
-                            batches={source.source_id:module.load_or_fetch(source)[0] for source in sources}
+                            cycle_deadline=time.monotonic()+module.CYCLE_BUDGET
+                            sources,batches,cached_sources=module.collect_source_nodes(sources,cycle_deadline)
                             from local_source import native_validator
                             unique=[]
                             for source in sources:
-                                unique += [dict(n,name=source.source_id+'-'+str(i)) for i,n in enumerate(batches[source.source_id])]
+                                if source.origin=='explicit':
+                                    unique += [dict(n,name=source.source_id+'-'+str(i)) for i,n in enumerate(batches[source.source_id])]
                             native_validator('/local-subscription/core',unique)
-                            release,manifest,risk,reasons,hold=module.create_release(batches,sources,{},0,{})
+                            release,manifest,risk,reasons,hold=module.create_release(batches,sources,{},cached_sources,{},deadline=cycle_deadline)
                             if hold:raise RuntimeError('bootstrap_below_configured_minimum')
                             previous_mode=module.MODE
                             try:
-                                module.MODE='shadow';ok,_=module.publish(release,manifest,sources)
+                                module.MODE='shadow';ok,_=module.publish(release,manifest,module._provider_refs(manifest),cycle_deadline)
                                 if not ok:raise RuntimeError('bootstrap_publish_deferred')
                             finally:module.MODE=previous_mode
                         bootstrap_verified=module.DATA/'bootstrap-runtime-verified.json'
                         if not bootstrap_verified.exists():
-                            module.refresh_providers(sources)
+                            current=module.current_manifest()
+                            if not current:raise module.ControllerError('bootstrap_release_invalid')
+                            provider_refs=module._provider_refs(current)
+                            module.refresh_providers(provider_refs)
                             runtime=module.api_request('GET','/providers/proxies').get('providers',{})
-                            for source in sources:
+                            for source in provider_refs:
                                 nodes=runtime.get(source.provider_name,{}).get('proxies',[])
-                                if not any(n.get('type') not in ('Reject','RejectDrop','Direct','Pass','PassRule') and not n.get('name','').startswith('__STACK_EMPTY_') for n in nodes):
+                                usable=any(n.get('type') not in ('Reject','RejectDrop','Direct','Pass','PassRule') and not n.get('name','').startswith('__STACK_EMPTY_') for n in nodes)
+                                if source.source_id==module.MANAGED_AUTO_ID:
+                                    item=next(row for row in current['sources'] if row['id']==source.source_id)
+                                    expected=sorted(str(node.get('name','')) for node in module.parse_nodes((module.RELEASES/current['release_id']/item['file']).read_bytes()) if not str(node.get('name','')).startswith('__STACK_EMPTY_'))
+                                    actual=sorted(str(node.get('name','')) for node in nodes if not str(node.get('name','')).startswith('__STACK_EMPTY_'))
+                                    if actual!=expected:raise module.ControllerError('bootstrap_managed_identity_mismatch')
+                                    continue
+                                if not usable:
                                     raise module.ControllerError('bootstrap_provider_not_loaded:'+source.source_id)
                             module.atomic_json(bootstrap_verified,{'at':time.time()})
                             module.atomic_json(module.DATA.parent/'local-discovery.json',{'at':time.time(),'source':'public_release'})
@@ -142,7 +151,7 @@ def scheduler(module):
                             module.atomic_json(module.HEALTH_PATH,{'status':'ok','mode':module.MODE,'epoch':module.now(),'node_count':current['node_count'],'current_release':current['release_id']})
                         else:
                             before=module.current_manifest().get('release_id')
-                            module.cycle()
+                            module._cycle_locked()
                             after=(module.current_manifest() or {}).get('release_id')
                             if before!=after:module.atomic_json(module.DATA.parent/'local-discovery.json',{'at':time.time(),'source':'public_release'})
                         delay=module.INTERVAL
@@ -157,13 +166,11 @@ def scheduler(module):
             deadline=max(started+delay,time.monotonic()+10)
             while time.monotonic()<deadline:
                 time.sleep(min(30,max(1,deadline-time.monotonic())))
+                if module.reconcile_requested():
+                    break
                 try:
                     module.maintain_probation()
-                    if module.repair_pointer():
-                        with module.exclusive(module.DATA.parent/'routing-owner.lock') as acquired:
-                            if acquired:
-                                module.refresh_providers(module.load_sources())
-                                (module.DATA/'recovery-refresh.json').unlink(missing_ok=True)
+                    module.repair_and_refresh()
                 except Exception as error:
                     module.log('release_probation_tick_error',type(error).__name__,'warning')
     return run

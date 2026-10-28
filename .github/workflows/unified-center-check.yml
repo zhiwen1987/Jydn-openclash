@@ -1,10 +1,10 @@
 name: Unified center safety checks
 on:
   pull_request:
-    paths: ["monitoring/lan-center/unified-center/**", "monitoring/lan-center/local-subscription/local_web.py", "installer/Dockerfile.unified", "installer/build_unified_image.py", "installer/agents/unified_center_deploy.py", "installer/tests/test_unified_deploy.py", ".github/workflows/unified-center-check.yml"]
+    paths: ["monitoring/lan-center/unified-center/**", "monitoring/lan-center/acceptance/**", "monitoring/lan-center/local-subscription/local_web.py", "installer/Dockerfile.unified", "installer/build_unified_image.py", "installer/agents/unified_center_deploy.py", "installer/tests/test_unified_deploy.py", ".github/workflows/unified-center-check.yml"]
   push:
     branches: ["main", "codex/**"]
-    paths: ["monitoring/lan-center/unified-center/**", "monitoring/lan-center/local-subscription/local_web.py", "installer/Dockerfile.unified", "installer/build_unified_image.py", "installer/agents/unified_center_deploy.py", "installer/tests/test_unified_deploy.py", ".github/workflows/unified-center-check.yml"]
+    paths: ["monitoring/lan-center/unified-center/**", "monitoring/lan-center/acceptance/**", "monitoring/lan-center/local-subscription/local_web.py", "installer/Dockerfile.unified", "installer/build_unified_image.py", "installer/agents/unified_center_deploy.py", "installer/tests/test_unified_deploy.py", ".github/workflows/unified-center-check.yml"]
 permissions:
   contents: read
 jobs:
@@ -26,5 +26,8 @@ jobs:
         run: |
           python -B -m unittest discover -s monitoring/lan-center/unified-center -v
           python -B -m unittest discover -s installer/tests -p test_unified_deploy.py -v
+          python -B -m unittest discover -s monitoring/lan-center/acceptance -v
           python -B -m compileall -q monitoring/lan-center/unified-center installer/agents/unified_center_deploy.py installer/build_unified_image.py
           node --check monitoring/lan-center/unified-center/assets/app.js
+          node --check monitoring/lan-center/unified-center/kuma_bridge.js
+          node monitoring/lan-center/unified-center/test_kuma_bridge.js

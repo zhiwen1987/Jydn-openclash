@@ -1,10 +1,13 @@
 ARG BASE_IMAGE=lan-center-base:verified-eb0271488325
 FROM ${BASE_IMAGE}
 ARG BASE_IMAGE_ID=sha256:eb0271488325b6f8801f7eebcf36ecf363c82b8ed7a3a8f9145250239771a8f2
+ARG RELEASE_VERSION=0.3.0
 
 USER root
 LABEL io.jydn.clash-center.base-image="${BASE_IMAGE_ID}" \
-      io.jydn.clash-center.build-method="docker-build-offline-increment"
+      io.jydn.clash-center.build-method="docker-build-offline-increment" \
+      io.jydn.clash-center.version="${RELEASE_VERSION}" \
+      io.jydn.clash-center.runtime-code-policy="image-only"
 
 # Rebuild the accepted runtime from reviewed repository sources.  The image is
 # deliberately self-contained; production /data and host-side patch releases
@@ -12,14 +15,25 @@ LABEL io.jydn.clash-center.base-image="${BASE_IMAGE_ID}" \
 COPY runtime/upstream/ /
 RUN mv /subscription-controller.py /subscription_impl.py
 COPY runtime/portable_subscriptions.py /subscription-controller.py
+# White out stale application files inherited from an older audited base while
+# retaining only the independently pinned Mihomo validator binary.
+RUN mkdir -p /unified-center /local-subscription && \
+    find /unified-center -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + && \
+    find /local-subscription -mindepth 1 -maxdepth 1 ! -name core -exec rm -rf -- {} +
 COPY local-subscription/ /local-subscription/
 COPY unified-center/ /unified-center/
 
-RUN chmod 700 /*.sh && \
+RUN test -x /local-subscription/core && \
+    python3 -c "import hashlib,pathlib; p=pathlib.Path('/local-subscription/core'); pathlib.Path('/local-subscription/core.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')" && \
+    chmod 600 /local-subscription/core.sha256 && \
+    chmod 700 /*.sh && \
     python3 -B -m compileall -q \
       /local-subscription /unified-center \
       /subscription-controller.py /subscription_impl.py && \
     sh -n /failover.sh
+
+ENV ADMISSION_CORE=/local-subscription/core \
+    ADMISSION_CORE_PIN=/local-subscription/core.sha256
 
 # Entrypoint, supervisor wiring and healthcheck are inherited unchanged from
 # the audited production base image.

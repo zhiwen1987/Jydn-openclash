@@ -326,11 +326,13 @@ class ComposeTests(unittest.TestCase):
             center = Center(namespace(temporary), FakeManager(temporary), FakeAccess())
             count = 0
             gate = threading.Barrier(3)
+            collected = threading.Event()
 
             def collect():
                 nonlocal count
                 count += 1
                 time.sleep(.2)
+                collected.set()
                 return values(), {}
 
             center._collect = collect
@@ -346,8 +348,52 @@ class ComposeTests(unittest.TestCase):
             gate.wait()
             for thread in threads:
                 thread.join()
+            self.assertTrue(collected.wait(1))
             self.assertEqual(count, 1)
             self.assertEqual(len(output), 2)
+            self.assertTrue(all(item["overall"]["state"] == "pending" for item in output))
+            deadline = time.time() + 2
+            while time.time() < deadline:
+                ready = center.overview()
+                if ready["overall"]["state"] != "pending":
+                    break
+                time.sleep(.01)
+            self.assertFalse(ready["refreshing"])
+            self.assertEqual(ready["metrics"]["nodes"], 1)
+            self.assertEqual(count, 1)
+            center.pool.shutdown(wait=False, cancel_futures=True)
+
+    def test_stale_cache_returns_immediately_and_single_flight_refreshes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            center = Center(namespace(temporary), FakeManager(temporary), FakeAccess())
+            release = threading.Event()
+            calls = 0
+
+            def collect():
+                nonlocal calls
+                calls += 1
+                release.wait(2)
+                return values(), {}
+
+            center._collect = collect
+            center.cache = center.compose(values(), {})
+            center.cache_at = time.monotonic() - center.cache_ttl - 1
+            started = time.monotonic()
+            outputs = [center.overview() for _ in range(4)]
+            self.assertLess(time.monotonic() - started, .25)
+            self.assertTrue(all(item["stale"] for item in outputs))
+            self.assertTrue(all(item["overall"]["state"] == "stale" for item in outputs))
+            self.assertEqual(calls, 1)
+            release.set()
+            deadline = time.time() + 2
+            while time.time() < deadline:
+                result = center.overview()
+                if not result["refreshing"]:
+                    break
+                time.sleep(.01)
+            self.assertFalse(result["stale"])
+            self.assertEqual(calls, 1)
+            center.pool.shutdown(wait=False, cancel_futures=True)
 
 
 class LocalEvidenceTests(unittest.TestCase):
@@ -547,6 +593,9 @@ class HttpIntegrationTests(unittest.TestCase):
         import unified_center
         with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/", timeout=3) as response:
             self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+            csp = response.headers.get("Content-Security-Policy", "")
+            self.assertIn("connect-src 'self' https://*.t.dnsleak.dev", csp)
+            self.assertIn("frame-ancestors 'none'", csp)
             html = response.read()
         for name in ("app.js", "app.css", "logo.png"):
             digest = hashlib.sha256((unified_center.ASSETS / name).read_bytes()).hexdigest()[:16]
@@ -638,6 +687,428 @@ class HttpIntegrationTests(unittest.TestCase):
         clash_measurement._inventory = (0, {})
         status, result = self.request("/api/center/node-test", "POST", {"provider": "provider-a", "name": "A"}, authenticated=True)
         self.assertEqual(status, 503)
+
+    def test_unified_operation_queue_requires_auth_csrf_revision_and_redacts(self):
+        class Extension:
+            def __init__(self):
+                self.value = 1
+
+            def actions(self):
+                return {"subscriptions.reconcile": {
+                    "write": True, "deadline_enforced": True, "timeout_seconds": 10,
+                }}
+
+            def snapshot(self):
+                return {
+                    "state": "ok", "revision": hashlib.sha256(str(self.value).encode()).hexdigest(),
+                    "sources": [{"name": "source", "admin_token": "never-public"}],
+                }
+
+            def execute(self, action, params, progress):
+                self.assert_action = action
+                progress("applying")
+                self.value = int(params["value"])
+                return {"state": "ok", "readback": self.value, "provider_token": "never-public"}
+
+        extension = Extension()
+        self.center.operations.extensions["subscriptions"] = extension
+        status, result = self.request("/api/center/manage/snapshot", origin=False, csrf=False)
+        self.assertEqual((status, result["error"]), (401, "login_required"))
+        status, snapshot = self.request(
+            "/api/center/manage/snapshot", authenticated=True, origin=False, csrf=False,
+        )
+        self.assertEqual(status, 200)
+        module = snapshot["modules"]["subscriptions"]
+        self.assertEqual(module["sources"][0]["admin_token"], "[已隐藏]")
+        self.assertIn("subscriptions.reconcile", module["capabilities"]["actions"])
+
+        body = {
+            "module": "subscriptions", "action": "subscriptions.reconcile",
+            "expected_revision": "0" * 64, "params": {"value": 2},
+        }
+        status, result = self.request("/api/center/operations", "POST", body, authenticated=True)
+        self.assertEqual((status, result["error"]), (409, "operation_revision_conflict"))
+        body["expected_revision"] = module["revision"]
+        status, result = self.request(
+            "/api/center/operations", "POST", body, authenticated=True, csrf=False,
+        )
+        self.assertEqual((status, result["error"]), (403, "session_or_csrf_invalid"))
+        status, result = self.request("/api/center/operations", "POST", body, authenticated=True)
+        self.assertEqual(status, 202)
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            _, job = self.request(
+                "/api/center/jobs/" + result["job_id"], authenticated=True, origin=False, csrf=False,
+            )
+            if job["state"] in {"ok", "error", "conflict"}:
+                break
+            time.sleep(.02)
+        self.assertEqual(job["state"], "ok", job)
+        self.assertEqual(job["result"]["readback"], 2)
+        self.assertEqual(job["result"]["provider_token"], "[已隐藏]")
+        self.assertEqual(extension.assert_action, "subscriptions.reconcile")
+
+    def test_unavailable_extensions_are_explicitly_unsupported(self):
+        status, snapshot = self.request(
+            "/api/center/manage/snapshot", authenticated=True, origin=False, csrf=False,
+        )
+        self.assertEqual(status, 200)
+        for name in ("subscriptions", "dns", "monitors"):
+            # In this isolated fixture no optional extension module is installed.
+            if name not in self.center.operations.extensions:
+                self.assertEqual(snapshot["modules"][name]["state"], "unsupported")
+                self.assertEqual(snapshot["modules"][name]["capabilities"]["actions"], [])
+
+    def test_action_capabilities_hide_unsupported_and_unbounded_writes(self):
+        class Extension:
+            def actions(self):
+                return {
+                    "subscriptions.preview": {"write": False, "supported": False},
+                    "subscriptions.reconcile": {"write": True, "timeout_seconds": 10},
+                }
+
+            def snapshot(self):
+                return {
+                    "state": "ok", "revision": "a" * 64,
+                    "capabilities": {"management": True, "runtime_apply": False},
+                }
+
+            def execute(self, action, params, progress):
+                raise AssertionError("unsupported action executed")
+
+        self.center.operations.extensions["subscriptions"] = Extension()
+        status, snapshot = self.request(
+            "/api/center/manage/snapshot", authenticated=True, origin=False, csrf=False,
+        )
+        self.assertEqual(status, 200)
+        module = snapshot["modules"]["subscriptions"]
+        self.assertEqual(module["capabilities"]["actions"], [])
+        self.assertIs(module["capabilities"]["management"], True)
+        self.assertIs(module["capabilities"]["runtime_apply"], False)
+
+        unsupported = {
+            "module": "subscriptions", "action": "subscriptions.preview",
+            "expected_revision": "a" * 64, "params": {},
+        }
+        status, result = self.request(
+            "/api/center/operations", "POST", unsupported, authenticated=True,
+        )
+        self.assertEqual((status, result["error"]), (404, "operation_action_unsupported"))
+
+        unbounded = {**unsupported, "action": "subscriptions.reconcile"}
+        unbounded["expected_revision"] = "0" * 64
+        status, result = self.request(
+            "/api/center/operations", "POST", unbounded, authenticated=True,
+        )
+        self.assertEqual((status, result["error"]), (409, "operation_revision_conflict"))
+        unbounded["expected_revision"] = "a" * 64
+        status, result = self.request(
+            "/api/center/operations", "POST", unbounded, authenticated=True,
+        )
+        self.assertEqual((status, result["error"]), (503, "operation_write_deadline_unverified"))
+
+    def test_read_operation_timeout_is_terminal_and_action_is_quarantined(self):
+        release = threading.Event()
+
+        class Extension:
+            def actions(self):
+                return {"dns.diagnose": {"write": False, "timeout_seconds": 1}}
+
+            def snapshot(self):
+                return {"state": "ok", "revision": "b" * 64}
+
+            def execute(self, action, params, progress):
+                release.wait(5)
+                return {"state": "ok"}
+
+        self.center.operations.extensions["dns"] = Extension()
+        body = {
+            "module": "dns", "action": "dns.diagnose",
+            "expected_revision": "b" * 64, "params": {},
+        }
+        status, started = self.request(
+            "/api/center/operations", "POST", body, authenticated=True,
+        )
+        self.assertEqual(status, 202)
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            _, job = self.request(
+                "/api/center/jobs/" + started["job_id"], authenticated=True,
+                origin=False, csrf=False,
+            )
+            if job["state"] in {"ok", "error", "conflict"}:
+                break
+            time.sleep(.02)
+        self.assertEqual((job["state"], job["error"]), ("error", "operation_timeout"), job)
+        status, result = self.request(
+            "/api/center/operations", "POST", body, authenticated=True,
+        )
+        self.assertEqual((status, result["error"]), (503, "operation_action_quarantined"))
+        release.set()
+
+    def test_extension_reported_error_never_becomes_success(self):
+        class Extension:
+            def actions(self):
+                return {"dns.diagnose": {"write": False, "timeout_seconds": 5}}
+
+            def snapshot(self):
+                return {"state": "ok", "revision": "d" * 64}
+
+            def execute(self, action, params, progress):
+                return {"state": "error", "error_code": "dns_probe_failed"}
+
+        self.center.operations.extensions["dns"] = Extension()
+        body = {
+            "module": "dns", "action": "dns.diagnose",
+            "expected_revision": "d" * 64, "params": {},
+        }
+        status, started = self.request(
+            "/api/center/operations", "POST", body, authenticated=True,
+        )
+        self.assertEqual(status, 202)
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            _, job = self.request(
+                "/api/center/jobs/" + started["job_id"], authenticated=True,
+                origin=False, csrf=False,
+            )
+            if job["state"] in {"ok", "error", "conflict"}:
+                break
+            time.sleep(.02)
+        self.assertEqual((job["state"], job["error"]), ("error", "dns_probe_failed"), job)
+
+    def test_external_revision_change_before_execution_prevents_write(self):
+        class Extension:
+            calls = 0
+            executed = False
+
+            def actions(self):
+                return {"subscriptions.reconcile": {
+                    "write": True, "deadline_enforced": True, "timeout_seconds": 5,
+                }}
+
+            def snapshot(self):
+                self.calls += 1
+                return {"state": "ok", "revision": ("a" if self.calls == 1 else "b") * 64}
+
+            def execute(self, action, params, progress):
+                self.executed = True
+                return {"state": "ok"}
+
+        extension = Extension()
+        self.center.operations.extensions["subscriptions"] = extension
+        body = {
+            "module": "subscriptions", "action": "subscriptions.reconcile",
+            "expected_revision": "a" * 64, "params": {},
+        }
+        status, started = self.request(
+            "/api/center/operations", "POST", body, authenticated=True,
+        )
+        self.assertEqual(status, 202)
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            _, job = self.request(
+                "/api/center/jobs/" + started["job_id"], authenticated=True,
+                origin=False, csrf=False,
+            )
+            if job["state"] in {"ok", "error", "conflict"}:
+                break
+            time.sleep(.02)
+        self.assertEqual((job["state"], job["error"]), ("conflict", "operation_revision_conflict"), job)
+        self.assertIs(extension.executed, False)
+
+    def test_kuma_binding_uses_sensitive_route_without_persisting_credentials(self):
+        captured = {}
+
+        class Extension:
+            def actions(self):
+                return {"kuma.bind": {
+                    "write": True, "sensitive_input": True,
+                    "deadline_enforced": True, "timeout_seconds": 10,
+                }}
+
+            def snapshot(self):
+                return {"state": "unbound", "revision": "c" * 64}
+
+            def execute(self, action, params, progress):
+                raise AssertionError("generic execute used for credentials")
+
+            def bind_sensitive(self, params, progress):
+                captured.update(params)
+                progress("binding")
+                return {"state": "bound", "jwt": "never-public-jwt"}
+
+        self.center.operations.extensions["monitors"] = Extension()
+        generic = {
+            "module": "monitors", "action": "kuma.bind",
+            "expected_revision": "c" * 64,
+            "params": {"username": "operator", "password": "super-secret-password"},
+        }
+        status, result = self.request(
+            "/api/center/operations", "POST", generic, authenticated=True,
+        )
+        self.assertEqual((status, result["error"]), (403, "operation_sensitive_route_required"))
+        bind = {
+            "expected_revision": "c" * 64,
+            "params": {"username": "operator", "password": "super-secret-password", "totp": "123456"},
+        }
+        status, result = self.request(
+            "/api/center/kuma/bind", "POST", bind, authenticated=True,
+        )
+        self.assertEqual(status, 202)
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            _, job = self.request(
+                "/api/center/jobs/" + result["job_id"], authenticated=True,
+                origin=False, csrf=False,
+            )
+            if job["state"] in {"ok", "error", "conflict"}:
+                break
+            time.sleep(.02)
+        self.assertEqual(job["state"], "ok", job)
+        self.assertEqual(job["result"]["jwt"], "[已隐藏]")
+        self.assertEqual(captured["password"], "super-secret-password")
+        persisted = (self.center.operations.root / (result["job_id"] + ".json")).read_text(encoding="utf-8")
+        self.assertNotIn("super-secret-password", persisted)
+        self.assertNotIn("123456", persisted)
+
+    def test_kuma_native_gui_proxy_is_retired_by_default(self):
+        status, result = self.request("/dashboard", origin=False, csrf=False)
+        self.assertEqual((status, result["error"]), (410, "kuma_native_ui_retired"))
+
+    def test_dns_reload_adapter_requires_same_id_hash_pid_and_expires(self):
+        from control_operations import DnsRuntimeAdapter, _atomic
+        root = Path(self.temporary.name) / "dns-adapter"
+        core_dir = root / "coredns"
+        core_dir.mkdir(parents=True)
+        core, fragment, hosts = core_dir / "Corefile", core_dir / "Corefile.managed", core_dir / "hosts"
+        for path in (core, fragment, hosts):
+            path.write_text("evidence", encoding="utf-8")
+        fake = types.SimpleNamespace(data_root=root, opener=urllib.request.build_opener(urllib.request.ProxyHandler({})))
+        adapter = DnsRuntimeAdapter(fake, core, fragment, hosts)
+        adapter.deadline_seconds = 2
+        core_hash, fragment_hash = "1" * 64, "2" * 64
+
+        def supervisor():
+            deadline = time.time() + 1
+            request = None
+            while time.time() < deadline:
+                paths = list(adapter.requests.glob("*.json")) if adapter.requests.is_dir() else []
+                if paths:
+                    request = json.loads(paths[0].read_text(encoding="utf-8"))
+                    break
+                time.sleep(.01)
+            self.assertIsNotNone(request)
+            _atomic(adapter.status, {
+                "schema": 1,
+                "last_request": {
+                    "id": request["request_id"], "state": "completed",
+                    "old_pid": 10, "new_pid": 11, "finished_at": time.time(),
+                    "loaded_core_sha256": core_hash,
+                    "loaded_fragment_sha256": fragment_hash,
+                    "purpose": request["purpose"], "recovery_of": request["recovery_of"],
+                },
+            })
+
+        thread = threading.Thread(target=supervisor)
+        thread.start()
+        proof = adapter.reload(
+            request_id="apply-12345678", expected_core_sha256=core_hash,
+            expected_fragment_sha256=fragment_hash,
+            purpose="apply", recovery_of=None,
+        )
+        thread.join(timeout=2)
+        self.assertEqual(proof["state"], "completed")
+        self.assertEqual((proof["old_pid"], proof["new_pid"]), (10, 11))
+
+        def refused_supervisor():
+            deadline = time.time() + 1
+            request = None
+            while time.time() < deadline:
+                for candidate in adapter.requests.glob("*.json") if adapter.requests.is_dir() else []:
+                    value = json.loads(candidate.read_text(encoding="utf-8"))
+                    if value.get("request_id") == "rollback-12345678":
+                        request = value
+                        break
+                if request:
+                    break
+                time.sleep(.01)
+            self.assertIsNotNone(request)
+            _atomic(adapter.status, {
+                "schema": 1,
+                "last_request": {
+                    "id": request["request_id"], "state": "failed",
+                    "old_pid": 11, "new_pid": None, "finished_at": time.time(),
+                    "loaded_core_sha256": core_hash,
+                    "loaded_fragment_sha256": fragment_hash,
+                    "purpose": request["purpose"], "recovery_of": request["recovery_of"],
+                    "error_code": "restart_budget_refused", "recoverable": False,
+                },
+            })
+
+        thread = threading.Thread(target=refused_supervisor)
+        thread.start()
+        refused = adapter.reload(
+            request_id="rollback-12345678", expected_core_sha256=core_hash,
+            expected_fragment_sha256=fragment_hash,
+            purpose="rollback", recovery_of=None,
+        )
+        thread.join(timeout=2)
+        self.assertEqual(refused["error_code"], "restart_budget_refused")
+        self.assertFalse(refused["recovery_required"])
+
+        adapter.deadline_seconds = .25
+        timed_out = adapter.reload(
+            request_id="apply-87654321", expected_core_sha256=core_hash,
+            expected_fragment_sha256=fragment_hash,
+            purpose="rollback", recovery_of=None,
+        )
+        self.assertEqual(timed_out["error_code"], "dns_reload_timeout")
+        self.assertEqual(list(adapter.requests.glob("*.json")), [])
+
+    def test_slow_kuma_snapshot_is_background_cached_and_inflight_merged(self):
+        release = threading.Event()
+
+        class Extension:
+            calls = 0
+
+            def actions(self):
+                return {"kuma.monitor_detail": {"write": False, "timeout_seconds": 5}}
+
+            def snapshot(self):
+                self.calls += 1
+                release.wait(2)
+                return {"state": "ready", "revision": "e" * 64, "monitors": []}
+
+            def execute(self, action, params, progress):
+                return {"state": "ok"}
+
+        Extension.__module__ = "kuma_management"
+        extension = Extension()
+        self.center.operations.extensions["monitors"] = extension
+        started = time.monotonic()
+        status, first = self.request(
+            "/api/center/manage/snapshot", authenticated=True, origin=False, csrf=False,
+        )
+        elapsed = time.monotonic() - started
+        self.assertEqual(status, 200)
+        self.assertLess(elapsed, .75)
+        self.assertEqual(first["modules"]["monitors"]["state"], "pending")
+        status, second = self.request(
+            "/api/center/manage/snapshot", authenticated=True, origin=False, csrf=False,
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(extension.calls, 1)
+        release.set()
+        deadline = time.time() + 2
+        while time.time() < deadline:
+            status, ready = self.request(
+                "/api/center/manage/snapshot", authenticated=True, origin=False, csrf=False,
+            )
+            if ready["modules"]["monitors"]["state"] == "ready":
+                break
+            time.sleep(.02)
+        self.assertEqual(ready["modules"]["monitors"]["revision"], "e" * 64)
 
     def test_legacy_provider_auth_is_unchanged(self):
         status, result = self.request("/providers/original.yaml", origin=False, csrf=False)

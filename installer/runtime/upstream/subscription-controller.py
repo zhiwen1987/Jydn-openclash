@@ -41,6 +41,14 @@ from autonomy_store import checkpoint, recover_document, exclusive, publication_
 DATA = Path(os.getenv("SUBSCRIPTION_DATA_DIR", "/data/subscription-controller"))
 DB_PATH = Path(os.getenv("SUBSCRIPTION_DB", str(DATA / "controller.db")))
 SOURCES_FILE = Path(os.getenv("SUBSCRIPTION_SOURCES_FILE", "/data/subscription-sources.json"))
+INFORMATION_SOURCES_FILE = Path(os.getenv(
+    "SUBSCRIPTION_INFORMATION_SOURCES_FILE", "/data/subscription-usage/information-sources.json"
+))
+SOURCE_OVERRIDES_FILE = Path(os.getenv(
+    "SUBSCRIPTION_SOURCE_OVERRIDES_FILE", "/data/subscription-usage/source-overrides.json"
+))
+MANAGED_CANDIDATE_ID = os.getenv("SUBSCRIPTION_MANAGED_CANDIDATE_ID", "Managed_Candidate")
+MANAGED_AUTO_ID = os.getenv("SUBSCRIPTION_MANAGED_AUTO_ID", "Managed_Auto")
 CAPABILITY_URL = os.getenv("SUBSCRIPTION_CAPABILITY_URL", "http://127.0.0.1:8081/api/nodes")
 OPENCLASH_API = os.getenv("OPENCLASH_API", "http://10.88.0.254:9090").rstrip("/")
 OPENCLASH_SECRET = os.getenv("OPENCLASH_SECRET", "")
@@ -50,6 +58,11 @@ PUBLISH_TOKEN = os.getenv("SUBSCRIPTION_PUBLISH_TOKEN", "")
 HMAC_KEY = os.getenv("SUBSCRIPTION_HMAC_KEY", PUBLISH_TOKEN)
 INTERVAL = max(300, int(os.getenv("SUBSCRIPTION_FETCH_INTERVAL", "3600")))
 FETCH_TIMEOUT = max(5, int(os.getenv("SUBSCRIPTION_FETCH_TIMEOUT", "30")))
+# Source reconciliation has a hard wall-clock budget.  It is deliberately
+# single-threaded: when the deadline expires there can be no detached fetch
+# that writes cache/state after the cycle has moved on.  Existing published
+# sources are retained; new sources are deferred to a later cycle.
+CYCLE_BUDGET = max(60, int(os.getenv("SUBSCRIPTION_CYCLE_BUDGET", "240")))
 SUBSCRIPTION_USER_AGENT = os.getenv("SUBSCRIPTION_USER_AGENT", "clash.meta").strip() or "clash.meta"
 MAX_BYTES = max(1024 * 1024, int(os.getenv("SUBSCRIPTION_MAX_BYTES", str(20 * 1024 * 1024))))
 CACHE_TTL = max(3600, int(os.getenv("SUBSCRIPTION_CACHE_TTL", str(7 * 86400))))
@@ -83,22 +96,30 @@ STATUS_PATTERN = re.compile(
 )
 from upgrade_policy import usable_name
 RETAINED_SOURCES = set()
+SOURCE_RECONCILE: dict[str, dict[str, Any]] = {}
 LOCK = threading.RLock()
 
-def retained_provider(source, manifest):
+def retained_provider(source, manifest, approved_only=False, mark_retained=True):
     if not manifest:
         return []
-    item = next((x for x in manifest.get("sources",[]) if x["id"]==source.source_id),None)
+    collection = manifest.get("source_breakdown", []) if source.origin == "managed" else manifest.get("sources", [])
+    item = next((x for x in collection if x["id"]==source.source_id),None)
     if not item:
         return []
-    raw = (RELEASES/manifest["release_id"]/item["file"]).read_bytes()
-    if hashlib.sha256(raw).hexdigest()!=item["sha256"]:
+    file_key = "approved_file" if approved_only and source.origin == "managed" else "file"
+    hash_key = "approved_sha256" if approved_only and source.origin == "managed" else "sha256"
+    if file_key not in item or hash_key not in item:
+        return []
+    raw = (RELEASES/manifest["release_id"]/item[file_key]).read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=item[hash_key]:
         raise ControllerError("retained_provider_checksum_failed:"+source.source_id)
     nodes = normalized_nodes(parse_nodes(raw))
-    previous = previous_fingerprints(manifest)
-    if any(fingerprint(node) not in previous for node in nodes):
+    previous = (set(item.get("approved_fingerprints", [])) if approved_only and source.origin == "managed"
+                else set(item.get("fingerprints", [])) if source.origin == "managed"
+                else previous_fingerprints(manifest))
+    if previous and any(fingerprint(node) not in previous for node in nodes):
         raise ControllerError("retained_provider_fingerprint_failed:"+source.source_id)
-    if nodes:
+    if nodes and mark_retained:
         RETAINED_SOURCES.add(source.source_id)
     return nodes
 
@@ -148,6 +169,9 @@ class Source:
     name: str
     url: str
     provider_name: str
+    origin: str = "explicit"
+    retiring: bool = False
+    dependencies: tuple[str, ...] = ()
 
 
 class ControllerError(RuntimeError):
@@ -223,10 +247,82 @@ def meta_set(key: str, value: str) -> None:
         )
 
 
-def load_sources() -> list[Source]:
+def _url_identity(value: str) -> str:
+    parsed = urllib.parse.urlsplit(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ControllerError("invalid_source_url")
+    # Fragments are never sent to the server and must not create a duplicate source.
+    return urllib.parse.urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, ""))
+
+
+def _previous_managed() -> dict[str, dict[str, Any]]:
+    manifest = current_manifest()
+    rows = (manifest or {}).get("source_breakdown", [])
+    return {
+        str(row.get("id")): row for row in rows
+        if isinstance(row, dict) and row.get("origin") == "managed" and row.get("id")
+    }
+
+
+def _runtime_proxy_snapshot(deadline: float | None = None) -> tuple[dict[str, Any] | None, str]:
+    if not OPENCLASH_SECRET:
+        return None, ""
+    try:
+        payload = api_request("GET", "/proxies", deadline=deadline)
+        proxies = payload.get("proxies", {}) if isinstance(payload, dict) else {}
+        if not isinstance(proxies, dict):
+            return None, ""
+        revision = hashlib.sha256(json.dumps(
+            {str(name): item.get("now") for name, item in proxies.items() if isinstance(item, dict)},
+            ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        return proxies, revision
+    except Exception as exc:
+        log("retirement_dependency_unavailable", str(exc), "warning")
+        return None, ""
+
+
+def _selected_leaf_dependencies_from(
+    proxies: dict[str, Any] | None, names: set[str], allow_absent: bool = False,
+) -> tuple[list[str], bool]:
+    if not names:
+        return [], True
+    if not isinstance(proxies, dict) or (not allow_absent and not names.intersection(proxies)):
+        return [], False
+
+    def leaf(name: str, seen: set[str]) -> str:
+        if name in seen:
+            return ""
+        seen.add(name)
+        item = proxies.get(name, {})
+        selected = item.get("now") if isinstance(item, dict) else None
+        return leaf(str(selected), seen) if selected else name
+
+    dependencies = []
+    for group, item in proxies.items():
+        if isinstance(item, dict) and item.get("now") and leaf(str(group), set()) in names:
+            dependencies.append(str(group))
+    return sorted(set(dependencies)), True
+
+
+def _selected_leaf_dependencies(
+    names: set[str], proxies: dict[str, Any] | None = None, deadline: float | None = None,
+) -> tuple[list[str], bool]:
+    """Return groups whose selected chain terminates at a retiring node.
+
+    Absence of expected nodes is not evidence that deletion is safe.  API or
+    visibility uncertainty therefore returns ``visible=False`` and callers
+    conservatively retain the source.
+    """
+    if proxies is None:
+        proxies, _revision = _runtime_proxy_snapshot(deadline)
+    return _selected_leaf_dependencies_from(proxies, names)
+
+
+def load_sources(proxy_snapshot: dict[str, Any] | None = None) -> list[Source]:
     if not SOURCES_FILE.is_file():
         raise ControllerError("sources_file_missing")
-    if SOURCES_FILE.stat().st_mode & 0o077:
+    if os.name != "nt" and SOURCES_FILE.stat().st_mode & 0o077:
         raise ControllerError("sources_file_permissions_must_be_600")
     raw = yaml.safe_load(SOURCES_FILE.read_text(encoding="utf-8"))
     if not isinstance(raw, (dict, list)):
@@ -243,6 +339,8 @@ def load_sources() -> list[Source]:
         parsed = urllib.parse.urlparse(url)
         if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", source_id):
             raise ControllerError("invalid_source_id")
+        if source_id in {MANAGED_AUTO_ID, MANAGED_CANDIDATE_ID} or provider_name in {MANAGED_AUTO_ID, MANAGED_CANDIDATE_ID}:
+            raise ControllerError("managed_provider_identity_reserved")
         if parsed.scheme not in {"http", "https"} or not parsed.hostname:
             raise ControllerError(f"invalid_source_url:{source_id}")
         if source_id in seen:
@@ -251,24 +349,144 @@ def load_sources() -> list[Source]:
         result.append(Source(source_id, str(item.get("name", source_id))[:80], url, provider_name))
     if not result:
         raise ControllerError("no_enabled_sources")
+    explicit_urls = {_url_identity(source.url) for source in result}
+    previous = _previous_managed()
+    SOURCE_RECONCILE.clear()
+    for source in result:
+        SOURCE_RECONCILE[source.source_id] = {
+            "id": source.source_id, "name": source.name, "origin": "explicit",
+            "lifecycle": "published", "desired": "present", "actual": "configured",
+            "provider_name": source.provider_name, "dependencies": [],
+        }
+    registry_valid = False
+    managed_rows: list[dict[str, Any]] = []
+    try:
+        document = json.loads(INFORMATION_SOURCES_FILE.read_text(encoding="utf-8"))
+        if document.get("purpose") != "subscription_information_only" or not isinstance(document.get("sources"), list):
+            raise ControllerError("invalid_information_registry")
+        registry_ids = {source.source_id for source in result}
+        managed_urls: dict[str, str] = {}
+        registry_rows = document["sources"]
+        if SOURCE_OVERRIDES_FILE.exists():
+            if SOURCE_OVERRIDES_FILE.is_symlink():
+                raise ControllerError("source_overrides_symlink_refused")
+            if os.name != "nt" and SOURCE_OVERRIDES_FILE.stat().st_mode & 0o077:
+                raise ControllerError("source_overrides_permissions_must_be_600")
+            overrides = json.loads(SOURCE_OVERRIDES_FILE.read_text(encoding="utf-8"))
+            if (not isinstance(overrides, dict) or overrides.get("schema") != 1
+                    or not isinstance(overrides.get("sources", []), list)
+                    or not isinstance(overrides.get("tombstones", []), list)):
+                raise ControllerError("invalid_source_overrides")
+            merged_rows = {
+                str(row.get("id")): dict(row) for row in registry_rows
+                if isinstance(row, dict) and row.get("id")
+            }
+            for row in overrides.get("sources", []):
+                if not isinstance(row, dict) or not row.get("id"):
+                    raise ControllerError("invalid_source_override_row")
+                merged_rows[str(row["id"])] = dict(row)
+            tombstones = {str(source_id) for source_id in overrides.get("tombstones", [])}
+            registry_rows = [row for source_id, row in merged_rows.items() if source_id not in tombstones]
+        for row in registry_rows:
+            if not isinstance(row, dict) or not row.get("enabled", True):
+                continue
+            source_id = str(row.get("id", "")).strip()
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", source_id):
+                raise ControllerError("invalid_information_source_id")
+            if source_id in {MANAGED_AUTO_ID, MANAGED_CANDIDATE_ID}:
+                raise ControllerError("managed_provider_identity_reserved")
+            if source_id in registry_ids:
+                raise ControllerError("information_source_id_collision")
+            registry_ids.add(source_id)
+            identity = _url_identity(str(row.get("url", "")))
+            if identity in explicit_urls:
+                SOURCE_RECONCILE[source_id] = {
+                    "id": source_id, "name": str(row.get("name", source_id))[:80],
+                    "origin": "managed", "lifecycle": "covered_by_explicit",
+                    "desired": "present", "actual": "explicit", "dependencies": [],
+                }
+                continue
+            if identity in managed_urls:
+                SOURCE_RECONCILE[source_id] = {
+                    "id": source_id, "name": str(row.get("name", source_id))[:80],
+                    "origin": "managed", "lifecycle": "covered_by_managed",
+                    "desired": "present", "actual": managed_urls[identity], "dependencies": [],
+                }
+                continue
+            managed_urls[identity] = source_id
+            managed_rows.append({"id": source_id, "name": str(row.get("name", source_id))[:80], "url": identity})
+        registry_valid = True
+    except Exception as exc:
+        log("information_registry_unavailable", str(exc), "warning")
+
+    active_ids = set()
+    if registry_valid:
+        for row in managed_rows:
+            source_id = row["id"]
+            active_ids.add(source_id)
+            result.append(Source(source_id, row["name"], row["url"], MANAGED_AUTO_ID, "managed"))
+            SOURCE_RECONCILE[source_id] = {
+                "id": source_id, "name": row["name"], "origin": "managed",
+                "lifecycle": "discovered", "desired": "present", "actual": "checking", "dependencies": [],
+            }
+
+    for source_id, row in previous.items():
+        if source_id in active_ids:
+            continue
+        approved_names = {str(name) for name in row.get("approved_names", []) if name}
+        dependencies, visible = (_selected_leaf_dependencies(approved_names, proxy_snapshot)
+                                 if proxy_snapshot is not None else _selected_leaf_dependencies(approved_names))
+        if not registry_valid:
+            dependencies = ["information_registry_unavailable"]
+        elif approved_names and not visible:
+            dependencies = ["runtime_visibility_unknown"]
+        if dependencies:
+            result.append(Source(
+                source_id, str(row.get("name", source_id))[:80], "", MANAGED_AUTO_ID,
+                "managed", True, tuple(dependencies),
+            ))
+            SOURCE_RECONCILE[source_id] = {
+                "id": source_id, "name": str(row.get("name", source_id))[:80], "origin": "managed",
+                "lifecycle": "retained_by_selection", "desired": "absent", "actual": "retained",
+                "dependencies": dependencies,
+            }
+        else:
+            SOURCE_RECONCILE[source_id] = {
+                "id": source_id, "name": str(row.get("name", source_id))[:80], "origin": "managed",
+                "lifecycle": "pending_retirement", "desired": "absent", "actual": "retired",
+                "dependencies": [],
+            }
     return result
 
 
-def fetch(source: Source) -> bytes:
+def _remaining(deadline: float | None) -> float:
+    return math.inf if deadline is None else deadline - time.monotonic()
+
+
+def fetch(source: Source, deadline: float | None = None) -> bytes:
     last_error: Exception | None = None
     for attempt, delay in enumerate((0, 2, 5), start=1):
+        remaining = _remaining(deadline)
+        if remaining <= 0:
+            raise ControllerError("cycle_budget_exhausted")
         if delay:
-            time.sleep(delay)
+            time.sleep(min(delay, max(0.0, remaining)))
+        remaining = _remaining(deadline)
+        if remaining <= 0:
+            raise ControllerError("cycle_budget_exhausted")
         request = urllib.request.Request(
             source.url,
             headers={"User-Agent": SUBSCRIPTION_USER_AGENT, "Accept": "*/*"},
         )
         try:
-            with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT) as response:
+            timeout = FETCH_TIMEOUT if math.isinf(remaining) else max(1, min(FETCH_TIMEOUT, math.ceil(remaining)))
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 length = int(response.headers.get("Content-Length", "0") or 0)
                 if length > MAX_BYTES:
                     raise ControllerError("source_too_large")
                 payload = response.read(MAX_BYTES + 1)
+                if _remaining(deadline) <= 0:
+                    raise ControllerError("cycle_budget_exhausted")
                 if len(payload) > MAX_BYTES:
                     raise ControllerError("source_too_large")
                 if not payload.strip():
@@ -336,9 +554,13 @@ def normalized_nodes(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return result
 
 
-def capability_nodes() -> dict[str, dict[str, Any]]:
+def capability_nodes(deadline: float | None = None) -> dict[str, dict[str, Any]]:
     try:
-        with urllib.request.urlopen(CAPABILITY_URL, timeout=10) as response:
+        remaining = _remaining(deadline)
+        if remaining <= 0:
+            return {}
+        timeout = 10 if math.isinf(remaining) else max(1, min(10, math.ceil(remaining)))
+        with urllib.request.urlopen(CAPABILITY_URL, timeout=timeout) as response:
             payload = json.load(response)
         return {str(item.get("name")): item for item in payload.get("nodes", []) if item.get("name")}
     except Exception as exc:
@@ -351,10 +573,14 @@ def current_manifest() -> dict[str, Any] | None:
         pointer,_ = recover_document(CURRENT_PATH,valid_pointer)
         if pointer is None:return None
         manifest=json.loads((RELEASES / pointer["release_id"] / "manifest.json").read_text(encoding="utf-8"))
-        for item in manifest.get("sources",[]):
+        for item in manifest.get("sources",[]) + manifest.get("source_breakdown",[]):
             name=item["file"]
             if Path(name).name!=name:return None
             if hashlib.sha256((RELEASES/pointer["release_id"]/name).read_bytes()).hexdigest()!=item["sha256"]:return None
+            if item.get("approved_file"):
+                name=item["approved_file"]
+                if Path(name).name!=name:return None
+                if hashlib.sha256((RELEASES/pointer["release_id"]/name).read_bytes()).hexdigest()!=item["approved_sha256"]:return None
         return manifest
     except Exception:
         return None
@@ -366,9 +592,12 @@ def valid_pointer(value):
                 and Path(value["release_id"]).name==value["release_id"]):return False
         directory=RELEASES/value["release_id"]
         manifest=json.loads((directory/"manifest.json").read_text())
-        for item in manifest.get("sources",[]):
+        for item in manifest.get("sources",[]) + manifest.get("source_breakdown",[]):
             if Path(item["file"]).name!=item["file"]:return False
             if hashlib.sha256((directory/item["file"]).read_bytes()).hexdigest()!=item["sha256"]:return False
+            if item.get("approved_file"):
+                if Path(item["approved_file"]).name!=item["approved_file"]:return False
+                if hashlib.sha256((directory/item["approved_file"]).read_bytes()).hexdigest()!=item["approved_sha256"]:return False
         return True
     except (OSError,ValueError,TypeError,KeyError):return False
 
@@ -379,6 +608,31 @@ def repair_pointer() -> bool:
     if accepted is None:return False
     atomic_json(CURRENT_PATH,accepted)
     atomic_json(DATA/"recovery-refresh.json",{"required":True,"at":now()})
+    return True
+
+
+def repair_and_refresh(deadline: float | None = None) -> bool:
+    """Repair pointer under the coordinator lock; refresh outside that lock."""
+    refs: list[Source] | None = None
+    release_id = ""
+    with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+        if not acquired:
+            return False
+        recover_interrupted_publish()
+        repair_pointer()
+        if MODE == "automatic" and (DATA/"recovery-refresh.json").exists():
+            restored = current_manifest()
+            if not restored:
+                raise ControllerError("pointer_repair_release_invalid")
+            refs = _provider_refs(restored)
+            release_id = str(restored.get("release_id", ""))
+    if refs:
+        refresh_providers(refs, deadline)
+        with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+            if acquired:
+                current = current_manifest()
+                if current and str(current.get("release_id", "")) == release_id:
+                    (DATA/"recovery-refresh.json").unlink(missing_ok=True)
     return True
 
 
@@ -446,18 +700,47 @@ def source_cached(source: Source, count: int) -> None:
         conn.execute("UPDATE source_state SET last_count=? WHERE source_id=?", (count, source.source_id))
 
 
-def load_or_fetch(source: Source) -> tuple[list[dict[str, Any]], bool, str]:
+def _managed_names(source: Source, nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if source.origin != "managed":
+        return nodes
+    prefix = f"[{source.source_id}] "
+    result = []
+    for original in nodes:
+        node = dict(original)
+        name = str(node.get("name", ""))
+        managed_name = name if name.startswith(prefix) else prefix + name
+        if len(managed_name) > 240:
+            suffix = "~" + hashlib.sha256(managed_name.encode()).hexdigest()[:10]
+            managed_name = managed_name[:240 - len(suffix)] + suffix
+        node["name"] = managed_name
+        result.append(node)
+    return result
+
+
+def load_or_fetch(source: Source, deadline: float | None = None) -> tuple[list[dict[str, Any]], bool, str]:
     cache_file = CACHE / f"{source.source_id}.yaml"
+    if source.retiring:
+        nodes = retained_provider(source, current_manifest())
+        if not nodes:
+            raise ControllerError(f"retiring_source_snapshot_missing:{source.source_id}")
+        return nodes, True, hashlib.sha256(provider_yaml(nodes)).hexdigest()
     try:
-        payload = fetch(source)
-        nodes = normalized_nodes(parse_nodes(payload))
+        payload = fetch(source, deadline)
+        nodes = _managed_names(source, normalized_nodes(parse_nodes(payload)))
         if not nodes:
             raise ControllerError("no_valid_nodes")
         digest = hashlib.sha256(payload).hexdigest()
+        if _remaining(deadline) <= 0:
+            raise ControllerError("cycle_budget_exhausted")
         atomic_bytes(cache_file, payload)
         source_success(source, digest, len(nodes))
         return nodes, False, digest
     except Exception as exc:
+        if "cycle_budget_exhausted" in str(exc):
+            nodes = retained_provider(source, current_manifest())
+            if nodes:
+                return nodes, True, hashlib.sha256(provider_yaml(nodes)).hexdigest()
+            raise ControllerError("cycle_budget_deferred") from exc
         source_failure(source, str(exc))
         # Preserve this source's exact last-published content; never contaminate it
         # with an error response or publish a newly guessed cached endpoint set.
@@ -501,23 +784,41 @@ def anomaly_confirmed(candidate_hash: str, risky: bool) -> bool:
     return count >= ANOMALY_CONFIRMATIONS
 
 
-def api_request(method: str, path: str, body: bytes | None = None, timeout: int | None = None) -> Any:
+def api_request(
+    method: str, path: str, body: bytes | None = None, timeout: int | None = None,
+    deadline: float | None = None,
+) -> Any:
     request = urllib.request.Request(
         f"{OPENCLASH_API}{path}", data=body, method=method,
         headers={"Authorization": f"Bearer {OPENCLASH_SECRET}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(request, timeout=timeout or OPENCLASH_API_TIMEOUT) as response:
+    configured = timeout or OPENCLASH_API_TIMEOUT
+    remaining = _remaining(deadline)
+    if remaining <= 0:
+        raise ControllerError("cycle_budget_exhausted")
+    bounded = configured if math.isinf(remaining) else max(1, min(configured, math.ceil(remaining)))
+    with urllib.request.urlopen(request, timeout=bounded) as response:
         payload = response.read()
+        if _remaining(deadline) <= 0:
+            raise ControllerError("cycle_budget_exhausted")
         return json.loads(payload) if payload else {}
 
 
-def refresh_providers(sources: list[Source]) -> None:
+def _provider_refs(manifest: dict[str, Any]) -> list[Source]:
+    return [Source(str(row["id"]), str(row.get("name", row["id"])), "", str(row["provider_name"]))
+            for row in manifest.get("sources", [])]
+
+
+def refresh_providers(sources: list[Source], deadline: float | None = None) -> None:
     if not OPENCLASH_SECRET:
         raise ControllerError("openclash_secret_missing")
     for source in sources:
         encoded = urllib.parse.quote(source.provider_name, safe="")
         try:
-            api_request("PUT", f"/providers/proxies/{encoded}", b"", timeout=max(60, OPENCLASH_API_TIMEOUT))
+            api_request(
+                "PUT", f"/providers/proxies/{encoded}", b"",
+                timeout=max(60, OPENCLASH_API_TIMEOUT), deadline=deadline,
+            )
         except urllib.error.HTTPError as exc:
             body = safe_detail(exc.read().decode("utf-8", errors="replace"))
             raise ControllerError(
@@ -525,19 +826,28 @@ def refresh_providers(sources: list[Source]) -> None:
             ) from exc
 
 
-def runtime_provider_counts(sources: list[Source]) -> dict[str, int]:
-    payload = api_request("GET", "/providers/proxies")
+def runtime_provider_snapshot(
+    sources: list[Source], deadline: float | None = None,
+) -> dict[str, list[str]]:
+    payload = api_request("GET", "/providers/proxies", deadline=deadline)
     providers = payload.get("providers", {}) if isinstance(payload, dict) else {}
-    counts: dict[str, int] = {}
+    result: dict[str, list[str]] = {}
     for source in sources:
         provider = providers.get(source.provider_name)
         if not isinstance(provider, dict) or not isinstance(provider.get("proxies"), list):
             raise ControllerError(f"runtime_provider_missing:{source.source_id}")
-        counts[source.source_id] = len(provider["proxies"])
-    return counts
+        result[source.source_id] = sorted(
+            str(proxy.get("name", "")) for proxy in provider["proxies"]
+            if not str(proxy.get("name", "")).startswith("__STACK_EMPTY_MANAGED_")
+        )
+    return result
 
 
-def production_smoke() -> tuple[bool, str]:
+def runtime_provider_counts(sources: list[Source]) -> dict[str, int]:
+    return {source_id: len(names) for source_id, names in runtime_provider_snapshot(sources).items()}
+
+
+def production_smoke(deadline: float | None = None) -> tuple[bool, str]:
     checks = [
         ("amd_cn", "https://developer.amd.com.cn/radeon/tokenfactory", {200, 301, 302}, None, "GET"),
         ("tuya_cn", "https://www.tuya.com/cn/", {200, 301, 302}, None, "GET"),
@@ -551,7 +861,11 @@ def production_smoke() -> tuple[bool, str]:
         passed = False
         last_code = 0
         for attempt in range(2):
-            command = ["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}|%{content_type}", "--max-time", "15", "-x", PROXY]
+            remaining = _remaining(deadline)
+            if remaining <= 0:
+                raise ControllerError("cycle_budget_exhausted")
+            probe_timeout = 15 if math.isinf(remaining) else max(1, min(15, math.floor(remaining)))
+            command = ["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}|%{content_type}", "--max-time", str(probe_timeout), "-x", PROXY]
             if PROXY_AUTH:
                 command.extend(["-U", PROXY_AUTH])
             if method == "POST":
@@ -561,7 +875,10 @@ def production_smoke() -> tuple[bool, str]:
                 ])
             command.append(url)
             try:
-                completed = subprocess.run(command, capture_output=True, text=True, timeout=20, check=False)
+                run_timeout = 20 if math.isinf(remaining) else max(1, min(20, math.ceil(remaining)))
+                completed = subprocess.run(command, capture_output=True, text=True, timeout=run_timeout, check=False)
+                if _remaining(deadline) <= 0:
+                    raise ControllerError("cycle_budget_exhausted")
                 code_text, _, content_type = completed.stdout.strip().partition("|")
                 last_code = int(code_text or 0)
                 passed = last_code in accepted and (content_required is None or content_required in content_type.lower())
@@ -571,7 +888,10 @@ def production_smoke() -> tuple[bool, str]:
             if passed:
                 break
             if attempt == 0:
-                time.sleep(2)
+                remaining = _remaining(deadline)
+                if remaining <= 0:
+                    raise ControllerError("cycle_budget_exhausted")
+                time.sleep(min(2, remaining))
         if not passed:
             failures.append(f"{name}:{last_code}")
     return not failures, ",".join(failures) if failures else "ok"
@@ -603,12 +923,30 @@ def recover_interrupted_publish() -> bool:
         if not isinstance(previous_pointer, dict):
             raise ControllerError("interrupted_publish_previous_pointer_missing")
         previous_id = str(previous_pointer.get("release_id", ""))
+        candidate_id = str(pending.get("release_id", ""))
         if not previous_id or not (RELEASES / previous_id / "manifest.json").is_file():
             raise ControllerError("interrupted_publish_previous_release_missing")
-        atomic_json(CURRENT_PATH, previous_pointer)
+        try:
+            current_pointer = json.loads(CURRENT_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            current_pointer = {}
+        current_id = str(current_pointer.get("release_id", ""))
+        if current_id == candidate_id:
+            atomic_json(CURRENT_PATH, previous_pointer)
+            refresh_id = previous_id
+            outcome = "candidate_rolled_back"
+        elif current_id == previous_id:
+            refresh_id = previous_id
+            outcome = "previous_already_current"
+        elif current_id and valid_pointer(current_pointer):
+            # A newer coordinator transaction won the CAS. Never overwrite it.
+            refresh_id = current_id
+            outcome = "newer_current_preserved"
+        else:
+            raise ControllerError("interrupted_publish_current_unknown")
         atomic_json(DATA/"recovery-refresh.json",{"required":True,"at":now()})
         PENDING_PATH.unlink()
-        log("interrupted_publish_recovered", f"release={previous_id}", "warning")
+        log("interrupted_publish_recovered", f"release={refresh_id} outcome={outcome}", "warning")
         return True
     except Exception as exc:
         raise ControllerError(f"interrupted_publish_recovery_failed:{safe_detail(str(exc))}") from exc
@@ -641,11 +979,14 @@ def prune_releases() -> None:
 
 def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[Source],
                    capability: dict[str, dict[str, Any]], cached_sources: int,
-                   previous_source_counts: dict[str, int]) -> tuple[str, dict[str, Any], int, list[str], bool]:
+                   previous_source_counts: dict[str, int],
+                   proxy_snapshot: dict[str, Any] | None = None,
+                   deadline: float | None = None) -> tuple[str, dict[str, Any], int, list[str], bool]:
     previous_manifest = current_manifest()
     previous = previous_fingerprints(previous_manifest)
     bootstrap = previous_manifest is None
     approved: dict[str, list[dict[str, Any]]] = {}
+    candidates: dict[str, list[dict[str, Any]]] = {}
     quarantined = 0
     seen_fingerprints: set[str] = set()
     name_counts: dict[str, int] = {}
@@ -659,13 +1000,19 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
     for source in sources:
         accepted_nodes = []
         provider_fingerprints = set()
+        candidate_nodes = []
         for original in source_nodes[source.source_id]:
             node = dict(original)
             fp = fingerprint(node)
             if fp in provider_fingerprints:
                 continue
-            ok, _reason = admitted(node, capability.get(str(node.get("name"))), previous, bootstrap)
-            if not bootstrap and fp not in previous and os.getenv("SUBSCRIPTION_ISOLATED_ADMISSION","0")=="1":
+            provider_fingerprints.add(fp)
+            candidate_nodes.append(node)
+            ok, _reason = admitted(
+                node, capability.get(str(node.get("name"))), previous,
+                bootstrap and source.origin == "explicit",
+            )
+            if source.origin == "managed" and fp not in previous:
                 # Never inherit another endpoint's capability merely because names match.
                 record=admission_cache.get(fp,{})
                 if not isinstance(record,dict):record={}
@@ -676,20 +1023,36 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
                 quarantined += 1
                 continue
             seen_fingerprints.add(fp)
-            provider_fingerprints.add(fp)
             if name_counts.get(str(node.get("name")), 0) > 1:
                 node["name"] = f"[{source.source_id}] {node['name']}"[:240]
             accepted_nodes.append(node)
         if not accepted_nodes:
             # A healthy subscription can advance while a source with no qualified
             # replacements remains on its own verified, last-published endpoints.
-            accepted_nodes = retained_provider(source, previous_manifest)
+            accepted_nodes = retained_provider(source, previous_manifest, approved_only=source.origin == "managed")
             if accepted_nodes:
                 seen_fingerprints.update(fingerprint(node) for node in accepted_nodes)
                 source_failure(source, "admission_empty_retaining_published")
-        if not accepted_nodes:
+        if source.origin == "managed" and previous_manifest and not source.retiring:
+            old_approved = retained_provider(source, previous_manifest, approved_only=True, mark_retained=False)
+            accepted_names = {str(node.get("name", "")) for node in accepted_nodes}
+            missing = [node for node in old_approved if str(node.get("name", "")) not in accepted_names]
+            if missing:
+                missing_names = {str(node.get("name", "")) for node in missing}
+                dependencies, visible = (_selected_leaf_dependencies(missing_names, proxy_snapshot)
+                                         if proxy_snapshot is not None else _selected_leaf_dependencies(missing_names))
+                if dependencies or not visible:
+                    accepted_nodes.extend(missing)
+                    RETAINED_SOURCES.add(source.source_id)
+                    seen_fingerprints.update(fingerprint(node) for node in missing)
+                    row = SOURCE_RECONCILE.get(source.source_id, {})
+                    row["dependencies"] = dependencies or ["runtime_visibility_unknown"]
+                    row["reason"] = "selected_removed_nodes_retained"
+                    SOURCE_RECONCILE[source.source_id] = row
+        if not accepted_nodes and source.origin == "explicit":
             raise ControllerError("source_empty_after_admission:"+source.source_id)
         approved[source.source_id] = accepted_nodes
+        candidates[source.source_id] = candidate_nodes
     # Only bounded fingerprint/status records are kept; no endpoints or credentials.
     total = sum(map(len, approved.values()))
     previous_total = int((previous_manifest or {}).get("node_count", 0))
@@ -700,17 +1063,39 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
         if old > new:
             source_drops.append((old - new) * 100.0 / old)
     risk, reasons, hard_hold = evaluate_risk(total, previous_total, source_drops, cached_sources)
-    digest_input = b"".join(
-        provider_yaml(approved[source.source_id]) for source in sorted(sources, key=lambda x: x.source_id)
+    explicit_sources = [source for source in sources if source.origin == "explicit"]
+    managed_sources = [source for source in sources if source.origin == "managed"]
+    managed_active: list[dict[str, Any]] = []
+    managed_seen_active: set[tuple[str, str]] = set()
+    candidate_count = 0
+    for source in managed_sources:
+        candidate_count += len(candidates[source.source_id])
+        for node in approved[source.source_id]:
+            # Preserve source/name identity even when two sources describe the
+            # same endpoint. A retiring selected name must not disappear merely
+            # because a newer source has the same endpoint fingerprint.
+            identity = (fingerprint(node), str(node.get("name", "")))
+            if identity not in managed_seen_active:
+                managed_seen_active.add(identity); managed_active.append(node)
+
+    empty_active = [{"name": "__STACK_EMPTY_MANAGED_AUTO__", "type": "socks5", "server": "127.0.0.1", "port": 9, "udp": False}]
+    provider_payloads: dict[str, bytes] = {
+        source.source_id: provider_yaml(approved[source.source_id]) for source in explicit_sources
+    }
+    provider_payloads[MANAGED_AUTO_ID] = provider_yaml(managed_active or empty_active)
+    digest_input = b"".join(provider_payloads[key] for key in sorted(provider_payloads)) + b"".join(
+        provider_yaml(candidates[source.source_id]) for source in sorted(managed_sources, key=lambda item: item.source_id)
     )
     candidate_hash = hashlib.sha256(digest_input).hexdigest()
     release_id = time.strftime("%Y%m%d-%H%M%S") + "-" + candidate_hash[:12]
+    if _remaining(deadline) <= 0:
+        raise ControllerError("cycle_budget_exhausted")
     release_dir = RELEASES / release_id
     release_dir.mkdir(parents=True, exist_ok=False)
     os.chmod(release_dir, 0o700)
     source_manifest = []
-    for source in sources:
-        payload = provider_yaml(approved[source.source_id])
+    for source in explicit_sources:
+        payload = provider_payloads[source.source_id]
         file_name = f"{source.source_id}.yaml"
         atomic_bytes(release_dir / file_name, payload)
         source_manifest.append({
@@ -720,6 +1105,42 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
             "node_count": len(approved[source.source_id]),
             "sha256": hashlib.sha256(payload).hexdigest(),
             "file": file_name,
+            "role": "explicit",
+        })
+    for provider_id, role, nodes in ((MANAGED_AUTO_ID, "managed_active", managed_active),):
+        payload = provider_payloads[provider_id]
+        file_name = f"{provider_id}.yaml"
+        atomic_bytes(release_dir / file_name, payload)
+        source_manifest.append({
+            "id": provider_id, "name": provider_id, "provider_name": provider_id,
+            "node_count": len(nodes), "sha256": hashlib.sha256(payload).hexdigest(),
+            "file": file_name, "role": role,
+        })
+    source_breakdown = []
+    for source in managed_sources:
+        payload = provider_yaml(candidates[source.source_id])
+        file_name = f"managed-{source.source_id}.yaml"
+        atomic_bytes(release_dir / file_name, payload)
+        approved_payload = provider_yaml(approved[source.source_id])
+        approved_file = f"managed-approved-{source.source_id}.yaml"
+        atomic_bytes(release_dir / approved_file, approved_payload)
+        approved_names = [str(node.get("name")) for node in approved[source.source_id]]
+        row = SOURCE_RECONCILE.get(source.source_id, {})
+        lifecycle = "retained_by_selection" if source.retiring else (
+            "published" if approved_names else "checking"
+        )
+        row.update(lifecycle=lifecycle, actual=lifecycle,
+                   candidate_count=len(candidates[source.source_id]), approved_count=len(approved_names))
+        SOURCE_RECONCILE[source.source_id] = row
+        source_breakdown.append({
+            "id": source.source_id, "name": source.name, "origin": "managed",
+            "candidate_count": len(candidates[source.source_id]), "approved_count": len(approved_names),
+            "approved_names": approved_names,
+            "fingerprints": sorted({fingerprint(node) for node in candidates[source.source_id]}),
+            "approved_fingerprints": sorted({fingerprint(node) for node in approved[source.source_id]}),
+            "sha256": hashlib.sha256(payload).hexdigest(), "file": file_name,
+            "approved_sha256": hashlib.sha256(approved_payload).hexdigest(), "approved_file": approved_file,
+            "retiring": source.retiring, "dependencies": list(source.dependencies),
         })
     manifest = {
         "release_id": release_id,
@@ -734,43 +1155,83 @@ def create_release(source_nodes: dict[str, list[dict[str, Any]]], sources: list[
         "previous_id": (previous_manifest or {}).get("release_id", ""),
         "fingerprints": sorted(seen_fingerprints),
         "sources": source_manifest,
+        "source_breakdown": source_breakdown,
+        "managed": {
+            "candidate_provider": None,
+            "candidate_channel": "isolated_admission_queue",
+            "active_provider": MANAGED_AUTO_ID,
+            "candidate_count": candidate_count,
+            "approved_count": len(managed_active),
+            "candidate_exposed": False,
+            "mapping": {row["id"]: MANAGED_AUTO_ID for row in source_breakdown},
+        },
         "retained_sources": sorted(RETAINED_SOURCES),
     }
     atomic_json(release_dir / "manifest.json", manifest)
+    if _remaining(deadline) <= 0:
+        shutil.rmtree(release_dir, ignore_errors=True)
+        raise ControllerError("cycle_budget_exhausted")
     return release_id, manifest, risk, reasons, hard_hold
 
 
-def publish(release_id: str, manifest: dict[str, Any], sources: list[Source]) -> tuple[bool, str]:
+def _publish_dependencies_safe(
+    previous: dict[str, Any], candidate: dict[str, Any], proxies: dict[str, Any] | None = None,
+    allow_removed_absent: bool = False,
+) -> bool:
+    old = {str(row.get("id")): set(map(str, row.get("approved_names", [])))
+           for row in previous.get("source_breakdown", []) if isinstance(row, dict)}
+    new = {str(row.get("id")): set(map(str, row.get("approved_names", [])))
+           for row in candidate.get("source_breakdown", []) if isinstance(row, dict)}
+    removed = set().union(*(names - new.get(source_id, set()) for source_id, names in old.items())) if old else set()
+    if not removed:
+        return True
+    dependencies, visible = (_selected_leaf_dependencies_from(proxies, removed, allow_removed_absent)
+                             if proxies is not None else _selected_leaf_dependencies(removed))
+    return visible and not dependencies
+
+
+def publish(
+    release_id: str, manifest: dict[str, Any], sources: list[Source],
+    deadline: float | None = None,
+) -> tuple[bool, str]:
+    previous_pointer = None
+    baseline: dict[str, Any] = {}
+    dependency_snapshot, dependency_revision = _runtime_proxy_snapshot(deadline)
+    if dependency_snapshot is None:
+        return False, "deferred_selection_visibility_unknown"
+    # Commit the immutable pointer under a short coordinator lock. Network I/O,
+    # provider refresh and smoke tests intentionally happen after releasing it.
     with exclusive(DATA.parent/"routing-owner.lock") as acquired:
         if not acquired:return False,"deferred_routing_owner_busy"
-        return _publish(release_id,manifest,sources)
-
-
-def _publish(release_id: str, manifest: dict[str, Any], sources: list[Source]) -> tuple[bool, str]:
-    if (DATA.parent/"automation-freeze").exists():return False,"deferred_operator_freeze"
-    if (DATA/"release-probation.json").exists():return False,"deferred_previous_release_probation"
-    previous_pointer = None
-    if CURRENT_PATH.is_file():
-        previous_pointer = json.loads(CURRENT_PATH.read_text(encoding="utf-8"))
-    if MODE != "automatic":
-        atomic_json(CURRENT_PATH, {"release_id": release_id, "published_at": now()})
-        return True, "shadow_current_initialized"
-    if not previous_pointer:
-        return False, "automatic_publish_requires_shadow_bootstrap"
+        if (DATA.parent/"automation-freeze").exists():return False,"deferred_operator_freeze"
+        if (DATA/"release-probation.json").exists():return False,"deferred_previous_release_probation"
+        if PENDING_PATH.exists():return False,"deferred_publish_pending"
+        if CURRENT_PATH.is_file():
+            previous_pointer=json.loads(CURRENT_PATH.read_text(encoding="utf-8"))
+        if MODE != "automatic":
+            atomic_json(CURRENT_PATH,{"release_id":release_id,"published_at":now()})
+            return True,"shadow_current_initialized"
+        if not previous_pointer:return False,"automatic_publish_requires_shadow_bootstrap"
+        if str(previous_pointer.get("release_id","")) != str(manifest.get("previous_id","")):
+            return False,"deferred_current_revision_changed"
+        previous=current_manifest()
+        if not previous or not _publish_dependencies_safe(previous,manifest,dependency_snapshot):
+            return False,"deferred_selection_dependency_changed"
+        try:
+            autonomy=json.loads((DATA.parent/"autonomy-status.json").read_text())
+            baseline=autonomy.get("recent_business_metrics",{}) if 0<=now()-autonomy.get("epoch",0)<360 else {}
+        except (OSError,ValueError,TypeError):baseline={}
+        atomic_json(PENDING_PATH,{"release_id":release_id,"previous_pointer":previous_pointer,"started_at":now()})
+        atomic_json(CURRENT_PATH,{"release_id":release_id,"published_at":now()})
     try:
-        autonomy=json.loads((DATA.parent/"autonomy-status.json").read_text())
-        baseline=autonomy.get("recent_business_metrics",{}) if 0<=now()-autonomy.get("epoch",0)<360 else {}
-    except (OSError,ValueError,TypeError):baseline={}
-    atomic_json(PENDING_PATH, {
-        "release_id": release_id,
-        "previous_pointer": previous_pointer,
-        "started_at": now(),
-    })
-    atomic_json(CURRENT_PATH, {"release_id": release_id, "published_at": now()})
-    try:
+        dependency_snapshot, dependency_revision = _runtime_proxy_snapshot(deadline)
+        if dependency_snapshot is None or not _publish_dependencies_safe(
+            previous, manifest, dependency_snapshot, allow_removed_absent=True
+        ):
+            raise ControllerError("selection_dependency_changed_before_refresh")
         log("publish_stage", f"release={release_id} stage=refresh_providers")
         try:
-            refresh_providers(sources)
+            refresh_providers(sources, deadline)
         except Exception as exc:
             # 保留 refresh_providers 已构造的 provider_refresh_http:{id}:{code}:{body}
             # （body 已经过 safe_detail）。旧写法只用 type(exc).__name__，
@@ -778,10 +1239,19 @@ def _publish(release_id: str, manifest: dict[str, Any], sources: list[Source]) -
             inner = str(exc).strip() or type(exc).__name__
             log("provider_refresh_failed", inner, "error")
             raise ControllerError(f"provider_refresh_failed:{inner}") from exc
+        dependency_snapshot, dependency_revision = _runtime_proxy_snapshot(deadline)
+        if dependency_snapshot is None or not _publish_dependencies_safe(
+            previous, manifest, dependency_snapshot, allow_removed_absent=True
+        ):
+            raise ControllerError("selection_dependency_changed_during_refresh")
+        remaining = _remaining(deadline)
+        if remaining < POST_PUBLISH_WAIT:
+            raise ControllerError("cycle_budget_exhausted")
         time.sleep(POST_PUBLISH_WAIT)
         log("publish_stage", f"release={release_id} stage=runtime_counts")
         try:
-            runtime_counts = runtime_provider_counts(sources)
+            runtime_snapshot = runtime_provider_snapshot(sources, deadline)
+            runtime_counts = {source_id: len(names) for source_id, names in runtime_snapshot.items()}
         except Exception as exc:
             # 同类：避免只剩 runtime_count_failed:ControllerError
             inner = str(exc).strip() or type(exc).__name__
@@ -795,6 +1265,16 @@ def _publish(release_id: str, manifest: dict[str, Any], sources: list[Source]) -
         for source in sources:
             expected = expected_counts.get(source.source_id, 0)
             effective = runtime_counts[source.source_id]
+            if source.source_id == MANAGED_AUTO_ID:
+                item = next(row for row in manifest["sources"] if row["id"] == source.source_id)
+                expected_nodes = sorted(
+                    str(node.get("name", "")) for node in parse_nodes(
+                        (RELEASES / release_id / item["file"]).read_bytes()
+                    ) if not str(node.get("name", "")).startswith("__STACK_EMPTY_MANAGED_")
+                )
+                if runtime_snapshot[source.source_id] != expected_nodes:
+                    raise ControllerError(f"runtime_managed_identity_mismatch:{source.source_id}")
+                continue
             rejected_percent = max(0.0, (expected - effective) * 100.0 / expected) if expected else 0.0
             if rejected_percent > MAX_RUNTIME_REJECT_PERCENT:
                 raise ControllerError(
@@ -808,48 +1288,221 @@ def _publish(release_id: str, manifest: dict[str, Any], sources: list[Source]) -
                 "warning",
             )
         log("publish_stage", f"release={release_id} stage=production_smoke")
-        ok, detail = production_smoke()
+        ok, detail = production_smoke(deadline)
         if not ok:
             raise ControllerError(f"production_smoke_failed:{detail}")
-        atomic_json(DATA/"release-probation.json",{"release_id":release_id,"previous_pointer":previous_pointer,
-                    "started_at":now(),"baseline":baseline,"records":{},"candidate_hash":manifest.get("candidate_hash","")})
-        checkpoint(DATA/"release-probation.json",json.loads((DATA/"release-probation.json").read_text()))
-        PENDING_PATH.unlink(missing_ok=True)
+        dependency_snapshot, dependency_revision = _runtime_proxy_snapshot(deadline)
+        if dependency_snapshot is None or not _publish_dependencies_safe(
+            previous, manifest, dependency_snapshot, allow_removed_absent=True
+        ):
+            raise ControllerError("selection_dependency_changed_before_finalize")
+        finalized = False
+        for _attempt in range(20):
+            if _remaining(deadline) <= 0:
+                break
+            with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+                if acquired:
+                    pointer=json.loads(CURRENT_PATH.read_text())
+                    if pointer.get("release_id")!=release_id:
+                        recover_interrupted_publish()
+                        return False,"deferred_publish_pointer_changed"
+                    if not _publish_dependencies_safe(
+                        previous, manifest, dependency_snapshot, allow_removed_absent=True
+                    ):
+                        recover_interrupted_publish()
+                        return False,"deferred_selection_dependency_changed"
+                    atomic_json(DATA/"release-probation.json",{"release_id":release_id,"previous_pointer":previous_pointer,
+                                "started_at":now(),"baseline":baseline,"records":{},"candidate_hash":manifest.get("candidate_hash","")})
+                    checkpoint(DATA/"release-probation.json",json.loads((DATA/"release-probation.json").read_text()))
+                    finalized = True
+                    break
+            time.sleep(0.05)
+        if not finalized:
+            # Leave the durable PENDING journal in place.  The next cycle will
+            # fail-static to the previous pointer instead of pretending that a
+            # publication without a finalized journal succeeded.
+            return False,"deferred_publish_finalize_busy"
+        confirmation_snapshot, _confirmation_revision = _runtime_proxy_snapshot(deadline)
+        if confirmation_snapshot is None or not _publish_dependencies_safe(
+            previous, manifest, confirmation_snapshot, allow_removed_absent=True
+        ):
+            raise ControllerError("selection_dependency_changed_after_finalize")
+        committed = False
+        for _attempt in range(20):
+            if _remaining(deadline) <= 0:
+                break
+            with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+                if acquired:
+                    pointer=json.loads(CURRENT_PATH.read_text())
+                    if pointer.get("release_id") != release_id:
+                        recover_interrupted_publish()
+                        return False,"deferred_publish_pointer_changed"
+                    PENDING_PATH.unlink(missing_ok=True)
+                    committed = True
+                    break
+            time.sleep(0.05)
+        if not committed:
+            return False,"deferred_publish_commit_busy"
+        # Detect a direct OpenClash selector write that raced between the last
+        # lock-free snapshot and the PENDING unlink.  A write after this probe
+        # is, by definition, after publication completed.
+        post_commit_snapshot, _post_commit_revision = _runtime_proxy_snapshot(deadline)
+        if post_commit_snapshot is None or not _publish_dependencies_safe(
+            previous, manifest, post_commit_snapshot, allow_removed_absent=True
+        ):
+            with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+                if acquired:
+                    pointer = json.loads(CURRENT_PATH.read_text())
+                    if pointer.get("release_id") == release_id:
+                        atomic_json(PENDING_PATH, {
+                            "release_id": release_id, "previous_pointer": previous_pointer,
+                            "started_at": now(),
+                        })
+                        recover_interrupted_publish()
+                        probation_path = DATA/"release-probation.json"
+                        probation_path.unlink(missing_ok=True)
+            with contextlib.suppress(Exception):
+                refresh_providers(_provider_refs(previous), deadline)
+            return False,"selection_dependency_changed_at_commit"
         return True, f"automatic_publish_ok:effective={effective_total}"
     except Exception as exc:
-        if previous_pointer:
-            atomic_json(CURRENT_PATH, previous_pointer)
+        rolled_back=False
+        for _attempt in range(20):
+            if deadline is not None and _remaining(deadline) <= -1:
+                break
+            with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+                if acquired:
+                    try:
+                        pointer=json.loads(CURRENT_PATH.read_text())
+                    except (OSError,ValueError):
+                        pointer={}
+                    recover_interrupted_publish()
+                    probation_path = DATA/"release-probation.json"
+                    probation = json.loads(probation_path.read_text()) if probation_path.is_file() else {}
+                    if probation.get("release_id") == release_id:
+                        probation_path.unlink(missing_ok=True)
+                    rolled_back = pointer.get("release_id") == release_id
+                    break
+            time.sleep(0.05)
+        if rolled_back:
             with contextlib.suppress(Exception):
-                refresh_providers(sources)
-        PENDING_PATH.unlink(missing_ok=True)
+                previous_manifest=current_manifest()
+                if previous_manifest:
+                    refresh_providers(_provider_refs(previous_manifest), deadline)
+                    with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+                        if acquired and current_manifest() and current_manifest().get("release_id") == previous_manifest.get("release_id"):
+                            (DATA/"recovery-refresh.json").unlink(missing_ok=True)
         return False, safe_detail(str(exc))
 
 
-def cycle() -> None:
+def collect_source_nodes(
+    sources: list[Source], deadline: float | None = None,
+) -> tuple[list[Source], dict[str, list[dict[str, Any]]], int]:
+    source_nodes: dict[str, list[dict[str, Any]]] = {}
+    cached_sources = 0
+    ready_sources: list[Source] = []
+    previous_managed_ids = set(_previous_managed())
+    # All sources share one persisted round-robin cursor.  Each source gets a
+    # bounded slice, so a slow legacy/explicit provider cannot permanently
+    # starve newly discovered managed sources.
+    cursor = int(meta_get("source_fetch_cursor", "0") or 0)
+    if sources:
+        cursor %= len(sources)
+    ordered = sources[cursor:] + sources[:cursor]
+    attempted = 0
+    per_source_budget = max(10, min(FETCH_TIMEOUT + 7, CYCLE_BUDGET / max(1, len(sources))))
+    for source in ordered:
+        budget_exhausted = _remaining(deadline) <= 0
+        try:
+            if budget_exhausted:
+                raise ControllerError("cycle_budget_deferred")
+            source_deadline = None if deadline is None else min(deadline, time.monotonic() + per_source_budget)
+            nodes, cached, _digest = load_or_fetch(source, source_deadline)
+            attempted += 1
+        except Exception as exc:
+            if not budget_exhausted:
+                attempted += 1
+            # Deadline exhaustion never spawns or leaves a late worker.  Keep
+            # exact last-published bytes for an existing source; a new managed
+            # source remains isolated until a later fair round-robin cycle.
+            if "cycle_budget" in str(exc):
+                retained = retained_provider(source, current_manifest())
+                if retained:
+                    source_nodes[source.source_id] = retained
+                    ready_sources.append(source)
+                    cached_sources += 1
+                    row = SOURCE_RECONCILE.get(source.source_id, {})
+                    row.update(lifecycle="deferred", actual="retained", reason="cycle_budget_deferred")
+                    SOURCE_RECONCILE[source.source_id] = row
+                    continue
+                row = SOURCE_RECONCILE.get(source.source_id, {
+                    "id": source.source_id, "name": source.name, "origin": source.origin,
+                    "desired": "present", "dependencies": [],
+                })
+                row.update(lifecycle="deferred", actual="not_published", reason="cycle_budget_deferred")
+                SOURCE_RECONCILE[source.source_id] = row
+                continue
+            if source.origin != "managed":
+                raise
+            if source.source_id in previous_managed_ids:
+                raise ControllerError(
+                    f"existing_managed_source_unavailable_frozen:{source.source_id}:{safe_detail(str(exc))}"
+                ) from exc
+            row = SOURCE_RECONCILE.get(source.source_id, {
+                "id": source.source_id, "name": source.name, "origin": "managed",
+                "desired": "present", "dependencies": [],
+            })
+            row.update(lifecycle="error", actual="not_published", reason=safe_detail(str(exc)))
+            SOURCE_RECONCILE[source.source_id] = row
+            log("managed_source_isolated", f"source={source.source_id} reason={exc}", "warning")
+            continue
+        source_nodes[source.source_id] = nodes
+        ready_sources.append(source)
+        cached_sources += int(cached)
+    if sources:
+        meta_set("source_fetch_cursor", str((cursor + max(1, attempted)) % len(sources)))
+    original_order = {source.source_id: index for index, source in enumerate(sources)}
+    ready_sources.sort(key=lambda source: original_order[source.source_id])
+    return ready_sources, source_nodes, cached_sources
+
+
+def reconcile_requested() -> bool:
+    path = DATA / "reconcile-request.json"
+    try:
+        if path.stat().st_size > 4096:
+            return False
+        value = json.loads(path.read_text(encoding="utf-8"))
+        requested_at = value.get("requested_at")
+        source_id = value.get("source_id")
+        return bool(
+            value.get("schema") == 1 and value.get("owner") in {"unified-center", "admission-queue"}
+            and type(requested_at) in (int, float) and 0 <= now() - requested_at <= 600
+            and isinstance(source_id, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,96}", source_id)
+        )
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def _cycle_locked() -> None:
+    cycle_started = time.monotonic()
+    cycle_deadline = cycle_started + CYCLE_BUDGET
     RETAINED_SOURCES.clear()
-    sources = load_sources()
-    repair_pointer()
+    proxy_snapshot, _selector_revision = _runtime_proxy_snapshot(cycle_deadline)
+    proxy_snapshot = proxy_snapshot if proxy_snapshot is not None else {}
+    sources = load_sources(proxy_snapshot)
+    (DATA / "reconcile-request.json").unlink(missing_ok=True)
+    if not repair_and_refresh(cycle_deadline):
+        raise ControllerError("deferred_routing_owner_busy")
     if CURRENT_PATH.exists() and current_manifest() is None:
         raise ControllerError("current_release_invalid_frozen")
-    recovery=DATA/"recovery-refresh.json"
-    if recovery.exists() and MODE=="automatic":
-        with exclusive(DATA.parent/"routing-owner.lock") as acquired:
-            if not acquired:raise ControllerError("recovery_routing_owner_busy")
-            refresh_providers(sources)
-            recovery.unlink()
-    capabilities = capability_nodes()
-    source_nodes: dict[str, list[dict[str, Any]]] = {}
+    capabilities = capability_nodes(cycle_deadline)
     previous_source_counts = {
         source.source_id: int((state_row(source.source_id) or {"last_count": 0})["last_count"])
         for source in sources
     }
-    cached_sources = 0
-    for source in sources:
-        nodes, cached, _digest = load_or_fetch(source)
-        source_nodes[source.source_id] = nodes
-        cached_sources += int(cached)
+    sources, source_nodes, cached_sources = collect_source_nodes(sources, cycle_deadline)
     release_id, manifest, risk, reasons, hard_hold = create_release(
-        source_nodes, sources, capabilities, cached_sources, previous_source_counts
+        source_nodes, sources, capabilities, cached_sources, previous_source_counts, proxy_snapshot, cycle_deadline
     )
     previous_id = str(manifest.get("previous_id", ""))
     candidate_hash = str(manifest["candidate_hash"])
@@ -868,26 +1521,64 @@ def cycle() -> None:
     elif MODE == "shadow" and CURRENT_PATH.is_file():
         status, reason = "shadow", "shadow_mode_no_publish"
     else:
-        ok, detail = publish(release_id, manifest, sources)
+        if _remaining(cycle_deadline) <= 0:
+            ok, detail = False, "deferred_cycle_budget_exhausted"
+        else:
+            ok, detail = publish(release_id, manifest, _provider_refs(manifest), cycle_deadline)
         status, reason = ("published", detail) if ok else ("held" if detail.startswith("deferred_") else "rolled_back", detail)
     release_record(release_id, status, MODE, int(manifest["node_count"]), risk,
                    previous_id, candidate_hash, reason, manifest)
     prune_releases()
-    effective_node_count = int(meta_get("last_effective_count", str(manifest["node_count"])))
+    serving_manifest = current_manifest() or manifest
+    serving_breakdown = {str(item.get("id")): item for item in serving_manifest.get("source_breakdown", [])}
+    for source_id, row in SOURCE_RECONCILE.items():
+        if row.get("origin") != "managed" or row.get("lifecycle") in {"error", "retained_by_selection"}:
+            continue
+        serving = serving_breakdown.get(source_id)
+        if serving:
+            row.update(actual="published", lifecycle="published" if serving.get("approved_count") else "checking",
+                       candidate_count=int(serving.get("candidate_count", 0)),
+                       approved_count=int(serving.get("approved_count", 0)))
+        else:
+            row.update(actual="staged", lifecycle="checking")
+    effective_node_count = int(meta_get("last_effective_count", str(serving_manifest["node_count"])))
     if CURRENT_PATH.is_file() and OPENCLASH_SECRET:
         try:
-            effective_node_count = sum(runtime_provider_counts(sources).values())
+            runtime_snapshot = runtime_provider_snapshot(_provider_refs(serving_manifest), cycle_deadline)
+            counts = {source_id: len(names) for source_id, names in runtime_snapshot.items()}
+            effective_node_count = sum(counts.values())
             meta_set("last_effective_count", str(effective_node_count))
+            active_names = set(runtime_snapshot.get(MANAGED_AUTO_ID, []))
+            for item in serving_manifest.get("source_breakdown", []):
+                source_id = str(item.get("id", ""))
+                approved_names = {str(name) for name in item.get("approved_names", [])}
+                loaded = approved_names.issubset(active_names)
+                if source_id in SOURCE_RECONCILE:
+                    SOURCE_RECONCILE[source_id]["loaded"] = loaded
         except Exception as exc:
             log("runtime_provider_count_failed", str(exc), "warning")
     atomic_json(HEALTH_PATH, {
         "status": "degraded" if RETAINED_SOURCES or status in {"rolled_back","rejected"} else "ok", "mode": MODE, "epoch": now(), "release_id": release_id,
+        "current_release": serving_manifest.get("release_id"),
         "retained_sources": sorted(RETAINED_SOURCES), "serving_previous_release": bool(RETAINED_SOURCES),
-        "release_status": status, "node_count": manifest["node_count"], "risk_score": risk,
+        "release_status": status, "node_count": serving_manifest["node_count"], "risk_score": risk,
         "effective_node_count": effective_node_count,
         "cached_sources": cached_sources, "reason": reason,
+        "cycle_budget_seconds": CYCLE_BUDGET,
+        "cycle_elapsed_seconds": round(time.monotonic() - cycle_started, 3),
+        "source_inventory": sorted(SOURCE_RECONCILE.values(), key=lambda row: str(row.get("id", ""))),
+        "managed": serving_manifest.get("managed", {}),
     }, 0o644)
     log("cycle_complete", f"release={release_id} status={status} nodes={manifest['node_count']} risk={risk}")
+
+
+def cycle() -> None:
+    # Slow fetch/parse/admission work uses a private single-flight lock. Only
+    # pointer commits and dependency CAS use the shared routing-owner lock.
+    with exclusive(DATA / "reconcile.lock") as acquired:
+        if not acquired:
+            raise ControllerError("deferred_reconcile_busy")
+        _cycle_locked()
 
 
 def latest_status() -> dict[str, Any]:
@@ -994,7 +1685,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send(404, "application/json", b'{"status":"not_found"}')
 
 
-def maintain_probation():
+def _maintain_probation_locked() -> list[Source] | None:
+    refresh_after_unlock: list[Source] | None = None
     path=DATA/"release-probation.json"
     if not path.exists() or (DATA.parent/"automation-freeze").exists():return
     def valid_job(d):
@@ -1025,17 +1717,21 @@ def maintain_probation():
     atomic_json(path,job);checkpoint(path,job)
     if verdict=="running":return
     if verdict=="rollback_regression":
-        with exclusive(DATA.parent/"routing-owner.lock") as acquired:
-            if not acquired:return
-            try:
-                quality=json.loads((DATA.parent/"route-quality.json").read_text())
-                if quality.get("trial"):return
-            except (OSError,ValueError,TypeError):return
-            job["rollback_started"]=True;atomic_json(path,job);checkpoint(path,job)
-            atomic_json(CURRENT_PATH,job["previous_pointer"])
-            refresh_providers(load_sources())
-            set_release_status(job["release_id"],"rolled_back","independent_probe_regression")
-            meta_set("rejected_candidate_hash",job.get("candidate_hash",""));meta_set("rejected_until",str(now()+21600))
+        try:
+            quality=json.loads((DATA.parent/"route-quality.json").read_text())
+            if quality.get("trial"):return
+        except (OSError,ValueError,TypeError):return
+        job["rollback_started"]=True;atomic_json(path,job);checkpoint(path,job)
+        atomic_json(CURRENT_PATH,job["previous_pointer"])
+        restored = current_manifest()
+        if not restored:raise ControllerError("probation_previous_release_invalid")
+        # Pointer rollback is the coordinator transaction.  Provider refresh is
+        # intentionally returned to the caller and performed after releasing
+        # the global routing lock.
+        atomic_json(DATA/"recovery-refresh.json", {"required": True, "at": now()})
+        refresh_after_unlock = _provider_refs(restored)
+        set_release_status(job["release_id"],"rolled_back","independent_probe_regression")
+        meta_set("rejected_candidate_hash",job.get("candidate_hash",""));meta_set("rejected_until",str(now()+21600))
     elif verdict=="passed":
         if not valid_pointer(pointer):raise ControllerError("probation_candidate_checksum_failed")
         atomic_json(DATA/"verified-current.json",pointer);checkpoint(DATA/"verified-current.json",pointer)
@@ -1044,6 +1740,22 @@ def maintain_probation():
     summary={k:v for k,v in job.items() if k!="records"};summary.update(status=verdict,finished_at=now())
     atomic_json(DATA/"last-probation.json",summary)
     path.unlink();log("release_probation_complete",verdict)
+    return refresh_after_unlock
+
+
+def maintain_probation():
+    refresh_after_unlock = None
+    with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+        if acquired:
+            refresh_after_unlock = _maintain_probation_locked()
+    if refresh_after_unlock:
+        refresh_release_id = (current_manifest() or {}).get("release_id")
+        refresh_providers(refresh_after_unlock)
+        with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+            if acquired:
+                current = current_manifest()
+                if current and current.get("release_id") == refresh_release_id:
+                    (DATA/"recovery-refresh.json").unlink(missing_ok=True)
 
 
 def scheduler() -> None:
@@ -1053,22 +1765,23 @@ def scheduler() -> None:
             with LOCK:
                 cycle()
         except Exception as exc:
-            log("cycle_failed", str(exc), "error")
-            atomic_json(HEALTH_PATH, {
-                "status": "degraded", "mode": MODE, "epoch": now(), "reason": safe_detail(str(exc)),
-                "current_release": (current_manifest() or {}).get("release_id", ""),
-            }, 0o644)
+            with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+                if acquired:
+                    log("cycle_failed", str(exc), "error")
+                    atomic_json(HEALTH_PATH, {
+                        "status": "degraded", "mode": MODE, "epoch": now(), "reason": safe_detail(str(exc)),
+                        "current_release": (current_manifest() or {}).get("release_id", ""),
+                    }, 0o644)
         deadline=started+INTERVAL
         while now()<deadline:
             time.sleep(min(30,max(1,deadline-now())))
+            if reconcile_requested():
+                break
             try:
                 maintain_probation()
-                if repair_pointer():
-                    with exclusive(DATA.parent/"routing-owner.lock") as acquired:
-                        if acquired:
-                            refresh_providers(load_sources())
-                            (DATA/"recovery-refresh.json").unlink(missing_ok=True)
-            except Exception as error:log("pointer_repair_deferred",type(error).__name__,"warning")
+                repair_and_refresh()
+            except Exception:
+                pass
 
 
 def self_test() -> None:
@@ -1114,14 +1827,14 @@ def self_test() -> None:
         try:
             MODE = "automatic"
             POST_PUBLISH_WAIT = 0
-            refresh_providers = lambda _sources: None
+            refresh_providers = lambda _sources, _deadline=None: None
             runtime_provider_counts = lambda _sources: {"a": 1}
-            production_smoke = lambda: (False, "forced_failure")
+            production_smoke = lambda _deadline=None: (False, "forced_failure")
             ok, _detail = publish("bad-release", {}, load_sources())
             assert not ok
             assert json.loads(CURRENT_PATH.read_text())["release_id"] == "known-good"
             runtime_provider_counts = lambda _sources: {"a": 5}
-            production_smoke = lambda: (True, "ok")
+            production_smoke = lambda _deadline=None: (True, "ok")
             bad_manifest = {"sources": [{"id": "a", "node_count": 10}]}
             ok, _detail = publish("runtime-filtered-release", bad_manifest, load_sources())
             assert not ok
@@ -1173,14 +1886,20 @@ def _main() -> None:
         server=ThreadingHTTPServer(("0.0.0.0",HTTP_PORT),Handler)
         server.serve_forever();return
     if args.once:
-        recover_interrupted_publish()
+        with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+            if not acquired:
+                raise SystemExit("routing_owner_busy")
+            recover_interrupted_publish()
         cycle()
         return
-    recover_interrupted_publish()
-    repair_pointer()
-    if current_manifest() is not None and not (DATA/"verified-current.json").exists():
-        pointer=json.loads(CURRENT_PATH.read_text())
-        atomic_json(DATA/"verified-current.json",pointer);checkpoint(DATA/"verified-current.json",pointer)
+    with exclusive(DATA.parent/"routing-owner.lock") as acquired:
+        if not acquired:
+            raise SystemExit("routing_owner_busy")
+        recover_interrupted_publish()
+        repair_pointer()
+        if current_manifest() is not None and not (DATA/"verified-current.json").exists():
+            pointer=json.loads(CURRENT_PATH.read_text())
+            atomic_json(DATA/"verified-current.json",pointer);checkpoint(DATA/"verified-current.json",pointer)
     __import__("sys").path.insert(0, "/local-subscription")
     from local_web import install
     install(globals())
