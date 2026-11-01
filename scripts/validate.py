@@ -168,6 +168,8 @@ REQUIRED_DIRECT_EXCEPTIONS = {
     "'+.6ta.net'",
 }
 REQUIRED_RULE_FILES = {
+    "cc-override-direct.yaml",
+    "cc-override-proxy.yaml",
     "bank-cn.yaml",
     "government-cn.yaml",
     "securities-cn.yaml",

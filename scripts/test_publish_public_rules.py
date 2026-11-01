@@ -58,6 +58,21 @@ class PublicRulesPublisherTests(unittest.TestCase):
             )
             self.assertEqual(result["template_rules"], len(PUBLISHER.PUBLIC_TEMPLATE_RULES))
 
+    def test_routing_override_rules_are_allowlisted_empty_payloads(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.fixture(root)
+            for name in ("cc-override-direct.yaml", "cc-override-proxy.yaml"):
+                (source / "rules" / name).write_text("payload:\n", encoding="utf-8")
+            output = root / "public"
+            PUBLISHER.publish(source, output)
+            for name in ("cc-override-direct.yaml", "cc-override-proxy.yaml"):
+                self.assertIn(name, PUBLISHER.ADDITIONAL_PUBLIC_RULES)
+                self.assertEqual(
+                    (output / "rules" / name).read_text(encoding="utf-8"),
+                    "payload:\n",
+                )
+
     def test_missing_source_rule_fails_before_output_exists(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

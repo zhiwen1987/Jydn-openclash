@@ -50,7 +50,13 @@ PUBLIC_TEMPLATE_RULES = frozenset(
         "webrtc-client.yaml",
     }
 )
-ADDITIONAL_PUBLIC_RULES = frozenset({"smarthome-direct.yaml"})
+ADDITIONAL_PUBLIC_RULES = frozenset(
+    {
+        "cc-override-direct.yaml",
+        "cc-override-proxy.yaml",
+        "smarthome-direct.yaml",
+    }
+)
 
 # The source embeds the production LAN prefix and router address.  The public
 # repository gets an empty placeholder at the same URL; deployments inject the
