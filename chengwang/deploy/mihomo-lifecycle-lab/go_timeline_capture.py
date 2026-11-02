@@ -303,10 +303,6 @@ class Projector:
         self.discard[key] += 1
 
     def _transition(self, key, action, delta, elapsed):
-        self.transitions += 1
-        if self.transitions > MAX_TRANSITIONS:
-            self.reject('TRANSITION_CAP')
-            return
         state = self.tests.get(key, 'ABSENT')
         next_state = None
         if action == 'run' and state == 'ABSENT': next_state = 'RUNNING'
@@ -316,6 +312,11 @@ class Projector:
         elif action == 'output' and state != 'ABSENT': next_state = state
         if next_state is None:
             self.reject('FSM_REJECTED'); return
+        if next_state != state:
+            self.transitions += 1
+            if self.transitions > MAX_TRANSITIONS:
+                self.reject('TRANSITION_CAP')
+                return
         self.tests[key] = next_state
         if action in ('pass', 'fail', 'skip'):
             self.test_terminal[key] = action
@@ -607,16 +608,32 @@ def run_spawn(argv, lane, raw_path, stderr_path, publication_parent, source_comm
                 if not guard.restore_handlers(): status = status if status else 125
     return status if status >= 0 else 128-status
 
-def main():
-    parser=argparse.ArgumentParser()
+CONTROL_OPTIONS=(
+    '--lane','--raw','--stderr','--publication-parent','--source-commit','--source-tree',
+)
+
+def _parse_control_and_command(argv):
+    parser=argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument('mode', choices=['spawn'])
     parser.add_argument('--lane', choices=['FOUNDATION_ORDINARY','FOUNDATION_RACE'], required=True)
     parser.add_argument('--raw', type=Path, required=True); parser.add_argument('--stderr', type=Path, required=True)
     parser.add_argument('--publication-parent', type=Path, required=True)
     parser.add_argument('--source-commit', required=True); parser.add_argument('--source-tree', required=True)
-    parser.add_argument('argv', nargs=argparse.REMAINDER)
-    args=parser.parse_args(); need(args.argv and args.argv[0]=='--')
-    raise SystemExit(run_spawn(args.argv[1:],args.lane,args.raw,args.stderr,args.publication_parent,
+    try: boundary=argv.index('--')
+    except ValueError: parser.error("missing '--' command boundary")
+    control=argv[:boundary];command=argv[boundary+1:]
+    if not command: parser.error('command tail must not be empty')
+    seen=set()
+    for token in control:
+        option=token.split('=',1)[0]
+        if option in CONTROL_OPTIONS:
+            if option in seen: parser.error('duplicate control option: '+option)
+            seen.add(option)
+    return parser.parse_args(control),command
+
+def main():
+    args,command=_parse_control_and_command(sys.argv[1:])
+    raise SystemExit(run_spawn(command,args.lane,args.raw,args.stderr,args.publication_parent,
                                args.source_commit,args.source_tree))
 
 if __name__ == '__main__':

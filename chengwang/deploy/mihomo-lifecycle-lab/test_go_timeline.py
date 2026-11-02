@@ -6,6 +6,7 @@ from pathlib import Path
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import types
 import unittest
@@ -102,10 +103,43 @@ class TimelineModels(unittest.TestCase):
         self.assertNotIn(canary.encode(),raw);self.assertNotIn(b'TOKEN-CANARY',raw)
 
     def test_transition_cap_is_fail_closed(self):
-        p=self.projector();p.transitions=capture.MAX_TRANSITIONS
-        pkg='chengwang/internal/api';p.packages[pkg]='STARTED'
-        p._transition(pkg+'::TestX','run',1,None)
-        self.assertEqual(p.failure,'TRANSITION_CAP')
+        p=self.projector();pkg='chengwang/internal/api';p.packages[pkg]='STARTED'
+        top='TestSyntheticTransitionCap'
+        for index in range(capture.MAX_TRANSITIONS//2):
+            key=f'{pkg}::{top}/dynamic-{index}'
+            p._transition(key,'run',index*2+1,None)
+            p._transition(key,'pass',index*2+2,.01)
+        self.assertTrue(p.semantic);self.assertEqual(p.transitions,capture.MAX_TRANSITIONS)
+        blocked=f'{pkg}::{top}/blocked'
+        p._transition(blocked,'run',capture.MAX_TRANSITIONS+1,None)
+        self.assertFalse(p.semantic);self.assertEqual(p.failure,'TRANSITION_CAP')
+        self.assertEqual(p.transitions,capture.MAX_TRANSITIONS+1);self.assertNotIn(blocked,p.tests)
+
+    def test_output_self_loops_do_not_consume_transition_cap_and_other_validation_remains(self):
+        pkg='chengwang/internal/api';name='TestSyntheticOutputBudget';key=pkg+'::'+name
+        p=self.projector();p.event(event(pkg,'start'),1,0);p.event(event(pkg,'run',name),2,0)
+        for index in range(capture.MAX_TRANSITIONS):
+            p.event(event(pkg,'output',name,output=f'bounded-{index}'),index+3,0)
+        self.assertTrue(p.semantic);self.assertEqual(p.tests[key],'RUNNING')
+        self.assertEqual(p.transitions,1);self.assertEqual(p.events,capture.MAX_TRANSITIONS+2)
+        self.assertEqual(p.discard['output'],capture.MAX_TRANSITIONS)
+        p.event(event(pkg,'pass',name,.01),capture.MAX_TRANSITIONS+3,0)
+        self.assertTrue(p.semantic);self.assertEqual(p.tests[key],'TERMINAL');self.assertEqual(p.transitions,2)
+
+        unseen=self.projector();unseen.event(event(pkg,'start'),1,0)
+        unseen.event(event(pkg,'output','TestUnseen',output='bounded'),2,0)
+        self.assertFalse(unseen.semantic);self.assertEqual(unseen.failure,'FSM_REJECTED')
+
+        malformed=self.projector();malformed.event(event(pkg,'start'),1,0)
+        malformed.event(event(pkg,'run',name),2,0)
+        malformed.event(event(pkg,'output',name,output=7),3,0)
+        self.assertFalse(malformed.semantic);self.assertEqual(malformed.failure,'JSON_REJECTED')
+
+        capped=self.projector();capped.packages[pkg]='STARTED';capped.tests[key]='RUNNING'
+        capped.events=capture.MAX_EVENTS
+        capped.event(event(pkg,'output',name,output='bounded'),1,0)
+        self.assertFalse(capped.semantic);self.assertEqual(capped.failure,'EVENT_CAP')
+        self.assertEqual(capped.transitions,0);self.assertEqual(capped.tests[key],'RUNNING')
 
     def test_delta_payload_rejects_absolute_mutant(self):
         p=self.projector();value=p.payload(FakeGuard(),boundaries(),'COMPLETE_EOF')
@@ -237,6 +271,62 @@ class CollectorStubModels(unittest.TestCase):
         self.assertEqual(code,0);self.assertEqual(retained,raw);self.assertEqual(process.waits,1)
         self.assertFalse(projector.semantic);self.assertEqual(capture.decode(public)['topCoverage'],'REJECTED_SEMANTICS')
         self.assertNotIn(b'CANARY-AFTER-REJECT',public)
+
+class MainCliModels(unittest.TestCase):
+    def argv(self,tail=None):
+        return ['go_timeline_capture.py','spawn','--lane','FOUNDATION_ORDINARY',
+                '--raw','raw.json','--stderr','stderr.txt',
+                '--publication-parent','published','--source-commit',COMMIT,
+                '--source-tree',TREE,'--',*(tail if tail is not None else ['stub'])]
+
+    def invoke(self,argv):
+        with mock.patch.object(sys,'argv',argv),mock.patch.object(capture,'run_spawn',return_value=17) as spawn,\
+             mock.patch.object(sys,'stderr',io.StringIO()):
+            with self.assertRaises(SystemExit) as stopped:capture.main()
+        return stopped.exception.code,spawn
+
+    def test_actual_main_preserves_opaque_command_tail(self):
+        tail=['stub','-test.run','TestOne','--','--lane','FOUNDATION_RACE','--raw=opaque']
+        code,spawn=self.invoke(self.argv(tail))
+        self.assertEqual(code,17)
+        spawn.assert_called_once_with(tail,'FOUNDATION_ORDINARY',Path('raw.json'),Path('stderr.txt'),
+                                      Path('published'),COMMIT,TREE)
+
+    def test_actual_main_preserves_separator_at_start_of_nonempty_tail(self):
+        tail=['--','stub','--','-test.v']
+        code,spawn=self.invoke(self.argv(tail))
+        self.assertEqual(code,17);self.assertEqual(spawn.call_args.args[0],tail)
+
+    def test_actual_main_rejects_missing_boundary_and_empty_tail(self):
+        for argv in (self.argv()[:-2]+['stub'],self.argv([])):
+            with self.subTest(argv=argv):
+                code,spawn=self.invoke(argv)
+                self.assertEqual(code,2);spawn.assert_not_called()
+
+    def test_actual_main_rejects_unknown_control_option(self):
+        for option in ('--unknown-control','--lan'):
+            with self.subTest(option=option):
+                argv=self.argv();argv[2:2]=[option,'value']
+                code,spawn=self.invoke(argv)
+                self.assertEqual(code,2);spawn.assert_not_called()
+
+    def test_actual_main_rejects_each_duplicate_control_option(self):
+        values={'--lane':'FOUNDATION_RACE','--raw':'other-raw','--stderr':'other-stderr',
+                '--publication-parent':'other-publication','--source-commit':'c'*40,
+                '--source-tree':'d'*40}
+        for option,value in values.items():
+            for duplicate in ([option,value],[option+'='+value]):
+                with self.subTest(option=option,duplicate=duplicate):
+                    argv=self.argv();argv[2:2]=duplicate
+                    code,spawn=self.invoke(argv)
+                    self.assertEqual(code,2);spawn.assert_not_called()
+
+    def test_actual_main_rejects_each_missing_required_control(self):
+        for option in capture.CONTROL_OPTIONS:
+            with self.subTest(option=option):
+                argv=self.argv();index=argv.index(option);del argv[index:index+2]
+                code,spawn=self.invoke(argv)
+                self.assertEqual(code,2);spawn.assert_not_called()
 
 class SourceContracts(unittest.TestCase):
     def text(self,name):return (Path(__file__).parent/name).read_text(encoding='utf8')

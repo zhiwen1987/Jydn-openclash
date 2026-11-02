@@ -583,12 +583,12 @@ func archiveCallerPolicyViolations(relative string, raw []byte, allowed string) 
 			violations = append(violations, "Open must execute directly in one named function body")
 			return true
 		}
-		if handle.Obj == nil || handle.Obj.Kind != ast.Var || handle.Obj.Decl != assign || handle.Obj.Pos() != handle.Pos() {
-			violations = append(violations, "Open handle must be a newly declared function-local object")
-			return true
-		}
 		if functionBindingNamed(owner, handle.Name) {
 			violations = append(violations, "Open handle may not shadow a parameter or named result")
+			return true
+		}
+		if handle.Obj == nil || handle.Obj.Kind != ast.Var || handle.Obj.Decl != assign || handle.Obj.Pos() != handle.Pos() {
+			violations = append(violations, "Open handle must be a newly declared function-local object")
 			return true
 		}
 		if file.Scope != nil && file.Scope.Lookup(handle.Name) != nil {

@@ -67,11 +67,11 @@ jobs:
           names=sorted(c.name+'.'+n.name for c in tree.body if isinstance(c,ast.ClassDef) for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
           observed=re.findall(r'^(test_[A-Za-z0-9_]+) \(test_go_timeline\.([A-Za-z0-9_]+)\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',timeline,re.M)
           qualified=sorted(cls+'.'+method for visible,cls,method in observed if visible==method)
-          assert len(names)==len(set(names))==len(observed)==38 and qualified==names
-          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='d15ee14712d016e92c98edd4bf1b44deaef98682683ab1d5d22dbc3b43815d66'
-          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',timeline,re.M)==['38'] and re.findall(r'^OK$',timeline,re.M)==['OK']
+          assert len(names)==len(set(names))==len(observed)==45 and qualified==names
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='b11786e4a3ce5f34441e7c7ea72e46f74b590fbb2ef23a18a5f94cba0098010c'
+          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',timeline,re.M)==['45'] and re.findall(r'^OK$',timeline,re.M)==['OK']
           assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',timeline,re.M)
-          print('PYTHON_MODELS=PASS pin47 evidence29 timeline38 not_go_or_kernel_execution=true')
+          print('PYTHON_MODELS=PASS pin47 evidence29 timeline45 not_go_or_kernel_execution=true')
           checker=Path('chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py')
           spec=importlib.util.spec_from_file_location('declared_go_contracts',checker)
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
