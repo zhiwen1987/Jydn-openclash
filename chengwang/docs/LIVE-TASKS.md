@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+2026-11-03 当前源码截点（下方均为历史）：[UID 模型与 HTTPS 读回门修复](SYS07-UID-FIXTURE-AND-FRESH-GATE-20261103.md)，代码 `b817ff79`，tree `cd2c2ca2`。UID 三路径修复 `54102959` 经组件/合同闭包独审，root 224 项模型通过；随后 HTTPS 两路径修复经独审及 root 7 项模型通过。这不是一次 231 项执行，也不是 Linux/Go/联合业务/上线验收。124a 安全原件明确显示 joint 85 PASS/4 ERROR/1 FAIL，普通 Foundation 689 PASS，Race/Capacity 超时文本且未完成，31 被取消、原因 UNKNOWN。新的 Linux CI 仍待。性能候选 A v1 因增加编码次数被独审退回，未集成；256 历史夹具优化仅设计。私有 JY-CW `b01aa119` 已归档至 124a，66888 payload 全校验、远端 fresh 184 文件读回；b817 新阶段尚未补档。生产未动。
+
 2026-11-03 新诊断源码截点：[严格模型门与固定文本观察](SYS07-STRICT-MODEL-MARKER-DIAGNOSTICS-20261103.md)，代码 `944f453b` / tree `a6f98872`。9 路径已备份并经组件/组合独审，根会话 224 项受影响 Python 检查通过（83/90/46/5），实际 source/joint853 闭包通过。增加 ≤16 KiB 来源白名单模型诊断、强制全部必跑模型真实 PASS，时间线 v2 仅观察固定文本而不推断根因；Go 源码与预算未改。新 HEAD Linux/上传/Go/31/业务仍待。旧 8c08 的 P207528 和 31 链接受仅属于旧 HEAD，Race 和 joint 尚未接受。私有 JY-CW 的 a53409a2 已归档至 8c08 并 remote 654 文件读回；本诊断新阶段尚待后续补档。生产未动。
 
 2026-11-03 最新源码截点：[Go guard/采集入口/转换计数修复](SYS07-CI-ENTRYPOINT-REPAIR-20261103.md)，代码 `120b2dff` / tree `d1a4f24b`。8 路径前像已备份，组件及组合双切片独审接受，根会话 211 项受影响 Python 方法通过（83/83/45），实际 source/joint853 闭包通过。此前 fcdb 的 Go 原件为 527/528、唯一证据包 guard 顶层失败；本次仅调拒绝分类顺序，新增 CLI 真实入口回归并修正 output 误耗转换计数，所有预算常量和 Go 528/689 身份不减。新提交实际 Linux Go、场景与 31 链仍待；未上线，生产/main/Registry 不动。
