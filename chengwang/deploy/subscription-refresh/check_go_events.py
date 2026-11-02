@@ -72,7 +72,7 @@ def write_new(path: Path, raw: bytes) -> None:
 
 
 def expected(contract: dict) -> dict[str, list[str]]:
-    need(contract.get("schema") == "chengwang.subscription-refresh-source/v3", "contract schema")
+    need(contract.get("schema") == "chengwang.subscription-refresh-source/v4", "contract schema")
     go_test = contract.get("goTest")
     need(type(go_test) is dict and set(go_test) == {"packages", "goos", "goarch", "compiler", "goVersion", "cgoEnabled", "buildTags", "runPattern", "count", "timeoutSeconds"}, "Go test contract")
     need(type(go_test["packages"]) is list and len(go_test["packages"]) == len(set(go_test["packages"])), "Go packages")

@@ -19,7 +19,7 @@ import shlex
 import subprocess
 
 
-SCHEMA = "chengwang.subscription-refresh-source/v3"
+SCHEMA = "chengwang.subscription-refresh-source/v4"
 SCOPE = "CONSERVATIVE_TRACKED_SOURCE_CLOSURE_NOT_GO_DEPENDENCY_GRAPH_OR_EXECUTION"
 PACKAGE_NAMES = (
     "chengwang/internal/api",
@@ -29,6 +29,32 @@ PACKAGE_NAMES = (
     "chengwang/internal/subscription",
     "chengwang/internal/subscriptionctl",
     "chengwang/internal/subscriptionpolicy",
+)
+HISTORICAL_BASELINE_SOURCE_COUNT = 453
+HISTORICAL_BASELINE_SOURCE_SHA256 = "319025b42a43817ed041ae2cb7349f6a3164e295cad2dbc143718f6a6002b81b"
+HISTORICAL_BASELINE_REQUIRED_RUN_COUNT = 448
+HISTORICAL_BASELINE_REQUIRED_RUN_SHA256 = "34221f6a5f60aa7a3ad5a47e776f7b789c9295df15ab8c40f298ea8d4932afd7"
+WORKFLOW_TEMPLATE_SHA256 = "2baeff338685d8bd0731a6fbfb65ab0957bf2086ff616ef33786b70f08ce2120"
+WORKFLOW_PIN_SPECS = (
+    ("CONTRACT_SHA256", "contractSHA256", "digest"),
+    ("CHECKER_SHA256", "checkerSHA256", "digest"),
+    ("MODEL_SHA256", "modelSHA256", "digest"),
+    ("EVENT_CHECKER_SHA256", "eventCheckerSHA256", "digest"),
+    ("EVENT_MODEL_SHA256", "eventModelSHA256", "digest"),
+    ("FAILURE_CHECKER_SHA256", "failureCheckerSHA256", "digest"),
+    ("FAILURE_MODEL_SHA256", "failureModelSHA256", "digest"),
+    ("GO_LIST_CHECKER_SHA256", "goListCheckerSHA256", "digest"),
+    ("GO_LIST_MODEL_SHA256", "goListModelSHA256", "digest"),
+    ("MODULE_COUNT", "moduleCount", "count"),
+    ("MODULE_SHA256", "moduleSHA256", "digest"),
+    ("FIXTURE_COUNT", "fixtureCount", "count"),
+    ("FIXTURE_SHA256", "fixtureSHA256", "digest"),
+    ("TEST_TOP_COUNT", "testTopCount", "count"),
+    ("TEST_TOPS_SHA256", "testTopsSHA256", "digest"),
+    ("RUN_TOP_COUNT", "runTopCount", "count"),
+    ("RUN_TOPS_SHA256", "runTopsSHA256", "digest"),
+    ("CHANGED_GO_COUNT", "changedGoCount", "count"),
+    ("CHANGED_GO_SHA256", "changedGoSHA256", "digest"),
 )
 MODULE_METADATA = ("chengwang/go.mod", "chengwang/go.sum", "chengwang/vendor/modules.txt")
 GATE_FILES = (
@@ -388,13 +414,46 @@ def workflow_upload_paths(text: str) -> dict[str, tuple[str, ...]]:
     return uploads
 
 
-def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tuple[str, ...]) -> None:
+def normalize_workflow_template(text: str) -> tuple[str, dict[str, object]]:
+    specs = {name: (pin, kind) for name, pin, kind in WORKFLOW_PIN_SPECS}
+    observed: list[str] = []
+    values: dict[str, object] = {}
+    normalized: list[str] = []
+    for line in text.splitlines(keepends=True):
+        match = re.fullmatch(r"  ([A-Z][A-Z0-9_]*): ([^\n]+)\n", line)
+        if match is None or match.group(1) not in specs:
+            normalized.append(line)
+            continue
+        name, raw = match.groups()
+        pin, kind = specs[name]
+        observed.append(name)
+        if kind == "digest":
+            need(DIGEST.fullmatch(raw) is not None, f"workflow {name} format")
+            values[pin] = raw
+        else:
+            count_match = re.fullmatch(r"'([0-9]+)'", raw)
+            need(count_match is not None, f"workflow {name} format")
+            values[pin] = int(count_match.group(1))
+        normalized.append(f"  {name}: <PIN:{name}>\n")
+    need(tuple(observed) == tuple(name for name, _pin, _kind in WORKFLOW_PIN_SPECS),
+         "workflow pin names/order/multiplicity")
+    return "".join(normalized), values
+
+
+def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tuple[str, ...], pins: dict) -> None:
     raw = read_bound(root, ".github/workflows/chengwang-subscription-refresh.yml")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise ContractError("workflow is not utf-8") from exc
     need("\r" not in text, "workflow must be LF")
+    normalized, workflow_pins = normalize_workflow_template(text)
+    need(workflow_pins == {pin: pins[pin] for _name, pin, _kind in WORKFLOW_PIN_SPECS},
+         "workflow pin values")
+    goflags_lines = [line for line in text.splitlines() if "GOFLAGS" in line]
+    need(goflags_lines == ["          GOFLAGS: -mod=vendor"], "workflow GOFLAGS surface")
+    need(re.search(r"(?mi)(?<![A-Za-z0-9_])-{1,2}tags(?:[\s='\"]|$)", text) is None,
+         "workflow commands must not select build tags")
     accepted_gate = workflow_accepted_gate_script(text)
     fresh_gate = workflow_gate_script(text, "P207A_FRESH_GATE", FRESH_GATE_LINES)
     need("&&" not in accepted_gate and "&&" not in fresh_gate, "workflow fixed gates must not use AND lists")
@@ -515,6 +574,8 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
         ),
     }
     need(workflow_upload_paths(text) == expected_uploads, "workflow upload artifact path sets")
+    need(sha(normalized.encode("utf-8")) == WORKFLOW_TEMPLATE_SHA256,
+         "workflow normalized template fingerprint")
 
 
 def verify(root: Path, contract_relative: str, pins: dict) -> dict:
@@ -538,7 +599,8 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
             "schema", "scope", "authoringBaseCommit", "moduleClosure", "fixtureClosure",
             "changedGoSources", "changedGoSourcesSHA256", "goTest", "packages", "allPackageTestTopCount",
             "allPackageTestTopsSHA256", "allRequiredRunTopCount", "allRequiredRunTopsSHA256",
-            "p207aAddedTestTopCount", "p207aAddedTestTopsSHA256", "p207aAddedTestTops",
+            "p207aAddedSourceTestTopCount", "p207aAddedSourceTestTopsSHA256", "p207aAddedSourceTestTops",
+            "p207aAddedRequiredRunTopCount", "p207aAddedRequiredRunTopsSHA256", "p207aAddedRequiredRunTops",
             "baselinePackageTestTopCount", "baselinePackageTestTopsSHA256",
             "baselineRequiredRunTopCount", "baselineRequiredRunTopsSHA256", "foundation",
         ),
@@ -549,7 +611,7 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
     go_test = exact_keys(contract["goTest"], ("packages", "goos", "goarch", "compiler", "goVersion", "cgoEnabled", "buildTags", "runPattern", "count", "timeoutSeconds"), "goTest")
     need(tuple(go_test["packages"]) == PACKAGE_NAMES, "Go package order")
     need(go_test["goos"] == "linux" and go_test["goarch"] == "amd64" and go_test["compiler"] == "gc" and go_test["goVersion"] == "go1.23.12" and go_test["cgoEnabled"] is False, "Go target")
-    sorted_unique_strings(go_test["buildTags"], "goTest.buildTags")
+    need(go_test["buildTags"] == [], "goTest.buildTags must be empty")
     need(go_test["runPattern"] == "^Test", "Go run pattern")
     need(strict_int(go_test["count"], 1) == 1 and strict_int(go_test["timeoutSeconds"], 1) == 180, "Go count/timeout")
 
@@ -591,12 +653,16 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
         need(sha(read_bound(root, relative)) == strict_digest(expected), f"changed Go source: {relative}")
     changed_sha = map_digest(changed)
     need(changed_sha == strict_digest(contract["changedGoSourcesSHA256"]) == strict_digest(pins["changedGoSHA256"]), "changed Go map pin")
-    verify_workflow_surface(root, list(changed), PACKAGE_NAMES)
+    verify_workflow_surface(root, list(changed), PACKAGE_NAMES, pins)
 
     packages = contract["packages"]
     need(type(packages) is dict and tuple(packages) == PACKAGE_NAMES, "package set/order")
     all_names: list[str] = []
     all_run_names: list[str] = []
+    top_files: dict[str, str] = {}
+    required_files: set[str] = set()
+    excluded_files_all: set[str] = set()
+    excluded_names_all: set[str] = set()
     for package in PACKAGE_NAMES:
         declared = exact_keys(
             packages[package],
@@ -625,6 +691,10 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
         need(strict_digest(declared["requiredRunTopsSHA256"]) == names_digest(required_run), f"{package}: run hash")
         all_names.extend(names)
         all_run_names.extend(required_run)
+        required_files.update(run_files)
+        excluded_files_all.update(excluded_files)
+        excluded_names_all.update(excluded_run)
+        top_files.update((name, path) for path, path_names in names_by_file.items() for name in path_names)
     all_names.sort()
     all_run_names.sort()
     need(len(all_names) == len(set(all_names)), "cross-package duplicate test top")
@@ -632,16 +702,31 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
     need(strict_digest(contract["allPackageTestTopsSHA256"]) == strict_digest(pins["testTopsSHA256"]) == names_digest(all_names), "all-package top hash")
     need(strict_int(contract["allRequiredRunTopCount"]) == strict_int(pins["runTopCount"]) == len(all_run_names), "all-package run count")
     need(strict_digest(contract["allRequiredRunTopsSHA256"]) == strict_digest(pins["runTopsSHA256"]) == names_digest(all_run_names), "all-package run hash")
-    added_tops = sorted_unique_strings(contract["p207aAddedTestTops"], "p207aAddedTestTops")
-    need(strict_int(contract["p207aAddedTestTopCount"], 1) == len(added_tops), "P207A added top count")
-    need(strict_digest(contract["p207aAddedTestTopsSHA256"]) == names_digest(added_tops), "P207A added top hash")
-    need(set(added_tops).issubset(all_names) and set(added_tops).issubset(all_run_names), "P207A added tops must run")
-    baseline_names = sorted(set(all_names) - set(added_tops))
-    baseline_run = sorted(set(all_run_names) - set(added_tops))
+    added_source = sorted_unique_strings(contract["p207aAddedSourceTestTops"], "p207aAddedSourceTestTops")
+    added_run = sorted_unique_strings(contract["p207aAddedRequiredRunTops"], "p207aAddedRequiredRunTops")
+    need(strict_int(contract["p207aAddedSourceTestTopCount"], 1) == len(added_source), "P207A added source top count")
+    need(strict_digest(contract["p207aAddedSourceTestTopsSHA256"]) == names_digest(added_source), "P207A added source top hash")
+    need(strict_int(contract["p207aAddedRequiredRunTopCount"], 1) == len(added_run), "P207A added run top count")
+    need(strict_digest(contract["p207aAddedRequiredRunTopsSHA256"]) == names_digest(added_run), "P207A added run top hash")
+    need(set(added_source).issubset(all_names), "P207A added source tops missing")
+    need(set(added_run).issubset(all_run_names), "P207A added run tops missing")
+    need(set(added_run).issubset(added_source), "P207A added run tops must be added source tops")
+    source_only = set(added_source) - set(added_run)
+    need(source_only.issubset(excluded_names_all), "P207A source-only tops must be excluded from default run")
+    need(all(top_files[name] in excluded_files_all and top_files[name] not in required_files for name in source_only),
+         "P207A source-only top/file binding")
+    baseline_names = sorted(set(all_names) - set(added_source))
+    baseline_run = sorted(set(all_run_names) - set(added_run))
     need(len(baseline_names) == strict_int(contract["baselinePackageTestTopCount"]), "baseline source-top count")
     need(names_digest(baseline_names) == strict_digest(contract["baselinePackageTestTopsSHA256"]), "baseline source-top hash")
     need(len(baseline_run) == strict_int(contract["baselineRequiredRunTopCount"]), "baseline run-top count")
     need(names_digest(baseline_run) == strict_digest(contract["baselineRequiredRunTopsSHA256"]), "baseline run-top hash")
+    need(len(baseline_names) == HISTORICAL_BASELINE_SOURCE_COUNT and
+         names_digest(baseline_names) == HISTORICAL_BASELINE_SOURCE_SHA256,
+         "historical baseline source identity")
+    need(len(baseline_run) == HISTORICAL_BASELINE_REQUIRED_RUN_COUNT and
+         names_digest(baseline_run) == HISTORICAL_BASELINE_REQUIRED_RUN_SHA256,
+         "historical baseline required-run identity")
 
     foundation = exact_keys(
         contract["foundation"],
@@ -671,7 +756,10 @@ def verify(root: Path, contract_relative: str, pins: dict) -> dict:
         "packageTestTopsSHA256": names_digest(all_names),
         "requiredRunTopCount": len(all_run_names),
         "requiredRunTopsSHA256": names_digest(all_run_names),
-        "p207aAddedTestTopCount": len(added_tops),
+        "p207aAddedSourceTestTopCount": len(added_source),
+        "p207aAddedSourceTestTopsSHA256": names_digest(added_source),
+        "p207aAddedRequiredRunTopCount": len(added_run),
+        "p207aAddedRequiredRunTopsSHA256": names_digest(added_run),
         "baselinePackageTestTopCount": len(baseline_names),
         "baselineRequiredRunTopCount": len(baseline_run),
         "changedGoSourceCount": len(changed),
@@ -712,7 +800,7 @@ def main() -> None:
         "changedGoCount": args.changed_go_count,
         "changedGoSHA256": args.changed_go_sha256,
     }
-    print(json.dumps(verify(Path(args.repo), args.contract, pins), sort_keys=True, separators=(",", ":")))
+    print(json.dumps(verify(Path(args.repo), args.contract, pins), separators=(",", ":")))
 
 
 if __name__ == "__main__":

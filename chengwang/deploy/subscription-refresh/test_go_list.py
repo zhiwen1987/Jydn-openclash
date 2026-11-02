@@ -86,6 +86,29 @@ class GoListModels(unittest.TestCase):
         with self.assertRaises(L.ListError):
             L.verify_report(raw, contract, hashlib.sha256(contract).hexdigest())
 
+    def test_v4_official_default_selection_excludes_source_only_actualfs_file(self) -> None:
+        self.contract["packages"]["example/a"]["testFiles"] = [
+            "example/a/actualfs_test.go",
+            "example/a/source_test.go",
+        ]
+        self.contract["packages"]["example/a"]["excludedRunTestFiles"] = ["example/a/actualfs_test.go"]
+        result = self.verify()
+        self.assertEqual(result["packages"][0]["testFiles"], ["example/a/source_test.go"])
+
+    def test_v4_forged_actualfs_default_selection_is_rejected(self) -> None:
+        self.contract["packages"]["example/a"]["testFiles"] = [
+            "example/a/actualfs_test.go",
+            "example/a/source_test.go",
+        ]
+        self.contract["packages"]["example/a"]["excludedRunTestFiles"] = ["example/a/actualfs_test.go"]
+        forged = self.list_raw().replace(
+            b'["source_test.go"]',
+            b'["actualfs_test.go","source_test.go"]',
+            1,
+        )
+        with self.assertRaises(L.ListError):
+            self.verify(forged)
+
 
 if __name__ == "__main__":
     unittest.main()

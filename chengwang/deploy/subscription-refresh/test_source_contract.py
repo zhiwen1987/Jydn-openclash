@@ -1,15 +1,18 @@
-"""Pure-CPU negative models for the P207A v3 source closure."""
+"""Pure-CPU negative models for the P207A v4 source closure."""
 from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 
 
 HERE = Path(__file__).resolve().parent
@@ -17,6 +20,7 @@ SPEC = importlib.util.spec_from_file_location("p207a_source_contract", HERE / "c
 assert SPEC is not None and SPEC.loader is not None
 C = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(C)
+PRODUCTION_WORKFLOW_TEMPLATE_SHA256 = C.WORKFLOW_TEMPLATE_SHA256
 
 
 def command(cwd: Path, *args: str) -> None:
@@ -25,6 +29,10 @@ def command(cwd: Path, *args: str) -> None:
 
 class ClosedSourceContractModels(unittest.TestCase):
     def setUp(self) -> None:
+        C.HISTORICAL_BASELINE_SOURCE_COUNT = 0
+        C.HISTORICAL_BASELINE_SOURCE_SHA256 = C.names_digest([])
+        C.HISTORICAL_BASELINE_REQUIRED_RUN_COUNT = 0
+        C.HISTORICAL_BASELINE_REQUIRED_RUN_SHA256 = C.names_digest([])
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         command(self.root, "git", "init", "-q")
@@ -80,6 +88,9 @@ class ClosedSourceContractModels(unittest.TestCase):
         command(self.root, "git", "commit", "-qm", "model")
         self.contract_path = self.gate / "source_contract.json"
         self.write_contract()
+        normalized, _values = C.normalize_workflow_template(self.workflow.read_text(encoding="utf-8"))
+        C.WORKFLOW_TEMPLATE_SHA256 = C.sha(normalized.encode("utf-8"))
+        self.synthetic_workflow_template_sha256 = C.WORKFLOW_TEMPLATE_SHA256
         command(self.root, "git", "add", ".")
 
     def tearDown(self) -> None:
@@ -109,8 +120,12 @@ class ClosedSourceContractModels(unittest.TestCase):
         changed = {"chengwang/internal/api/source.go": C.sha((self.root / "chengwang/internal/api/source.go").read_bytes())}
         relative_packages = ["./" + package.removeprefix("chengwang/") for package in C.PACKAGE_NAMES]
         list_lines = " ".join(relative_packages)
+        pin_lines = "".join(
+            f"  {name}: {'0' * 64 if kind == 'digest' else "'0'"}\n"
+            for name, _pin, kind in C.WORKFLOW_PIN_SPECS
+        )
         self.workflow.write_text(
-            "env:\n  GOOS: linux\n  GOARCH: amd64\n  CGO_ENABLED: '0'\n"
+            "env:\n" + pin_lines + "          GOFLAGS: -mod=vendor\n  GOOS: linux\n  GOARCH: amd64\n  CGO_ENABLED: '0'\n"
             "          assert len(names)==len(set(names))==0\n"
             "          assert hashlib.sha256('\\n'.join(names).encode()).hexdigest()=='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\n"
             "          print('P207A_SOURCE_MODELS=PASS count=0 go_execution_proven=false')\n"
@@ -238,9 +253,12 @@ class ClosedSourceContractModels(unittest.TestCase):
             "allPackageTestTopsSHA256": C.names_digest(all_names),
             "allRequiredRunTopCount": len(all_names),
             "allRequiredRunTopsSHA256": C.names_digest(all_names),
-            "p207aAddedTestTopCount": len(all_names),
-            "p207aAddedTestTopsSHA256": C.names_digest(all_names),
-            "p207aAddedTestTops": all_names,
+            "p207aAddedSourceTestTopCount": len(all_names),
+            "p207aAddedSourceTestTopsSHA256": C.names_digest(all_names),
+            "p207aAddedSourceTestTops": all_names,
+            "p207aAddedRequiredRunTopCount": len(all_names),
+            "p207aAddedRequiredRunTopsSHA256": C.names_digest(all_names),
+            "p207aAddedRequiredRunTops": all_names,
             "baselinePackageTestTopCount": 0,
             "baselinePackageTestTopsSHA256": C.names_digest([]),
             "baselineRequiredRunTopCount": 0,
@@ -256,6 +274,13 @@ class ClosedSourceContractModels(unittest.TestCase):
             },
         }
         self.contract_path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
+        pins = self.pins()
+        workflow = self.workflow.read_text(encoding="utf-8")
+        for name, pin, kind in C.WORKFLOW_PIN_SPECS:
+            old = "0" * 64 if kind == "digest" else "'0'"
+            new = pins[pin] if kind == "digest" else f"'{pins[pin]}'"
+            workflow = workflow.replace(f"  {name}: {old}\n", f"  {name}: {new}\n", 1)
+        self.workflow.write_text(workflow, encoding="utf-8", newline="\n")
 
     def pins(self) -> dict:
         value = json.loads(self.contract_path.read_bytes())
@@ -281,14 +306,95 @@ class ClosedSourceContractModels(unittest.TestCase):
             "changedGoSHA256": value["changedGoSourcesSHA256"],
         }
 
+    def sync_workflow_pins(self, pins: dict) -> None:
+        lines = self.workflow.read_text(encoding="utf-8").splitlines(keepends=True)
+        for name, pin, kind in C.WORKFLOW_PIN_SPECS:
+            indexes = [index for index, line in enumerate(lines) if line.startswith(f"  {name}: ")]
+            self.assertEqual(indexes, [indexes[0]] if indexes else [], name)
+            self.assertEqual(len(indexes), 1, name)
+            value = pins[pin] if kind == "digest" else f"'{pins[pin]}'"
+            lines[indexes[0]] = f"  {name}: {value}\n"
+        self.workflow.write_text("".join(lines), encoding="utf-8", newline="\n")
+
     def verify(self, pins: dict | None = None) -> dict:
-        return C.verify(self.root, "chengwang/deploy/subscription-refresh/source_contract.json", pins or self.pins())
+        values = pins or self.pins()
+        if pins is None:
+            self.sync_workflow_pins(values)
+        return C.verify(self.root, "chengwang/deploy/subscription-refresh/source_contract.json", values)
+
+    def cli_output(self, pins: dict | None = None) -> bytes:
+        values = pins or self.pins()
+        if pins is None:
+            self.sync_workflow_pins(values)
+        arguments = [
+            "check_source_contract.py",
+            "--repo", str(self.root),
+            "--contract", "chengwang/deploy/subscription-refresh/source_contract.json",
+        ]
+        names = (
+            ("contract-sha256", "contractSHA256"), ("checker-sha256", "checkerSHA256"),
+            ("model-sha256", "modelSHA256"), ("event-checker-sha256", "eventCheckerSHA256"),
+            ("event-model-sha256", "eventModelSHA256"), ("failure-checker-sha256", "failureCheckerSHA256"),
+            ("failure-model-sha256", "failureModelSHA256"), ("go-list-checker-sha256", "goListCheckerSHA256"),
+            ("go-list-model-sha256", "goListModelSHA256"), ("module-count", "moduleCount"),
+            ("module-sha256", "moduleSHA256"), ("fixture-count", "fixtureCount"),
+            ("fixture-sha256", "fixtureSHA256"), ("test-top-count", "testTopCount"),
+            ("test-tops-sha256", "testTopsSHA256"), ("run-top-count", "runTopCount"),
+            ("run-tops-sha256", "runTopsSHA256"), ("changed-go-count", "changedGoCount"),
+            ("changed-go-sha256", "changedGoSHA256"),
+        )
+        for argument, key in names:
+            arguments.extend(("--" + argument, str(values[key])))
+        saved = sys.argv
+        output = io.StringIO()
+        try:
+            sys.argv = arguments
+            with redirect_stdout(output):
+                C.main()
+        finally:
+            sys.argv = saved
+        return output.getvalue().encode("utf-8")
 
     def assert_rejected(self, action) -> None:
         pins = self.pins()
         action()
         with self.assertRaises(C.ContractError):
             self.verify(pins)
+
+    def write_contract_value(self, value: dict) -> None:
+        self.contract_path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+    def assert_contract_rejected(self, mutate) -> None:
+        value = json.loads(self.contract_path.read_bytes())
+        mutate(value)
+        self.write_contract_value(value)
+        pins = self.pins()
+        self.sync_workflow_pins(pins)
+        with self.assertRaises(C.ContractError):
+            self.verify(pins)
+
+    def make_source_only(self) -> str:
+        value = json.loads(self.contract_path.read_bytes())
+        package = C.PACKAGE_NAMES[0]
+        declared = value["packages"][package]
+        path = declared["requiredRunTestFiles"].pop(0)
+        declared["excludedRunTestFiles"].append(path)
+        top = declared["requiredRunTops"].pop(0)
+        declared["excludedRunTops"].append(top)
+        declared["requiredRunTopCount"] = len(declared["requiredRunTops"])
+        declared["requiredRunTopsSHA256"] = C.names_digest(declared["requiredRunTops"])
+        all_run = sorted(
+            name
+            for item in value["packages"].values()
+            for name in item["requiredRunTops"]
+        )
+        value["allRequiredRunTopCount"] = len(all_run)
+        value["allRequiredRunTopsSHA256"] = C.names_digest(all_run)
+        value["p207aAddedRequiredRunTops"].remove(top)
+        value["p207aAddedRequiredRunTopCount"] = len(value["p207aAddedRequiredRunTops"])
+        value["p207aAddedRequiredRunTopsSHA256"] = C.names_digest(value["p207aAddedRequiredRunTops"])
+        self.write_contract_value(value)
+        return top
 
     def test_exact_contract_accepts_without_claiming_go_execution(self) -> None:
         result = self.verify()
@@ -326,7 +432,19 @@ class ClosedSourceContractModels(unittest.TestCase):
             value = match.group(1)
             observed[target] = int(value) if source.endswith("_COUNT") else value
             self.assertGreaterEqual(workflow.count('"$' + source + '"'), 2)
-        result = C.verify(repo, "chengwang/deploy/subscription-refresh/source_contract.json", observed)
+        C.HISTORICAL_BASELINE_SOURCE_COUNT = 453
+        C.HISTORICAL_BASELINE_SOURCE_SHA256 = "319025b42a43817ed041ae2cb7349f6a3164e295cad2dbc143718f6a6002b81b"
+        C.HISTORICAL_BASELINE_REQUIRED_RUN_COUNT = 448
+        C.HISTORICAL_BASELINE_REQUIRED_RUN_SHA256 = "34221f6a5f60aa7a3ad5a47e776f7b789c9295df15ab8c40f298ea8d4932afd7"
+        C.WORKFLOW_TEMPLATE_SHA256 = PRODUCTION_WORKFLOW_TEMPLATE_SHA256
+        try:
+            result = C.verify(repo, "chengwang/deploy/subscription-refresh/source_contract.json", observed)
+        finally:
+            C.HISTORICAL_BASELINE_SOURCE_COUNT = 0
+            C.HISTORICAL_BASELINE_SOURCE_SHA256 = C.names_digest([])
+            C.HISTORICAL_BASELINE_REQUIRED_RUN_COUNT = 0
+            C.HISTORICAL_BASELINE_REQUIRED_RUN_SHA256 = C.names_digest([])
+            C.WORKFLOW_TEMPLATE_SHA256 = self.synthetic_workflow_template_sha256
         self.assertFalse(result["goExecutionProven"])
         self.assertEqual(result["modulePathCount"], 830)
         self.assertEqual(result["fixturePathCount"], 21)
@@ -334,7 +452,8 @@ class ClosedSourceContractModels(unittest.TestCase):
         self.assertEqual(result["requiredRunTopCount"], 491)
         self.assertEqual(result["changedGoSourceCount"], 29)
         self.assertEqual(result["foundationCurrentCount"], 689)
-        self.assertEqual(result["p207aAddedTestTopCount"], 43)
+        self.assertEqual(result["p207aAddedSourceTestTopCount"], 43)
+        self.assertEqual(result["p207aAddedRequiredRunTopCount"], 43)
         self.assertEqual(result["baselinePackageTestTopCount"], 453)
         self.assertEqual(result["baselineRequiredRunTopCount"], 448)
 
@@ -450,6 +569,199 @@ class ClosedSourceContractModels(unittest.TestCase):
                 self.workflow.write_text(value, encoding="utf-8", newline="\n")
                 with self.assertRaisesRegex(C.ContractError, "workflow fixed gate"):
                     self.verify(pins)
+
+    def test_v4_source_only_added_top_maps_to_excluded_file_and_accepts(self) -> None:
+        top = self.make_source_only()
+        result = self.verify()
+        self.assertEqual(result["p207aAddedSourceTestTopCount"], 7)
+        self.assertEqual(result["p207aAddedRequiredRunTopCount"], 6)
+        self.assertNotIn(top, json.loads(self.contract_path.read_bytes())["p207aAddedRequiredRunTops"])
+
+    def test_v4_added_required_run_top_absent_from_added_source_rejected(self) -> None:
+        def mutate(value: dict) -> None:
+            value["p207aAddedSourceTestTops"].pop(0)
+            value["p207aAddedSourceTestTopCount"] -= 1
+            value["p207aAddedSourceTestTopsSHA256"] = C.names_digest(value["p207aAddedSourceTestTops"])
+        self.assert_contract_rejected(mutate)
+
+    def test_v4_source_only_top_mapped_to_required_file_rejected(self) -> None:
+        top = self.make_source_only()
+        value = json.loads(self.contract_path.read_bytes())
+        package = C.PACKAGE_NAMES[0]
+        declared = value["packages"][package]
+        path = declared["excludedRunTestFiles"].pop(0)
+        declared["requiredRunTestFiles"].append(path)
+        declared["requiredRunTops"].append(top)
+        declared["requiredRunTops"].sort()
+        declared["excludedRunTops"].remove(top)
+        declared["requiredRunTopCount"] = len(declared["requiredRunTops"])
+        declared["requiredRunTopsSHA256"] = C.names_digest(declared["requiredRunTops"])
+        all_run = sorted(
+            name
+            for item in value["packages"].values()
+            for name in item["requiredRunTops"]
+        )
+        value["allRequiredRunTopCount"] = len(all_run)
+        value["allRequiredRunTopsSHA256"] = C.names_digest(all_run)
+        self.write_contract_value(value)
+        with self.assertRaises(C.ContractError):
+            self.verify(self.pins())
+
+    def test_v4_coherent_source_baseline_repin_cannot_change_historical_identity(self) -> None:
+        def mutate(value: dict) -> None:
+            omitted = value["p207aAddedSourceTestTops"].pop(0)
+            value["p207aAddedSourceTestTopCount"] -= 1
+            value["p207aAddedSourceTestTopsSHA256"] = C.names_digest(value["p207aAddedSourceTestTops"])
+            value["baselinePackageTestTopCount"] = 1
+            value["baselinePackageTestTopsSHA256"] = C.names_digest([omitted])
+        self.assert_contract_rejected(mutate)
+
+    def test_v4_coherent_run_baseline_repin_cannot_change_historical_identity(self) -> None:
+        def mutate(value: dict) -> None:
+            omitted = value["p207aAddedRequiredRunTops"].pop(0)
+            value["p207aAddedRequiredRunTopCount"] -= 1
+            value["p207aAddedRequiredRunTopsSHA256"] = C.names_digest(value["p207aAddedRequiredRunTops"])
+            value["baselineRequiredRunTopCount"] = 1
+            value["baselineRequiredRunTopsSHA256"] = C.names_digest([omitted])
+        self.assert_contract_rejected(mutate)
+
+    def test_v4_added_source_count_corruption_rejected_with_refreshed_outer_digest(self) -> None:
+        self.assert_contract_rejected(lambda value: value.__setitem__(
+            "p207aAddedSourceTestTopCount", value["p207aAddedSourceTestTopCount"] + 1))
+
+    def test_v4_added_source_hash_corruption_rejected_with_refreshed_outer_digest(self) -> None:
+        self.assert_contract_rejected(lambda value: value.__setitem__(
+            "p207aAddedSourceTestTopsSHA256", "0" * 64))
+
+    def test_v4_added_run_count_corruption_rejected_with_refreshed_outer_digest(self) -> None:
+        self.assert_contract_rejected(lambda value: value.__setitem__(
+            "p207aAddedRequiredRunTopCount", value["p207aAddedRequiredRunTopCount"] + 1))
+
+    def test_v4_added_run_hash_corruption_rejected_with_refreshed_outer_digest(self) -> None:
+        self.assert_contract_rejected(lambda value: value.__setitem__(
+            "p207aAddedRequiredRunTopsSHA256", "0" * 64))
+
+    def test_v4_legacy_mixed_extra_reordered_and_duplicate_contract_surfaces_rejected(self) -> None:
+        original = json.loads(self.contract_path.read_bytes())
+        variants = []
+        legacy = dict(original)
+        legacy["p207aAddedTestTopCount"] = legacy["p207aAddedSourceTestTopCount"]
+        variants.append(legacy)
+        mixed = dict(original)
+        mixed["p207aAddedTestTops"] = list(mixed["p207aAddedSourceTestTops"])
+        variants.append(mixed)
+        reordered = dict(original)
+        moved = reordered.pop("p207aAddedSourceTestTopCount")
+        reordered["p207aAddedSourceTestTopCount"] = moved
+        variants.append(reordered)
+        for value in variants:
+            with self.subTest(keys=tuple(value)):
+                self.write_contract_value(value)
+                with self.assertRaises(C.ContractError):
+                    self.verify(self.pins())
+        raw = json.dumps(original, indent=2).encode() + b"\n"
+        raw = raw.replace(b'  "p207aAddedSourceTestTopCount":',
+                          b'  "p207aAddedSourceTestTopCount": 7,\n  "p207aAddedSourceTestTopCount":', 1)
+        self.contract_path.write_bytes(raw)
+        pins = self.pins()
+        with self.assertRaises(C.ContractError):
+            self.verify(pins)
+
+    def test_v4_nonempty_contract_build_tags_rejected(self) -> None:
+        self.assert_contract_rejected(lambda value: value["goTest"].__setitem__("buildTags", ["a1actualfs"]))
+
+    def test_v4_workflow_go_list_tag_selection_rejected(self) -> None:
+        self.assert_rejected(lambda: self.workflow.write_text(
+            self.workflow.read_text(encoding="utf-8").replace("go list -json ", "go list -tags a1actualfs -json ", 1),
+            encoding="utf-8", newline="\n"))
+
+    def test_v4_workflow_go_test_and_goflags_tag_selection_rejected(self) -> None:
+        original = self.workflow.read_text(encoding="utf-8")
+        fragmented = (
+            "          n=GO\n"
+            "          n=${n}FLAGS\n"
+            "          v=-ta\n"
+            "          v=${v}gs=a1actualfs\n"
+            "          export \"$n=$v\"\n"
+        )
+        contract_pin = next(line for line in original.splitlines(keepends=True)
+                            if line.startswith("  CONTRACT_SHA256: "))
+        variants = {
+            "go-test-tag": original.replace("go test -json ", "go test -tags=a1actualfs -json ", 1),
+            "direct": original.replace("GOFLAGS: -mod=vendor", "GOFLAGS: -tags=a1actualfs", 1),
+            "double-quoted-root-counterexample": original.replace(
+                "GOFLAGS: -mod=vendor", "GOFLAGS: \"-tags=a1actualfs\"", 1),
+            "single-quoted": original.replace("GOFLAGS: -mod=vendor", "GOFLAGS: '-tags=a1actualfs'", 1),
+            "flow-yaml": original.replace("GOFLAGS: -mod=vendor", "{GOFLAGS: -tags=a1actualfs}", 1),
+            "empty": original.replace("GOFLAGS: -mod=vendor", "GOFLAGS:", 1),
+            "expression": original.replace("GOFLAGS: -mod=vendor", "GOFLAGS: ${{ env.EXTRA_GOFLAGS }}", 1),
+            "literal-export": original.replace(
+                "GOFLAGS: -mod=vendor", "GOFLAGS: -mod=vendor\n          export GOFLAGS=-tags=a1actualfs", 1),
+            "env-inline": original.replace(
+                "go test -json ", "env GOFLAGS=-tags=a1actualfs go test -json ", 1),
+            "fragmented-shell-root-counterexample": original.replace(
+                "          go list -json ", fragmented + "          go list -json ", 1),
+            "moved-env": original.replace("          GOFLAGS: -mod=vendor\n", "", 1).replace(
+                "  GOOS: linux\n", "  GOOS: linux\n  GOFLAGS: -mod=vendor\n", 1),
+            "extra-execution": original.replace("          go list -json ", "          true\n          go list -json ", 1),
+            "opaque-dynamic-execution": original.replace(
+                "          go list -json ", "          eval \"$P207_EXTRA\"\n          go list -json ", 1),
+            "normalizer-missing-pin": original.replace(contract_pin, "", 1),
+            "normalizer-duplicate-pin": original.replace(contract_pin, contract_pin + contract_pin, 1),
+            "normalizer-unknown-pin": original.replace(
+                contract_pin, contract_pin + "  UNKNOWN_SHA256: " + "0" * 64 + "\n", 1),
+            "normalizer-valid-format-value-tamper": original.replace(
+                contract_pin, contract_pin[:contract_pin.index(": ") + 2] + "0" * 64 + "\n", 1),
+        }
+        for label, value in variants.items():
+            with self.subTest(label=label):
+                self.workflow.write_text(value, encoding="utf-8", newline="\n")
+                with self.assertRaises(C.ContractError):
+                    self.verify(self.pins())
+
+    def test_v4_source_report_has_exact_split_bounded_projection(self) -> None:
+        result = self.verify()
+        self.assertEqual(tuple(result), (
+            "schema", "modulePathCount", "moduleContentSHA256", "automaticFixturePathCount",
+            "additionalFixturePathCount", "fixturePathCount", "fixtureContentSHA256",
+            "packageTestTopCount", "packageTestTopsSHA256", "requiredRunTopCount",
+            "requiredRunTopsSHA256", "p207aAddedSourceTestTopCount",
+            "p207aAddedSourceTestTopsSHA256", "p207aAddedRequiredRunTopCount",
+            "p207aAddedRequiredRunTopsSHA256", "baselinePackageTestTopCount",
+            "baselineRequiredRunTopCount", "changedGoSourceCount", "changedGoSourcesSHA256",
+            "foundationCurrentCount", "foundationPreviousCount", "goExecutionProven",
+        ))
+        self.assertFalse(any("Tops" in key and key.endswith("Tops") for key in result))
+        self.assertNotIn("p207aAddedTestTopCount", result)
+
+    def test_v4_actual_cli_report_bytes_preserve_exact_declared_projection_and_repeat(self) -> None:
+        result = self.verify()
+        before = self.cli_output()
+        after = self.cli_output()
+        expected = (json.dumps(result, separators=(",", ":")) + "\n").encode("utf-8")
+        self.assertEqual(before, expected)
+        self.assertEqual(after, before)
+        pairs = json.loads(before, object_pairs_hook=lambda values: values)
+        self.assertEqual([key for key, _value in pairs], list(result))
+        self.assertNotIn(b"p207aAddedTestTopCount", before)
+        self.assertNotIn(b"p207aAddedSourceTestTops\"", before)
+        self.assertNotIn(b"p207aAddedRequiredRunTops\"", before)
+
+    def test_v4_split_projection_contract_keys_cannot_be_removed_or_reordered(self) -> None:
+        original = json.loads(self.contract_path.read_bytes())
+        variants = []
+        missing = dict(original)
+        missing.pop("p207aAddedRequiredRunTopsSHA256")
+        variants.append(missing)
+        reordered = dict(original)
+        moved = reordered.pop("p207aAddedRequiredRunTopCount")
+        reordered["p207aAddedRequiredRunTopCount"] = moved
+        variants.append(reordered)
+        for value in variants:
+            with self.subTest(keys=tuple(value)):
+                self.write_contract_value(value)
+                with self.assertRaises(C.ContractError):
+                    self.verify(self.pins())
 
     def test_deleted_source_is_rejected(self) -> None:
         self.assert_rejected(lambda: (self.root / "chengwang/internal/authz/source.go").unlink())

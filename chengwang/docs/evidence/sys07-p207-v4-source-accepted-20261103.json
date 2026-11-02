@@ -1,0 +1,91 @@
+{
+  "schema": "chengwang.p207a-source-contract-v4-independent-source-review/v2",
+  "reviewedAt": "2026-11-03 Asia/Shanghai",
+  "verdict": "SOURCE_ACCEPT_FOR_CONTROLLED_INTEGRATION",
+  "scope": "SOURCE_ONLY_NOT_GO_NOT_GOFMT_NOT_COMPILE_NOT_RUNTIME_NOT_ACTUALFS_NOT_PRODUCTION",
+  "actualModel": "UNKNOWN",
+  "input": {
+    "freezePath": "D:/CodexData/workspace/chengwang-p207a-source-contract-v4-implementation-freeze-20261103-cd03-v2",
+    "finalSha256": "331fa3a66f8d79ee0ba267dbe769e7c32913d60a75ed12ca8a4bcfc7df608598",
+    "manifestSha256": "1b877b99d00c9f6495ce112ee0cc45ae3c0ba3cda09278a01999f8e28dc2a1c0",
+    "patchSha256": "0efc92e0487dadc2e1d501e333376d24db57277d459ca61b8d76c5a24b9f08b6",
+    "priorReviewSha256": "0d3d1f7404df6d8e283e6113dbc70fea8029ac2913b11b33bd640774a7023cbf"
+  },
+  "identity": {
+    "baseCommit": "acabcb18509eac723c0e88664e83a019e075d474",
+    "baseTree": "1916bc78c11cf6221bed9626e03abab2d53cb8eb",
+    "formalCleanBeforeAndAfter": true,
+    "candidateBaseExact": true,
+    "candidateChangedPathCount": 9,
+    "candidateChangedPathsExact": true,
+    "afterimagesEqualCandidate": "PASS_9_OF_9",
+    "freezeVerifier": "PASS_14_MANIFEST_FILES_81_MODELS_19_PINS",
+    "patchForwardCheck": "PASS",
+    "patchReverseCheck": "PASS",
+    "sourcePathsLf": true
+  },
+  "priorP1Closures": {
+    "actualCliOrderedProjection": {
+      "result": "CLOSED",
+      "evidence": "The real candidate CLI was invoked twice with the 19 workflow pins; both outputs were byte-identical, 1115 bytes, SHA-256 d6c619564caf5557ebd5b59de60dfa6abc3a731053ecc0f479650b7e1471de75, and decoded to the approved exact 22-key insertion order without legacy or name-list keys. main serializes without sort_keys."
+    },
+    "fragmentedBuildTagBypass": {
+      "result": "CLOSED",
+      "evidence": "The production checker binds the full workflow bytes by normalized SHA-256 2baeff338685d8bd0731a6fbfb65ab0957bf2086ff616ef33786b70f08ce2120, masking only 19 strictly ordered, unique and format-checked pin values. Independent mutations for a new command, fragmented GOFLAGS/-tags construction, moved GOFLAGS and opaque eval all changed the template fingerprint; valid-format pin tampering preserved the template hash but changed extracted pins and is rejected by the independent pin-value equality check. Missing, duplicate and malformed holes were rejected."
+    }
+  },
+  "sourceContract": {
+    "schema": "chengwang.subscription-refresh-source/v4",
+    "defaultBuildTags": [],
+    "legacyAddedCount": 43,
+    "addedSourceCount": 43,
+    "addedRequiredRunCount": 43,
+    "addedSourceEqualsLegacy": true,
+    "addedRequiredRunEqualsLegacy": true,
+    "historicalSourceCount": 453,
+    "historicalSourceSha256": "319025b42a43817ed041ae2cb7349f6a3164e295cad2dbc143718f6a6002b81b",
+    "historicalRequiredRunCount": 448,
+    "historicalRequiredRunSha256": "34221f6a5f60aa7a3ad5a47e776f7b789c9295df15ab8c40f298ea8d4932afd7",
+    "modulePathCount": 830,
+    "fixturePathCount": 21,
+    "allSourceTopCount": 496,
+    "allRequiredRunTopCount": 491,
+    "changedGoSourceCount": 29,
+    "migrationCases": 18,
+    "goExecutionProven": false
+  },
+  "modelEvidence": {
+    "historicalNames": "PASS_63_OF_63",
+    "v1Names": "PASS_80_OF_80",
+    "v2Names": "PASS_81_OF_81",
+    "v2NamesSha256": "0d40b9d4a090266f0babfe1c367bf67a50ae9b133d4f3f8920507e92c0db98ac",
+    "v2PreservesAllHistoricalNames": true,
+    "v2PreservesAllV1Names": true,
+    "v2OnlyAddedModel": "test_source_contract.py::test_v4_actual_cli_report_bytes_preserve_exact_declared_projection_and_repeat",
+    "authorLog": "PASS_81_OF_81_NO_SKIP_NO_FAILURE",
+    "independentRun": "PASS_81_OF_81_IN_93.794_SECONDS"
+  },
+  "coupling": {
+    "checkGoListByteIdenticalToBase": true,
+    "checkGoListSha256": "ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc",
+    "eventCheckerChange": "SCHEMA_GUARD_V3_TO_V4_ONLY",
+    "failureCheckerChange": "SCHEMA_GUARD_V3_TO_V4_ONLY",
+    "eventAndFailureOutputSchemasChanged": false,
+    "acceptanceWeakeningFound": false
+  },
+  "risk": {
+    "impactIfWrong": "HIGH_SHARED_CI_ACCEPTANCE_SURFACE",
+    "regressionLikelihood": "LOW_AT_SOURCE_CONTRACT_SCOPE",
+    "regressionProtection": "PARTIAL_UNTIL_AUTHORIZED_GO_AND_RUNTIME_STAGES",
+    "recoverability": "EASY_TEXT_ONLY_REVERT_NO_MIGRATION_OR_PERSISTED_STATE",
+    "confidence": "HIGH_FOR_SOURCE_ONLY_BOUNDARY",
+    "workflowLabel": "HUMAN_REVIEW_REQUIRED"
+  },
+  "residualBoundaries": [
+    "This verdict authorizes only controlled integration of the exact immutable patch; it is not Go, formatting, compile, runtime, actual-filesystem, release or production acceptance.",
+    "The positive template binding is not a universal defense against a maliciously replaced checker and workflow; trust remains anchored in immutable patch identity and independent review.",
+    "Downstream authorized stages must still execute exact-head Go/gofmt/compile and runtime evidence before any broader acceptance."
+  ],
+  "findings": [],
+  "hyMemory": "UNAVAILABLE_NO_TOOL"
+}

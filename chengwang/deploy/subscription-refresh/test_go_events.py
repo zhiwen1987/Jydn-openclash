@@ -19,7 +19,7 @@ class GoEventModels(unittest.TestCase):
         self.packages = ("example/a", "example/b")
         self.names = {"example/a": ["TestA"], "example/b": ["TestB"]}
         self.contract = {
-            "schema": "chengwang.subscription-refresh-source/v3",
+            "schema": "chengwang.subscription-refresh-source/v4",
             "goTest": {"packages": list(self.packages), "goos": "linux", "goarch": "amd64", "compiler": "gc", "goVersion": "go1.23.12", "cgoEnabled": False, "buildTags": [], "runPattern": "^Test", "count": 1, "timeoutSeconds": 180},
             "packages": {
                 package: {"requiredRunTops": [package + "::" + name for name in names]}

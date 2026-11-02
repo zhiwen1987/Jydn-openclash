@@ -1,5 +1,9 @@
 # 澄网：项目任务清单
 
+2026-11-03 最新受控集成：[P207 来源契约 v4](SYS07-P207-V4-SOURCE-INTEGRATION-20261103.md)已完成九文件源码集成、独立源码复审及主代理 81 项纯 Python 模型复核，实际来源检查仍为 830/21/496/491/29 且 `goExecutionProven=false`。新增 S/Q 分离、独立历史 453/448 身份、空 tags、完整工作流正向指纹和实际 CLI 顺序校验。最终新提交的 Linux Go、格式、official selection、source/fresh 和 31 链必须另取原件，不借用下方旧提交通过。
+
+A1 第四版仅获隔离编译前源码准入，组合契约、nativefs 非跳过检查、默认 Go 与 actualfs 尚未完成；联合诊断及时间线源码正在按独立 REVISE 修订。没有生产发布、原 main 合并或 Registry 发布。下方各提交均为历史截点，不能拼接成当前全项目接受。
+
 2026-11-03 新HEAD验收更新：74730eb025189647e9deb2c4df72eec62bb54899 的 P207 run41484652813 attempt1 已获[原件独立接受](evidence/sys07-p207-747-accepted-20261103.json)：63来源模型、830/21/496/491/29来源闭包、format exit0且patch/stderr为空、official go-list、491 Go pass/0skip/0包失败/exit0、同run/attempt fresh复验均通过。旧c648的489/2拒绝记录保留；不能复用该接受到后续改动HEAD。
 
 同HEAD joint run41484652782 的[原件审计](evidence/sys07-joint-747-scene-failed-20261103.json)确认CPU摘要47 Python/Go PASS，真实场景仍SCENE_FAILED，独立public checker/replay跳过，原件不含phase/epoch，因此具体B0/J1/R2内部到达点UNKNOWN。[安全阶段诊断](SYS07-JOINT-FAILURE-LOCALIZATION-20261103.md)rev2已独审并集成，root来源检查及63/58模型通过，待新HEAD隔离CI定位，不猜权限或HTTP根因。

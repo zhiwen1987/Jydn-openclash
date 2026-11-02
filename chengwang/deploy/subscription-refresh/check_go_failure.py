@@ -261,7 +261,7 @@ def write_new(path: Path, raw: bytes) -> None:
 
 
 def expected(contract: object) -> tuple[list[str], dict[str, list[str]]]:
-    need(type(contract) is dict and contract.get("schema") == "chengwang.subscription-refresh-source/v3", "contract schema")
+    need(type(contract) is dict and contract.get("schema") == "chengwang.subscription-refresh-source/v4", "contract schema")
     go_test = contract.get("goTest")
     need(type(go_test) is dict and type(go_test.get("packages")) is list, "Go package contract")
     packages = go_test["packages"]

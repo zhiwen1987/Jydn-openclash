@@ -25,7 +25,7 @@ class GoFailureProjectionModels(unittest.TestCase):
             remaining -= count
             self.names[package] = [f"TestP{index}_{item:03d}" for item in range(count)]
         self.contract = {
-            "schema": "chengwang.subscription-refresh-source/v3",
+            "schema": "chengwang.subscription-refresh-source/v4",
             "goTest": {"packages": self.packages},
             "packages": {
                 package: {"requiredRunTops": [package + "::" + name for name in names]}
