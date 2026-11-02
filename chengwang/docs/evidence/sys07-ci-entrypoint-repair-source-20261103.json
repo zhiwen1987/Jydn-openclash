@@ -1,0 +1,17 @@
+{
+  "schema": "chengwang.ci-entrypoint-repair-source/v1",
+  "codeHead": "120b2dff64006f2013da03d991732e78c130b475",
+  "codeTree": "d1a4f24b04c5a95fc815f0e0640183f188b92e15",
+  "paths": 8,
+  "combinedFreeze": {"path": "D:/CodexData/workspace/chengwang-fcdb-guard-cli-cap-final3-freeze-20261103-cd03-v1/FREEZE.json", "sha256": "f69d47a524e528bd84cdaaa116ee4f21e75ed793c6805bfca36cc7143d10995b"},
+  "sliceA": {"path": "D:/CodexData/workspace/chengwang-fcdb-guard-cli-cap-final3-slice-a-independent-review-20261103-cd03-v1/FINAL.json", "sha256": "c9188d3b5539b49c2e280e6024f83ba97f6ed60c5dfae231a8894f1af0403767"},
+  "sliceB": {"path": "D:/CodexData/workspace/chengwang-fcdb-guard-cli-cap-final3-freeze-20261103-cd03-v1-slice-b-independent-review/FINAL.json", "sha256": "c6a4f74ae47758418a21bd9b11bf2bc53d81e024b2f8731d2cc4a89b5cfa58b1"},
+  "rootModels": {"path": "D:/CodexData/workspace/chengwang-fcdb-final3-root-models-20261103-cd03-v1/SUMMARY.json", "sha256": "c8006f527bc0579e39260c23381d3d0dbe54ad950484d531bdda98d684539a4a", "methods": 211, "GoExecuted": false},
+  "rootSource": {"path": "D:/CodexData/workspace/chengwang-120b2-source-joint-readonly-audit-20261103-cd03-v1/FINAL.json", "sha256": "ecb9db9cae858ce9592fec3b9ec6d19e8249a29bc7309f29d60fa81df0bbc4f5"},
+  "previousFcdbP207Failure": {"path": "D:/CodexData/workspace/chengwang-fcdb-p207-failure-originals-20261103-cd03-v1/p207a-source-go-failure-41520039871-1/go-failure-report.json", "sha256": "a3b5cfa7e90d59cdc2ad89df9455d06afd7a565123f069815f4dafe5010e7453", "passCount": 527, "failCount": 1, "transferableAcceptance": false},
+  "previousFcdbCapacityTimelineAudit": {"path": "D:/CodexData/workspace/chengwang-fcdb-capacity-timeline-independent-review-20261103-cd03-v1/FINAL.json", "sha256": "c17271d18bc75694b2ee3ce674cefac11e66d362a3ed983959bdfe4e6282d471", "runtimeAccepted": false},
+  "localGoExecuted": false,
+  "finalHeadLinuxCI": "PENDING",
+  "fullSystem": "INCOMPLETE",
+  "productionTouched": false
+}
