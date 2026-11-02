@@ -146,11 +146,11 @@ def check_payload(raw,lane,commit,tree):
     value=capture.decode(raw); need(capture.canonical(value)==raw)
     expected={'schema','sourceCommit','sourceTree','lane','manifestCount','manifestNamesSHA256',
         'instrumentationEffect','evidenceScope','priorRunTimingEquivalence','acceptanceAuthority',
-        'causalInference','profileTimerSeconds','testTimeoutSeconds','boundaryDeltas',
+        'causalInference','markerObservation','scope','profileTimerSeconds','testTimeoutSeconds','boundaryDeltas',
         'childReturnCodeSigned','childShellStatus','childOutcome','rawOutcome','semanticOutcome',
         'streamClosure','topCoverage','fixedFailure','secondaryFailureFlags','discardCounters',
         'discardCounterSaturated','packages','requiredTops','requiredTransitionTail'}
-    need(type(value)is dict and set(value)==expected and value.get('schema')=='chengwang.go-top-observation-timeline/v1')
+    need(type(value)is dict and set(value)==expected and value.get('schema')=='chengwang.go-top-observation-timeline/v2')
     need(value.get('sourceCommit')==commit and value.get('sourceTree')==tree and value.get('lane')==lane)
     need(value.get('manifestCount')==689 and value.get('manifestNamesSHA256')==
          '2ffac806dc10c8019b0342e1e0e0c56a4712a02172bdaee8a29429e5c78fa68f')
@@ -158,6 +158,8 @@ def check_payload(raw,lane,commit,tree):
     need(value.get('evidenceScope')=='THIS_INSTRUMENTED_RUN_ONLY' and
          value.get('priorRunTimingEquivalence') is False and value.get('acceptanceAuthority') is False and
          value.get('causalInference')=='NOT_MADE' and value.get('testTimeoutSeconds')==180)
+    need(value.get('markerObservation') in capture.MARKER_OBSERVATIONS and
+         value.get('scope') == capture.MARKER_SCOPE)
     need(value.get('profileTimerSeconds')==(120 if lane=='CAPACITY_FULL_RACE' else None))
     need(value.get('fixedFailure') in capture.FAILURES)
     rows=value.get('requiredTops'); registry=capture.load_registry()

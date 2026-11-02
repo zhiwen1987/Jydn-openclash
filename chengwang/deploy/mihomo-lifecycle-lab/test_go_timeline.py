@@ -102,6 +102,42 @@ class TimelineModels(unittest.TestCase):
         raw=capture.canonical(p.payload(FakeGuard(),boundaries(),'COMPLETE_EOF'))
         self.assertNotIn(canary.encode(),raw);self.assertNotIn(b'TOKEN-CANARY',raw)
 
+    def test_marker_observation_is_only_from_validated_prefix_and_never_copies_output(self):
+        pkg='chengwang/internal/api';name='TestSyntheticMarker';secret='TOKEN-MARKER-CANARY'
+
+        valid=self.projector();valid.event(event(pkg,'start'),1,0)
+        valid.event(event(pkg,'output',output='prefix panic: test timed out after 3m0s '+secret),2,0)
+        self.assertEqual(valid.marker_observation(),'TIMEOUT_TEXT')
+        valid.event(event(pkg,'run',name),3,0)
+        valid.event(event(pkg,'output',name,output='panic: bounded '+secret),4,0)
+        raw=capture.canonical(valid.payload(FakeGuard(),boundaries(),'COMPLETE_EOF'))
+        value=checker.check_payload(raw,'FOUNDATION_ORDINARY',COMMIT,TREE)
+        self.assertEqual(value['markerObservation'],'TIMEOUT_AND_PANIC_TEXT')
+        self.assertEqual(value['scope'],'VALIDATED_PREFIX_TEXT_OBSERVATION_NOT_CAUSE')
+        self.assertNotIn(secret.encode(),raw);self.assertNotIn(b'panic: bounded',raw)
+
+        invalid_json=self.projector()
+        invalid_json.event(b'{"Time":"'+TIME.encode()+b'","Action":"output","Package":"'+pkg.encode()+
+                           b'","Output":"panic: test timed out after 3m0s"',1,0)
+        self.assertFalse(invalid_json.semantic);self.assertEqual(invalid_json.marker_observation(),'NONE')
+
+        invalid_fsm=self.projector();invalid_fsm.event(event(pkg,'start'),1,0)
+        invalid_fsm.event(event(pkg,'output','TestNeverRan',output='panic: test timed out after 3m0s'),2,0)
+        self.assertFalse(invalid_fsm.semantic);self.assertEqual(invalid_fsm.failure,'FSM_REJECTED')
+        self.assertEqual(invalid_fsm.marker_observation(),'NONE')
+
+        prefix=self.projector();prefix.event(event(pkg,'start'),1,0)
+        prefix.event(event(pkg,'output',output='prefix panic: test timed out after 3m0s'),2,0)
+        prefix.event(event(pkg,'output','TestNeverRan',output='panic: rejected'),3,0)
+        prefix.event(event(pkg,'output',output='panic: ignored after rejection'),4,0)
+        self.assertEqual(prefix.marker_observation(),'TIMEOUT_TEXT')
+
+        for field,mutant in (('schema','chengwang.go-top-observation-timeline/v1'),
+                             ('markerObservation','UNKNOWN'),('scope','CAUSE')):
+            changed=capture.decode(raw);changed[field]=mutant
+            with self.subTest(field=field),self.assertRaises(ValueError):
+                checker.check_payload(capture.canonical(changed),'FOUNDATION_ORDINARY',COMMIT,TREE)
+
     def test_transition_cap_is_fail_closed(self):
         p=self.projector();pkg='chengwang/internal/api';p.packages[pkg]='STARTED'
         top='TestSyntheticTransitionCap'

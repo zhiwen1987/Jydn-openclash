@@ -1,9 +1,13 @@
 """Bounded CI acquisition for the joint-control-plane lane."""
 from __future__ import annotations
-import argparse, errno, hashlib, importlib.util, json, os, pathlib, re, selectors, stat, subprocess, sys, threading, time, unittest
+import argparse, ast, errno, hashlib, importlib.util, json, os, pathlib, re, selectors, stat, subprocess, sys, threading, time, types, unittest
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_ci_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 WORKFLOW=".github/workflows/chengwang-joint-control-plane.yml"
+MODEL_TEST_SOURCES=("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py")
+MODEL_OUTCOMES=("PASS","FAIL","ERROR","SKIP","UNKNOWN")
+MODEL_DIAGNOSTIC_SCHEMA="chengwang.joint-control-plane-model-outcomes/v1"
+MODEL_DIAGNOSTIC_MAXIMUM=16384
 BOOTSTRAP_STEP=(
     "- name: Bootstrap bounded namespace progress",
     "  id: bootstrap_progress",
@@ -40,16 +44,16 @@ CPU_STEP=(
     "  env: {GOFLAGS: -mod=vendor, CGO_ENABLED: '0'}",
     "  run: |",
     "    set -uo pipefail",
-    "    private=\"$RUNNER_TEMP/joint-control-plane-cpu-private\"; stage=\"$RUNNER_TEMP/joint-control-plane-cpu-stage\"; public=\"$RUNNER_TEMP/joint-control-plane-cpu-public\"",
-    "    if test -e \"$private\" || test -L \"$private\" || test -e \"$stage\" || test -L \"$stage\" || test -e \"$public\" || test -L \"$public\"; then",
+    "    private=\"$RUNNER_TEMP/joint-control-plane-cpu-private\"; stage=\"$RUNNER_TEMP/joint-control-plane-cpu-stage\"; public=\"$RUNNER_TEMP/joint-control-plane-cpu-public\"; model_public=\"$RUNNER_TEMP/joint-control-plane-model-outcome-public\"",
+    "    if test -e \"$private\" || test -L \"$private\" || test -e \"$stage\" || test -L \"$stage\" || test -e \"$public\" || test -L \"$public\" || test -e \"$model_public\" || test -L \"$model_public\"; then",
     "      printf '%s\\n' 'CPU_PUBLICATION=REJECTED_PREEXISTING_PATH' >&2",
     "      exit 1",
     "    fi",
-    "    if ! install -d -m 0700 \"$private\" \"$stage\"; then",
+    "    if ! install -d -m 0700 \"$private\" \"$stage\" \"$model_public\"; then",
     "      printf '%s\\n' 'CPU_PUBLICATION=REJECTED_DIRECTORY_CREATION' >&2",
     "      exit 1",
     "    fi",
-    "    if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output \"$private/units.json\" >\"$private/units.log\" 2>&1; then",
+    "    if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output \"$private/units.json\" --model-diagnostic \"$private/model-outcome.json\" --source-commit \"$GITHUB_SHA\" >\"$private/units.log\" 2>&1; then",
     "      unit_code=0",
     "    else",
     "      unit_code=$?",
@@ -62,6 +66,15 @@ CPU_STEP=(
     "    if ! printf '%s\\n' \"$go_code\" >\"$private/go-exit.txt\"; then",
     "      printf '%s\\n' 'CPU_PUBLICATION=REJECTED_STATUS_WRITE' >&2",
     "      exit 1",
+    "    fi",
+    "    if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py model-diagnostic --input \"$private/model-outcome.json\" --source-commit \"$GITHUB_SHA\" --output \"$model_public/model-outcome.json\"; then",
+    "      diagnostic_code=0",
+    "      if ! printf '%s\\n' 'model_diagnostic_ready=true' >>\"$GITHUB_OUTPUT\"; then",
+    "        printf '%s\\n' 'CPU_PUBLICATION=REJECTED_MODEL_OUTPUT_WRITE' >&2",
+    "        exit 1",
+    "      fi",
+    "    else",
+    "      diagnostic_code=$?",
     "    fi",
     "    cpu_code=0",
     "    if test \"$unit_code\" = 0 && test \"$go_code\" = 0; then",
@@ -98,7 +111,7 @@ CPU_STEP=(
     "        exit 1",
     "      fi",
     "    fi",
-    "    test \"$fallback_code\" = 0 && test \"$publish_code\" = 0 && test \"$cpu_code\" = 0",
+    "    test \"$diagnostic_code\" = 0 && test \"$fallback_code\" = 0 && test \"$publish_code\" = 0 && test \"$cpu_code\" = 0",
 )
 CPU_UPLOAD_STEP=(
     "- name: Preserve bounded CPU publication only",
@@ -107,6 +120,16 @@ CPU_UPLOAD_STEP=(
     "  with:",
     "    name: joint-control-plane-cpu-${{ github.run_id }}-${{ github.run_attempt }}",
     "    path: ${{ runner.temp }}/joint-control-plane-cpu-public/",
+    "    if-no-files-found: error",
+    "    retention-days: 14",
+)
+MODEL_UPLOAD_STEP=(
+    "- name: Preserve source-bound model outcome diagnostic only",
+    "  if: ${{ always() && steps.cpu.outputs.model_diagnostic_ready == 'true' }}",
+    "  uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+    "  with:",
+    "    name: joint-control-plane-model-outcomes-${{ github.run_id }}-${{ github.run_attempt }}",
+    "    path: ${{ runner.temp }}/joint-control-plane-model-outcome-public/model-outcome.json",
     "    if-no-files-found: error",
     "    retention-days: 14",
 )
@@ -136,6 +159,7 @@ def workflow_contract(raw):
     need(named.get("Publish only bounded failure classification")==FAILURE_STEP)
     need(named.get("CPU contracts and Go suite")==CPU_STEP)
     need(named.get("Preserve bounded CPU publication only")==CPU_UPLOAD_STEP)
+    need(named.get("Preserve source-bound model outcome diagnostic only")==MODEL_UPLOAD_STEP)
     return True
 def run(*args):return subprocess.check_output(list(args),stderr=subprocess.DEVNULL,timeout=30)
 def emit(path,value):
@@ -170,10 +194,123 @@ def isolation(outer):
     links=json.loads(run("/usr/sbin/ip","-json","link","show"));addrs=json.loads(run("/usr/sbin/ip","-json","-4","address","show"))
     value={"schema":"chengwang.joint-control-plane-isolation/v2","outerNetNamespace":outer,"netNamespace":os.readlink("/proc/self/ns/net"),"mountNamespace":os.readlink("/proc/self/ns/mnt"),"pidNamespace":os.readlink("/proc/self/ns/pid"),"uid":os.getuid(),"gid":os.getgid(),"capabilities":status["CapEff"].strip(),"noNewPrivileges":int(status["NoNewPrivs"]),"interfaces":sorted(x["ifname"] for x in links),"ipv4Addresses":sorted(i["local"]+"/"+str(i["prefixlen"]) for a in addrs for i in a["addr_info"]),"ipv4DefaultRoutes":json.loads(run("/usr/sbin/ip","-json","-4","route","show","default")),"ipv6DefaultRoutes":json.loads(run("/usr/sbin/ip","-json","-6","route","show","default")),"unprivilegedPortStart":int(pathlib.Path("/proc/sys/net/ipv4/ip_unprivileged_port_start").read_text())}
     need(value["netNamespace"]!=outer and value["interfaces"]==["lo"] and value["ipv4Addresses"]==["127.0.0.1/8","8.8.4.4/32"] and not value["ipv4DefaultRoutes"] and not value["ipv6DefaultRoutes"] and value["unprivilegedPortStart"]==0 and value["capabilities"]=="0000000000000000" and value["noNewPrivileges"]==1);return value
-def units():
+def _model_inventory():
+    names=[];source_rows=[]
+    for filename in MODEL_TEST_SOURCES:
+        path=HERE/filename;raw=path.read_bytes();tree=ast.parse(raw,filename=filename)
+        source_rows.append(filename.encode()+b"\0"+hashlib.sha256(raw).hexdigest().encode()+b"\n")
+        module=filename[:-3]
+        for cls in tree.body:
+            if not isinstance(cls,ast.ClassDef):continue
+            for method in cls.body:
+                if isinstance(method,(ast.FunctionDef,ast.AsyncFunctionDef)) and method.name.startswith("test_"):
+                    names.append(module+"."+cls.name+"."+method.name)
+    names=tuple(sorted(names));need(names and len(names)==len(set(names)))
+    return names,hashlib.sha256("\n".join(names).encode()).hexdigest(),hashlib.sha256(b"".join(source_rows)).hexdigest()
+def _model_counts(rows):
+    counts={name:0 for name in MODEL_OUTCOMES}
+    for outcome in rows.values():need(outcome in counts);counts[outcome]+=1
+    return counts
+class ModelOutcomeResult(unittest.TextTestResult):
+    _rank={"UNKNOWN":0,"PASS":1,"SKIP":2,"FAIL":3,"ERROR":4}
+    def __init__(self,*args,expected,**kwargs):
+        super().__init__(*args,**kwargs);self.expected=frozenset(expected);self.started=set();self.outcomes={};self.unknownEvents=0
+    def _identity(self,test):
+        try:value=test.id()
+        except BaseException:
+            self.unknownEvents+=1;return None
+        if type(value)is not str or value not in self.expected:
+            self.unknownEvents+=1;return None
+        return value
+    def _mark(self,test,outcome):
+        identity=self._identity(test)
+        if identity is None:return
+        previous=self.outcomes.get(identity,"UNKNOWN")
+        if self._rank[outcome]>=self._rank[previous]:self.outcomes[identity]=outcome
+    def startTest(self,test):
+        super().startTest(test);identity=self._identity(test)
+        if identity is not None:self.started.add(identity)
+    def stopTest(self,test):
+        identity=self._identity(test)
+        if identity is not None:self.outcomes.setdefault(identity,"UNKNOWN")
+        super().stopTest(test)
+    def addSuccess(self,test):super().addSuccess(test);self._mark(test,"PASS")
+    def addFailure(self,test,err):super().addFailure(test,err);self._mark(test,"FAIL")
+    def addError(self,test,err):super().addError(test,err);self._mark(test,"ERROR")
+    def addSkip(self,test,reason):super().addSkip(test,reason);self._mark(test,"SKIP")
+    def addExpectedFailure(self,test,err):super().addExpectedFailure(test,err);self._mark(test,"UNKNOWN")
+    def addUnexpectedSuccess(self,test):super().addUnexpectedSuccess(test);self._mark(test,"UNKNOWN")
+    def addSubTest(self,test,subtest,err):
+        super().addSubTest(test,subtest,err)
+        if err is not None:
+            try:failure=issubclass(err[0],test.failureException)
+            except BaseException:failure=False
+            self._mark(test,"FAIL" if failure else "ERROR")
+def _model_value(source_commit,expected,names_sha,source_sha,result):
+    need(type(source_commit)is str and re.fullmatch(r"[0-9a-f]{40}",source_commit) is not None)
+    outcomes={name:result.outcomes.get(name,"UNKNOWN") for name in expected}
+    counts=_model_counts(outcomes)
+    return {"schema":MODEL_DIAGNOSTIC_SCHEMA,"sourceCommit":source_commit,"accepted":False,"syntheticOnly":True,
+        "projection":"FULL","expectedCount":len(expected),"expectedNamesSHA256":names_sha,"sourceFilesSHA256":source_sha,
+        "observedCount":len(result.started),"unknownEventCount":result.unknownEvents,"counts":counts,
+        "outcomes":[{"id":name,"outcome":outcomes[name]} for name in expected]}
+def _bounded_model_bytes(value,maximum=MODEL_DIAGNOSTIC_MAXIMUM):
+    raw=C.canonical(value)
+    if len(raw)<=maximum:return raw
+    counts=dict(value["counts"]);need(set(counts)==set(MODEL_OUTCOMES) and sum(counts.values())==value["expectedCount"])
+    fallback={key:value[key] for key in ("schema","sourceCommit","accepted","syntheticOnly","expectedCount","expectedNamesSHA256","sourceFilesSHA256","observedCount","unknownEventCount","counts")}
+    fallback.update({"projection":"FALLBACK","outcomes":[]});raw=C.canonical(fallback);need(len(raw)<=maximum);return raw
+def _emit_raw(path,raw,maximum):
+    need(type(raw)is bytes and 0<len(raw)<=maximum)
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_BINARY",0),0o600)
+    with os.fdopen(fd,"wb") as f:f.write(raw);f.flush();os.fsync(f.fileno())
+def _decode_model(raw):
+    need(type(raw)is bytes and 0<len(raw)<=MODEL_DIAGNOSTIC_MAXIMUM and b"\r" not in raw)
+    def pairs(items):
+        value={}
+        for key,item in items:need(type(key)is str and key not in value);value[key]=item
+        return value
+    try:value=json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda unused:(_ for _ in ()).throw(ValueError()))
+    except (UnicodeDecodeError,json.JSONDecodeError,ValueError):raise ValueError("joint-ci-rejected") from None
+    need(C.canonical(value)==raw);return value
+def validate_model_diagnostic(raw,source_commit):
+    value=_decode_model(raw);expected,names_sha,source_sha=_model_inventory()
+    keys={"schema","sourceCommit","accepted","syntheticOnly","projection","expectedCount","expectedNamesSHA256","sourceFilesSHA256","observedCount","unknownEventCount","counts","outcomes"}
+    need(type(value)is dict and set(value)==keys and value["schema"]==MODEL_DIAGNOSTIC_SCHEMA and value["sourceCommit"]==source_commit and
+        value["accepted"] is False and value["syntheticOnly"] is True and value["projection"] in ("FULL","FALLBACK") and
+        value["expectedCount"]==len(expected) and value["expectedNamesSHA256"]==names_sha and value["sourceFilesSHA256"]==source_sha and
+        type(value["observedCount"])is int and 0<=value["observedCount"]<=len(expected) and type(value["unknownEventCount"])is int and value["unknownEventCount"]>=0)
+    counts=value["counts"];need(type(counts)is dict and tuple(sorted(counts))==tuple(sorted(MODEL_OUTCOMES)) and
+        all(type(counts[name])is int and counts[name]>=0 for name in MODEL_OUTCOMES) and sum(counts.values())==len(expected))
+    rows=value["outcomes"];need(type(rows)is list)
+    if value["projection"]=="FULL":
+        need(len(rows)==len(expected));observed=[];row_counts={name:0 for name in MODEL_OUTCOMES}
+        for row in rows:
+            need(type(row)is dict and set(row)=={"id","outcome"} and type(row["id"])is str and row["outcome"] in MODEL_OUTCOMES)
+            observed.append(row["id"]);row_counts[row["outcome"]]+=1
+        need(tuple(observed)==expected and row_counts==counts)
+    else:need(rows==[])
+    return value
+def _model_all_pass(result,expected):
+    expected_set=set(expected)
+    return (result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses and
+        result.testsRun==len(expected) and result.started==expected_set and set(result.outcomes)==expected_set and
+        result.unknownEvents==0 and all(result.outcomes[name]=="PASS" for name in expected))
+def units(model_diagnostic=None,source_commit=None):
+    need((model_diagnostic is None)==(source_commit is None));expected,names_sha,source_sha=_model_inventory()
     sys.path.insert(0,str(HERE));suite=unittest.TestSuite()
-    for name in ("test_joint_fixture","test_run_joint_control_plane","test_check_joint_control_plane","test_sanitize_publication"):suite.addTests(unittest.defaultTestLoader.loadTestsFromName(name))
-    result=unittest.TextTestRunner(verbosity=2).run(suite);need(result.wasSuccessful() and not result.skipped);return {"schema":"chengwang.joint-control-plane-units/v2","testsRun":result.testsRun,"failures":0,"syntheticOnly":True,"productAcceptanceProven":False}
+    for name in (source[:-3] for source in MODEL_TEST_SOURCES):suite.addTests(unittest.defaultTestLoader.loadTestsFromName(name))
+    holder=[]
+    def result_class(*args,**kwargs):
+        result=ModelOutcomeResult(*args,expected=expected,**kwargs);holder.append(result);return result
+    try:result=unittest.TextTestRunner(verbosity=2,resultclass=result_class).run(suite)
+    except BaseException:
+        if model_diagnostic is not None:
+            incomplete=holder[0] if holder else types.SimpleNamespace(outcomes={},started=set(),unknownEvents=1)
+            _emit_raw(model_diagnostic,_bounded_model_bytes(_model_value(source_commit,expected,names_sha,source_sha,incomplete)),MODEL_DIAGNOSTIC_MAXIMUM)
+        raise
+    if model_diagnostic is not None:_emit_raw(model_diagnostic,_bounded_model_bytes(_model_value(source_commit,expected,names_sha,source_sha,result)),MODEL_DIAGNOSTIC_MAXIMUM)
+    need(_model_all_pass(result,expected));return {"schema":"chengwang.joint-control-plane-units/v2","testsRun":result.testsRun,"failures":0,"syntheticOnly":True,"productAcceptanceProven":False}
 def bootstrap_argv(progress_root,bootstrap_record,source_commit):
     script=str(pathlib.Path(__file__).resolve())
     need(pathlib.Path(bootstrap_record).name==C.BOOTSTRAP_FILE and pathlib.Path(bootstrap_record).parent.name==C.BOOTSTRAP_DIRECTORY)
@@ -413,7 +550,7 @@ def _stdout(raw):
     while seen<len(raw):
         count=os.write(fd,raw[seen:]);need(count>0);seen+=count
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","progress","bootstrap-progress","bootstrap-permission-probe","workflow-contract"));p.add_argument("--output");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","model-diagnostic","progress","bootstrap-progress","bootstrap-permission-probe","workflow-contract"));p.add_argument("--output");p.add_argument("--input");p.add_argument("--model-diagnostic");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");a=p.parse_args()
     if a.action=="workflow-contract":
         need(a.output is None and a.workflow and not a.receipt);workflow_contract(pathlib.Path(a.workflow).read_bytes());return
     if a.action=="bootstrap-permission-probe":
@@ -425,8 +562,11 @@ def main():
         return
     if a.action=="bootstrap-progress":
         need(a.output is None and a.progress_root and a.bootstrap_record and a.source_commit and not a.phase and not a.state and not a.receipt);bootstrap_progress(a.progress_root,a.bootstrap_record,a.source_commit);return
-    need(a.output)
-    try:value={"source":lambda:source(a.repo,a.source_commit),"contract":lambda:source_contract(a.repo,a.base_commit),"build":lambda:build(a.server_binary,a.source_commit),"isolation":lambda:isolation(a.outer_net_namespace),"units":units}[a.action]()
+    if a.action=="model-diagnostic":
+        need(a.input and a.output and a.source_commit and a.model_diagnostic is None and not a.receipt)
+        emit(a.output,validate_model_diagnostic(pathlib.Path(a.input).read_bytes(),a.source_commit));return
+    need(a.output and a.input is None and (a.action=="units" or a.model_diagnostic is None))
+    try:value={"source":lambda:source(a.repo,a.source_commit),"contract":lambda:source_contract(a.repo,a.base_commit),"build":lambda:build(a.server_binary,a.source_commit),"isolation":lambda:isolation(a.outer_net_namespace),"units":lambda:units(a.model_diagnostic,a.source_commit)}[a.action]()
     except Exception as error:
         if a.action=="isolation" and a.progress_root and a.source_commit:
             try:C.record_failure_detail(a.progress_root,a.source_commit,error)

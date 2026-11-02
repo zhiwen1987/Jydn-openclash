@@ -52,6 +52,10 @@ FAILURES = {
     'DEFERRED_CANCELLATION_REAPED', 'SIGNAL_HANDLER_RESTORE_FAILED_AFTER_REAP',
     'POPEN_FAILED', 'PGID_REJECTED', 'PUBLICATION_FAILED',
 }
+MARKER_OBSERVATIONS = {
+    'NONE', 'TIMEOUT_TEXT', 'PANIC_TEXT', 'TIMEOUT_AND_PANIC_TEXT',
+}
+MARKER_SCOPE = 'VALIDATED_PREFIX_TEXT_OBSERVATION_NOT_CAUSE'
 
 def need(value):
     if not value:
@@ -289,6 +293,8 @@ class Projector:
         self.semantic = True
         self.first_line = None
         self.last_line = None
+        self.timeout_marker = False
+        self.panic_marker = False
 
     def reject(self, failure):
         if self.failure == 'NONE':
@@ -301,6 +307,20 @@ class Projector:
             self.reject('FSM_REJECTED')
             return
         self.discard[key] += 1
+
+    def _observe_marker(self, output):
+        need(self.semantic and type(output) is str)
+        self.timeout_marker = self.timeout_marker or 'panic: test timed out after ' in output
+        self.panic_marker = self.panic_marker or output.startswith('panic:')
+
+    def marker_observation(self):
+        if self.timeout_marker and self.panic_marker:
+            return 'TIMEOUT_AND_PANIC_TEXT'
+        if self.timeout_marker:
+            return 'TIMEOUT_TEXT'
+        if self.panic_marker:
+            return 'PANIC_TEXT'
+        return 'NONE'
 
     def _transition(self, key, action, delta, elapsed):
         state = self.tests.get(key, 'ABSENT')
@@ -366,7 +386,9 @@ class Projector:
             if test is None:
                 need(action in ('start','pass','fail','skip','output'))
                 if action == 'start': need(pstate == 'ABSENT'); self.packages[package] = 'STARTED'
-                elif action == 'output': need(pstate == 'STARTED'); self._count('output')
+                elif action == 'output':
+                    need(pstate == 'STARTED'); self._count('output')
+                    if self.semantic: self._observe_marker(value['Output'])
                 else:
                     need(pstate == 'STARTED')
                     observed = [s for key,s in self.tests.items() if key.startswith(package+'::')]
@@ -389,6 +411,8 @@ class Projector:
             if action == 'output': self._count('output')
             need(action in ('run','pause','cont','pass','fail','skip','output'))
             self._transition(key, action, delta, elapsed)
+            if action == 'output' and self.semantic:
+                self._observe_marker(value['Output'])
         except Exception:
             self.reject('JSON_REJECTED')
 
@@ -406,13 +430,14 @@ class Projector:
         elif complete: coverage = 'COMPLETE_TERMINAL'
         else: coverage = 'PARTIAL_TERMINAL'
         return {
-            'schema':'chengwang.go-top-observation-timeline/v1',
+            'schema':'chengwang.go-top-observation-timeline/v2',
             'sourceCommit':self.source_commit,'sourceTree':self.source_tree,
             'lane':self.lane,'manifestCount':689,
             'manifestNamesSHA256':self.registry['namesSHA256'],
             'instrumentationEffect':'PIPE_READER_MAY_PERTURB_SCHEDULING_AND_DURATION',
             'evidenceScope':'THIS_INSTRUMENTED_RUN_ONLY','priorRunTimingEquivalence':False,
             'acceptanceAuthority':False,'causalInference':'NOT_MADE',
+            'markerObservation':self.marker_observation(),'scope':MARKER_SCOPE,
             'profileTimerSeconds':120 if self.lane == 'CAPACITY_FULL_RACE' else None,
             'testTimeoutSeconds':180,
             'boundaryDeltas':boundaries,

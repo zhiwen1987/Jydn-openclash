@@ -1,5 +1,5 @@
 from __future__ import annotations
-import ast, contextlib, copy, importlib.util, json, os, pathlib, shutil, ssl, subprocess, sys, tempfile, types, unittest
+import ast, contextlib, copy, importlib.util, io, json, os, pathlib, shutil, ssl, subprocess, sys, tempfile, types, unittest
 from unittest import mock
 HERE=pathlib.Path(__file__).resolve().parent
 def load(name,path):
@@ -64,6 +64,98 @@ class RunnerContracts(unittest.TestCase):
         for error,expected in cases:
             with self.subTest(expected=expected):self.assertEqual(C.exception_type(error),expected)
         self.assertEqual(str(R.Failure("SLO")),"")
+    def test_model_outcome_callbacks_expose_only_allowlisted_parent_ids_and_fixed_outcomes(self):
+        class Cases(unittest.TestCase):
+            def test_pass(self):pass
+            def test_failure(self):self.fail("Bearer SECRET /private/path")
+            def test_error(self):raise RuntimeError("https://private.invalid?token=SECRET")
+            @unittest.skip("Authorization: SECRET")
+            def test_skip(self):pass
+            def test_subtest(self):
+                with self.subTest(private="token=SECRET"):self.fail("response body SECRET")
+        tests=[Cases(name) for name in ("test_pass","test_failure","test_error","test_skip","test_subtest")]
+        expected=tuple(sorted(test.id() for test in tests));holder=[]
+        def result_class(*args,**kwargs):
+            result=CI.ModelOutcomeResult(*args,expected=expected,**kwargs);holder.append(result);return result
+        unittest.TextTestRunner(stream=io.StringIO(),verbosity=2,resultclass=result_class).run(unittest.TestSuite(tests));result=holder[0]
+        value=CI._model_value("a"*40,expected,CI.hashlib.sha256("\n".join(expected).encode()).hexdigest(),"b"*64,result)
+        raw=CI._bounded_model_bytes(value);decoded=json.loads(raw)
+        self.assertEqual(set(row["outcome"] for row in decoded["outcomes"]),{"PASS","FAIL","ERROR","SKIP"})
+        self.assertEqual(decoded["counts"],{"PASS":1,"FAIL":2,"ERROR":1,"SKIP":1,"UNKNOWN":0})
+        self.assertEqual(decoded["unknownEventCount"],0)
+        for secret in (b"SECRET",b"/private/path",b"https://",b"Authorization",b"response body",b"private"):
+            self.assertNotIn(secret,raw)
+    def test_model_outcome_inventory_is_exact_four_source_top_level_ast(self):
+        names,names_sha,source_sha=CI._model_inventory();independent=[]
+        self.assertEqual(CI.MODEL_TEST_SOURCES,("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py"))
+        for filename in CI.MODEL_TEST_SOURCES:
+            tree=ast.parse((HERE/filename).read_bytes());module=filename[:-3]
+            independent.extend(module+"."+cls.name+"."+method.name for cls in tree.body if isinstance(cls,ast.ClassDef)
+                for method in cls.body if isinstance(method,(ast.FunctionDef,ast.AsyncFunctionDef)) and method.name.startswith("test_"))
+        independent=tuple(sorted(independent));self.assertEqual(names,independent);self.assertGreaterEqual(len(names),83)
+        self.assertEqual(names_sha,CI.hashlib.sha256("\n".join(names).encode()).hexdigest());self.assertRegex(source_sha,r"^[0-9a-f]{64}$")
+    def test_model_outcome_validator_rejects_noncanonical_extra_cross_source_and_row_mutants(self):
+        expected,names_sha,source_sha=CI._model_inventory();result=types.SimpleNamespace(outcomes={name:"PASS" for name in expected},started=set(expected),unknownEvents=0)
+        raw=CI._bounded_model_bytes(CI._model_value("c"*40,expected,names_sha,source_sha,result));self.assertEqual(CI.validate_model_diagnostic(raw,"c"*40)["counts"]["PASS"],len(expected))
+        values=[];extra=json.loads(raw);extra["traceback"]="SECRET";values.append(C.canonical(extra))
+        row=json.loads(raw);row["outcomes"][0]["id"]="dynamic.private.test";values.append(C.canonical(row))
+        count=json.loads(raw);count["counts"]["PASS"]-=1;count["counts"]["UNKNOWN"]+=1;values.append(C.canonical(count))
+        values.extend((raw.replace(b'"accepted":false',b'"accepted":true'),b" "+raw,
+                       raw.replace(b'{"accepted":false',b'{"accepted":false,"accepted":false',1),b"{"+b" "*CI.MODEL_DIAGNOSTIC_MAXIMUM+b"}"))
+        for mutant in values:
+            with self.subTest(mutant=CI.hashlib.sha256(mutant).hexdigest()),self.assertRaises(ValueError):CI.validate_model_diagnostic(mutant,"c"*40)
+        with self.assertRaises(ValueError):CI.validate_model_diagnostic(raw,"d"*40)
+    def test_model_outcome_failure_still_writes_valid_source_bound_diagnostic_and_keeps_unit_failure(self):
+        expected=CI._model_inventory()[0]
+        def fail_run(runner,suite):
+            class Fake(unittest.TestCase):
+                def runTest(self):pass
+                def id(self):return expected[0]
+            result=runner._makeResult();test=Fake()
+            result.startTest(test);result.addFailure(test,(AssertionError,AssertionError("SECRET /private"),None));result.stopTest(test);return result
+        with tempfile.TemporaryDirectory() as d:
+            path=pathlib.Path(d)/"model.json"
+            with mock.patch.object(CI.unittest.TextTestRunner,"run",fail_run),self.assertRaises(ValueError):CI.units(path,"e"*40)
+            raw=path.read_bytes();value=CI.validate_model_diagnostic(raw,"e"*40)
+            self.assertEqual((value["accepted"],value["syntheticOnly"],value["counts"]["FAIL"]),(False,True,1));self.assertNotIn(b"SECRET",raw);self.assertLessEqual(len(raw),CI.MODEL_DIAGNOSTIC_MAXIMUM)
+            with self.assertRaises(FileExistsError):CI._emit_raw(path,b"{}\n",CI.MODEL_DIAGNOSTIC_MAXIMUM)
+        with self.assertRaises(ValueError):CI.units(None,"e"*40)
+    def test_units_strict_gate_rejects_expected_failure_unknown_no_callback_and_incomplete_inventory(self):
+        expected=CI._model_inventory()[0]
+        class Fake(unittest.TestCase):
+            def runTest(self):pass
+            def __init__(self,identity):super().__init__();self.identity=identity
+            def id(self):return self.identity
+        def result_for(runner,kind):
+            result=runner._makeResult();test=Fake(expected[0] if kind!="unknown-identity" else "dynamic.private.test")
+            result.startTest(test)
+            if kind=="expected-failure":result.addExpectedFailure(test,(AssertionError,AssertionError("SECRET /private"),None))
+            elif kind in ("unknown-identity","incomplete-inventory"):result.addSuccess(test)
+            elif kind!="no-callback":raise AssertionError(kind)
+            result.stopTest(test);return result
+        for kind in ("expected-failure","unknown-identity","no-callback","incomplete-inventory"):
+            with self.subTest(kind=kind):
+                def controlled_run(runner,suite,kind=kind):return result_for(runner,kind)
+                with mock.patch.object(CI.unittest.TextTestRunner,"run",controlled_run),self.assertRaises(ValueError):CI.units()
+        with tempfile.TemporaryDirectory() as d:
+            path=pathlib.Path(d)/"model.json";captured=[]
+            def expected_failure_run(runner,suite):
+                result=result_for(runner,"expected-failure");captured.append(result);return result
+            with mock.patch.object(CI.unittest.TextTestRunner,"run",expected_failure_run),self.assertRaises(ValueError):CI.units(path,"b"*40)
+            raw=path.read_bytes();value=CI.validate_model_diagnostic(raw,"b"*40)
+            self.assertTrue(captured[0].wasSuccessful());self.assertEqual(len(captured[0].expectedFailures),1);self.assertFalse(CI._model_all_pass(captured[0],expected))
+            self.assertEqual(value["counts"]["UNKNOWN"],len(expected));self.assertNotIn(b"SECRET",raw);self.assertNotIn(b"/private",raw)
+    def test_model_outcome_fixed_fallback_is_bounded_counts_only(self):
+        expected,names_sha,source_sha=CI._model_inventory();result=types.SimpleNamespace(outcomes={name:"PASS" for name in expected},started=set(expected),unknownEvents=0)
+        full=CI._model_value("f"*40,expected,names_sha,source_sha,result);raw=CI._bounded_model_bytes(full,1024);value=json.loads(raw)
+        self.assertEqual((value["projection"],value["outcomes"]),("FALLBACK",[]));self.assertEqual(value["counts"]["PASS"],len(expected));self.assertLessEqual(len(raw),1024)
+        self.assertEqual(CI.validate_model_diagnostic(raw,"f"*40),value)
+    def test_model_outcome_workflow_is_independent_single_file_and_does_not_change_go_budget(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();self.assertTrue(CI.workflow_contract(workflow.encode()))
+        self.assertEqual(workflow.count("go test -count=1 -timeout=300s ./..."),1)
+        self.assertIn("joint-control-plane-cpu-public/",workflow);self.assertNotIn("model-outcome",workflow.split("path: ${{ runner.temp }}/joint-control-plane-cpu-public/",1)[1].split("retention-days: 14",1)[0])
+        self.assertIn("path: ${{ runner.temp }}/joint-control-plane-model-outcome-public/model-outcome.json",workflow)
+        self.assertIn("always() && steps.cpu.outputs.model_diagnostic_ready == 'true'",workflow)
     def test_progress_chain_localizes_phase_and_static_capture_without_raw_data(self):
         commit="a"*40
         with tempfile.TemporaryDirectory() as d:
@@ -358,6 +450,10 @@ class RunnerContracts(unittest.TestCase):
             "namespace-missing-outcome":once(' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"',' bootstrap_progress "$GITHUB_SHA"'),
             "namespace-cross-source":once(' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"',' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "0000000000000000000000000000000000000000"'),
             "dedicated-outcome-wrong-step":once(outcome,'          BOOTSTRAP_STEP_OUTCOME: ${{ steps.cpu.outcome }}',2),
+            "model-upload-gate-bypass":once("        if: ${{ always() && steps.cpu.outputs.model_diagnostic_ready == 'true' }}","        if: always()"),
+            "model-upload-cross-directory":once("path: ${{ runner.temp }}/joint-control-plane-model-outcome-public/model-outcome.json","path: ${{ runner.temp }}/joint-control-plane-cpu-public/model-outcome.json"),
+            "model-units-source-binding-removed":once('ci_joint_control_plane.py units --output "$private/units.json" --model-diagnostic "$private/model-outcome.json" --source-commit "$GITHUB_SHA"','ci_joint_control_plane.py units --output "$private/units.json" --model-diagnostic "$private/model-outcome.json"'),
+            "model-independent-validator-removed":once('          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py model-diagnostic --input "$private/model-outcome.json" --source-commit "$GITHUB_SHA" --output "$model_public/model-outcome.json"; then\n'),
         }
         for name,mutant in mutants.items():
             with self.subTest(name=name),self.assertRaises(ValueError):CI.workflow_contract(mutant.encode())

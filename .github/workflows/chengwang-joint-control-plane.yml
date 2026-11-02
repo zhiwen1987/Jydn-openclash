@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: a622b2be7e43f66dec2fbff0a01cc0b4887b3b785f711e5437106a28a62ac758
+  CONTRACT_SHA256: 81ec60c1d74a849ca6b16f712580045e4d84dbb87bd5a67193b7002a0465a71a
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
 jobs:
   joint-control-plane:
@@ -44,16 +44,16 @@ jobs:
         env: {GOFLAGS: -mod=vendor, CGO_ENABLED: '0'}
         run: |
           set -uo pipefail
-          private="$RUNNER_TEMP/joint-control-plane-cpu-private"; stage="$RUNNER_TEMP/joint-control-plane-cpu-stage"; public="$RUNNER_TEMP/joint-control-plane-cpu-public"
-          if test -e "$private" || test -L "$private" || test -e "$stage" || test -L "$stage" || test -e "$public" || test -L "$public"; then
+          private="$RUNNER_TEMP/joint-control-plane-cpu-private"; stage="$RUNNER_TEMP/joint-control-plane-cpu-stage"; public="$RUNNER_TEMP/joint-control-plane-cpu-public"; model_public="$RUNNER_TEMP/joint-control-plane-model-outcome-public"
+          if test -e "$private" || test -L "$private" || test -e "$stage" || test -L "$stage" || test -e "$public" || test -L "$public" || test -e "$model_public" || test -L "$model_public"; then
             printf '%s\n' 'CPU_PUBLICATION=REJECTED_PREEXISTING_PATH' >&2
             exit 1
           fi
-          if ! install -d -m 0700 "$private" "$stage"; then
+          if ! install -d -m 0700 "$private" "$stage" "$model_public"; then
             printf '%s\n' 'CPU_PUBLICATION=REJECTED_DIRECTORY_CREATION' >&2
             exit 1
           fi
-          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" >"$private/units.log" 2>&1; then
+          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" --model-diagnostic "$private/model-outcome.json" --source-commit "$GITHUB_SHA" >"$private/units.log" 2>&1; then
             unit_code=0
           else
             unit_code=$?
@@ -66,6 +66,15 @@ jobs:
           if ! printf '%s\n' "$go_code" >"$private/go-exit.txt"; then
             printf '%s\n' 'CPU_PUBLICATION=REJECTED_STATUS_WRITE' >&2
             exit 1
+          fi
+          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py model-diagnostic --input "$private/model-outcome.json" --source-commit "$GITHUB_SHA" --output "$model_public/model-outcome.json"; then
+            diagnostic_code=0
+            if ! printf '%s\n' 'model_diagnostic_ready=true' >>"$GITHUB_OUTPUT"; then
+              printf '%s\n' 'CPU_PUBLICATION=REJECTED_MODEL_OUTPUT_WRITE' >&2
+              exit 1
+            fi
+          else
+            diagnostic_code=$?
           fi
           cpu_code=0
           if test "$unit_code" = 0 && test "$go_code" = 0; then
@@ -102,13 +111,21 @@ jobs:
               exit 1
             fi
           fi
-          test "$fallback_code" = 0 && test "$publish_code" = 0 && test "$cpu_code" = 0
+          test "$diagnostic_code" = 0 && test "$fallback_code" = 0 && test "$publish_code" = 0 && test "$cpu_code" = 0
       - name: Preserve bounded CPU publication only
         if: ${{ always() && steps.cpu.outputs.publication_ready == 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: joint-control-plane-cpu-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/joint-control-plane-cpu-public/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve source-bound model outcome diagnostic only
+        if: ${{ always() && steps.cpu.outputs.model_diagnostic_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: joint-control-plane-model-outcomes-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane-model-outcome-public/model-outcome.json
           if-no-files-found: error
           retention-days: 14
       - name: Prepare immutable source and staging
