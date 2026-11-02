@@ -1,18 +1,6 @@
 name: Publish public OpenClash rules
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "custom/**"
-      - "rules/**"
-      - "upstream/metafenliu.ini"
-      - "metafenliu.ini"
-      - "scripts/build.py"
-      - "scripts/publish_public_rules.py"
-      - "scripts/test_publish_public_rules.py"
-      - ".github/workflows/publish-public-rules.yml"
   workflow_run:
     workflows: ["Build OpenClash Template"]
     types: [completed]
@@ -27,22 +15,25 @@ concurrency:
 jobs:
   publish:
     if: >-
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_repository.full_name == github.repository &&
-       github.event.workflow_run.head_branch == 'main')
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout private source
         uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
       - name: Build and test the public allowlist
         run: |
           echo "PUBLIC_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           python3 scripts/build.py
+          python3 scripts/validate.py
+          ruby scripts/test_patch_runtime_groups.rb
+          ruby scripts/test_routing_controls.rb
+          ruby scripts/test_strict_custom.rb
           python3 -m unittest -v scripts/test_publish_public_rules.py
           python3 scripts/publish_public_rules.py --output "$RUNNER_TEMP/public-rules"
 
