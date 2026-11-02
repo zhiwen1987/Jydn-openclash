@@ -1,6 +1,7 @@
 """Pure-CPU privacy and shape models for the non-accepting Go failure projection."""
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -17,12 +18,11 @@ SPEC.loader.exec_module(F)
 class GoFailureProjectionModels(unittest.TestCase):
     def setUp(self) -> None:
         self.repo = HERE.parents[2]
-        self.packages = [F.BUILD_LOCATION_TARGET_PACKAGE] + [f"example/p{index}" for index in range(6)]
-        remaining = 528
+        self.packages = list(F.PACKAGE_NAMES)
+        per_package, extra = divmod(528, len(self.packages))
         self.names = {}
         for index, package in enumerate(self.packages):
-            count = remaining if index == len(self.packages) - 1 else 68
-            remaining -= count
+            count = per_package + (1 if index < extra else 0)
             self.names[package] = [f"TestP{index}_{item:03d}" for item in range(count)]
         self.contract = {
             "schema": "chengwang.subscription-refresh-source/v4",
@@ -64,6 +64,47 @@ class GoFailureProjectionModels(unittest.TestCase):
         relative = source.removeprefix("chengwang/")
         suffix = f":{line}" + (f":{column}" if column is not None else "") + f": {message}\n"
         return (relative + suffix).encode()
+
+    def test_actual_contract_exact_packages_and_failure_report_roundtrip(self) -> None:
+        contract_raw = (HERE / "source_contract.json").read_bytes()
+        contract = json.loads(contract_raw)
+        packages, names = F.expected(contract)
+        self.assertEqual(F.PACKAGE_NAMES, tuple(packages))
+        self.assertEqual(528, sum(len(value) for value in names.values()))
+
+        package = "chengwang/internal/evidence"
+        name = names[package][0]
+        events = self.encode([
+            {"Action": "start", "Package": package},
+            {"Action": "run", "Package": package, "Test": name},
+            {"Action": "fail", "Package": package, "Test": name},
+            {"Action": "fail", "Package": package},
+        ])
+        result = F.project(events, b"", self.repo, contract_raw, F.sha(contract_raw), 1, 1)
+        self.assertEqual([package + "::" + name], result["failedTops"])
+        self.assertEqual(1, result["failCount"])
+        self.assertEqual(527, result["notStartedCount"])
+        report = json.dumps(result, separators=(",", ":")).encode() + b"\n"
+        self.assertEqual(
+            result,
+            F.verify_report(report, events, b"", self.repo, contract_raw, F.sha(contract_raw), 1, 1),
+        )
+
+        variants = (
+            list(packages[:-1]),
+            [packages[1], packages[0], *packages[2:]],
+            [*packages, "chengwang/internal/not-declared"],
+        )
+        for altered in variants:
+            with self.subTest(altered=altered):
+                invalid = copy.deepcopy(contract)
+                invalid["goTest"]["packages"] = altered
+                invalid["packages"] = {
+                    value: copy.deepcopy(contract["packages"].get(value, {"requiredRunTops": []}))
+                    for value in altered
+                }
+                with self.assertRaises(F.FailureDiagnosticError):
+                    F.expected(invalid)
 
     def test_declared_top_failure_projects_only_source_names_and_counts(self) -> None:
         package = self.packages[0]

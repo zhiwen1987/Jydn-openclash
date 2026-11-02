@@ -107,7 +107,9 @@ func (ArchiveExistingReadLimits) GoString() string {
 func (ArchivePosixIdentity) MarshalJSON() ([]byte, error) {
 	return nil, ErrArchiveProjectionForbidden
 }
-func (ArchiveDirectoryAnchor) MarshalJSON() ([]byte, error) { return nil, ErrArchiveProjectionForbidden }
+func (ArchiveDirectoryAnchor) MarshalJSON() ([]byte, error) {
+	return nil, ErrArchiveProjectionForbidden
+}
 func (ArchiveFileAnchor) MarshalJSON() ([]byte, error) { return nil, ErrArchiveProjectionForbidden }
 func (ArchiveEvidenceAnchor) MarshalJSON() ([]byte, error) {
 	return nil, ErrArchiveProjectionForbidden
@@ -129,7 +131,9 @@ func (*ArchiveExistingReadLimits) UnmarshalJSON([]byte) error {
 func (ArchivePosixIdentity) MarshalText() ([]byte, error) {
 	return nil, ErrArchiveProjectionForbidden
 }
-func (ArchiveDirectoryAnchor) MarshalText() ([]byte, error) { return nil, ErrArchiveProjectionForbidden }
+func (ArchiveDirectoryAnchor) MarshalText() ([]byte, error) {
+	return nil, ErrArchiveProjectionForbidden
+}
 func (ArchiveFileAnchor) MarshalText() ([]byte, error) { return nil, ErrArchiveProjectionForbidden }
 func (ArchiveEvidenceAnchor) MarshalText() ([]byte, error) {
 	return nil, ErrArchiveProjectionForbidden

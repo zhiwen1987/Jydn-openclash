@@ -234,4 +234,47 @@ class SanitizerContracts(unittest.TestCase):
             '''
             result=subprocess.run([str(bash),"-c",probe+shell],cwd=HERE.parents[2],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False);calls=marker.read_text()
             self.assertNotEqual(result.returncode,0);self.assertIn("cpu-publish",calls);self.assertTrue((runner/"joint-control-plane-cpu-public/safe.json").is_file());self.assertEqual(list(output.iterdir()),[])
+    def test_workflow_shell_runner_errexit_captures_every_expected_status_before_final_failure(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();section=workflow.split("      - name: CPU contracts and Go suite",1)[1].split("      - name: Preserve bounded CPU publication only",1)[0]
+        run=section.split("        run: |\n",1)[1];shell="\n".join(line[10:] if line.startswith("          ") else line for line in run.splitlines())+"\n"
+        bash=shutil.which("bash") or (r"C:\Program Files\Git\bin\bash.exe" if pathlib.Path(r"C:\Program Files\Git\bin\bash.exe").is_file() else None);self.assertIsNotNone(bash)
+        probe=r'''install(){ mkdir -p "$4" "$5"; }
+        python3(){
+          command printf 'python3 %s\n' "$*" >>"$CALL_MARKER"
+          args="$*"; out=''; while test "$#" -gt 0; do if test "$1" = --output; then out="$2"; break; fi; shift; done
+          case "$args" in
+            *ci_joint_control_plane.py*units*) code="$UNIT_CODE" ;;
+            *sanitize_publication.py*cpu-publish*) code="$PUBLISH_CODE" ;;
+            *sanitize_publication.py*cpu-fallback*) code="$FALLBACK_CODE" ;;
+            *sanitize_publication.py*failure*) code="$FAILURE_PROJECTION_CODE" ;;
+            *sanitize_publication.py*cpu*) code="$CPU_PROJECTION_CODE" ;;
+            *) return 97 ;;
+          esac
+          if test "$code" = 0; then
+            if case "$args" in *cpu-publish*) true;; *) false;; esac; then mkdir -p "$out"; command printf 'SAFE\n' >"$out/safe.json"
+            elif test -n "$out"; then mkdir -p "${out%/*}"; command printf '{}\n' >"$out"; fi
+          fi
+          return "$code"
+        }
+        go(){ command printf 'go\n' >>"$CALL_MARKER"; return "$GO_CODE"; }
+        '''
+        scenarios=(
+            ("success",0,0,0,0,0,0,True,True),
+            ("unit-failure",41,0,0,0,0,0,True,False),
+            ("go-failure",0,42,0,0,0,0,True,False),
+            ("cpu-projection-failure",0,0,43,0,0,0,True,False),
+            ("failure-projection-failure",41,0,0,44,0,0,True,False),
+            ("fallback-failure",0,0,45,0,46,47,False,False),
+            ("publish-failure",0,0,0,0,0,48,False,False),
+        )
+        for name,unit_code,go_code,cpu_projection_code,failure_projection_code,fallback_code,publish_code,ready,success in scenarios:
+            with self.subTest(name=name),tempfile.TemporaryDirectory() as d:
+                root=pathlib.Path(d);runner=root/"runner";runner.mkdir();marker=root/"commands-called";output=root/"github-output"
+                env=os.environ.copy();env.update({"RUNNER_TEMP":runner.as_posix(),"GITHUB_OUTPUT":output.as_posix(),"CALL_MARKER":marker.as_posix(),"UNIT_CODE":str(unit_code),"GO_CODE":str(go_code),"CPU_PROJECTION_CODE":str(cpu_projection_code),"FAILURE_PROJECTION_CODE":str(failure_projection_code),"FALLBACK_CODE":str(fallback_code),"PUBLISH_CODE":str(publish_code)})
+                result=subprocess.run([str(bash),"-e","-o","pipefail","-c",probe+shell],cwd=HERE.parents[2],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
+                self.assertEqual(result.returncode==0,success,result.stderr.decode(errors="replace"));calls=marker.read_text()
+                self.assertIn("ci_joint_control_plane.py units",calls);self.assertIn("go",calls);self.assertIn("cpu-publish",calls)
+                if cpu_projection_code or failure_projection_code:self.assertIn("cpu-fallback",calls)
+                self.assertEqual(output.is_file(),ready)
+                if ready:self.assertEqual(output.read_text(),"publication_ready=true\n")
 if __name__=="__main__":unittest.main()

@@ -23,17 +23,17 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 43dcd9066b85aba9db3cad5a7a4bd99b73e643e6108cce4f303ff4d5a8a31108
-  CHECKER_SHA256: 817a0d9af2ac1e1e12d704a2da3a3bd31894e76e64fbad1b69d614491cc6da5d
+  CONTRACT_SHA256: e9b19aa0edc31b6fac87873ae5881b42b50dd494581b1d0603d9a6eec4c6bd52
+  CHECKER_SHA256: 1d5f245e7c443c5edaf4a57ca09972221a7d2fb9ca4b2454195c0d0b2ee45fe8
   MODEL_SHA256: 08779f537fda4b202ee107c922d325eafbadc1c86a77344b41c388d75b4d3970
   EVENT_CHECKER_SHA256: 3577ba482e64d28105deaf848930a5b1ef61bd9bbf6088a67168c66dd24aa60b
   EVENT_MODEL_SHA256: 32e29237c0fa812135ebe7fb3f22e3a1b398e9409053d21c9274dbd100583ec7
-  FAILURE_CHECKER_SHA256: e9a42c82739a97a4ae11c430dd9a39bca9da8c55a1fb55462e1a0835f051bf5b
-  FAILURE_MODEL_SHA256: dbadd9d14a7da41deddb50f958346f51a44ae0bbe1e07e2fe916537579e82ae4
+  FAILURE_CHECKER_SHA256: 98690e7151add97552fa40b3b17dba134557fed2d519a2f494e6411f535ffc91
+  FAILURE_MODEL_SHA256: 25f7ff3eb16ff4695b96786ef477eff80e5e98abb05ffc6c8fee341d4eb0ac0a
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: 3c8e3abb1eabe15117b07128a753faa5610fb8927c2dc07b1f367f538c032af1
   MODULE_COUNT: '842'
-  MODULE_SHA256: 0783ee4b85a52030894f933c459360849754aac3acdf4d29a6276b02e080b5f9
+  MODULE_SHA256: a6a76345173d79fc826280156e1820de5a0301c7e6a52e6f749fa60efaf47a1d
   FIXTURE_COUNT: '21'
   FIXTURE_SHA256: 7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11
   TEST_TOP_COUNT: '545'
@@ -41,7 +41,7 @@ env:
   RUN_TOP_COUNT: '528'
   RUN_TOPS_SHA256: 63be983c7870008b3be4ba2bfb7feebee1dfe4c344e98b5ad5833c361997b8c1
   CHANGED_GO_COUNT: '38'
-  CHANGED_GO_SHA256: 9abb36b257bfe6bbedfbdb7677e50eb0766300433515c43140b149ff247e503b
+  CHANGED_GO_SHA256: b61b2b16740dc5803d54895e1e54aeaa0da1d487a8840800fd221d04ed30e4ce
 
 jobs:
   source-models:
@@ -79,11 +79,11 @@ jobs:
               names.extend(filename+'::'+node.name for item in tree.body if isinstance(item,ast.ClassDef)
                            for node in item.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'))
           names=sorted(names)
-          assert len(names)==len(set(names))==82
-          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='45e03bc06cd08db0291d50561c68d30d088415dee8294e8a5c3596629402145a'
+          assert len(names)==len(set(names))==83
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='42b8d142d7c77bad77bc4f191d784ba57a7595440f347c718308007dcad90194'
           text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
           source_contract_checker.verify_source_model_log(text,files,names)
-          print('P207A_SOURCE_MODELS=PASS count=82 go_execution_proven=false')
+          print('P207A_SOURCE_MODELS=PASS count=83 go_execution_proven=false')
           PY
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

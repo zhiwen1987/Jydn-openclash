@@ -444,20 +444,20 @@ func archiveCallerPolicyViolations(relative string, raw []byte, allowed string) 
 		"ExistingArchiveSnapshot":     true,
 		"ArchiveExistingReadLimits":   true,
 		"ErrArchiveExistingLimit":     true,
-		"ArchivePosixIdentity":         true,
-		"ArchiveDirectoryAnchor":       true,
-		"ArchiveFileAnchor":            true,
-		"ArchiveEvidenceAnchor":        true,
+		"ArchivePosixIdentity":        true,
+		"ArchiveDirectoryAnchor":      true,
+		"ArchiveFileAnchor":           true,
+		"ArchiveEvidenceAnchor":       true,
 	}
 	guardedPackageSymbols := map[string]bool{
 		"OpenExistingArchiveSnapshot": true,
 		"ExistingArchiveSnapshot":     true,
 		"ArchiveExistingReadLimits":   true,
 		"ErrArchiveExistingLimit":     true,
-		"ArchivePosixIdentity":         true,
-		"ArchiveDirectoryAnchor":       true,
-		"ArchiveFileAnchor":            true,
-		"ArchiveEvidenceAnchor":        true,
+		"ArchivePosixIdentity":        true,
+		"ArchiveDirectoryAnchor":      true,
+		"ArchiveFileAnchor":           true,
+		"ArchiveEvidenceAnchor":       true,
 	}
 	allowedMethods := map[string]bool{"Anchor": true, "Revalidate": true, "Close": true}
 	aliases := map[string]bool{}

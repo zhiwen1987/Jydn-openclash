@@ -62,6 +62,17 @@ BUILD_DIAGNOSTIC_REASONS = (
 )
 BUILD_STDERR_CLASSES = ("EMPTY", "NONEMPTY", "OVER_BUDGET")
 BUILD_POSITION_COUNTS = tuple(str(value) for value in range(MAX_BUILD_LOCATIONS + 1)) + ("OVER8",)
+PACKAGE_NAMES = (
+    "chengwang/internal/api",
+    "chengwang/internal/authn",
+    "chengwang/internal/authz",
+    "chengwang/internal/evidence",
+    "chengwang/internal/nativefs",
+    "chengwang/internal/serverruntime",
+    "chengwang/internal/subscription",
+    "chengwang/internal/subscriptionctl",
+    "chengwang/internal/subscriptionpolicy",
+)
 BUILD_LOCATION_TARGET_PACKAGE = "chengwang/internal/subscriptionctl"
 BUILD_LOCATION_SOURCES = {
     "chengwang/internal/subscriptionctl/access.go": "01872130f73000775a3d1b051447f837a576639f8a0428d671f8d392aae708e4",
@@ -265,7 +276,7 @@ def expected(contract: object) -> tuple[list[str], dict[str, list[str]]]:
     go_test = contract.get("goTest")
     need(type(go_test) is dict and type(go_test.get("packages")) is list, "Go package contract")
     packages = go_test["packages"]
-    need(packages == list(dict.fromkeys(packages)) and len(packages) == 7, "Go packages")
+    need(packages == list(PACKAGE_NAMES), "Go packages")
     definitions = contract.get("packages")
     need(type(definitions) is dict and list(definitions) == packages, "package definitions")
     wanted: dict[str, list[str]] = {}

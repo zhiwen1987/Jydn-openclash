@@ -34,6 +34,82 @@ FAILURE_STEP=(
     "    sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input \"$root/evidence/staging\" --progress-root \"$root/evidence/staging/failure-localization.private\" --bootstrap-record \"$root/evidence/staging/bootstrap-localization.private/status.json\" --source-commit \"$GITHUB_SHA\" --bootstrap-step-id bootstrap_progress --bootstrap-step-outcome \"$BOOTSTRAP_STEP_OUTCOME\" --bootstrap-step-source \"$GITHUB_SHA\" --code SCENE_FAILED --output \"$root/evidence/public/failure.json\"",
     "    sudo --non-interactive chown -R --no-dereference \"$(id -u):$(id -g)\" \"$root/evidence/public\"",
 )
+CPU_STEP=(
+    "- name: CPU contracts and Go suite",
+    "  id: cpu",
+    "  env: {GOFLAGS: -mod=vendor, CGO_ENABLED: '0'}",
+    "  run: |",
+    "    set -uo pipefail",
+    "    private=\"$RUNNER_TEMP/joint-control-plane-cpu-private\"; stage=\"$RUNNER_TEMP/joint-control-plane-cpu-stage\"; public=\"$RUNNER_TEMP/joint-control-plane-cpu-public\"",
+    "    if test -e \"$private\" || test -L \"$private\" || test -e \"$stage\" || test -L \"$stage\" || test -e \"$public\" || test -L \"$public\"; then",
+    "      printf '%s\\n' 'CPU_PUBLICATION=REJECTED_PREEXISTING_PATH' >&2",
+    "      exit 1",
+    "    fi",
+    "    if ! install -d -m 0700 \"$private\" \"$stage\"; then",
+    "      printf '%s\\n' 'CPU_PUBLICATION=REJECTED_DIRECTORY_CREATION' >&2",
+    "      exit 1",
+    "    fi",
+    "    if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output \"$private/units.json\" >\"$private/units.log\" 2>&1; then",
+    "      unit_code=0",
+    "    else",
+    "      unit_code=$?",
+    "    fi",
+    "    if (cd chengwang && go test -count=1 -timeout=300s ./...) >\"$private/go.log\" 2>&1; then",
+    "      go_code=0",
+    "    else",
+    "      go_code=$?",
+    "    fi",
+    "    if ! printf '%s\\n' \"$go_code\" >\"$private/go-exit.txt\"; then",
+    "      printf '%s\\n' 'CPU_PUBLICATION=REJECTED_STATUS_WRITE' >&2",
+    "      exit 1",
+    "    fi",
+    "    cpu_code=0",
+    "    if test \"$unit_code\" = 0 && test \"$go_code\" = 0; then",
+    "      if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu --units \"$private/units.json\" --go-exit \"$private/go-exit.txt\" --output \"$stage/cpu-summary.json\"; then",
+    "        projection_code=0",
+    "      else",
+    "        projection_code=$?",
+    "      fi",
+    "    else",
+    "      cpu_code=1",
+    "      if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input \"$private\" --code CPU_FAILED --output \"$stage/cpu-failure.json\"; then",
+    "        projection_code=0",
+    "      else",
+    "        projection_code=$?",
+    "      fi",
+    "    fi",
+    "    fallback_code=0",
+    "    if test \"$projection_code\" != 0; then",
+    "      cpu_code=1",
+    "      if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-fallback --output \"$stage/cpu-diagnostic-unavailable.json\"; then",
+    "        fallback_code=0",
+    "      else",
+    "        fallback_code=$?",
+    "      fi",
+    "    fi",
+    "    if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-publish --input \"$stage\" --output \"$public\"; then",
+    "      publish_code=0",
+    "    else",
+    "      publish_code=$?",
+    "    fi",
+    "    if test \"$publish_code\" = 0; then",
+    "      if ! printf '%s\\n' 'publication_ready=true' >>\"$GITHUB_OUTPUT\"; then",
+    "        printf '%s\\n' 'CPU_PUBLICATION=REJECTED_OUTPUT_WRITE' >&2",
+    "        exit 1",
+    "      fi",
+    "    fi",
+    "    test \"$fallback_code\" = 0 && test \"$publish_code\" = 0 && test \"$cpu_code\" = 0",
+)
+CPU_UPLOAD_STEP=(
+    "- name: Preserve bounded CPU publication only",
+    "  if: ${{ always() && steps.cpu.outputs.publication_ready == 'true' }}",
+    "  uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+    "  with:",
+    "    name: joint-control-plane-cpu-${{ github.run_id }}-${{ github.run_attempt }}",
+    "    path: ${{ runner.temp }}/joint-control-plane-cpu-public/",
+    "    if-no-files-found: error",
+    "    retention-days: 14",
+)
 def need(ok):
     if not ok:raise ValueError("joint-ci-rejected")
 def workflow_contract(raw):
@@ -58,6 +134,8 @@ def workflow_contract(raw):
     need(named.get("Bootstrap bounded namespace progress")==BOOTSTRAP_STEP)
     need(named.get("Real B0 J1 R2 same-binary scene")==SCENE_STEP)
     need(named.get("Publish only bounded failure classification")==FAILURE_STEP)
+    need(named.get("CPU contracts and Go suite")==CPU_STEP)
+    need(named.get("Preserve bounded CPU publication only")==CPU_UPLOAD_STEP)
     return True
 def run(*args):return subprocess.check_output(list(args),stderr=subprocess.DEVNULL,timeout=30)
 def emit(path,value):

@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 7dc3ce0ede2c349cb87dd586fc1681c803bac5464222ea2cd9b755d2c5b50737
+  CONTRACT_SHA256: c57dfdaa49596896a1b34f283c75a9887c8e5eed4fe472a52291939ce6cc40de
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
 jobs:
   joint-control-plane:
@@ -53,25 +53,49 @@ jobs:
             printf '%s\n' 'CPU_PUBLICATION=REJECTED_DIRECTORY_CREATION' >&2
             exit 1
           fi
-          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" >"$private/units.log" 2>&1; unit_code=$?
-          (cd chengwang && go test -count=1 -timeout=300s ./...) >"$private/go.log" 2>&1; go_code=$?
+          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" >"$private/units.log" 2>&1; then
+            unit_code=0
+          else
+            unit_code=$?
+          fi
+          if (cd chengwang && go test -count=1 -timeout=300s ./...) >"$private/go.log" 2>&1; then
+            go_code=0
+          else
+            go_code=$?
+          fi
           if ! printf '%s\n' "$go_code" >"$private/go-exit.txt"; then
             printf '%s\n' 'CPU_PUBLICATION=REJECTED_STATUS_WRITE' >&2
             exit 1
           fi
           cpu_code=0
           if test "$unit_code" = 0 && test "$go_code" = 0; then
-            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu --units "$private/units.json" --go-exit "$private/go-exit.txt" --output "$stage/cpu-summary.json"; projection_code=$?
+            if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu --units "$private/units.json" --go-exit "$private/go-exit.txt" --output "$stage/cpu-summary.json"; then
+              projection_code=0
+            else
+              projection_code=$?
+            fi
           else
             cpu_code=1
-            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$private" --code CPU_FAILED --output "$stage/cpu-failure.json"; projection_code=$?
+            if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$private" --code CPU_FAILED --output "$stage/cpu-failure.json"; then
+              projection_code=0
+            else
+              projection_code=$?
+            fi
           fi
           fallback_code=0
           if test "$projection_code" != 0; then
             cpu_code=1
-            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-fallback --output "$stage/cpu-diagnostic-unavailable.json"; fallback_code=$?
+            if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-fallback --output "$stage/cpu-diagnostic-unavailable.json"; then
+              fallback_code=0
+            else
+              fallback_code=$?
+            fi
           fi
-          python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-publish --input "$stage" --output "$public"; publish_code=$?
+          if python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-publish --input "$stage" --output "$public"; then
+            publish_code=0
+          else
+            publish_code=$?
+          fi
           if test "$publish_code" = 0; then
             if ! printf '%s\n' 'publication_ready=true' >>"$GITHUB_OUTPUT"; then
               printf '%s\n' 'CPU_PUBLICATION=REJECTED_OUTPUT_WRITE' >&2

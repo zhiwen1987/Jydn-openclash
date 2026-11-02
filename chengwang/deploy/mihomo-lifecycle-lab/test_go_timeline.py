@@ -207,10 +207,17 @@ class CollectorStubModels(unittest.TestCase):
         guard.process=process;guard.pipe=source;guard.expectedPgid=guard.validatedPgid=process.pid
         guard.owner='COLLECTOR_OWNS';guard.active=guard.handoffActive=True
         projector=capture.Projector('FOUNDATION_ORDINARY',COMMIT,TREE,capture.load_registry())
-        with mock.patch('go_timeline_capture.publish_safe') as publish:
-            code,_=capture.collect(guard,projector,0,publication_parent=Path('/synthetic'))
-        raw_sink.seek(0);retained=raw_sink.read()
-        return code,projector,publish.call_args.args[2],retained,process
+        try:
+            with mock.patch('go_timeline_capture.publish_safe') as publish:
+                code,_=capture.collect(guard,projector,0,publication_parent=Path('/synthetic'))
+            raw_sink.seek(0);retained=raw_sink.read()
+            return code,projector,publish.call_args.args[2],retained,process
+        finally:
+            guard.cleanup(kill=False)
+            self.assertEqual(guard.owner,'REAPED')
+            self.assertIsNone(guard.pipe)
+            self.assertIsNone(guard.rawSink)
+            self.assertIsNone(guard.stderrSink)
 
     def test_complete_subprocess_stub_drains_reaps_and_projects(self):
         rows=[]
