@@ -363,7 +363,7 @@ jobs:
           retention-days: 14
   continuous-recovery-fresh:
     needs: [development-only, continuous-recovery-api]
-    if: ${{ !cancelled() && needs.development-only.result == 'success' }}
+    if: ${{ !cancelled() && needs.development-only.result == 'success' && needs.continuous-recovery-api.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:

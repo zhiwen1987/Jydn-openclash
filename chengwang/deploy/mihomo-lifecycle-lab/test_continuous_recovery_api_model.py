@@ -87,6 +87,16 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls): cls.reader=load('continuous_reader', 'check_continuous_recovery_api.py'); cls.worker=load('continuous_worker','continuous_recovery_api_worker.py')
 
+    def test_fresh_readback_requires_successful_api_producer(self):
+        workflow=(HERE.parents[2]/'.github/workflows/chengwang-mihomo-continuous-recovery-api.yml').read_text(encoding='utf8')
+        marker='\n  continuous-recovery-fresh:\n';self.assertEqual(workflow.count(marker),1);fresh=workflow.split(marker,1)[1]
+        needs='    needs: [development-only, continuous-recovery-api]\n'
+        gate="    if: ${{ !cancelled() && needs.development-only.result == 'success' && needs.continuous-recovery-api.result == 'success' }}\n"
+        old="    if: ${{ !cancelled() && needs.development-only.result == 'success' }}\n"
+        producer='          name: mihomo-continuous-recovery-api-originals-${{ github.run_id }}-${{ github.run_attempt }}\n'
+        self.assertEqual(fresh.count(needs),1);self.assertEqual(fresh.count(gate),1);self.assertNotIn(old,fresh)
+        self.assertEqual(fresh.count(producer),1);self.assertLess(fresh.index(needs),fresh.index(gate));self.assertLess(fresh.index(gate),fresh.index(producer))
+
     def test_contract_excludes_old_fault_tags_and_has_independent_capture(self):
         contract=json.loads((HERE/'continuous_recovery_api_contract.json').read_bytes())
         self.assertEqual(contract['schema'],'chengwang.mihomo-continuous-recovery-contract/v2')
