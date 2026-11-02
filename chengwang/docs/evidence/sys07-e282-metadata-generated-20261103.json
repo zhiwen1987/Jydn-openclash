@@ -1,0 +1,76 @@
+{
+  "schema": "chengwang.metadata-projection-receipt/v1",
+  "baseCommit": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+  "sourceReceiptSHA256": "d1acf3ffeccfee6101e994fdb6f58f21275ef185ca1d0cd398d92af354f5fe62",
+  "targets": [
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_test.go",
+      "bytes": 101182,
+      "sha256": "8c3925d9895f076d398b56a4bcc716d493b5b8e6d9e01cbd33368b663aeaa1cc"
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_wire.go",
+      "bytes": 36441,
+      "sha256": "2692d55e5ab4338c1536d2733d8546f11fd0d69cce770b3e70184fa56cc04407"
+    }
+  ],
+  "outputs": [
+    {
+      "path": ".github/workflows/chengwang-joint-control-plane.yml",
+      "beforeBytes": 10075,
+      "beforeSHA256": "a64c58e9e0ebd48650929223f004e983a0ba1a1365a5b41f13a770ae5bb9cf84",
+      "afterBytes": 10075,
+      "afterSHA256": "c9c2c2faf29aba019427b21534c505145d0d918d387dfe506eb9d5f32320483b"
+    },
+    {
+      "path": ".github/workflows/chengwang-subscription-refresh.yml",
+      "beforeBytes": 15919,
+      "beforeSHA256": "40077609e7ba580756360a4df77fcb7f8130069c5887580a4fe9745726fb8584",
+      "afterBytes": 15919,
+      "afterSHA256": "819a58215a7272af5b68e0ca1cd73c56c5e28de44e71c2997095b0b6890dc06c"
+    },
+    {
+      "path": "chengwang/deploy/joint-control-plane/source_contract.json",
+      "beforeBytes": 118425,
+      "beforeSHA256": "d29420f0b6dd7443348b6e79a7a3310f2c423caf9784c61293365f5e3cd5e263",
+      "afterBytes": 118425,
+      "afterSHA256": "581e625c9bbbb6885052b10a171a55eccabd1051259b7899e763c6777ac742e3"
+    },
+    {
+      "path": "chengwang/deploy/subscription-refresh/source_contract.json",
+      "beforeBytes": 115442,
+      "beforeSHA256": "b6cc46dbcb4f7602f64f66c487eb6ef9e858c51b905dc6381d0a7a91652ec4ac",
+      "afterBytes": 115442,
+      "afterSHA256": "7504adeb98384bb77ea9059a27ba6d9b03f2bed8d5e855919415940ab97cfb62"
+    }
+  ],
+  "p207": {
+    "packageCount": 7,
+    "testTopCount": 496,
+    "runTopCount": 491,
+    "sourceModelCount": 63,
+    "moduleCount": 830,
+    "moduleSHA256": "18453eccc5ef02953964ba35b31627edc0793b7c88ad84d287ea77ecd1dbbbeb",
+    "fixtureCount": 21,
+    "fixtureSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11",
+    "changedGoCount": 29,
+    "changedGoSHA256": "ff68b3fabf2e6af2d79326ac652dbe20ac35d857a3b7630ea36fb3bb70881ec8",
+    "contractSHA256": "7504adeb98384bb77ea9059a27ba6d9b03f2bed8d5e855919415940ab97cfb62"
+  },
+  "joint": {
+    "pathCount": 841,
+    "changedRows": [
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "unchangedRowCount": 839,
+    "unchangedRowsSHA256": "ab5f403b7a69a6a142b39d14db80b1d748711e30a3ae8617aae3d17b543d3c60",
+    "contractSHA256": "581e625c9bbbb6885052b10a171a55eccabd1051259b7899e763c6777ac742e3",
+    "checkerSHA256": "5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec"
+  },
+  "boundaries": {
+    "goExecuted": false,
+    "worktreeSourceRead": false,
+    "productAcceptanceProven": false
+  }
+}

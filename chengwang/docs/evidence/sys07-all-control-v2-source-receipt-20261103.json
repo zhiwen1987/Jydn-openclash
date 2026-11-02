@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "c648-all-control-states-strict-byte-proof-test-only-candidate",
+  "state": "FROZEN_EXTERNAL_SOURCE_CANDIDATE_UNCOMPILED",
+  "base": {
+    "commit": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+    "tree": "15697a36d29a897634d8bf8055d9fe18bfdb0b10",
+    "path": "chengwang/internal/subscription/sealed_archive_test.go",
+    "blob": "009d40dc89c818b852fdf643533d4a8861f1fab1",
+    "sha256": "d655d6affcc2533feeaa74ba7326f7ce1da08a6bc7d47caeba34f4b3553a5019",
+    "bytes": 96154,
+    "lineEndings": "LF"
+  },
+  "sourceEvidence": {
+    "peerReview": "D:/CodexData/workspace/chengwang-c648-all-control-states-diagnosis-peer-review-20261103-cd03-v1/FINAL.json",
+    "peerReviewSHA256": "771d61c2a98195b1c69c9784440a1cd49df25488a2aaef1787d1d2efac3906a5",
+    "productBlob": "f9b9c6646b2b67f7161275d79836cb04795ae11a",
+    "wireBlob": "756e85fb309dbd53eb044dfb3c0017b07fd90dfa",
+    "productFilesChanged": 0
+  },
+  "candidate": {
+    "changedPaths": [
+      "chengwang/internal/subscription/sealed_archive_test.go"
+    ],
+    "additions": 86,
+    "deletions": 3,
+    "afterBlob": "e1fd4622789f91e738bbe44a35b0e071f65980c7",
+    "afterSHA256": "7d067c05d3e452cf75f585412cd4e970ec4028089bc8bf8229fd9327e376464c",
+    "afterBytes": 100309,
+    "afterLineEndings": "LF",
+    "patch": "candidate-c648-all-control-states-strict-byte-proof-fix.patch",
+    "patchSHA256": "b00649ac98f00778173d1d7f6bf154afff6b5dbde5641fd5f9def53028b6c0d3",
+    "patchBytes": 6242,
+    "patchLineEndings": "LF",
+    "applyStrip": 2
+  },
+  "coverage": {
+    "existingGenesisOnlyMutationsPreserved": [
+      "OriginalV1.Length increment",
+      "OriginalV1.SHA256 replaced by 64 zeros",
+      "OriginalV1.SHA256 one-byte same-length mutation"
+    ],
+    "genesisOnlyExpectedCode": "subscription_archive_conflict",
+    "realChainStrictProofMutations": [
+      "OriginalV1.Length increment",
+      "OriginalV1.SHA256 replaced by 64 zeros",
+      "OriginalV1.SHA256 one-byte same-length mutation"
+    ],
+    "realChainExpectedCode": "subscription_archive_reconstruction_failed",
+    "helper": "sealedArchiveReplaceClaimedOriginalV1V8",
+    "helperScope": "test-only",
+    "newTopLevelTests": 0,
+    "testFileTopLevelTestsBefore": 10,
+    "testFileTopLevelTestsAfter": 10
+  },
+  "chainReconstruction": [
+    "decode archive.meta, intent, candidates, and genesis from the real plan",
+    "derive Kref and Kseal from archive.meta through sealedArchiveKeys",
+    "synchronize the mutated OriginalV1 claim into intent core and genesis",
+    "canonicalize the intent core and recompute migrationID and archiveEpoch",
+    "rebuild and reseal intent through sealedArchiveMakeIntentV8",
+    "rebuild, reseal, and rename every candidate through sealedArchiveMakeCandidateV8 and sealedArchiveContentName",
+    "rebuild candidate links with the new references",
+    "rebuild, reseal, and rename genesis through sealedArchiveMakeGenesisV8 and sealedArchiveContentName"
+  ],
+  "orderingProof": {
+    "genesisOnly": "sealedArchiveVerifyGenesisLinksV8 compares genesis OriginalV1 with intent core OriginalV1 and returns conflict before reconstruction",
+    "synchronizedChain": "the rebuilt authenticated prefix satisfies intent, candidate, and genesis link checks; store reconstruction remains the original bytes, so the false synchronized OriginalV1 claim reaches the strict length/SHA256 comparison and returns reconstruction_failed",
+    "receiptRebuilt": false,
+    "receiptReason": "the strict OriginalV1 byte-identity gate executes before receipt decoding"
+  },
+  "staticChecks": {
+    "forwardApplyCheck": "PASS",
+    "reverseApplyCheck": "PASS",
+    "diffCheck": "PASS",
+    "genesisConflictAssertions": 3,
+    "strictProofAssertions": 3
+  },
+  "boundaries": {
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "compiled": false,
+    "linuxCIExecuted": false,
+    "dynamicResult": "UNKNOWN",
+    "formalModified": false,
+    "oldFreezeModified": false,
+    "productionTouched": false,
+    "actualModel": "UNKNOWN",
+    "mergeOwner": "root",
+    "independentReviewRequired": true
+  }
+}

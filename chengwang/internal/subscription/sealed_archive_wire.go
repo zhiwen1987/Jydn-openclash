@@ -622,7 +622,11 @@ func sealedArchiveScanJSON(raw []byte, persisted bool, limit int) ([]byte, error
 		if tokens > sealedArchiveTokenMax {
 			return nil, sealedArchiveFail(CodeArchiveLimit)
 		}
-		return decoder.Token()
+		token, err := decoder.Token()
+		if err != nil {
+			return nil, sealedArchiveFail(CodeArchiveInvalid)
+		}
+		return token, nil
 	}
 	var visit func(int) error
 	visit = func(depth int) error {
@@ -630,7 +634,10 @@ func sealedArchiveScanJSON(raw []byte, persisted bool, limit int) ([]byte, error
 			return sealedArchiveFail(CodeArchiveLimit)
 		}
 		token, err := nextToken()
-		if err != nil || token == nil {
+		if err != nil {
+			return err
+		}
+		if token == nil {
 			return sealedArchiveFail(CodeArchiveInvalid)
 		}
 		if text, ok := token.(string); ok && len([]byte(text)) > sealedArchiveStringMax {
@@ -645,8 +652,11 @@ func sealedArchiveScanJSON(raw []byte, persisted bool, limit int) ([]byte, error
 			seen := make(map[string]bool)
 			for decoder.More() {
 				key, keyErr := nextToken()
+				if keyErr != nil {
+					return keyErr
+				}
 				name, nameOK := key.(string)
-				if keyErr != nil || !nameOK || seen[name] {
+				if !nameOK || seen[name] {
 					return sealedArchiveFail(CodeArchiveInvalid)
 				}
 				if len([]byte(name)) > sealedArchiveStringMax {
@@ -658,7 +668,10 @@ func sealedArchiveScanJSON(raw []byte, persisted bool, limit int) ([]byte, error
 				}
 			}
 			end, endErr := nextToken()
-			if endErr != nil || end != json.Delim('}') {
+			if endErr != nil {
+				return endErr
+			}
+			if end != json.Delim('}') {
 				return sealedArchiveFail(CodeArchiveInvalid)
 			}
 		case '[':
@@ -668,7 +681,10 @@ func sealedArchiveScanJSON(raw []byte, persisted bool, limit int) ([]byte, error
 				}
 			}
 			end, endErr := nextToken()
-			if endErr != nil || end != json.Delim(']') {
+			if endErr != nil {
+				return endErr
+			}
+			if end != json.Delim(']') {
 				return sealedArchiveFail(CodeArchiveInvalid)
 			}
 		default:

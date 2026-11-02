@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-metadata-projection-tool-static-review",
+  "verdict": "TOOL_SOURCE_REVISE",
+  "candidate": {
+    "path": "D:/CodexData/workspace/chengwang-e282-metadata-projection-tool-20261103-v2",
+    "intendedBase": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+    "manifestSHA256": "3d69f30813e7bb0b7b60d46141cff4c8d9d6dd2d0c5e6d534e02e3af8496d403",
+    "receiptSHA256": "8e5ed529de87746782bc148ebba2f47893e0635f44c1713535657b05d754ae96",
+    "toolSHA256": "b54d8056945e0c58280c7a8c5825090731860fcd26cf95e322b7c2f77ff5b0a0",
+    "manifestFilesMatched": "5/5",
+    "generationExecuted": false
+  },
+  "acceptedStaticProperties": {
+    "explicitUTF8AndASCIIBoundaries": true,
+    "bareEncodeOrDecodeCalls": 0,
+    "strictInputSchema": "chengwang.sealed-archive-go-repair-freeze/v1",
+    "strictInputState": "FROZEN_SOURCE_ONLY_NOT_GO_VERIFIED",
+    "strictTargetCount": 2,
+    "strictTargetOrder": [
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "inputRowsValidateBeforeSHAAfterSHABytesAndGitBlob": true,
+    "inputReceiptSHARequired": true,
+    "baseHeadMustEqualExactCommit": true,
+    "p207ModuleAggregateRecomputed": true,
+    "p207FixtureClosureFullyRecomputedAndRequiredStable": true,
+    "p207ChangedGoCount": 29,
+    "p207ChangedGoRows": 2,
+    "p207WorkflowOnlyThreePins": true,
+    "p207Counts": {"testTop":496,"runTop":491,"sourceModel":63,"packages":7},
+    "jointPathCount": 841,
+    "jointChangedRows": 2,
+    "jointUnchangedRows": 839,
+    "jointWorkflowOnlyContractPin": true,
+    "outputPathCount": 4,
+    "outputOverlapGuardsPresent": true
+  },
+  "independentSyntheticReplay": {
+    "command": "python -B -m unittest -v test_project_metadata.py",
+    "testsRun": 7,
+    "failures": 0,
+    "errors": 0,
+    "result": "PASS",
+    "durationSeconds": 0.061,
+    "realGeneration": false
+  },
+  "findings": [
+    {
+      "id": "META-TOOL-B1-POST-RENAME-FSYNC",
+      "severity": "BLOCKER",
+      "lines": "project_metadata.py:430-459",
+      "title": "Post-rename fsync failure publishes output but falsely claims retained pending evidence",
+      "proof": "os.replace consumes pending at line 450, then fsync_dir(output.parent) can fail. The exception handler writes PUBLICATION-FAILED.json only if pending.exists(). An injected failure on that final parent fsync deterministically produced ProjectionError, OUTPUT_EXISTS=True, PENDING_COUNT=0 and FAILURE_MARKER_IN_OUTPUT=False, while the message claimed intermediate evidence was retained at the vanished pending path.",
+      "impact": "The caller receives failure while an unclassified, durability-unknown output exists at the final path. This violates atomic failure classification and can be mistaken for a valid generated bundle.",
+      "minimumRepair": "Track whether rename committed. Before rename, retain and classify pending as today. After rename, never claim pending exists: fail-closed quarantine or mark the actual output with a bounded failure classification, report its real location, and ensure downstream rejects it. Add a synthetic final-parent-fsync failure test asserting no valid-looking final output and truthful retained evidence."
+    },
+    {
+      "id": "META-TOOL-R2-SOURCE-FREEZE-LOCATION",
+      "severity": "REVISE",
+      "lines": "project_metadata.py:155-175,182-207,471-477",
+      "title": "The no-worktree-source-read claim does not reject a receipt or afterimage located inside a worktree",
+      "proof": "protected_roots uses repository/common/worktree/receipt roots only to reject the output destination. load_overlays accepts the receipt parent and reads receipt-parent/afterimages without checking the receipt or resolved afterimage files are outside repository and listed-worktree roots.",
+      "impact": "A hash-valid source freeze placed under a dirty worktree is accepted while the emitted boundary says worktreeSourceRead=false and the README describes a separately frozen private snapshot.",
+      "minimumRepair": "Reject the receipt file and each resolved afterimage when that file is equal to or descends from the repository root, Git common directory, or any listed worktree. Do not reject a harmless common ancestor containing separate sibling directories. Add a synthetic in-worktree receipt/afterimage rejection test."
+    },
+    {
+      "id": "META-TOOL-R3-GIT-REPLACE-OBJECTS",
+      "severity": "REVISE",
+      "lines": "project_metadata.py:108-147",
+      "title": "Exact raw Git reads do not disable replace objects",
+      "proof": "Every Git command is invoked without --no-replace-objects or GIT_NO_REPLACE_OBJECTS. Git replacement refs can change the object seen by rev-parse, ls-tree or cat-file while the requested object name remains the supplied commit/blob identity.",
+      "impact": "The claimed exact raw commit view still depends on mutable repository replacement metadata.",
+      "minimumRepair": "Run all Git commands with --no-replace-objects (or an equivalent enforced environment) and add a synthetic replacement-ref test proving GitView reads the original committed objects."
+    }
+  ],
+  "testCoverageGap": {
+    "existingExclusivePublicationTest": "covers pre-existing output conflict before rename",
+    "missing": [
+      "failure after os.replace but during final parent fsync",
+      "source receipt or afterimage inside a listed worktree",
+      "repository replace-object metadata"
+    ]
+  },
+  "boundaries": {
+    "toolAccepted": false,
+    "realGenerationExecuted": false,
+    "goExecuted": false,
+    "formalModified": false,
+    "candidateModified": false,
+    "joblogsOrRawRead": false
+  }
+}

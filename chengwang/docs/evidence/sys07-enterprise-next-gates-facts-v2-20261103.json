@@ -1,0 +1,61 @@
+{
+  "schema": "chengwang.e282.next-gates-capability-facts/v2",
+  "head": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+  "supersedesRejectedV1": true,
+  "sourceOnlyReview": true,
+  "goBrowserServiceNetworkProductionRun": false,
+  "nextGates": [
+    {
+      "id": "G1_JOINT_RUNTIME_ACCEPTANCE",
+      "status": "IMPLEMENTED_SOURCE_NOT_RUNTIME_ACCEPTED",
+      "implemented": {
+        "normalModeSameBinaryB0J1R2": true,
+        "tlsIdentityRBAC": true,
+        "subscriptionRefreshSuccessAndFailure": true,
+        "overviewAndReadonlyMihomo": true,
+        "mainStoreRestartReadback": true,
+        "processListenerCleanup": true,
+        "independentCheckerAndReplay": true,
+        "sourceContractPathCount": 841
+      },
+      "currentAcceptance": "NO_ACCEPTED_SAME_HEAD_SCENE_ARTIFACT; controlling status says Go stage prevented scene execution",
+      "sourceDefinedNonClaims": {
+        "realBrowserProven": false,
+        "deviceActionsExecuted": false,
+        "lifecycleLabProven": false,
+        "production": false,
+        "actualSKUObservation": "UNKNOWN",
+        "authorization": "BLOCKED",
+        "refreshRestartPersistenceProven": false
+      },
+      "stillMissingImplementation": ["joint real-browser/DOM lane if required", "refresh-enabled sidecar restart-persistence scenario if required"],
+      "stillMissingVerification": ["actual scene artifact", "original checker PASS", "independent replay byte equality", "same-head source-before/source-after", "browser evidence outside current lane"],
+      "release": "NOT_RELEASED"
+    },
+    {
+      "id": "G2_SEALED_ARCHIVE_A1",
+      "status": "A0_IMPLEMENTED_SOURCE_A1_NOT_IMPLEMENTED_OR_ACCEPTED",
+      "positiveSourceBoundary": [
+        "sealedArchiveV8Input has no path/store/clock/random/selector/activation authority",
+        "sealedArchiveV8Plan explicitly cannot prove filesystem publication, activation, capacity release or runtime state"
+      ],
+      "stillMissingImplementation": ["trusted source acquisition", "dirfd identity/type/name recheck", "no-replace publication", "file and directory fsync", "cleanup and failure custody", "activation and capacity ownership"],
+      "stillMissingVerification": ["Linux filesystem matrix", "EEXIST/mismatch/orphan", "crash cuts", "readback/replay", "history and peak-budget evidence"],
+      "release": "NOT_ACTIVATED"
+    },
+    {
+      "id": "G3_NORMAL_PRODUCT_AUTHORITY_EXECUTOR",
+      "status": "LAB_EXECUTOR_IMPLEMENTED_NORMAL_PRODUCT_AUTHORITY_NOT_IMPLEMENTED_OR_ACCEPTED",
+      "implemented": ["isolated LabBackend Execute lifecycle", "lab authority/runtime/store/kernel/recovery components"],
+      "positiveSourceBoundary": ["lab backend is not production or full-payload proof", "lab proof forces production false", "lab authority is not an execution permit", "lab cannot compose with subscriptions/probe/live overview"],
+      "stillMissingImplementation": ["normal-product enterprise authority bridge", "approved device publisher/executor", "readback and rollback integration"],
+      "stillMissingVerification": ["normal-product RBAC/authority", "idempotency/replay", "UNKNOWN recovery", "crash/network/restart", "full payload and business evidence", "capacity soak"],
+      "release": "NOT_RELEASED_PRODUCTION_CONTROL_FALSE"
+    }
+  ],
+  "explicitDesignOnly": ["router_publish", "subscription_orchestration", "dns_execution", "active_business_probes", "automatic_repair", "multi_kernel_runtime"],
+  "enterpriseRangesNotClosed": ["SYS-01..06", "SYS-07..19", "SYS-20..25", "SYS-26..30"],
+  "overallPercentage": null,
+  "currentJointRuntimeAcceptance": false,
+  "actualModelObservation": "UNKNOWN"
+}

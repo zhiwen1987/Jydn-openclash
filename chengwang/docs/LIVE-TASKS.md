@@ -1,5 +1,11 @@
 # 澄网：项目任务清单
 
+2026-11-03 最新状态（优先于下方历史截点）：开发远端 c6487268 的 P207 run41479327943 为489通过/2失败/0未启动，格式通过、fresh跳过；joint run41479327908 在CPU/Go步骤失败，实际B0/J1/R2业务场景未运行。两个Go失败已经静态定位并准备修复，详见[修复与边界记录](SYS07-SEALED-ARCHIVE-FAILURES-20261103.md)，不能声称已通过新的Go验收。
+
+本地 e2829f8b 包含[摘要发布修复](SYS07-CPU-PUBLICATION-REPAIR-20261103.md)，47项场景模型与来源检查通过。其上的两Go修复已合并冻结并获独立源码接受；四个来源校验文件已实际生成、独立正式checker重放通过并集成。root集成后正式来源检查与63/47模型通过，仍要求491项Go测试。必须提交并重跑新HEAD隔离Linux CI才可判断两项实际失败是否修复；当前不复用旧HEAD的通过或拒绝作为新结果。生产/main/Registry均未变动。
+
+正常模式联合业务的场景装配和独立校验代码已存在于 deploy/joint-control-plane 与对应workflow；“真实联合业务仍缺”的历史记录应解释为尚缺运行验收，不能据旧状态断言这些实现不存在。仍需真实同一binary/TLS/RBAC业务证据，并与lab31链各自保留隔离边界；A1真实文件系统耐久取得/发布、产品authority/executor、SYS01–30整体闭环和正式发布均未完成。
+
 2026-11-02 主会话已集成A0v3纯内存5源、joint rev7隔离业务scene13源，以及经独审的P207五gate更新，共23源码路径；joint source_contract另按已接受A0五后像合并836→841行，workflow仅更新contract hash。root实际[63来源模型](evidence/sys07-integrated-root-63cpu-20261102.json)29.984秒全部通过并严格AST/日志复演，来源闭包830/21/496/491/29；[40业务合成模型](evidence/sys07-integrated-root-joint40-20261102.json)1.64秒全部通过。旧481必需tops保留+10，诊断仍限原7CTL源码，不扩大权限。此时尚未运行Go/gofmt/真实业务，必须由新提交同HEAD隔离Linux CI验收，不复用736结果。source接受、producer旧receipt拒绝、工具冻结后漂移、物化换行风险和漏foundation输入导致的真实生成失败均有原件保留；未清理或覆盖失败。正式提交/远端读回另验，生产/main/Registry均不动。
 
 2026-11-02 A0 v3纯内存源码已获独立SOURCE_ACCEPT（peer SHA8dec2608…），root以apply_patch集成5个精确后像，228183B逐SHA/Git blob与冻结包一致；保持9个原codec不变。当前只是未提交工作树，来源pins正在准备，Go/gofmt/编译/运行均未执行，不是A0_ACCEPT。业务joint候选rev4仍因真实Candidate.BaseRevision应2/4而非1/3的错误待修，未混入正式源码。工具v1曾在宣布冻结后更新测试/manifest，已另存漂移收据且原字节恢复UNKNOWN；root未运行该v1工具，新tool-v2独立目录适配真实A0v3 schema，不能覆盖旧输入抹掉记录。生产不动。

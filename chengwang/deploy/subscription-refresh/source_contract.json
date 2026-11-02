@@ -5,7 +5,7 @@
   "moduleClosure": {
     "pathCount": 830,
     "pathsSHA256": "b0dcf9868c56d0f9fdc12803d9c59b08a0367e2f7d82d42d2fdf489b27e4ae84",
-    "contentSHA256": "c67ead139f20aa70952186c7f0bc9763729b859b1e410d215d94421aba3d6dde"
+    "contentSHA256": "18453eccc5ef02953964ba35b31627edc0793b7c88ad84d287ea77ecd1dbbbeb"
   },
   "fixtureClosure": {
     "additionalPaths": [],
@@ -55,8 +55,8 @@
     "chengwang/internal/subscription/refresh_test.go": "5cfc0825df5e691865652e4a941e613b6c2439ef2473aa62a7b68d40ab5d4444",
     "chengwang/internal/subscription/sealed_archive_a0.go": "0a022429fe4b01613eb4bddbca9c2d234ed48fb1bb12eb53009abcd0bc518bd0",
     "chengwang/internal/subscription/sealed_archive_history.go": "d4656c95755f9f26a0c6b0c17f16a3e388d9dd21146374aef7a66d8a76cea5d2",
-    "chengwang/internal/subscription/sealed_archive_test.go": "d655d6affcc2533feeaa74ba7326f7ce1da08a6bc7d47caeba34f4b3553a5019",
-    "chengwang/internal/subscription/sealed_archive_wire.go": "3a6bdc6a20c8b4a351c20f2d811d5453abfe871e25a14928a4ad91841917ccf1",
+    "chengwang/internal/subscription/sealed_archive_test.go": "8c3925d9895f076d398b56a4bcc716d493b5b8e6d9e01cbd33368b663aeaa1cc",
+    "chengwang/internal/subscription/sealed_archive_wire.go": "2692d55e5ab4338c1536d2733d8546f11fd0d69cce770b3e70184fa56cc04407",
     "chengwang/internal/subscription/store.go": "54988b394d4290f546da3140b8ca2efbfd783068a3d01fd5faeb50a70fe844da",
     "chengwang/internal/subscriptionctl/access_test.go": "730eb49c1c4690faa650689fc87c6689ffc7ada3b5c7dd3d61656f98eb020e1d",
     "chengwang/internal/subscriptionctl/contract.go": "8bf567cf6294dc6907d1932b240e244f2f80fe03ae17f277e098b2523cca2637",
@@ -67,7 +67,7 @@
     "chengwang/internal/subscriptionpolicy/catalog_access.go": "672c622cc8d5e2ea749b0de33545923678ea244f58244243ff6d1be8c1f39ab9",
     "chengwang/internal/subscriptionpolicy/refresh_test.go": "d9d894dee528995bcd244ca4eeecadd990c320d473be0315c04f67bae9cdd6f6"
   },
-  "changedGoSourcesSHA256": "562e0fbe9a47243c17e0f36c12570a7c99d47efa00a97e636402103abcae770d",
+  "changedGoSourcesSHA256": "ff68b3fabf2e6af2d79326ac652dbe20ac35d857a3b7630ea36fb3bb70881ec8",
   "goTest": {
     "packages": [
       "chengwang/internal/api",

@@ -1,0 +1,89 @@
+{
+  "schema": "chengwang.metadata-output-peer-review/v1",
+  "verdict": "SOURCE_GATE_ACCEPT",
+  "reviewScope": "exact e282 raw Git source plus frozen two-Go afterimages plus generated four-metadata projection",
+  "inputs": {
+    "baseCommit": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+    "sourceFreezeSHA256": "d1acf3ffeccfee6101e994fdb6f58f21275ef185ca1d0cd398d92af354f5fe62",
+    "generatedBundle": "D:/CodexData/workspace/chengwang-e282-metadata-root-generated-20261103-v1",
+    "manifestSHA256": "baf8791d8b2c5c03e2b78bcddaff790b9b1b3469ba6d1eeb0f04cc0de6b897c7",
+    "receiptSHA256": "401274a476f9c6fc2e524601ff7625b6aa1de3d408b89bdc964b060c9e5fc835",
+    "patchSHA256": "bb35e4391750614048bc203dcad3d0c993ab86859f5052bc02f05ef2c6d98777"
+  },
+  "materializedSnapshot": {
+    "path": "D:/CodexData/workspace/chengwang-e282-metadata-output-peer-git-snapshot-20261103-v1",
+    "head": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+    "coreAutocrlf": false,
+    "trackedBlobCount": 1693,
+    "rawBlobMismatchCount": 6,
+    "rawBlobMismatchPaths": [
+      ".github/workflows/chengwang-joint-control-plane.yml",
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/joint-control-plane/source_contract.json",
+      "chengwang/deploy/subscription-refresh/source_contract.json",
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "unexpectedMismatchCount": 0,
+    "untrackedPathCount": 0
+  },
+  "formalChecks": {
+    "p207SourceContract": {
+      "exitCode": 0,
+      "schema": "chengwang.subscription-refresh-source/v3",
+      "modulePathCount": 830,
+      "moduleContentSHA256": "18453eccc5ef02953964ba35b31627edc0793b7c88ad84d287ea77ecd1dbbbeb",
+      "fixturePathCount": 21,
+      "fixtureContentSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11",
+      "packageTestTopCount": 496,
+      "requiredRunTopCount": 491,
+      "changedGoSourceCount": 29,
+      "changedGoSourcesSHA256": "ff68b3fabf2e6af2d79326ac652dbe20ac35d857a3b7630ea36fb3bb70881ec8",
+      "foundationCurrentCount": 689,
+      "foundationPreviousCount": 688,
+      "goExecutionProven": false
+    },
+    "jointSourceContract": {
+      "exitCode": 0,
+      "schema": "chengwang.joint-control-plane-source-contract/v1",
+      "inventoryPathCount": 841,
+      "validatedPathCount": 841,
+      "contractSHA256": "581e625c9bbbb6885052b10a171a55eccabd1051259b7899e763c6777ac742e3"
+    },
+    "candidatePatchReverseCheck": {
+      "exitCode": 0,
+      "pathCount": 4,
+      "paths": [
+        ".github/workflows/chengwang-joint-control-plane.yml",
+        ".github/workflows/chengwang-subscription-refresh.yml",
+        "chengwang/deploy/joint-control-plane/source_contract.json",
+        "chengwang/deploy/subscription-refresh/source_contract.json"
+      ]
+    }
+  },
+  "projectionFacts": {
+    "p207ContractSHA256": "7504adeb98384bb77ea9059a27ba6d9b03f2bed8d5e855919415940ab97cfb62",
+    "jointContractSHA256": "581e625c9bbbb6885052b10a171a55eccabd1051259b7899e763c6777ac742e3",
+    "jointChangedRows": [
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "jointUnchangedRowCount": 839,
+    "workflowChangeModel": "joint updates only CONTRACT_SHA256; P207 updates CONTRACT_SHA256, MODULE_SHA256, and CHANGED_GO_SHA256",
+    "contractAfterimagesMatchGeneratedBundle": true,
+    "twoGoAfterimagesMatchFrozenReceipt": true
+  },
+  "reviewerHarnessNotes": [
+    "A first git-archive snapshot was rejected because checkout conversion smudged LF to CRLF; it is not an input to this verdict.",
+    "A second raw archive preserved bytes but lacked .git, so the formal P207 checker correctly could not run git ls-files; it is not an input to this verdict.",
+    "The accepted evidence was produced in a detached exact-e282 local Git snapshot with core.autocrlf=false and raw cat-file comparison."
+  ],
+  "boundaries": {
+    "goExecuted": false,
+    "runtimeProven": false,
+    "productAcceptanceProven": false,
+    "formalSourceGateProven": true,
+    "formalJointSourceContractProven": true
+  },
+  "findings": []
+}

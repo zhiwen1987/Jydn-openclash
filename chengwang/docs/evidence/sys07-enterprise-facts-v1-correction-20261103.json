@@ -1,0 +1,16 @@
+{
+  "schema": "chengwang.e282.next-gates-v1-correction/v1",
+  "head": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+  "rejectedV1": "D:/CodexData/workspace/chengwang-e282-next-three-gates-capability-facts-20261103-cd03-v1",
+  "rejectedV1Preserved": true,
+  "error": "G1 incorrectly said a normal-mode scenario composition still had to be implemented",
+  "correction": "e282 already contains the 13-path joint-control-plane normal-mode B0/J1/R2 source implementation, workflow, source contract, bounded publication, independent checker and replay. The current gap is actual same-head runtime acceptance because the lane has not produced an accepted scene result; real-browser evidence is also explicitly outside the lane.",
+  "sourceProof": [
+    ".github/workflows/chengwang-joint-control-plane.yml:89-153",
+    "chengwang/deploy/joint-control-plane/run_joint_control_plane.py:105-239",
+    "chengwang/deploy/joint-control-plane/check_joint_control_plane.py:106-250",
+    "chengwang/deploy/joint-control-plane/ci_namespace.sh:1-53",
+    "chengwang/deploy/joint-control-plane/contract.py:outcome"
+  ],
+  "v1MayNotBeUsedAsCurrentFact": true
+}

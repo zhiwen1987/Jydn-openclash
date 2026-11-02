@@ -1,0 +1,22 @@
+{
+  "schema": "chengwang.sealed-archive-go-repair-freeze/v1",
+  "baseHead": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+  "state": "FROZEN_SOURCE_ONLY_NOT_GO_VERIFIED",
+  "productionChanged": false,
+  "files": [
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_test.go",
+      "beforeSha256": "d655d6affcc2533feeaa74ba7326f7ce1da08a6bc7d47caeba34f4b3553a5019",
+      "afterSha256": "8c3925d9895f076d398b56a4bcc716d493b5b8e6d9e01cbd33368b663aeaa1cc",
+      "bytes": 101182,
+      "gitBlob": "58acdf14af6c54afe320e2122daa5cd64ef46925"
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_wire.go",
+      "beforeSha256": "3a6bdc6a20c8b4a351c20f2d811d5453abfe871e25a14928a4ad91841917ccf1",
+      "afterSha256": "2692d55e5ab4338c1536d2733d8546f11fd0d69cce770b3e70184fa56cc04407",
+      "bytes": 36441,
+      "gitBlob": "277b5a8f3a43167a7e32bb9e8e59d96c984c0a1e"
+    }
+  ]
+}

@@ -198,6 +198,77 @@ func sealedArchiveReplaceGenesisV8(t *testing.T, plan sealedArchiveV8Plan, edit 
 	return result
 }
 
+func sealedArchiveReplaceClaimedOriginalV1V8(t *testing.T, plan sealedArchiveV8Plan, edit func(*archiveByteIdentityV1)) sealedArchiveV8Plan {
+	t.Helper()
+	var meta archiveMetaV2
+	var intent archiveIntentEnvelopeV1
+	var genesis archiveGenesisEnvelopeV1
+	if sealedArchiveDecode(plan.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta) != nil || sealedArchiveDecode(plan.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &intent) != nil || sealedArchiveDecode(plan.Genesis.Bytes, true, int(sealedArchiveObjectMaxBytes), &genesis) != nil {
+		t.Fatal("sealed archive claimed original mutation fixture decode failed")
+	}
+	_, kref, kseal, err := sealedArchiveKeys(meta.ArchiveKey)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation keys failed")
+	}
+	claimed := intent.Payload.Core.OriginalV1
+	edit(&claimed)
+	intent.Payload.Core.OriginalV1 = claimed
+	coreRaw, err := sealedArchiveCanonical(intent.Payload.Core)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation core failed")
+	}
+	migrationID, err := sealedArchiveReference(kref, sealedArchiveIntentCoreSchemaV8, sealedArchiveIntentKindV1, coreRaw)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation migration failed")
+	}
+	epoch, err := sealedArchiveEpoch(kref, migrationID)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation epoch failed")
+	}
+	intent.Payload.MigrationID = migrationID
+	intent.Payload.ArchiveEpoch = epoch
+	intentRaw, intentReference, _, err := sealedArchiveMakeIntentV8(kref, kseal, intent.Payload)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation intent failed")
+	}
+	result := sealedArchiveClonePlanV8(plan)
+	result.Intent.Bytes = intentRaw
+	candidateLinks := make([]archiveCandidateLinkV1, len(plan.Candidates))
+	for i := range plan.Candidates {
+		var candidate archiveCandidateEnvelopeV1
+		if sealedArchiveDecode(plan.Candidates[i].Bytes, true, int(sealedArchiveObjectMaxBytes), &candidate) != nil {
+			t.Fatal("sealed archive claimed original mutation candidate decode failed")
+		}
+		candidate.Payload.MigrationID = migrationID
+		candidate.Payload.ArchiveEpoch = epoch
+		raw, reference, _, makeErr := sealedArchiveMakeCandidateV8(kref, kseal, candidate.Payload)
+		if makeErr != nil {
+			t.Fatal("sealed archive claimed original mutation candidate failed")
+		}
+		name, nameErr := sealedArchiveContentName(sealedArchiveCandidateKindV1, reference)
+		if nameErr != nil {
+			t.Fatal("sealed archive claimed original mutation candidate name failed")
+		}
+		result.Candidates[i] = sealedArchiveV8File{Name: name, Bytes: raw}
+		candidateLinks[i] = archiveCandidateLinkV1{Ordinal: uint32(i), Reference: reference}
+	}
+	genesis.Payload.MigrationID = migrationID
+	genesis.Payload.ArchiveEpoch = epoch
+	genesis.Payload.IntentReference = intentReference
+	genesis.Payload.Candidates = candidateLinks
+	genesis.Payload.OriginalV1 = claimed
+	genesisRaw, genesisReference, _, err := sealedArchiveMakeGenesisV8(kref, kseal, genesis.Payload)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation genesis failed")
+	}
+	genesisName, err := sealedArchiveContentName(sealedArchiveGenesisKindV1, genesisReference)
+	if err != nil {
+		t.Fatal("sealed archive claimed original mutation genesis name failed")
+	}
+	result.Genesis = sealedArchiveV8File{Name: genesisName, Bytes: genesisRaw}
+	return result
+}
+
 func sealedArchiveReplaceHistoryV8(t *testing.T, file sealedArchiveV8File, archiveKey []byte, edit func(*archiveHistoryPayloadV1)) sealedArchiveV8File {
 	t.Helper()
 	var envelope archiveHistoryEnvelopeV1
@@ -675,6 +746,21 @@ func TestSealedArchiveV8PrimitiveAndNameBoundaries(t *testing.T) {
 	tokenOver := append(append([]byte{}, tokenBoundary[:len(tokenBoundary)-1]...), ',', '0', ']')
 	sealedArchiveRequireCode(t, func() error {
 		_, scanErr := sealedArchiveScanJSON(tokenOver, false, int(sealedArchiveObjectMaxBytes))
+		return scanErr
+	}(), CodeArchiveLimit)
+	tokenValueOver := append(append([]byte{}, tokenOver[:len(tokenOver)-1]...), ',', '0', ']')
+	sealedArchiveRequireCode(t, func() error {
+		_, scanErr := sealedArchiveScanJSON(tokenValueOver, false, int(sealedArchiveObjectMaxBytes))
+		return scanErr
+	}(), CodeArchiveLimit)
+	tokenObjectCloseOver := append(append([]byte{}, tokenBoundary[:len(tokenBoundary)-1]...), ',', '{', '}', ']')
+	sealedArchiveRequireCode(t, func() error {
+		_, scanErr := sealedArchiveScanJSON(tokenObjectCloseOver, false, int(sealedArchiveObjectMaxBytes))
+		return scanErr
+	}(), CodeArchiveLimit)
+	tokenObjectKeyOver := append(append([]byte{}, tokenBoundary[:len(tokenBoundary)-1]...), []byte(`,{"overflow":0}]`)...)
+	sealedArchiveRequireCode(t, func() error {
+		_, scanErr := sealedArchiveScanJSON(tokenObjectKeyOver, false, int(sealedArchiveObjectMaxBytes))
 		return scanErr
 	}(), CodeArchiveLimit)
 	reference := strings.Repeat("a", 64)
@@ -1655,15 +1741,27 @@ func TestSealedArchiveV8AllControlStatesAndCheckpoint(t *testing.T) {
 	originalIdentity := sealedArchiveReplaceGenesisV8(t, plan, func(payload *archiveGenesisPayloadV1) {
 		payload.OriginalV1.Length++
 	})
-	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(originalIdentity), CodeArchiveReconstructionFailed)
+	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(originalIdentity), CodeArchiveConflict)
 	originalDigest := sealedArchiveReplaceGenesisV8(t, plan, func(payload *archiveGenesisPayloadV1) {
 		payload.OriginalV1.SHA256 = strings.Repeat("0", 64)
 	})
-	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(originalDigest), CodeArchiveReconstructionFailed)
+	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(originalDigest), CodeArchiveConflict)
 	originalDigestOneByte := sealedArchiveReplaceGenesisV8(t, plan, func(payload *archiveGenesisPayloadV1) {
 		payload.OriginalV1.SHA256 = sealedArchiveOneByteStringV8(t, payload.OriginalV1.SHA256, 0)
 	})
-	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(originalDigestOneByte), CodeArchiveReconstructionFailed)
+	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(originalDigestOneByte), CodeArchiveConflict)
+	strictOriginalIdentity := sealedArchiveReplaceClaimedOriginalV1V8(t, plan, func(identity *archiveByteIdentityV1) {
+		identity.Length++
+	})
+	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(strictOriginalIdentity), CodeArchiveReconstructionFailed)
+	strictOriginalDigest := sealedArchiveReplaceClaimedOriginalV1V8(t, plan, func(identity *archiveByteIdentityV1) {
+		identity.SHA256 = strings.Repeat("0", 64)
+	})
+	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(strictOriginalDigest), CodeArchiveReconstructionFailed)
+	strictOriginalDigestOneByte := sealedArchiveReplaceClaimedOriginalV1V8(t, plan, func(identity *archiveByteIdentityV1) {
+		identity.SHA256 = sealedArchiveOneByteStringV8(t, identity.SHA256, 0)
+	})
+	sealedArchiveRequireCode(t, validateSealedArchiveV8Plan(strictOriginalDigestOneByte), CodeArchiveReconstructionFailed)
 }
 
 func TestSealedArchiveV8NearObjectLimitFitsAndBudgetExpansionFails(t *testing.T) {

@@ -1,0 +1,98 @@
+{
+  "schema": "chengwang.c648-all-control-states-static-diagnosis/v1",
+  "createdAt": "2026-11-03T00:20:43+08:00",
+  "actualModel": "UNKNOWN",
+  "verdict": "STATIC_EXPECTATION_CONTRADICTION_CONFIRMED_DYNAMIC_ASSERTION_UNKNOWN",
+  "source": {
+    "head": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+    "tree": "15697a36d29a897634d8bf8055d9fe18bfdb0b10",
+    "branch": "codex/chengwang-unified-20261102",
+    "relevantPathsMatchHead": true,
+    "relevantGitBlobs": {
+      "chengwang/internal/subscription/sealed_archive_a0.go": "f9b9c6646b2b67f7161275d79836cb04795ae11a",
+      "chengwang/internal/subscription/sealed_archive_test.go": "009d40dc89c818b852fdf643533d4a8861f1fab1",
+      "chengwang/internal/subscription/control.go": "6300c34add9379b30e7be23e6700e7cf1490acc7",
+      "chengwang/internal/subscription/store.go": "0e2b533e36b51dc9f604b2347295c05f6fb0c45c"
+    }
+  },
+  "run": {
+    "id": 41479327943,
+    "attempt": 1,
+    "conclusion": "failure",
+    "formatAccepted": true,
+    "formatPatchBytes": 0,
+    "passCount": 489,
+    "failCount": 2,
+    "runningCount": 0,
+    "notStartedCount": 0,
+    "targetTop": "chengwang/internal/subscription::TestSealedArchiveV8AllControlStatesAndCheckpoint",
+    "assertionOrRuntimeCause": "UNKNOWN",
+    "markerObservation": "NONE",
+    "boundedAudit": "D:/CodexData/workspace/chengwang-p207-c648-audit-41479327943-20261103-cd03-v1/FINAL-P207-AUDIT.json"
+  },
+  "authoritativeFixtureCrossCheck": {
+    "result": "NO_EARLIER_DETERMINISTIC_FIXTURE_CONTRADICTION_FOUND",
+    "facts": [
+      "The fixture calls storeValidate before storeEncode and before archive planning.",
+      "The committed result is bound to the rewritten immutable request/audit pair through the same actor, CoreKey and keyed idempotency digest used by mutationFromState.",
+      "Prepared, noop, failed, unknown and approved records satisfy the explicit storeValidateControl state-specific predicates; approval fields match the approve command and its result.",
+      "The valid checkpoint names the acknowledged failed command and its ReferenceID equals refreshCheckpointPrefix plus the checkpoint epoch.",
+      "The seven blocker classes are fixed by product code; the fixture has one resultless prepared command and three unacknowledged results, matching its asserted counts."
+    ],
+    "boundary": "This is a static predicate cross-check, not a Go execution result. The unknown dynamic assertion text prevents locating the observed first failure stage."
+  },
+  "confirmedContradiction": {
+    "id": "C648-A0-CONTROL-001",
+    "severity": "TEST_BLOCKER",
+    "testFunction": "TestSealedArchiveV8AllControlStatesAndCheckpoint",
+    "mutationAssertions": [
+      {"mutation": "OriginalV1.Length increment", "testLines": [1655, 1658]},
+      {"mutation": "OriginalV1.SHA256 replaced by 64 zeros", "testLines": [1659, 1662]},
+      {"mutation": "OriginalV1.SHA256 one-byte same-length mutation", "testLines": [1663, 1666]}
+    ],
+    "testExpectedCode": "subscription_archive_reconstruction_failed",
+    "staticallyReturnedCode": "subscription_archive_conflict",
+    "proof": [
+      "sealedArchiveReplaceGenesisV8 edits and reseals only the genesis envelope; the intent core remains unchanged.",
+      "validateSealedArchiveV8Plan verifies genesis links before constructing and validating the reconstructed store.",
+      "sealedArchiveVerifyGenesisLinksV8 compares genesis.OriginalV1 with intent.Payload.Core.OriginalV1 and returns CodeArchiveConflict when they differ.",
+      "The later reconstructed-byte length/SHA check that returns CodeArchiveReconstructionFailed is therefore unreachable for these genesis-only mutations.",
+      "sealedArchiveRequireCode is fatal on the first mismatch, so changing only the first assertion would expose the same contradiction in the next two assertions."
+    ],
+    "dynamicCausality": "DETERMINISTIC_IF_REACHED_BUT_NOT_CLAIMED_AS_OBSERVED_FIRST_ASSERTION"
+  },
+  "designAlignment": {
+    "acceptedDesignReceiptSHA256": "cd303a007881cf3340fa931f532046052383b3ad0745b0861d88d99d0f2b5802",
+    "normativeWireSHA256": "c39284e04c3131b7187a3f0011f9c3f8f5c8e6f2cb43391babf38cab9d90b295",
+    "goldenTestSpecSHA256": "ae5dd750b413dd3c408ba67227438a856028192e109c32cec7543d90697577de",
+    "conclusion": "Product classification is consistent with v8: linked-object conflict maps to subscription_archive_conflict, while strict reconstructed-v1 byte proof failure maps to subscription_archive_reconstruction_failed. A genesis-only repeated-identity mutation is a linked-object conflict before reconstruction."
+  },
+  "minimalCoveragePreservingRepair": {
+    "required": [
+      "Change all three genesis-only OriginalV1 mutation assertions to expect CodeArchiveConflict.",
+      "Keep all three independent length/digest mutations and all existing envelope, link, storeValidate, checkpoint, blocker and authentication checks."
+    ],
+    "recommendedCoverageClosure": [
+      "Extract the existing reconstructed-byte identity predicate at sealed_archive_a0.go lines 543-545 into a private pure helper used by validateSealedArchiveV8Plan.",
+      "Add focused helper tests for length+1, 64-zero SHA256 and same-length one-byte SHA256 mutation expecting CodeArchiveReconstructionFailed."
+    ],
+    "reason": "The required expectation change fixes the incorrect layer without altering product behavior. The focused helper coverage preserves direct negative proof of the strict reconstruction error class without rebuilding or weakening the authenticated linked-object DAG.",
+    "mustNotDo": [
+      "Do not reorder or remove genesis-to-intent link validation merely to force a different error code.",
+      "Do not relax storeValidate, command seals, approval seals, checkpoint binding, HMAC verification, permissions, budgets or test counts.",
+      "Do not claim Go acceptance until exact repaired source passes isolated Linux CI."
+    ]
+  },
+  "unknowns": [
+    "The actual assertion text and first dynamic failing statement for this top-level test.",
+    "Whether an earlier runtime-only issue also exists before the confirmed source-order contradiction.",
+    "The exact outcome of any not-yet-audited repaired CI run."
+  ],
+  "notPerformed": [
+    "local Go or gofmt execution",
+    "job-log or raw Go output reading",
+    "browser, HTTP service, SSH or production access",
+    "formal source modification",
+    "JY-CW modification or push"
+  ]
+}

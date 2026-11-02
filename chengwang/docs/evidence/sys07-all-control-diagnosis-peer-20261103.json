@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-all-control-states-static-diagnosis-and-repair-review",
+  "verdict": "DIAGNOSIS_ACCEPT_REPAIR_PLAN_REVISE",
+  "inputs": {
+    "diagnosis": "D:/CodexData/workspace/chengwang-c648-all-control-states-diagnosis-41479327943-20261103-cd03-v1/ALL-CONTROL-STATES-STATIC-DIAGNOSIS.json",
+    "diagnosisSHA256": "5932948612fd2b4f7439116c694cdeb51072fef517c018fda94dbed7d3f4cbd1",
+    "sourceCommit": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+    "comparisonCommit": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+    "relevantBlobsEqualAcrossCommits": true,
+    "acceptedV8DesignReviewSHA256": "cd303a007881cf3340fa931f532046052383b3ad0745b0861d88d99d0f2b5802"
+  },
+  "diagnosisReview": {
+    "genesisOnlyMutations": [
+      "OriginalV1.Length increment",
+      "OriginalV1.SHA256 replaced by 64 zeros",
+      "OriginalV1.SHA256 one-byte same-length mutation"
+    ],
+    "currentAssertions": "subscription_archive_reconstruction_failed",
+    "deterministicIfReachedResult": "subscription_archive_conflict",
+    "reason": "sealedArchiveReplaceGenesisV8 reseals only genesis. validateSealedArchiveV8Plan authenticates that envelope and then calls sealedArchiveVerifyGenesisLinksV8 before constructing the store. The link check compares genesis.OriginalV1 with intent.Payload.Core.OriginalV1 and returns conflict before the later reconstructed-byte identity comparison.",
+    "diagnosisAccepted": true,
+    "observedDynamicFirstFailure": "UNKNOWN"
+  },
+  "normativeAlignment": {
+    "linkedObjectConflict": "subscription_archive_conflict",
+    "strictV1ReconstructionOrByteProofFailure": "subscription_archive_reconstruction_failed",
+    "sourceEvidence": [
+      "P207A-SEALED-ARCHIVE-NORMATIVE-WIRE-v8.md:471-484",
+      "P207A-SEALED-ARCHIVE-GOLDEN-TEST-SPEC-v8.md:254-269",
+      "P207A-SEALED-ARCHIVE-GOLDEN-TEST-SPEC-v8.md:281-296",
+      "P207A-SEALED-ARCHIVE-DERIVATION-DAG-v8.md:83-103",
+      "P207A-SEALED-ARCHIVE-DERIVATION-DAG-v8.md:105-120"
+    ]
+  },
+  "expectationOnlyAssessment": {
+    "productChangeRequired": false,
+    "threeAssertionsShouldExpectConflict": true,
+    "preservesTheThreeOriginalFieldMutations": true,
+    "preservesGenesisIntentLinkConflictCoverage": true,
+    "preservesStrictByteProofNegativeBranchCoverage": false,
+    "whyCoverageIsIncomplete": "The valid plan executes the comparison only on its non-error path, while other ReconstructionFailed tests exercise store validation, canonicalization, command/approval integrity, limits, or history. They do not present a fully authenticated linked chain whose claimed OriginalV1 identity disagrees with reconstructed bytes."
+  },
+  "recommendedRepair": {
+    "classification": "TEST_ONLY_COVERAGE_PRESERVING",
+    "productFilesChanged": 0,
+    "testFile": "chengwang/internal/subscription/sealed_archive_test.go",
+    "steps": [
+      "Keep all three existing genesis-only mutations and change their expected error to CodeArchiveConflict.",
+      "Add a test-only helper that decodes the real plan and derives keys from archive.meta.",
+      "Apply the same OriginalV1 identity mutation to intent.Payload.Core.OriginalV1 and genesis.Payload.OriginalV1.",
+      "Recompute the core canonical bytes, migration ID and epoch with the existing production functions.",
+      "Rebuild and reseal the intent with sealedArchiveMakeIntentV8.",
+      "For every candidate, replace migration ID and epoch, rebuild/reseal with sealedArchiveMakeCandidateV8, regenerate its content name, and collect ordinal candidate links.",
+      "Replace genesis migration ID, epoch, intent reference, candidate links and OriginalV1; rebuild/reseal it with sealedArchiveMakeGenesisV8 and regenerate its content name.",
+      "Run the real validateSealedArchiveV8Plan for the same three length/zero-digest/one-byte-digest mutations and require CodeArchiveReconstructionFailed."
+    ],
+    "receiptRebuildRequired": false,
+    "receiptReason": "The targeted strict identity gate occurs before receipt decoding. The mutation helper must construct the exact authenticated prefix through genesis and reconstruction; rebuilding receipt and fixed-point byte accounting would be unrelated test complexity.",
+    "coverageResult": "Both layers remain proven: genesis-only repeated-identity mismatch is Conflict, while an authenticated synchronized chain with a false OriginalV1 claim reaches and rejects at strict byte proof as ReconstructionFailed."
+  },
+  "rejectedRepair": {
+    "proposal": "Extract sealed_archive_a0.go lines 543-545 into a private pure helper and test only that helper",
+    "reason": "It changes product code solely for testability and proves only a trivial length/hash predicate. It does not prove validator ordering, intent/candidate/genesis authentication, linked-identity closure, or that the real plan validator reaches the strict proof branch. A real-chain test is feasible with existing production constructors, so extraction is unnecessary."
+  },
+  "sourceEvidence": {
+    "genesisOnlyMutationHelper": "sealed_archive_test.go:176-198",
+    "threeContradictoryAssertions": "sealed_archive_test.go:1655-1666",
+    "validatorGenesisLinkBeforeReconstruction": "sealed_archive_a0.go:494-545",
+    "genesisOriginalIdentityLinkCheck": "sealed_archive_a0.go:695-705",
+    "realBuilderIntentCandidateGenesisChain": "sealed_archive_a0.go:97-153",
+    "strictIdentityFailureBranch": "sealed_archive_a0.go:539-545"
+  },
+  "mustNotChange": [
+    "product validation order",
+    "genesis-to-intent equality",
+    "storeValidate or storeEncode behavior",
+    "reference and seal domains",
+    "budgets, permissions, or error taxonomy"
+  ],
+  "boundaries": {
+    "goExecuted": false,
+    "dynamicFirstAssertionKnown": false,
+    "joblogsOrRawRead": false,
+    "formalModified": false,
+    "productionTouched": false,
+    "repairedCIResult": "UNKNOWN"
+  }
+}

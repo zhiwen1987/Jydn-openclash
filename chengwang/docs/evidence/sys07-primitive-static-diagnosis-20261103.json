@@ -1,0 +1,29 @@
+{
+  "schema": "chengwang.c648.primitive-static-diagnosis/v1",
+  "head": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+  "verdict": "SOURCE_PROVEN_PRIMITIVE_CONTRADICTION",
+  "runtimeFailureMessageObserved": false,
+  "goOrGofmtRun": false,
+  "finding": {
+    "test": "chengwang/internal/subscription::TestSealedArchiveV8PrimitiveAndNameBoundaries",
+    "testLines": [675, 679],
+    "implementationLines": [619, 625, 670, 672],
+    "exactBoundaryTokens": 1048576,
+    "oneOverTokens": 1048577,
+    "expectedCode": "subscription_archive_limit",
+    "sourceReturnedCode": "subscription_archive_invalid",
+    "cause": "array closing-token branch remaps the closed token-budget error"
+  },
+  "minimalFix": {
+    "nextTokenClosesDecoderErrors": "subscription_archive_invalid",
+    "preserveBudgetError": "subscription_archive_limit",
+    "directPropagationSites": ["value_or_first_token", "object_key", "object_close", "array_close"],
+    "rawParserErrorDisclosure": false,
+    "specialCaseOnlyObservedArray": false
+  },
+  "allControlStateDiagnosis": "UNKNOWN_SEPARATE_REVIEW_REQUIRED",
+  "limitations": [
+    "bounded CI report contains no failure message",
+    "source diagnosis is not runtime acceptance"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "chengwang.c648.primitive-token-propagation-source-review/v1",
+  "verdict": "SOURCE_CANDIDATE_READY_FOR_GO_VALIDATION",
+  "candidate": "D:/CodexData/workspace/chengwang-c648-primitive-token-propagation-candidate-20261103-cd03-v1",
+  "baseHead": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+  "changedPaths": [
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_wire.go",
+      "afterSHA256": "2692d55e5ab4338c1536d2733d8546f11fd0d69cce770b3e70184fa56cc04407",
+      "afterGitBlob": "277b5a8f3a43167a7e32bb9e8e59d96c984c0a1e",
+      "afterBytes": 36441,
+      "lineEndings": "LF_ONLY",
+      "insertions": 21,
+      "deletions": 5
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_test.go",
+      "afterSHA256": "7f65fc2144d600b115730970a19630b149464a6a68f5e1dee33870a163b148e5",
+      "afterGitBlob": "f94740bcc22d28e2bfb02a386c9681df8c0be9bf",
+      "afterBytes": 97027,
+      "lineEndings": "LF_ONLY",
+      "insertions": 15,
+      "deletions": 0
+    }
+  ],
+  "productionBehavior": {
+    "decoderErrorsClosedAs": "subscription_archive_invalid",
+    "tokenBudgetErrorsPreservedAs": "subscription_archive_limit",
+    "directPropagationSites": ["value_or_first_token", "object_key", "object_close", "array_close"],
+    "rawParserErrorsReturned": false
+  },
+  "testCoverageSourceIntent": {
+    "top": "TestSealedArchiveV8PrimitiveAndNameBoundaries",
+    "existingExactBoundaryRetained": true,
+    "existingArrayCloseOneOverRetained": true,
+    "addedValueOneOver": true,
+    "addedObjectCloseOneOver": true,
+    "addedObjectKeyOneOver": true,
+    "topLevelTestCountChanged": false,
+    "skipAdded": false
+  },
+  "staticChecks": {
+    "gitDiffCheck": "PASS",
+    "changedPathCount": 2
+  },
+  "notRun": ["go", "gofmt", "build", "service", "browser", "production"],
+  "runtimeAcceptance": false,
+  "allControlStateFailure": "OUT_OF_SCOPE_SEPARATE_DIAGNOSIS"
+}

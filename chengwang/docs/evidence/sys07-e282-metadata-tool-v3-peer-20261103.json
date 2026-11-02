@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-metadata-projection-tool-static-review",
+  "verdict": "TOOL_SOURCE_ACCEPT",
+  "candidate": {
+    "path": "D:/CodexData/workspace/chengwang-e282-metadata-projection-tool-20261103-v3",
+    "intendedBase": "e2829f8b81ea4c31839791983e7893ddb80d4820",
+    "manifestSHA256": "4dfdda75fc5e6f7f6eb08e6b0300a14bde97b791a7cb41fd5dbed27afc269c0c",
+    "receiptSHA256": "f1189bb76dd9c7003987a87acc0d95abc5a5f86764a785df7ea3679a10e557fa",
+    "toolSHA256": "85ffcaec0cabf3f82cad8f4f87c27f04dec4e6c740d1bdc42e6da79ff372d049",
+    "manifestFilesMatched": "7/7",
+    "toolCRLFCount": 0,
+    "testCRLFCount": 0,
+    "generationExecuted": false
+  },
+  "v2Findings": [
+    {
+      "id": "META-TOOL-B1-POST-RENAME-FSYNC",
+      "status": "CLOSED",
+      "sourceLines": "project_metadata.py:450-493",
+      "proof": "Publication tracks rename state. A post-rename parent-fsync failure writes PUBLICATION-FAILED.json inside the visible output with phase POST_RENAME_PARENT_FSYNC, outputVisible=true and pendingRetained=false; the exception reports the actual output path and marker truth instead of claiming pending retention."
+    },
+    {
+      "id": "META-TOOL-R2-SOURCE-FREEZE-LOCATION",
+      "status": "CLOSED",
+      "sourceLines": "project_metadata.py:155-195,200-227,506-515",
+      "proof": "Receipt and afterimages pass validate_external_input against repository, Git common directory, every listed worktree and every explicit forbid root. The function also checks the unresolved path and every ancestor for symlink or Windows reparse/junction attributes before resolving."
+    },
+    {
+      "id": "META-TOOL-R3-GIT-REPLACE-OBJECTS",
+      "status": "CLOSED",
+      "sourceLines": "project_metadata.py:108-111",
+      "proof": "Every Git subprocess is invoked with --no-replace-objects. The synthetic test creates a real replacement mapping from the requested original commit to another commit and proves ordinary git show sees replacement bytes while GitView sees original bytes."
+    }
+  ],
+  "postRenameFaultReplay": {
+    "test": "test_post_rename_parent_fsync_failure_classifies_visible_output",
+    "result": "PASS",
+    "outputExists": true,
+    "pendingCount": 0,
+    "markerPath": "output/PUBLICATION-FAILED.json",
+    "markerPhase": "POST_RENAME_PARENT_FSYNC",
+    "markerOutputVisible": true,
+    "markerPendingRetained": false,
+    "toolReturnsNonzero": true
+  },
+  "inputIsolationReplay": {
+    "test": "test_receipt_and_afterimage_inputs_reject_git_roots_and_reparse_ancestors",
+    "result": "PASS",
+    "insideProtectedGitRootRejected": true,
+    "realWindowsDirectoryJunctionAncestorRejected": true,
+    "skipped": false
+  },
+  "replaceObjectReplay": {
+    "test": "test_git_view_ignores_replace_objects",
+    "result": "PASS",
+    "realTemporaryGitReplaceMappingCreated": true,
+    "ordinaryGitObservedReplacement": true,
+    "GitViewObservedOriginalCommitBlob": true
+  },
+  "regressionReview": {
+    "explicitUTF8AndASCIIBoundaries": true,
+    "bareEncodeOrDecodeCalls": 0,
+    "strictSourcePathsAndOrder": true,
+    "sourceReceiptSchemaAndStateUnchanged": true,
+    "sourceRowsStillBindBeforeAfterSHABytesAndGitBlob": true,
+    "sourceReceiptSHAStillRequired": true,
+    "p207ModuleFullyRecomputed": true,
+    "p207FixtureClosureFullyRecomputedAndStable": true,
+    "p207ChangedGoCount": 29,
+    "p207ChangedRows": 2,
+    "p207TestTopCount": 496,
+    "p207RunTopCount": 491,
+    "p207SourceModelCount": 63,
+    "p207PackageCount": 7,
+    "p207WorkflowPinChanges": 3,
+    "jointPathCount": 841,
+    "jointChangedRows": 2,
+    "jointUnchangedRows": 839,
+    "jointWorkflowPinChanges": 1,
+    "metadataOutputPathCount": 4
+  },
+  "independentSyntheticReplay": {
+    "command": "python -B -m unittest -v test_project_metadata.py",
+    "testsRun": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "result": "PASS",
+    "durationSeconds": 2.525
+  },
+  "findings": [],
+  "boundaries": {
+    "toolSourceAccepted": true,
+    "finalSourceFreezeConsumed": false,
+    "realGenerationExecuted": false,
+    "generatedMetadataReviewed": false,
+    "goExecuted": false,
+    "formalModified": false,
+    "candidateModified": false,
+    "joblogsOrRawRead": false
+  }
+}
