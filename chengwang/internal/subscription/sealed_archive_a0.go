@@ -28,17 +28,17 @@ type sealedArchiveV8File struct {
 }
 
 type sealedArchiveV8Identity struct {
-	KeyID              string
-	MigrationID        string
-	ArchiveEpoch       string
-	IntentReference    string
-	IntentSeal         string
+	KeyID               string
+	MigrationID         string
+	ArchiveEpoch        string
+	IntentReference     string
+	IntentSeal          string
 	CandidateReferences []string
-	CandidateSeals     []string
-	GenesisReference   string
-	GenesisSeal        string
-	ReceiptReference   string
-	ReceiptSeal        string
+	CandidateSeals      []string
+	GenesisReference    string
+	GenesisSeal         string
+	ReceiptReference    string
+	ReceiptSeal         string
 	FrozenSourcesSHA256 string
 }
 
@@ -199,7 +199,7 @@ func sealedArchiveBuildV8(input sealedArchiveV8Input, verify bool) (sealedArchiv
 		GenesisReference: genesisReference, FrozenSourcesSHA256: hex.EncodeToString(frozenHash[:]),
 		CandidateReferences: receiptReferences, Counts: counts, Budget: input.Budget,
 		Reconstruction: archiveReconstructionV1{Length: original.Length, SHA256: original.SHA256, Result: "strict-v1-exact"},
-		Blockers: sealedArchiveBlockersV8(state, input.FrozenSources.Refresh),
+		Blockers:       sealedArchiveBlockersV8(state, input.FrozenSources.Refresh),
 		Limitations: archiveLimitationsV1{
 			HMACScope: "same-root-integrity-only", WholeAnchorRollbackProtection: "requires-external-witness",
 			OldBinaryConstraint: "none", BackupProof: false, SelectorAuthority: false, CapacityReleased: false,
@@ -245,12 +245,12 @@ func sealedArchiveBuildV8(input sealedArchiveV8Input, verify bool) (sealedArchiv
 		return empty, sealedArchiveFail(CodeArchiveConflict)
 	}
 	plan := sealedArchiveV8Plan{
-		Meta: sealedArchiveV8File{Name: "archive.meta", Bytes: metaRaw},
-		Lock: sealedArchiveV8File{Name: "archive.lock", Bytes: []byte{}},
-		Intent: sealedArchiveV8File{Name: "migration.intent.json", Bytes: intentRaw},
+		Meta:       sealedArchiveV8File{Name: "archive.meta", Bytes: metaRaw},
+		Lock:       sealedArchiveV8File{Name: "archive.lock", Bytes: []byte{}},
+		Intent:     sealedArchiveV8File{Name: "migration.intent.json", Bytes: intentRaw},
 		Candidates: candidateFiles,
-		Genesis: sealedArchiveV8File{Name: genesisName, Bytes: genesisRaw},
-		Receipt: sealedArchiveV8File{Name: "shadow.receipt.json", Bytes: receiptRaw},
+		Genesis:    sealedArchiveV8File{Name: genesisName, Bytes: genesisRaw},
+		Receipt:    sealedArchiveV8File{Name: "shadow.receipt.json", Bytes: receiptRaw},
 		Identity: sealedArchiveV8Identity{
 			KeyID: keyID, MigrationID: migrationID, ArchiveEpoch: epoch,
 			IntentReference: intentReference, IntentSeal: intentSeal,

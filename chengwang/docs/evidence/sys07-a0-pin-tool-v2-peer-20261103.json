@@ -1,0 +1,81 @@
+{
+  "schema": "chengwang.a0-ci-repair-pin-tool-v2-independent-review/v1",
+  "verdict": "TOOL_ACCEPT",
+  "input": {
+    "directory": "D:/CodexData/workspace/chengwang-a0-ci-repair-pin-generator-20261102-cd03-v2",
+    "manifestSHA256": "3c7737662cbd787acb0bded61eb7118502fcd001969742313cb4ac269b0d024d",
+    "entrypointSHA256": "4f6a942bcd39dfe7f29d865246ddc438757a54b53e7fa02d417aa5d19e0e3147",
+    "testsSHA256": "bff0bd0143fa8350d549e5d2d6720f8df79f195215f7c486d8fd39ff9b2f4389",
+    "status": "TOOL_FROZEN_NOT_ACTUAL_GENERATION",
+    "allManifestMembersMatchBytesAndSHA256": true
+  },
+  "v1Dependency": {
+    "sha256": "a9d98bf2de7c6c67c35c905605dd99e2f605d0a4dd7ad103963098976e431001",
+    "hashCheckedBeforeImport": true,
+    "unsafeV1MainCalled": false,
+    "safeV1GenerateCalledOnlyAfterV2Reservation": true,
+    "generationBoundaryInheritedWithoutMutation": true
+  },
+  "outputSafety": {
+    "forbiddenRootsResolvedStrictly": true,
+    "formalTopProtected": true,
+    "candidateTopProtected": true,
+    "formalGitCommonProtected": true,
+    "candidateGitCommonProtected": true,
+    "duplicateSharedCommonRootDeduplicated": true,
+    "rootEqualityRejected": true,
+    "rootDescendantRejected": true,
+    "parentResolvedBeforeCreation": true,
+    "symlinkOrJunctionParentResolvedBeforeContainment": true,
+    "existingTargetRejected": true,
+    "targetFinalComponentResolutionBoundToResolvedParent": true,
+    "postCreationResolvedIdentityChecked": true,
+    "postCreationContainmentRechecked": true,
+    "automaticCleanupAbsent": true,
+    "failureAfterReservationRetainedWithExclusiveFile": true
+  },
+  "actualReadOnlyValidation": {
+    "formalTop": "D:/CodexData/workspace/chengwang-unified-root-20261102-r2m_22eh/r",
+    "candidateTop": "D:/CodexData/workspace/chengwang-a0-ci-repair-20261102-cd03-v1",
+    "sharedGitCommon": "D:/codex-项目/clash/.git",
+    "normalizedForbiddenRootCount": 3,
+    "formalDescendant": "REJECTED",
+    "candidateDescendant": "REJECTED",
+    "formalGitCommonDescendant": "REJECTED",
+    "candidateGitCommonDescendant": "REJECTED",
+    "externalTargetValidation": "ACCEPTED_WITHOUT_CREATION",
+    "externalTargetCreated": false
+  },
+  "inheritedGenerationBoundary": {
+    "generatedPathCount": 4,
+    "generatedPaths": [
+      ".github/workflows/chengwang-joint-control-plane.yml",
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/joint-control-plane/source_contract.json",
+      "chengwang/deploy/subscription-refresh/source_contract.json"
+    ],
+    "requiredRunTopCount": 491,
+    "sourceModelCount": 63,
+    "failureDiagnosticCTLSourceCount": 7,
+    "jointPathCount": 841,
+    "formalRawBlobAndLFReceiptBoundaryUnchanged": true,
+    "old736ProjectionReused": false
+  },
+  "recordedTests": {
+    "attempt1": "PASS_9_SKIP_1_INCOMPLETE_LINK_COVERAGE_RETAINED",
+    "attempt2": "PASS_10_OF_10_WITH_WINDOWS_JUNCTION_NEGATIVE",
+    "attempt2JunctionRemovedExplicitly": true,
+    "independentlyRerunByThisReview": false
+  },
+  "acceptanceBoundary": {
+    "toolSourceAndSafeEntrypointAccepted": true,
+    "actualGenerationRun": false,
+    "generatedArtifactsAccepted": false,
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "formalModifiedByReview": false,
+    "candidateModifiedByReview": false,
+    "integrationAuthorized": false,
+    "actualModel": "UNKNOWN"
+  }
+}

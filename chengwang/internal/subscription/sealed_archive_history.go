@@ -11,16 +11,16 @@ type archiveHistoryEntryV1 struct {
 }
 
 type archiveHistoryPayloadV1 struct {
-	MigrationID      string                  `json:"migrationId"`
-	ArchiveEpoch     string                  `json:"archiveEpoch"`
-	SegmentOrdinal  uint64                  `json:"segmentOrdinal"`
-	PreviousKind    string                  `json:"previousKind"`
-	PreviousReference string                `json:"previousReference"`
-	FirstSequence   uint64                  `json:"firstSequence"`
-	LastSequence    uint64                  `json:"lastSequence"`
-	BaseHash        string                  `json:"baseHash"`
-	ThroughHash     string                  `json:"throughHash"`
-	Entries         []archiveHistoryEntryV1 `json:"entries"`
+	MigrationID       string                  `json:"migrationId"`
+	ArchiveEpoch      string                  `json:"archiveEpoch"`
+	SegmentOrdinal    uint64                  `json:"segmentOrdinal"`
+	PreviousKind      string                  `json:"previousKind"`
+	PreviousReference string                  `json:"previousReference"`
+	FirstSequence     uint64                  `json:"firstSequence"`
+	LastSequence      uint64                  `json:"lastSequence"`
+	BaseHash          string                  `json:"baseHash"`
+	ThroughHash       string                  `json:"throughHash"`
+	Entries           []archiveHistoryEntryV1 `json:"entries"`
 }
 
 type archiveHistoryEnvelopeV1 struct {
@@ -32,15 +32,15 @@ type archiveHistoryEnvelopeV1 struct {
 }
 
 type sealedArchiveHistoryInputV8 struct {
-	ArchiveKey       []byte
-	MigrationID      string
-	ArchiveEpoch     string
-	SegmentOrdinal   uint64
-	PreviousKind     string
+	ArchiveKey        []byte
+	MigrationID       string
+	ArchiveEpoch      string
+	SegmentOrdinal    uint64
+	PreviousKind      string
 	PreviousReference string
-	FirstSequence    uint64
-	BaseHash         string
-	Entries          []archiveHistoryEntryV1
+	FirstSequence     uint64
+	BaseHash          string
+	Entries           []archiveHistoryEntryV1
 }
 
 type sealedArchiveHistoryFixtureV8 struct {

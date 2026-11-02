@@ -1,0 +1,87 @@
+{
+  "schema": "chengwang.a0-ci-repair-pin-tool-independent-review/v1",
+  "verdict": "REVISE",
+  "input": {
+    "directory": "D:/CodexData/workspace/chengwang-a0-ci-repair-pin-generator-20261102-cd03-v1",
+    "manifestSHA256": "2f7d5e2dd4e3b97456e3eb672ee7f3feec2659973a9bf8be15ce6bcf2dac93b0",
+    "generatorSHA256": "a9d98bf2de7c6c67c35c905605dd99e2f605d0a4dd7ad103963098976e431001",
+    "testsSHA256": "58da1c3e858e6d2ddcf8a43affe7a61b8d59ecb2d3cedab2f92585e9c216a9f0",
+    "status": "TOOL_FROZEN_NOT_ACTUAL_GENERATION"
+  },
+  "acceptedSourceBoundaries": {
+    "baseHead": "9d9c112f6700c128162556410768396df3ded6a8",
+    "baseTree": "3a46c9f9fece848e3b496bf0381af8223d916ed2",
+    "repairReceiptSHA256": "9133fe4537ad25ddf701bd09b9f5e28dbb8ffa49ee2950afdd75aa0ddf5ced79",
+    "receiptBindsExactFourLFRepairBytes": true,
+    "formalBaseBytesReadWithGitShowExactHead": true,
+    "formalTrackedPathsDerivedWithGitLsTreeHead": true,
+    "formalWorkingTreeSourceBytesRead": false,
+    "privateIndexAndPrivateObjectStoreUsed": true,
+    "rawBlobMaterializationUsed": true,
+    "v5DependencySHA256": "a09dbd6d0d082f620245ec6c465f35d0545b871bf2b30ee37b18e651f22203a4",
+    "v5MembersCalled": [
+      "PrivateGit",
+      "exclusive_file",
+      "foundation_files_from_base",
+      "git_blob",
+      "load_module",
+      "pins_from_files",
+      "strict_json"
+    ],
+    "old736ProjectionFunctionsCalled": false,
+    "generatedPathCount": 4,
+    "generatedPathsExact": true,
+    "p207MutationScope": "module digest, fixture digest, four existing changed-Go value digests plus map digest, and four workflow pins",
+    "p207CountsPreserved": {
+      "module": 830,
+      "fixture": 21,
+      "packageTops": 496,
+      "requiredTops": 491,
+      "changedGo": 29,
+      "foundation": 689,
+      "sourceModels": 63
+    },
+    "p207FailureCheckerAndModelsGenerated": false,
+    "failureDiagnosticCTLSourceCount": 7,
+    "failureDiagnosticPinsReverifiedAgainstRawSnapshot": true,
+    "jointPathCount": 841,
+    "jointBaseCommitPreserved": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "jointChangedRowsRequiredExactlyFourRepairPaths": true,
+    "jointWorkflowChangeRequiredOnlyContractSHA256": true,
+    "existingOutputRejected": true,
+    "failureOutputPreservedAfterOutputReservation": true,
+    "automaticCleanupOnFailure": false
+  },
+  "blockingFinding": {
+    "id": "OUTPUT_CONTAINMENT_NOT_ENFORCED",
+    "severity": "P1",
+    "generatorLines": [512, 513, 514, 515, 516, 517, 518, 519, 540],
+    "evidence": "reserve_output(value) checks only nonexistence and parent existence, then os.mkdir(out). It receives no protected roots and has no is_relative_to containment rejection.",
+    "counterexample": "A new --out path beneath the exact formal repository or its .git/common directory is accepted. Generation then writes .private-work, afterimages, patch, and manifest there. HEAD/tree and shared refs/index/config checks still pass because they do not cover working-tree untracked files or arbitrary git-common children.",
+    "impact": "The tool can report success while modifying the formal repository/worktree, contradicting the no-formal-mutation safety boundary. SAFE-USAGE text does not fail closed.",
+    "minimumRevision": [
+      "Resolve formal top, candidate top, formal git-common dir, and candidate git-common dir before output reservation.",
+      "Pass these protected roots into reserve_output and reject when the resolved target is equal to or is_relative_to any protected root before os.mkdir.",
+      "Retain the existing nonexistent-target and non-symlink-parent checks.",
+      "Add negative tests for formal descendant, candidate descendant, and git-common descendant; assert that none is created.",
+      "Add a positive test for a new external sibling output and retain failure-output preservation."
+    ]
+  },
+  "recordedTests": {
+    "attempt1": "9_PASS_1_HARNESS_ERROR_RETAINED",
+    "attempt2": "10_PASS_SUPERSEDED_BY_STATIC_FIX",
+    "attempt3": "10_PASS_RETAINED",
+    "independentlyRerunByThisReview": false,
+    "actualGenerationRun": false
+  },
+  "boundaries": {
+    "toolExecuted": false,
+    "actualGenerationRun": false,
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "formalModifiedByReview": false,
+    "candidateModifiedByReview": false,
+    "integrationAuthorized": false,
+    "actualModel": "UNKNOWN"
+  }
+}

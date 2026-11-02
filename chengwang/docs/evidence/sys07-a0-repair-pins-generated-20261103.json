@@ -1,0 +1,146 @@
+{
+  "schema": "chengwang.a0-ci-repair-pin-generator/v3",
+  "status": "GENERATED_NOT_APPLIED_NOT_GO_ACCEPTED",
+  "baseHead": "9d9c112f6700c128162556410768396df3ded6a8",
+  "baseTree": "3a46c9f9fece848e3b496bf0381af8223d916ed2",
+  "repairReceiptSHA256": "9133fe4537ad25ddf701bd09b9f5e28dbb8ffa49ee2950afdd75aa0ddf5ced79",
+  "candidate": {
+    "state": {
+      "head": "9d9c112f6700c128162556410768396df3ded6a8",
+      "tree": "3a46c9f9fece848e3b496bf0381af8223d916ed2",
+      "staged": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unstaged": "76ce9ed4f28e0deb6694f74c2954a6c2e3eddfadbafcf86c508092dc89fb65a0",
+      "untracked": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "afterimages": [
+      {
+        "path": "chengwang/internal/subscription/sealed_archive_a0.go",
+        "bytes": 32129,
+        "sha256": "0a022429fe4b01613eb4bddbca9c2d234ed48fb1bb12eb53009abcd0bc518bd0",
+        "gitBlob": "f9b9c6646b2b67f7161275d79836cb04795ae11a"
+      },
+      {
+        "path": "chengwang/internal/subscription/sealed_archive_history.go",
+        "bytes": 7654,
+        "sha256": "d4656c95755f9f26a0c6b0c17f16a3e388d9dd21146374aef7a66d8a76cea5d2",
+        "gitBlob": "83f5c45eb4c78db17c7fb4342e1b3286524887f4"
+      },
+      {
+        "path": "chengwang/internal/subscription/sealed_archive_test.go",
+        "bytes": 96154,
+        "sha256": "d655d6affcc2533feeaa74ba7326f7ce1da08a6bc7d47caeba34f4b3553a5019",
+        "gitBlob": "009d40dc89c818b852fdf643533d4a8861f1fab1"
+      },
+      {
+        "path": "chengwang/internal/subscription/sealed_archive_wire.go",
+        "bytes": 36230,
+        "sha256": "3a6bdc6a20c8b4a351c20f2d811d5453abfe871e25a14928a4ad91841917ccf1",
+        "gitBlob": "756e85fb309dbd53eb044dfb3c0017b07fd90dfa"
+      }
+    ]
+  },
+  "proposedTree": "d4a841ecec14f2deadde12422951009995fbbb3c",
+  "generatedPaths": [
+    {
+      "path": ".github/workflows/chengwang-joint-control-plane.yml",
+      "mode": "100644",
+      "beforeSHA256": "53a4071ae4862f8b7eb5c00f879ad76cf27acf3d8b65b0af62723d14ca18b1b8",
+      "afterSHA256": "fc8b11c732a14d3692018904a9354672e2b65c55c352b1756f279f26cdd05c57",
+      "bytes": 8642
+    },
+    {
+      "path": ".github/workflows/chengwang-subscription-refresh.yml",
+      "mode": "100644",
+      "beforeSHA256": "bcba650e9c2573744b63e230f7f770fa2fb77bce789f55614521f18362d8ca3c",
+      "afterSHA256": "40077609e7ba580756360a4df77fcb7f8130069c5887580a4fe9745726fb8584",
+      "bytes": 15919
+    },
+    {
+      "path": "chengwang/deploy/joint-control-plane/source_contract.json",
+      "mode": "100644",
+      "beforeSHA256": "cb2ce38fe42bb59e7fe610904bf12a06702d2ea0186affc3158ef5f0ce627bcf",
+      "afterSHA256": "05db8d68916e367dde1e325553b3386ea69782e813f41c29197bb07012216293",
+      "bytes": 118425
+    },
+    {
+      "path": "chengwang/deploy/subscription-refresh/source_contract.json",
+      "mode": "100644",
+      "beforeSHA256": "9255c604d1d1fcdfbf76257edb62adb6536f1390afcba7bb78b0c809074337c3",
+      "afterSHA256": "b6cc46dbcb4f7602f64f66c487eb6ef9e858c51b905dc6381d0a7a91652ec4ac",
+      "bytes": 115442
+    }
+  ],
+  "p207": {
+    "formalCheckerResult": {
+      "schema": "chengwang.subscription-refresh-source/v3",
+      "modulePathCount": 830,
+      "moduleContentSHA256": "c67ead139f20aa70952186c7f0bc9763729b859b1e410d215d94421aba3d6dde",
+      "automaticFixturePathCount": 21,
+      "additionalFixturePathCount": 0,
+      "fixturePathCount": 21,
+      "fixtureContentSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11",
+      "packageTestTopCount": 496,
+      "packageTestTopsSHA256": "f90f14ac62a59eec9660d1e7e0e0dca41322f1eb2da157d510b6e208c9e875d5",
+      "requiredRunTopCount": 491,
+      "requiredRunTopsSHA256": "920907f9058ca39b519d48a20fe5b630b34e9b567fc022e5bac8c9bf3b396750",
+      "p207aAddedTestTopCount": 43,
+      "baselinePackageTestTopCount": 453,
+      "baselineRequiredRunTopCount": 448,
+      "changedGoSourceCount": 29,
+      "changedGoSourcesSHA256": "562e0fbe9a47243c17e0f36c12570a7c99d47efa00a97e636402103abcae770d",
+      "foundationCurrentCount": 689,
+      "foundationPreviousCount": 688,
+      "goExecutionProven": false
+    },
+    "failureCheckerSHA256": "5ceb5a3a373b088be0af0347fcd821e970686ac0437fc1594c86207f486a84fe",
+    "failureModelSHA256": "a43afc9fec424e8d8601263c0dc4dc0b7293870cac71b1b2f2e3d908688512a3",
+    "sourceModelSHA256": "c0ae805e25e0b42da34723a993a60d5c3a411351ad7c1152ee7e6a037c3f0fa0",
+    "buildLocationTargetPackage": "chengwang/internal/subscriptionctl",
+    "buildLocationSourceCount": 7,
+    "sourceModelCount": 63,
+    "sourceModelNamesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+    "changedWorkflowPins": [
+      "CHANGED_GO_SHA256",
+      "CONTRACT_SHA256",
+      "MODULE_SHA256"
+    ],
+    "stableFixturePin": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11"
+  },
+  "joint": {
+    "pathCount": 841,
+    "changedRows": [
+      "chengwang/internal/subscription/sealed_archive_a0.go",
+      "chengwang/internal/subscription/sealed_archive_history.go",
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "baseCommitPreserved": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "checkerSHA256": "5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec"
+  },
+  "materialization": {
+    "method": "PRIVATE_INDEX_OID_TO_RAW_GIT_BLOB_VIA_CAT_FILE_BATCH",
+    "pathCount": 858,
+    "mapSHA256": "b2b352d447213c6f60f29f59e812f0286d606bc61aa405868c60c3fba890ae21",
+    "checkoutOrSmudgeUsed": false,
+    "perFileOIDSizeAndSHA256Readback": true
+  },
+  "foundationClosure": {
+    "checkerPath": "chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py",
+    "checkerSHA256": "a9507482310cf081e69b0d85d74f72114f5f88add6f820b255e8c8044412dc40",
+    "declaredFileCount": 185,
+    "declaredPathsSHA256": "51d3bf1f2675a491a6ccbc35364e934def93373f11fa31bf023b2ac0dd96a967",
+    "source": "SHA256_PINNED_BASE_CHECKER_FILES",
+    "pathsHandCopied": false
+  },
+  "claims": {
+    "rawGitBlobMaterializationUsed": true,
+    "checkoutOrEOLFilterUsed": false,
+    "p207RequiredRunTopCountPreserved": 491,
+    "sourceModelCountPreserved": 63,
+    "failureDiagnosticSevenCTLMapPreserved": true,
+    "fixturePinStableAndVerified": true,
+    "localGoOrGofmtRun": false,
+    "sourceAcceptanceProven": false,
+    "integrationAuthorized": false
+  }
+}

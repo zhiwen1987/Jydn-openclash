@@ -1,0 +1,87 @@
+{
+  "schema": "chengwang.p207-9d9-gofmt-and-compile-independent-review/v1",
+  "verdict": "SOURCE_REPAIR_ACCEPT",
+  "formalHead": "9d9c112f6700c128162556410768396df3ded6a8",
+  "formalFinding": {
+    "path": "chengwang/internal/subscription/sealed_archive_test.go",
+    "function": "TestSealedArchiveV8StrictCanonicalAndAuthentication",
+    "firstDeclarationLine": 883,
+    "secondDeclarationLine": 990,
+    "firstBraceDepth": 1,
+    "secondBraceDepth": 1,
+    "sameLexicalBlock": true,
+    "secondOperator": ":=",
+    "deterministicCompileError": "no new variables on left side of :=",
+    "minimumTextualFix": "change line 990 := to =",
+    "candidateFix": "rename the later declaration and its two uses from candidatePayloadRaw to candidateGoldenPayloadRaw"
+  },
+  "officialFailureArtifact": {
+    "path": "D:/CodexData/workspace/chengwang-p207-9d9-audit-41473420726-20261102-cd03-v1/p207a-source-go-failure-41473420726-1/gofmt.patch",
+    "sha256": "3748053a406f9953b8805bdd2005092ba59421b4871c8f79f12f6e88ca9e0942",
+    "exactFileCount": 4,
+    "exactPaths": [
+      "chengwang/internal/subscription/sealed_archive_a0.go",
+      "chengwang/internal/subscription/sealed_archive_history.go",
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "appliesToFormalHeadFromChengwangRoot": true,
+    "allNonSemicolonGoTokensIdenticalIgnoringWhitespace": true,
+    "commentTokenStreamsIdentical": true,
+    "onlyAdditionalTokenDifference": "redundant explicit semicolons removed when one-line closures are expanded",
+    "classification": "FORMAT_ONLY"
+  },
+  "candidate": {
+    "path": "D:/CodexData/workspace/chengwang-a0-ci-repair-20261102-cd03-v1",
+    "head": "9d9c112f6700c128162556410768396df3ded6a8",
+    "changedPathCount": 4,
+    "threeFilesExactlyEqualOfficialFormatAfterimages": true,
+    "testFileEqualsOfficialFormatAfterimageAfterReversingExactlyThreeIdentifierRenames": true,
+    "renameOccurrenceCount": 3,
+    "renameDeclarationLine": 1209,
+    "renameUseLines": [1212, 1222],
+    "earlierDistinctVariableLine": 1102,
+    "allFourFilesLFOnly": true,
+    "gitDiffCheckPassed": true,
+    "duplicateDeclarationRemovedBySourceInspection": true,
+    "candidateReceiptSHA256": "9133fe4537ad25ddf701bd09b9f5e28dbb8ffa49ee2950afdd75aa0ddf5ced79"
+  },
+  "fileIdentities": [
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_a0.go",
+      "formalSHA256": "f702d4ed6fb8d9fe7a29accc9842169154793faf2c5eefbc3e235ee2df2daefb",
+      "candidateSHA256": "0a022429fe4b01613eb4bddbca9c2d234ed48fb1bb12eb53009abcd0bc518bd0"
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_history.go",
+      "formalSHA256": "198ff3ee66429396ca1088b4dea1585b13be4e6d83d9983d2d857b1dc0bb18a9",
+      "candidateSHA256": "d4656c95755f9f26a0c6b0c17f16a3e388d9dd21146374aef7a66d8a76cea5d2"
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_test.go",
+      "formalSHA256": "94b3a9d71ac6e31a4fc142ef268eca9d6e935afee51f51a8116ed57d82223e19",
+      "officialFormatAfterimageSHA256": "f0b808a2ff823fe61d01bb359efede9ac7cf7906829b8212002281fea293634f",
+      "candidateSHA256": "d655d6affcc2533feeaa74ba7326f7ce1da08a6bc7d47caeba34f4b3553a5019"
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_wire.go",
+      "formalSHA256": "44d98b3306de31bc3b64fc6ccc4f1c996b919a4c1dabc6e47ac6eb9d7165450f",
+      "candidateSHA256": "3a6bdc6a20c8b4a351c20f2d811d5453abfe871e25a14928a4ad91841917ccf1"
+    }
+  ],
+  "boundaries": {
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "compileAccepted": false,
+    "runtimeAccepted": false,
+    "formalModified": false,
+    "candidateModifiedByReview": false,
+    "productionTouched": false,
+    "actualModel": "UNKNOWN"
+  },
+  "independentProgram": {
+    "path": "D:/CodexData/workspace/chengwang-p207-9d9-gofmt-and-compile-independent-review-20261102-cd03-v1/independent_review.py",
+    "sha256": "f0360f3874564008a3abef934bc981889399d152258c8928b626478b91104dfa",
+    "lastExitCode": 0
+  }
+}

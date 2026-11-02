@@ -1,0 +1,31 @@
+{
+  "status": "PASS_SOURCE_DIFF_ONLY",
+  "goVerified": false,
+  "productionChanged": false,
+  "files": [
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_a0.go",
+      "afterSha256": "0a022429fe4b01613eb4bddbca9c2d234ed48fb1bb12eb53009abcd0bc518bd0",
+      "exactOfficialFormatPlusRenames": true,
+      "renameSites": 0
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_history.go",
+      "afterSha256": "d4656c95755f9f26a0c6b0c17f16a3e388d9dd21146374aef7a66d8a76cea5d2",
+      "exactOfficialFormatPlusRenames": true,
+      "renameSites": 0
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_test.go",
+      "afterSha256": "d655d6affcc2533feeaa74ba7326f7ce1da08a6bc7d47caeba34f4b3553a5019",
+      "exactOfficialFormatPlusRenames": true,
+      "renameSites": 3
+    },
+    {
+      "path": "chengwang/internal/subscription/sealed_archive_wire.go",
+      "afterSha256": "3a6bdc6a20c8b4a351c20f2d811d5453abfe871e25a14928a4ad91841917ccf1",
+      "exactOfficialFormatPlusRenames": true,
+      "renameSites": 0
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "additionalFixturePathCount": 0,
+  "automaticFixturePathCount": 21,
+  "baselinePackageTestTopCount": 453,
+  "baselineRequiredRunTopCount": 448,
+  "changedGoSourceCount": 29,
+  "changedGoSourcesSHA256": "562e0fbe9a47243c17e0f36c12570a7c99d47efa00a97e636402103abcae770d",
+  "fixtureContentSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11",
+  "fixturePathCount": 21,
+  "foundationCurrentCount": 689,
+  "foundationPreviousCount": 688,
+  "goExecutionProven": false,
+  "moduleContentSHA256": "c67ead139f20aa70952186c7f0bc9763729b859b1e410d215d94421aba3d6dde",
+  "modulePathCount": 830,
+  "p207aAddedTestTopCount": 43,
+  "packageTestTopCount": 496,
+  "packageTestTopsSHA256": "f90f14ac62a59eec9660d1e7e0e0dca41322f1eb2da157d510b6e208c9e875d5",
+  "requiredRunTopCount": 491,
+  "requiredRunTopsSHA256": "920907f9058ca39b519d48a20fe5b630b34e9b567fc022e5bac8c9bf3b396750",
+  "schema": "chengwang.subscription-refresh-source/v3"
+}

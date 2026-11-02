@@ -1,0 +1,42 @@
+{
+  "schema": "chengwang.a0-repair-pin-actual-generation-failure-boundary/v1",
+  "status": "ACTUAL_GENERATION_REJECTED",
+  "toolSourceReview": {
+    "verdict": "TOOL_ACCEPT",
+    "meaning": "safe entrypoint source accepted for controlled execution only",
+    "doesNotMeanGenerationPassed": true
+  },
+  "actualRun": {
+    "outputDirectory": "D:/CodexData/workspace/chengwang-a0-repair-pins-root-generated-20261103-v1",
+    "terminalExitCode": 1,
+    "failureSchema": "chengwang.a0-ci-repair-pin-generator-failure/v2",
+    "failureStatus": "REJECTED",
+    "failureReason": "workflow changed pin scope",
+    "failureReceiptSHA256": "234ca51741d0083c0bbe731ca35349d9d7891657130cbe99d54c3cc869377f55"
+  },
+  "retainedOutput": {
+    "privateWorkRetained": true,
+    "privateFileCount": 866,
+    "privateDirectoryCount": 127,
+    "manifestExists": false,
+    "afterimagesExists": false,
+    "candidatePinPatchExists": false,
+    "failureReceiptExists": true
+  },
+  "conclusion": {
+    "actualGenerationAccepted": false,
+    "fourGateArtifactsAccepted": false,
+    "fourGateArtifactsApplied": false,
+    "integrationAuthorized": false,
+    "formalMutationClaimed": false,
+    "nextStep": "diagnose workflow pin-scope mismatch and independently review any frozen successor before rerun"
+  },
+  "boundaries": {
+    "privateWorkContentRead": false,
+    "jobLogsRead": false,
+    "goExecutedByReview": false,
+    "gofmtExecutedByReview": false,
+    "sourceModifiedByReview": false,
+    "actualModel": "UNKNOWN"
+  }
+}

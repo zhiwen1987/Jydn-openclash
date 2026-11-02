@@ -29,7 +29,7 @@ type sealedArchiveGoldenRecord struct {
 }
 
 type sealedArchiveGoldenV8 struct {
-	PolicyID string `json:"policyId"`
+	PolicyID       string `json:"policyId"`
 	ValidFullChain struct {
 		PublicInputs struct {
 			ArchiveKeyHex           string   `json:"archiveKeyHex"`
@@ -93,7 +93,7 @@ type sealedArchiveGoldenV8 struct {
 		Budget struct {
 			MinimalAcceptedFixedPoint struct {
 				ArchiveMaxBytes uint64 `json:"archiveMaxBytes"`
-				Plan struct {
+				Plan            struct {
 					Pre  uint64 `json:"pre"`
 					Q    uint64 `json:"Q"`
 					R    uint64 `json:"R"`
@@ -484,7 +484,7 @@ func sealedArchiveAssertPublicInputs(t *testing.T, input sealedArchiveV8Input, g
 		t.Fatal("sealed archive absence-child vector differs")
 	}
 	entrySets := []struct {
-		encoded string
+		encoded  string
 		expected string
 	}{
 		{public.EvidenceEntrySetBase64, input.FrozenSources.Evidence.Root.EntrySetSHA256},
@@ -524,7 +524,7 @@ func sealedArchiveAssertPayloadRecords(t *testing.T, plan sealedArchiveV8Plan, g
 	placeholderPayload := receipt.Payload
 	placeholderPayload.Bytes = archiveReceiptBytesV2{
 		PreReceiptFinalBytes: receipt.Payload.Bytes.PreReceiptFinalBytes,
-		ReceiptBytesHex: strings.Repeat("0", 16), FinalBytesHex: strings.Repeat("0", 16),
+		ReceiptBytesHex:      strings.Repeat("0", 16), FinalBytesHex: strings.Repeat("0", 16),
 		MaxTempBytesHex: strings.Repeat("0", 16), PeakBytesHex: strings.Repeat("0", 16),
 	}
 	placeholder, _ := sealedArchivePersisted(archiveReceiptEnvelopeV1{
@@ -655,19 +655,28 @@ func TestSealedArchiveV8PrimitiveAndNameBoundaries(t *testing.T) {
 		t.Fatal("sealed archive rejected the exact depth boundary")
 	}
 	depthOver := []byte(strings.Repeat("[", sealedArchiveDepthMax+1) + "0" + strings.Repeat("]", sealedArchiveDepthMax+1))
-	sealedArchiveRequireCode(t, func() error { _, scanErr := sealedArchiveScanJSON(depthOver, false, int(sealedArchiveObjectMaxBytes)); return scanErr }(), CodeArchiveLimit)
+	sealedArchiveRequireCode(t, func() error {
+		_, scanErr := sealedArchiveScanJSON(depthOver, false, int(sealedArchiveObjectMaxBytes))
+		return scanErr
+	}(), CodeArchiveLimit)
 	stringBoundary := []byte(`"` + strings.Repeat("s", sealedArchiveStringMax) + `"`)
 	if _, err := sealedArchiveScanJSON(stringBoundary, false, int(sealedArchiveObjectMaxBytes)); err != nil {
 		t.Fatal("sealed archive rejected the exact string boundary")
 	}
 	stringOver := []byte(`"` + strings.Repeat("s", sealedArchiveStringMax+1) + `"`)
-	sealedArchiveRequireCode(t, func() error { _, scanErr := sealedArchiveScanJSON(stringOver, false, int(sealedArchiveObjectMaxBytes)); return scanErr }(), CodeArchiveLimit)
+	sealedArchiveRequireCode(t, func() error {
+		_, scanErr := sealedArchiveScanJSON(stringOver, false, int(sealedArchiveObjectMaxBytes))
+		return scanErr
+	}(), CodeArchiveLimit)
 	tokenBoundary := []byte("[" + strings.Repeat("0,", sealedArchiveTokenMax-3) + "0]")
 	if _, err := sealedArchiveScanJSON(tokenBoundary, false, int(sealedArchiveObjectMaxBytes)); err != nil {
 		t.Fatal("sealed archive rejected the exact token boundary")
 	}
 	tokenOver := append(append([]byte{}, tokenBoundary[:len(tokenBoundary)-1]...), ',', '0', ']')
-	sealedArchiveRequireCode(t, func() error { _, scanErr := sealedArchiveScanJSON(tokenOver, false, int(sealedArchiveObjectMaxBytes)); return scanErr }(), CodeArchiveLimit)
+	sealedArchiveRequireCode(t, func() error {
+		_, scanErr := sealedArchiveScanJSON(tokenOver, false, int(sealedArchiveObjectMaxBytes))
+		return scanErr
+	}(), CodeArchiveLimit)
 	reference := strings.Repeat("a", 64)
 	name, err := sealedArchiveContentName(sealedArchiveCandidateKindV1, reference)
 	parsed, parseErr := sealedArchiveParseNameV8(name)
@@ -676,9 +685,9 @@ func TestSealedArchiveV8PrimitiveAndNameBoundaries(t *testing.T) {
 		t.Fatal("sealed archive safe-name round trip failed")
 	}
 	fixedNames := []struct {
-		name string
-		class sealedArchiveNameClassV8
-		kind string
+		name      string
+		class     sealedArchiveNameClassV8
+		kind      string
 		temporary bool
 	}{
 		{"archive.meta", sealedArchiveNameMetaV8, "", false},
@@ -764,48 +773,238 @@ func TestSealedArchiveV8StrictCanonicalAndAuthentication(t *testing.T) {
 		edit func(sealedArchiveV8Plan) sealedArchiveV8Plan
 		code Code
 	}{
-		{"bom", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append([]byte{0xef, 0xbb, 0xbf}, value.Meta.Bytes...); return value }, CodeArchiveInvalid},
-		{"missing-lf", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append([]byte{}, value.Meta.Bytes[:len(value.Meta.Bytes)-1]...); return value }, CodeArchiveInvalid},
-		{"double-lf", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append(append([]byte{}, value.Meta.Bytes...), '\n'); return value }, CodeArchiveInvalid},
-		{"trailing", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append(append([]byte{}, value.Meta.Bytes...), 'x'); return value }, CodeArchiveInvalid},
-		{"whitespace", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append(append([]byte{}, value.Meta.Bytes[:len(value.Meta.Bytes)-1]...), ' ', '\n'); return value }, CodeArchiveInvalid},
-		{"field-order", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, metaPrefix, reorderedMetaPrefix, 1); return value }, CodeArchiveInvalid},
-		{"missing", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, metaPrefix, []byte(`{"formatVersion":2,`), 1); return value }, CodeArchiveInvalid},
-		{"unknown", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append([]byte(`{"unknown":0,`), value.Meta.Bytes[1:]...); return value }, CodeArchiveInvalid},
-		{"duplicate", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append([]byte(`{"schema":"chengwang.subscription-archive-meta/v2",`), value.Meta.Bytes[1:]...); return value }, CodeArchiveInvalid},
-		{"null", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var meta archiveMetaV2; _ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta); meta.ArchiveKey = nil; value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes); return value }, CodeArchiveInvalid},
-		{"integer", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":2.0`), 1); return value }, CodeArchiveInvalid},
-		{"integer-exponent", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":2e0`), 1); return value }, CodeArchiveInvalid},
-		{"integer-leading-zero", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":02`), 1); return value }, CodeArchiveInvalid},
-		{"integer-negative", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":-1`), 1); return value }, CodeArchiveInvalid},
-		{"integer-overflow", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":4294967296`), 1); return value }, CodeArchiveInvalid},
-		{"base64", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, []byte("***"), 1); return value }, CodeArchiveInvalid},
-		{"base64url", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64URL, 1); return value }, CodeArchiveInvalid},
-		{"base64-unpadded", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64Unpadded, 1); return value }, CodeArchiveInvalid},
-		{"base64-whitespace", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64Whitespace, 1); return value }, CodeArchiveInvalid},
-		{"base64-padding", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64ExtraPadding, 1); return value }, CodeArchiveInvalid},
-		{"base64-wrong-length", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64WrongLength, 1); return value }, CodeArchiveAuthenticationFailed},
-		{"invalid-utf8", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { value.Meta.Bytes = append([]byte{}, value.Meta.Bytes...); value.Meta.Bytes[1] = 0xff; return value }, CodeArchiveInvalid},
-		{"schema", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Schema = "unknown/v2"; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveKindUnsupported},
-		{"kind", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Kind = "unknown/v1"; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveKindUnsupported},
-		{"schema-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Schema = sealedArchiveOneByteStringV8(t, envelope.Schema, len(envelope.Schema)-1); value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveKindUnsupported},
-		{"kind-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Kind = sealedArchiveOneByteStringV8(t, envelope.Kind, len(envelope.Kind)-1); value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveKindUnsupported},
-		{"archive-key", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var meta archiveMetaV2; _ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta); meta.ArchiveKey[0] ^= 1; value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"key-id-hex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var meta archiveMetaV2; _ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta); meta.KeyID = strings.ToUpper(meta.KeyID); value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"key-id-short", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var meta archiveMetaV2; _ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta); meta.KeyID = meta.KeyID[:63]; value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"key-id-long", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var meta archiveMetaV2; _ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta); meta.KeyID += "0"; value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"key-id-nonhex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var meta archiveMetaV2; _ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta); meta.KeyID = "g" + meta.KeyID[1:]; value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"payload", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveCandidateEnvelopeV1; _ = sealedArchiveDecode(value.Candidates[0].Bytes, true, int(sealedArchiveObjectMaxBytes), &envelope); envelope.Payload.Candidate.Raw[0] ^= 1; value.Candidates[0].Bytes, _ = sealedArchivePersisted(envelope, int(sealedArchiveObjectMaxBytes)); return value }, CodeArchiveAuthenticationFailed},
-		{"reference", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Reference = strings.ToUpper(envelope.Reference); value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"reference-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Reference = sealedArchiveOneByteStringV8(t, envelope.Reference, 0); value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"reference-short", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Reference = envelope.Reference[:63]; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"reference-long", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Reference += "0"; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"reference-nonhex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Reference = "g" + envelope.Reference[1:]; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"seal", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Seal = strings.Repeat("0", 64); value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"seal-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Seal = sealedArchiveOneByteStringV8(t, envelope.Seal, 0); value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"seal-short", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Seal = envelope.Seal[:63]; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"seal-long", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Seal += "0"; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
-		{"seal-nonhex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan { var envelope archiveIntentEnvelopeV1; _ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope); envelope.Seal = "g" + envelope.Seal[1:]; value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes); return value }, CodeArchiveAuthenticationFailed},
+		{"bom", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append([]byte{0xef, 0xbb, 0xbf}, value.Meta.Bytes...)
+			return value
+		}, CodeArchiveInvalid},
+		{"missing-lf", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append([]byte{}, value.Meta.Bytes[:len(value.Meta.Bytes)-1]...)
+			return value
+		}, CodeArchiveInvalid},
+		{"double-lf", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append(append([]byte{}, value.Meta.Bytes...), '\n')
+			return value
+		}, CodeArchiveInvalid},
+		{"trailing", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append(append([]byte{}, value.Meta.Bytes...), 'x')
+			return value
+		}, CodeArchiveInvalid},
+		{"whitespace", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append(append([]byte{}, value.Meta.Bytes[:len(value.Meta.Bytes)-1]...), ' ', '\n')
+			return value
+		}, CodeArchiveInvalid},
+		{"field-order", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, metaPrefix, reorderedMetaPrefix, 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"missing", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, metaPrefix, []byte(`{"formatVersion":2,`), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"unknown", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append([]byte(`{"unknown":0,`), value.Meta.Bytes[1:]...)
+			return value
+		}, CodeArchiveInvalid},
+		{"duplicate", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append([]byte(`{"schema":"chengwang.subscription-archive-meta/v2",`), value.Meta.Bytes[1:]...)
+			return value
+		}, CodeArchiveInvalid},
+		{"null", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var meta archiveMetaV2
+			_ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta)
+			meta.ArchiveKey = nil
+			value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes)
+			return value
+		}, CodeArchiveInvalid},
+		{"integer", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":2.0`), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"integer-exponent", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":2e0`), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"integer-leading-zero", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":02`), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"integer-negative", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":-1`), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"integer-overflow", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, []byte(`"formatVersion":2`), []byte(`"formatVersion":4294967296`), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"base64", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, []byte("***"), 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"base64url", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64URL, 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"base64-unpadded", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64Unpadded, 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"base64-whitespace", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64Whitespace, 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"base64-padding", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64ExtraPadding, 1)
+			return value
+		}, CodeArchiveInvalid},
+		{"base64-wrong-length", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = bytes.Replace(value.Meta.Bytes, archiveKeyBase64, base64WrongLength, 1)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"invalid-utf8", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			value.Meta.Bytes = append([]byte{}, value.Meta.Bytes...)
+			value.Meta.Bytes[1] = 0xff
+			return value
+		}, CodeArchiveInvalid},
+		{"schema", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Schema = "unknown/v2"
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveKindUnsupported},
+		{"kind", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Kind = "unknown/v1"
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveKindUnsupported},
+		{"schema-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Schema = sealedArchiveOneByteStringV8(t, envelope.Schema, len(envelope.Schema)-1)
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveKindUnsupported},
+		{"kind-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Kind = sealedArchiveOneByteStringV8(t, envelope.Kind, len(envelope.Kind)-1)
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveKindUnsupported},
+		{"archive-key", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var meta archiveMetaV2
+			_ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta)
+			meta.ArchiveKey[0] ^= 1
+			value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"key-id-hex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var meta archiveMetaV2
+			_ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta)
+			meta.KeyID = strings.ToUpper(meta.KeyID)
+			value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"key-id-short", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var meta archiveMetaV2
+			_ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta)
+			meta.KeyID = meta.KeyID[:63]
+			value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"key-id-long", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var meta archiveMetaV2
+			_ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta)
+			meta.KeyID += "0"
+			value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"key-id-nonhex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var meta archiveMetaV2
+			_ = sealedArchiveDecode(value.Meta.Bytes, true, sealedArchiveMetaMaxBytes, &meta)
+			meta.KeyID = "g" + meta.KeyID[1:]
+			value.Meta.Bytes, _ = sealedArchivePersisted(meta, sealedArchiveMetaMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"payload", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveCandidateEnvelopeV1
+			_ = sealedArchiveDecode(value.Candidates[0].Bytes, true, int(sealedArchiveObjectMaxBytes), &envelope)
+			envelope.Payload.Candidate.Raw[0] ^= 1
+			value.Candidates[0].Bytes, _ = sealedArchivePersisted(envelope, int(sealedArchiveObjectMaxBytes))
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"reference", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Reference = strings.ToUpper(envelope.Reference)
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"reference-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Reference = sealedArchiveOneByteStringV8(t, envelope.Reference, 0)
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"reference-short", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Reference = envelope.Reference[:63]
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"reference-long", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Reference += "0"
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"reference-nonhex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Reference = "g" + envelope.Reference[1:]
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"seal", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Seal = strings.Repeat("0", 64)
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"seal-one-byte", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Seal = sealedArchiveOneByteStringV8(t, envelope.Seal, 0)
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"seal-short", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Seal = envelope.Seal[:63]
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"seal-long", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Seal += "0"
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
+		{"seal-nonhex", func(value sealedArchiveV8Plan) sealedArchiveV8Plan {
+			var envelope archiveIntentEnvelopeV1
+			_ = sealedArchiveDecode(value.Intent.Bytes, true, sealedArchiveIntentMaxBytes, &envelope)
+			envelope.Seal = "g" + envelope.Seal[1:]
+			value.Intent.Bytes, _ = sealedArchivePersisted(envelope, sealedArchiveIntentMaxBytes)
+			return value
+		}, CodeArchiveAuthenticationFailed},
 	}
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
@@ -828,23 +1027,43 @@ func TestSealedArchiveV8StrictCanonicalAndAuthentication(t *testing.T) {
 		code Code
 		edit func(*archiveIntentPayloadV1)
 	}{
-		{"source-revision", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.SourceRevision.RepositoryCommit = strings.Repeat("0", 40) }},
-		{"source-revision-commit-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.SourceRevision.RepositoryCommit = sealedArchiveOneByteStringV8(t, value.Core.SourceRevision.RepositoryCommit, 0) }},
-		{"source-revision-tree-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.SourceRevision.RepositoryTree = sealedArchiveOneByteStringV8(t, value.Core.SourceRevision.RepositoryTree, 0) }},
-		{"source-revision-codec-set-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.SourceRevision.CodecSetSHA256 = sealedArchiveOneByteStringV8(t, value.Core.SourceRevision.CodecSetSHA256, 0) }},
+		{"source-revision", CodeArchiveConflict, func(value *archiveIntentPayloadV1) {
+			value.Core.SourceRevision.RepositoryCommit = strings.Repeat("0", 40)
+		}},
+		{"source-revision-commit-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) {
+			value.Core.SourceRevision.RepositoryCommit = sealedArchiveOneByteStringV8(t, value.Core.SourceRevision.RepositoryCommit, 0)
+		}},
+		{"source-revision-tree-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) {
+			value.Core.SourceRevision.RepositoryTree = sealedArchiveOneByteStringV8(t, value.Core.SourceRevision.RepositoryTree, 0)
+		}},
+		{"source-revision-codec-set-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) {
+			value.Core.SourceRevision.CodecSetSHA256 = sealedArchiveOneByteStringV8(t, value.Core.SourceRevision.CodecSetSHA256, 0)
+		}},
 		{"codec", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.CodecID = "unknown" }},
-		{"codec-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.CodecID = sealedArchiveOneByteStringV8(t, value.Core.CodecID, 0) }},
+		{"codec-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) {
+			value.Core.CodecID = sealedArchiveOneByteStringV8(t, value.Core.CodecID, 0)
+		}},
 		{"policy", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.PolicyID = "unknown" }},
-		{"policy-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.PolicyID = sealedArchiveOneByteStringV8(t, value.Core.PolicyID, 0) }},
+		{"policy-one-byte", CodeArchiveConflict, func(value *archiveIntentPayloadV1) {
+			value.Core.PolicyID = sealedArchiveOneByteStringV8(t, value.Core.PolicyID, 0)
+		}},
 		{"budget", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.Budget.CandidateMax-- }},
 		{"nonce", CodeArchiveConflict, func(value *archiveIntentPayloadV1) { value.Core.Nonce = []byte{1} }},
-		{"nonce-one-byte", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) { value.Core.Nonce = sealedArchiveOneByteBytesV8(t, value.Core.Nonce, 0) }},
+		{"nonce-one-byte", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) {
+			value.Core.Nonce = sealedArchiveOneByteBytesV8(t, value.Core.Nonce, 0)
+		}},
 		{"time", CodeArchiveInvalid, func(value *archiveIntentPayloadV1) { value.Core.ObservedAt = "2026-11-02T12:34:56+00:00" }},
-		{"time-one-byte", CodeArchiveInvalid, func(value *archiveIntentPayloadV1) { value.Core.ObservedAt = sealedArchiveOneByteStringV8(t, value.Core.ObservedAt, len(value.Core.ObservedAt)-1) }},
+		{"time-one-byte", CodeArchiveInvalid, func(value *archiveIntentPayloadV1) {
+			value.Core.ObservedAt = sealedArchiveOneByteStringV8(t, value.Core.ObservedAt, len(value.Core.ObservedAt)-1)
+		}},
 		{"migration-id", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) { value.MigrationID = strings.Repeat("0", 64) }},
-		{"migration-id-one-byte", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) { value.MigrationID = sealedArchiveOneByteStringV8(t, value.MigrationID, 0) }},
+		{"migration-id-one-byte", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) {
+			value.MigrationID = sealedArchiveOneByteStringV8(t, value.MigrationID, 0)
+		}},
 		{"epoch", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) { value.ArchiveEpoch = strings.Repeat("0", 64) }},
-		{"epoch-one-byte", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) { value.ArchiveEpoch = sealedArchiveOneByteStringV8(t, value.ArchiveEpoch, 0) }},
+		{"epoch-one-byte", CodeArchiveAuthenticationFailed, func(value *archiveIntentPayloadV1) {
+			value.ArchiveEpoch = sealedArchiveOneByteStringV8(t, value.ArchiveEpoch, 0)
+		}},
 	}
 	for _, test := range semantic {
 		t.Run(test.name, func(t *testing.T) {
@@ -941,8 +1160,8 @@ func TestSealedArchiveV8StrictCanonicalAndAuthentication(t *testing.T) {
 	historyPayload, _ := sealedArchiveCanonical(historyEnvelope.Payload)
 	objects := golden.ValidFullChain.Objects
 	concrete := []struct {
-		name string
-		raw []byte
+		name         string
+		raw          []byte
 		nestedMarker []byte
 	}{
 		{"frozen-sources", sealedArchiveGoldenBytes(t, objects.FrozenSources), []byte(`"evidence":{`)},
@@ -987,10 +1206,10 @@ func TestSealedArchiveV8StrictCanonicalAndAuthentication(t *testing.T) {
 	var candidatePayload archiveCandidatePayloadV1
 	var genesisPayload archiveGenesisPayloadV1
 	intentCoreRaw := sealedArchiveGoldenBytes(t, objects.IntentCore)
-	candidatePayloadRaw := sealedArchiveGoldenBytes(t, objects.CandidatePayloads[0])
+	candidateGoldenPayloadRaw := sealedArchiveGoldenBytes(t, objects.CandidatePayloads[0])
 	genesisPayloadRaw := sealedArchiveGoldenBytes(t, objects.GenesisPayload)
 	if sealedArchiveDecode(intentCoreRaw, false, sealedArchiveIntentMaxBytes, &intentCore) != nil ||
-		sealedArchiveDecode(candidatePayloadRaw, false, int(sealedArchiveObjectMaxBytes), &candidatePayload) != nil ||
+		sealedArchiveDecode(candidateGoldenPayloadRaw, false, int(sealedArchiveObjectMaxBytes), &candidatePayload) != nil ||
 		sealedArchiveDecode(genesisPayloadRaw, false, int(sealedArchiveObjectMaxBytes), &genesisPayload) != nil {
 		t.Fatal("sealed archive base64 lexical fixture decode failed")
 	}
@@ -1000,7 +1219,7 @@ func TestSealedArchiveV8StrictCanonicalAndAuthentication(t *testing.T) {
 		decoded []byte
 	}{
 		{"intent-core", intentCoreRaw, intentCore.Nonce},
-		{"candidate-payload", candidatePayloadRaw, candidatePayload.Candidate.Raw},
+		{"candidate-payload", candidateGoldenPayloadRaw, candidatePayload.Candidate.Raw},
 		{"genesis-payload", genesisPayloadRaw, genesisPayload.IdentityKey},
 	}
 	for _, fixture := range base64Fields {
@@ -1021,9 +1240,13 @@ func TestSealedArchiveV8LosslessUsesAuthoritativeStoreValidation(t *testing.T) {
 	}
 	mutations := []func(*storeSnapshot){
 		func(state *storeSnapshot) { state.Candidates[0].Raw[0] ^= 1 },
-		func(state *storeSnapshot) { state.Candidates[0].Nodes[0].Config = json.RawMessage(`{"name":"changed"}`) },
+		func(state *storeSnapshot) {
+			state.Candidates[0].Nodes[0].Config = json.RawMessage(`{"name":"changed"}`)
+		},
 		func(state *storeSnapshot) { state.Candidates[0].Nodes[0].PrivateName += "-changed" },
-		func(state *storeSnapshot) { state.Candidates[0].View.Nodes[0].ID = "node_00000000000000000000000000000000" },
+		func(state *storeSnapshot) {
+			state.Candidates[0].View.Nodes[0].ID = "node_00000000000000000000000000000000"
+		},
 		func(state *storeSnapshot) { state.Sources[0].LatestCandidateID = "" },
 		func(state *storeSnapshot) { state.IdentityKey[0] ^= 1 },
 		func(state *storeSnapshot) { state.Requests[1].Fingerprint = strings.Repeat("0", 64) },
@@ -1357,7 +1580,7 @@ func TestSealedArchiveV8AllControlStatesAndCheckpoint(t *testing.T) {
 				ID: "cmd_" + digest[:32], Scope: scope, ActorID: controlActor(state.IdentityKey, scope, owner),
 				Kind: kind, SourceID: sourceID, ExpectedRevision: 2,
 				Fingerprint: "hmac-sha256:" + sealedArchiveTestHex(label+"-fingerprint"),
-				PreparedAt: preparedAt, PreparedAuditHash: state.Audit[0].Hash,
+				PreparedAt:  preparedAt, PreparedAuditHash: state.Audit[0].Hash,
 				Result: result, Acknowledged: acknowledged,
 			},
 			OwnerID: owner, CoreKey: "ctl_" + digest[:60], KeyDigest: digest,
@@ -1464,7 +1687,7 @@ func TestSealedArchiveV8NearObjectLimitFitsAndBudgetExpansionFails(t *testing.T)
 				ID: "cmd_" + digest[:32], Scope: scope, ActorID: controlActor(state.IdentityKey, scope, owner),
 				Kind: "fetch", SourceID: sourceID, ExpectedRevision: state.Sources[0].Revision,
 				Fingerprint: "hmac-sha256:" + sealedArchiveTestHex(label+"-fingerprint"),
-				PreparedAt: preparedAt, PreparedAuditHash: state.Audit[len(state.Audit)-1].Hash,
+				PreparedAt:  preparedAt, PreparedAuditHash: state.Audit[len(state.Audit)-1].Hash,
 			},
 			OwnerID: owner, CoreKey: "ctl_" + digest[:60], KeyDigest: digest,
 		}

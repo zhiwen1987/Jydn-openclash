@@ -31,23 +31,23 @@ const (
 	sealedArchiveIntentKindV1    = "migration-intent/v1"
 	sealedArchiveReceiptKindV1   = "shadow-receipt/v1"
 
-	sealedArchivePolicyV8 = "chengwang.p207a-sealed-archive/v8-behavior-b-peak-temp-codec-set-full-golden"
-	sealedArchiveCodecV8  = "chengwang.subscription-store/v1-go-json@3444578ed42454fb460d6c3b45242c6717786782"
-	sealedArchiveCommitV8 = "3444578ed42454fb460d6c3b45242c6717786782"
-	sealedArchiveTreeV8   = "fb5bcebd073aeacb301f7025adcc56dbe79ce8ee"
+	sealedArchivePolicyV8   = "chengwang.p207a-sealed-archive/v8-behavior-b-peak-temp-codec-set-full-golden"
+	sealedArchiveCodecV8    = "chengwang.subscription-store/v1-go-json@3444578ed42454fb460d6c3b45242c6717786782"
+	sealedArchiveCommitV8   = "3444578ed42454fb460d6c3b45242c6717786782"
+	sealedArchiveTreeV8     = "fb5bcebd073aeacb301f7025adcc56dbe79ce8ee"
 	sealedArchiveCodecSetV8 = "20cdf1e7cb741ad5cf0a3f1502a4e144a1d058c388cb2e193b2ea64b1e2b91d7"
 
-	sealedArchiveMaxBytes       = uint64(64 << 20)
-	sealedArchiveObjectMaxBytes = uint64(16 << 20)
-	sealedArchiveCandidateMax   = uint32(64)
-	sealedArchiveFinalEntryMax  = uint32(69)
-	sealedArchivePeakEntryMax   = uint32(70)
-	sealedArchiveMetaMaxBytes   = 4096
-	sealedArchiveIntentMaxBytes = 262144
+	sealedArchiveMaxBytes        = uint64(64 << 20)
+	sealedArchiveObjectMaxBytes  = uint64(16 << 20)
+	sealedArchiveCandidateMax    = uint32(64)
+	sealedArchiveFinalEntryMax   = uint32(69)
+	sealedArchivePeakEntryMax    = uint32(70)
+	sealedArchiveMetaMaxBytes    = 4096
+	sealedArchiveIntentMaxBytes  = 262144
 	sealedArchiveReceiptMaxBytes = 262144
-	sealedArchiveTokenMax       = 1 << 20
-	sealedArchiveDepthMax       = 32
-	sealedArchiveStringMax      = 1398104
+	sealedArchiveTokenMax        = 1 << 20
+	sealedArchiveDepthMax        = 32
+	sealedArchiveStringMax       = 1398104
 )
 
 const (
@@ -182,9 +182,9 @@ type archiveRefreshPresentV1 struct {
 }
 
 type archiveRefreshSourceV1 struct {
-	State   string                    `json:"state"`
-	Absence *archiveRefreshAbsenceV1  `json:"absence,omitempty"`
-	Present *archiveRefreshPresentV1  `json:"present,omitempty"`
+	State   string                   `json:"state"`
+	Absence *archiveRefreshAbsenceV1 `json:"absence,omitempty"`
+	Present *archiveRefreshPresentV1 `json:"present,omitempty"`
 }
 
 type archiveFrozenSourcesV1 struct {
@@ -212,18 +212,18 @@ type archiveMetaV2 struct {
 }
 
 type archiveIntentCoreV1 struct {
-	Schema         string                    `json:"schema"`
-	ObservedAt     string                    `json:"observedAt"`
-	Nonce          []byte                    `json:"nonce"`
-	KeyID          string                    `json:"keyId"`
-	ArchiveRoot    archiveRootIdentityV1     `json:"archiveRoot"`
-	FrozenSources  archiveFrozenSourcesV1    `json:"frozenSources"`
-	SourceRevision archiveSourceRevisionV1   `json:"sourceRevision"`
-	CodecID        string                    `json:"codecId"`
-	PolicyID       string                    `json:"policyId"`
-	Budget         archiveBudgetV1           `json:"budget"`
-	OriginalV1     archiveByteIdentityV1     `json:"originalV1"`
-	CandidateCount uint32                    `json:"candidateCount"`
+	Schema         string                  `json:"schema"`
+	ObservedAt     string                  `json:"observedAt"`
+	Nonce          []byte                  `json:"nonce"`
+	KeyID          string                  `json:"keyId"`
+	ArchiveRoot    archiveRootIdentityV1   `json:"archiveRoot"`
+	FrozenSources  archiveFrozenSourcesV1  `json:"frozenSources"`
+	SourceRevision archiveSourceRevisionV1 `json:"sourceRevision"`
+	CodecID        string                  `json:"codecId"`
+	PolicyID       string                  `json:"policyId"`
+	Budget         archiveBudgetV1         `json:"budget"`
+	OriginalV1     archiveByteIdentityV1   `json:"originalV1"`
+	CandidateCount uint32                  `json:"candidateCount"`
 }
 
 type archiveIntentPayloadV1 struct {
@@ -261,24 +261,24 @@ type archiveCandidateLinkV1 struct {
 }
 
 type archiveGenesisPayloadV1 struct {
-	MigrationID    string                  `json:"migrationId"`
-	ArchiveEpoch   string                  `json:"archiveEpoch"`
-	KeyID          string                  `json:"keyId"`
-	IntentReference string                 `json:"intentReference"`
-	StoreSchema    string                  `json:"storeSchema"`
-	IdentityKey    []byte                  `json:"identityKey"`
-	Sources        []SourceView            `json:"sources"`
-	Candidates     []archiveCandidateLinkV1 `json:"candidates"`
-	Requests       []storeRequest          `json:"requests"`
-	Audit          []storeAudit            `json:"audit"`
-	Commands       []controlCommandDisk     `json:"commands"`
-	Approvals      []ControlApproval       `json:"approvals"`
-	OriginalV1     archiveByteIdentityV1    `json:"originalV1"`
-	FrozenSources  archiveFrozenSourcesV1   `json:"frozenSources"`
-	SourceRevision archiveSourceRevisionV1  `json:"sourceRevision"`
-	CodecID        string                   `json:"codecId"`
-	PolicyID       string                   `json:"policyId"`
-	Budget         archiveBudgetV1          `json:"budget"`
+	MigrationID     string                   `json:"migrationId"`
+	ArchiveEpoch    string                   `json:"archiveEpoch"`
+	KeyID           string                   `json:"keyId"`
+	IntentReference string                   `json:"intentReference"`
+	StoreSchema     string                   `json:"storeSchema"`
+	IdentityKey     []byte                   `json:"identityKey"`
+	Sources         []SourceView             `json:"sources"`
+	Candidates      []archiveCandidateLinkV1 `json:"candidates"`
+	Requests        []storeRequest           `json:"requests"`
+	Audit           []storeAudit             `json:"audit"`
+	Commands        []controlCommandDisk     `json:"commands"`
+	Approvals       []ControlApproval        `json:"approvals"`
+	OriginalV1      archiveByteIdentityV1    `json:"originalV1"`
+	FrozenSources   archiveFrozenSourcesV1   `json:"frozenSources"`
+	SourceRevision  archiveSourceRevisionV1  `json:"sourceRevision"`
+	CodecID         string                   `json:"codecId"`
+	PolicyID        string                   `json:"policyId"`
+	Budget          archiveBudgetV1          `json:"budget"`
 }
 
 type archiveGenesisEnvelopeV1 struct {
@@ -318,30 +318,30 @@ type archiveBlockerCountV1 struct {
 }
 
 type archiveLimitationsV1 struct {
-	HMACScope                    string `json:"hmacScope"`
+	HMACScope                     string `json:"hmacScope"`
 	WholeAnchorRollbackProtection string `json:"wholeAnchorRollbackProtection"`
-	OldBinaryConstraint          string `json:"oldBinaryConstraint"`
-	BackupProof                  bool   `json:"backupProof"`
-	SelectorAuthority            bool   `json:"selectorAuthority"`
-	CapacityReleased             bool   `json:"capacityReleased"`
+	OldBinaryConstraint           string `json:"oldBinaryConstraint"`
+	BackupProof                   bool   `json:"backupProof"`
+	SelectorAuthority             bool   `json:"selectorAuthority"`
+	CapacityReleased              bool   `json:"capacityReleased"`
 }
 
 type archiveReceiptPayloadV2 struct {
-	MigrationID        string                    `json:"migrationId"`
-	ArchiveEpoch       string                    `json:"archiveEpoch"`
-	KeyID              string                    `json:"keyId"`
-	IntentReference    string                    `json:"intentReference"`
-	GenesisReference   string                    `json:"genesisReference"`
-	FrozenSourcesSHA256 string                   `json:"frozenSourcesSha256"`
-	CandidateReferences []string                 `json:"candidateReferences"`
-	Counts             archiveReceiptCountsV1   `json:"counts"`
-	Bytes              archiveReceiptBytesV2    `json:"bytes"`
-	Budget             archiveBudgetV1          `json:"budget"`
-	Reconstruction     archiveReconstructionV1  `json:"reconstruction"`
-	Blockers           []archiveBlockerCountV1  `json:"blockers"`
-	Limitations        archiveLimitationsV1      `json:"limitations"`
-	ShadowOnly         bool                      `json:"shadowOnly"`
-	Activatable        bool                      `json:"activatable"`
+	MigrationID         string                  `json:"migrationId"`
+	ArchiveEpoch        string                  `json:"archiveEpoch"`
+	KeyID               string                  `json:"keyId"`
+	IntentReference     string                  `json:"intentReference"`
+	GenesisReference    string                  `json:"genesisReference"`
+	FrozenSourcesSHA256 string                  `json:"frozenSourcesSha256"`
+	CandidateReferences []string                `json:"candidateReferences"`
+	Counts              archiveReceiptCountsV1  `json:"counts"`
+	Bytes               archiveReceiptBytesV2   `json:"bytes"`
+	Budget              archiveBudgetV1         `json:"budget"`
+	Reconstruction      archiveReconstructionV1 `json:"reconstruction"`
+	Blockers            []archiveBlockerCountV1 `json:"blockers"`
+	Limitations         archiveLimitationsV1    `json:"limitations"`
+	ShadowOnly          bool                    `json:"shadowOnly"`
+	Activatable         bool                    `json:"activatable"`
 }
 
 type archiveReceiptEnvelopeV1 struct {
@@ -390,14 +390,14 @@ func sealedArchiveValidHex32(value string) bool { return sealedArchiveHex32Patte
 
 func sealedArchiveFrame(domain string, fields ...[]byte) ([]byte, error) {
 	limits := map[string]int{
-		"chengwang/archive/key-id/v1": 1,
-		"chengwang/archive/subkey/v1": 1,
-		"chengwang/archive/reference/v1": 3,
-		"chengwang/archive/seal/v1": 4,
-		"chengwang/archive/epoch/v1": 1,
-		"chengwang/archive/source-key-id/v1": 2,
+		"chengwang/archive/key-id/v1":           1,
+		"chengwang/archive/subkey/v1":           1,
+		"chengwang/archive/reference/v1":        3,
+		"chengwang/archive/seal/v1":             4,
+		"chengwang/archive/epoch/v1":            1,
+		"chengwang/archive/source-key-id/v1":    2,
 		"chengwang/archive/source-entry-set/v1": 1,
-		"chengwang/archive/absence-child/v1": 1,
+		"chengwang/archive/absence-child/v1":    1,
 	}
 	count, ok := limits[domain]
 	if !ok || len(fields) != count || len(fields)+1 > 5 {

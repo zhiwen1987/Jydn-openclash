@@ -1,0 +1,113 @@
+{
+  "schema": "chengwang.a0-repair-pins-v3-actual-independent-source-review/v1",
+  "verdict": "SOURCE_GATE_ACCEPT",
+  "input": {
+    "directory": "D:/CodexData/workspace/chengwang-a0-repair-pins-root-generated-20261103-v2",
+    "manifestSHA256": "2efdf4dafc53692dd7009fa37ad64d10213d7806fb04d73e47a7dc61e1bddc14",
+    "patchSHA256": "a927a609ef2498e7aeb71c3846a5c4777d2c1847c7af6209baa9225684e311c3",
+    "manifestStatus": "GENERATED_NOT_APPLIED_NOT_GO_ACCEPTED",
+    "baseHead": "9d9c112f6700c128162556410768396df3ded6a8",
+    "baseTree": "3a46c9f9fece848e3b496bf0381af8223d916ed2",
+    "sourceOverlayTree": "eded021bf53061c8e587927c24fa274b9b978099",
+    "proposedTree": "d4a841ecec14f2deadde12422951009995fbbb3c"
+  },
+  "treeAndArtifactChecks": {
+    "repairReceiptSHA256": "9133fe4537ad25ddf701bd09b9f5e28dbb8ffa49ee2950afdd75aa0ddf5ced79",
+    "fourGoAfterimagesMatchReceiptBytesSHA256LFAndGitBlob": true,
+    "independentPatchApplyPassed": true,
+    "independentProposedTreeMatchesManifest": true,
+    "diffCheckPassed": true,
+    "changedPathCountFromBase": 8,
+    "changedPathsExactlyFourGoPlusFourGate": true,
+    "generatedPathCount": 4,
+    "generatedAfterimagesMatchTreeModeBytesAndSHA256": true
+  },
+  "p207": {
+    "contractLeafDiffs": [
+      "moduleClosure.contentSHA256",
+      "changedGoSources.chengwang/internal/subscription/sealed_archive_a0.go",
+      "changedGoSources.chengwang/internal/subscription/sealed_archive_history.go",
+      "changedGoSources.chengwang/internal/subscription/sealed_archive_test.go",
+      "changedGoSources.chengwang/internal/subscription/sealed_archive_wire.go",
+      "changedGoSourcesSHA256"
+    ],
+    "workflowChangedPins": [
+      "CHANGED_GO_SHA256",
+      "CONTRACT_SHA256",
+      "MODULE_SHA256"
+    ],
+    "workflowChangedLinePairs": 3,
+    "fixtureContractObjectUnchanged": true,
+    "fixturePinUnchanged": true,
+    "fixtureSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11",
+    "independentFormalCheckerResult": {
+      "modulePathCount": 830,
+      "moduleContentSHA256": "c67ead139f20aa70952186c7f0bc9763729b859b1e410d215d94421aba3d6dde",
+      "fixturePathCount": 21,
+      "packageTestTopCount": 496,
+      "requiredRunTopCount": 491,
+      "changedGoSourceCount": 29,
+      "foundationCurrentCount": 689,
+      "goExecutionProven": false
+    },
+    "sourceModelCount": 63,
+    "sourceModelNamesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+    "failureDiagnosticTarget": "chengwang/internal/subscriptionctl",
+    "failureDiagnosticSourceCount": 7,
+    "allSevenDiagnosticPinsMatchRawSnapshot": true
+  },
+  "joint": {
+    "pathCount": 841,
+    "baseCommit": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "inventoryMetadataUnchanged": true,
+    "changedRows": [
+      "chengwang/internal/subscription/sealed_archive_a0.go",
+      "chengwang/internal/subscription/sealed_archive_history.go",
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "workflowChangedPins": ["CONTRACT_SHA256"],
+    "workflowChangedLinePairs": 1,
+    "independentSourceContractVerificationPassed": true
+  },
+  "scopePreservation": {
+    "unchangedCheckerAndModelFileCount": 10,
+    "allCheckerAndModelBytesEqualBaseHead": true,
+    "failureCheckerSHA256": "5ceb5a3a373b088be0af0347fcd821e970686ac0437fc1594c86207f486a84fe",
+    "failureModelSHA256": "a43afc9fec424e8d8601263c0dc4dc0b7293870cac71b1b2f2e3d908688512a3",
+    "sourceModelSHA256": "c0ae805e25e0b42da34723a993a60d5c3a411351ad7c1152ee7e6a037c3f0fa0",
+    "p207CheckerSHA256": "6bc314b72183c81ee0b459bf6325aa4d5d12c1daf5db5a0501a005025319c886",
+    "jointCheckerSHA256": "5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec",
+    "scopeRelaxationObserved": false
+  },
+  "rawMaterialization": {
+    "trackedPathCount": 858,
+    "mapSHA256": "b2b352d447213c6f60f29f59e812f0286d606bc61aa405868c60c3fba890ae21",
+    "allTrackedSnapshotBlobIdentitiesMatch": true,
+    "privateUntrackedInterpreterCacheCount": 4,
+    "privateUntrackedInterpreterCachesExcludedFromMapAndOutputs": true,
+    "privateUntrackedInterpreterCaches": [
+      "chengwang/deploy/joint-control-plane/__pycache__/check_joint_control_plane.cpython-312.pyc",
+      "chengwang/deploy/joint-control-plane/__pycache__/contract.cpython-312.pyc",
+      "chengwang/deploy/mihomo-lifecycle-lab/__pycache__/check_contracts.cpython-312.pyc",
+      "chengwang/deploy/subscription-refresh/__pycache__/check_source_contract.cpython-312.pyc"
+    ]
+  },
+  "acceptanceBoundary": {
+    "fourGateSourceArtifactsAccepted": true,
+    "fourGateAppliedByReview": false,
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "sourceModels63Executed": false,
+    "jointModels40Executed": false,
+    "goAccepted": false,
+    "runtimeAccepted": false,
+    "integrationPerformedByReview": false,
+    "actualModel": "UNKNOWN"
+  },
+  "independentProgram": {
+    "path": "D:/CodexData/workspace/chengwang-a0-repair-pins-v3-actual-independent-source-review-20261103-cd03-v1/independent_audit.py",
+    "sha256": "d2ca28b664aaef996d8cd3ba9ddb59b28c929dc45ef82acf2b29695d4dce2452",
+    "lastExitCode": 0
+  }
+}

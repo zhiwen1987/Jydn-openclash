@@ -1,0 +1,118 @@
+{
+  "schema": "chengwang.a0-static-source-diagnosis/v1",
+  "createdAt": "2026-11-02T23:49:24+08:00",
+  "actualModel": "UNKNOWN",
+  "verdict": "STATIC_COMPILE_BLOCKER_CONFIRMED_DYNAMIC_FIRST_DIAGNOSTIC_UNKNOWN",
+  "source": {
+    "repository": "D:/CodexData/workspace/chengwang-unified-root-20261102-r2m_22eh/r",
+    "head": "9d9c112f6700c128162556410768396df3ded6a8",
+    "tree": "3a46c9f9fece848e3b496bf0381af8223d916ed2",
+    "branch": "codex/chengwang-unified-20261102",
+    "worktreeCleanAtInspection": true
+  },
+  "run": {
+    "id": 41473420726,
+    "conclusion": "failure",
+    "boundedReport": {
+      "pass": 361,
+      "fail": 0,
+      "running": 0,
+      "notStarted": 130,
+      "notStartedPackage": "subscription",
+      "markerObservation": "NONE",
+      "buildDiagnosticStatus": "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
+      "buildDiagnosticReason": "NOT_ELIGIBLE",
+      "underlyingCompilerOrSetupCause": "UNKNOWN"
+    },
+    "format": {
+      "accepted": false,
+      "officialPatchBytes": 51411,
+      "officialPatchSHA256": "3748053a406f9953b8805bdd2005092ba59421b4871c8f79f12f6e88ca9e0942",
+      "affectedA0GoPaths": 4
+    },
+    "evidenceSource": "D:/CodexData/workspace/chengwang-p207-9d9-audit-41473420726-20261102-cd03-v1/FINAL-P207-AUDIT.json"
+  },
+  "confirmedStaticBlockers": [
+    {
+      "id": "A0-COMPILE-001",
+      "severity": "BLOCKER",
+      "path": "chengwang/internal/subscription/sealed_archive_test.go",
+      "function": "TestSealedArchiveV8StrictCanonicalAndAuthentication",
+      "firstDeclarationLine": 883,
+      "secondDeclarationLine": 990,
+      "facts": [
+        "line 883 declares candidatePayloadRaw in the function body with candidatePayloadRaw, _ := sealedArchiveCanonical(candidate.Payload)",
+        "line 990 remains in the same lexical block and contains candidatePayloadRaw := sealedArchiveGoldenBytes(t, objects.CandidatePayloads[0])",
+        "the line 990 short declaration has exactly one non-blank left-hand identifier and that identifier already exists in the same block",
+        "there is no intervening lexical block around line 990 that could make candidatePayloadRaw a new identifier"
+      ],
+      "languageConsequence": "The second short variable declaration introduces no new non-blank variable and is invalid Go source.",
+      "dynamicCausality": "SUFFICIENT_SOURCE_COMPILE_BLOCKER_BUT_EXACT_CI_FIRST_DIAGNOSTIC_UNOBSERVED",
+      "minimalSemanticRepair": {
+        "change": "Rename only the later golden-fixture byte variable, for example candidateGoldenPayloadRaw, and update its uses on current lines 993 and 1003.",
+        "preserves": [
+          "the earlier canonical candidate payload used to construct the deliberately wrong schema reference and seal",
+          "the later accepted golden candidate payload used by strict decoding and base64 lexical mutation assertions",
+          "all validators, permissions, assertions, test count, and budgets"
+        ]
+      }
+    }
+  ],
+  "privateApiCrossCheck": {
+    "result": "NO_DEFINITE_FIELD_OR_SIGNATURE_MISMATCH_FOUND_IN_CHECKED_SURFACE",
+    "checkedTypes": [
+      "storeNode",
+      "storeCandidate",
+      "storeRequest",
+      "storeAudit",
+      "storeSnapshot",
+      "SourceView",
+      "ControlResult",
+      "ControlCommand",
+      "controlCommandDisk",
+      "ControlApproval"
+    ],
+    "checkedFunctions": [
+      "storeEncode",
+      "storeDecode",
+      "storeValidate",
+      "storeAuditHash",
+      "controlActor",
+      "controlCommandSeal",
+      "controlApprovalSeal"
+    ],
+    "checkedConstants": [
+      "storeSchema",
+      "refreshCheckpointPrefix",
+      "MaxSources",
+      "MaxStoreBytes",
+      "MaxAuditEntries"
+    ],
+    "boundary": "This is negative static evidence only. It is not a compilation or runtime pass."
+  },
+  "interpretation": [
+    "The six other declared packages passing shows that unrelated package execution progressed; it does not prove that package subscription compiled.",
+    "All 130 subscription tops being notStarted is compatible with a package setup or compile failure, but the bounded report does not disclose the first diagnostic.",
+    "The nonempty official gofmt patch independently proves the exact HEAD is not formatting-clean; it does not disclose or replace the unknown compiler/setup diagnostic.",
+    "A0-COMPILE-001 is statically sufficient to prevent compilation until repaired, but it is not claimed to be the first line emitted by CI."
+  ],
+  "sourceIdentities": [
+    {"path": "chengwang/internal/subscription/sealed_archive_a0.go", "gitBlob": "22d82dea2b9b061bd7eac16ae1e8e9ea80e5b348", "workingBytesSHA256": "f702d4ed6fb8d9fe7a29accc9842169154793faf2c5eefbc3e235ee2df2daefb"},
+    {"path": "chengwang/internal/subscription/sealed_archive_history.go", "gitBlob": "93affacec0f7d53e4ec5fe721c264307b9b2d62c", "workingBytesSHA256": "198ff3ee66429396ca1088b4dea1585b13be4e6d83d9983d2d857b1dc0bb18a9"},
+    {"path": "chengwang/internal/subscription/sealed_archive_test.go", "gitBlob": "948c831dc87df2b2ef9f08d1f07ae74e2db4cd22", "workingBytesSHA256": "94b3a9d71ac6e31a4fc142ef268eca9d6e935afee51f51a8116ed57d82223e19"},
+    {"path": "chengwang/internal/subscription/sealed_archive_wire.go", "gitBlob": "1ed3621f26187d8ef1b2ec60f3fc872780389aff", "workingBytesSHA256": "44d98b3306de31bc3b64fc6ccc4f1c996b919a4c1dabc6e47ac6eb9d7165450f"},
+    {"path": "chengwang/internal/subscription/store.go", "gitBlob": "0e2b533e36b51dc9f604b2347295c05f6fb0c45c", "workingBytesSHA256": "54988b394d4290f546da3140b8ca2efbfd783068a3d01fd5faeb50a70fe844da"},
+    {"path": "chengwang/internal/subscription/control.go", "gitBlob": "6300c34add9379b30e7be23e6700e7cf1490acc7", "workingBytesSHA256": "d575b574385c51daa5d4796112cb4ebd6e4d7e5f7807ec5533064efe38955f33"},
+    {"path": "chengwang/internal/subscription/model.go", "gitBlob": "bc37970d79ac06dfd1ff90f15f2aca8272052787", "workingBytesSHA256": "1c92c106103f3ff041a4ab34b974e18801dc626a5de3fed31940087607e939d6"}
+  ],
+  "notPerformed": [
+    "local Go execution",
+    "local gofmt execution",
+    "job-log reading",
+    "raw stderr reading",
+    "signed URL access",
+    "source modification",
+    "formal or JYCW modification",
+    "production access"
+  ]
+}
