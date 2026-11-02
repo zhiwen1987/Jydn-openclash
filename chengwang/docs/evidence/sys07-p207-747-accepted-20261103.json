@@ -1,0 +1,133 @@
+{
+  "schema": "chengwang.p207-independent-audit/v1",
+  "verdict": "P207_ACCEPT",
+  "actualModel": "UNKNOWN",
+  "run": {
+    "id": 41484652813,
+    "attempt": 1,
+    "event": "push",
+    "branch": "codex/chengwang-unified-20261102",
+    "headSHA": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "headTree": "4adb8ec4dcf70a1a399f5a071b29624481b7682c",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {"id": 125411646310, "name": "source-models", "status": "completed", "conclusion": "success"},
+      {"id": 125411841856, "name": "source-and-go", "status": "completed", "conclusion": "success"},
+      {"id": 125412344936, "name": "fresh", "status": "completed", "conclusion": "success"}
+    ]
+  },
+  "publicArtifacts": [
+    {
+      "id": 13161291155,
+      "name": "p207a-source-models-41484652813-1",
+      "apiBytes": 1699,
+      "apiAndLocalZipSHA256": "6c9c7aa6eb1bc8005411aec4c9c221997c9526cc387bfc03692ff7446b66f7ee",
+      "memberCount": 1,
+      "membersExact": true,
+      "zipCRCValid": true,
+      "custodySHA256": "7071bdf420af81cfc68a5ed63430aaceed4bf7fb8011986703add2614b1edfe3"
+    },
+    {
+      "id": 13161226409,
+      "name": "p207a-source-go-41484652813-1",
+      "apiBytes": 10429,
+      "apiAndLocalZipSHA256": "700a249d9077918c0cea2449a83533303070bced85ae389a965b2931464e23f8",
+      "memberCount": 9,
+      "membersExact": true,
+      "zipCRCValid": true,
+      "custodySHA256": "6ba3e7af22d05783827a37fd865938e339726587c1d4c0bed807908467db843c"
+    }
+  ],
+  "fixedCustody": {
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "serialDownloads": true,
+    "metadataHeadAndAttemptBound": true,
+    "apiSizeDigestAndLocalReadbackMatched": true,
+    "zipPathCRCSizeDigestAndMemberSetVerified": true
+  },
+  "sourceModels": {
+    "accepted": true,
+    "count": 63,
+    "skipped": 0,
+    "namesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+    "logSHA256": "66ed8a9c296fcdff0fd66a64026c751b8fad45613d613e2bb1ebb5108ef4a9e0",
+    "exactHeadASTAndLogVerifierAccepted": true,
+    "goExecutionProvenByThisArtifact": false
+  },
+  "sourceClosure": {
+    "accepted": true,
+    "contractSHA256": "7504adeb98384bb77ea9059a27ba6d9b03f2bed8d5e855919415940ab97cfb62",
+    "sourceBeforeSHA256": "4ae5f0017d4572b2d933cfaeef7e537bb2e32fcc67ab9d4abb8949a4a4471890",
+    "sourceAfterSHA256": "4ae5f0017d4572b2d933cfaeef7e537bb2e32fcc67ab9d4abb8949a4a4471890",
+    "sourceBeforeAfterByteIdentical": true,
+    "independentExactHeadRecomputeObjectIdentical": true,
+    "modulePathCount": 830,
+    "fixturePathCount": 21,
+    "packageTestTopCount": 496,
+    "requiredRunTopCount": 491,
+    "changedGoSourceCount": 29,
+    "foundationCurrentCount": 689,
+    "goExecutionProven": false
+  },
+  "format": {
+    "accepted": true,
+    "formatExit": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0,
+    "emptySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "goList": {
+    "accepted": true,
+    "schema": "chengwang.subscription-refresh-go-list/v1",
+    "scope": "OFFICIAL_GO_LIST_FILE_SELECTION_NOT_TEST_EXECUTION",
+    "reportSHA256": "0e2b4dfeeb76bec27d16a2225117f3e2c1e4982e76eac9585a9eb48c66ebcd48",
+    "independentExactHeadReportReaderAccepted": true,
+    "packageCount": 7,
+    "goos": "linux",
+    "goarch": "amd64",
+    "compiler": "gc",
+    "goVersion": "go1.23.12",
+    "cgoEnabled": false
+  },
+  "goEvents": {
+    "accepted": true,
+    "schema": "chengwang.subscription-refresh-go-events/v1",
+    "reportSHA256": "f2418fd4dc601a8a23e2f028bcdb16e22e5ba8b7171bf57f3b8930b846bcb74b",
+    "independentExactHeadReportReaderAccepted": true,
+    "packageCount": 7,
+    "topLevelPassCount": 491,
+    "skipCount": 0,
+    "packageFailureCount": 0,
+    "goExit": 0,
+    "eventCheckExit": 0
+  },
+  "fresh": {
+    "accepted": true,
+    "jobId": 125412344936,
+    "status": "completed",
+    "conclusion": "success",
+    "workflowSHA256": "819a58215a7272af5b68e0ca1cd73c56c5e28de44e71c2997095b0b6890dc06c",
+    "sameRunAttemptArtifactNameBound": true,
+    "workflowRecomputesSourceAndReadsBothPublicReports": true,
+    "separateFreshArtifactExpected": false
+  },
+  "historyBoundary": {
+    "preservedPriorRun": 41479327943,
+    "preservedPriorHead": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+    "preservedPriorResult": {"pass": 489, "fail": 2},
+    "priorFailureSupersededOrErased": false,
+    "currentAcceptanceAppliesOnlyToExact747Run41484652813Attempt1": true
+  },
+  "scope": {
+    "jobLogsRead": false,
+    "rawPrivateGoStreamsRead": false,
+    "sessionsRead": false,
+    "signedURLPersistedOrPrinted": false,
+    "localGoOrGofmtRun": false,
+    "rerunRequested": false,
+    "formalRepositoryModified": false,
+    "productionTouched": false
+  }
+}

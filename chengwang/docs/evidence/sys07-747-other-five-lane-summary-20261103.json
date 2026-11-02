@@ -1,0 +1,56 @@
+{
+  "conclusion": "All five runs bind exact 747. Overview and native-first have successful metadata but unreviewed originals; native-recovery has limited fresh JSON proof with explicit exclusions; capacity and foundation are rejected by mandatory failed jobs.",
+  "goExecutedLocally": false,
+  "jobLogsRead": false,
+  "overallVerdict": "NO_CROSS_LANE_ACCEPTANCE_CAPACITY_AND_FOUNDATION_REJECTED",
+  "productionAccepted": false,
+  "runs": [
+    {
+      "artifactCount": 8,
+      "downloadedFreshJsonCount": 0,
+      "jobCount": 10,
+      "lane": "overview",
+      "runConclusion": "success",
+      "runId": 41484652685,
+      "verdict": "METADATA_SUCCESS_ORIGINALS_AND_VISUAL_AUDIT_NOT_REVIEWED"
+    },
+    {
+      "artifactCount": 9,
+      "downloadedFreshJsonCount": 0,
+      "jobCount": 11,
+      "lane": "native_first",
+      "runConclusion": "success",
+      "runId": 41484652694,
+      "verdict": "METADATA_SUCCESS_ORIGINALS_NOT_REVIEWED"
+    },
+    {
+      "artifactCount": 9,
+      "downloadedFreshJsonCount": 4,
+      "jobCount": 10,
+      "lane": "native_recovery",
+      "runConclusion": "success",
+      "runId": 41484652941,
+      "verdict": "LIMITED_SOURCE_BOUND_FRESH_JSON_PASS_ORIGINALS_NOT_REVIEWED"
+    },
+    {
+      "artifactCount": 4,
+      "downloadedFreshJsonCount": 2,
+      "jobCount": 6,
+      "lane": "capacity",
+      "runConclusion": "failure",
+      "runId": 41484652908,
+      "verdict": "REJECTED_FULL_CONTRACTS_FAILED"
+    },
+    {
+      "artifactCount": 11,
+      "downloadedFreshJsonCount": 0,
+      "jobCount": 13,
+      "lane": "foundation",
+      "runConclusion": "failure",
+      "runId": 41484652792,
+      "verdict": "REJECTED_CONTRACTS_AND_FRESH_RECOMPUTE_FAILED"
+    }
+  ],
+  "schema": "chengwang.exact-747-five-lane-audit-summary/v1",
+  "sourceCommit": "74730eb025189647e9deb2c4df72eec62bb54899"
+}

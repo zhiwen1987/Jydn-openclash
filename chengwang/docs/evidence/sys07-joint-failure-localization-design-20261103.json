@@ -1,0 +1,216 @@
+{
+  "schema": "chengwang.joint-control-plane-failure-localization-design/v1",
+  "status": "DESIGN_READY_FOR_INDEPENDENT_REVIEW_NOT_IMPLEMENTED",
+  "base": {
+    "headSHA": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "runId": 41484652782,
+    "runAttempt": 1,
+    "failedStep": "Real B0 J1 R2 same-binary scene",
+    "failureArtifactSHA256": "9069955ab4989beef4021a602fae0068319f5c1e27f9ffae24c782d7a16f963f",
+    "failureArtifactBytes": 530
+  },
+  "currentEvidence": {
+    "safeFailureHasPhase": false,
+    "safeFailureHasExceptionType": false,
+    "safeFailureHasFailureReasonCode": false,
+    "safeFailureHasCaptureName": false,
+    "currentFailurePhase": "UNKNOWN",
+    "provenLowerBound": "ci_namespace.sh reached its installed EXIT trap and produced private-failure-identity.json",
+    "provenNotCurrentFailure": ["NAMESPACE_SETUP_BEFORE_TRAP_INSTALL"],
+    "remainingCandidates": [
+      "ISOLATION_CHECK",
+      "RUNNER_PREPARE",
+      "FIXTURE_START",
+      "B0",
+      "J1",
+      "R2",
+      "RUNNER_FINALIZE",
+      "PRIVATE_SANITIZER"
+    ],
+    "countsOrHashesLocatePhase": false,
+    "timingLocatesPhase": false
+  },
+  "decision": {
+    "phaseMarkers": "RECOMMENDED",
+    "closedFailureReasonCode": "RECOMMENDED",
+    "closedExceptionCategory": "RECOMMENDED",
+    "closedStaticCaptureName": "RECOMMENDED",
+    "rawExceptionClassName": "REJECTED",
+    "exceptionMessagePathBodyTokenOrResponsePublication": "REJECTED",
+    "successGateChange": "REJECTED"
+  },
+  "phaseContract": {
+    "failurePhaseEnum": [
+      "NAMESPACE_SETUP",
+      "ISOLATION_CHECK",
+      "RUNNER_PREPARE",
+      "FIXTURE_START",
+      "B0",
+      "J1",
+      "R2",
+      "RUNNER_FINALIZE",
+      "PRIVATE_SANITIZER",
+      "UNKNOWN"
+    ],
+    "lastCompletedPhaseAdditionalValue": "NONE",
+    "note": "The requested boundaries contain eight distinct operational phases; RUNNER_FINALIZE is additionally necessary because run() performs fixture stop, file publication, and residue checks after readback returns. If FINALIZE is not added, post-R2 failures must be UNKNOWN rather than mislabeled R2.",
+    "markerProperties": [
+      "private only",
+      "exclusive fixed-name records rather than in-place overwrite",
+      "canonical JSON with exact keys",
+      "sourceCommit bound to the expected 40-hex HEAD",
+      "regular single-link file with no symlink following",
+      "fsync and stable readback",
+      "monotonic entered/completed prefix",
+      "bounded record count and bytes"
+    ]
+  },
+  "exceptionTypeEnum": [
+    "HARNESS_FAILURE",
+    "COMMAND_NONZERO",
+    "PERMISSION_ERROR",
+    "FILE_NOT_FOUND",
+    "FILE_EXISTS",
+    "TIMEOUT",
+    "SUBPROCESS_ERROR",
+    "JSON_ERROR",
+    "TLS_ERROR",
+    "OS_ERROR",
+    "VALUE_ERROR",
+    "TYPE_ERROR",
+    "KEY_ERROR",
+    "UNKNOWN"
+  ],
+  "failureReasonCodeEnum": [
+    "COMMIT",
+    "DUPLICATE-AUTH",
+    "ENVELOPE",
+    "EVIDENCE",
+    "FIXTURE",
+    "FIXTURE-STOP",
+    "HTTP",
+    "LISTENER",
+    "OVERVIEW",
+    "PLAINTEXT",
+    "PLATFORM",
+    "PROFILE",
+    "READ",
+    "RESIDUE",
+    "ROOT",
+    "SIDECAR",
+    "SLO",
+    "SOURCE",
+    "STABLE",
+    "START",
+    "STOP",
+    "TLS",
+    "WIRE",
+    "WORKER-DELTA",
+    "WORKER-RECEIPT",
+    "WRONG-CA",
+    "UNKNOWN"
+  ],
+  "captureContract": {
+    "safeToPublish": true,
+    "reason": "The 40 capture names are static scenario labels already enforced by the success checker; they contain no generated IDs, paths, request bodies, response bodies, tokens, or exception text.",
+    "sourceOfTruth": "Move the expected-name construction from check_joint_control_plane.py lines 140-142 into contract.py and consume the same immutable set from runner, checker, sanitizer, and tests.",
+    "captureNameCount": 40,
+    "additionalValues": ["NONE", "UNKNOWN"],
+    "publicFields": ["failedCaptureName", "lastCompletedCaptureName"],
+    "rules": [
+      "set failedCaptureName only while a static named call is active",
+      "clear the active name only after status, bounded body, TLS peer, decoding, wire fence, and safe envelope checks complete",
+      "do not infer a capture name from the last written private capture row",
+      "non-HTTP failures use NONE",
+      "invalid or unrecognized names publish UNKNOWN"
+    ]
+  },
+  "publicFailureCard": {
+    "schema": "chengwang.joint-control-plane-safe-failure/v3",
+    "preserveExistingFailureFields": true,
+    "newExactObject": {
+      "name": "failureClassification",
+      "keys": [
+        "failurePhase",
+        "lastCompletedPhase",
+        "exceptionType",
+        "failureReasonCode",
+        "failedCaptureName",
+        "lastCompletedCaptureName"
+      ]
+    },
+    "maximumBytes": 4096,
+    "freeFormStringsAllowed": false,
+    "missingInvalidOrSourceMismatchedMarker": {
+      "failurePhase": "UNKNOWN",
+      "lastCompletedPhase": "NONE",
+      "exceptionType": "UNKNOWN",
+      "failureReasonCode": "UNKNOWN",
+      "failedCaptureName": "UNKNOWN",
+      "lastCompletedCaptureName": "UNKNOWN"
+    },
+    "failureStillFails": true,
+    "runtimeAcceptanceProven": false
+  },
+  "implementationRouting": [
+    {
+      "owner": ".github/workflows/chengwang-joint-control-plane.yml",
+      "purpose": "write the source-bound NAMESPACE_SETUP entry before sudo/unshare and preserve nonzero/timeout status; otherwise pre-entry unshare failure cannot be distinguished from missing markers"
+    },
+    {
+      "owner": "ci_namespace.sh",
+      "purpose": "complete namespace setup, bracket isolation and private sanitizer, preserve the original nonzero exit, and invoke the failure sanitizer without publishing logs"
+    },
+    {
+      "owner": "ci_joint_control_plane.py",
+      "purpose": "classify isolation exceptions through the allowlist and never emit exception text"
+    },
+    {
+      "owner": "run_joint_control_plane.py",
+      "purpose": "advance prepare/fixture/B0/J1/R2/finalize markers, store closed Failure.code, and track only static active/last-completed capture names"
+    },
+    {
+      "owner": "sanitize_publication.py",
+      "purpose": "stable-read and validate the private chain, map invalid evidence to UNKNOWN, and emit only exact bounded enum fields"
+    },
+    {
+      "owner": "contract.py and check_joint_control_plane.py",
+      "purpose": "provide one source of truth for phase, reason, exception, and capture enums without weakening the existing success evidence checker"
+    },
+    {
+      "owner": "tests, source_contract.json, and workflow pins",
+      "purpose": "close the changed-source inventory and verify both success and failure publication contracts"
+    }
+  ],
+  "permissionAssessment": {
+    "deterministicPermissionFailureProven": false,
+    "evidence": [
+      "workflow gives staging recursively to UID/GID 10001 before the scene",
+      "ci_namespace mounts the private tmpfs as UID/GID 10001 and creates lab/log directories and files for 10001",
+      "run_user deliberately executes as UID/GID 10001 with no capabilities",
+      "source and bin mounts are read-only while evidence is read-write",
+      "alias mountpoints are traversable"
+    ],
+    "openRisk": "The exact failing syscall or assertion is unavailable; ROOT/EVIDENCE permission or content failures remain possible but are not proven by counts, hashes, or source inspection."
+  },
+  "requiredAcceptance": [
+    "Every phase entry/completion and every Failure reason is checked against one shared closed enum; AST/source tests reject dynamic labels.",
+    "The static capture set is exactly the 40 names enforced by the current success checker; runner and checker cannot drift.",
+    "Unknown enum, extra key, duplicate marker, skipped/out-of-order phase, source-commit mismatch, symlink, hardlink, truncation, oversize, and invalid UTF-8 all produce bounded UNKNOWN or rejection without copying raw bytes.",
+    "Injected exception messages containing token, path, URL, Authorization, request body, and response body sentinels never appear in the public card or stdout.",
+    "Ordered builtin exception mapping is tested; unrecognized subclasses map to UNKNOWN and raw type(e).__name__ is never serialized.",
+    "Synthetic failures at namespace, isolation, prepare, fixture start, B0, J1, R2, finalize, and private sanitizer produce the exact phase/last-completed pair while retaining a nonzero result.",
+    "Synthetic failures inside representative B0/J1/R2 calls publish only an allowlisted failedCaptureName and a closed reason code; failures outside call() publish NONE.",
+    "Existing safe failure counts and aggregate hashes remain present and private evidence remains unpublished.",
+    "The full success checker, publication scanner, CPU model suite, Go suite, exact source contract, and workflow pins remain passing; no failure card can set runtimeAcceptanceProven or turn a failed scene green.",
+    "A new real CI run must be audited from the bounded public artifact. If it still fails, the reported enums are evidence; if it passes, that pass does not retroactively diagnose run 41484652782."
+  ],
+  "limitations": {
+    "implementationPerformed": false,
+    "goOrServiceRun": false,
+    "linuxNamespaceExperiment": false,
+    "jobLogsOrRawPrivateEvidenceRead": false,
+    "currentUnderlyingCause": "UNKNOWN",
+    "actualSKU": "UNKNOWN"
+  }
+}

@@ -70,11 +70,40 @@ class SanitizerContracts(unittest.TestCase):
     def test_failure_projection_never_copies_private_bytes(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);inp=root/"in";inp.mkdir();put(inp/"raw",b"PRIVATE SECRET MATERIAL");out=root/"public/failure.json";S.failure(inp,out,"SCENE_FAILED");value=S.decode(out)
-            self.assertEqual(value["retainedPrivateFileCount"],1);self.assertNotIn("SECRET",out.read_text())
+            self.assertEqual(value["retainedPrivateFileCount"],1);self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertEqual(value["schema"],"chengwang.joint-control-plane-safe-failure/v3");self.assertNotIn("SECRET",out.read_text())
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);private=root/"private";staging=root/"staging";private.mkdir();staging.mkdir();put(private/"server.stderr",b"PRIVATE SERVER DIAGNOSTIC")
             S.failure(private,staging/"private-failure-identity.json","PRIVATE_SCENE_FAILED");S.failure(staging,root/"public/failure.json","SCENE_FAILED");value=S.decode(root/"public/failure.json")
             self.assertEqual(value["privateDiagnostics"]["retainedPrivateFileCount"],1);self.assertNotIn("DIAGNOSTIC",(root/"public/failure.json").read_text())
+    def test_scene_failure_publishes_only_closed_phase_reason_and_capture(self):
+        commit="a"*40
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d);private=root/"private";private.mkdir();put(private/"runner.stderr",b"Bearer TOKEN https://private.invalid /private/path request-body response-body")
+            progress=root/"progress";progress.mkdir()
+            for phase in ("NAMESPACE_SETUP","ISOLATION_CHECK","RUNNER_PREPARE","FIXTURE_START"):
+                S.C.record_progress(progress,commit,phase,"ENTERED");S.C.record_progress(progress,commit,phase,"COMPLETED")
+            S.C.record_progress(progress,commit,"B0","ENTERED")
+            error=PermissionError("Bearer TOKEN https://private.invalid /private/path request-body response-body")
+            S.C.record_failure_detail(progress,commit,error,"success-fetch-r1","success-approve-r1")
+            out=root/"public/failure.json";S.failure(private,out,"SCENE_FAILED",progress,commit);raw=out.read_bytes();value=S.decode(out)
+            self.assertLessEqual(len(raw),4096);self.assertEqual(set(value["failureClassification"]),S.C.FAILURE_CLASSIFICATION_KEYS)
+            self.assertEqual(value["failureClassification"],{"failurePhase":"B0","lastCompletedPhase":"FIXTURE_START","exceptionType":"PERMISSION_ERROR","failureReasonCode":"UNKNOWN","failedCaptureName":"success-fetch-r1","lastCompletedCaptureName":"success-approve-r1"})
+            for secret in (b"Bearer",b"TOKEN",b"private.invalid",b"/private/path",b"request-body",b"response-body"):self.assertNotIn(secret,raw)
+            self.assertFalse(value["privateEvidencePublished"]);self.assertEqual(value["status"],"FAIL")
+    def test_nested_scene_classification_is_independently_equal_or_rejected(self):
+        commit="b"*40
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d);private=root/"private";staging=root/"staging";progress=staging/"failure-localization.private";private.mkdir();staging.mkdir();progress.mkdir();put(private/"runner.stderr",b"PRIVATE")
+            S.C.record_progress(progress,commit,"NAMESPACE_SETUP","ENTERED");S.C.record_progress(progress,commit,"NAMESPACE_SETUP","COMPLETED");S.C.record_progress(progress,commit,"ISOLATION_CHECK","ENTERED")
+            nested=staging/"private-failure-identity.json";S.failure(private,nested,"PRIVATE_SCENE_FAILED",progress,commit);value=S.decode(nested);value["failureClassification"]["failurePhase"]="R2";nested.write_bytes(S.canonical(value))
+            with self.assertRaises(ValueError):S.failure(staging,root/"public/failure.json","SCENE_FAILED",progress,commit)
+            self.assertFalse((root/"public/failure.json").exists())
+    def test_invalid_or_missing_progress_never_guesses_from_private_counts(self):
+        commit="c"*40
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d);private=root/"private";progress=root/"progress";private.mkdir();progress.mkdir();put(private/"many-private-files",b"X"*7000);put(progress/"unexpected-private-marker",b"Bearer SECRET")
+            out=root/"public/failure.json";S.failure(private,out,"SCENE_FAILED",progress,commit);value=S.decode(out)
+            self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertNotIn("SECRET",out.read_text());self.assertEqual(value["status"],"FAIL")
     def test_cpu_detailed_failure_is_exactly_one_safe_public_file(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);private=root/"private";stage=root/"stage";private.mkdir();stage.mkdir();secret=b"PRIVATE CPU SECRET MATERIAL";put(private/"go.log",secret)

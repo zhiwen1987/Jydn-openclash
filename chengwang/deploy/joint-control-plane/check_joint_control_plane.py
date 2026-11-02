@@ -137,9 +137,7 @@ def check(directory,repo,contract_path,source_commit):
         result=envelope(r)
         if r["commandIdHeader"] is not None:need(type(result)is dict and result.get("commandId")==r["commandIdHeader"],"command-header")
         if r["name"].endswith("-refresh-poll") and r["status"]==200:C.refresh_keys(result)
-    expected_names={"anonymous-list","foreign-list","overview-anonymous","mihomo-status-anonymous","mihomo-runtime-viewer","mihomo-runtime-anonymous-denied","mihomo-runtime-foreign-denied","r2-sources"}
-    for case in C.SOURCE_HOSTS:expected_names|={case+x for x in ("-viewer-create-neg","-create","-operator-approve-neg","-approve-r1","-fetch-r1","-admit-r2","-approve-r3","-baseline-source","-baseline-candidates","-approval-receipt","-refresh-poll","-worker-receipt-auditor","-worker-receipt-viewer-denied","-worker-receipt-operator-denied","-r2-worker-receipt","-r2-candidates")}
-    need(set(named)==expected_names and all(len(v)==1 or k.endswith("-refresh-poll") for k,v in named.items()),"capture-plan")
+    need(set(named)==C.CAPTURE_NAMES and all(len(v)==1 or k.endswith("-refresh-poll") for k,v in named.items()),"capture-plan")
     global_plan={
         "anonymous-list":("B0","anonymous","/api/v1/subscriptions/sources",401),"foreign-list":("B0","foreign","/api/v1/subscriptions/sources",403),
         "overview-anonymous":("J1","anonymous","/api/v1/overview",200),"mihomo-status-anonymous":("J1","anonymous","/api/v1/kernels/mihomo/status",200),

@@ -1,5 +1,13 @@
 # 澄网：项目任务清单
 
+2026-11-03 新HEAD验收更新：74730eb025189647e9deb2c4df72eec62bb54899 的 P207 run41484652813 attempt1 已获[原件独立接受](evidence/sys07-p207-747-accepted-20261103.json)：63来源模型、830/21/496/491/29来源闭包、format exit0且patch/stderr为空、official go-list、491 Go pass/0skip/0包失败/exit0、同run/attempt fresh复验均通过。旧c648的489/2拒绝记录保留；不能复用该接受到后续改动HEAD。
+
+同HEAD joint run41484652782 的[原件审计](evidence/sys07-joint-747-scene-failed-20261103.json)确认CPU摘要47 Python/Go PASS，真实场景仍SCENE_FAILED，独立public checker/replay跳过，原件不含phase/epoch，因此具体B0/J1/R2内部到达点UNKNOWN。[安全阶段诊断](SYS07-JOINT-FAILURE-LOCALIZATION-20261103.md)rev2已独审并集成，root来源检查及63/58模型通过，待新HEAD隔离CI定位，不猜权限或HTTP根因。
+
+31链run41484652894现已[原件验收接受](evidence/sys07-original31-747-accepted-20261103.json)：exact747，31响应、两恢复、六个关闭端口、producer/independent/fresh与本地checker一致。不证明完整private WAL独立取证、full payload、互联网业务或生产。Go和31链通过仍不等于联合业务、A1文件系统、企业完整功能或生产验收完成。生产环境未改。
+
+其他lane仍分别受限：overview与native-first只有metadata成功、原件未审；native-recovery仅fresh JSON有限接受；capacity与foundation拒绝。容量609/1/79来自180秒timeout后的最终事件，120秒仅停止profile。详见[限定诊断](evidence/sys07-747-capacity-foundation-diagnosis-20261103.json)，不能把已有组件接受推广为全回归通过。
+
 2026-11-03 最新状态（优先于下方历史截点）：开发远端 c6487268 的 P207 run41479327943 为489通过/2失败/0未启动，格式通过、fresh跳过；joint run41479327908 在CPU/Go步骤失败，实际B0/J1/R2业务场景未运行。两个Go失败已经静态定位并准备修复，详见[修复与边界记录](SYS07-SEALED-ARCHIVE-FAILURES-20261103.md)，不能声称已通过新的Go验收。
 
 本地 e2829f8b 包含[摘要发布修复](SYS07-CPU-PUBLICATION-REPAIR-20261103.md)，47项场景模型与来源检查通过。其上的两Go修复已合并冻结并获独立源码接受；四个来源校验文件已实际生成、独立正式checker重放通过并集成。root集成后正式来源检查与63/47模型通过，仍要求491项Go测试。必须提交并重跑新HEAD隔离Linux CI才可判断两项实际失败是否修复；当前不复用旧HEAD的通过或拒绝作为新结果。生产/main/Registry均未变动。

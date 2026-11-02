@@ -12,8 +12,8 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 581e625c9bbbb6885052b10a171a55eccabd1051259b7899e763c6777ac742e3
-  CHECKER_SHA256: 5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec
+  CONTRACT_SHA256: 2657e8c84db6dd7e1eeddc2f53447390ed9f9c96969114b68506e0a1acede191
+  CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
 jobs:
   joint-control-plane:
     runs-on: ubuntu-24.04
@@ -100,7 +100,9 @@ jobs:
       - name: Real B0 J1 R2 same-binary scene
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/joint-control-plane"; outer_net="$(readlink /proc/self/ns/net)"
+          root="$RUNNER_TEMP/joint-control-plane"; outer_net="$(readlink /proc/self/ns/net)"; progress="$root/evidence/staging/failure-localization.private"
+          test ! -e "$progress"; test ! -L "$progress"; sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 "$progress"
+          sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -I -B "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py" progress --progress-root "$progress" --source-commit "$GITHUB_SHA" --phase NAMESPACE_SETUP --state ENTERED
           timeout --signal=TERM --kill-after=15s 600s sudo --non-interactive unshare --mount --net --pid --fork --kill-child=SIGKILL --mount-proc /usr/bin/bash "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_namespace.sh" "$GITHUB_WORKSPACE" "$root" "$outer_net" product "$GITHUB_SHA"
       - name: Reacquire source after every attempt
         if: always()
@@ -120,7 +122,7 @@ jobs:
         if: failure()
         run: |
           root="$RUNNER_TEMP/joint-control-plane"
-          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$root/evidence/staging" --code SCENE_FAILED --output "$root/evidence/public/failure.json"
+          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$root/evidence/staging" --progress-root "$root/evidence/staging/failure-localization.private" --source-commit "$GITHUB_SHA" --code SCENE_FAILED --output "$root/evidence/public/failure.json"
           sudo --non-interactive chown -R --no-dereference "$(id -u):$(id -g)" "$root/evidence/public"
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

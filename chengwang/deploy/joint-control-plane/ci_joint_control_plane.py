@@ -44,7 +44,17 @@ def units():
     for name in ("test_joint_fixture","test_run_joint_control_plane","test_check_joint_control_plane","test_sanitize_publication"):suite.addTests(unittest.defaultTestLoader.loadTestsFromName(name))
     result=unittest.TextTestRunner(verbosity=2).run(suite);need(result.wasSuccessful() and not result.skipped);return {"schema":"chengwang.joint-control-plane-units/v2","testsRun":result.testsRun,"failures":0,"syntheticOnly":True,"productAcceptanceProven":False}
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units"));p.add_argument("--output",required=True);p.add_argument("--repo",default=".");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");a=p.parse_args();value={"source":lambda:source(a.repo,a.source_commit),"contract":lambda:source_contract(a.repo,a.base_commit),"build":lambda:build(a.server_binary,a.source_commit),"isolation":lambda:isolation(a.outer_net_namespace),"units":units}[a.action]();emit(a.output,value)
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","progress"));p.add_argument("--output");p.add_argument("--repo",default=".");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--phase");p.add_argument("--state");a=p.parse_args()
+    if a.action=="progress":
+        need(a.output is None and a.progress_root and a.source_commit and a.phase and a.state);C.record_progress(a.progress_root,a.source_commit,a.phase,a.state);return
+    need(a.output)
+    try:value={"source":lambda:source(a.repo,a.source_commit),"contract":lambda:source_contract(a.repo,a.base_commit),"build":lambda:build(a.server_binary,a.source_commit),"isolation":lambda:isolation(a.outer_net_namespace),"units":units}[a.action]()
+    except Exception as error:
+        if a.action=="isolation" and a.progress_root and a.source_commit:
+            try:C.record_failure_detail(a.progress_root,a.source_commit,error)
+            except Exception:pass
+        raise
+    emit(a.output,value)
 if __name__=="__main__":
     try:main()
-    except Exception:print("JOINT_CI=REJECTED",file=sys.stderr);raise SystemExit(1) from None
+    except Exception as error:print("JOINT_CI=REJECTED category="+C.exception_type(error),file=sys.stderr);raise SystemExit(1) from None

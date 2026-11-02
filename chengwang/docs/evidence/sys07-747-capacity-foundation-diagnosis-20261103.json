@@ -1,0 +1,209 @@
+{
+  "schema": "chengwang.exact-747-capacity-foundation-readonly-diagnosis/v1",
+  "sourceCommit": "74730eb025189647e9deb2c4df72eec62bb54899",
+  "overallVerdict": "BOTH_LANES_REJECTED_CAUSAL_ROOT_UNKNOWN",
+  "capacity": {
+    "runId": 41484652908,
+    "runConclusion": "failure",
+    "verdict": "FULL_CONTRACTS_REJECTED_PACKAGE_TIMEOUT_OBSERVED_CAUSE_NOT_PROVEN",
+    "metadataPhase": {
+      "failedJob": "full",
+      "failedExecutionStep": "Diagnose the unchanged six-package race command in private offline namespaces",
+      "executionStepStartedAt": "2026-11-02T16:47:54Z",
+      "executionStepCompletedAt": "2026-11-02T16:51:26Z",
+      "apiSecondResolutionStepWallSeconds": 212,
+      "decodeStepSucceeded": true,
+      "failClosedAcceptanceStepFailed": true,
+      "freshReconstructionSucceeded": true
+    },
+    "boundedFreshFacts": {
+      "schema": "chengwang.capacity-profile-verification/v2",
+      "diagnosticMode": "FULL_CONTRACTS",
+      "sourceGitVerified": true,
+      "formatClean": true,
+      "originalGoExit": 1,
+      "fullGoAccepted": false,
+      "normalStrictEventsAccepted": false,
+      "requiredTopLevelTotal": 689,
+      "requiredCounts": {
+        "passed": 609,
+        "failed": 0,
+        "skipped": 0,
+        "unfinished": 1,
+        "notStarted": 79
+      },
+      "observedSemanticStatesIncludingNonRequiredAndSubtests": 1716,
+      "soleUnfinishedRequiredTest": "chengwang/internal/mihomodeploy::TestLifecycleArmedReopenPersistsUnknownWithoutResultOrHandle",
+      "unfinishedTestDeadlockProven": false,
+      "failedRequiredNames": [],
+      "packageStates": {
+        "chengwang/internal/adapter/mihomo": "pass",
+        "chengwang/internal/api": "pass",
+        "chengwang/internal/authn": "pass",
+        "chengwang/internal/authz": "pass",
+        "chengwang/internal/mihomodeploy": "fail",
+        "chengwang/internal/serverruntime": "pass"
+      },
+      "mihomodeployTimeoutMarkerObserved": true,
+      "dataRaceWarningObserved": false,
+      "capacityCaseState": "pass"
+    },
+    "timerSemantics": {
+      "criticalCorrection": "The 609/1/79 partition is the final required-name state from the 180-second Go test result, not a snapshot taken when the 120-second CPU profile stopped.",
+      "goTestTimeoutSeconds": 180,
+      "profileTimerSeconds": 120,
+      "profileStopReason": "TIMER_120_SECONDS",
+      "profileReceiptDurationNanoseconds": 120328825962,
+      "profileReceiptDurationSeconds": 120.328825962,
+      "profileParsedDurationNanoseconds": 120187688181,
+      "profileScope": "mihomodeploy test binary only",
+      "profileStartDefinition": "TestMain starts CPU profiling, writes full-contract parent provenance, records started=time.Now(), then starts the timer immediately before m.Run(). Compilation and the other five package binaries are outside this profile window.",
+      "profileStopDefinition": "At 120 seconds the timer calls StopCPUProfile, joins profile writes, syncs and closes the profile, and writes profile-state. It does not terminate m.Run or change the Go test 180-second timeout.",
+      "requiredCountDefinition": "The checker partitions the fixed 689 required top-level names by their final event state at end of the complete captured Go JSON: pass, fail, skip, run/pause as unfinished, or absent as notStarted.",
+      "stepWallDefinition": "The 212-second API step wall covers wrapper setup plus version, format, the full Go command, pprof top/cum and export handling; it is not an exact test or package duration."
+    },
+    "staticSourceAssessment": {
+      "definiteProductLogicBugFound": false,
+      "definiteTimerOriginBugFound": false,
+      "testBodyContainsStaticInfiniteLoop": false,
+      "testBodyObservation": "The sole unfinished top-level body performs setup, reopen, assertions and owner acquisition; its top body contains no loop and no t.Parallel. This does not prove deeper helpers cannot stall or become slow.",
+      "lastStartedEqualsCause": false,
+      "reason": "An unfinished test at aggregate timeout is a location marker only. The bounded report has no per-test start timestamp, helper phase marker, stack, or final-60-second CPU evidence.",
+      "resourceCauseProven": false,
+      "sameCgroupAcrossObservationsIndependentlyProven": false,
+      "wholeSixPackageCPUProfileProven": false,
+      "wholeTestDurationProfileProven": false,
+      "pprofNumericRecomputeProven": false,
+      "cpuShortageProven": false
+    }
+  },
+  "foundation": {
+    "runId": 41484652792,
+    "runConclusion": "failure",
+    "verdict": "CONTRACTS_REJECTED_FIRST_CHECKER_PREDICATE_UNKNOWN",
+    "metadataPhase": {
+      "pythonProtocolModels": "success",
+      "hostBefore": "success",
+      "goAndRaceWrapper": "failure",
+      "goAndRaceWrapperStartedAt": "2026-11-02T16:46:29Z",
+      "goAndRaceWrapperCompletedAt": "2026-11-02T16:50:47Z",
+      "apiSecondResolutionWrapperWallSeconds": 258,
+      "hostAfterAndChecker": "failure",
+      "originalArtifactUpload": "success",
+      "contractsFreshDownload": "success",
+      "contractsFreshChecker": "failure",
+      "contractsFreshArtifactPresent": false
+    },
+    "sourcePhaseMeaning": {
+      "wrapperOrder": [
+        "gofmt -d over the fixed source list",
+        "ordinary six-package go test with -timeout=180s",
+        "race six-package go test with -race and -timeout=180s",
+        "write execution.json",
+        "fail closed on nonzero format/ordinary/race exit or nonempty format patch"
+      ],
+      "knownEarliestMetadataFailure": "The wrapper step failed after the models and host-before steps had succeeded.",
+      "unknownFirstPredicate": "API step metadata does not identify whether format, ordinary exit, race exit, format patch, or a later check_contracts predicate was first to reject. Raw originals and job logs were intentionally not read.",
+      "freshFailureInterpretation": "The fresh checker failure and missing fresh artifact are downstream confirmation that no accepted verification report existed; they are not an independent root cause."
+    },
+    "staticSourceAssessment": {
+      "definiteProductLogicBugFound": false,
+      "definiteCheckerLogicBugFound": false,
+      "performanceRegressionProven": false,
+      "cpuShortageProven": false,
+      "exactDynamicFailureText": "UNKNOWN",
+      "reason": "The checker is intentionally fail closed and emits no bounded partial-reject report. Metadata alone cannot recover its first failing predicate."
+    }
+  },
+  "comparisonWithExact736": {
+    "sourceCommit": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "relevantGateSourceDelta736To747": "NONE",
+    "scope": "Both capacity/foundation workflows, both checker/capture directories, and the six foundation package directories are byte-identical between 736 and 747. Within chengwang/internal, the additions are sealed-archive files under internal/subscription, outside these six-package commands; unrelated joint-control-plane and documentation changes are not treated as gate inputs.",
+    "foundationAttempt1": {
+      "runId": 41450639154,
+      "attempt": 1,
+      "verdict": "FOUNDATION_REJECT",
+      "ordinaryDeclaredPass": 689,
+      "raceDeclaredRun": 617,
+      "raceDeclaredPass": 616,
+      "raceDeclaredMissing": 72,
+      "raceDeclaredIncomplete": 1,
+      "incompleteTop": "TestLifecycleUnsentRejectionTombstonePreventsOperationReplay",
+      "timeout": "3m0s",
+      "rootCauseProven": false
+    },
+    "foundationAttempt2": {
+      "runId": 41450639154,
+      "attempt": 2,
+      "verdict": "FOUNDATION_ATTEMPT2_ACCEPT_WITH_RUN_VARIABILITY_BOUNDARY",
+      "sourceChanged": false,
+      "timeoutChanged": false,
+      "ordinaryMandatoryPassed": 689,
+      "raceMandatoryPassed": 689,
+      "semanticPassesPerLane": 2016,
+      "skipped": 0,
+      "performanceFixProven": false
+    },
+    "capacityAttempt1": {
+      "runId": 41450638958,
+      "attempt": 1,
+      "fullGoAccepted": true,
+      "requiredPassed": 689,
+      "unfinished": 0,
+      "notStarted": 0,
+      "wholeSixPackageCPUProfileProven": false
+    },
+    "interpretation": "Unchanged source and unchanged timeout have produced both timeout rejection and complete acceptance. This proves run-to-run variability exists. It does not identify the cause, prove a performance fix, or accept exact 747."
+  },
+  "scopeSeparation": {
+    "p207Run": 41484652813,
+    "p207Result": "accepted separately with 491 required tops",
+    "whyNotTransferable": "P207 runs a non-race seven-package selection including subscription, subscriptionctl and subscriptionpolicy; it excludes adapter/mihomo and the failing mihomodeploy package. Foundation/capacity run six packages and include a race command. Same commit does not make these execution scopes interchangeable.",
+    "p207AcceptanceReused": false
+  },
+  "minimumNextEvidencePlan": [
+    {
+      "priority": 1,
+      "action": "Add a diagnostic-only bounded foundation reject projector analogous to the existing capacity partial reader.",
+      "output": "Exact format/ordinary/race exits, empty-file facts, required pass/fail/unfinished/notStarted partitions, package terminal states, timeout/race-marker booleans, and a first-reject category; never an acceptance report.",
+      "safety": "Keep all current tests, 180-second timeout, clean gates and fail-closed acceptance unchanged. Do not publish raw event Output or private data."
+    },
+    {
+      "priority": 2,
+      "action": "Generate a bounded per-test timing projection from the already produced public Go JSON only under separate authorization.",
+      "output": "Package start/end, required top-level run/terminal timestamps and elapsed, final 20 state transitions, and explicit phase markers for the unfinished test; omit Output text and subtest payloads.",
+      "safety": "A trusted extractor reads raw privately and publishes only the schema-checked bounded JSON. This task did not read or download those raw streams."
+    },
+    {
+      "priority": 3,
+      "action": "Expose existing command-journal GO_TEST start/wait monotonic delta and profile started/stopped times in the fresh capacity report.",
+      "output": "Separate full Go wall interval from the 120-second mihomodeploy-only profile interval and identify the unprofiled tail without increasing either budget.",
+      "safety": "No rerun, budget increase, test reduction or green reinterpretation."
+    },
+    {
+      "priority": 4,
+      "action": "Independently reduce the already generated pprof top/cum data to a bounded numeric/symbol summary and keep pprofNumericRecomputeProven false unless exact recomputation succeeds.",
+      "output": "Evidence about where the first 120 seconds were spent, explicitly not evidence about the final 60 seconds or all six packages.",
+      "safety": "No CPU-shortage or product-root-cause claim from aggregate/cgroup observations."
+    }
+  ],
+  "prohibitedInferences": [
+    "Do not call 609/1/79 a 120-second cutoff snapshot.",
+    "Do not call the unfinished test a deadlock or root cause.",
+    "Do not infer CPU shortage from runner CPU count, aggregate cgroup counters, or elapsed time.",
+    "Do not treat fresh reconstruction success as full Go acceptance.",
+    "Do not reuse P207 acceptance for foundation/capacity.",
+    "Do not treat 736 attempt-2 success as exact-747 acceptance or as a proven performance fix."
+  ],
+  "taskBoundaries": {
+    "rerunPerformed": false,
+    "localGoExecuted": false,
+    "jobLogsRead": false,
+    "rawGoRead": false,
+    "privateArtifactsRead": false,
+    "productionTouched": false,
+    "formalOrJycwWritten": false,
+    "actualModel": "UNKNOWN",
+    "hyMemory": "UNAVAILABLE_NO_TOOL"
+  }
+}

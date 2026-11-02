@@ -1,6 +1,9 @@
 """Independent private/public publication boundary; never uploads raw diagnostics."""
 from __future__ import annotations
-import argparse, base64, hashlib, json, os, pathlib, re, shutil, sys, tempfile, urllib.parse
+import argparse, base64, hashlib, importlib.util, json, os, pathlib, re, shutil, sys, tempfile, urllib.parse
+
+HERE=pathlib.Path(__file__).resolve().parent
+_spec=importlib.util.spec_from_file_location("joint_publication_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 
 MAX_FILE=16<<20; MAX_TOTAL=64<<20
 PUBLIC={"build.json","source-before.json","source-after.json","isolation.json","runtime.json","captures.jsonl","wire-events.jsonl","readback.json","outcome.json","api-ca.pem","api-leaf.pem","resolver-ca.pem","resolver-leaf.pem","source-ca.pem","source-leaf.pem","mihomo-ca.pem","mihomo-leaf.pem","private-checks.json","transport-negatives.json"}
@@ -103,16 +106,18 @@ def publish(inp,out,verification):
     except BaseException:
         if pending.exists():shutil.rmtree(pending)
         raise
-def failure(inp,out,code):
+def failure(inp,out,code,progress_root=None,source_commit=None):
     need(re.fullmatch(r"[A-Z][A-Z0-9_]{2,63}",code)!=None);inp=pathlib.Path(inp);files=failure_files(inp)
     identities=sorted(({"bytes":p.stat().st_size,"sha256":file_sha(p)} for p in files),key=lambda x:(x["sha256"],x["bytes"]))
-    value={"schema":"chengwang.joint-control-plane-safe-failure/v2","failureCode":code,"status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"retainedPrivateFileCount":len(files),"retainedPrivateBytes":sum(p.stat().st_size for p in files),"privateAggregateSHA256":hashlib.sha256(canonical(identities)).hexdigest()}
+    scene=code in ("SCENE_FAILED","PRIVATE_SCENE_FAILED")
+    value={"schema":"chengwang.joint-control-plane-safe-failure/v3" if scene else "chengwang.joint-control-plane-safe-failure/v2","failureCode":code,"status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"retainedPrivateFileCount":len(files),"retainedPrivateBytes":sum(p.stat().st_size for p in files),"privateAggregateSHA256":hashlib.sha256(canonical(identities)).hexdigest()}
+    if scene:value["failureClassification"]=C.failure_classification(progress_root,source_commit)
     nested=inp/"private-failure-identity.json"
     if nested.is_file():
-        private=decode(nested);keys={"schema","failureCode","status","production","authorization","actualSKU","privateEvidencePublished","retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256"}
-        need(set(private)==keys and private["schema"]=="chengwang.joint-control-plane-safe-failure/v2" and private["failureCode"]=="PRIVATE_SCENE_FAILED" and private["status"]=="FAIL" and private["production"]is False and private["authorization"]=="BLOCKED" and private["actualSKU"]=="UNKNOWN" and private["privateEvidencePublished"]is False and re.fullmatch(r"[a-f0-9]{64}",private["privateAggregateSHA256"])!=None)
+        private=decode(nested);keys={"schema","failureCode","status","production","authorization","actualSKU","privateEvidencePublished","retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256","failureClassification"}
+        need(set(private)==keys and private["schema"]=="chengwang.joint-control-plane-safe-failure/v3" and private["failureCode"]=="PRIVATE_SCENE_FAILED" and private["status"]=="FAIL" and private["production"]is False and private["authorization"]=="BLOCKED" and private["actualSKU"]=="UNKNOWN" and private["privateEvidencePublished"]is False and re.fullmatch(r"[a-f0-9]{64}",private["privateAggregateSHA256"])!=None and private["failureClassification"]==value["failureClassification"])
         value["privateDiagnostics"]={k:private[k] for k in ("retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256")}
-    pathlib.Path(out).parent.mkdir(mode=0o700,parents=True,exist_ok=True);write(out,canonical(value))
+    data=canonical(value);need(len(data)<=4096);pathlib.Path(out).parent.mkdir(mode=0o700,parents=True,exist_ok=True);write(out,data)
 def cpu(units,go_exit,out):
     value=decode(units);need(value.get("schema")=="chengwang.joint-control-plane-units/v2" and type(value.get("testsRun"))is int and value["testsRun"]>0 and value.get("syntheticOnly")is True)
     code=int(pathlib.Path(go_exit).read_text().strip());need(code==0)
@@ -138,13 +143,19 @@ def cpu_publish(inp,out):
         if pending.exists():shutil.rmtree(pending)
         raise
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("private","publish","failure","cpu","cpu-fallback","cpu-publish"));p.add_argument("--private-root");p.add_argument("--input");p.add_argument("--output",required=True);p.add_argument("--verification");p.add_argument("--code",default="SCENE_FAILED");p.add_argument("--units");p.add_argument("--go-exit");a=p.parse_args()
-    if a.action=="private":private_check(a.private_root,a.input,a.output)
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("private","publish","failure","cpu","cpu-fallback","cpu-publish"));p.add_argument("--private-root");p.add_argument("--input");p.add_argument("--output",required=True);p.add_argument("--verification");p.add_argument("--code",default="SCENE_FAILED");p.add_argument("--units");p.add_argument("--go-exit");p.add_argument("--progress-root");p.add_argument("--source-commit");a=p.parse_args()
+    if a.action=="private":
+        try:private_check(a.private_root,a.input,a.output)
+        except Exception as error:
+            if a.progress_root and a.source_commit:
+                try:C.record_failure_detail(a.progress_root,a.source_commit,error)
+                except Exception:pass
+            raise
     elif a.action=="publish":publish(a.input,a.output,a.verification)
-    elif a.action=="failure":failure(a.input,a.output,a.code)
+    elif a.action=="failure":failure(a.input,a.output,a.code,a.progress_root,a.source_commit)
     elif a.action=="cpu":cpu(a.units,a.go_exit,a.output)
     elif a.action=="cpu-fallback":cpu_fallback(a.output)
     else:cpu_publish(a.input,a.output)
 if __name__=="__main__":
     try:main()
-    except Exception:print("JOINT_PUBLICATION=REJECTED",file=sys.stderr);raise SystemExit(1) from None
+    except Exception as error:print("JOINT_PUBLICATION=REJECTED category="+C.exception_type(error),file=sys.stderr);raise SystemExit(1) from None

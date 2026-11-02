@@ -1,0 +1,128 @@
+{
+  "schema": "chengwang.original31-artifact-audit/v1",
+  "decision": "ACCEPT_EXACT_HEAD_ISOLATED_HTTPS_CONTINUOUS_CHAIN",
+  "run": {
+    "repository": "zhiwen1987/Jydn-openclash",
+    "id": 41484652894,
+    "attempt": 1,
+    "event": "push",
+    "branch": "codex/chengwang-unified-20261102",
+    "workflow": ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+    "status": "completed",
+    "conclusion": "success",
+    "head": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "tree": "4adb8ec4dcf70a1a399f5a071b29624481b7682c",
+    "startedAt": "2026-11-02T16:45:54Z",
+    "terminalUpdatedAt": "2026-11-02T16:48:41Z"
+  },
+  "custody": {
+    "decision": "ACCEPT",
+    "artifacts": [
+      {
+        "role": "originals",
+        "id": 13162096022,
+        "name": "mihomo-continuous-recovery-api-originals-41484652894-1",
+        "apiBytes": 55513,
+        "localBytes": 55513,
+        "apiSHA256": "eae809e909f27b82ca1aa70d4bd9bd8998a133aaf837f928534cdf9fe66aa511",
+        "localSHA256": "eae809e909f27b82ca1aa70d4bd9bd8998a133aaf837f928534cdf9fe66aa511",
+        "members": 57,
+        "expandedBytes": 148823,
+        "memberAllowlistExact": true,
+        "fullMaterializationSucceeded": true
+      },
+      {
+        "role": "fresh",
+        "id": 13162081017,
+        "name": "mihomo-continuous-recovery-api-fresh-41484652894-1",
+        "apiBytes": 650,
+        "localBytes": 650,
+        "apiSHA256": "33978835be2d2cc788e3497024f3ed1960c24196f43ff4193da67409a2f91ed1",
+        "localSHA256": "33978835be2d2cc788e3497024f3ed1960c24196f43ff4193da67409a2f91ed1",
+        "members": 1,
+        "expandedBytes": 871,
+        "memberAllowlistExact": true,
+        "fullMaterializationSucceeded": true
+      }
+    ],
+    "excludedArtifactIds": [13161301406, 13161251543, 13160339569]
+  },
+  "sourceBinding": {
+    "sourceCommit": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "sourceTree": "4adb8ec4dcf70a1a399f5a071b29624481b7682c",
+    "indexTree": "4adb8ec4dcf70a1a399f5a071b29624481b7682c",
+    "sourceManifestSHA256": "dff0ba9fbcf539ed80111d05a5980d979481e7fa7dc0789402d5481b5c23260e",
+    "sourceSetSHA256": "a52f1f53a6d62ead0491f0e6d2677c9baa332f2ef5c066828b0cb1ee5d6f8cbd",
+    "deliverySetSHA256": "645ec674b7f9c88bd469b24d1894bd473750b8e13bc72141172648390b308ab4",
+    "policySHA256": "8c93a408dda0c07069e745dc0fca6e19b419c8056b558a3abf57a01fd534bc1a",
+    "sourceCount": 1712,
+    "deliveryCount": 33,
+    "old736EvidenceReused": false
+  },
+  "chain": {
+    "attemptExitExactZeroLF": true,
+    "reportSchema": "chengwang.mihomo-continuous-recovery-http-experiment/v3",
+    "scope": "ACTUAL_ISOLATED_HTTPS_UNKNOWN_RECOVERY_ACK_UNKNOWN_RECOVERY_NOT_PRODUCTION",
+    "sourceCommit": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "outcome": "PASS",
+    "failureCode": "NONE",
+    "httpResponses": 31,
+    "recoveries": [
+      {"stage": "FIRST_RECOVERY", "phase": "COMPLETED", "headAdvanced": true, "writeBlocked": false},
+      {"stage": "SECOND_RECOVERY", "phase": "COMPLETED", "headAdvanced": true, "writeBlocked": false}
+    ],
+    "closedPorts": [
+      {"port": 28411, "connectAttempted": true, "accepted": false, "errorClass": "CONNECTION_REFUSED"},
+      {"port": 28412, "connectAttempted": true, "accepted": false, "errorClass": "CONNECTION_REFUSED"},
+      {"port": 28413, "connectAttempted": true, "accepted": false, "errorClass": "CONNECTION_REFUSED"},
+      {"port": 28414, "connectAttempted": true, "accepted": false, "errorClass": "CONNECTION_REFUSED"},
+      {"port": 28415, "connectAttempted": true, "accepted": false, "errorClass": "CONNECTION_REFUSED"},
+      {"port": 32859, "connectAttempted": true, "accepted": false, "errorClass": "CONNECTION_REFUSED"}
+    ],
+    "runtimeReturned": true,
+    "runtimeErrorClass": "NONE",
+    "formatExit": 0,
+    "goExit": 0,
+    "executionOutcome": "PASS",
+    "producerConsumptionSHA256": "d19b8d6d669e835fece43932838e6c957783bfba01100a83cd6e6f6ade00e44b",
+    "independentConsumptionSHA256": "d19b8d6d669e835fece43932838e6c957783bfba01100a83cd6e6f6ade00e44b",
+    "producerIndependentConsumptionByteIdentical": true
+  },
+  "independentVerification": {
+    "schema": "chengwang.mihomo-continuous-recovery-independent-verification/v1",
+    "sourceCommit": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "httpResponses": 31,
+    "goTestPassed": true,
+    "producerVerificationStderrBytes": 0,
+    "verificationSHA256": "981d921bbcdf57e1c0d0ba2e17e77a214ed589beab7bbf6b332da528c6729bba",
+    "freshSHA256": "981d921bbcdf57e1c0d0ba2e17e77a214ed589beab7bbf6b332da528c6729bba",
+    "localExactHeadCheckerExit": 0,
+    "localEqualsProducerArchived": true,
+    "localEqualsFresh": true,
+    "producerEqualsFresh": true,
+    "localValidationRepoHead": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "localValidationRepoDirtyEntries": 0,
+    "localGoOrKernelRerun": false
+  },
+  "boundaries": {
+    "privateWALDecodedByTest": false,
+    "fullPrivateWALIndependentlyProven": false,
+    "fullPayloadProven": false,
+    "internetBusinessProven": false,
+    "production": false,
+    "productionTouched": false
+  },
+  "diagnostics": {
+    "initialCheckerAttempt": "REJECTED_BEFORE_ARTIFACT_VALIDATION_BECAUSE_FORMAL_WORKTREE_WAS_DIRTY_WITH_ROOT_OWNED_DOCUMENT_CHANGES",
+    "initialAttemptTreatedAsArtifactFailure": false,
+    "retrySource": "NEW_EXTERNAL_CLEAN_EXACT_HEAD_LOCAL_SHARED_CLONE",
+    "jobLogsRead": false,
+    "rawGoOutputPrintedOrManuallyInspected": false,
+    "workflowRerun": false
+  },
+  "priorMetadataCard": {
+    "path": "D:/CodexData/workspace/chengwang-run-41484652894-original31-audit-20261103-v1/AUDIT.md",
+    "sha256": "ad929c86bcf878694d30dd8c138e1ce0e57fb33af537ede25e79de948d5d7400",
+    "preserved": true
+  }
+}

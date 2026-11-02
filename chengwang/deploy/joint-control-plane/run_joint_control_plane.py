@@ -5,7 +5,11 @@ import argparse, base64, copy, hashlib, http.client, importlib.util, json, os, p
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_runner_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 
-class Failure(Exception): pass
+class Failure(Exception):
+    def __init__(self, code):
+        C.require(code in C.FAILURE_REASON_CODES and code != "UNKNOWN", "failure-code")
+        self.code = code
+        super().__init__()
 def need(ok, label):
     if not ok: raise Failure(label)
 def read(path, maximum=C.MAX_ARTIFACT):
@@ -73,8 +77,9 @@ def certs(root):
 
 class Lab:
     def __init__(self,a):
-        self.a=a;self.root=pathlib.Path(a.private_root).resolve();self.out=pathlib.Path(a.evidence_dir).resolve();self.binary=pathlib.Path(a.server_binary).resolve();self.fixture=pathlib.Path(a.fixture_script).resolve()
+        self.a=a;self.root=pathlib.Path(a.private_root).resolve();self.out=pathlib.Path(a.evidence_dir).resolve();self.progress=pathlib.Path(a.progress_root).resolve();self.binary=pathlib.Path(a.server_binary).resolve();self.fixture=pathlib.Path(a.fixture_script).resolve()
         self.binary_raw=read(self.binary,128<<20);self.binary_sha=C.sha(self.binary_raw);self.fixture_id="joint-"+secrets.token_hex(16);self.captures=[];self.processes=[];self.active=[]
+        self.active_capture=None;self.last_completed_capture=None
     def prepare(self):
         need(sys.platform=="linux" and os.getuid()==C.UID and os.getgid()==C.GID,"PLATFORM")
         need(self.root.is_dir() and not any(self.root.iterdir()),"ROOT")
@@ -144,6 +149,8 @@ class Lab:
                 p.wait()
         self.active.clear()
     def call(self,name,epoch,role="viewer",method="GET",path="/api/v1/subscriptions/sources",body=None,key="",expected=200):
+        C.require(name in C.CAPTURE_NAMES,"capture-name")
+        self.active_capture=name
         before=wire_fence(self.root/"wire-events.jsonl")
         headers={"Connection":"close"};payload=None
         if role!="anonymous":headers["Authorization"]="Bearer "+self.tokens[role]
@@ -158,8 +165,10 @@ class Lab:
         finally:os.close(fd)
         if path.startswith("/api/v1/subscriptions"):
             need(value.get("authorization")=="BLOCKED" and value.get("deviceActionsExecuted") is False,"ENVELOPE")
-            return value.get("result")
-        return value
+            result=value.get("result")
+        else:result=value
+        self.last_completed_capture=name;self.active_capture=None
+        return result
     def mutate(self,name,epoch,case,op,source,suffix,body,role="operator",expected=200):return self.call(name,epoch,role,"POST","/api/v1/subscriptions/sources"+("/"+source if source else "")+suffix,body,C.idempotency(case,op),expected)
     def bootstrap(self):
         self.start_server("B0",self.environment(self.root/"policy0.json",self.root/"identities0.json",False,False))
@@ -226,23 +235,32 @@ class Lab:
         tls.close();match=re.match(br"HTTP/1\.1 ([0-9]{3}) ",response);need(match and int(match.group(1))==401,"DUPLICATE-AUTH");results.append({"case":"duplicate_authorization","result":"401"})
         return results
     def run(self):
-        self.prepare();env={"PATH":"/usr/bin:/bin","LANG":"C.UTF-8","TZ":"UTC","PYTHONDONTWRITEBYTECODE":"1"};self.wire,wr=self.launch([sys.executable,"-I","-B",str(self.fixture),"serve","--root",str(self.root),"--deadline-seconds","180"],env,"fixture")
+        self.prepare();C.record_progress(self.progress,self.a.source_commit,"RUNNER_PREPARE","COMPLETED")
+        C.record_progress(self.progress,self.a.source_commit,"FIXTURE_START","ENTERED")
+        env={"PATH":"/usr/bin:/bin","LANG":"C.UTF-8","TZ":"UTC","PYTHONDONTWRITEBYTECODE":"1"};self.wire,wr=self.launch([sys.executable,"-I","-B",str(self.fixture),"serve","--root",str(self.root),"--deadline-seconds","180"],env,"fixture")
         deadline=time.monotonic()+10
         while time.monotonic()<deadline and not (self.root/"fixture-ready.json").exists():need(self.wire.poll() is None,"FIXTURE");time.sleep(.02)
-        wire_fence(self.root/"wire-events.jsonl");self.bootstrap();self.joint();readback=self.readback();self.stop(self.wire,wr)
+        wire_fence(self.root/"wire-events.jsonl");C.record_progress(self.progress,self.a.source_commit,"FIXTURE_START","COMPLETED")
+        C.record_progress(self.progress,self.a.source_commit,"B0","ENTERED");self.bootstrap();C.record_progress(self.progress,self.a.source_commit,"B0","COMPLETED")
+        C.record_progress(self.progress,self.a.source_commit,"J1","ENTERED");self.joint();C.record_progress(self.progress,self.a.source_commit,"J1","COMPLETED")
+        C.record_progress(self.progress,self.a.source_commit,"R2","ENTERED");readback=self.readback();C.record_progress(self.progress,self.a.source_commit,"R2","COMPLETED")
+        C.record_progress(self.progress,self.a.source_commit,"RUNNER_FINALIZE","ENTERED");self.stop(self.wire,wr)
         stopped=decode(read(self.root/"fixture-stopped.json"));need(stopped["normalStop"] and stopped["workerThreadsAlive"]==0 and stopped["listenersClosed"],"FIXTURE-STOP")
         runtime={"schema":C.RUNTIME_SCHEMA,"sourceCommit":self.a.source_commit,"fixtureId":self.fixture_id,"serverBinarySHA256":self.binary_sha,"fixtureProcess":wr,"processes":self.processes,"sameBinaryAllEpochs":len({p["exeSHA256"] for p in self.processes})==1}
         os.replace(self.out/"captures.partial.jsonl",self.out/"captures.jsonl")
         files={"runtime.json":C.canonical(runtime),"wire-events.jsonl":read(self.root/"wire-events.jsonl"),"readback.json":C.canonical(readback),"transport-negatives.json":C.canonical({"schema":"chengwang.joint-control-plane-transport-negatives/v2","cases":self.transport_negatives}),"outcome.json":C.canonical(C.outcome(self.a.source_commit,self.fixture_id,"CAPTURED"))}
         for public,private in (("api-ca.pem","api-ca.pem"),("api-leaf.pem","api-cert.pem"),("resolver-ca.pem","resolver-ca.pem"),("resolver-leaf.pem","resolver-cert.pem"),("source-ca.pem","source-ca.pem"),("source-leaf.pem","source-cert.pem"),("mihomo-ca.pem","mihomo-ca.pem"),("mihomo-leaf.pem","mihomo-cert.pem")):files[public]=read(self.root/private,65536)
         for name,raw in files.items():exclusive(self.out/name,raw)
-        need(not self.active,"RESIDUE")
+        need(not self.active,"RESIDUE");C.record_progress(self.progress,self.a.source_commit,"RUNNER_FINALIZE","COMPLETED")
 def main():
-    p=argparse.ArgumentParser();p.add_argument("--server-binary",required=True);p.add_argument("--fixture-script",required=True);p.add_argument("--private-root",required=True);p.add_argument("--evidence-dir",required=True);p.add_argument("--source-commit",required=True);a=p.parse_args();need(re.fullmatch(r"[a-f0-9]{40}",a.source_commit)!=None,"COMMIT")
-    lab=Lab(a)
-    try:lab.run()
-    except Exception:
-        lab.abort()
+    p=argparse.ArgumentParser();p.add_argument("--server-binary",required=True);p.add_argument("--fixture-script",required=True);p.add_argument("--private-root",required=True);p.add_argument("--evidence-dir",required=True);p.add_argument("--progress-root",required=True);p.add_argument("--source-commit",required=True);a=p.parse_args();need(re.fullmatch(r"[a-f0-9]{40}",a.source_commit)!=None,"COMMIT")
+    lab=None
+    try:
+        lab=Lab(a);lab.run()
+    except Exception as error:
+        try:C.record_failure_detail(a.progress_root,a.source_commit,error,getattr(lab,"active_capture",None),getattr(lab,"last_completed_capture",None))
+        except Exception:pass
+        if lab is not None:lab.abort()
         out=pathlib.Path(a.evidence_dir)
         try:
             if (pathlib.Path(a.private_root)/"wire-events.jsonl").is_file():exclusive(out/"wire-events.failure.jsonl",read(pathlib.Path(a.private_root)/"wire-events.jsonl"))
@@ -251,4 +269,4 @@ def main():
         raise
 if __name__=="__main__":
     try:main()
-    except Exception as e: print("JOINT_CONTROL_PLANE=REJECTED "+type(e).__name__,file=sys.stderr);raise SystemExit(1) from None
+    except Exception as error: print("JOINT_CONTROL_PLANE=REJECTED category="+C.exception_type(error),file=sys.stderr);raise SystemExit(1) from None

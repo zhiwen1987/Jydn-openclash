@@ -1,0 +1,18 @@
+{
+  "sourceModels": 63,
+  "jointModels": 58,
+  "p207Seconds": 33.38999999999942,
+  "goExecuted": false,
+  "runtimeAcceptanceProven": false,
+  "productionTouched": false,
+  "logs": {
+    "p207-models.log": "8f5e76ef3e2fb8ec01f2607af20f63379e458b1cd54f3d7f3aff2256629483cb",
+    "joint-models.log": "b66e39e5bbda06a5de92900d120cfce12c5dd60e728d042db2bf7d0d5ad43d48",
+    "joint-units.json": "ee23dcca27bc195c0d1f964a3870c89d8e8984773dc528bda0cd2dbe090b2829"
+  },
+  "originalSummaryAccepted": false,
+  "originalSummaryReason": "STALE_JOINT_MODEL_COUNT_47",
+  "originalSummarySHA256": "0dd3996cea897be89557004910d936c9e031069e8c2145732a451246934de19f",
+  "independentASTAndLogReplay": "PASS",
+  "testExecutionRepeated": false
+}

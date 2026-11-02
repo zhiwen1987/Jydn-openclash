@@ -25,6 +25,7 @@ private=/tmp/joint-private-$(/usr/bin/openssl rand -hex 16)
 /usr/bin/install -d -m 0700 -o 10001 -g 10001 "$private/lab" "$private/harness-logs"
 lab_private="$private/lab"
 private_logs="$private/harness-logs"
+progress="$alias_root/evidence/staging/failure-localization.private"
 for log in units.stdout units.stderr isolation.stdout isolation.stderr runner.stdout runner.stderr sanitizer.stdout sanitizer.stderr; do
   /usr/bin/install -m 0600 -o 10001 -g 10001 /dev/null "$private_logs/$log"
 done
@@ -35,7 +36,7 @@ finish(){
   code=$?; trap - EXIT
   if test "$code" -ne 0 && test "$profile" = product && test -d "$alias_root/evidence/staging"; then
     set +e
-    run_user "$scripts/sanitize_publication.py" failure --input "$private" --code PRIVATE_SCENE_FAILED --output "$alias_root/evidence/staging/private-failure-identity.json" >/dev/null 2>/dev/null
+    run_user "$scripts/sanitize_publication.py" failure --input "$private" --progress-root "$progress" --source-commit "$commit" --code PRIVATE_SCENE_FAILED --output "$alias_root/evidence/staging/private-failure-identity.json" >/dev/null 2>/dev/null
     set -e
   fi
   cleanup
@@ -47,7 +48,14 @@ if test "$profile" = units; then
   run_user "$scripts/ci_joint_control_plane.py" units --output "$alias_root/evidence/staging/cpu/units.json" >"$private_logs/units.stdout" 2>"$private_logs/units.stderr"
 else
   /usr/bin/test -d "$alias_root/evidence/staging/lab"
-  run_user "$scripts/ci_joint_control_plane.py" isolation --outer-net-namespace "$outer_net" --output "$alias_root/evidence/staging/lab/isolation.json" >"$private_logs/isolation.stdout" 2>"$private_logs/isolation.stderr"
-  run_user "$scripts/run_joint_control_plane.py" --server-binary "$alias_root/bin/server" --fixture-script "$scripts/joint_fixture.py" --private-root "$lab_private" --evidence-dir "$alias_root/evidence/staging/lab" --source-commit "$commit" >"$private_logs/runner.stdout" 2>"$private_logs/runner.stderr"
-  run_user "$scripts/sanitize_publication.py" private --private-root "$lab_private" --input "$alias_root/evidence/staging/lab" --output "$alias_root/evidence/staging/lab/private-checks.json" >"$private_logs/sanitizer.stdout" 2>"$private_logs/sanitizer.stderr"
+  record(){ run_user "$scripts/ci_joint_control_plane.py" progress --progress-root "$progress" --source-commit "$commit" --phase "$1" --state "$2"; }
+  record NAMESPACE_SETUP COMPLETED
+  record ISOLATION_CHECK ENTERED
+  run_user "$scripts/ci_joint_control_plane.py" isolation --outer-net-namespace "$outer_net" --progress-root "$progress" --source-commit "$commit" --output "$alias_root/evidence/staging/lab/isolation.json" >"$private_logs/isolation.stdout" 2>"$private_logs/isolation.stderr"
+  record ISOLATION_CHECK COMPLETED
+  record RUNNER_PREPARE ENTERED
+  run_user "$scripts/run_joint_control_plane.py" --server-binary "$alias_root/bin/server" --fixture-script "$scripts/joint_fixture.py" --private-root "$lab_private" --evidence-dir "$alias_root/evidence/staging/lab" --progress-root "$progress" --source-commit "$commit" >"$private_logs/runner.stdout" 2>"$private_logs/runner.stderr"
+  record PRIVATE_SANITIZER ENTERED
+  run_user "$scripts/sanitize_publication.py" private --private-root "$lab_private" --input "$alias_root/evidence/staging/lab" --progress-root "$progress" --source-commit "$commit" --output "$alias_root/evidence/staging/lab/private-checks.json" >"$private_logs/sanitizer.stdout" 2>"$private_logs/sanitizer.stderr"
+  record PRIVATE_SANITIZER COMPLETED
 fi

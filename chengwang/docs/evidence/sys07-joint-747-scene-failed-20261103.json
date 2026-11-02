@@ -1,0 +1,127 @@
+{
+  "schema": "chengwang.joint-control-plane-artifact-audit/v1",
+  "verdict": {
+    "artifactCustody": "ACCEPT",
+    "cpuPublication": "ACCEPT_PASS",
+    "sceneRuntime": "FAIL",
+    "sceneFailurePhase": "UNKNOWN",
+    "productAcceptance": false
+  },
+  "run": {
+    "repository": "zhiwen1987/Jydn-openclash",
+    "runId": 41484652782,
+    "runAttempt": 1,
+    "headSHA": "74730eb025189647e9deb2c4df72eec62bb54899",
+    "status": "completed",
+    "conclusion": "failure",
+    "failedStep": "Real B0 J1 R2 same-binary scene",
+    "failedStepNumber": 9,
+    "failedStepStartedAt": "2026-11-02T16:47:41Z",
+    "failedStepCompletedAt": "2026-11-02T16:47:48Z"
+  },
+  "custody": {
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "serialDownloads": true,
+    "signedURLPersistedOrPrinted": false,
+    "jobLogsRead": false,
+    "privateStreamsRead": false,
+    "zipDigestSizeCRCMemberSetAndReadbackVerified": true
+  },
+  "artifacts": [
+    {
+      "id": 13160978056,
+      "name": "joint-control-plane-cpu-41484652782-1",
+      "zipBytes": 275,
+      "zipSHA256": "e257306172dc8ea280f5066a3df5893cdaf9f58515f1509db81180ae27a5555c",
+      "memberCount": 1,
+      "members": [
+        {
+          "path": "cpu-summary.json",
+          "bytes": 172,
+          "crc32": 168785001,
+          "sha256": "d05a757831c7a1d0724d819255f5e0774ce90b1ba94e6cc1f84f7afa8b8169e8"
+        }
+      ]
+    },
+    {
+      "id": 13161506434,
+      "name": "joint-control-plane-41484652782-1",
+      "zipBytes": 476,
+      "zipSHA256": "c17dc7a68b1c367b3e53b39cc4394d2b03db4b13d1418218da105e6faadf0ee0",
+      "memberCount": 1,
+      "members": [
+        {
+          "path": "failure.json",
+          "bytes": 530,
+          "crc32": 3229636446,
+          "sha256": "9069955ab4989beef4021a602fae0068319f5c1e27f9ffae24c782d7a16f963f"
+        }
+      ]
+    }
+  ],
+  "cpuSummary": {
+    "schema": "chengwang.joint-control-plane-cpu-summary/v2",
+    "pythonTests": 47,
+    "pythonStatus": "PASS",
+    "goStatus": "PASS",
+    "rawLogsPublished": false,
+    "runtimeAcceptanceProven": false
+  },
+  "sceneFailure": {
+    "schema": "chengwang.joint-control-plane-safe-failure/v2",
+    "status": "FAIL",
+    "failureCode": "SCENE_FAILED",
+    "production": false,
+    "authorization": "BLOCKED",
+    "actualSKU": "UNKNOWN",
+    "privateEvidencePublished": false,
+    "retainedPrivateFileCount": 10,
+    "retainedPrivateBytes": 837592,
+    "privateAggregateSHA256": "707801910d9fa32014717fa690433618b3a5841e12936c4bf01fa1db6285460f",
+    "privateDiagnostics": {
+      "retainedPrivateFileCount": 59,
+      "retainedPrivateBytes": 88727,
+      "privateAggregateSHA256": "5835dc43e8c6fafd5009306d3605b64557bc1adf0a99c02fd319c14c729df34a"
+    },
+    "phaseFieldPresent": false,
+    "epochReached": "UNKNOWN"
+  },
+  "evidenceBoundary": {
+    "cpuSummaryProves": "the published bounded CPU projection reports 47 Python tests and Go status PASS for the bound run/head",
+    "cpuSummaryDoesNotProve": "B0/J1/R2 runtime or product acceptance",
+    "failureClassificationProves": "the scene failed and private evidence remained unpublished",
+    "failureClassificationDoesNotProve": "which namespace, fixture, B0, J1, R2, or finalization phase failed",
+    "timingInferenceRejected": "the seven-second scene step duration is not used to infer an epoch"
+  },
+  "minimalBoundedPhaseProposal": {
+    "status": "PROPOSAL_ONLY_NOT_IMPLEMENTED",
+    "productCodeChange": false,
+    "closedPhases": [
+      "NAMESPACE_SETUP",
+      "ISOLATION",
+      "FIXTURE",
+      "B0",
+      "J1",
+      "R2",
+      "FINALIZE"
+    ],
+    "mechanism": [
+      "The CI harness writes private, exclusive, canonical phase-entry and phase-completion markers using only the closed enum.",
+      "The failure sanitizer validates exact schema, enum, monotonic prefix, regular-file/no-symlink properties, and source-commit binding.",
+      "Only failurePhase and lastCompletedPhase are copied into the bounded public failure JSON; exception text, request/response bodies, raw logs, filenames, and private values remain unpublished.",
+      "Absent or invalid phase markers remain UNKNOWN or fail closed; they never manufacture runtime success.",
+      "The outer sanitizer independently validates the nested private classification before copying the two enum fields."
+    ],
+    "requiredNegativeTests": [
+      "unknown enum rejected",
+      "extra key rejected",
+      "out-of-order or skipped completion rejected",
+      "source-commit mismatch rejected",
+      "symlink/non-regular marker rejected",
+      "tampered nested phase rejected",
+      "missing marker publishes UNKNOWN without raw detail",
+      "phase publication never changes runtimeAcceptanceProven to true"
+    ]
+  }
+}
