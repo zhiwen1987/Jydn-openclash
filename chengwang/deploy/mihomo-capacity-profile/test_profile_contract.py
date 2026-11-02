@@ -220,6 +220,78 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         self.assertIn("GIT_NO_REPLACE_OBJECTS",text)
         self.assertIn("'sourceTree':tree",text)
 
+    def test_full_source_contract_binds_the_exact_normal_race_timeline_wrapper(self):
+        repo=Path(__file__).resolve().parents[3]
+        normal=self.reader.load_normal_checker()
+        sources={path:(repo/path).read_bytes() for path in normal.FILES}
+        manifest_paths=set(sources)
+        for package in self.reader.FULL_PACKAGES:
+            directory='chengwang/'+package.removeprefix('./')
+            manifest_paths.update(path.relative_to(repo).as_posix()
+                                  for path in (repo/directory).glob('*_test.go'))
+        manifest={'files':[{'path':path,'bytes':len(raw),'sha256':self.reader.sha(raw)}
+                           for path in sorted(manifest_paths)
+                           for raw in [(repo/path).read_bytes()]]}
+        _checker,required,binding=self.reader.full_source_contract(sources,manifest)
+        self.assertEqual(sum(len(names) for names in required.values()),689)
+        self.assertEqual(binding['mandatoryNamesSHA256'],self.reader.FULL_REQUIRED_PIN)
+
+        runner=sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']
+        self.assertEqual(self.reader.sha(runner),self.reader.NORMAL_RUN_CONTRACTS_SHA256)
+        self.assertTrue(runner.endswith(b'\n'));self.assertNotIn(b'\r',runner)
+        text=runner.decode('utf8').replace('\r\n','\n')
+        wrapper='\n'.join((
+            'python3 -B "$repo/chengwang/deploy/mihomo-lifecycle-lab/go_timeline_capture.py" spawn \\',
+            '  --lane FOUNDATION_RACE --raw "$out/race.json" --stderr "$out/race.stderr" \\',
+            '  --publication-parent "$timeline_public" --source-commit "$source_commit" --source-tree "$source_tree" -- \\',
+            '  "${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz',
+            'race_code=$?'))
+        privilege='\n'.join((
+            'common=(setpriv --reuid=10001 --regid=10001 --clear-groups --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all',
+            '  env -i "PATH=$goroot/bin:/usr/bin:/bin" "GOROOT=$goroot" HOME=/tmp/contracts-home TMPDIR=/tmp/contracts-home',
+            '  GOCACHE=/tmp/contracts-cache GOMODCACHE=/tmp/contracts-mod GOPROXY=off GOSUMDB=off',
+            '  GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor CGO_ENABLED=1 LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC)'))
+        legacy='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz > "$out/race.json" 2> "$out/race.stderr"'
+        self.assertEqual(text.count(wrapper),1)
+        self.assertEqual(text.count(privilege),1)
+        def mutate_wrapper(old,new):
+            changed=wrapper.replace(old,new,1)
+            self.assertNotEqual(changed,wrapper)
+            return text.replace(wrapper,changed,1)
+        mutations={
+            'old_and_new_coexist':text+'\n'+legacy+'\n',
+            'duplicate_wrapper':text+'\n'+wrapper+'\n',
+            'comment_spoof':text.replace(wrapper,'\n'.join('# '+line for line in wrapper.splitlines())),
+            'truncated_privilege_prefix':text.replace(privilege,privilege.replace(' --ambient-caps=-all','',1),1),
+            'changed_capture_path':mutate_wrapper('/go_timeline_capture.py" spawn','/changed_capture.py" spawn'),
+            'changed_lane':mutate_wrapper('--lane FOUNDATION_RACE','--lane CHANGED_RACE'),
+            'changed_raw_path':mutate_wrapper('--raw "$out/race.json"','--raw "$out/changed.json"'),
+            'changed_stderr_path':mutate_wrapper('--stderr "$out/race.stderr"','--stderr "$out/changed.stderr"'),
+            'changed_publication_path':mutate_wrapper('--publication-parent "$timeline_public"','--publication-parent "$out"'),
+            'changed_source_commit':mutate_wrapper('--source-commit "$source_commit"','--source-commit "0"'),
+            'changed_source_tree':mutate_wrapper('--source-tree "$source_tree"','--source-tree "0"'),
+            'missing_separator':mutate_wrapper('--source-tree "$source_tree" -- \\','--source-tree "$source_tree" \\'),
+            'changed_privilege_use':mutate_wrapper('  "${common[@]}" "$goroot/bin/go" test -race','  "$goroot/bin/go" test -race'),
+            'changed_go_path':mutate_wrapper('"$goroot/bin/go" test -race','"/usr/bin/go" test -race'),
+            'changed_go_option':mutate_wrapper('-timeout=180s ./internal/adapter','-timeout=179s ./internal/adapter'),
+            'changed_package_order':mutate_wrapper('./internal/adapter/mihomo ./internal/mihomodeploy','./internal/mihomodeploy ./internal/adapter/mihomo'),
+            'legacy_with_leading_space':text+'\n  '+legacy+'\n',
+            'legacy_with_equivalent_stderr_spacing':text+'\n'+legacy.replace(' 2> ',' 2 > ')+'\n',
+            'second_race_timeout_179':text+'\n'+legacy.replace('-timeout=180s','-timeout=179s')+'\n',
+            'changed_output_flag_form':mutate_wrapper('--raw "$out/race.json"','--raw="$out/race.json"'),
+            'privilege_moved_after_wrapper':text.replace(privilege+'\n','',1).replace(wrapper,wrapper+'\n'+privilege,1),
+            'extra_privilege_after_wrapper':text.replace(wrapper,wrapper+'\n'+privilege,1),
+            'commented_extra_race':text+'\n# '+legacy+'\n',
+            'heredoc_wrapper_spoof':text.replace(wrapper,"cat <<'RACE_SPOOF'\n"+wrapper+'\nRACE_SPOOF',1),
+            'capture_alias_refactor':mutate_wrapper('python3 -B "$repo/chengwang/deploy/mihomo-lifecycle-lab/go_timeline_capture.py"','capture_python "$repo/chengwang/deploy/mihomo-lifecycle-lab/go_timeline_capture.py"'),
+            'extra_race_alias':text+'\nrace_runner "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(self.reader.FULL_PACKAGES)+'\n',
+        }
+        for name,mutated in mutations.items():
+            with self.subTest(name=name):
+                self.assertNotEqual(mutated,text)
+                with self.assertRaises(ValueError):
+                    self.reader.normal_race_wrapper_contract(mutated.encode())
+
 
 if __name__ == '__main__':
     unittest.main()

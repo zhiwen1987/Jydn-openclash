@@ -23,8 +23,8 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 85e2235c79b92e2b8da842cb4c2abf0f4b2d4d94bbec5edfa3bb01737507de6b
-  CHECKER_SHA256: 1d5f245e7c443c5edaf4a57ca09972221a7d2fb9ca4b2454195c0d0b2ee45fe8
+  CONTRACT_SHA256: bf94d571b5cc892d5feaad827470698bdef50512788e5cc2a66ae04a99f4436a
+  CHECKER_SHA256: a597e14eae8e6d2a9e715b01e012c77fab2740d3336f4295fbca7c2ca89a67c5
   MODEL_SHA256: 08779f537fda4b202ee107c922d325eafbadc1c86a77344b41c388d75b4d3970
   EVENT_CHECKER_SHA256: 3577ba482e64d28105deaf848930a5b1ef61bd9bbf6088a67168c66dd24aa60b
   EVENT_MODEL_SHA256: 32e29237c0fa812135ebe7fb3f22e3a1b398e9409053d21c9274dbd100583ec7
@@ -33,15 +33,15 @@ env:
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: 3c8e3abb1eabe15117b07128a753faa5610fb8927c2dc07b1f367f538c032af1
   MODULE_COUNT: '842'
-  MODULE_SHA256: fd548b8bc8f8724a0c73ff2453a57d1011e2fbeddb0db97fb754641bd6a1e3ec
+  MODULE_SHA256: 8f5c3ff74e7d60744e0cbeef544f46cf3936268b478e51eb743241c3db06949d
   FIXTURE_COUNT: '21'
   FIXTURE_SHA256: 7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11
   TEST_TOP_COUNT: '545'
   TEST_TOPS_SHA256: 7898897a68f05e1222869c1e807d10a9c8b6a129f2185870a4464800bfe34a61
   RUN_TOP_COUNT: '528'
   RUN_TOPS_SHA256: 63be983c7870008b3be4ba2bfb7feebee1dfe4c344e98b5ad5833c361997b8c1
-  CHANGED_GO_COUNT: '38'
-  CHANGED_GO_SHA256: 18610d46afbcaf90701420d8c314224b867771a3453b16355a9c31a5f9e10e36
+  CHANGED_GO_COUNT: '39'
+  CHANGED_GO_SHA256: c04284b81403e64b448a420413942392d0424b7f62bd19fe105c8742379e4d98
 
 jobs:
   source-models:
@@ -158,6 +158,7 @@ jobs:
             chengwang/internal/evidence/archive_existing_source_test.go
             chengwang/internal/evidence/archive_existing_test.go
             chengwang/internal/evidence/archive_existing_unsupported.go
+            chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go
             chengwang/internal/nativefs/linux_class.go
             chengwang/internal/nativefs/linux_magic_generated.go
             chengwang/internal/nativefs/linux_magic_test.go

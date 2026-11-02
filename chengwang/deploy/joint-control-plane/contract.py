@@ -96,6 +96,10 @@ SOURCE_CONTRACT_SCENE = frozenset((
     "chengwang/deploy/joint-control-plane/test_joint_fixture.py",
     "chengwang/deploy/joint-control-plane/test_run_joint_control_plane.py",
     "chengwang/deploy/joint-control-plane/test_sanitize_publication.py",
+    "chengwang/deploy/joint-control-plane/uid_probe_diagnostic.py",
+    "chengwang/deploy/joint-control-plane/check_uid_probe_diagnostic.py",
+    "chengwang/deploy/joint-control-plane/test_uid_probe_diagnostic.py",
+    "chengwang/deploy/joint-control-plane/test_check_uid_probe_diagnostic.py",
 ))
 
 FAILURE_PHASES = (

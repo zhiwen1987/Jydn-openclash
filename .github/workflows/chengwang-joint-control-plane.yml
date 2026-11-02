@@ -12,8 +12,10 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 0167088d804e1c1db65fc4554469d51ce09d4dc4df43b4cb29ed57459610f646
+  CONTRACT_SHA256: 833f76b2d8584c5cad7f6117ab5393aed6f179e8c6f0d5c81c10489c56270bcc
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
+  UID_PROBE_PRODUCER_SHA256: 7456e8a933f5d577f4302887c32e575da296d44aed02a3cba6353a442827dca2
+  UID_PROBE_CHECKER_SHA256: db3fdcee0a0383f6ae0d05d03971ca90ccc4f0aecb9ef8941082b2d5f035f489
 jobs:
   joint-control-plane:
     runs-on: ubuntu-24.04
@@ -134,26 +136,87 @@ jobs:
           root="$RUNNER_TEMP/joint-control-plane"; test ! -e "$root"; install -d -m 0700 "$root/bin" "$root/evidence/staging/lab"
           python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --output "$root/evidence/staging/lab/source-before.json"
       - name: Probe isolated Linux UID custody
+        id: uid_probe
         run: |
-          set -euo pipefail
+          set -uo pipefail
           script="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py"
+          producer="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/uid_probe_diagnostic.py"
+          private="$RUNNER_TEMP/joint-control-plane-uid-probe-private"
+          journal="$private/journal.json"; candidate="$private/uid-probe-diagnostic.json"
+          test ! -e "$private" || exit 1; install -d -m 0700 "$private" || exit 1
+          test "$(sha256sum "$producer" | cut -d' ' -f1)" = "$UID_PROBE_PRODUCER_SHA256" || exit 1
           runner_device="$(stat -Lc '%d' -- "$RUNNER_TEMP")"; runner_inode="$(stat -Lc '%i' -- "$RUNNER_TEMP")"
           common=(bootstrap-permission-probe --runner-temp "$RUNNER_TEMP" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --runner-device "$runner_device" --runner-inode "$runner_inode")
           root_probe(){ sudo --non-interactive /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
           uid_probe(){ sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
-          probe_active=false
-          cleanup_probe(){ set +e; root_probe root-cleanup >/dev/null 2>/dev/null; cleanup_code=$?; root_probe root-final-absence >/dev/null 2>/dev/null; absence_code=$?; set -e; test "$cleanup_code" = 0 && test "$absence_code" = 0; }
-          finish_probe(){ code=$?; trap - EXIT; if test "$probe_active" = true; then cleanup_probe || code=1; fi; exit "$code"; }
-          trap finish_probe EXIT
-          root_probe root-setup
-          probe_active=true
-          uid_probe uid-prepublish-denials
-          root_probe root-finalize
-          uid_probe uid-final-read-and-rename
-          uid_probe uid-install-replacement
-          root_probe root-reject-replacement
-          cleanup_probe
-          trap - EXIT
+          diagnostic=(/usr/bin/python3 -I -B "$producer" --journal "$journal" --source-commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT")
+          "${diagnostic[@]}" init || exit 1
+          preflight_code='import os,sys
+          try:
+           runner=os.access(sys.argv[1],os.X_OK,effective_ids=True); readable=False
+           try:
+            fd=os.open(sys.argv[2],os.O_RDONLY|os.O_CLOEXEC|getattr(os,"O_NOFOLLOW",0));os.read(fd,1);os.close(fd);readable=True
+           except OSError: pass
+           raise SystemExit(0 if runner and readable else 41 if not runner and readable else 42 if runner else 43)
+          except SystemExit: raise
+          except BaseException: raise SystemExit(44)'
+          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$preflight_code" "$RUNNER_TEMP" "$script" >/dev/null 2>/dev/null; then preflight_status=0; else preflight_status=$?; fi
+          case "$preflight_status" in 0) preflight=BOTH_ACCESSIBLE;; 41) preflight=RUNNER_TEMP_NOT_SEARCHABLE;; 42) preflight=SOURCE_SCRIPT_NOT_READABLE;; 43) preflight=BOTH_INACCESSIBLE;; *) preflight=PREFLIGHT_EXECUTION_FAILED;; esac
+          diagnostic_failed=false
+          test "$preflight" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true
+          if "${diagnostic[@]}" preflight --classification "$preflight"; then :; else diagnostic_failed=true; fi
+          original_code=0; cleanup_attempted=false; absence_attempted=false; probe_active=true
+          record_event(){ local event_mode="$1" event_status="$2"; if "${diagnostic[@]}" event --mode "$event_mode" --exit-status "$event_status"; then :; else diagnostic_failed=true; fi; }
+          run_root(){ local probe_mode="$1" mode_status; if root_probe "$probe_mode" >/dev/null 2>/dev/null; then mode_status=0; else mode_status=$?; fi; record_event "$probe_mode" "$mode_status"; return "$mode_status"; }
+          run_uid(){ local probe_mode="$1" mode_status; if uid_probe "$probe_mode" >/dev/null 2>/dev/null; then mode_status=0; else mode_status=$?; fi; record_event "$probe_mode" "$mode_status"; return "$mode_status"; }
+          cleanup_probe(){
+            local cleanup_status absence_status
+            if run_root root-cleanup; then cleanup_status=0; else cleanup_status=$?; fi; cleanup_attempted=true
+            if run_root root-final-absence; then absence_status=0; else absence_status=$?; fi; absence_attempted=true
+            if test "$cleanup_status" != 0; then return "$cleanup_status"; fi
+            return "$absence_status"
+          }
+          finish_probe(){
+            local saved_exit="$1" final_status cleanup_status
+            trap - EXIT
+            final_status="$saved_exit"
+            if test "$original_code" != 0; then final_status="$original_code"; fi
+            if test "$probe_active" = true && { test "$cleanup_attempted" != true || test "$absence_attempted" != true; }; then
+              if cleanup_probe; then :; else cleanup_status=$?; test "$final_status" != 0 || final_status="$cleanup_status"; fi
+            fi
+            if test "$diagnostic_failed" = true; then test "$final_status" != 0 || final_status=1; fi
+            if "${diagnostic[@]}" finalize --exit-status "$final_status" --output "$candidate"; then :; else test "$final_status" != 0 || final_status=1; fi
+            exit "$final_status"
+          }
+          trap 'finish_probe "$?"' EXIT
+          if run_root root-setup; then :; else original_code=$?; fi
+          if test "$original_code" = 0; then if run_uid uid-prepublish-denials; then :; else original_code=$?; fi; fi
+          if test "$original_code" = 0; then if run_root root-finalize; then :; else original_code=$?; fi; fi
+          if test "$original_code" = 0; then if run_uid uid-final-read-and-rename; then :; else original_code=$?; fi; fi
+          if test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi
+          if test "$original_code" = 0; then if run_root root-reject-replacement; then :; else original_code=$?; fi; fi
+          if cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi
+          exit "$original_code"
+      - name: Independently validate UID probe diagnostic
+        if: always()
+        id: uid_probe_diagnostic
+        run: |
+          set -uo pipefail
+          private="$RUNNER_TEMP/joint-control-plane-uid-probe-private"; public="$RUNNER_TEMP/joint-control-plane-uid-probe-public"
+          test ! -e "$public" || exit 1; install -d -m 0700 "$public" || exit 1
+          if python3 -I -B chengwang/deploy/joint-control-plane/check_uid_probe_diagnostic.py --input "$private/uid-probe-diagnostic.json" --output "$public/uid-probe-diagnostic.json" --source-commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --producer chengwang/deploy/joint-control-plane/uid_probe_diagnostic.py --expected-producer-sha256 "$UID_PROBE_PRODUCER_SHA256" --expected-checker-sha256 "$UID_PROBE_CHECKER_SHA256"; then
+            if echo 'ready=true' >> "$GITHUB_OUTPUT"; then exit 0; else exit 1; fi
+          else
+            exit 1
+          fi
+      - name: Upload only validated UID probe diagnostic
+        if: ${{ always() && steps.uid_probe_diagnostic.outputs.ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: joint-control-plane-uid-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane-uid-probe-public/uid-probe-diagnostic.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Build once
         run: |
           set -euo pipefail
@@ -209,6 +272,28 @@ jobs:
           path: ${{ runner.temp }}/joint-control-plane/evidence/public/
           if-no-files-found: warn
           retention-days: 14
+  uid-probe-independent-replay:
+    if: ${{ always() }}
+    needs: joint-control-plane
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - name: Refuse every non-candidate ref
+        run: test "$GITHUB_REF" = "$EXACT_REF"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: joint-control-plane-uid-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane-uid-probe-replay-input
+      - name: Replay UID probe checker
+        run: |
+          set -euo pipefail
+          input="$RUNNER_TEMP/joint-control-plane-uid-probe-replay-input/uid-probe-diagnostic.json"; output="$RUNNER_TEMP/joint-control-plane-uid-probe-replay/uid-probe-diagnostic.json"
+          test ! -e "$RUNNER_TEMP/joint-control-plane-uid-probe-replay"; install -d -m 0700 "$RUNNER_TEMP/joint-control-plane-uid-probe-replay"
+          python3 -I -B chengwang/deploy/joint-control-plane/check_uid_probe_diagnostic.py --input "$input" --output "$output" --source-commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --producer chengwang/deploy/joint-control-plane/uid_probe_diagnostic.py --expected-producer-sha256 "$UID_PROBE_PRODUCER_SHA256" --expected-checker-sha256 "$UID_PROBE_CHECKER_SHA256"
+          cmp "$input" "$output"
+          git diff --exit-code; test -z "$(git status --porcelain --untracked-files=all)"
   independent-replay:
     needs: joint-control-plane
     runs-on: ubuntu-24.04

@@ -4,7 +4,8 @@ import argparse, ast, errno, hashlib, importlib.util, json, os, pathlib, re, sel
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_ci_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 WORKFLOW=".github/workflows/chengwang-joint-control-plane.yml"
-MODEL_TEST_SOURCES=("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py")
+WORKFLOW_NORMALIZED_SHA256="42dfcfe0a5ee4b58ed53802f20933f7a716cb19b44264bafbf41cfa478ae2579"
+MODEL_TEST_SOURCES=("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py","test_uid_probe_diagnostic.py","test_check_uid_probe_diagnostic.py")
 MODEL_OUTCOMES=("PASS","FAIL","ERROR","SKIP","UNKNOWN")
 MODEL_DIAGNOSTIC_SCHEMA="chengwang.joint-control-plane-model-outcomes/v1"
 MODEL_DIAGNOSTIC_MAXIMUM=16384
@@ -135,8 +136,14 @@ MODEL_UPLOAD_STEP=(
 )
 def need(ok):
     if not ok:raise ValueError("joint-ci-rejected")
-def workflow_contract(raw):
+def normalized_workflow(raw):
+    need(type(raw)is bytes and raw.endswith(b"\n") and b"\r" not in raw and b"\t" not in raw)
+    pattern=rb"(?m)^  CONTRACT_SHA256: [a-f0-9]{64}$"
+    need(len(re.findall(pattern,raw))==1)
+    return re.sub(pattern,b"  CONTRACT_SHA256: <SOURCE_CONTRACT_SHA256>",raw)
+def workflow_contract(raw,source_contract_raw=None):
     need(type(raw)is bytes and 0<len(raw)<=65536 and b"\r" not in raw and b"\t" not in raw)
+    need(hashlib.sha256(normalized_workflow(raw)).hexdigest()==WORKFLOW_NORMALIZED_SHA256)
     try:lines=raw.decode("utf-8","strict").split("\n")
     except UnicodeDecodeError:raise ValueError("joint-ci-rejected") from None
     need(lines.count("  joint-control-plane:")==1 and lines.count("    steps:")>=1)
@@ -160,6 +167,28 @@ def workflow_contract(raw):
     need(named.get("CPU contracts and Go suite")==CPU_STEP)
     need(named.get("Preserve bounded CPU publication only")==CPU_UPLOAD_STEP)
     need(named.get("Preserve source-bound model outcome diagnostic only")==MODEL_UPLOAD_STEP)
+    text=raw.decode("utf-8","strict")
+    if source_contract_raw is None:source_contract_raw=(HERE/"source_contract.json").read_bytes()
+    need(type(source_contract_raw)is bytes and text.count("  CONTRACT_SHA256: "+hashlib.sha256(source_contract_raw).hexdigest())==1)
+    required=(
+        "UID_PROBE_PRODUCER_SHA256: 7456e8a933f5d577f4302887c32e575da296d44aed02a3cba6353a442827dca2",
+        "UID_PROBE_CHECKER_SHA256: db3fdcee0a0383f6ae0d05d03971ca90ccc4f0aecb9ef8941082b2d5f035f489",
+        "- name: Probe isolated Linux UID custody",
+        "id: uid_probe",
+        "test \"$preflight\" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true",
+        "if run_root root-setup; then :; else original_code=$?; fi",
+        "if run_root root-cleanup; then cleanup_status=0; else cleanup_status=$?; fi",
+        "if run_root root-final-absence; then absence_status=0; else absence_status=$?; fi",
+        "trap 'finish_probe \"$?\"' EXIT",
+        "- name: Independently validate UID probe diagnostic",
+        "id: uid_probe_diagnostic",
+        "if echo 'ready=true' >> \"$GITHUB_OUTPUT\"; then exit 0; else exit 1; fi",
+        "if: ${{ always() && steps.uid_probe_diagnostic.outputs.ready == 'true' }}",
+        "path: ${{ runner.temp }}/joint-control-plane-uid-probe-public/uid-probe-diagnostic.json",
+        "\n  uid-probe-independent-replay:\n",
+        "name: joint-control-plane-uid-probe-${{ github.run_id }}-${{ github.run_attempt }}",
+    )
+    need(all(text.count(value)==1 if value.startswith(("UID_PROBE_","\n  uid-probe-independent")) else text.count(value)>=1 for value in required))
     return True
 def run(*args):return subprocess.check_output(list(args),stderr=subprocess.DEVNULL,timeout=30)
 def emit(path,value):

@@ -217,6 +217,7 @@ FULL_CANDIDATE_SEAL_ADDED=frozenset({
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealPreservesExternalDigestGate',
     'chengwang/internal/mihomodeploy::TestLifecycleRecoveryCandidateSealRechecksEveryArchivedPlan'})
 NORMAL_CHECKER='chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py'
+NORMAL_RUN_CONTRACTS_SHA256='96197fc770469d9d19fc49150838d29053ec7ff8b2fba004e662a278fffc6afc'
 PUBLIC=('host-before.json','host-after.json','source-before.json','source-after.json','sandbox.json','go-version.txt',
     'gofmt.patch','gofmt.stderr','capacity.json','capacity.stderr','commands.jsonl','execution.json',
     'profile-state.json','cpu-profile.json','pprof-top.txt','pprof-top.stderr','pprof-cum.txt','pprof-cum.stderr')
@@ -346,6 +347,33 @@ def load_normal_checker(sources=None):
     need(module.PACKAGES=={'chengwang'+p[1:]for p in FULL_PACKAGES} and len(module.FILES)==len(set(module.FILES))==185 and len(module.TEST_FILES)==58)
     return module
 
+def exact_block_count(lines,block):
+    need(type(lines)is list and all(type(line)is str for line in lines))
+    need(type(block)is tuple and block and all(type(line)is str and line for line in block))
+    width=len(block)
+    return sum(tuple(lines[index:index+width])==block for index in range(len(lines)-width+1))
+
+def normal_race_wrapper_contract(raw):
+    need(type(raw)is bytes)
+    need(raw.endswith(b'\n') and b'\r'not in raw and sha(raw)==NORMAL_RUN_CONTRACTS_SHA256)
+    lines=raw.decode('utf8','strict').splitlines()
+    privilege=(
+        'common=(setpriv --reuid=10001 --regid=10001 --clear-groups --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all',
+        '  env -i "PATH=$goroot/bin:/usr/bin:/bin" "GOROOT=$goroot" HOME=/tmp/contracts-home TMPDIR=/tmp/contracts-home',
+        '  GOCACHE=/tmp/contracts-cache GOMODCACHE=/tmp/contracts-mod GOPROXY=off GOSUMDB=off',
+        '  GOENV=off GOTOOLCHAIN=local GOFLAGS=-mod=vendor CGO_ENABLED=1 LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC)')
+    go='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)
+    wrapper=(
+        'python3 -B "$repo/chengwang/deploy/mihomo-lifecycle-lab/go_timeline_capture.py" spawn \\',
+        '  --lane FOUNDATION_RACE --raw "$out/race.json" --stderr "$out/race.stderr" \\',
+        '  --publication-parent "$timeline_public" --source-commit "$source_commit" --source-tree "$source_tree" -- \\',
+        '  '+go,
+        'race_code=$?')
+    legacy=go+' > "$out/race.json" 2> "$out/race.stderr"'
+    need(exact_block_count(lines,privilege)==1)
+    need(exact_block_count(lines,wrapper)==1)
+    need(lines.count(legacy)==0)
+
 def full_source_contract(sources,manifest):
     checker=load_normal_checker(sources);need(set(sources)==set(checker.FILES))
     need(type(manifest)is dict and type(manifest.get('files'))is list)
@@ -435,10 +463,10 @@ def full_source_contract(sources,manifest):
     # from ordinary mandatory names, while the four core+D sources are new.
     previous84={path:digest for path,digest in previous88.items()if path not in core_d_test_sources}
     need(len(previous84)==84 and completion_source in previous84)
-    # Bind the diagnosis's six-package command to the unchanged normal race
-    # command, allowing only the fixed diagnostic tag and test filter.
-    normal='"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s '+' '.join(FULL_PACKAGES)+' > "$out/race.json" 2> "$out/race.stderr"'
-    need(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh'].decode().splitlines().count(normal)==1)
+    # Bind the diagnosis's six-package command to the normal race command's
+    # exact privilege prefix and safe timeline wrapper.  A legacy direct
+    # command may not coexist with the wrapper.
+    normal_race_wrapper_contract(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh'])
     return checker,required,{'sourceCount':len(sources),'mandatoryTopLevelCount':689,'mandatoryNamesSHA256':FULL_REQUIRED_PIN,
         'normalCheckerSHA256':sha(sources[NORMAL_CHECKER]),'normalRunContractsSHA256':sha(sources['chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh']),
         'completePackageTestSourceCount':len(suite_test_sources),'completePackageTestSourceSHA256':suite_test_sources,

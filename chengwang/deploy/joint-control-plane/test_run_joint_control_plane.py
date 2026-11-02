@@ -119,7 +119,7 @@ class RunnerContracts(unittest.TestCase):
             self.assertNotIn(secret,raw)
     def test_model_outcome_inventory_is_exact_four_source_top_level_ast(self):
         names,names_sha,source_sha=CI._model_inventory();independent=[]
-        self.assertEqual(CI.MODEL_TEST_SOURCES,("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py"))
+        self.assertEqual(CI.MODEL_TEST_SOURCES,("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py","test_uid_probe_diagnostic.py","test_check_uid_probe_diagnostic.py"))
         for filename in CI.MODEL_TEST_SOURCES:
             tree=ast.parse((HERE/filename).read_bytes());module=filename[:-3]
             independent.extend(module+"."+cls.name+"."+method.name for cls in tree.body if isinstance(cls,ast.ClassDef)
@@ -364,7 +364,29 @@ class RunnerContracts(unittest.TestCase):
         def run(code,timeout=2):return CI._bounded_child([sys.executable,"-I","-B","-c",code],expected,timeout=timeout)
         self.assertEqual(run("import os;os.write(1,"+repr(expected)+")"),"PASS")
         self.assertEqual(run("import os,sys;os.write(2,b'PRIVATE STDERR');sys.exit(7)"),"COMMAND_NONZERO")
-        self.assertEqual(run("import os;os.write(1,b'bad')"),"STDOUT_INVALID")
+        class Stream:
+            def __init__(self):self.closed=False
+            def fileno(self):return 17
+            def close(self):self.closed=True
+        class Process:
+            def __init__(self):self.stdout=Stream();self.calls=[];self.code=0
+            def poll(self):return self.code
+            def wait(self,timeout):self.calls.append(("wait",timeout));return self.code
+            def terminate(self):self.calls.append(("terminate",None))
+            def kill(self):self.calls.append(("kill",None))
+        class Selector:
+            def __init__(self):self.registered=[];self.select_calls=[];self.closed=False
+            def register(self,*args):self.registered.append(args)
+            def select(self,timeout):self.select_calls.append(timeout);return [(object(),1)]
+            def close(self):self.closed=True
+        process=Process();selector=Selector();chunks=[b"bad",b""];read_sizes=[];blocking=[]
+        def read_fd(fd,size):read_sizes.append((fd,size));return chunks.pop(0)
+        state=CI._bounded_child(["fixed"],expected,popen=lambda *a,**k:process,platform="posix",
+            selector_factory=lambda:selector,set_blocking=lambda *a:blocking.append(a),read_fd=read_fd)
+        self.assertEqual(state,"STDOUT_INVALID");self.assertEqual(chunks,[])
+        self.assertEqual(read_sizes,[(17,1025),(17,1022)]);self.assertEqual(blocking,[(17,False)])
+        self.assertEqual(selector.registered,[(17,CI.selectors.EVENT_READ)]);self.assertEqual(len(selector.select_calls),2);self.assertTrue(selector.closed)
+        self.assertTrue(process.stdout.closed);self.assertEqual(len(process.calls),1);self.assertEqual(process.calls[0][0],"wait")
         self.assertEqual(run("import os,time;os.write(1,b'X'*1025);time.sleep(2)"),"STDOUT_OVERSIZE")
         self.assertEqual(run("import time;time.sleep(2)",timeout=0.1),"TIMEOUT")
         def spawn_error(*args,**kwargs):raise OSError("PRIVATE SPAWN")
@@ -464,6 +486,8 @@ class RunnerContracts(unittest.TestCase):
             for _ in range(occurrence):
                 index=workflow.find(old,start);self.assertGreaterEqual(index,0);start=index+len(old)
             return workflow[:index]+new+workflow[index+len(old):]
+        uid_block=workflow.split("      - name: Probe isolated Linux UID custody\n",1)[1].split("      - name: Independently validate UID probe diagnostic\n",1)[0]
+        contract_pin=next(line for line in workflow.splitlines() if line.startswith("  CONTRACT_SHA256: "))
         outcome='          BOOTSTRAP_STEP_OUTCOME: ${{ steps.bootstrap_progress.outcome }}'
         mutants={
             "hardcoded-outer-success":once(outcome,'          BOOTSTRAP_STEP_OUTCOME: success',2),
@@ -486,6 +510,23 @@ class RunnerContracts(unittest.TestCase):
             "model-upload-cross-directory":once("path: ${{ runner.temp }}/joint-control-plane-model-outcome-public/model-outcome.json","path: ${{ runner.temp }}/joint-control-plane-cpu-public/model-outcome.json"),
             "model-units-source-binding-removed":once('ci_joint_control_plane.py units --output "$private/units.json" --model-diagnostic "$private/model-outcome.json" --source-commit "$GITHUB_SHA"','ci_joint_control_plane.py units --output "$private/units.json" --model-diagnostic "$private/model-outcome.json"'),
             "model-independent-validator-removed":once('          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py model-diagnostic --input "$private/model-outcome.json" --source-commit "$GITHUB_SHA" --output "$model_public/model-outcome.json"; then\n'),
+            "uid-diagnostic-upload-bypass":once("        if: ${{ always() && steps.uid_probe_diagnostic.outputs.ready == 'true' }}","        if: always()"),
+            "uid-diagnostic-ready-write-unchecked":once("if echo 'ready=true' >> \"$GITHUB_OUTPUT\"; then exit 0; else exit 1; fi","echo 'ready=true' >> \"$GITHUB_OUTPUT\""),
+            "uid-diagnostic-preflight-failure-green":once('          test "$preflight" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true\n'),
+            "uid-diagnostic-cleanup-missing":once('if run_root root-cleanup; then cleanup_status=0; else cleanup_status=$?; fi','cleanup_status=0'),
+            "uid-diagnostic-final-absence-missing":once('if run_root root-final-absence; then absence_status=0; else absence_status=$?; fi','absence_status=0'),
+            "uid-diagnostic-independent-replay-removed":once('  uid-probe-independent-replay:\n','  removed-uid-probe-independent-replay:\n'),
+            "uid-diagnostic-producer-pin-drift":once("7456e8a933f5d577f4302887c32e575da296d44aed02a3cba6353a442827dca2","0"*64),
+            "uid-root-escalation":once("--reuid=10001","--reuid=0"),
+            "uid-clear-groups-removed":once("--clear-groups "),
+            "main-timeout-expanded":once("    timeout-minutes: 18","    timeout-minutes: 180"),
+            "uid-install-call-removed":once('          if test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n'),
+            "exact-ref-drift":once("  EXACT_REF: refs/heads/codex/chengwang-unified-20261102","  EXACT_REF: refs/heads/main"),
+            "source-contract-pin-drift":once(contract_pin,"  CONTRACT_SHA256: "+"0"*64),
+            "head-source-binding-removed":once('          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"\n'),
+            "uid-step-duplicated":once("      - name: Independently validate UID probe diagnostic\n","      - name: Probe isolated Linux UID custody\n"+uid_block+"      - name: Independently validate UID probe diagnostic\n"),
+            "uid-replay-truncated":once('          cmp "$input" "$output"\n'),
+            "uid-install-comment-spoof":once('          if test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n','          # if run_uid uid-install-replacement; then :; else original_code=$?; fi\n'),
         }
         for name,mutant in mutants.items():
             with self.subTest(name=name),self.assertRaises(ValueError):CI.workflow_contract(mutant.encode())
@@ -494,13 +535,53 @@ class RunnerContracts(unittest.TestCase):
         self.assertEqual(CI.PROBE_MODES,{"root-setup","uid-prepublish-denials","root-finalize","uid-final-read-and-rename","uid-install-replacement","root-reject-replacement","root-cleanup","root-final-absence"})
         probe=workflow.split("      - name: Probe isolated Linux UID custody",1)[1].split("      - name: Build once",1)[0]
         self.assertLess(workflow.index("Prepare immutable source and staging"),workflow.index("Probe isolated Linux UID custody"));self.assertLess(workflow.index("Probe isolated Linux UID custody"),workflow.index("Bootstrap bounded namespace progress"))
-        for forbidden in ('$RUNNER_TEMP/joint-control-plane',' go ','unshare','curl','wget','systemctl','docker'):
+        for forbidden in ('private="$RUNNER_TEMP/joint-control-plane"','root="$RUNNER_TEMP/joint-control-plane"',' go ','unshare','curl','wget','systemctl','docker'):
             self.assertNotIn(forbidden,probe)
         for mode in CI.PROBE_MODES:self.assertIn(mode,probe+source)
-        self.assertIn("trap finish_probe EXIT",probe);self.assertIn("probe_active=false",probe);self.assertLess(probe.index("root_probe root-setup"),probe.index("probe_active=true"));self.assertIn("root-final-absence",probe);self.assertNotIn("rmtree",ast.unparse(tree))
+        self.assertIn("trap 'finish_probe \"$?\"' EXIT",probe);self.assertIn("probe_active=true",probe);self.assertIn("if run_root root-setup; then :; else original_code=$?; fi",probe);self.assertIn("root-final-absence",probe);self.assertNotIn("rmtree",ast.unparse(tree))
         function=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=="bootstrap_permission_probe")
         constants={node.value for node in ast.walk(function) if isinstance(node,ast.Constant) and isinstance(node.value,str)}
         self.assertTrue(CI.PROBE_MODES-{"root-final-absence"}<=constants);self.assertTrue(all(mode in source for mode in CI.PROBE_MODES));self.assertNotIn("ACTUAL_UID_PERMISSION_MICROPROBE_PASS",workflow+source)
+    def test_uid_probe_bash_preserves_cleanup_absence_and_outer_exit_status(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text()
+        block=workflow.split("      - name: Probe isolated Linux UID custody\n",1)[1].split("      - name: Independently validate UID probe diagnostic\n",1)[0]
+        probe=block.split("        run: |\n",1)[1]
+        probe="\n".join(line[10:] if line.startswith("          ") else line for line in probe.splitlines())+"\n"
+        probe=probe.replace('diagnostic=(/usr/bin/python3 -I -B "$producer"','diagnostic=(diagnostic_stub')
+        probe=probe.replace('if cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi','test "$INJECT_OUTER_EXIT" != true || exit 17\nif cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi')
+        bash=shutil.which("bash")
+        if bash is None:
+            candidate=pathlib.Path(os.environ.get("ProgramFiles",r"C:\Program Files"))/"Git/bin/bash.exe"
+            self.assertTrue(candidate.is_file());bash=str(candidate)
+        source=str(HERE.parents[2]).replace("\\","/");producer_hash=CI.hashlib.sha256((HERE/"uid_probe_diagnostic.py").read_bytes()).hexdigest()
+        modes=("root-setup","uid-prepublish-denials","root-finalize","uid-final-read-and-rename","uid-install-replacement","root-reject-replacement","root-cleanup","root-final-absence")
+        for name,fail_mode,fail_status,inject,want in (("cleanup31","root-cleanup",31,False,31),("absence32","root-final-absence",32,False,32),("outer17","",0,True,17)):
+            with self.subTest(name=name),tempfile.TemporaryDirectory() as directory:
+                root=pathlib.Path(directory);runner=root/"runner";runner.mkdir();trace=root/"trace";candidate=root/"candidate"
+                runner_text=str(runner).replace("\\","/");trace_text=str(trace).replace("\\","/")
+                harness=f'''set +e
+export GITHUB_WORKSPACE={json.dumps(source)} RUNNER_TEMP={json.dumps(runner_text)} GITHUB_SHA={'1'*40} GITHUB_RUN_ID=71 GITHUB_RUN_ATTEMPT=8 UID_PROBE_PRODUCER_SHA256={producer_hash}
+export FAIL_MODE={json.dumps(fail_mode)} FAIL_STATUS={fail_status} INJECT_OUTER_EXIT={'true' if inject else 'false'} TRACE={json.dumps(trace_text)}
+install() {{ local target="${{@: -1}}"; mkdir "$target"; }}
+sudo() {{
+  local mode="" previous="" argument
+  for argument in "$@"; do if test "$previous" = --probe-mode; then mode="$argument"; fi; previous="$argument"; done
+  if test -n "$mode"; then printf 'call:%s\\n' "$mode" >> "$TRACE"; if test "$mode" = "$FAIL_MODE"; then return "$FAIL_STATUS"; fi; return 0; fi
+  return 0
+}}
+diagnostic_stub() {{
+  local command="" mode="" status="" previous="" argument
+  for argument in "$@"; do case "$argument" in init|preflight|event|finalize) command="$argument";; esac; case "$previous" in --mode) mode="$argument";; --exit-status) status="$argument";; esac; previous="$argument"; done
+  printf 'diagnostic:%s:%s:%s\\n' "$command" "$mode" "$status" >> "$TRACE"
+  if test "$command" = finalize && test "$INJECT_OUTER_EXIT" = true; then printf 'reject-finalize:%s\\n' "$status" >> "$TRACE"; return 1; fi
+  return 0
+}}
+'''+probe
+                completed=subprocess.run([bash],input=harness.encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=20,check=False)
+                self.assertEqual(completed.returncode,want);self.assertEqual(completed.stdout,b"");self.assertNotIn(b"PRIVATE",completed.stderr)
+                rows=trace.read_text().splitlines();calls=[row.split(":",1)[1] for row in rows if row.startswith("call:")]
+                self.assertEqual(calls,list(modes));self.assertIn(f"diagnostic:finalize::{want}",rows);self.assertFalse(candidate.exists())
+                if inject:self.assertIn("reject-finalize:17",rows)
     def test_uid_probe_root_derivation_rejects_bad_identity_and_is_never_product_staging(self):
         with tempfile.TemporaryDirectory() as d:
             runner=pathlib.Path(d).resolve();meta=runner.lstat()

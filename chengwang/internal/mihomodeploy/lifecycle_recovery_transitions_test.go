@@ -390,6 +390,54 @@ func TestLifecycleRecoveryRevokedHistoryPersistsAcrossNextPlanAndNewOwner(t *tes
 		t.Fatal("MODEL revoked ID reused")
 	}
 }
+
+// MODEL ONLY. This fixture starts from exact canonical bytes that already
+// contain a real persisted owner. It never accepts a live store, disk, token or
+// record pointer, and strict-decodes those bytes before constructing history.
+func lifecycleRecoveryFullHistoryFixtureBytes(baseRaw []byte, descriptors []labRecoveryPlanDescriptor, now time.Time) ([]byte, lifecycleV3Record, error) {
+	baseBytes := bytes.Clone(baseRaw)
+	base, err := decodeLifecycleV3Record(baseBytes)
+	if err != nil || base.core == nil || base.core.Recovery != nil || len(base.core.RecoveryHistory) != 0 || base.core.RecoveryOwner == nil {
+		return nil, lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	canonicalBase, err := encodeLifecycleV3Record(base)
+	if err != nil || !bytes.Equal(canonicalBase, baseBytes) {
+		return nil, lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	baseRevision := base.core.Revision
+	for i, descriptor := range descriptors {
+		revision := baseRevision + 2*uint64(i+1)
+		if revision < baseRevision {
+			return nil, lifecycleV3Record{}, errLifecycleUnsafe
+		}
+		txn := lifecycleRecoveryTxn{
+			Plan: descriptor, Phase: "REVOKED_UNSTARTED",
+			Revocation: &lifecycleRevocation{Revision: revision, At: now, Reason: "EXPLICIT_REVOKED", ActorRef: "MODEL_revoker"},
+			FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now,
+		}
+		base.core.RecoveryHistory = append(base.core.RecoveryHistory, txn)
+	}
+	if len(base.core.RecoveryHistory) != 0 {
+		last := base.core.RecoveryHistory[len(base.core.RecoveryHistory)-1]
+		base.core.Recovery = &last
+	}
+	base.core.Revision = baseRevision + 2*uint64(len(descriptors))
+	base.core.LastTrustedAt = now
+	raw, err := sealLifecycleV3Candidate(base)
+	if err != nil {
+		return nil, lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	detached, err := decodeLifecycleV3Record(raw)
+	if err != nil {
+		return nil, lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	canonical, err := encodeLifecycleV3Record(detached)
+	if err != nil || !bytes.Equal(canonical, raw) || !bytes.Equal(baseRaw, baseBytes) {
+		return nil, lifecycleV3Record{}, errLifecycleUnsafe
+	}
+	return canonical, detached, nil
+}
+
 func TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop(t *testing.T) {
 	s, d, o, _, i, now := lifecycleRecoveryStopModel(t)
 	before := d.writes
@@ -410,26 +458,163 @@ func TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop(t *testing.T)
 	if _, err := s.armRecoveryStop(o, i, now); err != nil {
 		t.Fatal("MODEL bounded normal reserve")
 	}
-	// Fill the logical archive with individually valid independent plans. No
-	// duplicated ID or malformed entry may mask the capacity rejection.
-	full, disk, first, at := lifecycleRecoveryModelStore(t)
-	lease := lifecycleRecoveryModelOwner(t, full, at)
-	original, err := lifecycleV3Source(full.core.record.core)
-	if err != nil {
-		t.Fatal("MODEL source")
+	for _, model := range []struct {
+		name  string
+		count int
+	}{
+		{"fixture-equivalence-1", 1},
+		{"fixture-equivalence-2", 2},
+		{"fixture-equivalence-8", 8},
+	} {
+		model := model
+		t.Run(model.name, func(t *testing.T) {
+			full, disk, first, at := lifecycleRecoveryModelStore(t)
+			lease := lifecycleRecoveryModelOwner(t, full, at)
+			baseRaw := bytes.Clone(disk.raw)
+			baseRevision := full.core.record.core.Revision
+			original, err := lifecycleV3Source(full.core.record.core)
+			if err != nil {
+				t.Fatal("MODEL source")
+			}
+			plans := make([]labRecoveryPlan, 0, model.count)
+			descriptors := make([]labRecoveryPlanDescriptor, 0, model.count)
+			for n := 0; n < model.count; n++ {
+				plan, err := newLabRecoveryPlan(original, fmt.Sprintf("labrec_%032x", n+2), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, at, at.Add(time.Minute))
+				if err != nil {
+					t.Fatal("MODEL fixture plan")
+				}
+				plans = append(plans, plan)
+				descriptors = append(descriptors, plan.descriptor())
+			}
+			fixtureRaw, fixture, err := lifecycleRecoveryFullHistoryFixtureBytes(baseRaw, descriptors, at)
+			if err != nil {
+				t.Fatal("MODEL strict fixture")
+			}
+			if !bytes.Equal(baseRaw, disk.raw) || disk.writes != 1 {
+				t.Fatal("MODEL fixture mutated real base")
+			}
+			for n := range plans {
+				if full.beginRecovery(lease, &plans[n], full.core.record.core.Revision, full.core.record.core.RecordSHA256, at) != nil ||
+					full.revokeRecovery(lease, "MODEL_revoker", "EXPLICIT_REVOKED", at) != nil {
+					t.Fatal("MODEL real differential path")
+				}
+			}
+			if fixture.core.Revision != baseRevision+2*uint64(model.count) || len(fixture.core.RecoveryHistory) != model.count ||
+				!reflect.DeepEqual(full.core.record.core, fixture.core) || !bytes.Equal(disk.raw, fixtureRaw) {
+				t.Fatal("MODEL full decoded core or canonical bytes differ")
+			}
+			for n := range fixture.core.RecoveryHistory {
+				entry := fixture.core.RecoveryHistory[n]
+				if !reflect.DeepEqual(full.core.record.core.RecoveryHistory[n], entry) || entry.Phase != "REVOKED_UNSTARTED" ||
+					entry.Revocation == nil || entry.Revocation.Revision != baseRevision+2*uint64(n+1) || entry.Revocation.ActorRef != "MODEL_revoker" ||
+					entry.Revocation.Reason != "EXPLICIT_REVOKED" || !entry.Revocation.At.Equal(at) || !entry.UpdatedAt.Equal(at) || entry.FailedQuiescence == nil || len(entry.FailedQuiescence) != 0 {
+					t.Fatal("MODEL transaction differential mismatch")
+				}
+			}
+		})
 	}
-	for n := 0; n < maxLifecycleHistory; n++ {
-		p, err := newLabRecoveryPlan(original, fmt.Sprintf("labrec_%032x", n+2), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, at, at.Add(time.Minute))
-		if err != nil || full.beginRecovery(lease, &p, full.core.record.core.Revision, full.core.record.core.RecordSHA256, at) != nil || full.revokeRecovery(lease, "MODEL_revoker", "EXPLICIT_REVOKED", at) != nil {
-			t.Fatal("MODEL valid archive fill")
+
+	t.Run("fixture-tamper-negatives", func(t *testing.T) {
+		full, disk, first, at := lifecycleRecoveryModelStore(t)
+		_ = lifecycleRecoveryModelOwner(t, full, at)
+		original, err := lifecycleV3Source(full.core.record.core)
+		if err != nil {
+			t.Fatal("MODEL source")
 		}
-	}
-	before = disk.writes
-	bytesBefore := bytes.Clone(disk.raw)
-	last, err := newLabRecoveryPlan(original, "labrec_"+strings.Repeat("f", 32), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, at, at.Add(time.Minute))
-	if err != nil || full.beginRecovery(lease, &last, full.core.record.core.Revision, full.core.record.core.RecordSHA256, at) == nil || disk.writes != before || !bytes.Equal(bytesBefore, disk.raw) || len(full.core.record.core.RecoveryHistory) != maxLifecycleHistory {
-		t.Fatal("MODEL full history silently cleared or accepted")
-	}
+		descriptors := make([]labRecoveryPlanDescriptor, 0, 8)
+		for n := 0; n < 8; n++ {
+			plan, err := newLabRecoveryPlan(original, fmt.Sprintf("labrec_%032x", n+2), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, at, at.Add(time.Minute))
+			if err != nil {
+				t.Fatal("MODEL fixture plan")
+			}
+			descriptors = append(descriptors, plan.descriptor())
+		}
+		validRaw, _, err := lifecycleRecoveryFullHistoryFixtureBytes(bytes.Clone(disk.raw), descriptors, at)
+		if err != nil {
+			t.Fatal("MODEL strict fixture")
+		}
+		validTxn := func(w *lifecycleV3Wire, txn lifecycleRecoveryTxn) bool {
+			context, err := lifecycleRecoveryPlanContext(w, txn.Plan)
+			return err == nil && context != nil && context.validateDescriptor(txn.Plan) == nil &&
+				validateLifecycleRecoveryTxn(txn, context, w.LastTrustedAt, w.Revision) == nil
+		}
+		mutations := []struct {
+			name         string
+			edit         func(*lifecycleV3Wire)
+			validHistory []int
+			validCurrent bool
+		}{
+			{"joint duplicate identity forward", func(w *lifecycleV3Wire) { w.RecoveryHistory[1] = w.RecoveryHistory[0] }, []int{0, 1}, false},
+			{"joint duplicate identity reverse", func(w *lifecycleV3Wire) { w.RecoveryHistory[2] = w.RecoveryHistory[3] }, []int{2, 3}, false},
+			{"wrong plan digest", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Plan.PlanSHA256 = strings.Repeat("f", 64) }, nil, false},
+			{"zero revocation revision", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.Revision = 0 }, nil, false},
+			{"future revocation revision", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.Revision = w.Revision + 1 }, nil, false},
+			{"invalid actor syntax", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.ActorRef = "!" }, nil, false},
+			{"unsupported reason", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.Reason = "MODEL_UNSUPPORTED" }, nil, false},
+			{"wrong phase", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Phase = "PLANNED" }, nil, false},
+			{"time before plan creation", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.At = w.RecoveryHistory[0].Plan.CreatedAt.Add(-time.Nanosecond) }, nil, false},
+			{"time after trusted root", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].UpdatedAt = w.LastTrustedAt.Add(time.Nanosecond) }, nil, false},
+			{"nil failed quiescence", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].FailedQuiescence = nil }, nil, false},
+			{"valid current differs from tail", func(w *lifecycleV3Wire) { w.Recovery.Revocation.ActorRef = "MODEL_tail_actor" }, nil, true},
+		}
+		for _, mutation := range mutations {
+			detached, err := decodeLifecycleV3Record(validRaw)
+			if err != nil {
+				t.Fatal("MODEL strict negative base")
+			}
+			mutation.edit(detached.core)
+			for _, index := range mutation.validHistory {
+				if !validTxn(detached.core, detached.core.RecoveryHistory[index]) {
+					t.Fatalf("MODEL duplicate precondition transaction invalid: %s", mutation.name)
+				}
+			}
+			if mutation.validCurrent && !validTxn(detached.core, *detached.core.Recovery) {
+				t.Fatalf("MODEL tail precondition current transaction invalid: %s", mutation.name)
+			}
+			if _, err := sealLifecycleV3Candidate(detached); err == nil {
+				t.Fatalf("MODEL strict negative accepted: %s", mutation.name)
+			}
+		}
+	})
+
+	t.Run("fixture-capacity-256", func(t *testing.T) {
+		seed, seedDisk, first, at := lifecycleRecoveryModelStore(t)
+		_ = lifecycleRecoveryModelOwner(t, seed, at)
+		baseRaw := bytes.Clone(seedDisk.raw)
+		original, err := lifecycleV3Source(seed.core.record.core)
+		if err != nil {
+			t.Fatal("MODEL source")
+		}
+		descriptors := make([]labRecoveryPlanDescriptor, 0, maxLifecycleHistory)
+		for n := 0; n < maxLifecycleHistory; n++ {
+			plan, err := newLabRecoveryPlan(original, fmt.Sprintf("labrec_%032x", n+2), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, at, at.Add(time.Minute))
+			if err != nil {
+				t.Fatal("MODEL fixture plan")
+			}
+			descriptors = append(descriptors, plan.descriptor())
+		}
+		fixtureRaw, fixture, err := lifecycleRecoveryFullHistoryFixtureBytes(baseRaw, descriptors, at)
+		if err != nil || len(fixture.core.RecoveryHistory) != maxLifecycleHistory {
+			t.Fatal("MODEL strict full fixture")
+		}
+		disk := &lifecycleModelDisk{raw: bytes.Clone(fixtureRaw), exists: true, state: lifecycleCommitted}
+		reopenedAt := fixture.core.RecoveryOwner.ExpiresAt
+		full, err := openLifecycleRecoveryStore(disk, reopenedAt)
+		if err != nil || full.core.live != nil || len(full.core.record.core.RecoveryHistory) != maxLifecycleHistory {
+			t.Fatal("MODEL full fixture reopen")
+		}
+		lease, err := full.acquireRecoveryOwner(reopenedAt, reopenedAt.Add(time.Minute))
+		if err != nil {
+			t.Fatal("MODEL real replacement owner")
+		}
+		last, err := newLabRecoveryPlan(original, "labrec_"+strings.Repeat("f", 32), first.descriptor().DeclaredInitiatorRef, first.descriptor().TargetArtifact, reopenedAt, reopenedAt.Add(time.Minute))
+		beforeWrites := disk.writes
+		bytesBefore := bytes.Clone(disk.raw)
+		if err != nil || full.beginRecovery(lease, &last, full.core.record.core.Revision, full.core.record.core.RecordSHA256, reopenedAt) == nil ||
+			disk.writes != beforeWrites || !bytes.Equal(bytesBefore, disk.raw) || len(full.core.record.core.RecoveryHistory) != maxLifecycleHistory {
+			t.Fatal("MODEL full history silently cleared, written or accepted")
+		}
+	})
 }
 func TestLifecycleRecoveryForbidsHeadFactoryAndUnknownPhaseEscape(t *testing.T) {
 	s, d, _, _, _, now := lifecycleRecoveryModelArmed(t)

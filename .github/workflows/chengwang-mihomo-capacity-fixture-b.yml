@@ -1,0 +1,151 @@
+name: Chengwang Isolated Capacity Fixture B Oracle
+
+on:
+  push:
+    branches: [codex/chengwang-unified-20261102]
+
+permissions:
+  contents: read
+
+env:
+  CONTRACT_SHA256: 7b9f814d0542adc510b2616feb10e5be346f981b1c9e4f8c9dbde1a91b861cd0
+  CHECKER_SHA256: 1fb18ab095f8918d58696e7f21ebe2bc47da7e0a99b99b11c388acf48240a235
+  MODEL_SHA256: f156dbcb155155e87d1204840fb2b8e98b49e735ea731057023db55dfd19c349
+  RUNNER_SHA256: 6f4bb231ad42b8b0492fb999c2935b9fc17752702a0f7a6d0016c7622337f680
+
+concurrency:
+  group: chengwang-capacity-fixture-b-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify the fixed oracle and workflow source contract
+        env:
+          PYTHONWARNINGS: error::ResourceWarning
+        run: |
+          set -euo pipefail
+          cd chengwang/deploy/mihomo-capacity-fixture-b
+          python3 -B -m unittest -v test_check_fixture_b
+          python3 -B check_fixture_b.py workflow --repo "$GITHUB_WORKSPACE" \
+            --contract-sha256 "$CONTRACT_SHA256" --checker-sha256 "$CHECKER_SHA256" \
+            --model-sha256 "$MODEL_SHA256" --runner-sha256 "$RUNNER_SHA256"
+
+  fixture-b:
+    needs: source-models
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [ordinary, race]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with:
+          go-version: 1.23.12
+          cache: false
+      - name: Bind current clean source before the isolated lane
+        working-directory: chengwang
+        env:
+          LANE: ${{ matrix.lane }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/capacity-fixture-b-$LANE-public"
+          test ! -e "$root"
+          install -d -m 0755 "$root"
+          python3 -B deploy/mihomo-capacity-fixture-b/check_fixture_b.py source \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --contract deploy/mihomo-capacity-fixture-b/fixture_b_contract.json \
+            --contract-sha256 "$CONTRACT_SHA256" --out "$root/source-before.json"
+      - name: Execute one isolated fixed lane without publishing raw Go output
+        working-directory: chengwang
+        env:
+          LANE: ${{ matrix.lane }}
+        run: |
+          set -euo pipefail
+          go_exe="$(command -v go)"
+          go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          timeout --signal=TERM --kill-after=15s 600s \
+            sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
+            bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-capacity-fixture-b/run_fixture_b.sh" \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/capacity-fixture-b-$LANE-public" \
+            "$go_root" "$GITHUB_SHA" "$LANE" "$CONTRACT_SHA256"
+      - name: Rebind source and require the accepted fixed report
+        if: ${{ always() }}
+        working-directory: chengwang
+        env:
+          LANE: ${{ matrix.lane }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/capacity-fixture-b-$LANE-public"
+          checker=deploy/mihomo-capacity-fixture-b/check_fixture_b.py
+          contract=deploy/mihomo-capacity-fixture-b/fixture_b_contract.json
+          python3 -B "$checker" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" --out "$root/source-after.json"
+          if test ! -e "$root/summary.json"; then
+            source_tree="$(git -C "$GITHUB_WORKSPACE" rev-parse "$GITHUB_SHA^{tree}")"
+            set +e
+            python3 -B "$checker" fallback --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" \
+              --lane "$LANE" --source-commit "$GITHUB_SHA" --source-tree "$source_tree" \
+              --out "$root/summary.json"
+            set -e
+          fi
+          python3 -B "$checker" report --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" \
+            --source-before "$root/source-before.json" --source-after "$root/source-after.json" \
+            --toolchain "$root/toolchain.json" --format-status "$root/format-status.json" \
+            --summary "$root/summary.json"
+      - name: Preserve only the bounded public lane result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: capacity-fixture-b-${{ matrix.lane }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/source-before.json
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/source-after.json
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/toolchain.json
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/format-status.json
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/gofmt.patch
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/summary.json
+          retention-days: 14
+          if-no-files-found: error
+
+  fresh-report-pair:
+    needs: fixture-b
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: capacity-fixture-b-ordinary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fixture-b-ordinary
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: capacity-fixture-b-race-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fixture-b-race
+      - name: Require one accepted ordinary and one accepted race report
+        working-directory: chengwang
+        run: |
+          set -euo pipefail
+          python3 -B deploy/mihomo-capacity-fixture-b/check_fixture_b.py pair \
+            --contract deploy/mihomo-capacity-fixture-b/fixture_b_contract.json \
+            --contract-sha256 "$CONTRACT_SHA256" \
+            --ordinary "$RUNNER_TEMP/fixture-b-ordinary/summary.json" \
+            --race "$RUNNER_TEMP/fixture-b-race/summary.json" \
+            --out "$RUNNER_TEMP/capacity-fixture-b-pair.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: capacity-fixture-b-pair-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/capacity-fixture-b-pair.json
+          retention-days: 14
+          if-no-files-found: error
