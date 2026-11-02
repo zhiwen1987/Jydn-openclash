@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"chengwang/internal/authz"
 	"chengwang/internal/subscription"
@@ -38,9 +39,10 @@ func (p *accessCtlPolicy) References() ([]PolicyReference, error) {
 }
 func accessCtlFixture(role authz.Role) (*Service, authz.Principal) {
 	scope := authz.ResourceScope{TenantID: "tenant-a", SiteID: "site-a", Environment: "isolated", ObjectType: "subscription-store", ObjectID: "local"}
+	now := time.Date(2026, time.October, 27, 0, 0, 0, 0, time.UTC)
 	// A deliberately unopened Store: any attempted private inventory I/O would
 	// fail. Access must depend only on validated configuration and authz.
-	s := &Service{serviceCore: &serviceCore{config: Config{Scope: scope, Store: &subscription.Store{}, WritesEnabled: true}}}
+	s := &Service{serviceCore: &serviceCore{config: Config{Scope: scope, Store: &subscription.Store{}, WritesEnabled: true}, now: func() time.Time { return now }}}
 	p := authz.Principal{ID: "access-reader", TenantID: scope.TenantID, Roles: []authz.Role{role}, AllowedScopes: []authz.ResourceScope{{TenantID: scope.TenantID, SiteID: scope.SiteID, Environment: scope.Environment}}, BreakGlassEligible: true}
 	return s, p
 }

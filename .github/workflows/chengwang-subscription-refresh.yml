@@ -22,25 +22,25 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 1b564ed1f61e54d4c382c8160d544037a38c9c8ecb18a89df1c9c0abcc7afc2e
+  CONTRACT_SHA256: fe47d04a065990d26d7a5ccda38d2f9ffad3ce4c3d6e8eca83c134d14a538194
   CHECKER_SHA256: 6bc314b72183c81ee0b459bf6325aa4d5d12c1daf5db5a0501a005025319c886
   MODEL_SHA256: 29fe76c712b31a81dce1fae3d4da1526a6a982502a29b7e204dd84020d65ea6b
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
   EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
-  FAILURE_CHECKER_SHA256: 85f2e66de69e6700c6de3528b6fdad45cc43a67796a7b391211f117d44c62dd6
+  FAILURE_CHECKER_SHA256: 18474913a307f88542355700527cc3f8b48f87a6817e06478b94b00b4cf44d9d
   FAILURE_MODEL_SHA256: c2b231b5fc92e09c0ba2fcebec58b0ffd590b9110b11c4f08750627d4f515968
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
   MODULE_COUNT: '825'
-  MODULE_SHA256: 26943974003db666e3861c48acbb19e54f15e308f598fb04dcd4ca9658e197f7
+  MODULE_SHA256: 27cb440f7b44525c7e182d3cd59ca2cdf6aebf79a1ed0a72f13b09f753afa23e
   FIXTURE_COUNT: '20'
   FIXTURE_SHA256: 4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf
   TEST_TOP_COUNT: '486'
   TEST_TOPS_SHA256: dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f
   RUN_TOP_COUNT: '481'
   RUN_TOPS_SHA256: 34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0
-  CHANGED_GO_COUNT: '24'
-  CHANGED_GO_SHA256: 800e4489bc5f09c2e36635a13b4cc6e0b4122c5583ef4d788798c4839ce0aba3
+  CHANGED_GO_COUNT: '25'
+  CHANGED_GO_SHA256: f9c48b3de0a4f4fa6d7def9a89ac0cbc4d37be330159a89a050ecbd6e9830494
 
 jobs:
   source-models:
@@ -144,6 +144,7 @@ jobs:
             chengwang/internal/subscription/refresh.go
             chengwang/internal/subscription/refresh_test.go
             chengwang/internal/subscription/store.go
+            chengwang/internal/subscriptionctl/access_test.go
             chengwang/internal/subscriptionctl/contract.go
             chengwang/internal/subscriptionctl/refresh.go
             chengwang/internal/subscriptionctl/service.go

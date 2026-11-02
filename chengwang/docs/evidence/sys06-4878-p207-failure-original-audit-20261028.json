@@ -1,0 +1,109 @@
+{
+  "schema": "chengwang.p207a-exact-head-public-failure-audit/v1",
+  "runId": 40552348246,
+  "attempt": 1,
+  "head": "4878dc77c77eae8eb56a6ad863bfe3c47d0176bf",
+  "outcome": "FAILURE_EVIDENCE_ACCEPTED_GO_NOT_ACCEPTED",
+  "snapshot": {
+    "path": "D:/CodexData/workspace/mihomo-4878dc7-acceptance-20261028-implementation56h-v1/repo",
+    "rawGitBlobCount": 1617,
+    "rawGitBlobsVerified": true,
+    "clean": true
+  },
+  "transport": {
+    "helperPath": "D:/CodexData/workspace/mihomo-git-credential-artifact-helper-20261026-native56h-v3/github_artifact_via_git_credential.py",
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "serialDownloads": true,
+    "credentialsOrDownloadLocationsPersisted": false,
+    "signedStorageLocationObserved": false,
+    "metadataConnectorReturnedStandardApiLocationFields": true,
+    "standardApiLocationFieldsPersisted": false
+  },
+  "artifacts": [
+    {
+      "id": 12755337803,
+      "name": "p207a-source-models-40552348246-1",
+      "bytes": 1699,
+      "sha256": "698270857db0439d63e31608b65b0d0307b45d1be11eded9656733969161bb4d",
+      "memberCount": 1,
+      "crcAndPathPolicy": "PASS",
+      "custodySHA256": "b1442cbf5a13d4a910fdad4900442e666574edb30adc9e7c92fdd422d2cf06ae"
+    },
+    {
+      "id": 12755043638,
+      "name": "p207a-source-go-failure-40552348246-1",
+      "bytes": 3542,
+      "sha256": "69e87275a8c4b8ed7aa7a03e526f13902128a1553a128d11fafc99fb687dbe24",
+      "memberCount": 9,
+      "crcAndPathPolicy": "PASS",
+      "custodySHA256": "2de73ffcfd19dd089b790ad3c91286c68b89f1dea18898e390eb414e8033d285"
+    }
+  ],
+  "sourceModels": {
+    "result": "PASS",
+    "count": 63,
+    "namesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+    "logSHA256": "75a33e88b9d8d857e54823d26f8c4d27b7d02845336378e5999b35234c5daa62"
+  },
+  "sourceBinding": {
+    "beforeEqualsAfter": true,
+    "beforeAndAfterSHA256": "11a0eeb99a3677ba7a3ebbd8ef2e7eff30b65cbe539bdba24bac194b2502d6de",
+    "equalsIndependentExactHeadSourceCheckerBytes": true,
+    "modulePathCount": 825,
+    "fixturePathCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "changedGoSourceCount": 24
+  },
+  "format": {
+    "exit": 0,
+    "patchBytes": 0,
+    "stderrBytes": 0
+  },
+  "exits": {
+    "go": 1,
+    "eventChecker": 1,
+    "failureChecker": 0
+  },
+  "boundedReport": {
+    "sha256": "2cb2a8b68d2b9623d08f7eda9fd6e92c97b7f4a8758f3004bc92bab15589b429",
+    "accepted": false,
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "PANIC_TEXT_MARKER_OBSERVED",
+    "markerObservation": "PANIC_TEXT",
+    "buildDiagnosticStatus": "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
+    "buildDiagnosticReason": "NOT_ELIGIBLE",
+    "buildStderrClass": "EMPTY",
+    "buildSourcePositionCount": "0",
+    "buildDiagnosticTruncated": false,
+    "buildDiagnosticLocations": [],
+    "declaredPackageCount": 7,
+    "declaredTopCount": 481,
+    "passCount": 435,
+    "failCount": 1,
+    "runningCount": 0,
+    "notStartedCount": 45,
+    "failedTops": [
+      "chengwang/internal/subscriptionctl::TestSubscriptionAccessServiceScopeAndResource"
+    ],
+    "notStartedTopsAreAllSubscriptionctl": true
+  },
+  "privacyAndEvidenceBoundary": {
+    "rawGoEventsPresent": false,
+    "rawGoStderrPresent": false,
+    "independentRawReprojectionPossible": false,
+    "runnerPrivateReprojectionExitWasZero": true,
+    "jobLogsRead": false,
+    "goOrGofmtExecutedLocally": false,
+    "serviceOrProductionTouched": false,
+    "formalRepositoryModified": false,
+    "claim": "The exact-head failure evidence is accepted. Go execution is not accepted and the dynamic panic text is unavailable by design."
+  },
+  "auditScript": {
+    "path": "audit_public.py",
+    "bytes": 10574,
+    "sha256": "748f6537d474fbf2c017ad9b1acdbeed4ac9b4489bd3c94acd790ee2013f8358",
+    "result": "PASS"
+  }
+}

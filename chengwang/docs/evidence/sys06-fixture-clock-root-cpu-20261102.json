@@ -1,0 +1,31 @@
+{
+  "count": 63,
+  "goExecuted": false,
+  "logSHA256": "308947f6b8ad39c90a5d68893e95dddc634f9e5f9f98c29baebb1cb3e02dca1c",
+  "modelNamesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+  "productionTouched": false,
+  "result": "PASS",
+  "schema": "chengwang.root-access-fixture-clock-cpu/v1",
+  "seconds": 27.92200000000048,
+  "source": {
+    "additionalFixturePathCount": 0,
+    "automaticFixturePathCount": 20,
+    "baselinePackageTestTopCount": 453,
+    "baselineRequiredRunTopCount": 448,
+    "changedGoSourceCount": 25,
+    "changedGoSourcesSHA256": "f9c48b3de0a4f4fa6d7def9a89ac0cbc4d37be330159a89a050ecbd6e9830494",
+    "fixtureContentSHA256": "4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf",
+    "fixturePathCount": 20,
+    "foundationCurrentCount": 689,
+    "foundationPreviousCount": 688,
+    "goExecutionProven": false,
+    "moduleContentSHA256": "27cb440f7b44525c7e182d3cd59ca2cdf6aebf79a1ed0a72f13b09f753afa23e",
+    "modulePathCount": 825,
+    "p207aAddedTestTopCount": 33,
+    "packageTestTopCount": 486,
+    "packageTestTopsSHA256": "dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f",
+    "requiredRunTopCount": 481,
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
+    "schema": "chengwang.subscription-refresh-source/v3"
+  }
+}

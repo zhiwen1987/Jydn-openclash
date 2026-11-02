@@ -1,5 +1,9 @@
 # 澄网：项目任务清单
 
+2026-11-02 root已按独立[SOURCE_ACCEPT](evidence/sys06-fixture-clock-source-peer-20261102.json)集成冻结的4文件测试时钟修复：accessCtlFixture补固定UTC now，不改产品authorize；changedGo24→25、格式列表、BuildLocation文件SHA及相关来源pins闭合。[root 63CPU](evidence/sys06-fixture-clock-root-cpu-20261102.json)27.922秒通过，模型名称清单与实际日志严格复演通过；[4源后像](evidence/sys06-fixture-clock-root-source-20261102.json)完全匹配，作者patch与canonical diff仅已核验Git索引前缀表示差。481/486 tops、预算、拒绝门保持。此处仅证明源码与纯CPU通过，正式提交及新HEAD Linux Go/fresh/31HTTPS仍待，不能写成产品/生产已修复。JY-CW补漏复核已单独推送b410cbe，后续须同步本开发增量；生产不动。
+
+2026-10-28 最新隔离版本 `4878dc77c77eae8eb56a6ad863bfe3c47d0176bf` 的 run40552348246 已取得失败原件审计：63/63 source models及格式门通过；Go/event退出1/1，failure reader退出0，481项为435通过、1失败、0运行、45未开始。唯一失败为 `subscriptionctl::TestSubscriptionAccessServiceScopeAndResource`，报告仅证明PANIC_TEXT标记，不含动态panic文本。外部最终收据 `D:/CodexData/workspace/mihomo-4878dc7-p207a-originals-40552348246-20261028-implementation56h-v1/AUDIT-RECEIPT-FINAL.json` SHA256 `a3dd3cda2c1ead08774df062fe221679ba1726ea53389cb96164a1a820b0d7ee`。root与实现代理源码检查定位：access_test.go的直接serviceCore测试构造漏设now，而authorize调用s.now()；正常New入口已初始化。仅测试fixture及其来源契约的外部候选正在制作，尚未集成、重跑Go或接受最新31步HTTPS；生产不动。
+
 2026-10-28 P207 fail-closed修复已root集成3个非Go源并获[独立SOURCE_ACCEPT](evidence/sys06-abd-workflow-failclosed-source-peer-20261028.md)：producer／fresh全部必需条件改独立test，accepted上传前逐项验证9个public成员及非空报告，raw仍不上传，失败仍走有界诊断。[root同源63CPU／真实Git Bash负例／AST与实际日志复演](evidence/sys06-abd-workflow-failclosed-root-cpu-20261028.json)32.051秒通过，原62模型名全保留；[源核对](evidence/sys06-abd-workflow-failclosed-root-source-20261028.json)author patch c701af82…与canonical full-index c1cbd455…只有已验证OID表示差。新提交／最终HEAD source／真实Linux Go与fresh仍待，不称Go已修复。
 
 2026-10-28 [其余5条workflow与9个shell wrapper只读审计](evidence/sys06-abd-five-workflow-andlist-audit-20261028.json)未发现P207同类必需AND漏门；capacity coherent失败原件的captureVerified与fullGoAccepted=false为有意分层，不能将fresh绿色当Go通过。审计只含源码与现有Git Bash最小复现，未运行新Go／Linux／生产。

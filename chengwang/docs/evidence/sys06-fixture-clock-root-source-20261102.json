@@ -1,0 +1,17 @@
+{
+  "schema": "chengwang.root-fixture-clock-source-integration/v1",
+  "base": "4878dc77c77eae8eb56a6ad863bfe3c47d0176bf",
+  "paths": [
+    ".github/workflows/chengwang-subscription-refresh.yml",
+    "chengwang/deploy/subscription-refresh/check_go_failure.py",
+    "chengwang/deploy/subscription-refresh/source_contract.json",
+    "chengwang/internal/subscriptionctl/access_test.go"
+  ],
+  "allAfterimagesExact": true,
+  "authorPatchSHA256": "7a32a55d8eb21a2dfe95092a5537b0e73c6adc36953725d5cda4d61dc966e9ed",
+  "canonicalPatchSHA256": "551429a822f728918f9625569c5d2c9a169486e97a6f36dcdc58c761adfb5a38",
+  "gitIndexPrefixAndAllOtherPatchBytesVerified": true,
+  "productAuthorizationChanged": false,
+  "goExecuted": false,
+  "productionTouched": false
+}

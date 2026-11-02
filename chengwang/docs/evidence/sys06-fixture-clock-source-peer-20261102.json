@@ -1,0 +1,38 @@
+{
+  "schema": "chengwang.p207a-fixture-clock-independent-source-review/v1",
+  "verdict": "SOURCE_ACCEPT",
+  "reviewerActualModel": "UNKNOWN",
+  "baseCommit": "4878dc77c77eae8eb56a6ad863bfe3c47d0176bf",
+  "candidate": "D:/CodexData/workspace/mihomo-4878-access-fixture-clock-fix-20261028-implementation56h-v1/repo",
+  "delivery": "D:/CodexData/workspace/mihomo-4878-access-fixture-clock-fix-delivery-20261028-implementation56h-v1",
+  "artifacts": {
+    "patch": {"bytes": 7351, "sha256": "7a32a55d8eb21a2dfe95092a5537b0e73c6adc36953725d5cda4d61dc966e9ed", "exactlyMatchesCandidateDiff": true},
+    "manifest": {"bytes": 1954, "sha256": "973a16f4c8c887e5d4683f5ef535b8c22d0425f0d7b73f545b0abecf3ac543c5"},
+    "forwardApplyCheck": "PASS",
+    "reverseApplyCheck": "PASS"
+  },
+  "pathManifestVerified": [
+    {"path": ".github/workflows/chengwang-subscription-refresh.yml", "beforeBytes": 15545, "beforeSHA256": "fd20858f6face068e14712f58d9eee6633152dcd604697f6fd5b2707a40eb81f", "afterBytes": 15607, "afterSHA256": "bbac94e57ae1e8e46986258a247380fbcd238c764bd9e8c55eabf4c5e946a79b"},
+    {"path": "chengwang/deploy/subscription-refresh/check_go_failure.py", "beforeBytes": 30108, "beforeSHA256": "85f2e66de69e6700c6de3528b6fdad45cc43a67796a7b391211f117d44c62dd6", "afterBytes": 30108, "afterSHA256": "18474913a307f88542355700527cc3f8b48f87a6817e06478b94b00b4cf44d9d"},
+    {"path": "chengwang/deploy/subscription-refresh/source_contract.json", "beforeBytes": 111883, "beforeSHA256": "1b564ed1f61e54d4c382c8160d544037a38c9c8ecb18a89df1c9c0abcc7afc2e", "afterBytes": 112008, "afterSHA256": "fe47d04a065990d26d7a5ccda38d2f9ffad3ce4c3d6e8eca83c134d14a538194"},
+    {"path": "chengwang/internal/subscriptionctl/access_test.go", "beforeBytes": 8465, "beforeSHA256": "f6dea00963efd7395b2be60f68354c00c66590ca49c645f282d0f33573eab1dd", "afterBytes": 8575, "afterSHA256": "730eb49c1c4690faa650689fc87c6689ffc7ada3b5c7dd3d61656f98eb020e1d"}
+  ],
+  "sourceChecks": {
+    "fixtureOnlyProductSemantics": "PASS",
+    "directTestServiceCoreFixturesFound": 1,
+    "productionNewInitializesNow": "chengwang/internal/subscriptionctl/service.go:91",
+    "authorizationInvokesNow": "chengwang/internal/subscriptionctl/service.go:128",
+    "fixtureClock": "chengwang/internal/subscriptionctl/access_test.go:40-45 fixed 2026-10-27T00:00:00Z UTC",
+    "strictSourceChecker": {"result": "PASS", "modulePathCount": 825, "fixturePathCount": 20, "packageTestTopCount": 486, "requiredRunTopCount": 481, "changedGoSourceCount": 25, "goExecutionProven": false},
+    "pinClosure": "PASS",
+    "permissionsBudgetsAndRejectGatesNotWeakened": "PASS"
+  },
+  "boundaries": [
+    "No Go, gofmt, service, browser, production, SSH, joblog, or session execution/read was performed.",
+    "A63 CPU was not repeated; root integrator stated it will run after application.",
+    "The supplied 435-pass/1-fail/45-not-started runtime evidence was not reopened under the review constraint.",
+    "Exact-head Linux Go retest remains outside this source-only acceptance.",
+    "Hy-Memory tools were unavailable in this agent context; no shared-memory read/write is claimed."
+  ],
+  "blockingFindings": []
+}
