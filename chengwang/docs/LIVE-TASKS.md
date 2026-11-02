@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+2026-11-03 新阻断修复截点：[CI 阻断源码修复](SYS07-CI-BLOCKERS-REPAIR-20261103.md)已集成 12 路径，代码 `8d9707f6` / tree `0f716b46`，两个独立组合切片接受，根会话 204 项受影响 Python 模型通过。修复官方格式、CPU errexit 状态捕获、failure reader 7→9 包冲突及两个测试夹具资源泄漏；528 Go 必跑 tops 不变。源码/joint853 实际检查通过；新提交 Linux Go、联合场景与 31 链仍待，不宣称旧 Go exit1 已解决或已上线。385ba 的 31 链有限接受仅属于原提交。生产/main/Registry 不动。
+
 2026-11-03 最新组合源码截点（优先于下方历史记录）：[组合集成与验收边界](SYS07-COMBINED-SOURCE-INTEGRATION-20261103.md)对应代码 `0be21a1b`。P207 v4、A1a existing-only、联合启动诊断及时间线均已集成并获独立源码复核；实际 source/joint 检查通过，528 required tops / 853 联合来源。283 项原 Python 方法记录加 fresh nativefs 7 项及独立复跑通过；不是一次 290 项运行，不是 Go 验收。外部 harness 的真实误拒绝和更早夹具失败均保留。最终提交隔离 Linux Go、联合场景、31 链、actualfs 和生产验收仍未完成；生产/main/Registry 不动。
 
 2026-11-03 最新受控集成：[P207 来源契约 v4](SYS07-P207-V4-SOURCE-INTEGRATION-20261103.md)已完成九文件源码集成、独立源码复审及主代理 81 项纯 Python 模型复核，实际来源检查仍为 830/21/496/491/29 且 `goExecutionProven=false`。新增 S/Q 分离、独立历史 453/448 身份、空 tags、完整工作流正向指纹和实际 CLI 顺序校验。最终新提交的 Linux Go、格式、official selection、source/fresh 和 31 链必须另取原件，不借用下方旧提交通过。

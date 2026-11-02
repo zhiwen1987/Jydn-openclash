@@ -1,0 +1,17 @@
+{
+  "schema": "chengwang.ci-blockers-repair-source/v1",
+  "codeHead": "8d9707f612e74a465a4a322d1edd1cc770305dde",
+  "codeTree": "0f716b46fd6de4bc51e3c7c268288c5a53e18c6d",
+  "paths": 12,
+  "combinedFreeze": {"path": "D:/CodexData/workspace/chengwang-385ba-four-candidate-combined-freeze-20261103-cd03-v1/FREEZE.json", "sha256": "dfb341235b7c1249868ac2ec7bb0df86bf1e0d9697480701e3f0483294b3df28"},
+  "sliceA": {"path": "D:/CodexData/workspace/chengwang-385ba-four-candidate-combined-freeze-20261103-cd03-v1-slice-a-independent-review/FINAL.json", "sha256": "da8600deb1ae7620ed86ea9976ecc7def471b1935e6b4e65518b0edd4ae9d663"},
+  "sliceB": {"path": "D:/CodexData/workspace/chengwang-385ba-four-candidate-combined-slice-b-independent-review-20261103-cd03-v1/FINAL.json", "sha256": "9ab7338b1e3dfbeae54a324f4990dc762241380df3acf9f971a7656572db5443"},
+  "rootModels": {"path": "D:/CodexData/workspace/chengwang-385ba-repair-root-models-20261103-cd03-v1/SUMMARY.json", "sha256": "f7bf98e8a818cbf6b58e4c3ecc0725fac03603b2017838d968f63a523d09be5a", "methods": 204, "GoExecuted": false},
+  "rootSource": {"path": "D:/CodexData/workspace/chengwang-8d9707-source-joint-readonly-audit-20261103-cd03-v1/FINAL.json", "sha256": "f23f063e5fc3b6b1eb9afccc48d31a49dfff86b2a8cdca97ff26cb03b1dfe47a"},
+  "previous385Https31": {"path": "D:/CodexData/workspace/chengwang-385ba-continuous31-independent-audit-20261103-cd03-v1/FINAL-CONTINUOUS31-AUDIT.json", "sha256": "60369267f18ca19ec663556bdbf75a7f1c5cdb7bb93c8ef6c555d97d0c55aecb", "transferableToRepairHead": false},
+  "localGoExecuted": false,
+  "finalHeadRuntimeAcceptance": "PENDING",
+  "priorGoExit1Cause": "UNKNOWN",
+  "productionTouched": false,
+  "fullSystem": "INCOMPLETE"
+}
