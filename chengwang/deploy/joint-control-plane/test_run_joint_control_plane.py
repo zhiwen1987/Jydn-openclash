@@ -9,6 +9,38 @@ C=load("joint_runner_test_contract","contract.py");R=load("joint_runner_test_tar
 def base_policy():
     return {"version":1,"scope":dict(C.SCOPE),"resolver":{"upstream":"127.0.0.1:1853","serverName":C.DOT_NAME,"caPEM":"CA"},"sources":[{"referenceId":case,"revision":1,"secretVersion":"v1","url":"https://"+host+"/subscription?token=PRIVATE","allowedCnames":[],"caPEM":"CA"} for case,host in C.SOURCE_HOSTS.items()]}
 
+def _probe_fixture_owner_view(probe):
+    probe=pathlib.Path(probe);real_lstat=pathlib.Path.lstat
+    class OwnerView:
+        def __init__(self,base,uid,gid):self._base=base;self.st_uid=uid;self.st_gid=gid
+        def __getattr__(self,name):return getattr(self._base,name)
+    def lstat(path):
+        meta=real_lstat(path);candidate=pathlib.Path(path)
+        try:relative=candidate.relative_to(probe)
+        except ValueError:return meta
+        parts=relative.parts
+        uid,gid=(0,0)
+        if parts and parts[0]=="staging" and (len(parts)==1 or parts[1]=="untrusted-replacement"):
+            uid,gid=C.UID,C.GID
+        return OwnerView(meta,uid,gid)
+    return mock.patch.object(pathlib.Path,"lstat",autospec=True,side_effect=lstat)
+
+def _probe_fixture_cleanup_calls(probe):
+    probe=pathlib.Path(probe);real_chmod=CI.os.chmod;real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
+    def inside(path):
+        candidate=pathlib.Path(path);return candidate==probe or probe in candidate.parents
+    def unlink(path):
+        candidate=pathlib.Path(path)
+        if not inside(candidate) or not inside(candidate.parent):raise AssertionError("fixture cleanup escaped probe")
+        real_chmod(candidate.parent,0o700);real_chmod(candidate,0o600);return real_unlink(candidate)
+    def rmdir(path):
+        candidate=pathlib.Path(path)
+        if not inside(candidate):raise AssertionError("fixture cleanup escaped probe")
+        real_chmod(candidate,0o700)
+        if inside(candidate.parent):real_chmod(candidate.parent,0o700)
+        return real_rmdir(candidate)
+    return unlink,rmdir
+
 class RunnerContracts(unittest.TestCase):
     def test_policy_transition_changes_only_refresh(self):
         p0=base_policy();ids={k:"src_"+("1" if k=="success" else "2")*32 for k in C.SOURCE_HOSTS};approvals={k:"cmd_"+("3" if k=="success" else "4")*32 for k in C.SOURCE_HOSTS}
@@ -480,12 +512,9 @@ class RunnerContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"321","7",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-321-7"
             def owned(path,*unused,**kwargs):return pathlib.Path(path).lstat()
-            real_unlink=CI.os.unlink
-            real_rmdir=CI.os.rmdir
-            def model_unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
-            def model_rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
-            common=(mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_open_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_rename_denied",side_effect=lambda *a:None),mock.patch.object(CI.C,"_owned_mode",return_value=True),mock.patch.object(CI.C,"bootstrap_record_state",side_effect=(("ACCEPTED","PASS"),("INVALID","UNKNOWN"))),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=model_unlink),mock.patch.object(CI.os,"rmdir",side_effect=model_rmdir))
-            with common[0],common[1],common[2],common[3],common[4],common[5],common[6],common[7],common[8],common[9],common[10]:
+            model_unlink,model_rmdir=_probe_fixture_cleanup_calls(probe)
+            common=(mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_open_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_rename_denied",side_effect=lambda *a:None),mock.patch.object(CI.C,"_owned_mode",return_value=True),mock.patch.object(CI.C,"bootstrap_record_state",side_effect=(("ACCEPTED","PASS"),("INVALID","UNKNOWN"))),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=model_unlink),mock.patch.object(CI.os,"rmdir",side_effect=model_rmdir),_probe_fixture_owner_view(probe))
+            with common[0],common[1],common[2],common[3],common[4],common[5],common[6],common[7],common[8],common[9],common[10],common[11]:
                 for mode,identity in (("root-setup",(0,0)),("uid-prepublish-denials",(C.UID,C.GID)),("root-finalize",(0,0)),("uid-final-read-and-rename",(C.UID,C.GID)),("uid-install-replacement",(C.UID,C.GID)),("root-reject-replacement",(0,0)),("root-cleanup",(0,0)),("root-final-absence",(0,0))):
                     with mock.patch.object(CI.os,"geteuid",return_value=identity[0],create=True),mock.patch.object(CI.os,"getegid",return_value=identity[1],create=True):CI.bootstrap_permission_probe(*args,mode,platform="posix")
             self.assertFalse(probe.exists())
@@ -499,7 +528,7 @@ class RunnerContracts(unittest.TestCase):
             def owned(path,*unused,**kwargs):return pathlib.Path(path).lstat()
             real_final=CI._probe_final_absence;final_calls=[]
             def final(*args,**kwargs):final_calls.append(True);return real_final(*args,**kwargs)
-            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_write",side_effect=OSError("PRIVATE PARTIAL SETUP")),mock.patch.object(CI,"_probe_final_absence",side_effect=final),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711):
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_write",side_effect=OSError("PRIVATE PARTIAL SETUP")),mock.patch.object(CI,"_probe_final_absence",side_effect=final),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),_probe_fixture_owner_view(probe):
                 with self.assertRaises(OSError):CI.bootstrap_permission_probe(runner,"321","7",str(meta.st_dev),str(meta.st_ino),"root-setup",platform="posix")
             self.assertFalse(probe.exists());self.assertEqual(final_calls,[True])
     def test_uid_probe_preexisting_file_directory_symlink_and_ancestor_models_are_preserved(self):
@@ -559,7 +588,7 @@ class RunnerContracts(unittest.TestCase):
         for operation,nth in cases:
             with self.subTest(operation=operation,nth=nth),tempfile.TemporaryDirectory() as d:
                 runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"73","6",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-73-6";counts={};final_calls=[]
-                real={"mkdir":CI.os.mkdir,"chmod":CI.os.chmod,"write":CI.os.write,"file-fsync":CI.os.fsync,"probe-write":CI._probe_write}
+                real={"mkdir":CI.os.mkdir,"chmod":CI.os.chmod,"write":CI.os.write,"file-fsync":CI.os.fsync,"probe-write":CI._probe_write};model_unlink,model_rmdir=_probe_fixture_cleanup_calls(probe)
                 def fault(name,normal):
                     def call(*a,**k):
                         counts[name]=counts.get(name,0)+1
@@ -569,11 +598,8 @@ class RunnerContracts(unittest.TestCase):
                 def owned(path,*unused,**kwargs):return pathlib.Path(path).lstat()
                 real_final=CI._probe_final_absence
                 def final(*a,**k):final_calls.append(True);return real_final(*a,**k)
-                real_rmdir=CI.os.rmdir;real_unlink=CI.os.unlink
-                def model_rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
-                def model_unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
                 with contextlib.ExitStack() as stack:
-                    stack.enter_context(mock.patch.object(CI.os,"geteuid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.os,"getegid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.stat,"S_IMODE",return_value=0o711));stack.enter_context(mock.patch.object(CI.os,"rmdir",side_effect=model_rmdir));stack.enter_context(mock.patch.object(CI.os,"unlink",side_effect=model_unlink));stack.enter_context(mock.patch.object(CI,"_probe_final_absence",side_effect=final))
+                    stack.enter_context(mock.patch.object(CI.os,"geteuid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.os,"getegid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.stat,"S_IMODE",return_value=0o711));stack.enter_context(mock.patch.object(CI.os,"rmdir",side_effect=model_rmdir));stack.enter_context(mock.patch.object(CI.os,"unlink",side_effect=model_unlink));stack.enter_context(mock.patch.object(CI,"_probe_final_absence",side_effect=final));stack.enter_context(_probe_fixture_owner_view(probe))
                     stack.enter_context(mock.patch.object(CI.os,"mkdir",side_effect=fault("mkdir",real["mkdir"])))
                     stack.enter_context(mock.patch.object(CI.os,"chmod",side_effect=fault("chmod",real["chmod"])))
                     stack.enter_context(mock.patch.object(CI.os,"chown",side_effect=fault("chown",lambda *a:None),create=True))
@@ -593,7 +619,7 @@ class RunnerContracts(unittest.TestCase):
                     if target=="final-absence":raise OSError("PRIVATE FINAL ABSENCE")
                     return real_final(*a,**k)
                 cleanup=(mock.patch.object(CI,"_probe_cleanup_tree",side_effect=OSError("PRIVATE CLEANUP")) if target=="cleanup" else mock.patch.object(CI,"_probe_cleanup_tree",wraps=CI._probe_cleanup_tree))
-                with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_write",side_effect=OSError("PRIVATE SETUP")),mock.patch.object(CI,"_probe_final_absence",side_effect=final),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),cleanup:
+                with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_write",side_effect=OSError("PRIVATE SETUP")),mock.patch.object(CI,"_probe_final_absence",side_effect=final),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),_probe_fixture_owner_view(probe),cleanup:
                     with self.assertRaises(ValueError):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
                 self.assertEqual(final_calls,[True]);self.assertEqual(probe.exists(),target=="cleanup")
     def test_uid_probe_cleanup_custody_and_final_absence_faults_fail_closed(self):
@@ -602,11 +628,9 @@ class RunnerContracts(unittest.TestCase):
             with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
             return args,probe
         def cleanup(args,probe,patches=()):
-            real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
-            def unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
-            def rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
+            unlink,rmdir=_probe_fixture_cleanup_calls(probe)
             with contextlib.ExitStack() as stack:
-                stack.enter_context(mock.patch.object(CI.os,"geteuid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.os,"getegid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.stat,"S_IMODE",return_value=0o711));stack.enter_context(mock.patch.object(CI.os,"unlink",side_effect=unlink));stack.enter_context(mock.patch.object(CI.os,"rmdir",side_effect=rmdir));stack.enter_context(mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
+                stack.enter_context(mock.patch.object(CI.os,"geteuid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.os,"getegid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.stat,"S_IMODE",return_value=0o711));stack.enter_context(mock.patch.object(CI.os,"unlink",side_effect=unlink));stack.enter_context(mock.patch.object(CI.os,"rmdir",side_effect=rmdir));stack.enter_context(mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None));stack.enter_context(_probe_fixture_owner_view(probe))
                 for patcher in patches:stack.enter_context(patcher)
                 return CI.bootstrap_permission_probe(*args,"root-cleanup",platform="posix")
         with tempfile.TemporaryDirectory() as d:
@@ -643,10 +667,8 @@ class RunnerContracts(unittest.TestCase):
             with uid[0],uid[1],uid[2],uid[3]:CI.bootstrap_permission_probe(*args,"uid-final-read-and-rename",platform="posix")
             with uid[0],uid[1],mock.patch.object(CI.os,"rename",side_effect=OSError("PRIVATE INSTALL RENAME")):
                 with self.assertRaises(OSError):CI.bootstrap_permission_probe(*args,"uid-install-replacement",platform="posix")
-            real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
-            def unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
-            def rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
-            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=unlink),mock.patch.object(CI.os,"rmdir",side_effect=rmdir),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None):CI.bootstrap_permission_probe(*args,"root-cleanup",platform="posix")
+            unlink,rmdir=_probe_fixture_cleanup_calls(probe)
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=unlink),mock.patch.object(CI.os,"rmdir",side_effect=rmdir),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),_probe_fixture_owner_view(probe):CI.bootstrap_permission_probe(*args,"root-cleanup",platform="posix")
             self.assertFalse(probe.exists());self.assertEqual(sentinel.read_bytes(),b"UNCHANGED")
 
 if __name__=="__main__":unittest.main()

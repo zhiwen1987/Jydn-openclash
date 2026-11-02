@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 81ec60c1d74a849ca6b16f712580045e4d84dbb87bd5a67193b7002a0465a71a
+  CONTRACT_SHA256: 0167088d804e1c1db65fc4554469d51ce09d4dc4df43b4cb29ed57459610f646
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
 jobs:
   joint-control-plane:
