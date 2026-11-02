@@ -266,8 +266,10 @@ class SourceContracts(unittest.TestCase):
         self.assertIn("'--no-replace-objects'",text);self.assertIn("GIT_NO_REPLACE_OBJECTS",text)
 
     def git(self,repo,*args,input=None):
+        env=os.environ.copy()
+        env.pop('GIT_NO_REPLACE_OBJECTS',None)
         result=subprocess.run(['git','-C',str(repo),*args],input=input,stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,check=True)
+                              stderr=subprocess.PIPE,check=True,env=env)
         return result.stdout.strip().decode()
 
     def repo_fixture(self):
@@ -281,8 +283,9 @@ class SourceContracts(unittest.TestCase):
             repo,original=self.repo_fixture();(repo/'bound.txt').write_bytes(b'replacement\n')
             self.git(repo,'commit','-q','-am','replacement');replacement=self.git(repo,'rev-parse','HEAD')
             self.git(repo,'replace',original,replacement);(repo/'bound.txt').write_bytes(b'original\n')
-            self.assertEqual(self.git(repo,'show',original+':bound.txt'),'replacement')
-            self.assertEqual(checker.RawGit(repo).source(original,'bound.txt'),b'original\n')
+            with mock.patch.dict(os.environ,{'GIT_NO_REPLACE_OBJECTS':'1'}):
+                self.assertEqual(self.git(repo,'show',original+':bound.txt'),'replacement')
+                self.assertEqual(checker.RawGit(repo).source(original,'bound.txt'),b'original\n')
         finally:self._temp.cleanup()
 
     def test_protected_wrapper_ignores_active_blob_replacement(self):
@@ -291,8 +294,9 @@ class SourceContracts(unittest.TestCase):
             repo,commit=self.repo_fixture();blob=self.git(repo,'rev-parse',commit+':bound.txt')
             replacement=self.git(repo,'hash-object','-w','--stdin',input=b'replacement\n')
             self.git(repo,'replace',blob,replacement)
-            self.assertEqual(self.git(repo,'cat-file','blob',blob),'replacement')
-            self.assertEqual(checker.RawGit(repo).source(commit,'bound.txt'),b'original\n')
+            with mock.patch.dict(os.environ,{'GIT_NO_REPLACE_OBJECTS':'1'}):
+                self.assertEqual(self.git(repo,'cat-file','blob',blob),'replacement')
+                self.assertEqual(checker.RawGit(repo).source(commit,'bound.txt'),b'original\n')
         finally:self._temp.cleanup()
 
     def test_checker_has_no_direct_git_subprocess_outside_wrapper(self):
