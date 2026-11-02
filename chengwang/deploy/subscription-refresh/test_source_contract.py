@@ -461,7 +461,7 @@ class ClosedSourceContractModels(unittest.TestCase):
         self.assertEqual(result["fixturePathCount"], 21)
         self.assertEqual(result["packageTestTopCount"], 545)
         self.assertEqual(result["requiredRunTopCount"], 528)
-        self.assertEqual(result["changedGoSourceCount"], 38)
+        self.assertEqual(result["changedGoSourceCount"], 39)
         self.assertEqual(result["foundationCurrentCount"], 689)
         self.assertEqual(result["p207aAddedSourceTestTopCount"], 92)
         self.assertEqual(result["p207aAddedRequiredRunTopCount"], 80)
