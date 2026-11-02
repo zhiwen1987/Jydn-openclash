@@ -1,0 +1,25 @@
+{
+  "schema": "chengwang.combined-source-root-checkpoint/v1",
+  "codeHead": "0be21a1b42c5c5400634e4ddbf4a5a0f157455e2",
+  "codeTree": "92d5d8650eb410ec97d750aff7a843bf42eac89a",
+  "scope": "SOURCE_AND_PYTHON_ONLY_NOT_GO_OR_RUNTIME",
+  "sourceAudit": {"path": "D:/CodexData/workspace/chengwang-root-0be21a-source-joint-readonly-audit-20261103-cd03-v1/FINAL.json", "sha256": "d289839071f3bc5370bb4fc06643db1dac2e3ce900039be6802f9735be1e77cf"},
+  "sliceA": {"path": "D:/CodexData/workspace/chengwang-6914-p207a1-bootstrap-timeline-fullcombined-source-freeze-20261103-cd03-v1-slice-a-independent-review/FINAL.json", "sha256": "f0b6d1907f872fd4411ed54802fd96f1972fb7f272703f01c097929683730bee"},
+  "sliceB": {"path": "D:/CodexData/workspace/chengwang-6914-p207a1-bootstrap-timeline-fullcombined-source-freeze-20261103-cd03-v1-slice-b-independent-review/FINAL.json", "sha256": "b31473de76be3ce1b3c45815ddf9df15954e9c195314d57a18c892135ef004c0"},
+  "fixtureDeltaReview": {"path": "D:/CodexData/workspace/chengwang-timeline-hermetic-replace-fixture-source-independent-review-20261103-cd03-v2/FINAL.json", "sha256": "481463f89f843a13ce608515214c40ee1a1874ae60c8af6a69df0958dbcd9d1f"},
+  "modelEvidence": {
+    "originalP207Summary": "D:/CodexData/workspace/chengwang-fullcombined-root-models-20261103-cd03-v2/p207/SUMMARY.json",
+    "originalRestSummary": "D:/CodexData/workspace/chengwang-fullcombined-root-models-20261103-cd03-v2/rest/SUMMARY.json",
+    "originalRestSummaryRemains": "FAIL",
+    "originalAcceptedMethodRuns": 283,
+    "freshNativefsMethodRuns": 7,
+    "single290Run": false,
+    "freshResult": {"path": "D:/CodexData/workspace/chengwang-fullcombined-root-models-harness-candidate-20261103-cd03-v1/runs-loaded/nativefs/nativefs-7.result.json", "sha256": "aa3c05930376d33b660e889fdee2c72d5a46eee3a70c8410075d6273b83faad3"},
+    "harnessIndependentReview": {"path": "D:/CodexData/workspace/chengwang-fullcombined-root-models-harness-independent-review-20261103-cd03-v1/FINAL.json", "sha256": "c44c196f0714082bfaec601a64eda79173d2bbc37c8885628049f2f7e2e21a5d"}
+  },
+  "goExecutionProven": false,
+  "runtimeAcceptanceProven": false,
+  "productionTouched": false,
+  "finalHeadLinuxCI": "PENDING",
+  "fullSystem": "INCOMPLETE"
+}

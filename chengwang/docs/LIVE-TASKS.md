@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+2026-11-03 最新组合源码截点（优先于下方历史记录）：[组合集成与验收边界](SYS07-COMBINED-SOURCE-INTEGRATION-20261103.md)对应代码 `0be21a1b`。P207 v4、A1a existing-only、联合启动诊断及时间线均已集成并获独立源码复核；实际 source/joint 检查通过，528 required tops / 853 联合来源。283 项原 Python 方法记录加 fresh nativefs 7 项及独立复跑通过；不是一次 290 项运行，不是 Go 验收。外部 harness 的真实误拒绝和更早夹具失败均保留。最终提交隔离 Linux Go、联合场景、31 链、actualfs 和生产验收仍未完成；生产/main/Registry 不动。
+
 2026-11-03 最新受控集成：[P207 来源契约 v4](SYS07-P207-V4-SOURCE-INTEGRATION-20261103.md)已完成九文件源码集成、独立源码复审及主代理 81 项纯 Python 模型复核，实际来源检查仍为 830/21/496/491/29 且 `goExecutionProven=false`。新增 S/Q 分离、独立历史 453/448 身份、空 tags、完整工作流正向指纹和实际 CLI 顺序校验。最终新提交的 Linux Go、格式、official selection、source/fresh 和 31 链必须另取原件，不借用下方旧提交通过。
 
 A1 第四版仅获隔离编译前源码准入，组合契约、nativefs 非跳过检查、默认 Go 与 actualfs 尚未完成；联合诊断及时间线源码正在按独立 REVISE 修订。没有生产发布、原 main 合并或 Registry 发布。下方各提交均为历史截点，不能拼接成当前全项目接受。
