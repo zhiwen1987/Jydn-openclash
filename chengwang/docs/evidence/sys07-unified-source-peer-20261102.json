@@ -1,0 +1,74 @@
+{
+  "schema": "chengwang-unified-independent-source-review/v1",
+  "decision": "SOURCE_ACCEPT",
+  "subject": {
+    "candidate": "D:/CodexData/workspace/chengwang-unified-candidate-20261102",
+    "receipt": "D:/CodexData/workspace/chengwang-unified-candidate-20261102-receipt",
+    "branch": "codex/chengwang-unified-20261102",
+    "baseHead": "3444578ed42454fb460d6c3b45242c6717786782",
+    "candidateIndexTree": "c2e8bf5590dc3b863305de9bc8d242cceb27f089",
+    "frontendAfterimageCommit": "6db41db55f14fd137f7cd8032c52af043870f28b"
+  },
+  "immutableArtifacts": {
+    "patch": {"bytes": 92902, "sha256": "4766e0441e36003ab37f87660c94cb2633756127feb80d5b55b5082244a5fd4c"},
+    "sourceManifestSHA256": "50d8864ca9958f5ba16397ed45d80d1098edcdac57600c5aa8c8b48d4dac9a9d",
+    "candidateManifestSHA256": "a6d706a850778a2d4154ceddd44f9254ea38dfd61527334fe1f917f3db22b2ba",
+    "artifactManifestEntries": 18,
+    "artifactManifestEntriesAllDigestAndSizeMatched": true,
+    "alternateIndexEntries": 1632,
+    "alternateIndexExactlyMatchedCandidateTree": true,
+    "patchExactlyReproducedFromAlternateIndex": true
+  },
+  "sourceIdentity": {
+    "changedPathCount": 15,
+    "allBeforeImagesMatchedBaseCommitBytesSHA256AndBlob": true,
+    "allAfterImagesMatchedCandidateBytesSHA256AndBlobAndLF": true,
+    "frontendExactAfterimages": 7,
+    "frontendExactAfterimagesMatched6dbCommit": true,
+    "workflowAndContractChanges": 8,
+    "reusableSubscriptionUIBrowserWorkflowUnchanged": true
+  },
+  "workflowReview": {
+    "sixCallersPreserveOldExactRefsAndAddUnifiedExactTriggerAndGuard": true,
+    "sixCallerDownstreamGateStructureOtherwiseUnchanged": true,
+    "subscriptionRefreshAddsOnlyUnifiedExactPushRefAndTwoSourcePins": true,
+    "subscriptionRefreshPullRequestAndWorkflowDispatchPreserved": true,
+    "permissionsBudgetsActionPinsAndExistingAcceptanceGatesPreserved": true,
+    "reusableDirectPushUnifiedRefAdded": false,
+    "unifiedRefOccurrenceCount": 13
+  },
+  "sourceContract": {
+    "checkerExit": 0,
+    "contractSHA256": "4b9ae9dce6b7b0f173f27e3219128cee78466431b748a9c55fec45c6f611a138",
+    "modulePathCount": 825,
+    "moduleContentSHA256": "83ad5c4ec24211f23969e81122f4fff08520ef25e08068ecf0b7b58b3c335ec7",
+    "fixturePathCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "changedGoSourceCount": 25,
+    "goExecutionProven": false
+  },
+  "retainedEvidence": {
+    "sourceModels": {"tests": 63, "skipped": 0, "status": "PASS", "namesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd", "logReparsedWithoutRerun": true},
+    "overviewCPU": {"tests": 236, "skipped": 0, "status": "PASS", "reportExactlyReverifiedWithoutRerun": true, "binding": "alternate index tree c2e8bf5590dc3b863305de9bc8d242cceb27f089"},
+    "failureManifestAttempts": [],
+    "failureManifestWordingConsistentWithPassingAttempt1Logs": true,
+    "staleIncorrectContractAfterSHAFound": false
+  },
+  "limitations": {
+    "candidateCommitted": false,
+    "candidatePushed": false,
+    "unifiedHeadAcceptance": false,
+    "overview236BindingIsCommitProof": false,
+    "overview236BindingNote": "The 236 report is bound to an alternate index tree object, not to a committed unified HEAD.",
+    "goRun": false,
+    "gofmtRun": false,
+    "npmRun": false,
+    "browserRun": false,
+    "serverOrProductionUsed": false,
+    "jobLogsOrSessionsRead": false,
+    "formalJYCWOrCandidateModified": false,
+    "actualSKU": "UNKNOWN",
+    "leafPassEqualsUnifiedAcceptance": false
+  }
+}

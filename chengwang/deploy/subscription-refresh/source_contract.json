@@ -5,7 +5,7 @@
   "moduleClosure": {
     "pathCount": 825,
     "pathsSHA256": "ccd84f24bd5249c46363a4cf4be91e0cae9c645dcf0a704a0d87d3b2b540697b",
-    "contentSHA256": "3852ae46e68b8bfc95acab854211ff40e1ab40c202a9853362bbfdd9fc372bb7"
+    "contentSHA256": "83ad5c4ec24211f23969e81122f4fff08520ef25e08068ecf0b7b58b3c335ec7"
   },
   "fixtureClosure": {
     "additionalPaths": [],

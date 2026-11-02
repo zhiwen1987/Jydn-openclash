@@ -1,0 +1,40 @@
+{
+  "schema": "chengwang-unified-candidate-manifest-v1",
+  "candidate": {
+    "directory": "D:/CodexData/workspace/chengwang-unified-candidate-20261102",
+    "ref": "codex/chengwang-unified-20261102",
+    "head": "3444578ed42454fb460d6c3b45242c6717786782",
+    "indexTree": "c2e8bf5590dc3b863305de9bc8d242cceb27f089",
+    "committed": false,
+    "pushed": false,
+    "changedPathCount": 15
+  },
+  "sourceContract": {
+    "moduleCount": 825,
+    "modulePathsSHA256": "ccd84f24bd5249c46363a4cf4be91e0cae9c645dcf0a704a0d87d3b2b540697b",
+    "moduleContentSHA256": "83ad5c4ec24211f23969e81122f4fff08520ef25e08068ecf0b7b58b3c335ec7",
+    "contractSHA256": "4b9ae9dce6b7b0f173f27e3219128cee78466431b748a9c55fec45c6f611a138"
+  },
+  "checks": {
+    "diffCheck": "PASS",
+    "scopeExact15": "PASS",
+    "allChangedFilesLFNoCR": "PASS",
+    "frontendSevenExactBlobs": "PASS",
+    "reusableWorkflowUnchanged": "PASS",
+    "patchReverseApplyCheck": "PASS",
+    "cpu63": {"status":"PASS","tests":63,"skipped":0,"goExecutionProven":false,"namesSHA256":"381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd"},
+    "cpu236": {"status":"PASS","tests":236,"skipped":0,"sourceBinding":"candidate index tree c2e8bf5590dc3b863305de9bc8d242cceb27f089","scope":"CPU_CONTRACTS_ONLY_NOT_REAL_BROWSER_ACCEPTANCE"}
+  },
+  "preserved": ["old isolated refs","source gates","TargetGuard","budgets","permissions","action pins","reusable direct-push behavior"],
+  "excluded": ["frontend evidence docs","chengwang/docs/LIVE-TASKS.md","formal source","JYCW","production"],
+  "notRun": ["Go","gofmt","npm","browser","server","production","joblogs","session"],
+  "limitations": {
+    "unifiedHeadAcceptance": false,
+    "realBrowserProven": false,
+    "realProductServerProven": false,
+    "businessAvailabilityProven": false,
+    "production": false,
+    "actualSKUObservation": "UNKNOWN"
+  },
+  "failures": []
+}

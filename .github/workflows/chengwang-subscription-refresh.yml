@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 'codex/chengwang-p207a-refresh-*'
+      - 'codex/chengwang-unified-20261102'
     paths:
       - '.github/workflows/chengwang-subscription-refresh.yml'
       - 'chengwang/**'
@@ -22,7 +23,7 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 17b109bf893a3e52b985c15fc082588c7bfcc17983b0d9facb4ae48378380c97
+  CONTRACT_SHA256: 4b9ae9dce6b7b0f173f27e3219128cee78466431b748a9c55fec45c6f611a138
   CHECKER_SHA256: 6bc314b72183c81ee0b459bf6325aa4d5d12c1daf5db5a0501a005025319c886
   MODEL_SHA256: 29fe76c712b31a81dce1fae3d4da1526a6a982502a29b7e204dd84020d65ea6b
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
@@ -32,7 +33,7 @@ env:
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
   MODULE_COUNT: '825'
-  MODULE_SHA256: 3852ae46e68b8bfc95acab854211ff40e1ab40c202a9853362bbfdd9fc372bb7
+  MODULE_SHA256: 83ad5c4ec24211f23969e81122f4fff08520ef25e08068ecf0b7b58b3c335ec7
   FIXTURE_COUNT: '20'
   FIXTURE_SHA256: 4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf
   TEST_TOP_COUNT: '486'

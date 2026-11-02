@@ -3,7 +3,7 @@ name: Chengwang Isolated Capacity CPU Diagnosis
 on:
   workflow_dispatch:
   push:
-    branches: [codex/chengwang-mihomo-lifecycle-20261024]
+    branches: [codex/chengwang-mihomo-lifecycle-20261024, codex/chengwang-unified-20261102]
 
 permissions:
   contents: read
@@ -22,7 +22,8 @@ jobs:
           REQUEST_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-          test "$REQUEST_REF" = refs/heads/codex/chengwang-mihomo-lifecycle-20261024
+          test "$REQUEST_REF" = refs/heads/codex/chengwang-mihomo-lifecycle-20261024 ||
+            test "$REQUEST_REF" = refs/heads/codex/chengwang-unified-20261102
 
   profile-contract-models:
     needs: development-only

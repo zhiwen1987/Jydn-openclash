@@ -3,7 +3,7 @@ name: Chengwang Real Overview Evidence UI Browser
 on:
   workflow_dispatch:
   push:
-    branches: [codex/chengwang-overview-browser-20261024]
+    branches: [codex/chengwang-overview-browser-20261024, codex/chengwang-unified-20261102]
     paths:
       - '.github/workflows/chengwang-overview-ui-browser.yml'
       - '.github/workflows/chengwang-subscription-ui-browser.yml'
@@ -46,7 +46,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$REQUEST_REF" = refs/heads/codex/chengwang-overview-browser-20261024
+          test "$REQUEST_REF" = refs/heads/codex/chengwang-overview-browser-20261024 ||
+            test "$REQUEST_REF" = refs/heads/codex/chengwang-unified-20261102
   overview:
     needs: development-only
     uses: ./.github/workflows/chengwang-subscription-ui-browser.yml

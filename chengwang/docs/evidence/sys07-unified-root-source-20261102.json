@@ -1,0 +1,28 @@
+{
+  "schema": "chengwang.root-unified-source-integration/v1",
+  "base": "3444578ed42454fb460d6c3b45242c6717786782",
+  "frontend": "6db41db55f14fd137f7cd8032c52af043870f28b",
+  "changedPaths": [
+    ".github/workflows/chengwang-mihomo-capacity-profile.yml",
+    ".github/workflows/chengwang-mihomo-continuous-recovery-api.yml",
+    ".github/workflows/chengwang-mihomo-lifecycle.yml",
+    ".github/workflows/chengwang-mihomo-native-completion.yml",
+    ".github/workflows/chengwang-mihomo-native-recovery.yml",
+    ".github/workflows/chengwang-overview-ui-browser.yml",
+    ".github/workflows/chengwang-subscription-refresh.yml",
+    "chengwang/deploy/overview-ui-browser/overview_ui_scene.py",
+    "chengwang/deploy/overview-ui-browser/test_overview_scene.py",
+    "chengwang/deploy/subscription-refresh/source_contract.json",
+    "chengwang/tools/browser-scene-driver/native-session.mjs",
+    "chengwang/tools/browser-scene-driver/test-native-session.mjs",
+    "chengwang/tools/overview-ui-browser/test-ui-driver.mjs",
+    "chengwang/tools/overview-ui-browser/ui-driver.mjs",
+    "chengwang/web/src/layout-v2.css"
+  ],
+  "fullIndexPatchByteEqual": true,
+  "patchSHA256": "4766e0441e36003ab37f87660c94cb2633756127feb80d5b55b5082244a5fd4c",
+  "allAfterimagesExactLF": true,
+  "committed": false,
+  "runtimeAcceptance": false,
+  "productionTouched": false
+}
