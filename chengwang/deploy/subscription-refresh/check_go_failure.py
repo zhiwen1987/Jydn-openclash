@@ -282,7 +282,7 @@ def expected(contract: object) -> tuple[list[str], dict[str, list[str]]]:
             need(TOP.fullmatch(name) is not None, "top name")
             names.append(name)
         wanted[package] = names
-    need(sum(map(len, wanted.values())) == 481, "required top cardinality")
+    need(sum(map(len, wanted.values())) == 491, "required top cardinality")
     return packages, wanted
 
 
@@ -545,8 +545,8 @@ def verify_report(
         need(report["buildDiagnosticTruncated"] is True, "truncated build diagnostic flag")
     for name in ("eventLineCount", "outputEventCount", "ignoredSubtestEventCount", "declaredPackageCount", "declaredTopCount", "passCount", "failCount", "runningCount", "notStartedCount"):
         need(type(report[name]) is int and report[name] >= 0, "report count")
-    need(report["declaredPackageCount"] == len(packages) and report["declaredTopCount"] == 481, "report declared cardinality")
-    need(report["passCount"] + report["failCount"] + report["runningCount"] + report["notStartedCount"] == 481, "report state partition")
+    need(report["declaredPackageCount"] == len(packages) and report["declaredTopCount"] == 491, "report declared cardinality")
+    need(report["passCount"] + report["failCount"] + report["runningCount"] + report["notStartedCount"] == 491, "report state partition")
     declared = {package + "::" + name for package in packages for name in wanted[package]}
     emitted = []
     for key, count_key in (("failedTops", "failCount"), ("runningTops", "runningCount"), ("notStartedTops", "notStartedCount")):
@@ -576,10 +576,10 @@ def verify_report(
     if report["stage"] == "INVALID_STREAM":
         need(report["failureClass"] == "EVENT_STREAM_REJECTED", "invalid stream class")
     if report["stage"] == "NO_EVENTS":
-        need(report["passCount"] == report["failCount"] == report["runningCount"] == 0 and report["notStartedCount"] == 481, "no-event state")
+        need(report["passCount"] == report["failCount"] == report["runningCount"] == 0 and report["notStartedCount"] == 491, "no-event state")
         need(report["failureClass"] in {"NO_EVENT_EVIDENCE", "UNKNOWN_NONZERO_EXIT"}, "no-event class")
     if report["stage"] == "COMPLETE_EVENTS":
-        need(report["passCount"] == 481 and report["failCount"] == report["runningCount"] == report["notStartedCount"] == 0, "complete event state")
+        need(report["passCount"] == 491 and report["failCount"] == report["runningCount"] == report["notStartedCount"] == 0, "complete event state")
         need(report["failureClass"] in {"NONZERO_EXIT_AFTER_COMPLETE_EVENTS", "EVENT_CHECKER_REJECTED_AFTER_COMPLETE_EVENTS"}, "complete event class")
     marker_classes = {
         "TIMEOUT_TEXT": "TIMEOUT_TEXT_MARKER_OBSERVED",

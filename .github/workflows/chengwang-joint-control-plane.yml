@@ -1,0 +1,135 @@
+name: Chengwang Joint Control Plane Isolated E2E
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/chengwang-unified-20261102]
+    paths: ['.github/workflows/chengwang-joint-control-plane.yml', 'chengwang/**']
+permissions:
+  contents: read
+concurrency:
+  group: chengwang-joint-control-plane-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  EXACT_REF: refs/heads/codex/chengwang-unified-20261102
+  CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
+  CONTRACT_SHA256: cb2ce38fe42bb59e7fe610904bf12a06702d2ea0186affc3158ef5f0ce627bcf
+  CHECKER_SHA256: 5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec
+jobs:
+  joint-control-plane:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - name: Refuse every non-candidate ref
+        run: |
+          test "$GITHUB_REF" = "$EXACT_REF"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
+        with: {go-version: 1.23.12, cache: false}
+      - name: Pin source contract and checker
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "$CONTRACT" | cut -d' ' -f1)" = "$CONTRACT_SHA256"
+          test "$(sha256sum chengwang/deploy/joint-control-plane/check_joint_control_plane.py | cut -d' ' -f1)" = "$CHECKER_SHA256"
+          python3 -I -B - <<'PY'
+          import importlib.util,pathlib
+          b=pathlib.Path('chengwang/deploy/joint-control-plane')
+          s=importlib.util.spec_from_file_location('c',b/'check_joint_control_plane.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.source_contract(pathlib.Path('.').resolve(),b/'source_contract.json')
+          PY
+      - name: CPU contracts and Go suite
+        env: {GOFLAGS: -mod=vendor, CGO_ENABLED: '0'}
+        run: |
+          set -uo pipefail
+          private="$RUNNER_TEMP/joint-control-plane-cpu-private"; public="$RUNNER_TEMP/joint-control-plane-cpu-public"
+          install -d -m 0700 "$private" "$public"
+          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" >"$private/units.log" 2>&1; unit_code=$?
+          (cd chengwang && go test -count=1 -timeout=300s ./...) >"$private/go.log" 2>&1; go_code=$?
+          printf '%s\n' "$go_code" >"$private/go-exit.txt"
+          if test "$unit_code" = 0 && test "$go_code" = 0; then
+            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu --units "$private/units.json" --go-exit "$private/go-exit.txt" --output "$public/cpu-summary.json"
+          else
+            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$private" --code CPU_FAILED --output "$public/cpu-failure.json"
+            exit 1
+          fi
+      - name: Preserve bounded CPU summary only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: joint-control-plane-cpu-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane-cpu-public/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Build once and acquire immutable source
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/joint-control-plane"; test ! -e "$root"; install -d -m 0700 "$root/bin" "$root/evidence/staging/lab"
+          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --output "$root/evidence/staging/lab/source-before.json"
+          test "$(go env GOVERSION)" = go1.23.12
+          (cd chengwang && GOFLAGS=-mod=vendor CGO_ENABLED=0 go build -trimpath -o "$root/bin/server" ./cmd/server) >"$root/evidence/staging/build.stdout.private" 2>"$root/evidence/staging/build.stderr.private"
+          sudo --non-interactive chown root:root "$root/bin" "$root/bin/server"; sudo --non-interactive chmod 0555 "$root/bin" "$root/bin/server"
+          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py build --server-binary "$root/bin/server" --source-commit "$GITHUB_SHA" --output "$root/build.json"
+          sudo --non-interactive install -m 0600 -o 10001 -g 10001 "$root/build.json" "$root/evidence/staging/lab/build.json"
+          sudo --non-interactive chown -R 10001:10001 "$root/evidence/staging"
+      - name: Real B0 J1 R2 same-binary scene
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/joint-control-plane"; outer_net="$(readlink /proc/self/ns/net)"
+          timeout --signal=TERM --kill-after=15s 600s sudo --non-interactive unshare --mount --net --pid --fork --kill-child=SIGKILL --mount-proc /usr/bin/bash "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_namespace.sh" "$GITHUB_WORKSPACE" "$root" "$outer_net" product "$GITHUB_SHA"
+      - name: Reacquire source after every attempt
+        if: always()
+        run: |
+          root="$RUNNER_TEMP/joint-control-plane"
+          if test -d "$root/evidence/staging/lab"; then
+            sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --output "$root/evidence/staging/lab/source-after.json"
+          fi
+      - name: Independently verify public evidence
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/joint-control-plane"
+          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/check_joint_control_plane.py --evidence "$root/evidence/staging/lab" --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" --source-commit "$GITHUB_SHA" --output "$root/verification.private.json"
+          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py publish --input "$root/evidence/staging/lab" --verification "$root/verification.private.json" --output "$root/evidence/public"
+          sudo --non-interactive chown -R --no-dereference "$(id -u):$(id -g)" "$root/evidence/public"
+      - name: Publish only bounded failure classification
+        if: failure()
+        run: |
+          root="$RUNNER_TEMP/joint-control-plane"
+          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$root/evidence/staging" --code SCENE_FAILED --output "$root/evidence/public/failure.json"
+          sudo --non-interactive chown -R --no-dereference "$(id -u):$(id -g)" "$root/evidence/public"
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: joint-control-plane-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane/evidence/public/
+          if-no-files-found: warn
+          retention-days: 14
+  independent-replay:
+    needs: joint-control-plane
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - name: Refuse every non-candidate ref
+        run: test "$GITHUB_REF" = "$EXACT_REF"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: joint-control-plane-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane-replay
+      - name: Replay checker
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/joint-control-plane-replay"
+          test "$(sha256sum "$CONTRACT" | cut -d' ' -f1)" = "$CONTRACT_SHA256"
+          test "$(sha256sum chengwang/deploy/joint-control-plane/check_joint_control_plane.py | cut -d' ' -f1)" = "$CHECKER_SHA256"
+          python3 -I -B chengwang/deploy/joint-control-plane/check_joint_control_plane.py --evidence "$root/lab" --repo "$GITHUB_WORKSPACE" --contract "$CONTRACT" --source-commit "$GITHUB_SHA" --output "$root/replay-verification.json"
+          cmp "$root/verification.json" "$root/replay-verification.json"
+          git diff --exit-code; test -z "$(git status --porcelain --untracked-files=all)"
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: joint-control-plane-replay-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/joint-control-plane-replay/replay-verification.json
+          if-no-files-found: warn
+          retention-days: 14

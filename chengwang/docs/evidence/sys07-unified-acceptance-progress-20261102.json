@@ -1,0 +1,107 @@
+{
+  "schema": "chengwang.unified.acceptance-progress/v1",
+  "sourceHead": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+  "sourceWorktreeCleanBeforeDocumentation": true,
+  "p207": {
+    "run": 41450638831,
+    "verdict": "P207_ACCEPT",
+    "receiptSHA256": "5c042c4d768fc04fc093dcc19839213484a4a45afa28dc14c6e5e75ec663c74e",
+    "modelsPassed": 63,
+    "goPassed": 481,
+    "goSkipped": 0,
+    "packageFailures": 0,
+    "goExit": 0,
+    "separateFreshZipExists": false
+  },
+  "overview": {
+    "run": 41450638762,
+    "verdict": "OVERVIEW_LIMITED_ACCEPTED",
+    "receiptSHA256": "37cb2b075a81fcad65dae4a91e17ba5ce837eaf3f441d590003bbeebbe0ad0a3",
+    "scope": "anonymous_readonly_error_unknown_ui_flow",
+    "matrix": "CDP and Playwright, disabled and enabled_unknown",
+    "peerInspectedScreenshots": 32,
+    "rootInspectedScreenshot": "disabled CDP actual-desktop.png",
+    "disabled503BodiesReadable": false,
+    "independentBrowserInternalAttestation": false,
+    "businessRbacRefreshAcceptance": false
+  },
+  "continuous31": {
+    "run": 41450638674,
+    "verdict": "CONTINUOUS31_ACCEPT",
+    "receiptSHA256": "40ca51f7a9fa34460473dcd37b7f4a84dcff88ee1d1a9c7e89d4721ae3182c7d",
+    "rootReceiptHashRechecked": true,
+    "httpResponses": 31,
+    "recoveries": 2,
+    "closedPorts": 6,
+    "fullPrivateWALIndependentlyProven": false,
+    "internetBusinessProven": false
+  },
+  "foundationMetadata": {
+    "run": 41450639154,
+    "conclusion": "failure",
+    "failedJobs": ["contracts", "contracts-fresh"],
+    "expectedContractsFreshArtifactMissing": true,
+    "rootCauseProven": false,
+    "nextAction": "independent public failure artifact audit; no job logs"
+  },
+  "archiveV7PeerPreliminary": {
+    "fullAffectedChainGoldenMissing": true,
+    "authorAcknowledged": true,
+    "finalPeerReceiptPending": false,
+    "implementationGateOpen": false
+  },
+  "foundationAttempt2": {
+    "run": 41450639154,
+    "attempt": 2,
+    "verdict": "FOUNDATION_ATTEMPT2_ACCEPT_WITH_RUN_VARIABILITY_BOUNDARY",
+    "receiptSHA256": "602fa5d34bb6db5a41a159011feae246dabb7ab3ead2e7cd0b7420c2e10378ca",
+    "ordinaryMandatoryPassed": 689,
+    "raceMandatoryPassed": 689,
+    "semanticPassesPerLane": 2016,
+    "skipped": 0,
+    "attempt1FailurePreserved": true,
+    "performanceFixProven": false
+  },
+  "implementationDesignGates": {
+    "jointBusinessPlanV2": "ACCEPT_FOR_ISOLATED_IMPLEMENTATION",
+    "jointBusinessPlanPeerSHA256": "fd2c1bdd8918ef6fed41c3ff0ef7b28871b224fbe4736bf607ad48f206ac1fb8",
+    "sealedArchiveV8": "ACCEPT_FOR_A0_A1",
+    "sealedArchiveV8PeerSHA256": "cd303a007881cf3340fa931f532046052383b3ad0745b0861d88d99d0f2b5802",
+    "currentImplementationAuthority": ["isolated joint business scene candidate", "pure in-memory archive A0 candidate"],
+    "a1Implemented": false,
+    "a0V3SourcePeerSHA256": "8dec26080b06c8e9e7d2bdc7998ca4f23731a5e3c1cd0709e44838da80bdee06",
+    "a0V3FiveAfterimagesIntegratedUncommitted": true,
+    "a0AfterimageBytesVerified": 228183,
+    "a0PinsIntegrated": true,
+    "businessCandidateIntegrated": true,
+    "reviewedSourcePathsStaged": 23,
+    "rootSourceModelsPassed": 63,
+    "rootJointSyntheticModelsPassed": 40,
+    "jointMergedSourceContractPaths": 841,
+    "candidateGoExecuted": false
+  },
+  "capacity": {
+    "run": 41450638958,
+    "verdict": "CAPACITY_ACCEPTED_WITH_DECLARED_BOUNDARIES",
+    "combinedFoundationCapacityReceiptSHA256": "be37cc1f7777e276f1876ad2c865474811231707e596c3923e3799b8a6b1acb9",
+    "fullGoPassed": 689,
+    "wholeCiAccepted": false,
+    "wholeSixPackageCpuProfileProven": false
+  },
+  "nativeEightModes": {
+    "recoveryRun": 41450638838,
+    "completionRun": 41450638841,
+    "verdict": "NATIVE8_ACCEPT_WITH_DECLARED_BOUNDARIES",
+    "receiptSHA256": "a63af07796eaea7efbf9eaf5094344967bac46af5edc8b0259afed6f7db4a75b",
+    "rootReceiptHashRechecked": true,
+    "modes": 8,
+    "processEventsPerMode": 16,
+    "closedPortsPerMode": 5,
+    "fullPrivateWalIndependentlyProven": false,
+    "productionProven": false
+  },
+  "pending": ["commit, final HEAD source checks and isolated Linux Go/runtime acceptance", "performance-risk followup without weakening existing tests", "archive A1 independent acquisition/publication design and implementation", "full enterprise capability delivery"],
+  "archiveV7ImplementationAccepted": false,
+  "productionTouched": false,
+  "projectComplete": false
+}

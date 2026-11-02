@@ -18,7 +18,7 @@ class GoFailureProjectionModels(unittest.TestCase):
     def setUp(self) -> None:
         self.repo = HERE.parents[2]
         self.packages = [F.BUILD_LOCATION_TARGET_PACKAGE] + [f"example/p{index}" for index in range(6)]
-        remaining = 481
+        remaining = 491
         self.names = {}
         for index, package in enumerate(self.packages):
             count = remaining if index == len(self.packages) - 1 else 68
@@ -80,7 +80,7 @@ class GoFailureProjectionModels(unittest.TestCase):
         self.assertEqual(result["failureClass"], "PACKAGE_TERMINAL_NONPASS")
         self.assertEqual(result["failedTops"], [package + "::" + name])
         self.assertEqual(result["failCount"], 1)
-        self.assertEqual(result["notStartedCount"], 480)
+        self.assertEqual(result["notStartedCount"], 490)
         self.assertNotIn(secret, json.dumps(result))
         self.assertEqual(self.roundtrip(result, events), result)
 
@@ -88,14 +88,14 @@ class GoFailureProjectionModels(unittest.TestCase):
         result = self.project(self.encode(self.complete_events()), go_exit=1, event_exit=0)
         self.assertEqual(result["stage"], "COMPLETE_EVENTS")
         self.assertEqual(result["failureClass"], "NONZERO_EXIT_AFTER_COMPLETE_EVENTS")
-        self.assertEqual(result["passCount"], 481)
+        self.assertEqual(result["passCount"], 491)
         self.assertIs(result["accepted"], False)
         self.assertEqual(result["reportOutcome"], "FAILURE_DIAGNOSTIC_ONLY")
 
     def test_event_checker_failure_after_complete_events_is_distinct(self) -> None:
         result = self.project(self.encode(self.complete_events()), go_exit=0, event_exit=1)
         self.assertEqual(result["failureClass"], "EVENT_CHECKER_REJECTED_AFTER_COMPLETE_EVENTS")
-        self.assertEqual(result["passCount"], 481)
+        self.assertEqual(result["passCount"], 491)
         self.assertIs(result["accepted"], False)
 
     def test_partial_stream_reports_running_and_not_started_declared_tops(self) -> None:
@@ -110,7 +110,7 @@ class GoFailureProjectionModels(unittest.TestCase):
         self.assertEqual(result["failureClass"], "INCOMPLETE_EVENT_STREAM")
         self.assertEqual(result["passCount"], 1)
         self.assertEqual(result["runningTops"], [package + "::" + second])
-        self.assertEqual(result["notStartedCount"], 479)
+        self.assertEqual(result["notStartedCount"], 489)
 
     def test_unknown_package_top_and_event_key_are_fixed_rejections_without_echo(self) -> None:
         secret = "secret.example.invalid/private/path"
@@ -164,7 +164,7 @@ class GoFailureProjectionModels(unittest.TestCase):
         ]))
         self.assertEqual(result["stage"], "PACKAGE_TERMINAL")
         self.assertEqual(result["failureClass"], "PACKAGE_TERMINAL_NONPASS")
-        self.assertEqual(result["notStartedCount"], 481)
+        self.assertEqual(result["notStartedCount"], 491)
         self.assertEqual(result["buildDiagnosticReason"], "NO_SOURCE_POSITION")
         self.assertEqual(result["buildStderrClass"], "EMPTY")
         self.assertEqual(result["buildSourcePositionCount"], "0")

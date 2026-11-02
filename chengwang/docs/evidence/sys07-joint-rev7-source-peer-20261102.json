@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "reviewType": "revision7-evidence-only-final-verification",
+  "verdict": "SOURCE_ACCEPT_WITH_CONSISTENT_RECEIPTS",
+  "sourceVerdict": "INHERITED_SOURCE_ACCEPT_TREE6737",
+  "receiptVerdict": "ACCEPT",
+  "completeRegressionReview": true,
+  "runtimeAcceptance": false,
+  "input": {
+    "freezeDirectory": "D:\\CodexData\\workspace\\chengwang-joint-control-plane-candidate-20261102-v1-receipt\\freeze-revision7-20261102T151504487Z",
+    "manifestSha256": "ee8881c9d0123e1652b786dc990b33bd47767ea6315d68afb55c2a803669c959",
+    "baseCommit": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "indexTree": "6737fdeeb8cd52a2a52e74a8345dfced5bda0f3e",
+    "pathCount": 13,
+    "patchSha256": "1c265b67b4041ac9f8a93a715b9fd05a9f0dd480f6ddd478e61a9846cf1fd58a",
+    "indexSha256": "898b37507bb5f197fc5e95f8bb14ae672389a322a4495db9ed3483a40cbdaab8",
+    "sourceTreeUnchangedFromRevision6": true,
+    "revision6PeerReviewSha256": "8720f7b8e6d30828c91a974c4b945f5b8b6ca238aea285cdc7e9c5fc07e1181d"
+  },
+  "identityVerification": {
+    "treeObject": true,
+    "manifestPathCount": 13,
+    "allManifestBlobOidsMatchTree": true,
+    "allManifestSourceSha256MatchBlobs": true,
+    "patchMatchesRevision6": true,
+    "indexMatchesRevision6": true,
+    "freezeFileSetMissing": [],
+    "freezeFileSetExtra": [],
+    "manifestLogByteOrHashMismatches": []
+  },
+  "producerCpuReceipt": {
+    "producerExitCode": 0,
+    "producerExitFileSha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "cpuLogSha256": "12c54a20abe539153c86ded9da660ab0bdaf0a05937476f962056c304955b895",
+    "cpuLogBytes": 6477,
+    "cpuLogRanTests": 40,
+    "cpuLogStatus": "OK",
+    "rejectedMarkerAbsent": true,
+    "unitsSha256": "e4a44fa6d8d08d4ed89856aa24a8ee8905fe2daf2bac196325a73ef531c2f29d",
+    "units": {
+      "schema": "chengwang.joint-control-plane-units/v2",
+      "testsRun": 40,
+      "failures": 0,
+      "syntheticOnly": true,
+      "productAcceptanceProven": false
+    }
+  },
+  "sourceContractReceipt": {
+    "producerExitCode": 0,
+    "exitFileSha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "paths": 836,
+    "bytes": 9959957,
+    "mismatches": 0,
+    "binaryLogSha256": "f615db4203ec3f85e3d97f927d95e0a5d5361976e1a9bf7ce0827814fe3efff4"
+  },
+  "frozenEvidenceSha256": {
+    "cpu-python-40.log": "12c54a20abe539153c86ded9da660ab0bdaf0a05937476f962056c304955b895",
+    "units.json": "e4a44fa6d8d08d4ed89856aa24a8ee8905fe2daf2bac196325a73ef531c2f29d",
+    "producer-exit.txt": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "ast-inventory.log": "2e2efb7918d1e5ee410a2032c492adb573ab9215df118898b8bee4bcd952a767",
+    "source-contract.log": "c46d216d100c119fd05258f0799e1463869683fcf482d4bff76911e907278f86",
+    "source-contract-exit.txt": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "binary-source-contract.log": "f615db4203ec3f85e3d97f927d95e0a5d5361976e1a9bf7ce0827814fe3efff4",
+    "pin-contract.log": "130e1b3a6e09b8d5ef0a7f5e2b486e651707fc955c14a50e8c5210cee6f673c0",
+    "patch-validation.log": "a32bbaf6ff3ee7e2af6fd48e7285af191b83359bf959981218a2322d73c6d2ef",
+    "index-validation.log": "80ee39e528a37e6276fed97c48f0fe6c71fb07943cd1041f1ef3fcdd315d2158"
+  },
+  "revision6Preservation": {
+    "oldFreezeStillExists": true,
+    "oldManifestSha256": "462d98a77d462e830d224f3b4c27c4fd3a79ac70229aefd1bd7adf1276a559dd",
+    "oldCpuLogSha256": "215ec33e411be3465484fee223dedab3c8393c20fe2b3ad81bb1039ecac4ba34",
+    "oldUnitsSha256": "b3a1f271592fdf3bf8496ef7ecbcc4c08e5fbb68ae4871700ffcb9e0e445f283",
+    "oldUnitsTestsRun": 39,
+    "oldRejectedMarkerStillPresent": true,
+    "overwritten": false
+  },
+  "constraints": {
+    "sourceSemanticsReReviewed": false,
+    "freezeModified": false,
+    "goExecuted": false,
+    "serverExecuted": false,
+    "browserExecuted": false,
+    "networkFixtureExecuted": false,
+    "productionChanged": false,
+    "linuxRuntimeStatus": "UNKNOWN_NOT_RUN"
+  }
+}

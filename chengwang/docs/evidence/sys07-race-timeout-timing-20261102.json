@@ -1,0 +1,23 @@
+{
+  "sourceHead": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+  "run": 41450639154,
+  "evidence": "public mihomo-foundation-contracts/race.json",
+  "evidenceSHA256": "96e682fabb069c5508ad63d1aae35ee81b7d753dcfd416b531d15922083f00a9",
+  "mihomodeploySourceDeltaFrom344": "none, verified git diff scoped directory",
+  "package": "chengwang/internal/mihomodeploy",
+  "packageStart": "2026-11-02T13:12:00.113767026Z",
+  "lastStartedTest": "TestLifecycleUnsentRejectionTombstonePreventsOperationReplay",
+  "lastTestStart": "2026-11-02T13:15:00.111124919Z",
+  "packageFailureTime": "2026-11-02T13:15:00.166804934Z",
+  "packageElapsedSeconds": 180.053,
+  "lastTestObservedWindowLessThanSeconds": 0.057,
+  "lastStartedTestDeadlockProven": false,
+  "slowestCompletedTest": "TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop",
+  "slowestCompletedElapsedSeconds": 80.08,
+  "nextSlowestCompletedTest": "TestLifecycleRecoveryReconcileReserveAccountsForCompleteAttemptAtControlLimit",
+  "nextSlowestCompletedElapsedSeconds": 8.94,
+  "conclusion": "package aggregate timeout, not evidence of a three-minute stall in the last started test",
+  "capacityLoopCauseProven": false,
+  "timeoutOrAssertionsChanged": false,
+  "productionTouched": false
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "reviewType": "complete-13-path-static-regression-review",
+  "verdict": "SOURCE_ACCEPT_TREE6737__PRODUCER_CPU_RECEIPT_REJECTED",
+  "sourceVerdict": "SOURCE_ACCEPT",
+  "producerReceiptVerdict": "REJECTED_INCONSISTENT_CPU_RECEIPT",
+  "completeRegressionReview": true,
+  "runtimeAcceptance": false,
+  "input": {
+    "baseCommit": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "indexTree": "6737fdeeb8cd52a2a52e74a8345dfced5bda0f3e",
+    "pathCount": 13,
+    "freezeDirectory": "D:\\CodexData\\workspace\\chengwang-joint-control-plane-candidate-20261102-v1-receipt\\freeze-revision6-20261102T151024602Z",
+    "manifestSha256": "462d98a77d462e830d224f3b4c27c4fd3a79ac70229aefd1bd7adf1276a559dd",
+    "patchSha256": "1c265b67b4041ac9f8a93a715b9fd05a9f0dd480f6ddd478e61a9846cf1fd58a",
+    "indexSha256": "898b37507bb5f197fc5e95f8bb14ae672389a322a4495db9ed3483a40cbdaab8",
+    "apiWireIndexSha256": "386deeadde9d43e0f64d17f7418fdd191ca222bf7d4f3dbf741d4f8bdb267705",
+    "identityVerified": true,
+    "treeMatchesManifestBlobOids": true,
+    "workingTreeBytesUsedAsReviewInput": false
+  },
+  "sourceFindings": [],
+  "revision5R1Disposition": {
+    "status": "FIXED",
+    "checkerLocations": [
+      "chengwang/deploy/joint-control-plane/check_joint_control_plane.py:163-167",
+      "chengwang/deploy/joint-control-plane/check_joint_control_plane.py:180-193"
+    ],
+    "testLocations": [
+      "chengwang/deploy/joint-control-plane/test_check_joint_control_plane.py:172-193"
+    ],
+    "b0Rule": "Every exact B0 A-answer, AAAA-NODATA, source triplet event must satisfy B0.startedUnixNano <= event.receivedUnixNano <= fetchCapture.receivedUnixNano.",
+    "j1Rule": "J1.startedUnixNano <= final.startedAt <= final.completedAt <= J1.stoppedUnixNano; each exact refresh triplet remains inside that final interval.",
+    "counterfactualReplay": [
+      {"mutation":"B0 triplet before B0 PID start","revision5Checker":"PASS","revision6Checker":"REJECT bootstrap-wire-lifetime"},
+      {"mutation":"J1 interval and triplet before J1 PID start","revision5Checker":"PASS","revision6Checker":"REJECT refresh-process-lifetime"},
+      {"mutation":"J1 completion after J1 PID stop","revision5Checker":"PASS","revision6Checker":"REJECT refresh-process-lifetime"}
+    ]
+  },
+  "priorRegressionDisposition": {
+    "candidateBaseRevision2And4CrossBinding": "PRESERVED",
+    "dnsAThenAaaaThenSourceSequence": "PRESERVED",
+    "dnsDeletionReorderAfterSourceNegatives": "PRESERVED",
+    "candidateDtoFullShape": "PRESERVED",
+    "nonGetWriteProof": "PRESERVED",
+    "atomicPublication": "PRESERVED",
+    "exactTimePlus300Plus60AndZero": "PRESERVED",
+    "sourceClosure": "PRESERVED_836_PATHS_NO_CYCLE",
+    "publicationCachedByteBinding": "PRESERVED",
+    "machineBearerHttpBoundary": "PRESERVED_MACHINE_BEARER_NOT_USED_FOR_HTTP",
+    "receiptRbac": "PRESERVED_AUDITOR_200_VIEWER_403_OPERATOR_403_OWNER_FIELD_MACHINE",
+    "ordinaryCollectorInterleave": "PRESERVED_J1_FILTERS_RELEVANT_SOURCE_DOT_ONLY_AND_B0_OVERVIEW_DISABLED"
+  },
+  "sourceContractVerification": {
+    "paths": 836,
+    "bytes": 9959957,
+    "method": "binary git cat-file --batch against immutable indexTree",
+    "hashMismatches": 0,
+    "pathSetClosed": true,
+    "cycleFound": false,
+    "checkoutSmudgeUsed": false
+  },
+  "independentCpuReplay": {
+    "sourceTree": "6737fdeeb8cd52a2a52e74a8345dfced5bda0f3e",
+    "pythonIsolationFlags": "-I -B",
+    "testsRun": 40,
+    "failures": 0,
+    "exitCode": 0,
+    "unitsSha256": "e4a44fa6d8d08d4ed89856aa24a8ee8905fe2daf2bac196325a73ef531c2f29d",
+    "syntheticOnly": true,
+    "runtimeAcceptanceProven": false
+  },
+  "producerCpuReceiptRejection": {
+    "manifestClaim": {"tests":40,"status":"PASS"},
+    "cpuLogSha256": "215ec33e411be3465484fee223dedab3c8393c20fe2b3ad81bb1039ecac4ba34",
+    "cpuLogObservedTail": "Ran 40 tests; OK; JOINT_CI=REJECTED",
+    "unitsSha256": "b3a1f271592fdf3bf8496ef7ecbcc4c08e5fbb68ae4871700ffcb9e0e445f283",
+    "unitsObservedTestsRun": 39,
+    "classification": "The source tests pass independently, but the frozen producer command failed after the test runner because the exclusive output write encountered an existing stale units.json. The manifest PASS claim is false for this producer receipt.",
+    "sourceImpact": false,
+    "archiveImpact": "Revision6 producer CPU receipt cannot be archived as PASS; rebuild evidence in a fresh path without changing tree 6737fde."
+  },
+  "frozenEvidenceSha256": {
+    "cpu-python-40.log": "215ec33e411be3465484fee223dedab3c8393c20fe2b3ad81bb1039ecac4ba34",
+    "units.json": "b3a1f271592fdf3bf8496ef7ecbcc4c08e5fbb68ae4871700ffcb9e0e445f283",
+    "ast-inventory.log": "2e2efb7918d1e5ee410a2032c492adb573ab9215df118898b8bee4bcd952a767",
+    "source-contract.log": "c46d216d100c119fd05258f0799e1463869683fcf482d4bff76911e907278f86",
+    "binary-source-contract.log": "f615db4203ec3f85e3d97f927d95e0a5d5361976e1a9bf7ce0827814fe3efff4",
+    "pin-contract.log": "130e1b3a6e09b8d5ef0a7f5e2b486e651707fc955c14a50e8c5210cee6f673c0",
+    "patch-validation.log": "a32bbaf6ff3ee7e2af6fd48e7285af191b83359bf959981218a2322d73c6d2ef",
+    "index-validation.log": "80ee39e528a37e6276fed97c48f0fe6c71fb07943cd1041f1ef3fcdd315d2158"
+  },
+  "candidateFileSha256": {
+    ".github/workflows/chengwang-joint-control-plane.yml": "3c082fd963bae90bf413635cb865f0e285eedaadfad1505612550486cecd29ad",
+    "chengwang/deploy/joint-control-plane/check_joint_control_plane.py": "5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec",
+    "chengwang/deploy/joint-control-plane/ci_joint_control_plane.py": "feb37064b7a8e188df284cbb634f42c69384d557cf48147dae6c99319a732a22",
+    "chengwang/deploy/joint-control-plane/ci_namespace.sh": "e4750b2a02ac5ceb7d58f8770ac105631179136a344788c147e0bd39f6c8ced0",
+    "chengwang/deploy/joint-control-plane/contract.py": "f7b6f8f87286913ecb434fa2fd53d366cbf4b78463bfccc4eae42e0023aed9eb",
+    "chengwang/deploy/joint-control-plane/joint_fixture.py": "0ee1118e83ed67cd1b9c6498aac6f58d752e1a82f52f6ee2acae5997a85d0a19",
+    "chengwang/deploy/joint-control-plane/run_joint_control_plane.py": "6ba5f5eab5a680b9bdecdaec5fb7f867cbfeeb5bdc5ece4f7a9fd382c97a32a8",
+    "chengwang/deploy/joint-control-plane/sanitize_publication.py": "61455153beb1b4a12eff607e06da788ba9dccc41b3e0e500aac87f1d1c46161f",
+    "chengwang/deploy/joint-control-plane/source_contract.json": "87b0522157d3d6836fd2646a81af8b4357e8c1025cb5ef2efaa68a59ee0e968c",
+    "chengwang/deploy/joint-control-plane/test_check_joint_control_plane.py": "e8955d33a53b31951c7c4299fe6630c4f737620c6517e8f88ffaa6e6dc3f85b4",
+    "chengwang/deploy/joint-control-plane/test_joint_fixture.py": "ce4235e38235e0eaecf0aa5c277f590647d99ebf63b703106b31d0386f5eca38",
+    "chengwang/deploy/joint-control-plane/test_run_joint_control_plane.py": "65755bc247e7b5ca8764a03820c6a80f415ef963cf12a58cd0bafea81b74b047",
+    "chengwang/deploy/joint-control-plane/test_sanitize_publication.py": "7deabd7cc93595db68d0387b56dcf53937f7e8b10f8be6d0f5378f548ac9ea8d"
+  },
+  "constraints": {
+    "candidateModified": false,
+    "freezeModified": false,
+    "goExecuted": false,
+    "serverExecuted": false,
+    "browserExecuted": false,
+    "networkFixtureExecuted": false,
+    "productionChanged": false,
+    "linuxRuntimeStatus": "UNKNOWN_NOT_RUN"
+  }
+}

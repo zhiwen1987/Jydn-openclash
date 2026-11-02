@@ -1,0 +1,52 @@
+{
+  "schema": "chengwang.p207-pin-generator-freeze-drift-receipt/v1",
+  "status": "RECORDED_FREEZE_DISCIPLINE_VIOLATION",
+  "date": "2026-11-02",
+  "timeOfDay": "UNKNOWN",
+  "affectedDirectory": "D:/CodexData/workspace/chengwang-p207-pin-generator-20261102-cd03-v1",
+  "sequence": [
+    {
+      "event": "FIRST_REPORTED_FROZEN_IDENTITY",
+      "toolManifestBytes": 5216,
+      "toolManifestSHA256": "c5435f2c6f42a021f05b079cd6fe71a4371fab03a4acb69ba0b2b43928c051fc",
+      "generatorBytes": 44410,
+      "generatorSHA256": "3117b75d68d0ae38762b769df08e4abe58d988e9fe29f9a1874e7dc0448ef88c",
+      "testBytes": 12648,
+      "testSHA256": "76da516a2a11a25c3ee869d5c9bc6661edd01d4484057400f33fff56793ea184",
+      "safeUsageBytes": 4501,
+      "safeUsageSHA256": "1abd99f4d9715a320f769b0599ff78387c2895f26a96b713fd1d412daba6187f"
+    },
+    {
+      "event": "POST_FREEZE_TEST_AND_MANIFEST_MUTATION",
+      "reason": "an additional private checkout-index/materialize readback assertion was added after the first freeze report; the test file and tool manifest were then re-hashed and reported as a final correction",
+      "knownChangedPaths": [
+        "test_generate_p207_pins.py",
+        "TOOL-MANIFEST.json"
+      ],
+      "toolManifestBytes": 5264,
+      "toolManifestSHA256": "d5a3c1afb2412278b34a679c7c3af13ba210b56ac13733d9e0d308f9a8a61439",
+      "generatorBytes": 44410,
+      "generatorSHA256": "3117b75d68d0ae38762b769df08e4abe58d988e9fe29f9a1874e7dc0448ef88c",
+      "testBytes": 13087,
+      "testSHA256": "5a84450b1c392b3c775d4182b6f767d30a0b00122dfe286824b41c514804467e",
+      "safeUsageBytes": 4501,
+      "safeUsageSHA256": "1abd99f4d9715a320f769b0599ff78387c2895f26a96b713fd1d412daba6187f"
+    }
+  ],
+  "recoveryEvidence": {
+    "originalByteBackupPresent": false,
+    "originalToolManifestBytesRecoverableByteForByte": "UNKNOWN",
+    "originalTestBytesRecoverableByteForByte": "UNKNOWN",
+    "reconstructionAttempted": false,
+    "sessionOrRolloutRead": false,
+    "reason": "no immutable copy of the first-reported manifest or test bytes was created before the post-freeze mutation"
+  },
+  "currentBoundary": {
+    "v1FurtherWritesStopped": true,
+    "v1ContinuouslyImmutableSinceFirstFreezeClaim": false,
+    "realGenerationRunByThisAgent": false,
+    "rootHadRunRealGenerationAtReceiptTime": false,
+    "v2WorkMustUseANewDirectory": true
+  },
+  "actualModel": "UNKNOWN"
+}

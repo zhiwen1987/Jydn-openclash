@@ -1,0 +1,172 @@
+{
+  "schema": "chengwang.sealed-archive-a0-independent-source-review/v3",
+  "status": "SOURCE_ACCEPT",
+  "verdict": "SOURCE_ACCEPT",
+  "sourceAccept": true,
+  "a0Accepted": false,
+  "actualModel": "UNKNOWN",
+  "reviewDate": "2026-11-02",
+  "scope": "A0_PURE_MEMORY_FROZEN_SOURCE_ONLY",
+  "input": {
+    "directory": "D:/CodexData/workspace/chengwang-sealed-archive-a0-leaf-freeze-v3-20261102-cd03",
+    "artifactFileCount": 12,
+    "freeze": {
+      "path": "A0-v3-FREEZE.json",
+      "bytes": 5324,
+      "sha256": "685762e077eef9169615a2b21a28b976ab61a805895e0f5dd78a13a66b1467e2"
+    },
+    "sums": {
+      "path": "SHA256SUMS-v3",
+      "bytes": 1201,
+      "sha256": "15549a35b344ba17d8e5163049c60018d0c4e4dce0a19ecd43aff91c8d1d0043",
+      "listedRows": 11,
+      "verifiedRows": 11,
+      "mismatches": 0
+    },
+    "fullIndexPatch": {
+      "path": "A0-v3-full-index.patch",
+      "bytes": 233626,
+      "sha256": "87e696a6a35e861fe494b320aba8d9821c3975b4b7099e3e836265094e0f8444"
+    },
+    "baseCommit": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "baseTree": "80b92f3fb44f70e3fc6b192ab755a38831003906",
+    "candidateTree": "0a196deda5b94936137b55a1303017695a1a9209"
+  },
+  "independentIdentityVerification": {
+    "baseIndexApplyCheckExit": 0,
+    "baseIndexApplyExit": 0,
+    "diffCheckExit": 0,
+    "changedPathCount": 5,
+    "changedPaths": [
+      "chengwang/internal/subscription/sealed_archive_a0.go",
+      "chengwang/internal/subscription/sealed_archive_history.go",
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go",
+      "chengwang/internal/subscription/testdata/FULL-CHAIN-GOLDEN-v8.json"
+    ],
+    "reconstructedTree": "0a196deda5b94936137b55a1303017695a1a9209",
+    "reconstructionIndexBytes": 209052,
+    "reconstructionIndexSha256": "86c984a95df71b3290ddf8afe586f4cfec07337c1dd246171db8b98bf22f7f04",
+    "matchesPackagedIndexes": true,
+    "allFiveTreeBlobsMatchManifestAndAfterimages": true,
+    "candidateWorktreeBytesMatchAfterimages": true,
+    "onlyTestGoChangedFromV2": true,
+    "testGoSha256": "94b3a9d71ac6e31a4fc142ef268eca9d6e935afee51f51a8116ed57d82223e19",
+    "otherFourAfterimagesUnchangedFromV2": true,
+    "fullGoldenSha256": "b6cc264cb39159cee11745fd2e3ed13980c0a18bdf867505bf2629dbcbe7b3ab"
+  },
+  "codecIdentity": {
+    "sourceCommit": "3444578ed42454fb460d6c3b45242c6717786782",
+    "sourceTree": "fb5bcebd073aeacb301f7025adcc56dbe79ce8ee",
+    "pathCount": 9,
+    "manifestBytes": 961,
+    "manifestSha256": "20cdf1e7cb741ad5cf0a3f1502a4e144a1d058c388cb2e193b2ea64b1e2b91d7",
+    "allNineUnchangedAtBase736": true,
+    "cultureOrderedDigestRejected": true
+  },
+  "sourceBoundary": {
+    "privateTypedArchiveDTOs": true,
+    "actualPrivateStoreDTOsReused": true,
+    "parallelStoreValidatorAdded": false,
+    "storeDecodeValidateEncodeTwice": true,
+    "typedClosedBasenameParser": true,
+    "closedFailuresOnly": true,
+    "hmacEqualUsed": true,
+    "forbiddenAuthorityMatches": 0,
+    "forbiddenAuthorityClasses": [
+      "filesystem",
+      "directory",
+      "lock",
+      "environment",
+      "random acquisition",
+      "wall clock acquisition",
+      "network",
+      "store open",
+      "publication",
+      "service",
+      "production"
+    ],
+    "lfNoBomNoCr": true,
+    "newTopLevelTests": 10
+  },
+  "v2FindingClosure": [
+    {
+      "id": "A0-V2-SRC-P1-001",
+      "status": "CLOSED_IN_FROZEN_SOURCE",
+      "evidence": [
+        "sealed_archive_test.go:693-722 contains exact CodeArchiveNameUnsafe assertions",
+        "backslash and non-NUL control are present",
+        "short, long and nonhex references are present",
+        "alternate extension, prefix, suffix and second fixed aliases are present",
+        "positive fixed/content/temp typed round trips remain present"
+      ]
+    },
+    {
+      "id": "A0-V2-SRC-P1-002",
+      "status": "CLOSED_IN_FROZEN_SOURCE",
+      "helperProof": {
+        "stringHelper": "sealedArchiveOneByteStringV8",
+        "bytesHelper": "sealedArchiveOneByteBytesV8",
+        "sameLengthAsserted": true,
+        "exactDifferenceCount": 1,
+        "inputIndexChecked": true,
+        "asciiMutationChecked": true
+      },
+      "oneByteCoverage": [
+        "frame domain",
+        "schema",
+        "kind",
+        "payload",
+        "reference",
+        "seal",
+        "archive key",
+        "Kref",
+        "Kseal",
+        "source revision commit",
+        "source revision tree",
+        "source revision codec-set SHA",
+        "codec",
+        "policy",
+        "budget",
+        "nonce",
+        "time",
+        "migration ID ASCII",
+        "epoch",
+        "original-v1 identity SHA"
+      ]
+    }
+  ],
+  "preservedClosures": [
+    "A0-SRC-P1-002",
+    "A0-SRC-P1-003",
+    "A0-SRC-P1-004",
+    "13 concrete and representative nested canonical matrix",
+    "unreachable entry/F/Peak boundary isolation through shared production helpers"
+  ],
+  "findings": [],
+  "notRun": [
+    "go test",
+    "go test -race",
+    "gofmt",
+    "go build",
+    "compiler",
+    "browser",
+    "server",
+    "filesystem A1 experiment",
+    "network",
+    "service",
+    "production"
+  ],
+  "limits": [
+    "SOURCE_ACCEPT covers only the exact frozen v3 source tree and static source contract.",
+    "SOURCE_ACCEPT does not claim formatting, compilation, test execution, race, runtime, Linux, A1 filesystem, durability, recovery, service or production acceptance.",
+    "This verdict is not A0_ACCEPT and grants no A1/B/C/D authority.",
+    "Final integrated pins must be recomputed from the eventual combined index."
+  ],
+  "memory": {
+    "hyMemoryAvailable": false,
+    "readClaim": "none",
+    "writeAttempted": false,
+    "writeClaim": "none"
+  }
+}

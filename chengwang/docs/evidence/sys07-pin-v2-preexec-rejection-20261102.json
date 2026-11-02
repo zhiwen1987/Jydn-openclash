@@ -1,0 +1,14 @@
+{
+  "verdict": "REVISE_BEFORE_REAL_GENERATION",
+  "tool": "D:/CodexData/workspace/chengwang-p207-pin-generator-20261102-cd03-v2/generate_p207_pins.py",
+  "scriptSHA256": "3883dbe285053d96c3637778d525c09aa8c698e36c42c418420dc1e05a19b292",
+  "finding": "PrivateGit.materialize uses checkout-index with inherited repository core.autocrlf configuration and does not verify materialized bytes against binary Git blobs before deriving source pins",
+  "risk": "source aggregate can describe CRLF-smudged private checkout rather than the immutable candidate tree",
+  "requiredFix": "new tool version using binary blob materialization and per-path byte/OID verification; preserve all prior failure/isolation guards",
+  "requiredFixture": "repository-local autocrlf true with mixed LF, CRLF and binary tracked inputs; output must exactly match each binary Git blob",
+  "actualGenerationExecuted": false,
+  "formalGateFilesModified": false,
+  "sharedConfigModified": false,
+  "productionTouched": false,
+  "oldToolWillBePreserved": true
+}

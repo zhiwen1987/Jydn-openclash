@@ -3,14 +3,15 @@
   "scope": "CONSERVATIVE_TRACKED_SOURCE_CLOSURE_NOT_GO_DEPENDENCY_GRAPH_OR_EXECUTION",
   "authoringBaseCommit": "b5b5fa96cadbf35ae833c618555ab82e5d70429b",
   "moduleClosure": {
-    "pathCount": 825,
-    "pathsSHA256": "ccd84f24bd5249c46363a4cf4be91e0cae9c645dcf0a704a0d87d3b2b540697b",
-    "contentSHA256": "83ad5c4ec24211f23969e81122f4fff08520ef25e08068ecf0b7b58b3c335ec7"
+    "pathCount": 830,
+    "pathsSHA256": "b0dcf9868c56d0f9fdc12803d9c59b08a0367e2f7d82d42d2fdf489b27e4ae84",
+    "contentSHA256": "5df4b59a4a2c4876393c6f360fbac65225938130cd0025c3cb312de2f56d6739"
   },
   "fixtureClosure": {
     "additionalPaths": [],
     "paths": [
       "chengwang/internal/restorecurrent/compose_probe_agent.snapshot.yaml",
+      "chengwang/internal/subscription/testdata/FULL-CHAIN-GOLDEN-v8.json",
       "chengwang/vendor/github.com/santhosh-tekuri/jsonschema/v6/metaschemas/draft-04/schema",
       "chengwang/vendor/github.com/santhosh-tekuri/jsonschema/v6/metaschemas/draft-06/schema",
       "chengwang/vendor/github.com/santhosh-tekuri/jsonschema/v6/metaschemas/draft-07/schema",
@@ -31,9 +32,9 @@
       "chengwang/vendor/github.com/santhosh-tekuri/jsonschema/v6/metaschemas/draft/2020-12/meta/validation",
       "chengwang/vendor/github.com/santhosh-tekuri/jsonschema/v6/metaschemas/draft/2020-12/schema"
     ],
-    "pathCount": 20,
-    "pathsSHA256": "69d2d26c2bdb85459d2c06a803a0978aa1cb4d3be5082fa7049a3d409d8238c6",
-    "contentSHA256": "4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf"
+    "pathCount": 21,
+    "pathsSHA256": "41e8008fd8a7c9455b930e3af34bb6545d346a03f208688aa21648c95057d58a",
+    "contentSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11"
   },
   "changedGoSources": {
     "chengwang/internal/api/server.go": "21813f7d376736777d68c1fcb636f9dd55f57e1dff17e48178cb72b8691a4126",
@@ -52,6 +53,10 @@
     "chengwang/internal/subscription/control.go": "d575b574385c51daa5d4796112cb4ebd6e4d7e5f7807ec5533064efe38955f33",
     "chengwang/internal/subscription/refresh.go": "4bf3e8908d40f25124260b098e34e475c695da4d0730e2b8f716b05f8275efe5",
     "chengwang/internal/subscription/refresh_test.go": "5cfc0825df5e691865652e4a941e613b6c2439ef2473aa62a7b68d40ab5d4444",
+    "chengwang/internal/subscription/sealed_archive_a0.go": "f702d4ed6fb8d9fe7a29accc9842169154793faf2c5eefbc3e235ee2df2daefb",
+    "chengwang/internal/subscription/sealed_archive_history.go": "198ff3ee66429396ca1088b4dea1585b13be4e6d83d9983d2d857b1dc0bb18a9",
+    "chengwang/internal/subscription/sealed_archive_test.go": "94b3a9d71ac6e31a4fc142ef268eca9d6e935afee51f51a8116ed57d82223e19",
+    "chengwang/internal/subscription/sealed_archive_wire.go": "44d98b3306de31bc3b64fc6ccc4f1c996b919a4c1dabc6e47ac6eb9d7165450f",
     "chengwang/internal/subscription/store.go": "54988b394d4290f546da3140b8ca2efbfd783068a3d01fd5faeb50a70fe844da",
     "chengwang/internal/subscriptionctl/access_test.go": "730eb49c1c4690faa650689fc87c6689ffc7ada3b5c7dd3d61656f98eb020e1d",
     "chengwang/internal/subscriptionctl/contract.go": "8bf567cf6294dc6907d1932b240e244f2f80fe03ae17f277e098b2523cca2637",
@@ -62,7 +67,7 @@
     "chengwang/internal/subscriptionpolicy/catalog_access.go": "672c622cc8d5e2ea749b0de33545923678ea244f58244243ff6d1be8c1f39ab9",
     "chengwang/internal/subscriptionpolicy/refresh_test.go": "d9d894dee528995bcd244ca4eeecadd990c320d473be0315c04f67bae9cdd6f6"
   },
-  "changedGoSourcesSHA256": "de5a827c047e12288e52171962cfcd13b030488216210f8d985437a01e375a52",
+  "changedGoSourcesSHA256": "67111fd1524f87cd332877a8e25d2b12df1c02d297e61ff595f7ebb3f20c5b46",
   "goTest": {
     "packages": [
       "chengwang/internal/api",
@@ -802,6 +807,7 @@
         "chengwang/internal/subscription/parser_test.go",
         "chengwang/internal/subscription/pipeline_test.go",
         "chengwang/internal/subscription/refresh_test.go",
+        "chengwang/internal/subscription/sealed_archive_test.go",
         "chengwang/internal/subscription/store_test.go"
       ],
       "requiredRunTestFiles": [
@@ -811,11 +817,12 @@
         "chengwang/internal/subscription/parser_test.go",
         "chengwang/internal/subscription/pipeline_test.go",
         "chengwang/internal/subscription/refresh_test.go",
+        "chengwang/internal/subscription/sealed_archive_test.go",
         "chengwang/internal/subscription/store_test.go"
       ],
       "excludedRunTestFiles": [],
-      "sourceTestTopCount": 120,
-      "sourceTestTopsSHA256": "6e7f8b1ba8b424b00d4ad52662e0ff81e3aa1cb42b17f4a256cfc17dc0aa86d7",
+      "sourceTestTopCount": 130,
+      "sourceTestTopsSHA256": "d10979c405cd90d90560117a611680a840de15b1207a7d10fae577800d631b9b",
       "sourceTestTops": [
         "chengwang/internal/subscription::TestFetchDoesNotRetryOrFetchNestedProviders",
         "chengwang/internal/subscription::TestFetchEnforcesBodyBudgetAndTruncation",
@@ -856,6 +863,16 @@
         "chengwang/internal/subscription::TestRefreshV5AllRemainingMutatorsDefiniteCutPreserveOwnedPreimageAndRetry",
         "chengwang/internal/subscription::TestRefreshV5CanonicalReopenRejectsPositiveAttemptBelowLedgerHighwater",
         "chengwang/internal/subscription::TestRefreshV5ReturnedReservationsAreDetachedFromOwnedState",
+        "chengwang/internal/subscription::TestSealedArchiveV8AllControlStatesAndCheckpoint",
+        "chengwang/internal/subscription::TestSealedArchiveV8BudgetFixedPoint",
+        "chengwang/internal/subscription::TestSealedArchiveV8EmptyAndCandidate64Reconstruction",
+        "chengwang/internal/subscription::TestSealedArchiveV8FullChainGolden",
+        "chengwang/internal/subscription::TestSealedArchiveV8HistoryFixture",
+        "chengwang/internal/subscription::TestSealedArchiveV8LosslessUsesAuthoritativeStoreValidation",
+        "chengwang/internal/subscription::TestSealedArchiveV8MixedLifecycleReconstruction",
+        "chengwang/internal/subscription::TestSealedArchiveV8NearObjectLimitFitsAndBudgetExpansionFails",
+        "chengwang/internal/subscription::TestSealedArchiveV8PrimitiveAndNameBoundaries",
+        "chengwang/internal/subscription::TestSealedArchiveV8StrictCanonicalAndAuthentication",
         "chengwang/internal/subscription::TestSubscriptionCoreFailureRedaction",
         "chengwang/internal/subscription::TestSubscriptionCoreIdempotencyBounds",
         "chengwang/internal/subscription::TestSubscriptionCoreJSONDoesNotExposePrivateIngress",
@@ -938,8 +955,8 @@
         "chengwang/internal/subscription::TestSubscriptionStoreUnknownDuplicateAndTrailingJSONRejected",
         "chengwang/internal/subscription::TestSubscriptionStoreWrongOwnerAndModesRejected"
       ],
-      "requiredRunTopCount": 120,
-      "requiredRunTopsSHA256": "6e7f8b1ba8b424b00d4ad52662e0ff81e3aa1cb42b17f4a256cfc17dc0aa86d7",
+      "requiredRunTopCount": 130,
+      "requiredRunTopsSHA256": "d10979c405cd90d90560117a611680a840de15b1207a7d10fae577800d631b9b",
       "requiredRunTops": [
         "chengwang/internal/subscription::TestFetchDoesNotRetryOrFetchNestedProviders",
         "chengwang/internal/subscription::TestFetchEnforcesBodyBudgetAndTruncation",
@@ -980,6 +997,16 @@
         "chengwang/internal/subscription::TestRefreshV5AllRemainingMutatorsDefiniteCutPreserveOwnedPreimageAndRetry",
         "chengwang/internal/subscription::TestRefreshV5CanonicalReopenRejectsPositiveAttemptBelowLedgerHighwater",
         "chengwang/internal/subscription::TestRefreshV5ReturnedReservationsAreDetachedFromOwnedState",
+        "chengwang/internal/subscription::TestSealedArchiveV8AllControlStatesAndCheckpoint",
+        "chengwang/internal/subscription::TestSealedArchiveV8BudgetFixedPoint",
+        "chengwang/internal/subscription::TestSealedArchiveV8EmptyAndCandidate64Reconstruction",
+        "chengwang/internal/subscription::TestSealedArchiveV8FullChainGolden",
+        "chengwang/internal/subscription::TestSealedArchiveV8HistoryFixture",
+        "chengwang/internal/subscription::TestSealedArchiveV8LosslessUsesAuthoritativeStoreValidation",
+        "chengwang/internal/subscription::TestSealedArchiveV8MixedLifecycleReconstruction",
+        "chengwang/internal/subscription::TestSealedArchiveV8NearObjectLimitFitsAndBudgetExpansionFails",
+        "chengwang/internal/subscription::TestSealedArchiveV8PrimitiveAndNameBoundaries",
+        "chengwang/internal/subscription::TestSealedArchiveV8StrictCanonicalAndAuthentication",
         "chengwang/internal/subscription::TestSubscriptionCoreFailureRedaction",
         "chengwang/internal/subscription::TestSubscriptionCoreIdempotencyBounds",
         "chengwang/internal/subscription::TestSubscriptionCoreJSONDoesNotExposePrivateIngress",
@@ -1269,12 +1296,12 @@
       "excludedRunTops": []
     }
   },
-  "allPackageTestTopCount": 486,
-  "allPackageTestTopsSHA256": "dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f",
-  "allRequiredRunTopCount": 481,
-  "allRequiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
-  "p207aAddedTestTopCount": 33,
-  "p207aAddedTestTopsSHA256": "55623c1470b7d72a459b338c9aa429d37e1c12d52d3c305ab347ad40ac57b570",
+  "allPackageTestTopCount": 496,
+  "allPackageTestTopsSHA256": "f90f14ac62a59eec9660d1e7e0e0dca41322f1eb2da157d510b6e208c9e875d5",
+  "allRequiredRunTopCount": 491,
+  "allRequiredRunTopsSHA256": "920907f9058ca39b519d48a20fe5b630b34e9b567fc022e5bac8c9bf3b396750",
+  "p207aAddedTestTopCount": 43,
+  "p207aAddedTestTopsSHA256": "9667ec66a0f855d82dad35124f6256031935dcccf0def01befa2d4fe0a612a4c",
   "p207aAddedTestTops": [
     "chengwang/internal/api::TestSubscriptionRefreshReadAPIIsReadOnlyAndScoped",
     "chengwang/internal/authn::TestSnapshotManagerTrustedPrincipalRevalidatesRevocationWithoutToken",
@@ -1301,6 +1328,16 @@
     "chengwang/internal/subscription::TestRefreshV5AllRemainingMutatorsDefiniteCutPreserveOwnedPreimageAndRetry",
     "chengwang/internal/subscription::TestRefreshV5CanonicalReopenRejectsPositiveAttemptBelowLedgerHighwater",
     "chengwang/internal/subscription::TestRefreshV5ReturnedReservationsAreDetachedFromOwnedState",
+    "chengwang/internal/subscription::TestSealedArchiveV8AllControlStatesAndCheckpoint",
+    "chengwang/internal/subscription::TestSealedArchiveV8BudgetFixedPoint",
+    "chengwang/internal/subscription::TestSealedArchiveV8EmptyAndCandidate64Reconstruction",
+    "chengwang/internal/subscription::TestSealedArchiveV8FullChainGolden",
+    "chengwang/internal/subscription::TestSealedArchiveV8HistoryFixture",
+    "chengwang/internal/subscription::TestSealedArchiveV8LosslessUsesAuthoritativeStoreValidation",
+    "chengwang/internal/subscription::TestSealedArchiveV8MixedLifecycleReconstruction",
+    "chengwang/internal/subscription::TestSealedArchiveV8NearObjectLimitFitsAndBudgetExpansionFails",
+    "chengwang/internal/subscription::TestSealedArchiveV8PrimitiveAndNameBoundaries",
+    "chengwang/internal/subscription::TestSealedArchiveV8StrictCanonicalAndAuthentication",
     "chengwang/internal/subscriptionctl::TestSubscriptionAutomatedFetchRequiresFreshRevisionBoundApproval",
     "chengwang/internal/subscriptionctl::TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore",
     "chengwang/internal/subscriptionctl::TestSubscriptionRefreshV5BindRetryRevalidatesFreshGrantBeforeFetch",

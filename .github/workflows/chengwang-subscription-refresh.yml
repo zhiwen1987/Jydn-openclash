@@ -23,25 +23,25 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 4b9ae9dce6b7b0f173f27e3219128cee78466431b748a9c55fec45c6f611a138
+  CONTRACT_SHA256: 9255c604d1d1fcdfbf76257edb62adb6536f1390afcba7bb78b0c809074337c3
   CHECKER_SHA256: 6bc314b72183c81ee0b459bf6325aa4d5d12c1daf5db5a0501a005025319c886
-  MODEL_SHA256: 29fe76c712b31a81dce1fae3d4da1526a6a982502a29b7e204dd84020d65ea6b
+  MODEL_SHA256: c0ae805e25e0b42da34723a993a60d5c3a411351ad7c1152ee7e6a037c3f0fa0
   EVENT_CHECKER_SHA256: 9e697a13a78ed9cde95dc36390df15603e698c4dcbd6c81f759dfb94cd29134f
   EVENT_MODEL_SHA256: 378bbd6b99540ee62b59b0564cc6aa5e7acf34e96fb51e5969173d2f18d723a6
-  FAILURE_CHECKER_SHA256: a2868ede112ce68da2eb3e123a7e7412ae99d4c93c3857cc5060f73a89887566
-  FAILURE_MODEL_SHA256: c2b231b5fc92e09c0ba2fcebec58b0ffd590b9110b11c4f08750627d4f515968
+  FAILURE_CHECKER_SHA256: 5ceb5a3a373b088be0af0347fcd821e970686ac0437fc1594c86207f486a84fe
+  FAILURE_MODEL_SHA256: a43afc9fec424e8d8601263c0dc4dc0b7293870cac71b1b2f2e3d908688512a3
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: b90b46e3e5797f5adb56d1feb10682d0a7d3e392149a3b3f9e563e3c6c77aa6a
-  MODULE_COUNT: '825'
-  MODULE_SHA256: 83ad5c4ec24211f23969e81122f4fff08520ef25e08068ecf0b7b58b3c335ec7
-  FIXTURE_COUNT: '20'
-  FIXTURE_SHA256: 4fb72a5e388119c5db37f95a87a3c2f85c33c93d5857e80d22898be976094caf
-  TEST_TOP_COUNT: '486'
-  TEST_TOPS_SHA256: dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f
-  RUN_TOP_COUNT: '481'
-  RUN_TOPS_SHA256: 34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0
-  CHANGED_GO_COUNT: '25'
-  CHANGED_GO_SHA256: de5a827c047e12288e52171962cfcd13b030488216210f8d985437a01e375a52
+  MODULE_COUNT: '830'
+  MODULE_SHA256: 5df4b59a4a2c4876393c6f360fbac65225938130cd0025c3cb312de2f56d6739
+  FIXTURE_COUNT: '21'
+  FIXTURE_SHA256: 7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11
+  TEST_TOP_COUNT: '496'
+  TEST_TOPS_SHA256: f90f14ac62a59eec9660d1e7e0e0dca41322f1eb2da157d510b6e208c9e875d5
+  RUN_TOP_COUNT: '491'
+  RUN_TOPS_SHA256: 920907f9058ca39b519d48a20fe5b630b34e9b567fc022e5bac8c9bf3b396750
+  CHANGED_GO_COUNT: '29'
+  CHANGED_GO_SHA256: 67111fd1524f87cd332877a8e25d2b12df1c02d297e61ff595f7ebb3f20c5b46
 
 jobs:
   source-models:
@@ -144,6 +144,10 @@ jobs:
             chengwang/internal/subscription/control.go
             chengwang/internal/subscription/refresh.go
             chengwang/internal/subscription/refresh_test.go
+            chengwang/internal/subscription/sealed_archive_a0.go
+            chengwang/internal/subscription/sealed_archive_history.go
+            chengwang/internal/subscription/sealed_archive_test.go
+            chengwang/internal/subscription/sealed_archive_wire.go
             chengwang/internal/subscription/store.go
             chengwang/internal/subscriptionctl/access_test.go
             chengwang/internal/subscriptionctl/contract.go

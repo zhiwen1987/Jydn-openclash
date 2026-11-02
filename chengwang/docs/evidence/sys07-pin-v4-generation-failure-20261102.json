@@ -1,0 +1,5 @@
+{
+  "schema": "chengwang.p207-pin-generator-failure/v1",
+  "status": "REJECTED",
+  "reason": "missing/non-regular source: chengwang/deploy/mihomo-lifecycle-lab/run_contracts.sh"
+}

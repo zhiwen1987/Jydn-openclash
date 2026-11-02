@@ -1,5 +1,11 @@
 # 澄网：项目任务清单
 
+2026-11-02 主会话已集成A0v3纯内存5源、joint rev7隔离业务scene13源，以及经独审的P207五gate更新，共23源码路径；joint source_contract另按已接受A0五后像合并836→841行，workflow仅更新contract hash。root实际[63来源模型](evidence/sys07-integrated-root-63cpu-20261102.json)29.984秒全部通过并严格AST/日志复演，来源闭包830/21/496/491/29；[40业务合成模型](evidence/sys07-integrated-root-joint40-20261102.json)1.64秒全部通过。旧481必需tops保留+10，诊断仍限原7CTL源码，不扩大权限。此时尚未运行Go/gofmt/真实业务，必须由新提交同HEAD隔离Linux CI验收，不复用736结果。source接受、producer旧receipt拒绝、工具冻结后漂移、物化换行风险和漏foundation输入导致的真实生成失败均有原件保留；未清理或覆盖失败。正式提交/远端读回另验，生产/main/Registry均不动。
+
+2026-11-02 A0 v3纯内存源码已获独立SOURCE_ACCEPT（peer SHA8dec2608…），root以apply_patch集成5个精确后像，228183B逐SHA/Git blob与冻结包一致；保持9个原codec不变。当前只是未提交工作树，来源pins正在准备，Go/gofmt/编译/运行均未执行，不是A0_ACCEPT。业务joint候选rev4仍因真实Candidate.BaseRevision应2/4而非1/3的错误待修，未混入正式源码。工具v1曾在宣布冻结后更新测试/manifest，已另存漂移收据且原字节恢复UNKNOWN；root未运行该v1工具，新tool-v2独立目录适配真实A0v3 schema，不能覆盖旧输入抹掉记录。生产不动。
+
+2026-11-02 统一提交736bfdd1已有[有限原件接受](evidence/sys07-unified-acceptance-progress-20261102.json)：P207 run41450638831实际63模型、481 Go/0skip/0包失败/exit0、format/events及fresh通过；overview run41450638762的CDP/Playwright×disabled/enabled_unknown四组只限匿名只读错误/未知状态流。disabled预期503的body不可读，TargetGuard不是独立浏览器内部证明；root查看一张实际桌面图，peer查看32张。当前31链原件审计、v7设计独审及真实cmd/server业务方案并行推进，禁止复用旧HEAD或放宽lifecycle lab互斥门。原件与补漏已归档私有JY-CW main5142b143，65723条资料哈希和新目录重建15后像通过；不是生产上线。以下段落保留当时待验收状态，以此新记录为准。
+
 2026-11-02 主会话在新的隔离worktree（base3444578e）集成前端6db的7个精确后像、7workflow的unified exact-ref及P207 module/contract聚合共15源。[独立SOURCE_ACCEPT](evidence/sys07-unified-source-peer-20261102.json)与[root完整diff](evidence/sys07-unified-root-source-20261102.json)确认92902B/SHA4766e044…精确相同；reusable workflow/旧refs/PR/manual/权限/拒绝门/TargetGuard及预算不弱化。root实际[63CPU](evidence/sys07-unified-root-63cpu-20261102.json)和[236CPU](evidence/sys07-unified-root-236cpu-20261102.json)全部通过，后者严格9份原始AST/TAP转录绑定alternate index tree c2e8bf55…，不是commit/浏览器证明。新源码module825/fixture20/tops486/required481/changedGo25保持，module内容83ad5c4e…。正式新HEAD与真实Go/CDP/Playwright/31等全部待CI，不复用344或6db的leaf通过。
 
 联合真实业务另有边界：cmd/server通过env配置，Mihomo lifecycle lab合同禁止与live overview/subscriptions/probe/普通controller混开，不能取消门禁拼出联合绿灯；当前正常业务组合的真实cmd/server+refresh/RBAC E2E仍缺。SYS01–30独立盘点也未授予任何完整SYS已实现并验收；部分组件/隔离实验的通过不等整个企业系统。后续需正常业务模式联测及executor/authority架构决策。生产不动。
