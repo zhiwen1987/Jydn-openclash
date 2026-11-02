@@ -10,8 +10,13 @@ from pathlib import Path
 import re
 import stat
 import subprocess
+import sys
 import types
 import zlib
+
+TIMELINE_DIR=Path(__file__).resolve().parents[1]/'mihomo-lifecycle-lab'
+sys.path.insert(0,str(TIMELINE_DIR))
+import check_go_timeline as timeline_check
 
 TOP='TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop'
 PACKAGE='chengwang/internal/mihomodeploy'
@@ -216,6 +221,8 @@ PUBLIC=('host-before.json','host-after.json','source-before.json','source-after.
     'gofmt.patch','gofmt.stderr','capacity.json','capacity.stderr','commands.jsonl','execution.json',
     'profile-state.json','cpu-profile.json','pprof-top.txt','pprof-top.stderr','pprof-cum.txt','pprof-cum.stderr')
 RESOURCE_NAMES=('resource-before.json','resource-after.json')
+TIMELINE_NAME='capacity-go-top-observation-timeline.json'
+TIMELINE_DIR='timeline-public'
 RESOURCE_SCOPES={'cpuCount':'CAPTURE_PROCESS_OS_LOGICAL_CPU_COUNT','affinityCPUs':'CAPTURE_PROCESS_AFFINITY_NOT_MEASURED_GO_PID',
     'procStatCPU':'KERNEL_EXPOSED_AGGREGATE_CPU_TICKS_NOT_PROCESS','cgroupCPUMax':'CURRENT_CGROUP_FAIR_BANDWIDTH_NOT_EFFECTIVE_ANCESTOR_LIMIT',
     'cgroupCPUStat':'CURRENT_CGROUP_USAGE_AND_OWN_BANDWIDTH_COUNTERS_NOT_PER_TEST'}
@@ -252,12 +259,20 @@ def write(path,raw):
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o644)
     with os.fdopen(fd,'wb') as f:need(f.write(raw)==len(raw));f.flush();os.fsync(f.fileno())
 
+def git_raw(repo,*args,limit=128<<20):
+    env=os.environ.copy();env['GIT_NO_REPLACE_OBJECTS']='1'
+    result=subprocess.run(['git','--no-replace-objects','-C',str(repo),*args],stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=False,env=env,timeout=30)
+    need(result.returncode==0 and len(result.stdout)<=limit and len(result.stderr)<=1<<20)
+    return result.stdout
+
 def source_snapshot(repo,commit):
     need(re.fullmatch('[a-f0-9]{40}',commit) is not None)
     need(os.path.samefile(Path(__file__),repo/'chengwang/deploy/mihomo-capacity-profile/check_profile.py'))
-    need(subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD']).strip().decode()==commit)
-    need(subprocess.check_output(['git','-C',str(repo),'status','--porcelain','--untracked-files=all'])==b'')
-    index=subprocess.check_output(['git','-C',str(repo),'ls-tree','-r','-z','--full-tree',commit])
+    need(git_raw(repo,'rev-parse','HEAD').strip().decode()==commit)
+    tree=git_raw(repo,'rev-parse',commit+'^{tree}').strip().decode();need(re.fullmatch('[a-f0-9]{40}',tree))
+    need(git_raw(repo,'status','--porcelain','--untracked-files=all')==b'')
+    index=git_raw(repo,'ls-tree','-r','-z','--full-tree',commit)
     rows=[];total=0
     for entry in index.split(b'\0'):
         if not entry:continue
@@ -269,7 +284,7 @@ def source_snapshot(repo,commit):
     need(1<=len(rows)<=4096 and len({r['path'] for r in rows})==len(rows))
     pinned={r['path']:r['sha256'] for r in rows}
     need(all(pinned.get(p)==value for p,value in ORIGINAL_SOURCE_PINS.items()))
-    return {'schema':'chengwang.capacity-profile-source/v1','sourceCommit':commit,'sourceGitVerified':True,
+    return {'schema':'chengwang.capacity-profile-source/v1','sourceCommit':commit,'sourceTree':tree,'sourceGitVerified':True,
         'originalCaseSourcePins':ORIGINAL_SOURCE_PINS,'files':rows}
 
 def host():
@@ -511,11 +526,14 @@ def verify_resource(raw):
 
 def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
     need(diagnostic_mode in ('SINGLE_CASE','FULL_CONTRACTS'));full=diagnostic_mode=='FULL_CONTRACTS'
-    public=PUBLIC+(RESOURCE_NAMES if full else())
+    public=PUBLIC+(RESOURCE_NAMES+(TIMELINE_NAME,) if full else())
     need(set(raw)==set(public) and sum(map(len,raw.values()))<=64<<20)
-    e=decode(raw['execution.json']);need(exact(e,['schema','sourceCommit','versionExit','formatExit','goExit','topExit','cumExit','profileCaptureComplete','production']+(['diagnosticMode']if full else[])))
+    e=decode(raw['execution.json']);need(exact(e,['schema','sourceCommit','versionExit','formatExit','goExit','topExit','cumExit','profileCaptureComplete','production']+(['diagnosticMode','timelineFailure']if full else[])))
     need(e['schema']==('chengwang.capacity-profile-execution/v2'if full else'chengwang.capacity-profile-execution/v1') and e['sourceCommit']==commit and e['production'] is False)
-    if full:need(e['diagnosticMode']=='FULL_CONTRACTS')
+    if full:need(e['diagnosticMode']=='FULL_CONTRACTS' and e['timelineFailure'] in {
+        'NONE','SIGNAL_HANDLER_RESTORE_FAILED_AFTER_REAP','WAIT_JOURNAL_WRITE_FAILED',
+        'COLLECTOR_FAILED_AND_REAPED','SIGNAL_DEFERRAL_INSTALL_FAILED','DEFERRED_CANCELLATION_NO_CHILD','DEFERRED_CANCELLATION_REAPED',
+        'POPEN_FAILED','PGID_REJECTED'})
     need(all(integer(e[k],-128,255) for k in ('versionExit','formatExit','goExit','topExit','cumExit')) and e['versionExit']==e['topExit']==e['cumExit']==0)
     need(e['profileCaptureComplete'] is True and raw['go-version.txt']==b'go version go1.23.12 linux/amd64\n')
     before,after=decode(raw['host-before.json']),decode(raw['host-after.json']);need(before==after and exact(before,['networkNamespace','mountNamespace','pidNamespace','resolvSHA256']))
@@ -545,27 +563,36 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
     need(base64.b64encode(binary).decode()==profile['dataBase64'] and integer(profile['bytes'],1,8<<20) and integer(state['profileBytes'],1,8<<20) and len(binary)==profile['bytes']==state['profileBytes'])
     need(profile['sha256']==state['profileSHA256']==sha(binary) and profile['profileStateSHA256']==sha(raw['profile-state.json']))
     shape=profile_shape(binary,diagnostic_mode)
-    rows=[decode(line) for line in raw['commands.jsonl'].splitlines()];need(len(rows)==15)
+    rows=[decode(line) for line in raw['commands.jsonl'].splitlines()];need(len(rows)==(16 if full else 15))
     go=str(Path(box['goRoot'])/'bin/go')
     expected=[('VERSION',[go,'version'],'versionExit'),('FORMAT',[str(Path(box['goRoot'])/'bin/gofmt'),'-d',*(FULL_FMT if full else CAPACITY_FMT)],'formatExit'),
         ('GO_TEST',[go,*(FULL_GO_ARGS if full else GO_ARGS)],'goExit'),('PPROF_TOP',[go,'tool','pprof','-symbolize=local','-top',PRIVATE+'/cpu.pprof'],'topExit'),
         ('PPROF_CUM',[go,'tool','pprof','-symbolize=local','-top','-cum',PRIVATE+'/cpu.pprof'],'cumExit')]
-    previous=0
-    for i,(kind,argv,exitkey) in enumerate(expected):
-        group=rows[3*i:3*i+3]
+    previous=0;cursor=0
+    for kind,argv,exitkey in expected:
+        width=4 if full and kind=='GO_TEST'else 3;group=rows[cursor:cursor+width];cursor+=width
         for j,row in enumerate(group):
-            need(exact(row,['seq','event','class','argv','pid','exitCode','monotonicNs']) and type(row['seq']) is int and row['seq']==3*i+j+1)
-            need(row['class']==kind and row['argv']==argv and integer(row['monotonicNs'],previous));previous=row['monotonicNs']
-        need([r['event'] for r in group]==['START_INTENT','STARTED','WAIT_RETURNED'])
+            need(type(row['seq']) is int and row['seq']==cursor-width+j+1 and row['class']==kind and row['argv']==argv)
+            if row['event']=='COLLECTOR_HANDOFF':
+                need(exact(row,['seq','event','class','argv','pid','exitCode','monotonicDeltaFromStartedNs']) and integer(row['monotonicDeltaFromStartedNs']))
+            else:
+                need(exact(row,['seq','event','class','argv','pid','exitCode','monotonicNs']) and integer(row['monotonicNs'],previous));previous=row['monotonicNs']
+        need([r['event'] for r in group]==(['START_INTENT','STARTED','COLLECTOR_HANDOFF','WAIT_RETURNED']if width==4 else['START_INTENT','STARTED','WAIT_RETURNED']))
         need(group[0]['pid'] is group[0]['exitCode'] is None and integer(group[1]['pid'],2) and group[1]['exitCode'] is None)
-        need(integer(group[2]['pid'],2,(1<<31)-1) and group[2]['pid']==group[1]['pid'] and type(group[2]['exitCode']) is int and group[2]['exitCode']==e[exitkey])
+        terminal=group[-1]
+        if width==4:need(group[2]['pid']==group[1]['pid'] and group[2]['exitCode']is None)
+        need(integer(terminal['pid'],2,(1<<31)-1) and terminal['pid']==group[1]['pid'] and type(terminal['exitCode']) is int and terminal['exitCode']==e[exitkey])
     for name in ('pprof-top.txt','pprof-cum.txt'):
         value=raw[name].decode('utf8','strict');need(value.strip() and 'flat'in value and 'cum'in value)
     if full:
         checker,required,binding=full_source_contract(sources,decode(raw['source-before.json']))
+        source_manifest=decode(raw['source-before.json'])
+        timeline_value=timeline_check.check_payload(raw[TIMELINE_NAME],'CAPACITY_FULL_RACE',commit,source_manifest['sourceTree'])
+        timeline_check.check_capacity_commands(rows,timeline_value)
         summary=full_events(raw['capacity.json'],required,checker,e['goExit'],raw['capacity.stderr'])
         resource_before,resource_after=verify_resource(raw['resource-before.json']),verify_resource(raw['resource-after.json'])
-        need(resource_before['finishedMonotonicNs']<=rows[6]['monotonicNs']<=rows[8]['monotonicNs']<=resource_after['startedMonotonicNs'])
+        go_rows=[row for row in rows if row['class']=='GO_TEST']
+        need(resource_before['finishedMonotonicNs']<=go_rows[1]['monotonicNs']<=go_rows[-1]['monotonicNs']<=resource_after['startedMonotonicNs'])
         return {'schema':'chengwang.capacity-profile-verification/v2','diagnosticMode':'FULL_CONTRACTS',
             'scope':'FULL_SIX_PACKAGE_RACE_DIAGNOSIS_WITH_MIHOMODEPLOY_ONLY_CPU_WINDOW_NOT_PRODUCT_ACCEPTANCE',
             'sourceCommit':commit,'captureVerified':True,**summary,'normalSourceBinding':binding,
@@ -620,10 +647,17 @@ def main():
     need(os.name=='posix')
     if a.mode=='host':write(a.out,encoded(host()));return
     if a.mode=='source':write(a.out,encoded(source_snapshot(a.repo,a.source_commit)));return
-    public=PUBLIC+(RESOURCE_NAMES if a.diagnostic_mode=='FULL_CONTRACTS'else())
-    need(set(v.name for v in a.evidence.iterdir())==set(public))
+    full=a.diagnostic_mode=='FULL_CONTRACTS'
+    public=PUBLIC+(RESOURCE_NAMES if full else())
+    expected=set(public)|({TIMELINE_DIR} if full else set())
+    need(set(v.name for v in a.evidence.iterdir())==expected)
     need(a.report.is_absolute() and not a.report.is_relative_to(a.repo) and not a.report.is_relative_to(a.evidence))
     raw={name:read(a.evidence/name,12<<20 if name=='cpu-profile.json' else 64<<20 if name=='capacity.json' else 2<<20) for name in public}
+    if full:
+        timeline_dir=a.evidence/TIMELINE_DIR
+        need(timeline_dir.is_dir() and not timeline_dir.is_symlink()
+             and set(v.name for v in timeline_dir.iterdir())=={TIMELINE_NAME})
+        raw[TIMELINE_NAME]=read(timeline_dir/TIMELINE_NAME,2<<20)
     sources=source_snapshot(a.repo,a.source_commit)
     need(raw['source-before.json']==raw['source-after.json']==encoded(sources))
     normal_sources=None

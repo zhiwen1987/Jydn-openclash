@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 2657e8c84db6dd7e1eeddc2f53447390ed9f9c96969114b68506e0a1acede191
+  CONTRACT_SHA256: 7dc3ce0ede2c349cb87dd586fc1681c803bac5464222ea2cd9b755d2c5b50737
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
 jobs:
   joint-control-plane:
@@ -32,6 +32,7 @@ jobs:
           set -euo pipefail
           test "$(sha256sum "$CONTRACT" | cut -d' ' -f1)" = "$CONTRACT_SHA256"
           test "$(sha256sum chengwang/deploy/joint-control-plane/check_joint_control_plane.py | cut -d' ' -f1)" = "$CHECKER_SHA256"
+          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py workflow-contract --workflow "$GITHUB_WORKSPACE/.github/workflows/chengwang-joint-control-plane.yml"
           python3 -I -B - <<'PY'
           import importlib.util,pathlib
           b=pathlib.Path('chengwang/deploy/joint-control-plane')
@@ -86,24 +87,58 @@ jobs:
           path: ${{ runner.temp }}/joint-control-plane-cpu-public/
           if-no-files-found: error
           retention-days: 14
-      - name: Build once and acquire immutable source
+      - name: Prepare immutable source and staging
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/joint-control-plane"; test ! -e "$root"; install -d -m 0700 "$root/bin" "$root/evidence/staging/lab"
           python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --output "$root/evidence/staging/lab/source-before.json"
+      - name: Probe isolated Linux UID custody
+        run: |
+          set -euo pipefail
+          script="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py"
+          runner_device="$(stat -Lc '%d' -- "$RUNNER_TEMP")"; runner_inode="$(stat -Lc '%i' -- "$RUNNER_TEMP")"
+          common=(bootstrap-permission-probe --runner-temp "$RUNNER_TEMP" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --runner-device "$runner_device" --runner-inode "$runner_inode")
+          root_probe(){ sudo --non-interactive /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
+          uid_probe(){ sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
+          probe_active=false
+          cleanup_probe(){ set +e; root_probe root-cleanup >/dev/null 2>/dev/null; cleanup_code=$?; root_probe root-final-absence >/dev/null 2>/dev/null; absence_code=$?; set -e; test "$cleanup_code" = 0 && test "$absence_code" = 0; }
+          finish_probe(){ code=$?; trap - EXIT; if test "$probe_active" = true; then cleanup_probe || code=1; fi; exit "$code"; }
+          trap finish_probe EXIT
+          root_probe root-setup
+          probe_active=true
+          uid_probe uid-prepublish-denials
+          root_probe root-finalize
+          uid_probe uid-final-read-and-rename
+          uid_probe uid-install-replacement
+          root_probe root-reject-replacement
+          cleanup_probe
+          trap - EXIT
+      - name: Build once
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/joint-control-plane"
           test "$(go env GOVERSION)" = go1.23.12
           (cd chengwang && GOFLAGS=-mod=vendor CGO_ENABLED=0 go build -trimpath -o "$root/bin/server" ./cmd/server) >"$root/evidence/staging/build.stdout.private" 2>"$root/evidence/staging/build.stderr.private"
           sudo --non-interactive chown root:root "$root/bin" "$root/bin/server"; sudo --non-interactive chmod 0555 "$root/bin" "$root/bin/server"
           python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py build --server-binary "$root/bin/server" --source-commit "$GITHUB_SHA" --output "$root/build.json"
           sudo --non-interactive install -m 0600 -o 10001 -g 10001 "$root/build.json" "$root/evidence/staging/lab/build.json"
           sudo --non-interactive chown -R 10001:10001 "$root/evidence/staging"
-      - name: Real B0 J1 R2 same-binary scene
+      - name: Bootstrap bounded namespace progress
+        id: bootstrap_progress
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/joint-control-plane"; outer_net="$(readlink /proc/self/ns/net)"; progress="$root/evidence/staging/failure-localization.private"
+          root="$RUNNER_TEMP/joint-control-plane"; progress="$root/evidence/staging/failure-localization.private"; bootstrap="$root/evidence/staging/bootstrap-localization.private/status.json"
           test ! -e "$progress"; test ! -L "$progress"; sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 "$progress"
-          sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -I -B "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py" progress --progress-root "$progress" --source-commit "$GITHUB_SHA" --phase NAMESPACE_SETUP --state ENTERED
-          timeout --signal=TERM --kill-after=15s 600s sudo --non-interactive unshare --mount --net --pid --fork --kill-child=SIGKILL --mount-proc /usr/bin/bash "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_namespace.sh" "$GITHUB_WORKSPACE" "$root" "$outer_net" product "$GITHUB_SHA"
+          sudo --non-interactive /usr/bin/python3 -I -B "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py" bootstrap-progress --progress-root "$progress" --bootstrap-record "$bootstrap" --source-commit "$GITHUB_SHA"
+      - name: Real B0 J1 R2 same-binary scene
+        if: ${{ steps.bootstrap_progress.outcome == 'success' }}
+        env:
+          BOOTSTRAP_STEP_OUTCOME: ${{ steps.bootstrap_progress.outcome }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/joint-control-plane"; outer_net="$(readlink /proc/self/ns/net)"; progress="$root/evidence/staging/failure-localization.private"; bootstrap="$root/evidence/staging/bootstrap-localization.private/status.json"
+          test "$BOOTSTRAP_STEP_OUTCOME" = success
+          timeout --signal=TERM --kill-after=15s 600s sudo --non-interactive unshare --mount --net --pid --fork --kill-child=SIGKILL --mount-proc /usr/bin/bash "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_namespace.sh" "$GITHUB_WORKSPACE" "$root" "$outer_net" product "$GITHUB_SHA" /mnt/joint-control-plane/evidence/staging/bootstrap-localization.private/status.json bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"
       - name: Reacquire source after every attempt
         if: always()
         run: |
@@ -120,9 +155,11 @@ jobs:
           sudo --non-interactive chown -R --no-dereference "$(id -u):$(id -g)" "$root/evidence/public"
       - name: Publish only bounded failure classification
         if: failure()
+        env:
+          BOOTSTRAP_STEP_OUTCOME: ${{ steps.bootstrap_progress.outcome }}
         run: |
           root="$RUNNER_TEMP/joint-control-plane"
-          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$root/evidence/staging" --progress-root "$root/evidence/staging/failure-localization.private" --source-commit "$GITHUB_SHA" --code SCENE_FAILED --output "$root/evidence/public/failure.json"
+          sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$root/evidence/staging" --progress-root "$root/evidence/staging/failure-localization.private" --bootstrap-record "$root/evidence/staging/bootstrap-localization.private/status.json" --source-commit "$GITHUB_SHA" --bootstrap-step-id bootstrap_progress --bootstrap-step-outcome "$BOOTSTRAP_STEP_OUTCOME" --bootstrap-step-source "$GITHUB_SHA" --code SCENE_FAILED --output "$root/evidence/public/failure.json"
           sudo --non-interactive chown -R --no-dereference "$(id -u):$(id -g)" "$root/evidence/public"
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

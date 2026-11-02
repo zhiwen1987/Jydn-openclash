@@ -213,6 +213,7 @@ INPUTS = {'ordinary.json': 64 << 20, 'race.json': 64 << 20, 'ordinary.stderr': 1
     'race.stderr': 1 << 20, 'gofmt.patch': 1 << 20, 'gofmt.stderr': 1 << 20,
     'execution.json': 4096, 'sandbox.json': 4096, 'go-version.txt': 4096,
     'host-before.json': 4096, 'host-after.json': 4096}
+TIMELINE_DIR = 'timeline-public'
 
 def need(value):
     if not value: raise ValueError('Mihomo contract evidence rejected')
@@ -248,7 +249,10 @@ def decode(raw):
     return json.loads(raw, object_pairs_hook=pairs, parse_constant=lambda _: need(False))
 
 def source(repo, commit, path):
-    result = subprocess.run(['git', '-C', str(repo), 'show', commit + ':' + path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+    env = os.environ.copy(); env['GIT_NO_REPLACE_OBJECTS'] = '1'
+    result = subprocess.run(['git', '--no-replace-objects', '-C', str(repo), 'show', commit + ':' + path],
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        shell=False, env=env, timeout=30)
     need(result.returncode == 0)
     raw = read(repo / path, 1 << 20); need(raw == result.stdout); return raw
 
@@ -296,7 +300,8 @@ def verify(evidence, repo, commit):
     need(re.fullmatch('[a-f0-9]{40}', commit) is not None)
     sources = {p: source(repo, commit, p) for p in FILES}
     need(read(__file__, 1 << 20) == sources[PREFIX + 'check_contracts.py'])
-    need(set(p.name for p in evidence.iterdir()) == set(INPUTS))
+    observed=set(p.name for p in evidence.iterdir())
+    need(observed in (set(INPUTS), set(INPUTS) | {TIMELINE_DIR}))
     raw = {name: read(evidence / name, limit, empty=True) for name, limit in INPUTS.items()}
     for name in ('ordinary.stderr', 'race.stderr', 'gofmt.patch', 'gofmt.stderr'): need(raw[name] == b'')
     execution = decode(raw['execution.json'])
@@ -319,7 +324,8 @@ def verify(evidence, repo, commit):
     names = required_names(sources)
     suites = {name: events(raw[name], names) for name in ('ordinary.json', 'race.json')}
     need(all(read(evidence / name, INPUTS[name], empty=True) == value for name, value in raw.items()))
-    need(set(p.name for p in evidence.iterdir()) == set(INPUTS))
+    observed=set(p.name for p in evidence.iterdir())
+    need(observed in (set(INPUTS), set(INPUTS) | {TIMELINE_DIR}))
     need(all(read(repo / path, 1 << 20) == value for path, value in sources.items()))
     return dict(schema='chengwang.mihomo-contract-verification/v1', sourceCommit=commit, outcome='PASS', suites=suites,
         sourceSHA256={p: sha(raw) for p, raw in sources.items()}, inputSHA256={p: sha(value) for p, value in raw.items()},

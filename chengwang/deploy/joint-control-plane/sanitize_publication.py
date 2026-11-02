@@ -106,16 +106,22 @@ def publish(inp,out,verification):
     except BaseException:
         if pending.exists():shutil.rmtree(pending)
         raise
-def failure(inp,out,code,progress_root=None,source_commit=None):
+def failure(inp,out,code,progress_root=None,source_commit=None,bootstrap_record=None,
+            bootstrap_step_id=None,bootstrap_step_outcome=None,bootstrap_step_source=None):
     need(re.fullmatch(r"[A-Z][A-Z0-9_]{2,63}",code)!=None);inp=pathlib.Path(inp);files=failure_files(inp)
     identities=sorted(({"bytes":p.stat().st_size,"sha256":file_sha(p)} for p in files),key=lambda x:(x["sha256"],x["bytes"]))
     scene=code in ("SCENE_FAILED","PRIVATE_SCENE_FAILED")
-    value={"schema":"chengwang.joint-control-plane-safe-failure/v3" if scene else "chengwang.joint-control-plane-safe-failure/v2","failureCode":code,"status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"retainedPrivateFileCount":len(files),"retainedPrivateBytes":sum(p.stat().st_size for p in files),"privateAggregateSHA256":hashlib.sha256(canonical(identities)).hexdigest()}
-    if scene:value["failureClassification"]=C.failure_classification(progress_root,source_commit)
+    value={"schema":"chengwang.joint-control-plane-safe-failure/v5" if scene else "chengwang.joint-control-plane-safe-failure/v2","failureCode":code,"status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"retainedPrivateFileCount":len(files),"retainedPrivateBytes":sum(p.stat().st_size for p in files),"privateAggregateSHA256":hashlib.sha256(canonical(identities)).hexdigest()}
+    if scene:
+        value["provenanceAuthority"]="NON_AUTHORITATIVE_STANDALONE"
+        value["failureClassification"]=C.failure_classification(progress_root,source_commit)
+        value["localizationEvidence"]=C.localization_evidence(
+            progress_root,bootstrap_record,source_commit,bootstrap_step_id,
+            bootstrap_step_outcome,bootstrap_step_source)
     nested=inp/"private-failure-identity.json"
     if nested.is_file():
-        private=decode(nested);keys={"schema","failureCode","status","production","authorization","actualSKU","privateEvidencePublished","retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256","failureClassification"}
-        need(set(private)==keys and private["schema"]=="chengwang.joint-control-plane-safe-failure/v3" and private["failureCode"]=="PRIVATE_SCENE_FAILED" and private["status"]=="FAIL" and private["production"]is False and private["authorization"]=="BLOCKED" and private["actualSKU"]=="UNKNOWN" and private["privateEvidencePublished"]is False and re.fullmatch(r"[a-f0-9]{64}",private["privateAggregateSHA256"])!=None and private["failureClassification"]==value["failureClassification"])
+        private=decode(nested);keys={"schema","failureCode","status","production","authorization","actualSKU","privateEvidencePublished","retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256","provenanceAuthority","failureClassification","localizationEvidence"}
+        need(set(private)==keys and private["schema"]=="chengwang.joint-control-plane-safe-failure/v5" and private["failureCode"]=="PRIVATE_SCENE_FAILED" and private["status"]=="FAIL" and private["production"]is False and private["authorization"]=="BLOCKED" and private["actualSKU"]=="UNKNOWN" and private["privateEvidencePublished"]is False and private["provenanceAuthority"]=="NON_AUTHORITATIVE_STANDALONE" and re.fullmatch(r"[a-f0-9]{64}",private["privateAggregateSHA256"])!=None and private["failureClassification"]==value["failureClassification"] and private["localizationEvidence"]==value["localizationEvidence"])
         value["privateDiagnostics"]={k:private[k] for k in ("retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256")}
     data=canonical(value);need(len(data)<=4096);pathlib.Path(out).parent.mkdir(mode=0o700,parents=True,exist_ok=True);write(out,data)
 def cpu(units,go_exit,out):
@@ -143,7 +149,7 @@ def cpu_publish(inp,out):
         if pending.exists():shutil.rmtree(pending)
         raise
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("private","publish","failure","cpu","cpu-fallback","cpu-publish"));p.add_argument("--private-root");p.add_argument("--input");p.add_argument("--output",required=True);p.add_argument("--verification");p.add_argument("--code",default="SCENE_FAILED");p.add_argument("--units");p.add_argument("--go-exit");p.add_argument("--progress-root");p.add_argument("--source-commit");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("private","publish","failure","cpu","cpu-fallback","cpu-publish"));p.add_argument("--private-root");p.add_argument("--input");p.add_argument("--output",required=True);p.add_argument("--verification");p.add_argument("--code",default="SCENE_FAILED");p.add_argument("--units");p.add_argument("--go-exit");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--source-commit");p.add_argument("--bootstrap-step-id");p.add_argument("--bootstrap-step-outcome");p.add_argument("--bootstrap-step-source");a=p.parse_args()
     if a.action=="private":
         try:private_check(a.private_root,a.input,a.output)
         except Exception as error:
@@ -152,7 +158,7 @@ def main():
                 except Exception:pass
             raise
     elif a.action=="publish":publish(a.input,a.output,a.verification)
-    elif a.action=="failure":failure(a.input,a.output,a.code,a.progress_root,a.source_commit)
+    elif a.action=="failure":failure(a.input,a.output,a.code,a.progress_root,a.source_commit,a.bootstrap_record,a.bootstrap_step_id,a.bootstrap_step_outcome,a.bootstrap_step_source)
     elif a.action=="cpu":cpu(a.units,a.go_exit,a.output)
     elif a.action=="cpu-fallback":cpu_fallback(a.output)
     else:cpu_publish(a.input,a.output)

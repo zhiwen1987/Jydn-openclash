@@ -23,25 +23,25 @@ concurrency:
 
 env:
   CONTRACT: chengwang/deploy/subscription-refresh/source_contract.json
-  CONTRACT_SHA256: 06d87d7df2ccffdeef7c7707ffaf98ccfbc6c2e9a3ae8769d44f662ab859d16b
-  CHECKER_SHA256: da5574d5483f25a1597383a2e16f8a5e2f01f36b06f1df950cf835eb73a725d9
-  MODEL_SHA256: ca1a7fd6d6b6d0a6ca28e3455b1022846174ef640e24d2638dc17cd424407c19
+  CONTRACT_SHA256: 43dcd9066b85aba9db3cad5a7a4bd99b73e643e6108cce4f303ff4d5a8a31108
+  CHECKER_SHA256: 817a0d9af2ac1e1e12d704a2da3a3bd31894e76e64fbad1b69d614491cc6da5d
+  MODEL_SHA256: 08779f537fda4b202ee107c922d325eafbadc1c86a77344b41c388d75b4d3970
   EVENT_CHECKER_SHA256: 3577ba482e64d28105deaf848930a5b1ef61bd9bbf6088a67168c66dd24aa60b
   EVENT_MODEL_SHA256: 32e29237c0fa812135ebe7fb3f22e3a1b398e9409053d21c9274dbd100583ec7
-  FAILURE_CHECKER_SHA256: fd7a7c129e3416c2b3d2b87f453d072df31c75798aa3d08a7ea57aa4656cf889
-  FAILURE_MODEL_SHA256: 8feb7b9cdb13ca4ba06710d5b8d443981b65fa88177904d3760de6a8eec2e57e
+  FAILURE_CHECKER_SHA256: e9a42c82739a97a4ae11c430dd9a39bca9da8c55a1fb55462e1a0835f051bf5b
+  FAILURE_MODEL_SHA256: dbadd9d14a7da41deddb50f958346f51a44ae0bbe1e07e2fe916537579e82ae4
   GO_LIST_CHECKER_SHA256: ad9b6a7226719bf9f55c85f375b56264a1e5809f1393281c9c3968ca594076dc
   GO_LIST_MODEL_SHA256: 3c8e3abb1eabe15117b07128a753faa5610fb8927c2dc07b1f367f538c032af1
-  MODULE_COUNT: '830'
-  MODULE_SHA256: 18453eccc5ef02953964ba35b31627edc0793b7c88ad84d287ea77ecd1dbbbeb
+  MODULE_COUNT: '842'
+  MODULE_SHA256: 0783ee4b85a52030894f933c459360849754aac3acdf4d29a6276b02e080b5f9
   FIXTURE_COUNT: '21'
   FIXTURE_SHA256: 7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11
-  TEST_TOP_COUNT: '496'
-  TEST_TOPS_SHA256: f90f14ac62a59eec9660d1e7e0e0dca41322f1eb2da157d510b6e208c9e875d5
-  RUN_TOP_COUNT: '491'
-  RUN_TOPS_SHA256: 920907f9058ca39b519d48a20fe5b630b34e9b567fc022e5bac8c9bf3b396750
-  CHANGED_GO_COUNT: '29'
-  CHANGED_GO_SHA256: ff68b3fabf2e6af2d79326ac652dbe20ac35d857a3b7630ea36fb3bb70881ec8
+  TEST_TOP_COUNT: '545'
+  TEST_TOPS_SHA256: 7898897a68f05e1222869c1e807d10a9c8b6a129f2185870a4464800bfe34a61
+  RUN_TOP_COUNT: '528'
+  RUN_TOPS_SHA256: 63be983c7870008b3be4ba2bfb7feebee1dfe4c344e98b5ad5833c361997b8c1
+  CHANGED_GO_COUNT: '38'
+  CHANGED_GO_SHA256: 9abb36b257bfe6bbedfbdb7677e50eb0766300433515c43140b149ff247e503b
 
 jobs:
   source-models:
@@ -51,10 +51,22 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Run and independently pin closed-gate CPU models
         working-directory: chengwang/deploy/subscription-refresh
         run: |
           set -euo pipefail
+          # BEGIN P207A_NATIVEFS_MIRROR_GATE
+          cd "$GITHUB_WORKSPACE"
+          nativefsRoot="$RUNNER_TEMP/p207a-nativefs-mirror"
+          test ! -e "$nativefsRoot"
+          install -d -m 0700 "$nativefsRoot"
+          python3 -I -B -c 'import runpy,sys; tool=sys.argv[1]; sys.path.insert(0,sys.argv[2]); sys.argv=[tool,*sys.argv[3:]]; runpy.run_path(tool,run_name="__main__")' "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror/check_nativefs_mirror_source.py" "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror" --repo "$GITHUB_WORKSPACE"
+          python3 -I -B chengwang/tools/nativefs-mirror/generate_nativefs_mirror.py verify --repo "$GITHUB_WORKSPACE" --tracked "$GITHUB_WORKSPACE/chengwang/internal/nativefs/linux_magic_generated.go"
+          CHENGWANG_NATIVEFS_MIRROR_FIXTURE_ROOT="$nativefsRoot" CHENGWANG_NATIVEFS_MIRROR_REPO="$GITHUB_WORKSPACE" python3 -I -B -c 'import runpy,sys; tool=sys.argv[1]; sys.path.insert(0,sys.argv[2]); sys.argv=[tool,*sys.argv[3:]]; runpy.run_path(tool,run_name="__main__")' "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror/test_nativefs_mirror.py" "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror" -b > "$nativefsRoot/nativefs-mirror-tests.log" 2>&1
+          python3 -I -B -c 'import pathlib,sys; lines=pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines(); assert sum(line.startswith("test_") and line.endswith(" ... ok") for line in lines)==7; assert sum(line.startswith("Ran 7 tests in ") and line.endswith("s") for line in lines)==1; assert lines.count("OK")==1; assert not any(token in "\n".join(lines) for token in ("skipped","FAILED","ERROR"))' "$nativefsRoot/nativefs-mirror-tests.log"
+          cd "$GITHUB_WORKSPACE/chengwang/deploy/subscription-refresh"
+          # END P207A_NATIVEFS_MIRROR_GATE
           python3 -B -m unittest -v test_source_contract test_go_events test_go_failure test_go_list > source-models.log 2>&1
           python3 - <<'PY'
           import ast,hashlib
@@ -67,17 +79,19 @@ jobs:
               names.extend(filename+'::'+node.name for item in tree.body if isinstance(item,ast.ClassDef)
                            for node in item.body if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'))
           names=sorted(names)
-          assert len(names)==len(set(names))==81
-          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='0d40b9d4a090266f0babfe1c367bf67a50ae9b133d4f3f8920507e92c0db98ac'
+          assert len(names)==len(set(names))==82
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='45e03bc06cd08db0291d50561c68d30d088415dee8294e8a5c3596629402145a'
           text=Path('source-models.log').read_text(encoding='utf-8').replace('\r\n','\n')
           source_contract_checker.verify_source_model_log(text,files,names)
-          print('P207A_SOURCE_MODELS=PASS count=81 go_execution_proven=false')
+          print('P207A_SOURCE_MODELS=PASS count=82 go_execution_proven=false')
           PY
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: p207a-source-models-${{ github.run_id }}-${{ github.run_attempt }}
-          path: chengwang/deploy/subscription-refresh/source-models.log
+          path: |
+            chengwang/deploy/subscription-refresh/source-models.log
+            ${{ runner.temp }}/p207a-nativefs-mirror/nativefs-mirror-tests.log
           if-no-files-found: warn
           retention-days: 14
   source-and-go:
@@ -120,7 +134,7 @@ jobs:
           verify_source > "$out/source-before.json"
           cd chengwang
           go env -json GOOS GOARCH CGO_ENABLED GOVERSION > "$out/go-env.json"
-          go list -json ./internal/api ./internal/authn ./internal/authz ./internal/serverruntime \
+          go list -json ./internal/api ./internal/authn ./internal/authz ./internal/evidence ./internal/nativefs ./internal/serverruntime \
             ./internal/subscription ./internal/subscriptionctl ./internal/subscriptionpolicy > "$out/go-list.private.json"
           cd "$GITHUB_WORKSPACE"
           python3 -I -B chengwang/deploy/subscription-refresh/check_go_list.py \
@@ -138,6 +152,15 @@ jobs:
             chengwang/internal/authz/policy.go
             chengwang/internal/authz/subscription.go
             chengwang/internal/authz/subscription_refresh_test.go
+            chengwang/internal/evidence/archive_existing.go
+            chengwang/internal/evidence/archive_existing_actualfs_linux_test.go
+            chengwang/internal/evidence/archive_existing_linux.go
+            chengwang/internal/evidence/archive_existing_source_test.go
+            chengwang/internal/evidence/archive_existing_test.go
+            chengwang/internal/evidence/archive_existing_unsupported.go
+            chengwang/internal/nativefs/linux_class.go
+            chengwang/internal/nativefs/linux_magic_generated.go
+            chengwang/internal/nativefs/linux_magic_test.go
             chengwang/internal/serverruntime/runtime.go
             chengwang/internal/serverruntime/subscription_config.go
             chengwang/internal/serverruntime/subscription_config_test.go
@@ -163,7 +186,8 @@ jobs:
           formatCode=$?
           cd chengwang
           go test -json -count=1 -timeout=180s -run '^Test' ./internal/api ./internal/authn ./internal/authz \
-            ./internal/serverruntime ./internal/subscription ./internal/subscriptionctl ./internal/subscriptionpolicy \
+            ./internal/evidence ./internal/nativefs ./internal/serverruntime ./internal/subscription ./internal/subscriptionctl \
+            ./internal/subscriptionpolicy \
             > "$out/go-events.private.jsonl" 2> "$out/go.stderr"
           code=$?
           cd "$GITHUB_WORKSPACE"

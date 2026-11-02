@@ -147,6 +147,8 @@ jobs:
     needs: [development-only, profile-contract-models]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      timeline_ready: ${{ steps.go_timeline_check.outputs.timeline_ready }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -188,6 +190,18 @@ jobs:
           python3 -B "$helper" verify --diagnostic-mode FULL_CONTRACTS \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
             --evidence "$root" --report "$RUNNER_TEMP/mihomo-capacity-profile-full-verification.json"
+      - name: Independently validate the bounded capacity timeline
+        id: go_timeline_check
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-capacity-profile-full-public"
+          sudo python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_go_timeline.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$root" \
+            --lane CAPACITY
+          if ! printf '%s\n' 'timeline_ready=true' >> "$GITHUB_OUTPUT"; then
+            exit 1
+          fi
       - name: Keep an unaccepted full Go result failed even when diagnostic capture is valid
         if: ${{ always() }}
         run: |
@@ -228,6 +242,14 @@ jobs:
             ${{ runner.temp }}/mihomo-capacity-profile-full-verification.json
           retention-days: 14
           if-no-files-found: error
+      - name: Preserve only the independently checked bounded capacity timeline
+        if: ${{ always() && steps.go_timeline_check.outcome == 'success' && steps.go_timeline_check.outputs.timeline_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-capacity-go-timeline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-capacity-profile-full-public/timeline-public/capacity-go-top-observation-timeline.json
+          retention-days: 14
+          if-no-files-found: error
 
   full-fresh:
     needs: [development-only, full]
@@ -242,6 +264,21 @@ jobs:
         with:
           name: mihomo-capacity-profile-full-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/capacity-full-originals
+      - name: Establish runner-owned fresh timeline custody
+        if: ${{ needs.full.outputs.timeline_ready == 'true' }}
+        run: |
+          set -euo pipefail
+          timeline_public="$RUNNER_TEMP/capacity-full-originals/mihomo-capacity-profile-full-public/timeline-public"
+          test -d "$(dirname "$timeline_public")"
+          test ! -e "$timeline_public"
+          install -d -m 0755 "$timeline_public"
+          test "$(stat -c %u "$timeline_public")" -eq "$(id -u)"
+          test "$(stat -c %g "$timeline_public")" -eq "$(id -g)"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: ${{ needs.full.outputs.timeline_ready == 'true' }}
+        with:
+          name: mihomo-capacity-go-timeline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/capacity-full-originals/mihomo-capacity-profile-full-public/timeline-public
       - name: Reconstruct full-suite profile events and resources without executing Go
         run: |
           set -euo pipefail
@@ -251,6 +288,10 @@ jobs:
             --report "$RUNNER_TEMP/mihomo-capacity-profile-full-fresh.json"
           cmp "$RUNNER_TEMP/capacity-full-originals/mihomo-capacity-profile-full-verification.json" \
             "$RUNNER_TEMP/mihomo-capacity-profile-full-fresh.json"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_go_timeline.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/capacity-full-originals/mihomo-capacity-profile-full-public" \
+            --lane CAPACITY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() }}
         with:

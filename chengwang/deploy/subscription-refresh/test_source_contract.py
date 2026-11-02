@@ -129,7 +129,16 @@ class ClosedSourceContractModels(unittest.TestCase):
             "          assert len(names)==len(set(names))==0\n"
             "          assert hashlib.sha256('\\n'.join(names).encode()).hexdigest()=='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\n"
             "          print('P207A_SOURCE_MODELS=PASS count=0 go_execution_proven=false')\n"
-            "run: |\n          fmt=(\n"
+            "  source-models:\n"
+            "      - uses: actions/checkout@pinned\n"
+            "        with:\n"
+            "          persist-credentials: false\n"
+            "          fetch-depth: 0\n"
+            "run: |\n"
+            "          # BEGIN P207A_NATIVEFS_MIRROR_GATE\n"
+            + "".join("          " + line + "\n" for line in C.NATIVEFS_MIRROR_GATE_LINES)
+            + "          # END P207A_NATIVEFS_MIRROR_GATE\n"
+            + "          fmt=(\n"
             + "".join("            " + path + "\n" for path in changed)
             + "          )\n          go list -json " + list_lines + " > go-list.private.json\n"
             + "          set +e\n          gofmt -d \"${fmt[@]}\" > \"$out/gofmt.patch\" 2> \"$out/gofmt.stderr\"\n"
@@ -197,7 +206,9 @@ class ClosedSourceContractModels(unittest.TestCase):
             + "      - uses: actions/upload-artifact@pinned\n"
             + "        with:\n"
             + "          name: p207a-source-models-${{ github.run_id }}-${{ github.run_attempt }}\n"
-            + "          path: chengwang/deploy/subscription-refresh/source-models.log\n"
+            + "          path: |\n"
+            + "            chengwang/deploy/subscription-refresh/source-models.log\n"
+            + "            ${{ runner.temp }}/p207a-nativefs-mirror/nativefs-mirror-tests.log\n"
             + "      - uses: actions/upload-artifact@pinned\n"
             + "        with:\n"
             + "          name: p207a-source-go-${{ github.run_id }}-${{ github.run_attempt }}\n"
@@ -398,7 +409,7 @@ class ClosedSourceContractModels(unittest.TestCase):
 
     def test_exact_contract_accepts_without_claiming_go_execution(self) -> None:
         result = self.verify()
-        self.assertEqual(result["packageTestTopCount"], 7)
+        self.assertEqual(result["packageTestTopCount"], 9)
         self.assertIs(result["goExecutionProven"], False)
 
     def test_actual_workflow_independently_pins_the_complete_contract_surface(self) -> None:
@@ -446,14 +457,14 @@ class ClosedSourceContractModels(unittest.TestCase):
             C.HISTORICAL_BASELINE_REQUIRED_RUN_SHA256 = C.names_digest([])
             C.WORKFLOW_TEMPLATE_SHA256 = self.synthetic_workflow_template_sha256
         self.assertFalse(result["goExecutionProven"])
-        self.assertEqual(result["modulePathCount"], 830)
+        self.assertEqual(result["modulePathCount"], 842)
         self.assertEqual(result["fixturePathCount"], 21)
-        self.assertEqual(result["packageTestTopCount"], 496)
-        self.assertEqual(result["requiredRunTopCount"], 491)
-        self.assertEqual(result["changedGoSourceCount"], 29)
+        self.assertEqual(result["packageTestTopCount"], 545)
+        self.assertEqual(result["requiredRunTopCount"], 528)
+        self.assertEqual(result["changedGoSourceCount"], 38)
         self.assertEqual(result["foundationCurrentCount"], 689)
-        self.assertEqual(result["p207aAddedSourceTestTopCount"], 43)
-        self.assertEqual(result["p207aAddedRequiredRunTopCount"], 43)
+        self.assertEqual(result["p207aAddedSourceTestTopCount"], 92)
+        self.assertEqual(result["p207aAddedRequiredRunTopCount"], 80)
         self.assertEqual(result["baselinePackageTestTopCount"], 453)
         self.assertEqual(result["baselineRequiredRunTopCount"], 448)
 
@@ -570,11 +581,21 @@ class ClosedSourceContractModels(unittest.TestCase):
                 with self.assertRaisesRegex(C.ContractError, "workflow fixed gate"):
                     self.verify(pins)
 
+    def test_workflow_nativefs_mirror_gate_and_full_history_are_exact(self) -> None:
+        text = self.workflow.read_text(encoding="utf-8")
+        script = C.workflow_nativefs_mirror_gate_script(text)
+        self.assertEqual(script, "set -euo pipefail\n" + "\n".join(C.NATIVEFS_MIRROR_GATE_LINES) + "\n")
+        self.assertEqual(text.count("          fetch-depth: 0\n"), 1)
+        self.assertIn('--repo "$GITHUB_WORKSPACE"', script)
+        self.assertIn('--tracked "$GITHUB_WORKSPACE/chengwang/internal/nativefs/linux_magic_generated.go"', script)
+        self.assertIn('CHENGWANG_NATIVEFS_MIRROR_FIXTURE_ROOT="$nativefsRoot"', script)
+        self.assertIn('CHENGWANG_NATIVEFS_MIRROR_REPO="$GITHUB_WORKSPACE"', script)
+
     def test_v4_source_only_added_top_maps_to_excluded_file_and_accepts(self) -> None:
         top = self.make_source_only()
         result = self.verify()
-        self.assertEqual(result["p207aAddedSourceTestTopCount"], 7)
-        self.assertEqual(result["p207aAddedRequiredRunTopCount"], 6)
+        self.assertEqual(result["p207aAddedSourceTestTopCount"], 9)
+        self.assertEqual(result["p207aAddedRequiredRunTopCount"], 8)
         self.assertNotIn(top, json.loads(self.contract_path.read_bytes())["p207aAddedRequiredRunTops"])
 
     def test_v4_added_required_run_top_absent_from_added_source_rejected(self) -> None:

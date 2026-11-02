@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-test "$#" -eq 5
-source_root="$1"; outer="$2"; outer_net="$3"; profile="$4"; commit="$5"
+test "$#" -eq 9
+source_root="$1"; outer="$2"; outer_net="$3"; profile="$4"; commit="$5"; bootstrap="$6"
+bootstrap_step_id="$7"; bootstrap_step_outcome="$8"; bootstrap_step_source="$9"
 test "$(/usr/bin/id -u)" -eq 0
 test "$(/usr/bin/readlink /proc/self/ns/net)" != "$outer_net"
 case "$profile" in units|product) ;; *) exit 1 ;; esac
 /usr/bin/mount --make-rprivate /
 /usr/bin/mount -t tmpfs -o mode=0755,nosuid,nodev,noexec,size=16m tmpfs /mnt
 alias_root=/mnt/joint-control-plane
+test "$bootstrap" = "$alias_root/evidence/staging/bootstrap-localization.private/status.json"
+test "$bootstrap_step_id" = bootstrap_progress
+test "$bootstrap_step_outcome" = success
+test "$bootstrap_step_source" = "$commit"
 /usr/bin/install -d -m 0755 "$alias_root" "$alias_root/source" "$alias_root/bin" "$alias_root/evidence"
 /usr/bin/mount --bind "$source_root" "$alias_root/source"; /usr/bin/mount -o remount,bind,ro,nosuid,nodev,noexec "$alias_root/source"
 /usr/bin/mount --bind "$outer/bin" "$alias_root/bin"; /usr/bin/mount -o remount,bind,ro,nosuid,nodev,exec "$alias_root/bin"
@@ -36,7 +41,7 @@ finish(){
   code=$?; trap - EXIT
   if test "$code" -ne 0 && test "$profile" = product && test -d "$alias_root/evidence/staging"; then
     set +e
-    run_user "$scripts/sanitize_publication.py" failure --input "$private" --progress-root "$progress" --source-commit "$commit" --code PRIVATE_SCENE_FAILED --output "$alias_root/evidence/staging/private-failure-identity.json" >/dev/null 2>/dev/null
+    run_user "$scripts/sanitize_publication.py" failure --input "$private" --progress-root "$progress" --bootstrap-record "$bootstrap" --source-commit "$commit" --bootstrap-step-id "$bootstrap_step_id" --bootstrap-step-outcome "$bootstrap_step_outcome" --bootstrap-step-source "$bootstrap_step_source" --code PRIVATE_SCENE_FAILED --output "$alias_root/evidence/staging/private-failure-identity.json" >/dev/null 2>/dev/null
     set -e
   fi
   cleanup

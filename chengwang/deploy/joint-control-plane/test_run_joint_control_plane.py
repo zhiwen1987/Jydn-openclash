@@ -1,10 +1,10 @@
 from __future__ import annotations
-import ast, copy, importlib.util, json, os, pathlib, ssl, subprocess, tempfile, types, unittest
+import ast, contextlib, copy, importlib.util, json, os, pathlib, shutil, ssl, subprocess, sys, tempfile, types, unittest
 from unittest import mock
 HERE=pathlib.Path(__file__).resolve().parent
 def load(name,path):
     spec=importlib.util.spec_from_file_location(name,HERE/path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
-C=load("joint_runner_test_contract","contract.py");R=load("joint_runner_test_target","run_joint_control_plane.py")
+C=load("joint_runner_test_contract","contract.py");R=load("joint_runner_test_target","run_joint_control_plane.py");CI=load("joint_runner_test_ci","ci_joint_control_plane.py")
 
 def base_policy():
     return {"version":1,"scope":dict(C.SCOPE),"resolver":{"upstream":"127.0.0.1:1853","serverName":C.DOT_NAME,"caPEM":"CA"},"sources":[{"referenceId":case,"revision":1,"secretVersion":"v1","url":"https://"+host+"/subscription?token=PRIVATE","allowedCnames":[],"caPEM":"CA"} for case,host in C.SOURCE_HOSTS.items()]}
@@ -106,6 +106,196 @@ class RunnerContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);C.record_progress(root,commit,"NAMESPACE_SETUP","ENTERED")
             with mock.patch.object(pathlib.Path,"is_symlink",return_value=True):self.assertEqual(C.failure_classification(root,commit),default)
+    def test_empty_progress_valid_detail_preserves_legacy_fields_and_adds_independent_state(self):
+        commit="9"*40
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d);C.record_failure_detail(root,commit,PermissionError("PRIVATE"),"success-fetch-r1","success-approve-r1")
+            baseline=C.failure_classification(root,commit)
+            self.assertEqual(baseline,{"failurePhase":"UNKNOWN","lastCompletedPhase":"NONE","exceptionType":"PERMISSION_ERROR","failureReasonCode":"UNKNOWN","failedCaptureName":"success-fetch-r1","lastCompletedCaptureName":"success-approve-r1"})
+            with mock.patch.object(C,"_owned_mode",return_value=True):evidence=C.localization_evidence(root,None,commit)
+            self.assertEqual(evidence,{"progressRootState":"EMPTY","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN"})
+            (root/C.FAILURE_DETAIL_NAME).write_bytes(b"{}\n")
+            rejected=C.failure_classification(root,commit)
+            with mock.patch.object(C,"_owned_mode",return_value=True):rejected_evidence=C.localization_evidence(root,None,commit)
+            self.assertEqual(rejected,C.unknown_failure_classification());self.assertEqual(rejected_evidence["progressRootState"],"EMPTY");self.assertEqual(rejected_evidence["failureDetailState"],"INVALID")
+    def test_bootstrap_record_current_read_rejects_absence_mismatch_and_replacement(self):
+        commit="8"*40
+        with tempfile.TemporaryDirectory() as d:
+            staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE
+            self.assertEqual(C.bootstrap_record_state(record,commit),("ABSENT","UNKNOWN"))
+            record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            directory_identity=C._identity(record.parent.lstat());file_identity=C._identity(record.lstat());parent_identity=C._identity(staging.lstat())
+            with mock.patch.object(C,"_owned_mode",return_value=True):
+                self.assertEqual(C.bootstrap_record_state(record,commit),("ACCEPTED","PASS"))
+                self.assertEqual(C.bootstrap_record_state(record,"7"*40),("SOURCE_MISMATCH","UNKNOWN"))
+            moved=staging/(C.BOOTSTRAP_DIRECTORY+".moved");record.parent.rename(moved);record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            with mock.patch.object(C,"_owned_mode",return_value=True):
+                state=C.bootstrap_record_state(record,commit,parent_identity,directory_identity,file_identity)
+            self.assertEqual(state,("INVALID","UNKNOWN"))
+            with mock.patch.object(C,"_localized_read",return_value=("READ_FAILED",None,None)),mock.patch.object(C,"_owned_mode",return_value=True):
+                self.assertEqual(C.bootstrap_record_state(record,commit),("READ_FAILED","UNKNOWN"))
+    def test_bootstrap_step_projection_is_closed_and_never_claims_local_authority(self):
+        commit="8"*40
+        self.assertEqual(C.bootstrap_step_outcome("bootstrap_progress","success",commit,commit),"SUCCESS")
+        self.assertEqual(C.bootstrap_step_outcome("bootstrap_progress","failure",commit,commit),"FAILURE")
+        self.assertEqual(C.bootstrap_step_outcome("bootstrap_progress","cancelled",commit,commit),"CANCELLED")
+        self.assertEqual(C.bootstrap_step_outcome("bootstrap_progress","skipped",commit,commit),"SKIPPED")
+        for values in ((None,None,None),("", "success",commit),("bootstrap_progress","",commit)):
+            self.assertEqual(C.bootstrap_step_outcome(*values,commit),"MISSING")
+        for values in (("other","success",commit),("bootstrap_progress","other",commit),("bootstrap_progress","success","7"*40),("bootstrap_progress","success","private")):
+            self.assertEqual(C.bootstrap_step_outcome(*values,commit),"UNKNOWN")
+        function=next(node for node in ast.parse(pathlib.Path(C.__file__).read_text()).body if isinstance(node,ast.FunctionDef) and node.name=="bootstrap_step_outcome")
+        self.assertNotIn("AUTHORITATIVE",ast.unparse(function))
+    def test_every_non_success_projection_suppresses_later_residual_pass(self):
+        commit="4"*40
+        with tempfile.TemporaryDirectory() as d:
+            staging=pathlib.Path(d)/"staging";staging.mkdir();progress=staging/"progress";progress.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            with mock.patch.object(C,"_owned_mode",return_value=True):
+                for raw,expected in (("failure","FAILURE"),("cancelled","CANCELLED"),("skipped","SKIPPED"),(None,"MISSING"),("other","UNKNOWN")):
+                    value=C.localization_evidence(progress,record,commit,"bootstrap_progress",raw,commit)
+                    self.assertEqual((value["bootstrapStepOutcome"],value["bootstrapRecordState"],value["bootstrapChildState"]),(expected,"INVALID","UNKNOWN"))
+                accepted=C.localization_evidence(progress,record,commit,"bootstrap_progress","success",commit)
+            self.assertEqual((accepted["bootstrapStepOutcome"],accepted["bootstrapRecordState"],accepted["bootstrapChildState"]),("SUCCESS","ACCEPTED","PASS"))
+    def test_bootstrap_writer_second_fsync_and_final_named_validation_fail_closed(self):
+        commit="5"*40
+        def exercise(root,fail_second=False,final=("ACCEPTED","PASS")):
+            staging=root/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;events=[];fsync_count=0
+            def fsync(fd):
+                nonlocal fsync_count
+                fsync_count+=1;events.append("file-fsync-"+str(fsync_count))
+                if fail_second and fsync_count==2:raise OSError("PRIVATE SECOND FSYNC")
+            def fchmod(fd,mode):events.append("fchmod-"+oct(mode))
+            def fsync_dir(path):events.append("dir-fsync-"+pathlib.Path(path).name)
+            def validate(*args,**kwargs):events.append("final-named-validation");return final
+            patches=(mock.patch.object(C,"_root_writer",return_value=True),mock.patch.object(C,"_owned_mode",return_value=True),mock.patch.object(C.os,"fsync",side_effect=fsync),mock.patch.object(C.os,"fchmod",side_effect=fchmod,create=True),mock.patch.object(C,"_fsync_dir",side_effect=fsync_dir),mock.patch.object(C,"bootstrap_record_state",side_effect=validate))
+            with patches[0],patches[1],patches[2],patches[3],patches[4],patches[5]:
+                C.record_bootstrap_status(record,commit,"PASS")
+            return events
+        with tempfile.TemporaryDirectory() as d:
+            events=exercise(pathlib.Path(d));self.assertLess(events.index("file-fsync-1"),events.index("fchmod-0o444"));self.assertLess(events.index("fchmod-0o444"),events.index("file-fsync-2"));self.assertLess(events.index("dir-fsync-staging"),events.index("final-named-validation"))
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(OSError):exercise(pathlib.Path(d),fail_second=True)
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(ValueError):exercise(pathlib.Path(d),final=("INVALID","UNKNOWN"))
+    def test_record_publication_fault_matrix_never_survives_failure_projection(self):
+        commit="3"*40
+        real={name:getattr(C.os,name) for name in ("mkdir","chmod","open","write","fsync","lseek","read","fstat","close")}
+        cases=[]
+        def fail(name,nth=1,after=False):
+            count=0
+            def wrapped(*args,**kwargs):
+                nonlocal count
+                count+=1
+                if count==nth:
+                    if after:real[name](*args,**kwargs)
+                    raise OSError("PRIVATE "+name)
+                return real[name](*args,**kwargs)
+            return mock.patch.object(C.os,name,side_effect=wrapped)
+        cases.extend((label,patcher) for label,patcher in (
+            ("mkdir",fail("mkdir")),("initial-directory-chmod",fail("chmod",1)),
+            ("exclusive-open",fail("open")),("write",fail("write")),
+            ("first-file-fsync",fail("fsync",1)),("seek",fail("lseek")),
+            ("readback",fail("read")),("fstat",fail("fstat")),
+            ("fchmod",mock.patch.object(C.os,"fchmod",side_effect=OSError("PRIVATE fchmod"),create=True)),("second-file-fsync",fail("fsync",2)),
+            ("descriptor-close",fail("close",1,after=True)),("final-directory-chmod",fail("chmod",2)),
+        ))
+        for label,patcher in cases:
+            with self.subTest(operation=label),tempfile.TemporaryDirectory() as d:
+                staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE
+                fchmod=(mock.patch.object(C.os,"fchmod",side_effect=lambda fd,mode:None,create=True) if label!="fchmod" else mock.patch.object(C.os,"fchmod",create=True))
+                with mock.patch.object(C,"_root_writer",return_value=True),mock.patch.object(C,"_owned_mode",return_value=True),fchmod,patcher:
+                    with self.assertRaises(OSError):C.record_bootstrap_status(record,commit,"PASS")
+                with mock.patch.object(C,"_owned_mode",return_value=True):value=C.localization_evidence(None,record,commit,"bootstrap_progress","failure",commit)
+                self.assertNotEqual(value["bootstrapRecordState"],"ACCEPTED");self.assertEqual(value["bootstrapChildState"],"UNKNOWN")
+        for label,which in (("directory-fsync",1),("parent-fsync",2)):
+            with self.subTest(operation=label),tempfile.TemporaryDirectory() as d:
+                staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;count=0;real_sync=C._fsync_dir
+                def sync(path):
+                    nonlocal count
+                    count+=1
+                    if count==which:raise OSError("PRIVATE DIR FSYNC")
+                    return real_sync(path)
+                with mock.patch.object(C,"_root_writer",return_value=True),mock.patch.object(C,"_owned_mode",return_value=True),mock.patch.object(C.os,"fchmod",side_effect=lambda fd,mode:None,create=True),mock.patch.object(C,"_fsync_dir",side_effect=sync):
+                    with self.assertRaises(OSError):C.record_bootstrap_status(record,commit,"PASS")
+                with mock.patch.object(C,"_owned_mode",return_value=True):value=C.localization_evidence(None,record,commit,"bootstrap_progress","failure",commit)
+                self.assertNotEqual(value["bootstrapRecordState"],"ACCEPTED");self.assertEqual(value["bootstrapChildState"],"UNKNOWN")
+        with tempfile.TemporaryDirectory() as d:
+            staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE
+            with mock.patch.object(C,"_root_writer",return_value=True),mock.patch.object(C,"_owned_mode",return_value=True),mock.patch.object(C.os,"fchmod",side_effect=lambda fd,mode:None,create=True),mock.patch.object(C,"bootstrap_record_state",return_value=("READ_FAILED","UNKNOWN")):
+                with self.assertRaises(ValueError):C.record_bootstrap_status(record,commit,"PASS")
+            with mock.patch.object(C,"_owned_mode",return_value=True):value=C.localization_evidence(None,record,commit,"bootstrap_progress","failure",commit)
+            self.assertNotEqual(value["bootstrapRecordState"],"ACCEPTED");self.assertEqual(value["bootstrapChildState"],"UNKNOWN")
+    def test_localization_cross_product_preserves_progress_detail_and_record_specificity(self):
+        commit="2"*40
+        for progress_state in C.PROGRESS_STATES:
+            details=C.DETAIL_STATES-{"NOT_EVALUATED"} if progress_state in ("EMPTY","ACCEPTED") else {"NOT_EVALUATED"}
+            for detail_state in details:
+                for record_state in C.BOOTSTRAP_RECORD_STATES:
+                    recorded="PASS" if record_state=="ACCEPTED" else "UNKNOWN"
+                    with self.subTest(progress=progress_state,detail=detail_state,record=record_state),mock.patch.object(C,"_progress_localization",return_value=(progress_state,pathlib.Path("/fixed"))),mock.patch.object(C,"_detail_localization",return_value=detail_state),mock.patch.object(C,"bootstrap_record_state",return_value=(record_state,recorded)):
+                        value=C.localization_evidence("/fixed","/fixed/status.json",commit,"bootstrap_progress","success",commit)
+                    self.assertEqual(value["progressRootState"],progress_state);self.assertEqual(value["failureDetailState"],detail_state);self.assertEqual(value["bootstrapRecordState"],record_state);self.assertEqual(value["bootstrapChildState"],recorded)
+    def test_bounded_child_models_all_closed_outcomes_without_stderr(self):
+        expected=b'{"status":"PASS"}\n'
+        def run(code,timeout=2):return CI._bounded_child([sys.executable,"-I","-B","-c",code],expected,timeout=timeout)
+        self.assertEqual(run("import os;os.write(1,"+repr(expected)+")"),"PASS")
+        self.assertEqual(run("import os,sys;os.write(2,b'PRIVATE STDERR');sys.exit(7)"),"COMMAND_NONZERO")
+        self.assertEqual(run("import os;os.write(1,b'bad')"),"STDOUT_INVALID")
+        self.assertEqual(run("import os,time;os.write(1,b'X'*1025);time.sleep(2)"),"STDOUT_OVERSIZE")
+        self.assertEqual(run("import time;time.sleep(2)",timeout=0.1),"TIMEOUT")
+        def spawn_error(*args,**kwargs):raise OSError("PRIVATE SPAWN")
+        self.assertEqual(CI._bounded_child(["/not-used"],expected,popen=spawn_error),"SPAWN_ERROR")
+    def test_bootstrap_argv_is_fixed_and_cleanup_terminates_kills_reaps(self):
+        argv=CI.bootstrap_argv("/progress","/stage/bootstrap-localization.private/status.json","a"*40)
+        self.assertEqual(argv[:9],["/usr/bin/setpriv","--reuid=10001","--regid=10001","--clear-groups","--bounding-set=-all","--inh-caps=-all","--ambient-caps=-all","--no-new-privs","/usr/bin/env"])
+        self.assertIn("-i",argv);self.assertIn("--receipt",argv);self.assertNotIn("/stage/bootstrap-localization.private/status.json",argv)
+        class Process:
+            def __init__(self):self.calls=[];self.count=0
+            def terminate(self):self.calls.append("terminate")
+            def kill(self):self.calls.append("kill")
+            def wait(self,timeout):
+                self.calls.append("wait");self.count+=1
+                if self.count==1:raise subprocess.TimeoutExpired(["fixed"],timeout)
+                return -9
+        process=Process();CI._stop_child(process);self.assertEqual(process.calls,["terminate","wait","kill","wait"])
+    def test_supervisor_setup_read_close_and_reap_faults_never_pass_or_leak(self):
+        expected=b"PASS\n"
+        class Stream:
+            def __init__(self,close_error=False):self.closed=False;self.close_error=close_error
+            def fileno(self):return 17
+            def close(self):
+                self.closed=True
+                if self.close_error:raise OSError("PRIVATE CLOSE")
+        class Process:
+            def __init__(self,code=None,close_error=False,unreapable=False):self.code=code;self.stdout=Stream(close_error);self.calls=[];self.unreapable=unreapable
+            def poll(self):return self.code
+            def terminate(self):self.calls.append("terminate");self.code=None if self.unreapable else -15
+            def kill(self):self.calls.append("kill");self.code=None if self.unreapable else -9
+            def wait(self,timeout):
+                self.calls.append("wait")
+                if self.code is None:raise subprocess.TimeoutExpired(["fixed"],timeout)
+                return self.code
+        class Selector:
+            def __init__(self,events=None,error=None):self.events=events;self.error=error
+            def register(self,*args):pass
+            def select(self,*args):
+                if self.error:raise self.error
+                return self.events
+            def close(self):pass
+        cases=[]
+        setup=Process();cases.append((setup,lambda:(_ for _ in ()).throw(OSError("PRIVATE SETUP")),os.read))
+        reading=Process();cases.append((reading,lambda:Selector(events=[(1,1)]),lambda *_:(_ for _ in ()).throw(OSError("PRIVATE READ"))))
+        closing=Process(code=0,close_error=True);cases.append((closing,lambda:Selector(events=[(1,1)]),lambda *_:b""))
+        unreaped=Process(unreapable=True);cases.append((unreaped,lambda:(_ for _ in ()).throw(OSError("PRIVATE SELECTOR")),os.read))
+        for process,factory,reader in cases:
+            with self.subTest(calls=process.calls):
+                with self.assertRaisesRegex(ValueError,"^joint-ci-child-custody-rejected$"):
+                    CI._bounded_child(["fixed"],expected,popen=lambda *a,**k:process,platform="posix",selector_factory=factory,set_blocking=lambda *a:None,read_fd=reader)
+                self.assertTrue(process.stdout.closed);self.assertNotIn("PRIVATE",str(process.calls))
+        self.assertIn("kill",unreaped.calls)
+        capped=Process(code=0);sizes=[]
+        state=CI._bounded_child(["fixed"],expected,popen=lambda *a,**k:capped,platform="posix",selector_factory=lambda:Selector(events=[]),set_blocking=lambda *a:None,read_fd=lambda fd,size:(sizes.append(size) or b"X"*2048))
+        self.assertEqual(state,"STDOUT_OVERSIZE");self.assertEqual(sizes,[1025]);self.assertTrue(capped.stdout.closed)
     def test_private_read_accepts_short_reads_and_rejects_named_replacement(self):
         commit="e"*40
         with tempfile.TemporaryDirectory() as d:
@@ -123,10 +313,244 @@ class RunnerContracts(unittest.TestCase):
             with self.assertRaises(ValueError):lab.call("dynamic-private-capture","B0")
     def test_workflow_and_namespace_cover_every_phase_without_logs(self):
         workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();namespace=(HERE/"ci_namespace.sh").read_text();runner=pathlib.Path(R.__file__).read_text()
-        self.assertLess(workflow.index("--phase NAMESPACE_SETUP --state ENTERED"),workflow.index(" unshare "))
+        self.assertLess(workflow.index(" bootstrap-progress "),workflow.index(" unshare "))
         self.assertIn('--progress-root "$root/evidence/staging/failure-localization.private"',workflow)
+        self.assertIn('--bootstrap-record "$bootstrap"',workflow);self.assertIn('/mnt/joint-control-plane/evidence/staging/bootstrap-localization.private/status.json',workflow);self.assertIn('--bootstrap-record "$bootstrap"',namespace)
         for phase in C.FAILURE_PHASES:
             self.assertIn(phase,workflow+namespace+runner)
         self.assertNotIn("runner.stderr",workflow);self.assertNotIn("runner.stdout",workflow)
+        bash=shutil.which("bash") or (r"C:\Program Files\Git\bin\bash.exe" if pathlib.Path(r"C:\Program Files\Git\bin\bash.exe").is_file() else None);self.assertIsNotNone(bash)
+        result=subprocess.run([str(bash),"-n",str(HERE/"ci_namespace.sh")],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False);self.assertEqual(result.returncode,0,result.stderr.decode(errors="replace"))
+    def test_workflow_engine_witness_is_exact_gated_and_standalone_only(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();namespace=(HERE/"ci_namespace.sh").read_text();sanitizer=(HERE/"sanitize_publication.py").read_text()
+        self.assertTrue(CI.workflow_contract(workflow.encode()))
+        dedicated=workflow.split("      - name: Bootstrap bounded namespace progress",1)[1].split("      - name: Real B0 J1 R2 same-binary scene",1)[0]
+        scene=workflow.split("      - name: Real B0 J1 R2 same-binary scene",1)[1].split("      - name: Reacquire source after every attempt",1)[0]
+        failure=workflow.split("      - name: Publish only bounded failure classification",1)[1].split("      - if: always()",1)[0]
+        self.assertIn("id: bootstrap_progress",dedicated);self.assertNotIn("continue-on-error",dedicated)
+        self.assertIn("steps.bootstrap_progress.outcome == 'success'",scene);self.assertNotIn(".conclusion",scene+failure)
+        for text in (scene,failure,namespace):
+            self.assertIn("bootstrap_progress",text);self.assertIn("bootstrap-step",text.replace("_","-").lower())
+        self.assertIn('value["provenanceAuthority"]="NON_AUTHORITATIVE_STANDALONE"',sanitizer)
+        self.assertNotIn("AUTHORITATIVE_MATCH",sanitizer);self.assertNotIn("artifact",sanitizer.lower())
+    def test_workflow_composition_validator_rejects_every_required_mutant(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text()
+        def once(old,new="",occurrence=1):
+            start=0
+            for _ in range(occurrence):
+                index=workflow.find(old,start);self.assertGreaterEqual(index,0);start=index+len(old)
+            return workflow[:index]+new+workflow[index+len(old):]
+        outcome='          BOOTSTRAP_STEP_OUTCOME: ${{ steps.bootstrap_progress.outcome }}'
+        mutants={
+            "hardcoded-outer-success":once(outcome,'          BOOTSTRAP_STEP_OUTCOME: success',2),
+            "conclusion-substitution":workflow.replace('steps.bootstrap_progress.outcome','steps.bootstrap_progress.conclusion'),
+            "continue-on-error":once('        id: bootstrap_progress\n','        id: bootstrap_progress\n        continue-on-error: true\n'),
+            "missing-id":once('        id: bootstrap_progress\n'),
+            "duplicate-id":once('      - name: Real B0 J1 R2 same-binary scene\n','      - name: Real B0 J1 R2 same-binary scene\n        id: bootstrap_progress\n'),
+            "missing-gate":once("        if: ${{ steps.bootstrap_progress.outcome == 'success' }}\n"),
+            "gate-bypass":once("        if: ${{ steps.bootstrap_progress.outcome == 'success' }}","        if: always()"),
+            "wrong-step":once('--bootstrap-step-id bootstrap_progress','--bootstrap-step-id other_step'),
+            "missing-step-arg":once(' --bootstrap-step-id bootstrap_progress'),
+            "missing-outcome-arg":once(' --bootstrap-step-outcome "$BOOTSTRAP_STEP_OUTCOME"'),
+            "missing-source-arg":once(' --bootstrap-step-source "$GITHUB_SHA"'),
+            "cross-source":once('--bootstrap-step-source "$GITHUB_SHA"','--bootstrap-step-source "0000000000000000000000000000000000000000"'),
+            "namespace-missing-step":once(' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"',' "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"'),
+            "namespace-missing-outcome":once(' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"',' bootstrap_progress "$GITHUB_SHA"'),
+            "namespace-cross-source":once(' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "$GITHUB_SHA"',' bootstrap_progress "$BOOTSTRAP_STEP_OUTCOME" "0000000000000000000000000000000000000000"'),
+            "dedicated-outcome-wrong-step":once(outcome,'          BOOTSTRAP_STEP_OUTCOME: ${{ steps.cpu.outcome }}',2),
+        }
+        for name,mutant in mutants.items():
+            with self.subTest(name=name),self.assertRaises(ValueError):CI.workflow_contract(mutant.encode())
+    def test_uid_probe_inventory_order_and_model_boundary_are_source_closed(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();source=pathlib.Path(CI.__file__).read_text();tree=ast.parse(source)
+        self.assertEqual(CI.PROBE_MODES,{"root-setup","uid-prepublish-denials","root-finalize","uid-final-read-and-rename","uid-install-replacement","root-reject-replacement","root-cleanup","root-final-absence"})
+        probe=workflow.split("      - name: Probe isolated Linux UID custody",1)[1].split("      - name: Build once",1)[0]
+        self.assertLess(workflow.index("Prepare immutable source and staging"),workflow.index("Probe isolated Linux UID custody"));self.assertLess(workflow.index("Probe isolated Linux UID custody"),workflow.index("Bootstrap bounded namespace progress"))
+        for forbidden in ('$RUNNER_TEMP/joint-control-plane',' go ','unshare','curl','wget','systemctl','docker'):
+            self.assertNotIn(forbidden,probe)
+        for mode in CI.PROBE_MODES:self.assertIn(mode,probe+source)
+        self.assertIn("trap finish_probe EXIT",probe);self.assertIn("probe_active=false",probe);self.assertLess(probe.index("root_probe root-setup"),probe.index("probe_active=true"));self.assertIn("root-final-absence",probe);self.assertNotIn("rmtree",ast.unparse(tree))
+        function=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=="bootstrap_permission_probe")
+        constants={node.value for node in ast.walk(function) if isinstance(node,ast.Constant) and isinstance(node.value,str)}
+        self.assertTrue(CI.PROBE_MODES-{"root-final-absence"}<=constants);self.assertTrue(all(mode in source for mode in CI.PROBE_MODES));self.assertNotIn("ACTUAL_UID_PERMISSION_MICROPROBE_PASS",workflow+source)
+    def test_uid_probe_root_derivation_rejects_bad_identity_and_is_never_product_staging(self):
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat()
+            _,probe,staging,_=CI._probe_paths(runner,"123","4",str(meta.st_dev),str(meta.st_ino),platform="posix")
+            self.assertEqual(probe,runner/"chengwang-joint-bootstrap-custody-probe-123-4");self.assertEqual(staging,probe/"staging");self.assertNotEqual(probe,runner/"joint-control-plane")
+            for args in (("0","4",str(meta.st_dev),str(meta.st_ino)),("123","0",str(meta.st_dev),str(meta.st_ino)),("123","4","999999",str(meta.st_ino))):
+                with self.assertRaises(ValueError):CI._probe_paths(runner,*args,platform="posix")
+    def test_uid_probe_fixed_sequence_model_rejects_replacement_and_leaves_no_residue(self):
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"321","7",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-321-7"
+            def owned(path,*unused,**kwargs):return pathlib.Path(path).lstat()
+            real_unlink=CI.os.unlink
+            real_rmdir=CI.os.rmdir
+            def model_unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
+            def model_rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
+            common=(mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_open_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_rename_denied",side_effect=lambda *a:None),mock.patch.object(CI.C,"_owned_mode",return_value=True),mock.patch.object(CI.C,"bootstrap_record_state",side_effect=(("ACCEPTED","PASS"),("INVALID","UNKNOWN"))),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=model_unlink),mock.patch.object(CI.os,"rmdir",side_effect=model_rmdir))
+            with common[0],common[1],common[2],common[3],common[4],common[5],common[6],common[7],common[8],common[9],common[10]:
+                for mode,identity in (("root-setup",(0,0)),("uid-prepublish-denials",(C.UID,C.GID)),("root-finalize",(0,0)),("uid-final-read-and-rename",(C.UID,C.GID)),("uid-install-replacement",(C.UID,C.GID)),("root-reject-replacement",(0,0)),("root-cleanup",(0,0)),("root-final-absence",(0,0))):
+                    with mock.patch.object(CI.os,"geteuid",return_value=identity[0],create=True),mock.patch.object(CI.os,"getegid",return_value=identity[1],create=True):CI.bootstrap_permission_probe(*args,mode,platform="posix")
+            self.assertFalse(probe.exists())
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();probe=runner/"chengwang-joint-bootstrap-custody-probe-321-7";probe.write_bytes(b"PREEXISTING")
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True):
+                with self.assertRaises(ValueError):CI.bootstrap_permission_probe(runner,"321","7",str(meta.st_dev),str(meta.st_ino),"root-setup",platform="posix")
+            self.assertEqual(probe.read_bytes(),b"PREEXISTING")
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();probe=runner/"chengwang-joint-bootstrap-custody-probe-321-7"
+            def owned(path,*unused,**kwargs):return pathlib.Path(path).lstat()
+            real_final=CI._probe_final_absence;final_calls=[]
+            def final(*args,**kwargs):final_calls.append(True);return real_final(*args,**kwargs)
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_write",side_effect=OSError("PRIVATE PARTIAL SETUP")),mock.patch.object(CI,"_probe_final_absence",side_effect=final),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711):
+                with self.assertRaises(OSError):CI.bootstrap_permission_probe(runner,"321","7",str(meta.st_dev),str(meta.st_ino),"root-setup",platform="posix")
+            self.assertFalse(probe.exists());self.assertEqual(final_calls,[True])
+    def test_uid_probe_preexisting_file_directory_symlink_and_ancestor_models_are_preserved(self):
+        for kind in ("file","directory"):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as d:
+                runner=pathlib.Path(d).resolve();meta=runner.lstat();probe=runner/"chengwang-joint-bootstrap-custody-probe-91-2"
+                if kind=="file":probe.write_bytes(b"PREEXISTING")
+                else:probe.mkdir();(probe/"sentinel").write_bytes(b"PREEXISTING")
+                before=(probe.lstat().st_dev,probe.lstat().st_ino)
+                with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI,"_probe_cleanup_tree") as cleanup,mock.patch.object(CI,"_probe_final_absence") as final:
+                    with self.assertRaises(ValueError):CI.bootstrap_permission_probe(runner,"91","2",str(meta.st_dev),str(meta.st_ino),"root-setup",platform="posix")
+                self.assertEqual((probe.lstat().st_dev,probe.lstat().st_ino),before);cleanup.assert_not_called();final.assert_not_called()
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();probe=runner/"chengwang-joint-bootstrap-custody-probe-91-2";probe.write_bytes(b"SYMLINK-SENTINEL");real_absent=CI._probe_absent
+            def symlink_collision(path):return False if pathlib.Path(path)==probe else real_absent(path)
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI,"_probe_absent",side_effect=symlink_collision),mock.patch.object(CI,"_probe_cleanup_tree") as cleanup,mock.patch.object(CI,"_probe_final_absence") as final:
+                with self.assertRaises(ValueError):CI.bootstrap_permission_probe(runner,"91","2",str(meta.st_dev),str(meta.st_ino),"root-setup",platform="posix")
+            self.assertEqual(probe.read_bytes(),b"SYMLINK-SENTINEL");cleanup.assert_not_called();final.assert_not_called()
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();sentinel=runner/"ancestor-sentinel";sentinel.write_bytes(b"UNCHANGED")
+            real_symlink=pathlib.Path.is_symlink
+            with mock.patch.object(pathlib.Path,"is_symlink",autospec=True,side_effect=lambda path:path==runner or real_symlink(path)),mock.patch.object(CI.os,"mkdir") as mkdir:
+                with self.assertRaises(ValueError):CI._probe_paths(runner,"91","2",str(meta.st_dev),str(meta.st_ino),platform="posix")
+            mkdir.assert_not_called();self.assertEqual(sentinel.read_bytes(),b"UNCHANGED")
+    def test_bootstrap_reader_rejects_extra_symlink_hardlink_owner_mode_and_copied_bytes(self):
+        commit="1"*40
+        with tempfile.TemporaryDirectory() as d:
+            staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit),("ACCEPTED","PASS"))
+            extra=record.parent/"extra";extra.write_bytes(b"X")
+            with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit),("INVALID","UNKNOWN"))
+            extra.unlink();hard=record.parent/"hard";os.link(record,hard)
+            with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit),("INVALID","UNKNOWN"))
+            hard.unlink();real_symlink=pathlib.Path.is_symlink
+            with mock.patch.object(pathlib.Path,"is_symlink",autospec=True,side_effect=lambda path:path==record or real_symlink(path)),mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit),("INVALID","UNKNOWN"))
+            for custody in ("wrong-owner","wrong-mode"):
+                with self.subTest(custody=custody),mock.patch.object(C,"_owned_mode",return_value=False):self.assertEqual(C.bootstrap_record_state(record,commit),("INVALID","UNKNOWN"))
+            parent_identity=C._identity(staging.lstat());directory_identity=C._identity(record.parent.lstat());file_identity=C._identity(record.lstat());moved=staging/"moved";record.parent.rename(moved);record.parent.mkdir();record.write_bytes((moved/C.BOOTSTRAP_FILE).read_bytes())
+            with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit,parent_identity,directory_identity,file_identity),("INVALID","UNKNOWN"))
+            record.parent.rename(staging/"replacement");self.assertEqual(C.bootstrap_record_state(record,commit),("ABSENT","UNKNOWN"))
+    def test_uid_probe_wrong_uid_and_mode_order_reject_before_untrusted_operations(self):
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"82","3",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-82-3"
+            with mock.patch.object(CI.os,"geteuid",return_value=C.UID,create=True),mock.patch.object(CI.os,"getegid",return_value=C.GID,create=True),mock.patch.object(CI.os,"mkdir") as mkdir:
+                with self.assertRaises(ValueError):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
+            mkdir.assert_not_called();self.assertFalse(probe.exists())
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"rename") as rename:
+                with self.assertRaises(ValueError):CI.bootstrap_permission_probe(*args,"uid-final-read-and-rename",platform="posix")
+            rename.assert_not_called();self.assertFalse(probe.exists())
+            for mode in ("root-finalize","root-reject-replacement","root-cleanup"):
+                with self.subTest(mode=mode),mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True):
+                    if mode=="root-cleanup":CI.bootstrap_permission_probe(*args,mode,platform="posix")
+                    else:
+                        with self.assertRaises((FileNotFoundError,ValueError)):CI.bootstrap_permission_probe(*args,mode,platform="posix")
+    def test_uid_probe_partial_setup_operation_fault_matrix_runs_cleanup_and_final_absence(self):
+        cases=[("mkdir",2),("mkdir",3),("chown",1),("chown",2),("chown",3),("chmod",1),("chmod",2),("chmod",3),("probe-write",1),("probe-owned",1),("probe-owned",2),("probe-owned",3),("probe-owned",4),("dir-fsync",1),("dir-fsync",2),("dir-fsync",3),("dir-fsync",4),("write",1),("file-fsync",1)]
+        for operation,nth in cases:
+            with self.subTest(operation=operation,nth=nth),tempfile.TemporaryDirectory() as d:
+                runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"73","6",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-73-6";counts={};final_calls=[]
+                real={"mkdir":CI.os.mkdir,"chmod":CI.os.chmod,"write":CI.os.write,"file-fsync":CI.os.fsync,"probe-write":CI._probe_write}
+                def fault(name,normal):
+                    def call(*a,**k):
+                        counts[name]=counts.get(name,0)+1
+                        if name==operation and counts[name]==nth:raise OSError("PRIVATE "+name)
+                        return normal(*a,**k)
+                    return call
+                def owned(path,*unused,**kwargs):return pathlib.Path(path).lstat()
+                real_final=CI._probe_final_absence
+                def final(*a,**k):final_calls.append(True);return real_final(*a,**k)
+                real_rmdir=CI.os.rmdir;real_unlink=CI.os.unlink
+                def model_rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
+                def model_unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
+                with contextlib.ExitStack() as stack:
+                    stack.enter_context(mock.patch.object(CI.os,"geteuid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.os,"getegid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.stat,"S_IMODE",return_value=0o711));stack.enter_context(mock.patch.object(CI.os,"rmdir",side_effect=model_rmdir));stack.enter_context(mock.patch.object(CI.os,"unlink",side_effect=model_unlink));stack.enter_context(mock.patch.object(CI,"_probe_final_absence",side_effect=final))
+                    stack.enter_context(mock.patch.object(CI.os,"mkdir",side_effect=fault("mkdir",real["mkdir"])))
+                    stack.enter_context(mock.patch.object(CI.os,"chmod",side_effect=fault("chmod",real["chmod"])))
+                    stack.enter_context(mock.patch.object(CI.os,"chown",side_effect=fault("chown",lambda *a:None),create=True))
+                    stack.enter_context(mock.patch.object(CI.os,"write",side_effect=fault("write",real["write"])))
+                    stack.enter_context(mock.patch.object(CI.os,"fsync",side_effect=fault("file-fsync",real["file-fsync"])))
+                    stack.enter_context(mock.patch.object(CI,"_probe_write",side_effect=fault("probe-write",real["probe-write"])))
+                    stack.enter_context(mock.patch.object(CI,"_probe_owned",side_effect=fault("probe-owned",owned)))
+                    stack.enter_context(mock.patch.object(CI,"_probe_dir_fsync",side_effect=fault("dir-fsync",lambda *a:None)))
+                    with self.assertRaises(OSError):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
+                self.assertFalse(probe.exists());self.assertEqual(final_calls,[True])
+    def test_uid_probe_partial_setup_cleanup_and_final_gate_faults_are_both_observed(self):
+        for target in ("cleanup","final-absence"):
+            with self.subTest(target=target),tempfile.TemporaryDirectory() as d:
+                runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"71","8",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-71-8";final_calls=[];real_final=CI._probe_final_absence
+                def final(*a,**k):
+                    final_calls.append(True)
+                    if target=="final-absence":raise OSError("PRIVATE FINAL ABSENCE")
+                    return real_final(*a,**k)
+                cleanup=(mock.patch.object(CI,"_probe_cleanup_tree",side_effect=OSError("PRIVATE CLEANUP")) if target=="cleanup" else mock.patch.object(CI,"_probe_cleanup_tree",wraps=CI._probe_cleanup_tree))
+                with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_write",side_effect=OSError("PRIVATE SETUP")),mock.patch.object(CI,"_probe_final_absence",side_effect=final),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),cleanup:
+                    with self.assertRaises(ValueError):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
+                self.assertEqual(final_calls,[True]);self.assertEqual(probe.exists(),target=="cleanup")
+    def test_uid_probe_cleanup_custody_and_final_absence_faults_fail_closed(self):
+        def setup(root,run_id):
+            runner=pathlib.Path(root).resolve();meta=runner.lstat();args=(runner,run_id,"5",str(meta.st_dev),str(meta.st_ino));probe=runner/(CI.PROBE_PREFIX+run_id+"-5")
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
+            return args,probe
+        def cleanup(args,probe,patches=()):
+            real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
+            def unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
+            def rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(mock.patch.object(CI.os,"geteuid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.os,"getegid",return_value=0,create=True));stack.enter_context(mock.patch.object(CI.stat,"S_IMODE",return_value=0o711));stack.enter_context(mock.patch.object(CI.os,"unlink",side_effect=unlink));stack.enter_context(mock.patch.object(CI.os,"rmdir",side_effect=rmdir));stack.enter_context(mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
+                for patcher in patches:stack.enter_context(patcher)
+                return CI.bootstrap_permission_probe(*args,"root-cleanup",platform="posix")
+        with tempfile.TemporaryDirectory() as d:
+            args,probe=setup(d,"61");extra=probe/"staging/extra";extra.write_bytes(b"UNTRUSTED")
+            with self.assertRaises(ValueError):cleanup(args,probe)
+            self.assertEqual(extra.read_bytes(),b"UNTRUSTED");extra.unlink();cleanup(args,probe);self.assertFalse(probe.exists())
+        with tempfile.TemporaryDirectory() as d:
+            args,probe=setup(d,"62");record=probe/"staging/protected-original/status.json";outside=pathlib.Path(d)/"outside-hardlink";os.link(record,outside)
+            with self.assertRaises(ValueError):cleanup(args,probe)
+            self.assertTrue(probe.exists());outside.unlink();cleanup(args,probe);self.assertFalse(probe.exists())
+        with tempfile.TemporaryDirectory() as d:
+            args,probe=setup(d,"63");child=probe/"staging/protected-original";real_symlink=pathlib.Path.is_symlink
+            symlink=mock.patch.object(pathlib.Path,"is_symlink",autospec=True,side_effect=lambda path:path==child or real_symlink(path))
+            with self.assertRaises(ValueError):cleanup(args,probe,(symlink,))
+            self.assertTrue(probe.exists());cleanup(args,probe);self.assertFalse(probe.exists())
+        for run_id,target in (("64","unlink"),("65","rmdir"),("66","dir-fsync")):
+            with self.subTest(cleanup=target),tempfile.TemporaryDirectory() as d:
+                args,probe=setup(d,run_id);patcher={"unlink":mock.patch.object(CI.os,"unlink",side_effect=OSError("PRIVATE CLEANUP")),"rmdir":mock.patch.object(CI.os,"rmdir",side_effect=OSError("PRIVATE CLEANUP")),"dir-fsync":mock.patch.object(CI,"_probe_dir_fsync",side_effect=OSError("PRIVATE CLEANUP"))}[target]
+                with self.assertRaises(OSError):cleanup(args,probe,(patcher,))
+                if probe.exists():cleanup(args,probe)
+                self.assertFalse(probe.exists())
+                with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True):CI.bootstrap_permission_probe(*args,"root-final-absence",platform="posix")
+                bad=(args[0],args[1],args[2],"999999",args[4])
+                with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True):
+                    with self.assertRaises(ValueError):CI.bootstrap_permission_probe(*bad,"root-final-absence",platform="posix")
+    def test_uid_probe_rename_faults_remain_nonzero_and_scoped_cleanup_removes_only_probe(self):
+        with tempfile.TemporaryDirectory() as d:
+            runner=pathlib.Path(d).resolve();meta=runner.lstat();args=(runner,"55","4",str(meta.st_dev),str(meta.st_ino));probe=runner/"chengwang-joint-bootstrap-custody-probe-55-4";sentinel=runner/"outside-sentinel";sentinel.write_bytes(b"UNCHANGED")
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None):CI.bootstrap_permission_probe(*args,"root-setup",platform="posix")
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI,"_probe_owned",side_effect=lambda path,*a,**k:pathlib.Path(path).lstat()),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(CI.C,"bootstrap_record_state",return_value=("ACCEPTED","PASS")):CI.bootstrap_permission_probe(*args,"root-finalize",platform="posix")
+            uid=(mock.patch.object(CI.os,"geteuid",return_value=C.UID,create=True),mock.patch.object(CI.os,"getegid",return_value=C.GID,create=True),mock.patch.object(CI,"_probe_denied",side_effect=lambda *a:None),mock.patch.object(CI,"_probe_open_denied",side_effect=lambda *a:None))
+            with uid[0],uid[1],uid[2],uid[3],mock.patch.object(CI.os,"rename",side_effect=OSError("PRIVATE RENAME")):
+                with self.assertRaises(OSError):CI.bootstrap_permission_probe(*args,"uid-final-read-and-rename",platform="posix")
+            with uid[0],uid[1],uid[2],uid[3]:CI.bootstrap_permission_probe(*args,"uid-final-read-and-rename",platform="posix")
+            with uid[0],uid[1],mock.patch.object(CI.os,"rename",side_effect=OSError("PRIVATE INSTALL RENAME")):
+                with self.assertRaises(OSError):CI.bootstrap_permission_probe(*args,"uid-install-replacement",platform="posix")
+            real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
+            def unlink(path):CI.os.chmod(path,0o600);return real_unlink(path)
+            def rmdir(path):CI.os.chmod(path,0o700);return real_rmdir(path)
+            with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=unlink),mock.patch.object(CI.os,"rmdir",side_effect=rmdir),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None):CI.bootstrap_permission_probe(*args,"root-cleanup",platform="posix")
+            self.assertFalse(probe.exists());self.assertEqual(sentinel.read_bytes(),b"UNCHANGED")
 
 if __name__=="__main__":unittest.main()

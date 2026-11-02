@@ -1,14 +1,67 @@
 """Bounded CI acquisition for the joint-control-plane lane."""
 from __future__ import annotations
-import argparse, hashlib, importlib.util, json, os, pathlib, stat, subprocess, sys, unittest
+import argparse, errno, hashlib, importlib.util, json, os, pathlib, re, selectors, stat, subprocess, sys, threading, time, unittest
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_ci_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 WORKFLOW=".github/workflows/chengwang-joint-control-plane.yml"
+BOOTSTRAP_STEP=(
+    "- name: Bootstrap bounded namespace progress",
+    "  id: bootstrap_progress",
+    "  run: |",
+    "    set -euo pipefail",
+    "    root=\"$RUNNER_TEMP/joint-control-plane\"; progress=\"$root/evidence/staging/failure-localization.private\"; bootstrap=\"$root/evidence/staging/bootstrap-localization.private/status.json\"",
+    "    test ! -e \"$progress\"; test ! -L \"$progress\"; sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 \"$progress\"",
+    "    sudo --non-interactive /usr/bin/python3 -I -B \"$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py\" bootstrap-progress --progress-root \"$progress\" --bootstrap-record \"$bootstrap\" --source-commit \"$GITHUB_SHA\"",
+)
+SCENE_STEP=(
+    "- name: Real B0 J1 R2 same-binary scene",
+    "  if: ${{ steps.bootstrap_progress.outcome == 'success' }}",
+    "  env:",
+    "    BOOTSTRAP_STEP_OUTCOME: ${{ steps.bootstrap_progress.outcome }}",
+    "  run: |",
+    "    set -euo pipefail",
+    "    root=\"$RUNNER_TEMP/joint-control-plane\"; outer_net=\"$(readlink /proc/self/ns/net)\"; progress=\"$root/evidence/staging/failure-localization.private\"; bootstrap=\"$root/evidence/staging/bootstrap-localization.private/status.json\"",
+    "    test \"$BOOTSTRAP_STEP_OUTCOME\" = success",
+    "    timeout --signal=TERM --kill-after=15s 600s sudo --non-interactive unshare --mount --net --pid --fork --kill-child=SIGKILL --mount-proc /usr/bin/bash \"$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_namespace.sh\" \"$GITHUB_WORKSPACE\" \"$root\" \"$outer_net\" product \"$GITHUB_SHA\" /mnt/joint-control-plane/evidence/staging/bootstrap-localization.private/status.json bootstrap_progress \"$BOOTSTRAP_STEP_OUTCOME\" \"$GITHUB_SHA\"",
+)
+FAILURE_STEP=(
+    "- name: Publish only bounded failure classification",
+    "  if: failure()",
+    "  env:",
+    "    BOOTSTRAP_STEP_OUTCOME: ${{ steps.bootstrap_progress.outcome }}",
+    "  run: |",
+    "    root=\"$RUNNER_TEMP/joint-control-plane\"",
+    "    sudo --non-interactive python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input \"$root/evidence/staging\" --progress-root \"$root/evidence/staging/failure-localization.private\" --bootstrap-record \"$root/evidence/staging/bootstrap-localization.private/status.json\" --source-commit \"$GITHUB_SHA\" --bootstrap-step-id bootstrap_progress --bootstrap-step-outcome \"$BOOTSTRAP_STEP_OUTCOME\" --bootstrap-step-source \"$GITHUB_SHA\" --code SCENE_FAILED --output \"$root/evidence/public/failure.json\"",
+    "    sudo --non-interactive chown -R --no-dereference \"$(id -u):$(id -g)\" \"$root/evidence/public\"",
+)
 def need(ok):
     if not ok:raise ValueError("joint-ci-rejected")
+def workflow_contract(raw):
+    need(type(raw)is bytes and 0<len(raw)<=65536 and b"\r" not in raw and b"\t" not in raw)
+    try:lines=raw.decode("utf-8","strict").split("\n")
+    except UnicodeDecodeError:raise ValueError("joint-ci-rejected") from None
+    need(lines.count("  joint-control-plane:")==1 and lines.count("    steps:")>=1)
+    job=lines.index("  joint-control-plane:");steps=lines.index("    steps:",job+1)
+    end=next((i for i in range(steps+1,len(lines)) if lines[i].startswith("  ") and not lines[i].startswith("    ")),len(lines))
+    starts=[i for i in range(steps+1,end) if lines[i].startswith("      - ")]
+    need(starts and all(not lines[i].startswith("       ") for i in starts))
+    blocks=[]
+    for index,start in enumerate(starts):
+        stop=starts[index+1] if index+1<len(starts) else end
+        blocks.append(tuple(line[6:] for line in lines[start:stop]))
+    named={}
+    for block in blocks:
+        if block[0].startswith("- name: "):
+            name=block[0][8:];need(name and name not in named);named[name]=block
+    ids=[line[6:] for block in blocks for line in block if line.startswith("  id: ")]
+    need(len(ids)==len(set(ids)) and ids.count("bootstrap_progress")==1)
+    need(named.get("Bootstrap bounded namespace progress")==BOOTSTRAP_STEP)
+    need(named.get("Real B0 J1 R2 same-binary scene")==SCENE_STEP)
+    need(named.get("Publish only bounded failure classification")==FAILURE_STEP)
+    return True
 def run(*args):return subprocess.check_output(list(args),stderr=subprocess.DEVNULL,timeout=30)
 def emit(path,value):
-    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0),0o600)
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_BINARY",0),0o600)
     with os.fdopen(fd,"wb") as f:f.write(C.canonical(value));f.flush();os.fsync(f.fileno())
 def source(repo,commit):
     repo=pathlib.Path(repo).resolve()
@@ -43,10 +96,257 @@ def units():
     sys.path.insert(0,str(HERE));suite=unittest.TestSuite()
     for name in ("test_joint_fixture","test_run_joint_control_plane","test_check_joint_control_plane","test_sanitize_publication"):suite.addTests(unittest.defaultTestLoader.loadTestsFromName(name))
     result=unittest.TextTestRunner(verbosity=2).run(suite);need(result.wasSuccessful() and not result.skipped);return {"schema":"chengwang.joint-control-plane-units/v2","testsRun":result.testsRun,"failures":0,"syntheticOnly":True,"productAcceptanceProven":False}
+def bootstrap_argv(progress_root,bootstrap_record,source_commit):
+    script=str(pathlib.Path(__file__).resolve())
+    need(pathlib.Path(bootstrap_record).name==C.BOOTSTRAP_FILE and pathlib.Path(bootstrap_record).parent.name==C.BOOTSTRAP_DIRECTORY)
+    return ["/usr/bin/setpriv","--reuid=10001","--regid=10001","--clear-groups","--bounding-set=-all","--inh-caps=-all","--ambient-caps=-all","--no-new-privs","/usr/bin/env","-i","PATH=/usr/bin:/bin","LANG=C.UTF-8","TZ=UTC","PYTHONDONTWRITEBYTECODE=1","PYTHONHASHSEED=0","/usr/bin/python3","-I","-B",script,"progress","--progress-root",str(progress_root),"--source-commit",source_commit,"--phase","NAMESPACE_SETUP","--state","ENTERED","--receipt"]
+def _stop_child(process):
+    try:
+        if process.poll() is not None:return True
+    except Exception:pass
+    try:process.terminate()
+    except Exception:pass
+    try:process.wait(timeout=1)
+    except Exception:pass
+    try:
+        if process.poll() is not None:return True
+    except Exception:pass
+    try:process.kill()
+    except Exception:pass
+    try:process.wait(timeout=1)
+    except Exception:pass
+    try:return process.poll() is not None
+    except Exception:return False
+def _bounded_child(argv,expected,timeout=10,popen=subprocess.Popen,platform=None,
+                   selector_factory=selectors.DefaultSelector,set_blocking=os.set_blocking,
+                   read_fd=os.read):
+    need(type(expected)is bytes and len(expected)<=1024 and timeout>0)
+    try:
+        process=popen(argv,cwd="/",env={},shell=False,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,close_fds=True)
+    except Exception:
+        return "SPAWN_ERROR"
+    raw=b"";timed_out=False;oversize=False;supervisor_failed=False;reaped=False;close_failed=False;deadline=time.monotonic()+timeout
+    try:
+        if process.stdout is None:supervisor_failed=True
+        elif (os.name if platform is None else platform)=="posix":
+            watch=None
+            try:
+                fd=process.stdout.fileno();set_blocking(fd,False);watch=selector_factory();watch.register(fd,selectors.EVENT_READ);eof=False
+                while not eof:
+                    remaining=deadline-time.monotonic()
+                    if remaining<=0:timed_out=True;break
+                    events=watch.select(min(remaining,0.1))
+                    if not events:
+                        if process.poll() is not None:
+                            if len(raw)>=1025:oversize=True;break
+                            capacity=1025-len(raw)
+                            try:chunk=read_fd(fd,capacity)
+                            except BlockingIOError:chunk=None
+                            if chunk:
+                                oversize=len(chunk)>capacity;raw+=chunk[:capacity]
+                                if oversize or len(raw)>1024:oversize=True;break
+                            elif chunk==b"":eof=True
+                        continue
+                    if len(raw)>=1025:oversize=True;break
+                    capacity=1025-len(raw)
+                    try:chunk=read_fd(fd,capacity)
+                    except BlockingIOError:continue
+                    if not chunk:eof=True;continue
+                    oversize=len(chunk)>capacity;raw+=chunk[:capacity]
+                    if oversize or len(raw)>1024:oversize=True;break
+            except Exception:
+                supervisor_failed=True
+            finally:
+                if watch is not None:
+                    try:watch.close()
+                    except Exception:supervisor_failed=True
+        elif not supervisor_failed:
+            result=[]
+            def read_once():
+                try:result.append((process.stdout.read(1025),False))
+                except Exception:result.append((b"",True))
+            reader=threading.Thread(target=read_once,daemon=True);reader.start();reader.join(timeout)
+            if reader.is_alive():timed_out=True
+            else:
+                raw,supervisor_failed=result[0];raw=raw[:1025];oversize=len(raw)>1024
+        if timed_out or oversize or supervisor_failed:
+            reaped=_stop_child(process)
+        else:
+            remaining=max(0.001,deadline-time.monotonic())
+            try:process.wait(timeout=remaining)
+            except subprocess.TimeoutExpired:
+                timed_out=True;reaped=_stop_child(process)
+            except Exception:
+                supervisor_failed=True;reaped=_stop_child(process)
+            else:
+                try:reaped=process.poll() is not None
+                except Exception:supervisor_failed=True;reaped=_stop_child(process)
+        try:code=process.poll()
+        except Exception:code=None;supervisor_failed=True
+    finally:
+        try:process.stdout.close()
+        except Exception:close_failed=True
+    if supervisor_failed or close_failed or not reaped:
+        raise ValueError("joint-ci-child-custody-rejected") from None
+    if timed_out:return "TIMEOUT"
+    if oversize:return "STDOUT_OVERSIZE"
+    if code!=0:return "COMMAND_NONZERO"
+    if raw!=expected:return "STDOUT_INVALID"
+    return "PASS"
+def bootstrap_progress(progress_root,bootstrap_record,source_commit):
+    receipt=C.canonical({"schema":C.BOOTSTRAP_RECEIPT_SCHEMA,"sourceCommit":source_commit,"phase":"NAMESPACE_SETUP","state":"ENTERED","status":"PASS"})
+    state=_bounded_child(bootstrap_argv(progress_root,bootstrap_record,source_commit),receipt)
+    C.record_bootstrap_status(bootstrap_record,source_commit,state)
+    need(state=="PASS")
+PROBE_PREFIX="chengwang-joint-bootstrap-custody-probe-"
+PROBE_SOURCE="0"*40
+PROBE_RAW=C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":PROBE_SOURCE,"bootstrapChildState":"PASS"})
+PROBE_MODES=frozenset(("root-setup","uid-prepublish-denials","root-finalize",
+    "uid-final-read-and-rename","uid-install-replacement","root-reject-replacement",
+    "root-cleanup","root-final-absence"))
+def _probe_absent(path):
+    try:pathlib.Path(path).lstat()
+    except FileNotFoundError:return True
+    return False
+def _probe_paths(runner_temp,run_id,run_attempt,runner_device,runner_inode,platform=None):
+    need((os.name if platform is None else platform)=="posix" and re.fullmatch(r"[1-9][0-9]*",run_id or "") is not None and
+         re.fullmatch(r"[1-9][0-9]*",run_attempt or "") is not None)
+    runner=pathlib.Path(runner_temp);meta=runner.lstat()
+    need(stat.S_ISDIR(meta.st_mode) and not runner.is_symlink() and
+         str(meta.st_dev)==runner_device and str(meta.st_ino)==runner_inode and
+         runner.resolve(strict=True)==runner.absolute())
+    probe=runner/(PROBE_PREFIX+run_id+"-"+run_attempt);product=runner/"joint-control-plane"
+    need(probe.parent==runner and probe!=product and probe not in product.parents and product not in probe.parents)
+    staging=probe/"staging"
+    return runner,probe,staging,{name:staging/name for name in ("protected-original","protected-moved","untrusted-replacement")}
+def _probe_owned(path,uid,gid,mode,kind="dir"):
+    p=pathlib.Path(path);m=p.lstat()
+    need(not p.is_symlink() and m.st_uid==uid and m.st_gid==gid and stat.S_IMODE(m.st_mode)==mode and
+         (stat.S_ISDIR(m.st_mode) if kind=="dir" else stat.S_ISREG(m.st_mode) and m.st_nlink==1))
+    return m
+def _probe_denied(call):
+    try:call()
+    except OSError as error:
+        need(error.errno in (errno.EACCES,errno.EPERM,errno.EROFS));return
+    raise ValueError("joint-ci-probe-denial-rejected")
+def _probe_open_denied(path,flags):
+    try:fd=os.open(path,flags,0o600)
+    except OSError as error:
+        need(error.errno in (errno.EACCES,errno.EPERM,errno.EROFS));return
+    os.close(fd)
+    if flags & os.O_CREAT:
+        try:os.unlink(path)
+        except OSError:pass
+    raise ValueError("joint-ci-probe-denial-rejected")
+def _probe_rename_denied(source,target):
+    try:os.rename(source,target)
+    except OSError as error:
+        need(error.errno in (errno.EACCES,errno.EPERM,errno.EROFS));return
+    os.rename(target,source)
+    raise ValueError("joint-ci-probe-denial-rejected")
+def _probe_write(path):
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_BINARY",0),0o600)
+    try:
+        seen=0
+        while seen<len(PROBE_RAW):
+            count=os.write(fd,PROBE_RAW[seen:]);need(count>0);seen+=count
+        os.fsync(fd)
+    finally:os.close(fd)
+def _probe_dir_fsync(path):
+    fd=os.open(path,os.O_RDONLY|getattr(os,"O_DIRECTORY",0)|getattr(os,"O_NOFOLLOW",0))
+    try:os.fsync(fd)
+    finally:os.close(fd)
+def _probe_cleanup_tree(runner,probe,staging,children):
+    if _probe_absent(probe):return
+    probe_meta=probe.lstat();need(not probe.is_symlink() and stat.S_ISDIR(probe_meta.st_mode) and
+        probe_meta.st_uid==0 and probe_meta.st_gid==0 and stat.S_IMODE(probe_meta.st_mode) in (0o700,0o711))
+    need({p.name for p in probe.iterdir()}<= {"staging"})
+    if not _probe_absent(staging):
+        need(not staging.is_symlink() and staging.is_dir() and {p.name for p in staging.iterdir()}<=set(children))
+        for child in (children["protected-original"],children["protected-moved"],children["untrusted-replacement"]):
+            if _probe_absent(child):continue
+            need(not child.is_symlink() and child.is_dir() and {p.name for p in child.iterdir()}<={C.BOOTSTRAP_FILE})
+            record=child/C.BOOTSTRAP_FILE
+            if not _probe_absent(record):
+                record_meta=record.lstat();need(record_meta.st_uid in (0,C.UID) and record_meta.st_gid in (0,C.GID))
+                _probe_owned(record,record_meta.st_uid,record_meta.st_gid,stat.S_IMODE(record_meta.st_mode),"file");os.unlink(record)
+            os.rmdir(child)
+        os.rmdir(staging)
+    os.rmdir(probe);_probe_dir_fsync(runner)
+def _probe_final_absence(runner_temp,run_id,run_attempt,runner_device,runner_inode,platform=None):
+    runner,probe,_,_=_probe_paths(runner_temp,run_id,run_attempt,runner_device,runner_inode,platform)
+    need(_probe_absent(probe));_probe_paths(runner,run_id,run_attempt,runner_device,runner_inode,platform)
+def bootstrap_permission_probe(runner_temp,run_id,run_attempt,runner_device,runner_inode,mode,platform=None):
+    need(mode in PROBE_MODES)
+    runner,probe,staging,children=_probe_paths(runner_temp,run_id,run_attempt,runner_device,runner_inode,platform)
+    original=children["protected-original"];moved=children["protected-moved"];replacement=children["untrusted-replacement"]
+    root_mode=mode.startswith("root-");need((os.geteuid(),os.getegid())==((0,0) if root_mode else (C.UID,C.GID)))
+    if mode=="root-setup":
+        need(_probe_absent(probe));created=False
+        try:
+            os.mkdir(probe,0o711);created=True;os.chown(probe,0,0);os.chmod(probe,0o711)
+            os.mkdir(staging,0o700);os.chown(staging,C.UID,C.GID);os.chmod(staging,0o700)
+            os.mkdir(original,0o700);os.chown(original,0,0);os.chmod(original,0o700)
+            _probe_write(original/C.BOOTSTRAP_FILE)
+            _probe_owned(probe,0,0,0o711);_probe_owned(staging,C.UID,C.GID,0o700)
+            _probe_owned(original,0,0,0o700);_probe_owned(original/C.BOOTSTRAP_FILE,0,0,0o600,"file")
+            _probe_dir_fsync(original);_probe_dir_fsync(staging);_probe_dir_fsync(probe);_probe_dir_fsync(runner)
+        except BaseException:
+            cleanup_error=None;absence_error=None
+            if created:
+                try:_probe_cleanup_tree(runner,probe,staging,children)
+                except BaseException as error:cleanup_error=error
+                try:_probe_final_absence(runner_temp,run_id,run_attempt,runner_device,runner_inode,platform)
+                except BaseException as error:absence_error=error
+            if cleanup_error is not None or absence_error is not None:
+                raise ValueError("joint-ci-probe-cleanup-rejected") from None
+            raise
+    elif mode=="uid-prepublish-denials":
+        _probe_owned(staging,C.UID,C.GID,0o700);_probe_owned(original,0,0,0o700)
+        _probe_denied(lambda:(original/C.BOOTSTRAP_FILE).read_bytes())
+        _probe_open_denied(original/"forbidden",os.O_WRONLY|os.O_CREAT|os.O_EXCL)
+        _probe_denied(lambda:os.unlink(original/C.BOOTSTRAP_FILE))
+        _probe_rename_denied(original/C.BOOTSTRAP_FILE,original/"forbidden-move")
+    elif mode=="root-finalize":
+        _probe_owned(original,0,0,0o700);_probe_owned(original/C.BOOTSTRAP_FILE,0,0,0o600,"file")
+        os.chmod(original/C.BOOTSTRAP_FILE,0o444);_probe_dir_fsync(original)
+        os.chmod(original,0o555);_probe_dir_fsync(staging)
+        _probe_owned(original,0,0,0o555);_probe_owned(original/C.BOOTSTRAP_FILE,0,0,0o444,"file")
+        need((original/C.BOOTSTRAP_FILE).read_bytes()==PROBE_RAW)
+        need(C.bootstrap_record_state(original/C.BOOTSTRAP_FILE,PROBE_SOURCE,directory_name="protected-original")==("ACCEPTED","PASS"))
+    elif mode=="uid-final-read-and-rename":
+        need((original/C.BOOTSTRAP_FILE).read_bytes()==PROBE_RAW)
+        _probe_open_denied(original/C.BOOTSTRAP_FILE,os.O_WRONLY)
+        _probe_denied(lambda:os.unlink(original/C.BOOTSTRAP_FILE))
+        _probe_open_denied(original/"forbidden",os.O_WRONLY|os.O_CREAT|os.O_EXCL)
+        need(_probe_absent(moved));os.rename(original,moved)
+    elif mode=="uid-install-replacement":
+        need(_probe_absent(original) and not _probe_absent(moved) and _probe_absent(replacement))
+        os.mkdir(replacement,0o700);_probe_write(replacement/C.BOOTSTRAP_FILE)
+        os.chmod(replacement/C.BOOTSTRAP_FILE,0o444);os.chmod(replacement,0o555);os.rename(replacement,original)
+    elif mode=="root-reject-replacement":
+        need(C.bootstrap_record_state(original/C.BOOTSTRAP_FILE,PROBE_SOURCE,directory_name="protected-original")==("INVALID","UNKNOWN"))
+    elif mode=="root-cleanup":
+        _probe_cleanup_tree(runner,probe,staging,children)
+    else:
+        _probe_final_absence(runner_temp,run_id,run_attempt,runner_device,runner_inode,platform)
+def _stdout(raw):
+    fd=sys.stdout.fileno();seen=0
+    while seen<len(raw):
+        count=os.write(fd,raw[seen:]);need(count>0);seen+=count
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","progress"));p.add_argument("--output");p.add_argument("--repo",default=".");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--phase");p.add_argument("--state");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","progress","bootstrap-progress","bootstrap-permission-probe","workflow-contract"));p.add_argument("--output");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");a=p.parse_args()
+    if a.action=="workflow-contract":
+        need(a.output is None and a.workflow and not a.receipt);workflow_contract(pathlib.Path(a.workflow).read_bytes());return
+    if a.action=="bootstrap-permission-probe":
+        need(a.output is None and a.runner_temp and a.run_id and a.run_attempt and a.runner_device and a.runner_inode and a.probe_mode and not a.receipt);bootstrap_permission_probe(a.runner_temp,a.run_id,a.run_attempt,a.runner_device,a.runner_inode,a.probe_mode);return
     if a.action=="progress":
-        need(a.output is None and a.progress_root and a.source_commit and a.phase and a.state);C.record_progress(a.progress_root,a.source_commit,a.phase,a.state);return
+        need(a.output is None and a.progress_root and a.source_commit and a.phase and a.state and not a.bootstrap_record);C.record_progress(a.progress_root,a.source_commit,a.phase,a.state)
+        if a.receipt:
+            need((a.phase,a.state)==("NAMESPACE_SETUP","ENTERED"));_stdout(C.canonical({"schema":C.BOOTSTRAP_RECEIPT_SCHEMA,"sourceCommit":a.source_commit,"phase":a.phase,"state":a.state,"status":"PASS"}))
+        return
+    if a.action=="bootstrap-progress":
+        need(a.output is None and a.progress_root and a.bootstrap_record and a.source_commit and not a.phase and not a.state and not a.receipt);bootstrap_progress(a.progress_root,a.bootstrap_record,a.source_commit);return
     need(a.output)
     try:value={"source":lambda:source(a.repo,a.source_commit),"contract":lambda:source_contract(a.repo,a.base_commit),"build":lambda:build(a.server_binary,a.source_commit),"isolation":lambda:isolation(a.outer_net_namespace),"units":units}[a.action]()
     except Exception as error:

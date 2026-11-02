@@ -137,6 +137,24 @@ FAILURE_DETAIL_NAME = "failure-classification.private.json"
 PROGRESS_SEQUENCE = tuple(
     (phase, state) for phase in FAILURE_PHASES for state in ("ENTERED", "COMPLETED")
 )
+LOCALIZATION_KEYS = frozenset((
+    "progressRootState", "failureDetailState", "bootstrapStepOutcome",
+    "bootstrapRecordState", "bootstrapChildState",
+))
+PROGRESS_STATES = frozenset(("ABSENT", "EMPTY", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
+DETAIL_STATES = frozenset(("NOT_EVALUATED", "ABSENT", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
+BOOTSTRAP_RECORD_STATES = frozenset(("ABSENT", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
+BOOTSTRAP_CHILD_STATES = frozenset(("UNKNOWN", "PASS", "COMMAND_NONZERO", "TIMEOUT", "STDOUT_INVALID", "STDOUT_OVERSIZE", "SPAWN_ERROR"))
+BOOTSTRAP_RECORDED_STATES = BOOTSTRAP_CHILD_STATES - {"UNKNOWN"}
+BOOTSTRAP_SCHEMA = "chengwang.joint-control-plane-private-bootstrap/v1"
+BOOTSTRAP_RECEIPT_SCHEMA = "chengwang.joint-control-plane-bootstrap-child-receipt/v1"
+BOOTSTRAP_DIRECTORY = "bootstrap-localization.private"
+BOOTSTRAP_FILE = "status.json"
+BOOTSTRAP_MAXIMUM = 512
+BOOTSTRAP_STEP_ID = "bootstrap_progress"
+BOOTSTRAP_STEP_OUTCOMES = frozenset((
+    "SUCCESS", "FAILURE", "CANCELLED", "SKIPPED", "MISSING", "UNKNOWN",
+))
 
 def canonical(value):
     return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
@@ -205,7 +223,7 @@ def _exclusive_private(root, name, value):
     root = _private_root(root); path = root / name; raw = canonical(value)
     require(len(raw) <= 4096 and path.parent == root, "private-write")
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
-                 getattr(os, "O_NOFOLLOW", 0), 0o600)
+                 getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0), 0o600)
     with os.fdopen(fd, "wb") as stream:
         stream.write(raw); stream.flush(); os.fsync(stream.fileno())
     require(_private_read(path) == raw, "private-write")
@@ -321,6 +339,296 @@ def failure_classification(root, source_commit):
     return {**result, **{key: value[key] for key in (
         "exceptionType", "failureReasonCode", "failedCaptureName",
         "lastCompletedCaptureName")}}
+
+def _identity(meta):
+    return (meta.st_dev, meta.st_ino)
+
+def _stable_signature(meta):
+    return (meta.st_dev, meta.st_ino, meta.st_mode, meta.st_nlink, meta.st_size,
+            meta.st_mtime_ns, meta.st_ctime_ns)
+
+def _file_signature(meta):
+    return (meta.st_dev, meta.st_ino, meta.st_mode, meta.st_nlink, meta.st_size,
+            meta.st_mtime_ns)
+
+def _owned_mode(meta, uid, gid, mode):
+    if os.name != "posix":
+        return True
+    return meta.st_uid == uid and meta.st_gid == gid and stat.S_IMODE(meta.st_mode) == mode
+
+def _localized_read(path, maximum, uid, gid, mode):
+    path = pathlib.Path(path)
+    try:
+        before = path.lstat()
+    except FileNotFoundError:
+        return "ABSENT", None, None
+    except OSError:
+        return "READ_FAILED", None, None
+    if (not stat.S_ISREG(before.st_mode) or path.is_symlink() or before.st_nlink != 1 or
+            not 0 < before.st_size <= maximum or not _owned_mode(before, uid, gid, mode)):
+        return "INVALID", None, None
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return "READ_FAILED", None, None
+    try:
+        opened = os.fstat(fd); chunks = []; seen = 0
+        if _identity(opened) != _identity(before):
+            return "READ_FAILED", None, None
+        while True:
+            chunk = os.read(fd, min(4096, maximum - seen + 1))
+            if not chunk:
+                break
+            chunks.append(chunk); seen += len(chunk)
+            if seen > maximum:
+                return "INVALID", None, None
+        after = os.fstat(fd)
+        try:
+            named_after = path.lstat()
+        except OSError:
+            return "READ_FAILED", None, None
+        if (_file_signature(before) != _file_signature(opened) or
+                _file_signature(opened) != _file_signature(after) or
+                _file_signature(after) != _file_signature(named_after) or
+                before.st_ctime_ns != named_after.st_ctime_ns or
+                opened.st_ctime_ns != after.st_ctime_ns or
+                seen != opened.st_size):
+            return "READ_FAILED", None, None
+        return "ACCEPTED", b"".join(chunks), opened
+    except OSError:
+        return "READ_FAILED", None, None
+    finally:
+        os.close(fd)
+
+def _progress_localization(root, source_commit):
+    if root is None:
+        return "ABSENT", None
+    root = pathlib.Path(root)
+    try:
+        before = root.lstat()
+    except FileNotFoundError:
+        return "ABSENT", None
+    except OSError:
+        return "READ_FAILED", None
+    if (not stat.S_ISDIR(before.st_mode) or root.is_symlink() or
+            not _owned_mode(before, UID, GID, 0o700)):
+        return "INVALID", None
+    try:
+        names_before = sorted(p.name for p in root.iterdir())
+    except OSError:
+        return "READ_FAILED", None
+    expected = [progress_name(i, *item) for i, item in enumerate(PROGRESS_SEQUENCE)]
+    allowed = set(expected) | {FAILURE_DETAIL_NAME}
+    if len(names_before) > len(allowed) or any(name not in allowed for name in names_before):
+        structural = "INVALID"
+    else:
+        present = [name for name in expected if name in names_before]
+        structural = "ACCEPTED" if present == expected[:len(present)] else "INVALID"
+    sources = set()
+    if structural == "ACCEPTED":
+        for index, name in enumerate(present):
+            state, raw, _ = _localized_read(root / name, 4096, UID, GID, 0o600)
+            if state == "ABSENT":
+                structural = "READ_FAILED"; break
+            if state != "ACCEPTED":
+                structural = state; break
+            try:
+                value = _strict_object(raw)
+            except Exception:
+                structural = "INVALID"; break
+            phase, progress_state = PROGRESS_SEQUENCE[index]
+            keys = {"schema", "sourceCommit", "ordinal", "phase", "state"}
+            if (raw != canonical(value) or set(value) != keys or value.get("schema") != PROGRESS_SCHEMA or
+                    value.get("ordinal") != index + 1 or value.get("phase") != phase or
+                    value.get("state") != progress_state or
+                    re.fullmatch(r"[a-f0-9]{40}", value.get("sourceCommit", "")) is None):
+                structural = "INVALID"; break
+            sources.add(value["sourceCommit"])
+    try:
+        after = root.lstat(); names_after = sorted(p.name for p in root.iterdir())
+    except OSError:
+        return "READ_FAILED", None
+    if _stable_signature(before) != _stable_signature(after) or names_before != names_after:
+        return "READ_FAILED", None
+    if structural != "ACCEPTED":
+        return structural, root
+    if len(sources) > 1:
+        return "INVALID", root
+    if sources and sources != {source_commit}:
+        return "SOURCE_MISMATCH", root
+    return ("ACCEPTED" if present else "EMPTY"), root
+
+def _detail_localization(root, source_commit):
+    state, raw, _ = _localized_read(root / FAILURE_DETAIL_NAME, 4096, UID, GID, 0o600)
+    if state != "ACCEPTED":
+        return state
+    try:
+        value = _strict_object(raw)
+    except Exception:
+        return "INVALID"
+    keys = {"schema", "sourceCommit", "exceptionType", "failureReasonCode",
+            "failedCaptureName", "lastCompletedCaptureName"}
+    if (raw != canonical(value) or set(value) != keys or value.get("schema") != FAILURE_DETAIL_SCHEMA or
+            re.fullmatch(r"[a-f0-9]{40}", value.get("sourceCommit", "")) is None or
+            value.get("exceptionType") not in EXCEPTION_TYPES or
+            value.get("failureReasonCode") not in FAILURE_REASON_CODES or
+            value.get("failedCaptureName") not in CAPTURE_NAMES | {"NONE", "UNKNOWN"} or
+            value.get("lastCompletedCaptureName") not in CAPTURE_NAMES | {"NONE", "UNKNOWN"}):
+        return "INVALID"
+    return "ACCEPTED" if value["sourceCommit"] == source_commit else "SOURCE_MISMATCH"
+
+def bootstrap_record_state(path, source_commit, expected_parent=None,
+                           expected_directory=None, expected_file=None,
+                           directory_name=BOOTSTRAP_DIRECTORY):
+    if path is None:
+        return "ABSENT", "UNKNOWN"
+    path = pathlib.Path(path); directory = path.parent; staging = directory.parent
+    if directory.name != directory_name or path.name != BOOTSTRAP_FILE:
+        return "INVALID", "UNKNOWN"
+    try:
+        staging_before = staging.lstat()
+        directory_before = directory.lstat()
+    except FileNotFoundError:
+        return "ABSENT", "UNKNOWN"
+    except OSError:
+        return "READ_FAILED", "UNKNOWN"
+    if (not stat.S_ISDIR(staging_before.st_mode) or staging.is_symlink() or
+            not stat.S_ISDIR(directory_before.st_mode) or directory.is_symlink() or
+            not _owned_mode(directory_before, 0, 0, 0o555)):
+        return "INVALID", "UNKNOWN"
+    try:
+        names_before = sorted(p.name for p in directory.iterdir())
+    except OSError:
+        return "READ_FAILED", "UNKNOWN"
+    if names_before != [BOOTSTRAP_FILE]:
+        return "INVALID", "UNKNOWN"
+    state, raw, file_meta = _localized_read(path, BOOTSTRAP_MAXIMUM, 0, 0, 0o444)
+    if state == "ABSENT":
+        return "READ_FAILED", "UNKNOWN"
+    if state != "ACCEPTED":
+        return state, "UNKNOWN"
+    try:
+        value = _strict_object(raw)
+    except Exception:
+        return "INVALID", "UNKNOWN"
+    keys = {"schema", "sourceCommit", "bootstrapChildState"}
+    if (raw != canonical(value) or set(value) != keys or value.get("schema") != BOOTSTRAP_SCHEMA or
+            re.fullmatch(r"[a-f0-9]{40}", value.get("sourceCommit", "")) is None or
+            value.get("bootstrapChildState") not in BOOTSTRAP_RECORDED_STATES):
+        return "INVALID", "UNKNOWN"
+    try:
+        staging_after = staging.lstat(); directory_after = directory.lstat()
+        names_after = sorted(p.name for p in directory.iterdir())
+    except OSError:
+        return "READ_FAILED", "UNKNOWN"
+    if (_stable_signature(staging_before) != _stable_signature(staging_after) or
+            _stable_signature(directory_before) != _stable_signature(directory_after) or
+            names_before != names_after):
+        return "READ_FAILED", "UNKNOWN"
+    if ((expected_parent is not None and _identity(staging_after) != expected_parent) or
+            (expected_directory is not None and _identity(directory_after) != expected_directory) or
+            (expected_file is not None and _identity(file_meta) != expected_file)):
+        return "INVALID", "UNKNOWN"
+    if value["sourceCommit"] != source_commit:
+        return "SOURCE_MISMATCH", "UNKNOWN"
+    return "ACCEPTED", value["bootstrapChildState"]
+
+def bootstrap_step_outcome(step_id, outcome, witness_source, source_commit):
+    values = (step_id, outcome, witness_source)
+    if any(value is None or value == "" for value in values):
+        return "MISSING"
+    if (step_id != BOOTSTRAP_STEP_ID or
+            re.fullmatch(r"[a-f0-9]{40}", witness_source or "") is None or
+            witness_source != source_commit):
+        return "UNKNOWN"
+    mapped = {"success": "SUCCESS", "failure": "FAILURE",
+              "cancelled": "CANCELLED", "skipped": "SKIPPED"}.get(outcome)
+    return mapped if mapped is not None else "UNKNOWN"
+
+def localization_evidence(progress_root, bootstrap_record, source_commit,
+                          bootstrap_step_id=None, bootstrap_step_outcome_value=None,
+                          bootstrap_step_source=None):
+    progress_state, root = _progress_localization(progress_root, source_commit)
+    detail_state = (_detail_localization(root, source_commit)
+                    if progress_state in ("EMPTY", "ACCEPTED") else "NOT_EVALUATED")
+    step_outcome = bootstrap_step_outcome(
+        bootstrap_step_id, bootstrap_step_outcome_value,
+        bootstrap_step_source, source_commit)
+    record_state, child_state = bootstrap_record_state(bootstrap_record, source_commit)
+    require(progress_state in PROGRESS_STATES and detail_state in DETAIL_STATES and
+            step_outcome in BOOTSTRAP_STEP_OUTCOMES and
+            record_state in BOOTSTRAP_RECORD_STATES and child_state in BOOTSTRAP_CHILD_STATES,
+            "localization")
+    if record_state == "ACCEPTED" and step_outcome != "SUCCESS":
+        record_state = "INVALID"
+        child_state = "UNKNOWN"
+    elif record_state != "ACCEPTED":
+        child_state = "UNKNOWN"
+    return {"progressRootState": progress_state, "failureDetailState": detail_state,
+            "bootstrapStepOutcome": step_outcome,
+            "bootstrapRecordState": record_state, "bootstrapChildState": child_state}
+
+def _root_writer():
+    return os.name == "posix" and os.geteuid() == 0
+
+def record_bootstrap_status(path, source_commit, child_state):
+    require(_root_writer(), "bootstrap-platform")
+    require(re.fullmatch(r"[a-f0-9]{40}", source_commit or "") is not None and
+            child_state in BOOTSTRAP_RECORDED_STATES, "bootstrap-value")
+    path = pathlib.Path(path); directory = path.parent; staging = directory.parent
+    require(directory.name == BOOTSTRAP_DIRECTORY and path.name == BOOTSTRAP_FILE,
+            "bootstrap-path")
+    staging_meta = staging.lstat()
+    require(stat.S_ISDIR(staging_meta.st_mode) and not staging.is_symlink(), "bootstrap-parent")
+    try:
+        directory.lstat()
+    except FileNotFoundError:
+        pass
+    else:
+        raise FileExistsError("bootstrap-record-exists")
+    os.mkdir(directory, 0o700); os.chmod(directory, 0o700)
+    directory_meta = directory.lstat()
+    require(stat.S_ISDIR(directory_meta.st_mode) and not directory.is_symlink() and
+            _owned_mode(directory_meta, 0, 0, 0o700), "bootstrap-directory")
+    value = {"schema": BOOTSTRAP_SCHEMA, "sourceCommit": source_commit,
+             "bootstrapChildState": child_state}
+    raw = canonical(value); require(len(raw) <= BOOTSTRAP_MAXIMUM, "bootstrap-size")
+    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL |
+                 getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0), 0o600)
+    file_identity = None
+    try:
+        seen = 0
+        while seen < len(raw):
+            count = os.write(fd, raw[seen:])
+            require(count > 0, "bootstrap-write")
+            seen += count
+        os.fsync(fd); os.lseek(fd, 0, os.SEEK_SET); chunks = []; read_total = 0
+        while True:
+            chunk = os.read(fd, min(4096, BOOTSTRAP_MAXIMUM - read_total + 1))
+            if not chunk:
+                break
+            chunks.append(chunk); read_total += len(chunk)
+            require(read_total <= BOOTSTRAP_MAXIMUM, "bootstrap-readback")
+        opened = os.fstat(fd); named = path.lstat()
+        require(b"".join(chunks) == raw and _identity(opened) == _identity(named) and
+                _owned_mode(opened, 0, 0, 0o600), "bootstrap-readback")
+        os.fchmod(fd, 0o444); final_open = os.fstat(fd); final_named = path.lstat()
+        require(_identity(final_open) == _identity(opened) == _identity(final_named) and
+                _owned_mode(final_open, 0, 0, 0o444) and stat.S_ISREG(final_open.st_mode) and
+                final_open.st_nlink == 1, "bootstrap-mode")
+        os.fsync(fd); file_identity = _identity(final_open)
+    finally:
+        os.close(fd)
+    os.chmod(directory, 0o555); directory_final = directory.lstat()
+    require(_identity(directory_final) == _identity(directory_meta) and
+            _owned_mode(directory_final, 0, 0, 0o555) and
+            sorted(p.name for p in directory.iterdir()) == [BOOTSTRAP_FILE],
+            "bootstrap-directory")
+    _fsync_dir(directory); _fsync_dir(staging)
+    state, recorded = bootstrap_record_state(
+        path, source_commit, expected_parent=_identity(staging_meta),
+        expected_directory=_identity(directory_final), expected_file=file_identity)
+    require(state == "ACCEPTED" and recorded == child_state, "bootstrap-final")
 
 def human_grant(tenant):
     return {"tenantId": tenant, "siteId": SCOPE["siteId"], "environment": SCOPE["environment"]}

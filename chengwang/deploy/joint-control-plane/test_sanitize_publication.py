@@ -70,7 +70,7 @@ class SanitizerContracts(unittest.TestCase):
     def test_failure_projection_never_copies_private_bytes(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);inp=root/"in";inp.mkdir();put(inp/"raw",b"PRIVATE SECRET MATERIAL");out=root/"public/failure.json";S.failure(inp,out,"SCENE_FAILED");value=S.decode(out)
-            self.assertEqual(value["retainedPrivateFileCount"],1);self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertEqual(value["schema"],"chengwang.joint-control-plane-safe-failure/v3");self.assertNotIn("SECRET",out.read_text())
+            self.assertEqual(value["retainedPrivateFileCount"],1);self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertEqual(value["localizationEvidence"],{"progressRootState":"ABSENT","failureDetailState":"NOT_EVALUATED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN"});self.assertEqual(value["schema"],"chengwang.joint-control-plane-safe-failure/v5");self.assertEqual(value["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE");self.assertNotIn("SECRET",out.read_text())
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);private=root/"private";staging=root/"staging";private.mkdir();staging.mkdir();put(private/"server.stderr",b"PRIVATE SERVER DIAGNOSTIC")
             S.failure(private,staging/"private-failure-identity.json","PRIVATE_SCENE_FAILED");S.failure(staging,root/"public/failure.json","SCENE_FAILED");value=S.decode(root/"public/failure.json")
@@ -85,9 +85,12 @@ class SanitizerContracts(unittest.TestCase):
             S.C.record_progress(progress,commit,"B0","ENTERED")
             error=PermissionError("Bearer TOKEN https://private.invalid /private/path request-body response-body")
             S.C.record_failure_detail(progress,commit,error,"success-fetch-r1","success-approve-r1")
-            out=root/"public/failure.json";S.failure(private,out,"SCENE_FAILED",progress,commit);raw=out.read_bytes();value=S.decode(out)
+            out=root/"public/failure.json"
+            with mock.patch.object(S.C,"_owned_mode",return_value=True):S.failure(private,out,"SCENE_FAILED",progress,commit)
+            raw=out.read_bytes();value=S.decode(out)
             self.assertLessEqual(len(raw),4096);self.assertEqual(set(value["failureClassification"]),S.C.FAILURE_CLASSIFICATION_KEYS)
             self.assertEqual(value["failureClassification"],{"failurePhase":"B0","lastCompletedPhase":"FIXTURE_START","exceptionType":"PERMISSION_ERROR","failureReasonCode":"UNKNOWN","failedCaptureName":"success-fetch-r1","lastCompletedCaptureName":"success-approve-r1"})
+            self.assertEqual(value["localizationEvidence"],{"progressRootState":"ACCEPTED","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN"})
             for secret in (b"Bearer",b"TOKEN",b"private.invalid",b"/private/path",b"request-body",b"response-body"):self.assertNotIn(secret,raw)
             self.assertFalse(value["privateEvidencePublished"]);self.assertEqual(value["status"],"FAIL")
     def test_nested_scene_classification_is_independently_equal_or_rejected(self):
@@ -98,12 +101,42 @@ class SanitizerContracts(unittest.TestCase):
             nested=staging/"private-failure-identity.json";S.failure(private,nested,"PRIVATE_SCENE_FAILED",progress,commit);value=S.decode(nested);value["failureClassification"]["failurePhase"]="R2";nested.write_bytes(S.canonical(value))
             with self.assertRaises(ValueError):S.failure(staging,root/"public/failure.json","SCENE_FAILED",progress,commit)
             self.assertFalse((root/"public/failure.json").exists())
+        for field,value in (("bootstrapStepOutcome","FAILURE"),("provenanceAuthority","AUTHORITATIVE_MATCH")):
+            with self.subTest(field=field),tempfile.TemporaryDirectory() as d:
+                root=pathlib.Path(d);private=root/"private";staging=root/"staging";progress=staging/"failure-localization.private";private.mkdir();staging.mkdir();progress.mkdir();put(private/"runner.stderr",b"PRIVATE")
+                nested=staging/"private-failure-identity.json";S.failure(private,nested,"PRIVATE_SCENE_FAILED",progress,commit);projected=S.decode(nested)
+                if field=="bootstrapStepOutcome":projected["localizationEvidence"][field]=value
+                else:projected[field]=value
+                nested.write_bytes(S.canonical(projected))
+                with self.assertRaises(ValueError):S.failure(staging,root/"public/failure.json","SCENE_FAILED",progress,commit)
+                self.assertFalse((root/"public/failure.json").exists())
     def test_invalid_or_missing_progress_never_guesses_from_private_counts(self):
         commit="c"*40
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);private=root/"private";progress=root/"progress";private.mkdir();progress.mkdir();put(private/"many-private-files",b"X"*7000);put(progress/"unexpected-private-marker",b"Bearer SECRET")
             out=root/"public/failure.json";S.failure(private,out,"SCENE_FAILED",progress,commit);value=S.decode(out)
-            self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertNotIn("SECRET",out.read_text());self.assertEqual(value["status"],"FAIL")
+            self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertEqual(value["localizationEvidence"]["progressRootState"],"INVALID");self.assertEqual(value["localizationEvidence"]["failureDetailState"],"NOT_EVALUATED");self.assertNotIn("SECRET",out.read_text());self.assertEqual(value["status"],"FAIL")
+    def test_scene_bootstrap_state_is_current_read_only_and_untrusted_is_unknown(self):
+        commit="6"*40
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d);private=root/"private";staging=root/"staging";progress=staging/"failure-localization.private";record=staging/S.C.BOOTSTRAP_DIRECTORY/S.C.BOOTSTRAP_FILE
+            private.mkdir();staging.mkdir();progress.mkdir();record.parent.mkdir();put(private/"raw",b"PRIVATE");put(record,{"schema":S.C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"})
+            with mock.patch.object(S.C,"_owned_mode",return_value=True):S.failure(private,root/"accepted.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success",commit)
+            accepted=S.decode(root/"accepted.json");self.assertEqual(accepted["localizationEvidence"],{"progressRootState":"EMPTY","failureDetailState":"ABSENT","bootstrapStepOutcome":"SUCCESS","bootstrapRecordState":"ACCEPTED","bootstrapChildState":"PASS"});self.assertEqual(accepted["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE")
+            with mock.patch.object(S.C,"_owned_mode",return_value=False):S.failure(private,root/"rejected.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success",commit)
+            rejected=S.decode(root/"rejected.json");self.assertEqual(rejected["localizationEvidence"]["bootstrapRecordState"],"INVALID");self.assertEqual(rejected["localizationEvidence"]["bootstrapChildState"],"UNKNOWN")
+    def test_matching_direct_tuple_is_intentionally_indistinguishable_but_non_authoritative(self):
+        commit="5"*40
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d);private=root/"private";staging=root/"staging";progress=staging/"progress";record=staging/S.C.BOOTSTRAP_DIRECTORY/S.C.BOOTSTRAP_FILE
+            private.mkdir();staging.mkdir();progress.mkdir();record.parent.mkdir();put(private/"raw",b"PRIVATE");put(record,{"schema":S.C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"})
+            with mock.patch.object(S.C,"_owned_mode",return_value=True):
+                S.failure(private,root/"engine-claimed.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success",commit)
+                S.failure(private,root/"direct-forged.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success",commit)
+                S.failure(private,root/"cross-source.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success","4"*40)
+            engine=(root/"engine-claimed.json").read_bytes();forged=(root/"direct-forged.json").read_bytes();self.assertEqual(engine,forged)
+            value=S.decode(root/"engine-claimed.json");self.assertEqual(value["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE");self.assertEqual(value["localizationEvidence"]["bootstrapStepOutcome"],"SUCCESS")
+            cross=S.decode(root/"cross-source.json");self.assertEqual((cross["localizationEvidence"]["bootstrapStepOutcome"],cross["localizationEvidence"]["bootstrapRecordState"],cross["localizationEvidence"]["bootstrapChildState"]),("UNKNOWN","INVALID","UNKNOWN"))
     def test_cpu_detailed_failure_is_exactly_one_safe_public_file(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);private=root/"private";stage=root/"stage";private.mkdir();stage.mkdir();secret=b"PRIVATE CPU SECRET MATERIAL";put(private/"go.log",secret)
@@ -154,7 +187,7 @@ class SanitizerContracts(unittest.TestCase):
             self.assertFalse((root/"missing-public").exists());self.assertFalse((root/"unexpected-public").exists());self.assertFalse((root/"extra-public").exists())
     def test_workflow_stages_then_publishes_and_missing_artifact_is_error(self):
         workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text()
-        block=workflow.split("      - name: CPU contracts and Go suite",1)[1].split("      - name: Build once and acquire immutable source",1)[0]
+        block=workflow.split("      - name: CPU contracts and Go suite",1)[1].split("      - name: Prepare immutable source and staging",1)[0]
         self.assertIn('--output "$stage/cpu-failure.json"',block);self.assertIn("cpu-fallback --output",block);self.assertIn('cpu-publish --input "$stage" --output "$public"',block)
         self.assertIn("if-no-files-found: error",block);self.assertNotIn("if-no-files-found: warn",block);self.assertNotIn('--output "$public/cpu-',block);self.assertIn("steps.cpu.outputs.publication_ready == 'true'",block)
     def test_workflow_shell_preexisting_paths_stop_before_units_or_go_and_disable_upload(self):

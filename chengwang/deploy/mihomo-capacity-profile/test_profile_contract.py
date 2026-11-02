@@ -197,6 +197,29 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         self.assertNotEqual(tuple(p207a_reordered),tuple(self.reader.FULL_FMT))
         self.assertEqual(len(EXPECTED_FULL_FMT),len(set(EXPECTED_FULL_FMT)),50)
 
+    def test_full_mode_adds_only_one_safe_timeline_and_four_row_go_group(self):
+        self.assertEqual(self.reader.TIMELINE_NAME,'capacity-go-top-observation-timeline.json')
+        self.assertEqual(self.reader.TIMELINE_DIR,'timeline-public')
+        source=Path(self.producer.__file__).read_text(encoding='utf8')
+        self.assertIn("journal(kind,argv,'COLLECTOR_HANDOFF'",source)
+        self.assertIn("timeline.publish_safe(publication,",source)
+        self.assertNotIn(self.reader.TIMELINE_NAME,self.reader.PUBLIC)
+
+    def test_root_exporter_creates_only_dedicated_publication_directory(self):
+        source=Path(self.producer.__file__).read_text(encoding='utf8')
+        runner=Path(self.producer.__file__).with_name('run_profile.sh').read_text(encoding='utf8')
+        self.assertIn('publication=out/timeline.PUBLICATION_DIR',source)
+        self.assertIn('os.mkdir(publication,0o755)',source)
+        self.assertIn('info.st_uid==os.geteuid()==0',source)
+        self.assertIn('env -i PATH=/usr/bin:/bin',runner)
+        self.assertNotIn('chown ',source+runner)
+
+    def test_capacity_source_snapshot_uses_raw_git_and_records_tree(self):
+        text=Path(self.reader.__file__).read_text(encoding='utf8')
+        self.assertIn("'--no-replace-objects'",text)
+        self.assertIn("GIT_NO_REPLACE_OBJECTS",text)
+        self.assertIn("'sourceTree':tree",text)
+
 
 if __name__ == '__main__':
     unittest.main()

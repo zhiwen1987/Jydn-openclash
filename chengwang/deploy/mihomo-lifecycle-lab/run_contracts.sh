@@ -15,6 +15,10 @@ test -f "$out/host-before.json"
 test ! -L "$out/host-before.json"
 test "$(stat -c %h "$out/host-before.json")" -eq 1
 test -z "$(find "$out" -mindepth 1 -maxdepth 1 ! -name host-before.json -print -quit)"
+source_commit="$(GIT_NO_REPLACE_OBJECTS=1 git --no-replace-objects -C "$repo" rev-parse HEAD)"
+source_tree="$(GIT_NO_REPLACE_OBJECTS=1 git --no-replace-objects -C "$repo" rev-parse 'HEAD^{tree}')"
+test "${#source_commit}" -eq 40
+test "${#source_tree}" -eq 40
 mount --make-rprivate /
 ip link set lo up
 mount --bind "$repo" "$repo"
@@ -29,6 +33,9 @@ mount -o remount,bind,ro,nosuid,nodev,noexec /tmp/contracts-source
 module_sha="$(sha256sum "$repo/chengwang/go.mod")"
 module_sha="${module_sha%% *}"
 chmod 0755 "$out"
+timeline_public="$out/timeline-public"
+test ! -e "$timeline_public"
+install -d -m 0755 "$timeline_public"
 cd /tmp/contracts-source
 common=(setpriv --reuid=10001 --regid=10001 --clear-groups --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all
   env -i "PATH=$goroot/bin:/usr/bin:/bin" "GOROOT=$goroot" HOME=/tmp/contracts-home TMPDIR=/tmp/contracts-home
@@ -232,9 +239,15 @@ files+=(
 set +e
 "${common[@]}" "$goroot/bin/gofmt" -d "${files[@]}" > "$out/gofmt.patch" 2> "$out/gofmt.stderr"
 format_code=$?
-"${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz > "$out/ordinary.json" 2> "$out/ordinary.stderr"
+python3 -B "$repo/chengwang/deploy/mihomo-lifecycle-lab/go_timeline_capture.py" spawn \
+  --lane FOUNDATION_ORDINARY --raw "$out/ordinary.json" --stderr "$out/ordinary.stderr" \
+  --publication-parent "$timeline_public" --source-commit "$source_commit" --source-tree "$source_tree" -- \
+  "${common[@]}" "$goroot/bin/go" test -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz
 ordinary_code=$?
-"${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz > "$out/race.json" 2> "$out/race.stderr"
+python3 -B "$repo/chengwang/deploy/mihomo-lifecycle-lab/go_timeline_capture.py" spawn \
+  --lane FOUNDATION_RACE --raw "$out/race.json" --stderr "$out/race.stderr" \
+  --publication-parent "$timeline_public" --source-commit "$source_commit" --source-tree "$source_tree" -- \
+  "${common[@]}" "$goroot/bin/go" test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo ./internal/mihomodeploy ./internal/authn ./internal/api ./internal/serverruntime ./internal/authz
 race_code=$?
 set -e
 printf '{"schema":"chengwang.mihomo-contract-execution/v1","formatExit":%d,"ordinaryExit":%d,"raceExit":%d,"realMihomoExecuted":false,"production":false}\n' "$format_code" "$ordinary_code" "$race_code" > "$out/execution.json"

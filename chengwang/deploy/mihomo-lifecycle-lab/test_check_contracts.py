@@ -419,6 +419,22 @@ class ContractEvidenceModels(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.verify_model()
 
+    def test_timeline_directory_is_the_only_optional_strict_checker_sibling(self):
+        observed=set(S.INPUTS)|{S.TIMELINE_DIR}
+        self.assertIn(observed,(set(S.INPUTS),set(S.INPUTS)|{S.TIMELINE_DIR}))
+        self.assertEqual(S.TIMELINE_DIR,'timeline-public')
+
+    def test_source_reader_uses_both_no_replace_defenses(self):
+        text=Path(S.__file__).read_text(encoding='utf8')
+        self.assertIn("'--no-replace-objects'",text)
+        self.assertIn("GIT_NO_REPLACE_OBJECTS",text)
+
+    def test_runner_preserves_exact_go_commands_behind_collector(self):
+        runner=Path(__file__).with_name('run_contracts.sh').read_text(encoding='utf8')
+        self.assertEqual(runner.count('go_timeline_capture.py" spawn'),2)
+        self.assertIn('test -json -count=1 -timeout=180s ./internal/adapter/mihomo',runner)
+        self.assertIn('test -race -json -count=1 -timeout=180s ./internal/adapter/mihomo',runner)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

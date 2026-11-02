@@ -29,6 +29,8 @@ jobs:
     needs: development-only
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      timeline_ready: ${{ steps.go_timeline_check.outputs.timeline_ready }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -45,11 +47,12 @@ jobs:
           install -d -m 0700 "$root"
           (cd chengwang/tools/mihomo-runtime-candidate && python3 -B -m unittest -v test_consume_pin) 2>&1 | tee "$root/pin-models.log"
           (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_check_contracts) 2>&1 | tee "$root/go-evidence-models.log"
+          (cd chengwang/deploy/mihomo-lifecycle-lab && python3 -B -m unittest -v test_go_timeline) 2>&1 | tee "$root/go-timeline-models.log"
           python3 - "$root" <<'PY'
           import ast,hashlib,importlib.util,json,re,sys
           from pathlib import Path
           root=Path(sys.argv[1])
-          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',26,'c983fbe5dba8dd8cb7f476b8fb346348e5afc0f739474fcc152d713a93c3c2e6')]
+          checks=[('pin-models.log','chengwang/tools/mihomo-runtime-candidate/test_consume_pin.py','SyntheticConsumptionContracts',47,'390ff9bf1c63f9d586de54df624d81fedbaa2258d0e82f39e7108e1063c7c6fc'),('go-evidence-models.log','chengwang/deploy/mihomo-lifecycle-lab/test_check_contracts.py','ContractEvidenceModels',29,'2daf0d61ca5f237a9b9a7429beb63a9d50020b6f41459456ae7219d65b8d0165')]
           for log,path,cls,count,pin in checks:
               text=(root/log).read_text(encoding='utf8').replace('\r\n','\n')
               tree=ast.parse(Path(path).read_text(encoding='utf8'))
@@ -59,7 +62,16 @@ jobs:
               assert sorted(a for a,_ in observed)==names and hashlib.sha256('\n'.join(names).encode()).hexdigest()==pin
               assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',text,re.M)==[str(count)] and re.findall(r'^OK$',text,re.M)==['OK']
               assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',text,re.M)
-          print('PYTHON_MODELS=PASS pin47 evidence26 not_go_or_kernel_execution=true')
+          timeline=(root/'go-timeline-models.log').read_text(encoding='utf8').replace('\r\n','\n')
+          tree=ast.parse(Path('chengwang/deploy/mihomo-lifecycle-lab/test_go_timeline.py').read_text(encoding='utf8'))
+          names=sorted(c.name+'.'+n.name for c in tree.body if isinstance(c,ast.ClassDef) for n in c.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+          observed=re.findall(r'^(test_[A-Za-z0-9_]+) \(test_go_timeline\.([A-Za-z0-9_]+)\.(test_[A-Za-z0-9_]+)\) \.\.\. ok$',timeline,re.M)
+          qualified=sorted(cls+'.'+method for visible,cls,method in observed if visible==method)
+          assert len(names)==len(set(names))==len(observed)==38 and qualified==names
+          assert hashlib.sha256('\n'.join(names).encode()).hexdigest()=='d15ee14712d016e92c98edd4bf1b44deaef98682683ab1d5d22dbc3b43815d66'
+          assert re.findall(r'^Ran ([0-9]+) tests in [0-9.]+s$',timeline,re.M)==['38'] and re.findall(r'^OK$',timeline,re.M)==['OK']
+          assert not re.search(r'^FAILED|^ERROR:|^FAIL:|\.\.\. skipped|^OK \(skipped=',timeline,re.M)
+          print('PYTHON_MODELS=PASS pin47 evidence29 timeline38 not_go_or_kernel_execution=true')
           checker=Path('chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py')
           spec=importlib.util.spec_from_file_location('declared_go_contracts',checker)
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -307,6 +319,18 @@ jobs:
           python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_contracts.py \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$root" \
             --report "$RUNNER_TEMP/mihomo-contract-verification.json"
+      - name: Independently validate both bounded Go timelines
+        id: go_timeline_check
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/mihomo-foundation-contracts"
+          sudo python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_go_timeline.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --evidence "$root" \
+            --lane FOUNDATION
+          if ! printf '%s\n' 'timeline_ready=true' >> "$GITHUB_OUTPUT"; then
+            exit 1
+          fi
       - name: Preserve model and real Go originals including formatter patches and failures
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -314,11 +338,26 @@ jobs:
           name: mihomo-foundation-contracts-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/mihomo-foundation-models/*.log
-            ${{ runner.temp }}/mihomo-foundation-contracts/*.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/host-before.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/host-after.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/sandbox.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/ordinary.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/race.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/execution.json
             ${{ runner.temp }}/mihomo-foundation-contracts/*.stderr
             ${{ runner.temp }}/mihomo-foundation-contracts/gofmt.patch
             ${{ runner.temp }}/mihomo-foundation-contracts/go-version.txt
             ${{ runner.temp }}/mihomo-contract-verification.json
+          retention-days: 14
+          if-no-files-found: error
+      - name: Preserve only independently checked bounded Go timelines
+        if: ${{ always() && steps.go_timeline_check.outcome == 'success' && steps.go_timeline_check.outputs.timeline_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-foundation-go-timelines-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mihomo-foundation-contracts/timeline-public/ordinary-go-top-observation-timeline.json
+            ${{ runner.temp }}/mihomo-foundation-contracts/timeline-public/race-go-top-observation-timeline.json
           retention-days: 14
           if-no-files-found: error
 
@@ -335,6 +374,21 @@ jobs:
         with:
           name: mihomo-foundation-contracts-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/mihomo-contracts-original
+      - name: Establish runner-owned fresh timeline custody
+        if: ${{ needs.contracts.outputs.timeline_ready == 'true' }}
+        run: |
+          set -euo pipefail
+          timeline_public="$RUNNER_TEMP/mihomo-contracts-original/mihomo-foundation-contracts/timeline-public"
+          test -d "$(dirname "$timeline_public")"
+          test ! -e "$timeline_public"
+          install -d -m 0755 "$timeline_public"
+          test "$(stat -c %u "$timeline_public")" -eq "$(id -u)"
+          test "$(stat -c %g "$timeline_public")" -eq "$(id -g)"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: ${{ needs.contracts.outputs.timeline_ready == 'true' }}
+        with:
+          name: mihomo-foundation-go-timelines-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-contracts-original/mihomo-foundation-contracts/timeline-public
       - name: Recompute actual Go evidence in a fresh Linux job without rerunning Go
         run: |
           set -euo pipefail
@@ -344,6 +398,10 @@ jobs:
             --report "$RUNNER_TEMP/mihomo-contracts-fresh.json"
           cmp "$RUNNER_TEMP/mihomo-contracts-original/mihomo-contract-verification.json" \
             "$RUNNER_TEMP/mihomo-contracts-fresh.json"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_go_timeline.py \
+            --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --evidence "$RUNNER_TEMP/mihomo-contracts-original/mihomo-foundation-contracts" \
+            --lane FOUNDATION
           git diff --exit-code
           test -z "$(git status --porcelain --untracked-files=all)"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

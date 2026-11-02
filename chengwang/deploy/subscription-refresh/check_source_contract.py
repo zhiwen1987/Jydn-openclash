@@ -25,6 +25,8 @@ PACKAGE_NAMES = (
     "chengwang/internal/api",
     "chengwang/internal/authn",
     "chengwang/internal/authz",
+    "chengwang/internal/evidence",
+    "chengwang/internal/nativefs",
     "chengwang/internal/serverruntime",
     "chengwang/internal/subscription",
     "chengwang/internal/subscriptionctl",
@@ -34,7 +36,7 @@ HISTORICAL_BASELINE_SOURCE_COUNT = 453
 HISTORICAL_BASELINE_SOURCE_SHA256 = "319025b42a43817ed041ae2cb7349f6a3164e295cad2dbc143718f6a6002b81b"
 HISTORICAL_BASELINE_REQUIRED_RUN_COUNT = 448
 HISTORICAL_BASELINE_REQUIRED_RUN_SHA256 = "34221f6a5f60aa7a3ad5a47e776f7b789c9295df15ab8c40f298ea8d4932afd7"
-WORKFLOW_TEMPLATE_SHA256 = "2baeff338685d8bd0731a6fbfb65ab0957bf2086ff616ef33786b70f08ce2120"
+WORKFLOW_TEMPLATE_SHA256 = "f7febe757f098465edf731e3a1838c66d34d733751c9e94bb973b441b40b46a6"
 WORKFLOW_PIN_SPECS = (
     ("CONTRACT_SHA256", "contractSHA256", "digest"),
     ("CHECKER_SHA256", "checkerSHA256", "digest"),
@@ -118,6 +120,17 @@ FRESH_GATE_LINES = (
     'test "$(cat "$root/format-exit.txt")" = 0',
     'test "$(cat "$root/go-exit.txt")" = 0',
     'test "$(cat "$root/event-check-exit.txt")" = 0',
+)
+NATIVEFS_MIRROR_GATE_LINES = (
+    'cd "$GITHUB_WORKSPACE"',
+    'nativefsRoot="$RUNNER_TEMP/p207a-nativefs-mirror"',
+    'test ! -e "$nativefsRoot"',
+    'install -d -m 0700 "$nativefsRoot"',
+    'python3 -I -B -c \'import runpy,sys; tool=sys.argv[1]; sys.path.insert(0,sys.argv[2]); sys.argv=[tool,*sys.argv[3:]]; runpy.run_path(tool,run_name="__main__")\' "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror/check_nativefs_mirror_source.py" "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror" --repo "$GITHUB_WORKSPACE"',
+    'python3 -I -B chengwang/tools/nativefs-mirror/generate_nativefs_mirror.py verify --repo "$GITHUB_WORKSPACE" --tracked "$GITHUB_WORKSPACE/chengwang/internal/nativefs/linux_magic_generated.go"',
+    'CHENGWANG_NATIVEFS_MIRROR_FIXTURE_ROOT="$nativefsRoot" CHENGWANG_NATIVEFS_MIRROR_REPO="$GITHUB_WORKSPACE" python3 -I -B -c \'import runpy,sys; tool=sys.argv[1]; sys.path.insert(0,sys.argv[2]); sys.argv=[tool,*sys.argv[3:]]; runpy.run_path(tool,run_name="__main__")\' "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror/test_nativefs_mirror.py" "$GITHUB_WORKSPACE/chengwang/tools/nativefs-mirror" -b > "$nativefsRoot/nativefs-mirror-tests.log" 2>&1',
+    'python3 -I -B -c \'import pathlib,sys; lines=pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines(); assert sum(line.startswith("test_") and line.endswith(" ... ok") for line in lines)==7; assert sum(line.startswith("Ran 7 tests in ") and line.endswith("s") for line in lines)==1; assert lines.count("OK")==1; assert not any(token in "\\n".join(lines) for token in ("skipped","FAILED","ERROR"))\' "$nativefsRoot/nativefs-mirror-tests.log"',
+    'cd "$GITHUB_WORKSPACE/chengwang/deploy/subscription-refresh"',
 )
 
 
@@ -380,6 +393,10 @@ def workflow_accepted_gate_script(text: str) -> str:
     return workflow_gate_script(text, "P207A_ACCEPTED_GATE", ACCEPTED_GATE_LINES)
 
 
+def workflow_nativefs_mirror_gate_script(text: str) -> str:
+    return workflow_gate_script(text, "P207A_NATIVEFS_MIRROR_GATE", NATIVEFS_MIRROR_GATE_LINES)
+
+
 def workflow_upload_paths(text: str) -> dict[str, tuple[str, ...]]:
     blocks = re.findall(r"(?ms)^      - (?P<body>.*?)(?=^      - |^  [A-Za-z0-9_-]+:|\Z)", text)
     uploads: dict[str, tuple[str, ...]] = {}
@@ -456,7 +473,18 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
          "workflow commands must not select build tags")
     accepted_gate = workflow_accepted_gate_script(text)
     fresh_gate = workflow_gate_script(text, "P207A_FRESH_GATE", FRESH_GATE_LINES)
+    nativefs_gate = workflow_nativefs_mirror_gate_script(text)
     need("&&" not in accepted_gate and "&&" not in fresh_gate, "workflow fixed gates must not use AND lists")
+    need("--repo \"$GITHUB_WORKSPACE\"" in nativefs_gate and
+         "--tracked \"$GITHUB_WORKSPACE/chengwang/internal/nativefs/linux_magic_generated.go\"" in nativefs_gate,
+         "nativefs mirror gate explicit repository and tracked output")
+    need("CHENGWANG_NATIVEFS_MIRROR_FIXTURE_ROOT=\"$nativefsRoot\"" in nativefs_gate and
+         "CHENGWANG_NATIVEFS_MIRROR_REPO=\"$GITHUB_WORKSPACE\"" in nativefs_gate,
+         "nativefs mirror gate explicit test roots")
+    source_models = re.search(r"(?ms)^  source-models:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)", text)
+    need(source_models is not None and source_models.group("body").count("          fetch-depth: 0\n") == 1,
+         "nativefs source-model job requires one full-history checkout")
+    need(text.count("          fetch-depth: 0\n") == 1, "only the nativefs source-model job may widen checkout history")
     model_names = source_model_names(root)
     model_digest = names_digest(model_names)
     need(text.count(f"          assert len(names)==len(set(names))=={len(model_names)}\n") == 1,
@@ -549,6 +577,7 @@ def verify_workflow_surface(root: Path, changed_paths: list[str], packages: tupl
     expected_uploads = {
         "p207a-source-models-${{ github.run_id }}-${{ github.run_attempt }}": (
             "chengwang/deploy/subscription-refresh/source-models.log",
+            "${{ runner.temp }}/p207a-nativefs-mirror/nativefs-mirror-tests.log",
         ),
         "p207a-source-go-${{ github.run_id }}-${{ github.run_attempt }}": (
             "${{ runner.temp }}/p207a-refresh/source-before.json",

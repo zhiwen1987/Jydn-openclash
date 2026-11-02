@@ -13,6 +13,10 @@ import subprocess
 import sys
 import time
 
+TIMELINE_DIR=Path(__file__).resolve().parents[1]/'mihomo-lifecycle-lab'
+sys.path.insert(0,str(TIMELINE_DIR))
+import go_timeline_capture as timeline
+
 PRIVATE=Path('/tmp/chengwang-capacity-profile-private')
 SOURCE=Path('/tmp/chengwang-capacity-profile-source')
 TOP='TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop'
@@ -77,6 +81,7 @@ RESOURCE_SCOPES={'cpuCount':'CAPTURE_PROCESS_OS_LOGICAL_CPU_COUNT','affinityCPUs
     'procStatCPU':'KERNEL_EXPOSED_AGGREGATE_CPU_TICKS_NOT_PROCESS','cgroupCPUMax':'CURRENT_CGROUP_FAIR_BANDWIDTH_NOT_EFFECTIVE_ANCESTOR_LIMIT',
     'cgroupCPUStat':'CURRENT_CGROUP_USAGE_AND_OWN_BANDWIDTH_COUNTERS_NOT_PER_TEST'}
 CPU_STAT_FIELDS=('usage_usec','user_usec','system_usec','nr_periods','nr_throttled','throttled_usec')
+PRIVATE_TIMELINE='capacity-go-top-observation-timeline.private.json'
 
 def need(ok):
     if not ok:raise ValueError('capacity profile capture rejected')
@@ -158,13 +163,55 @@ def resource_observation():
 
 def commands(goroot,diagnostic_mode='SINGLE_CASE'):
     seq=0
-    def journal(kind,argv,event,pid=None,code=None):
+    timeline_failure='NONE'
+    def journal(kind,argv,event,pid=None,code=None,handoff_delta=None):
         nonlocal seq
         seq+=1
-        value={'seq':seq,'event':event,'class':kind,'argv':argv,'pid':pid,'exitCode':code,'monotonicNs':time.monotonic_ns()}
-        with (PRIVATE/'commands.jsonl').open('ab') as f:f.write(encoded(value));f.flush();os.fsync(f.fileno())
+        value={'seq':seq,'event':event,'class':kind,'argv':argv,'pid':pid,'exitCode':code}
+        observed=None
+        if event=='COLLECTOR_HANDOFF':
+            need(type(handoff_delta)is int and 0<=handoff_delta<1<<63)
+            value['monotonicDeltaFromStartedNs']=handoff_delta
+        else:
+            observed=time.monotonic_ns();value['monotonicNs']=observed
+        raw=encoded(value)
+        with (PRIVATE/'commands.jsonl').open('ab') as f:need(f.write(raw)==len(raw));f.flush();os.fsync(f.fileno())
+        return observed
     def run(kind,argv,out,err):
+        nonlocal timeline_failure
         journal(kind,argv,'START_INTENT')
+        if diagnostic_mode=='FULL_CONTRACTS'and kind=='GO_TEST':
+            raw=open(PRIVATE/out,'xb',buffering=0);stderr=open(PRIVATE/err,'xb',buffering=0)
+            guard=timeline.OwnerGuard(raw,stderr);code=125;pid=None
+            # The guard is now the sole cleanup authority for both file
+            # objects. Clear the caller's actual aliases before Popen.
+            raw=None;stderr=None
+            try:
+                guard.install_handlers()
+                p=guard.spawn(argv,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=guard.stderrSink,
+                    umask=0o022,close_fds=True)
+                pid=p.pid;p=None
+                started=journal(kind,argv,'STARTED',pid)
+                origin=guard.transfer_to_collector()
+                journal(kind,argv,'COLLECTOR_HANDOFF',pid,handoff_delta=origin-started)
+                source=json.loads((Path('/tmp/chengwang-capacity-profile-export')/'source-before.json').read_bytes())
+                need(type(source)is dict and source.get('sourceCommit')==os.environ['CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT'])
+                projector=timeline.Projector('CAPACITY_FULL_RACE',source['sourceCommit'],source['sourceTree'],timeline.load_registry())
+                code,_=timeline.collect(guard,projector,origin,private_output=PRIVATE/PRIVATE_TIMELINE)
+            except BaseException:
+                guard.cleanup(kill=True)
+                code=guard.returncode if guard.returncode is not None else 125
+                timeline_failure=guard.failure if guard.failure!='NONE'else'COLLECTOR_FAILED_AND_REAPED'
+            finally:
+                guard.cleanup(kill=False)
+                if guard.owner in ('NO_CHILD','REAPED'):
+                    try:
+                        if not guard.restore_handlers():timeline_failure='SIGNAL_HANDLER_RESTORE_FAILED_AFTER_REAP'
+                    except BaseException:timeline_failure='SIGNAL_HANDLER_RESTORE_FAILED_AFTER_REAP'
+                if pid is not None:
+                    try:journal(kind,argv,'WAIT_RETURNED',pid,code)
+                    except BaseException:timeline_failure='WAIT_JOURNAL_WRITE_FAILED'
+            return code
         with (PRIVATE/out).open('xb') as stdout,(PRIVATE/err).open('xb') as stderr:
             # The normal Go suite observes0022. Keep this capture parent077
             # (and its original streams0600), changing only the full GO_TEST
@@ -199,7 +246,7 @@ def commands(goroot,diagnostic_mode='SINGLE_CASE'):
     execution={'schema':'chengwang.capacity-profile-execution/v2'if full else'chengwang.capacity-profile-execution/v1',
         'sourceCommit':os.environ['CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT'],'versionExit':version,
         'formatExit':fmt,'goExit':code,'topExit':top,'cumExit':cum,'profileCaptureComplete':complete,'production':False}
-    if full:execution['diagnosticMode']='FULL_CONTRACTS'
+    if full:execution.update({'diagnosticMode':'FULL_CONTRACTS','timelineFailure':timeline_failure})
     write(PRIVATE/'execution.json',encoded(execution))
     # write() is public-mode; correct only this new private file, not host inputs.
     os.chmod(PRIVATE/'execution.json',0o600)
@@ -219,6 +266,16 @@ def export(out,diagnostic_mode='SINGLE_CASE'):
         value={'schema':'chengwang.capacity-cpu-profile-bytes/v1','sourceCommit':os.environ['CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT'],
             'bytes':len(raw),'sha256':digest(raw),'dataBase64':base64.b64encode(raw).decode('ascii'),'profileStateSHA256':digest(state_raw)}
         write(out/'cpu-profile.json',encoded(value))
+    if diagnostic_mode=='FULL_CONTRACTS' and (PRIVATE/PRIVATE_TIMELINE).exists():
+        raw=private_read(PRIVATE/PRIVATE_TIMELINE,1<<20)
+        publication=out/timeline.PUBLICATION_DIR
+        need(not publication.exists() and not publication.is_symlink())
+        os.mkdir(publication,0o755)
+        info=publication.lstat()
+        need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0o755
+             and info.st_uid==os.geteuid()==0 and info.st_gid==os.getegid()==0)
+        timeline.publish_safe(publication,
+                              timeline.FINAL_NAMES['CAPACITY_FULL_RACE'],raw)
 
 def sandbox(out,goroot,diagnostic_mode='SINGLE_CASE'):
     need(sys.platform=='linux' and os.getuid()==os.getgid()==10001 and Path.cwd()==SOURCE)
