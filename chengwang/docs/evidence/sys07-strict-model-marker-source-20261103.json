@@ -1,0 +1,18 @@
+{
+  "schema": "chengwang.strict-model-marker-source/v1",
+  "codeHead": "944f453b86be240896c08eef435134ecd6c80463",
+  "codeTree": "a6f98872ef047eff5a50b529adb7ac73e4e76b68",
+  "sourcePaths": 9,
+  "freeze": {"path": "D:/CodexData/workspace/chengwang-8c08-joint-model-marker-strict-combined-freeze-20261103-cd03-v2/FREEZE.json", "sha256": "e12c5f358a09f24b9208bb4a7208e058fd82cfd537d0aba8cfe5058d12ea4596"},
+  "sliceA": {"path": "D:/CodexData/home/state/plugins/codex-security/scans/chengwang-8c08-joint-model-marker-strict-combined-provisional-20261103-cd03-v2/artifacts-b52b563c83a9a1e36fb9a3dd0c553cc39f002dfbcd01368ac06c42e271bf3b82/artifacts/combined-strict-v2-slice-a-review/patch-risk.json", "sha256": "afc4a5eb94453a1311650d86d99366a943655b7d3b77777e22aeb89eb1a3ac06"},
+  "sliceB": {"path": "D:/CodexData/workspace/chengwang-8c08-joint-model-marker-strict-combined-freeze-20261103-cd03-v2-slice-b-independent-review/FINAL.json", "sha256": "4c503e5a44ac58fe7dbe1fff38ca068abab8ab6596709dd2347f0815c63d89be"},
+  "rootModels": {"path": "D:/CodexData/workspace/chengwang-8c08-diagnostics-root-models-20261103-cd03-v1/SUMMARY.json", "sha256": "dba24c69ee9327274013a0beb63d30a5fc7aacd5386f652ecac8612a639387ca", "methods": 224, "GoExecuted": false},
+  "rootSource": {"path": "D:/CodexData/workspace/chengwang-944f-source-joint-readonly-audit-20261103-cd03-v1/FINAL.json", "sha256": "847373a6b226d3093c37292190afb800ae017b826a984d3f68eb9cb3e05c748a"},
+  "freezeCpuReviewAtCreation": "PENDING_HISTORICAL_CUT",
+  "laterCpuAndSliceReview": "SOURCE_ACCEPTED_AND_BOUND_TO_EXACT_AFTERIMAGES",
+  "goSourceChanged": false,
+  "localGoExecuted": false,
+  "newHeadCI": "PENDING",
+  "productionTouched": false,
+  "fullSystem": "INCOMPLETE"
+}

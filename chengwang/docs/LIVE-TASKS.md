@@ -1,5 +1,7 @@
 # 澄网：项目任务清单
 
+2026-11-03 新诊断源码截点：[严格模型门与固定文本观察](SYS07-STRICT-MODEL-MARKER-DIAGNOSTICS-20261103.md)，代码 `944f453b` / tree `a6f98872`。9 路径已备份并经组件/组合独审，根会话 224 项受影响 Python 检查通过（83/90/46/5），实际 source/joint853 闭包通过。增加 ≤16 KiB 来源白名单模型诊断、强制全部必跑模型真实 PASS，时间线 v2 仅观察固定文本而不推断根因；Go 源码与预算未改。新 HEAD Linux/上传/Go/31/业务仍待。旧 8c08 的 P207528 和 31 链接受仅属于旧 HEAD，Race 和 joint 尚未接受。私有 JY-CW 的 a53409a2 已归档至 8c08 并 remote 654 文件读回；本诊断新阶段尚待后续补档。生产未动。
+
 2026-11-03 最新源码截点：[Go guard/采集入口/转换计数修复](SYS07-CI-ENTRYPOINT-REPAIR-20261103.md)，代码 `120b2dff` / tree `d1a4f24b`。8 路径前像已备份，组件及组合双切片独审接受，根会话 211 项受影响 Python 方法通过（83/83/45），实际 source/joint853 闭包通过。此前 fcdb 的 Go 原件为 527/528、唯一证据包 guard 顶层失败；本次仅调拒绝分类顺序，新增 CLI 真实入口回归并修正 output 误耗转换计数，所有预算常量和 Go 528/689 身份不减。新提交实际 Linux Go、场景与 31 链仍待；未上线，生产/main/Registry 不动。
 
 2026-11-03 新阻断修复截点：[CI 阻断源码修复](SYS07-CI-BLOCKERS-REPAIR-20261103.md)已集成 12 路径，代码 `8d9707f6` / tree `0f716b46`，两个独立组合切片接受，根会话 204 项受影响 Python 模型通过。修复官方格式、CPU errexit 状态捕获、failure reader 7→9 包冲突及两个测试夹具资源泄漏；528 Go 必跑 tops 不变。源码/joint853 实际检查通过；新提交 Linux Go、联合场景与 31 链仍待，不宣称旧 Go exit1 已解决或已上线。385ba 的 31 链有限接受仅属于原提交。生产/main/Registry 不动。
