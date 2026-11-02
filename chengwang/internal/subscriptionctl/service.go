@@ -383,10 +383,8 @@ func (s *Service) Execute(ctx context.Context, p authz.Principal, c Command) (Re
 			s.capacityMu.Unlock()
 			return Receipt{}, ctlError(CodeConflict, false)
 		}
-	} else {
-		s.capacityMu.Lock()
+		defer s.capacityMu.Unlock()
 	}
-	defer s.capacityMu.Unlock()
 	return s.execute(ctx, p, c, ActionFor(c.Kind))
 }
 

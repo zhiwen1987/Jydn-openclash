@@ -1,0 +1,96 @@
+{
+  "schema": "chengwang.p207a-real-run-audit/v1",
+  "outcome": "CI_FAILURE_CONFIRMED",
+  "acceptance": "REVISE_REQUIRED_BEFORE_ACCEPTANCE",
+  "rootCause": "UNKNOWN",
+  "reviewerActualModel": "UNKNOWN",
+  "run": {
+    "id": 41439397620,
+    "attempt": 1,
+    "headSHA": "e63d006560b4c4c58b71f7e66b7f4d69299c07c5",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {"name": "source-models", "id": 125257165802, "conclusion": "success"},
+      {"name": "source-and-go", "id": 125257309413, "conclusion": "failure"},
+      {"name": "fresh", "id": 125258879579, "conclusion": "skipped"}
+    ]
+  },
+  "custodyTools": {
+    "helperSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "materializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608",
+    "signedURLExposed": false
+  },
+  "artifacts": [
+    {
+      "id": 13137966947,
+      "name": "p207a-source-models-41439397620-1",
+      "apiBytes": 1700,
+      "apiSHA256": "e89b34d4e9aa5f8350573b0ff1fe62832169724776e2650dde9fcf0ea4c9c38f",
+      "zipBytes": 1700,
+      "zipSHA256": "e89b34d4e9aa5f8350573b0ff1fe62832169724776e2650dde9fcf0ea4c9c38f",
+      "members": [
+        {"path": "source-models.log", "bytes": 9759, "crc32": 2042332600, "sha256": "b30cd6a85aa9324311ebb9a6be7231e5b007e0191efaf4bdcd9ac0d42d7f666b"}
+      ],
+      "result": "PASS_63_TESTS"
+    },
+    {
+      "id": 13139630211,
+      "name": "p207a-source-go-failure-41439397620-1",
+      "apiBytes": 3067,
+      "apiSHA256": "7feb1f93d46839adfdef6fa753ed34439e909df588e97b3f0a81095ae23303c9",
+      "zipBytes": 3067,
+      "zipSHA256": "7feb1f93d46839adfdef6fa753ed34439e909df588e97b3f0a81095ae23303c9",
+      "members": [
+        {"path": "source-before.json", "bytes": 872, "crc32": 4103848851, "sha256": "9d183a275e47cd3c7b8f3fcd017b8d6a11b5a1fc7b6fb8de094a2a71fa4a5443"},
+        {"path": "format-exit.txt", "bytes": 2, "crc32": 2118831378, "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"},
+        {"path": "source-after.json", "bytes": 872, "crc32": 4103848851, "sha256": "9d183a275e47cd3c7b8f3fcd017b8d6a11b5a1fc7b6fb8de094a2a71fa4a5443"},
+        {"path": "go-exit.txt", "bytes": 2, "crc32": 1733426259, "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"},
+        {"path": "event-check-exit.txt", "bytes": 2, "crc32": 1733426259, "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"},
+        {"path": "failure-check-exit.txt", "bytes": 2, "crc32": 2118831378, "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"},
+        {"path": "go-failure-report.json", "bytes": 3236, "crc32": 324412982, "sha256": "b87a2b06df98865d95a542eddbd1329e5d2117e15379a52b6278cbb57324a4e7"},
+        {"path": "gofmt.patch", "bytes": 0, "crc32": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        {"path": "gofmt.stderr", "bytes": 0, "crc32": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+      ]
+    }
+  ],
+  "sourceReadback": {
+    "beforeEqualsAfter": true,
+    "sha256": "9d183a275e47cd3c7b8f3fcd017b8d6a11b5a1fc7b6fb8de094a2a71fa4a5443",
+    "modulePathCount": 825,
+    "fixturePathCount": 20,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "changedGoSourceCount": 25
+  },
+  "failure": {
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "TIMEOUT_AND_PANIC_TEXT_MARKERS_OBSERVED",
+    "markerObservation": "TIMEOUT_AND_PANIC_TEXT",
+    "declaredTopCount": 481,
+    "passCount": 464,
+    "failCount": 3,
+    "runningCount": 1,
+    "notStartedCount": 13,
+    "failedTops": [
+      "chengwang/internal/subscriptionctl::TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore",
+      "chengwang/internal/subscriptionctl::TestSubscriptionRefreshV5BindRetryRevalidatesFreshGrantBeforeFetch",
+      "chengwang/internal/subscriptionctl::TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage"
+    ],
+    "runningTops": [
+      "chengwang/internal/subscriptionctl::TestSubscriptionControlConcurrentCommandsSingleFlight"
+    ],
+    "formatExit": 0,
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "failureCheckExit": 0,
+    "gofmtPatchBytes": 0,
+    "gofmtStderrBytes": 0
+  },
+  "boundaries": [
+    "No job log, session, raw event download, signed URL, credential, production, service, browser, SSH, local Go, or local gofmt operation was used.",
+    "The bounded failure report proves the declared tops and markers but does not prove a root cause or raw panic text.",
+    "The skipped fresh job means no accepted nine-member fresh readback exists for this run.",
+    "Formal and JY-CW repositories were not modified by this audit."
+  ]
+}

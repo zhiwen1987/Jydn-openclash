@@ -1,0 +1,128 @@
+{
+  "schema": "chengwang.refresh-retry-combo-source-receipt/v1",
+  "outcome": "SOURCE_CHECKS_PASS_GO_AND_FORMAT_PENDING_CI",
+  "actualModel": "UNKNOWN",
+  "base": {
+    "head": "e63d006560b4c4c58b71f7e66b7f4d69299c07c5",
+    "formal": "D:/CodexData/workspace/chengwang-mihomo-lifecycle-uv9npzyn/r",
+    "candidate": "D:/CodexData/workspace/chengwang-refresh-combo-e63-20261102-diagnosis61h-v2/repo",
+    "candidateLineEndings": "LF",
+    "formalSourcePathsModifiedByThisTask": false,
+    "formalWorktreeClean": false,
+    "formalWorktreeStatusAtFreeze": [
+      " M chengwang/docs/LIVE-TASKS.md",
+      "?? chengwang/docs/evidence/sys06-e63d-continuous-original-audit-20261102.json",
+      "?? chengwang/docs/evidence/sys06-e63d-continuous-original-audit-20261102.md",
+      "?? chengwang/docs/evidence/sys06-e63d-p207-failure-audit-20261102.json",
+      "?? chengwang/docs/evidence/sys06-e63d-p207-failure-audit-20261102.md",
+      "?? chengwang/docs/evidence/sys06-e63d-root-originals-recheck-20261102.json"
+    ]
+  },
+  "change": {
+    "paths": [
+      ".github/workflows/chengwang-subscription-refresh.yml",
+      "chengwang/deploy/subscription-refresh/check_go_failure.py",
+      "chengwang/deploy/subscription-refresh/source_contract.json",
+      "chengwang/internal/subscriptionctl/service.go",
+      "chengwang/internal/subscriptionctl/service_linux_test.go"
+    ],
+    "pathCount": 5,
+    "summary": [
+      "The refresh identity test wrapper obtains a non-zero opaque SnapshotRef from a real isolated authn.SnapshotManager.",
+      "TrustedPrincipal and CurrentPrincipal delegate to the real manager; CurrentPrincipal applies the synthetic stale fault only after real reference and identity validation succeeds.",
+      "The checkpoint, exact-stage retry, and bind-revalidation fixtures share the corrected identity path; the restored checkpoint service inherits the same monotonic fixture clock.",
+      "Known-not-committed waits select between pending, early worker completion, and a three-second bound, and cleanup always releases, cancels, and joins without removing the original assertions.",
+      "Execute takes capacityMu only when RefreshStore is configured, preserving refresh/manual exclusion without serializing unrelated non-refresh services.",
+      "The source contract, bounded failure checker, and workflow pins are closed over both Go afterimages."
+    ],
+    "productZeroSnapshotRefGateRelaxed": false,
+    "globalGoTimeoutChanged": false,
+    "testTopSetChanged": false,
+    "syntheticCredentialOnly": true,
+    "productionCredentialUsed": false
+  },
+  "artifacts": {
+    "patch": {
+      "path": "combo-five-path.patch",
+      "bytes": 14734,
+      "sha256": "38a94d763073cd15987cb1cc831b197f06b8a96a843207ea0c93d5617c6c7a97",
+      "exactlyMatchesCurrentFivePathDiff": true,
+      "forwardApplyToFormalCheck": "PASS",
+      "reverseApplyToCandidateCheck": "PASS"
+    },
+    "pathManifest": {
+      "path": "path-manifest.json",
+      "bytes": 1987,
+      "sha256": "9a14dfc4ca35aba58c6ec9de3277b5b8127fcc501a0af07b9fa64c00027b0df8"
+    },
+    "sourceModelLog": {
+      "path": "source-models.actual.log",
+      "bytes": 9828,
+      "sha256": "d30b3ce2097864cdc99704b1e8ee8e3077fb977b1f4a2a33007e6a1015ca0c86",
+      "createdWithExclusiveCreate": true
+    },
+    "strictSourceResult": {
+      "path": "strict-source-checker.result.json",
+      "bytes": 1106,
+      "sha256": "2db8b1d1a4b7f16dfab8b1117adf03e7d18999f4c32cdca21cc3ae12fcfdda9a"
+    }
+  },
+  "lineEndingIdentity": {
+    "concurrentLeafServiceCRLFRawSHA256": "00d2f9c7acd35cd7e0afcc4c68e8f4e99c9fa264cd5ec5f2a903aa39e84f42c4",
+    "concurrentLeafServiceLFNormalizedSHA256": "3ba54f5140ad9bfd40c8d2cddf291933d1c7c000566264df56974dc412b1c2c7",
+    "version1TestCRLFRawSHA256": "204f9ac046716df0f89aaf7cac83d3bb445e5833f15e99b2521cedcab1a7983d",
+    "version1TestLFNormalizedSHA256": "12653f2aefc89ad1a448f074680e579b3a2c57e9e2d88ba92921f662daa1e880",
+    "version2ServiceLFRawSHA256": "3ba54f5140ad9bfd40c8d2cddf291933d1c7c000566264df56974dc412b1c2c7",
+    "version2TestLFRawSHA256": "12653f2aefc89ad1a448f074680e579b3a2c57e9e2d88ba92921f662daa1e880",
+    "codeEqualAfterEOLNormalization": true,
+    "version1State": "mixed-EOL failed preparation copy; it is not the accepted candidate"
+  },
+  "sourceModels": {
+    "firstUnloggedRun": {
+      "session": 77879,
+      "result": "PASS",
+      "count": 63,
+      "rawLogClaimed": false
+    },
+    "authorizedEvidenceGapRerun": {
+      "session": 30142,
+      "exit": 0,
+      "result": "PASS",
+      "count": 63,
+      "elapsedSecondsReportedByUnittest": 34.087,
+      "modelNamesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+      "verifySourceModelLog": "PASS",
+      "goExecutionProven": false
+    },
+    "firstReplayAttempt": {
+      "result": "FAIL",
+      "reason": "The ad hoc replay harness supplied an unsorted expected-name list and was rejected with source model expected names.",
+      "testLogChangedOrRegenerated": false,
+      "correction": "Reused the same exclusive log and check_source_contract.source_model_names to generate the sorted 63-name inventory."
+    }
+  },
+  "strictSourceChecker": {
+    "exit": 0,
+    "result": "PASS",
+    "modulePathCount": 825,
+    "moduleContentSHA256": "3852ae46e68b8bfc95acab854211ff40e1ab40c202a9853362bbfdd9fc372bb7",
+    "fixturePathCount": 20,
+    "changedGoSourceCount": 25,
+    "changedGoSourcesSHA256": "de5a827c047e12288e52171962cfcd13b030488216210f8d985437a01e375a52",
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "goExecutionProven": false
+  },
+  "boundaries": {
+    "goExecuted": false,
+    "gofmtExecuted": false,
+    "browserOrHTTPServiceUsed": false,
+    "sshOrProductionTouched": false,
+    "joblogsSessionOrRawRead": false,
+    "formalSourceModified": false,
+    "jycwModified": false,
+    "goAndOfficialFormatAcceptance": "PENDING_CI",
+    "runtimeAcceptance": "NOT_CLAIMED",
+    "hyMemory": "UNAVAILABLE_IN_AGENT_CONTEXT"
+  }
+}

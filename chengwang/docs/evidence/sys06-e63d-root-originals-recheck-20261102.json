@@ -1,0 +1,50 @@
+{
+  "head": "e63d006560b4c4c58b71f7e66b7f4d69299c07c5",
+  "rootZipHashCRCAndMemberCountRecheck": "PASS",
+  "archives": [
+    {
+      "zip": "mihomo-continuous-bound-credentials-model-41439397849-1.original.zip",
+      "sha256": "a159222d760ca5311319c3de8cfa5caf069491dbe25a10f28748d41cc4b72204",
+      "bytes": 5100,
+      "members": 8
+    },
+    {
+      "zip": "mihomo-continuous-fault-model-41439397849-1.original.zip",
+      "sha256": "73c0f402c5abe2f684c7def1ded5c417381df1380847e22bd8fdffcabca29ee3",
+      "bytes": 2732,
+      "members": 6
+    },
+    {
+      "zip": "mihomo-continuous-recovery-api-fresh-41439397849-1.original.zip",
+      "sha256": "3b7c3416a331bbfa7491fa24f32243c8b7dd969cc12033ac861cca6fffb73c83",
+      "bytes": 650,
+      "members": 1
+    },
+    {
+      "zip": "mihomo-continuous-recovery-api-originals-41439397849-1.original.zip",
+      "sha256": "896abaf0100bfac6df823abcb88dcb9afaaf6cb9125896c73c89fca5b8af6334",
+      "bytes": 55487,
+      "members": 57
+    },
+    {
+      "zip": "mihomo-continuous-recovery-candidate-41439397849-1.original.zip",
+      "sha256": "9a214f7e46d8c5c8cb4f03d691abdb5c27209cb2269a08b0fb3241312c7a3b22",
+      "bytes": 3142,
+      "members": 7
+    },
+    {
+      "zip": "p207a-source-go-failure-41439397620-1.original.zip",
+      "sha256": "7feb1f93d46839adfdef6fa753ed34439e909df588e97b3f0a81095ae23303c9",
+      "bytes": 3067,
+      "members": 9
+    },
+    {
+      "zip": "p207a-source-models-41439397620-1.original.zip",
+      "sha256": "e89b34d4e9aa5f8350573b0ff1fe62832169724776e2650dde9fcf0ea4c9c38f",
+      "bytes": 1700,
+      "members": 1
+    }
+  ],
+  "limited31AcceptedDoesNotOverrideP207Failure": true,
+  "productionTouched": false
+}

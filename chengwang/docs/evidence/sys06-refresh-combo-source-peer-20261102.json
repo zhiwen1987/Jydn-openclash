@@ -1,0 +1,68 @@
+{
+  "schema": "chengwang.refresh-retry-combo-independent-source-review/v1",
+  "verdict": "SOURCE_ACCEPT",
+  "runtimeAcceptance": "PENDING_EXACT_HEAD_CI",
+  "actualModel": "UNKNOWN",
+  "baseHead": "e63d006560b4c4c58b71f7e66b7f4d69299c07c5",
+  "candidate": "D:/CodexData/workspace/chengwang-refresh-combo-e63-20261102-diagnosis61h-v2/repo",
+  "delivery": "D:/CodexData/workspace/chengwang-refresh-combo-e63-20261102-diagnosis61h-v2/FINAL-source-acceptance-20261102-v1",
+  "artifactIdentity": {
+    "patchBytes": 14734,
+    "patchSHA256": "38a94d763073cd15987cb1cc831b197f06b8a96a843207ea0c93d5617c6c7a97",
+    "fullIndexPatchExactlyMatchesFivePathDiff": true,
+    "forwardApplyCheck": "PASS",
+    "reverseApplyCheck": "PASS",
+    "manifestBytes": 1987,
+    "manifestSHA256": "9a14dfc4ca35aba58c6ec9de3277b5b8127fcc501a0af07b9fa64c00027b0df8",
+    "allFiveBeforeAfterBytesSHA256AndLFMatch": true
+  },
+  "sourceIdentity": {
+    "strictChecker": "PASS",
+    "modulePathCount": 825,
+    "fixturePathCount": 20,
+    "changedGoSourceCount": 25,
+    "packageTestTopCount": 486,
+    "requiredRunTopCount": 481,
+    "packageTestTopsSHA256": "dbb34722ed6805eecfaaa75a7270a7ea4fd0498126efa016fd8fe089128cfe3f",
+    "requiredRunTopsSHA256": "34a69e776c7342fb75d18f29e0b508d0216b208c903e9c2bdee516a21e9f84a0",
+    "changedTestFileTopSetEqualsBase": true,
+    "changedTestFileTopCount": 26,
+    "goExecutionProvenBySourceChecker": false
+  },
+  "sourceModels": {
+    "savedLogSHA256": "d30b3ce2097864cdc99704b1e8ee8e3077fb977b1f4a2a33007e6a1015ca0c86",
+    "tests": 63,
+    "elapsedSecondsReported": 34.087,
+    "modelNamesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+    "astInventoryAndVerifySourceModelLog": "PASS",
+    "firstUnloggedPassNotClaimedAsRawEvidence": true,
+    "firstReplayHarnessFailurePreserved": true,
+    "firstReplayHarnessFailureReason": "unsorted expected-name list rejected by verifier"
+  },
+  "logicReview": {
+    "capacityLock": "PASS: capacityMu remains around sidecar capacity coordination only; non-sidecar Execute retains same-source and 16-slot claim under service mu plus deferred release",
+    "snapshotFixture": "PASS: real isolated authn.SnapshotManager supplies process-bound nonzero SnapshotRef; normal TrustedPrincipal and CurrentPrincipal delegate to it",
+    "freshValidation": "PASS: synthetic stale fault occurs only after real CurrentPrincipal validation; product zero-ref rejection and pre-fetch/post-fetch CurrentPrincipal, scope, and RBAC checks remain unchanged",
+    "clock": "PASS: manager opens at approval time and reopened/restored services reuse the monotonic worker clock",
+    "boundedCleanup": "PASS: pending-stage tests use cancelable contexts, idempotent release, three-second entry/completion bounds, and deferred bounded joins"
+  },
+  "gateReview": {
+    "permissions": "contents: read unchanged",
+    "workflowTimeoutMinutes": [5, 15, 5],
+    "goTimeoutSeconds": 180,
+    "globalGoTimeoutChanged": false,
+    "testTopSetChanged": false,
+    "freshRejectGateChanged": false,
+    "workflowSemanticChanges": "hash pins only",
+    "failureCheckerSemanticChanges": "two Go source pins only",
+    "sourceContractSemanticChanges": "module aggregate, two Go afterimage pins, and changed-Go map aggregate only"
+  },
+  "boundaries": [
+    "No Go, gofmt, browser, service, SSH, production, joblog, session, or raw runtime evidence operation was performed by this review.",
+    "No formal source, candidate source, or prior FINAL artifact was changed.",
+    "One ignored review-generated check_source_contract pycache file was immediately removed by exact validated path; candidate status returned to the frozen five paths.",
+    "The first independent strict-checker CLI attempt used a reviewer-mistyped malformed go-list model SHA and was rejected; the corrected exact workflow pin passed. This was not a source failure.",
+    "Hy-Memory tools were unavailable in this agent context; no shared-memory read or write is claimed."
+  ],
+  "blockingFindings": []
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "chengwang.root-refresh-combo-source-integration/v1",
+  "base": "e63d006560b4c4c58b71f7e66b7f4d69299c07c5",
+  "paths": [
+    ".github/workflows/chengwang-subscription-refresh.yml",
+    "chengwang/deploy/subscription-refresh/check_go_failure.py",
+    "chengwang/deploy/subscription-refresh/source_contract.json",
+    "chengwang/internal/subscriptionctl/service.go",
+    "chengwang/internal/subscriptionctl/service_linux_test.go"
+  ],
+  "exactFullIndexPatchSHA256": "38a94d763073cd15987cb1cc831b197f06b8a96a843207ea0c93d5617c6c7a97",
+  "exactPatchBytes": 14734,
+  "allAfterimageSHAAndLFVerified": true,
+  "testTopsKept": true,
+  "sourceOnlyNotGoAcceptance": true,
+  "preservedReadHarnessFailure": "single batch JSON exceeded tool output limit before source mutation; recovered via five bounded image reads",
+  "productionTouched": false
+}

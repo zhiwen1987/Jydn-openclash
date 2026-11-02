@@ -68,8 +68,8 @@ BUILD_LOCATION_SOURCES = {
     "chengwang/internal/subscriptionctl/access_test.go": "730eb49c1c4690faa650689fc87c6689ffc7ada3b5c7dd3d61656f98eb020e1d",
     "chengwang/internal/subscriptionctl/contract.go": "8bf567cf6294dc6907d1932b240e244f2f80fe03ae17f277e098b2523cca2637",
     "chengwang/internal/subscriptionctl/refresh.go": "6ca1bdc725b035b9d6eed26724e77aafd5abd6a06b1f60d69c49dfa92b26cf0d",
-    "chengwang/internal/subscriptionctl/service.go": "28d72d50d061cfc6d8c6263a6d941520a238186b791640c9f2bc3e76d1d392aa",
-    "chengwang/internal/subscriptionctl/service_linux_test.go": "ecacaf5cf16e09b70e95779a75b75478f70578df99f203e2042ad228d3de3680",
+    "chengwang/internal/subscriptionctl/service.go": "3ba54f5140ad9bfd40c8d2cddf291933d1c7c000566264df56974dc412b1c2c7",
+    "chengwang/internal/subscriptionctl/service_linux_test.go": "12653f2aefc89ad1a448f074680e579b3a2c57e9e2d88ba92921f662daa1e880",
     "chengwang/internal/subscriptionctl/service_read_linux_test.go": "2e3c28a09a2962b1fc385ab03246f6a8787caf42c676e8829b54d0079ef636cf",
 }
 LOCATION_TAIL = re.compile(r"^(?P<line>[1-9][0-9]{0,6})(?::(?P<column>[1-9][0-9]{0,2}))?: .+$")

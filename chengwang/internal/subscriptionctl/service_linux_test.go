@@ -5,6 +5,7 @@ package subscriptionctl
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -99,20 +100,50 @@ type ctlTestEnv struct {
 
 type ctlTestRefreshIdentity struct {
 	principal        authz.Principal
+	manager          *authn.SnapshotManager
 	trusted, current int
 	currentErr       error
 }
 
 func (i *ctlTestRefreshIdentity) TrustedPrincipal(id string, now time.Time) (authz.Principal, authn.SnapshotRef, error) {
 	i.trusted++
-	return i.principal, authn.SnapshotRef{}, nil
+	if id != i.principal.ID {
+		return authz.Principal{}, authn.SnapshotRef{}, authn.ErrSnapshotStale
+	}
+	return i.manager.TrustedPrincipal(id, now)
 }
 func (i *ctlTestRefreshIdentity) CurrentPrincipal(ref authn.SnapshotRef, id string, now time.Time) (authz.Principal, error) {
 	i.current++
+	if id != i.principal.ID || ref == (authn.SnapshotRef{}) {
+		return authz.Principal{}, authn.ErrSnapshotStale
+	}
+	principal, err := i.manager.CurrentPrincipal(ref, id, now)
+	if err != nil {
+		return authz.Principal{}, err
+	}
 	if i.currentErr != nil {
 		return authz.Principal{}, i.currentErr
 	}
-	return i.principal, nil
+	return principal, nil
+}
+
+func ctlTestOpenRefreshIdentity(t *testing.T, e *ctlTestEnv, principal authz.Principal, now time.Time) *ctlTestRefreshIdentity {
+	t.Helper()
+	tokenHash := sha256.Sum256([]byte("synthetic-subscription-refresh-fixture-token"))
+	raw, err := json.Marshal(authn.File{Version: authn.FileVersion, Identities: []authn.Identity{{TokenID: "synthetic-refresh-fixture", TokenHash: fmt.Sprintf("%x", tokenHash), Principal: principal}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(e.root, "refresh-identity.json")
+	if err = os.WriteFile(path, append(raw, '\n'), 0600); err != nil {
+		t.Fatal(err)
+	}
+	manager, err := authn.OpenSnapshotManager(path, now.UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = manager.Close() })
+	return &ctlTestRefreshIdentity{principal: principal, manager: manager}
 }
 
 func ctlTestOpen(t *testing.T) *ctlTestEnv {
@@ -283,7 +314,7 @@ func TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore(t *testing.T) 
 		t.Fatal(err)
 	}
 	machine := authz.Principal{ID: "subscription-refresh-machine", TenantID: "tenant-a", Roles: []authz.Role{authz.RoleSubscriptionRefresher}, AllowedScopes: []authz.ResourceScope{{TenantID: "tenant-a", SiteID: "site-a", Environment: "lab", ObjectType: "subscription-source", ObjectID: created.SourceID}}}
-	identity := &ctlTestRefreshIdentity{principal: machine}
+	identity := ctlTestOpenRefreshIdentity(t, e, machine, approval.CompletedAt)
 	config := e.config()
 	config.RefreshStore = sidecar
 	config.RefreshRecovery = recovery
@@ -369,6 +400,7 @@ func TestSubscriptionRefreshV3CheckpointRejectsSingleStoreRestore(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
+	restoredService.now = service.now
 	err = restoredService.ConfigureRefresh(context.Background())
 	ctlTestError(t, err, CodeConflict, false)
 }
@@ -390,7 +422,7 @@ func ctlTestRefreshWorker(t *testing.T) (*ctlTestEnv, *subscription.RefreshStore
 		t.Fatal(err)
 	}
 	machine := authz.Principal{ID: "subscription-refresh-machine", TenantID: "tenant-a", Roles: []authz.Role{authz.RoleSubscriptionRefresher}, AllowedScopes: []authz.ResourceScope{{TenantID: "tenant-a", SiteID: "site-a", Environment: "lab", ObjectType: "subscription-source", ObjectID: created.SourceID}}}
-	identity := &ctlTestRefreshIdentity{principal: machine}
+	identity := ctlTestOpenRefreshIdentity(t, e, machine, approval.CompletedAt)
 	config := e.config()
 	config.RefreshStore = sidecar
 	config.RefreshRecovery = recovery
@@ -416,8 +448,11 @@ func TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage(t *testin
 		t.Run(stage, func(t *testing.T) {
 			e, sidecar, service, created, identity := ctlTestRefreshWorker(t)
 			beforeRevision := e.source(created.SourceID).Revision
+			ctx, cancel := context.WithCancel(context.Background())
 			pending := make(chan struct{})
 			release := make(chan struct{})
+			releaseOnce := sync.Once{}
+			releaseWorker := func() { releaseOnce.Do(func() { close(release) }) }
 			waits := 0
 			service.refreshRetryWait = func(ctx context.Context, _ time.Duration) bool {
 				waits++
@@ -443,8 +478,31 @@ func TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage(t *testin
 				return operation()
 			}
 			done := make(chan error, 1)
-			go func() { done <- service.RefreshOnce(context.Background()) }()
-			<-pending
+			joined := false
+			defer func() {
+				releaseWorker()
+				cancel()
+				if joined {
+					return
+				}
+				select {
+				case err := <-done:
+					if err != nil {
+						t.Errorf("worker cleanup returned original error: %v", err)
+					}
+				case <-time.After(3 * time.Second):
+					t.Error("worker did not stop after bounded cleanup")
+				}
+			}()
+			go func() { done <- service.RefreshOnce(ctx) }()
+			select {
+			case <-pending:
+			case err := <-done:
+				joined = true
+				t.Fatalf("worker exited before pending stage: %v", err)
+			case <-time.After(3 * time.Second):
+				t.Fatal("worker did not reach pending stage")
+			}
 			e.policy.mu.Lock()
 			fetchesWhilePending := e.policy.fetches
 			e.policy.mu.Unlock()
@@ -457,9 +515,15 @@ func TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage(t *testin
 			if err != nil || !read.StoragePending || read.StorageRetryCount < 4 || read.StorageNextRetryAt.IsZero() {
 				t.Fatal("read model did not expose safe storage pending state")
 			}
-			close(release)
-			if err = <-done; err != nil {
-				t.Fatal("worker did not recover exact stage", err)
+			releaseWorker()
+			select {
+			case err = <-done:
+				joined = true
+				if err != nil {
+					t.Fatal("worker did not recover exact stage", err)
+				}
+			case <-time.After(3 * time.Second):
+				t.Fatal("worker did not finish recovered stage")
 			}
 			e.policy.mu.Lock()
 			fetches := e.policy.fetches
@@ -484,8 +548,11 @@ func TestSubscriptionRefreshV5KnownNotCommittedStaysOnExactWorkerStage(t *testin
 
 func TestSubscriptionRefreshV5BindRetryRevalidatesFreshGrantBeforeFetch(t *testing.T) {
 	e, sidecar, service, created, identity := ctlTestRefreshWorker(t)
+	ctx, cancel := context.WithCancel(context.Background())
 	pending := make(chan struct{})
 	release := make(chan struct{})
+	releaseOnce := sync.Once{}
+	releaseWorker := func() { releaseOnce.Do(func() { close(release) }) }
 	waits := 0
 	service.refreshRetryWait = func(ctx context.Context, _ time.Duration) bool {
 		waits++
@@ -511,12 +578,41 @@ func TestSubscriptionRefreshV5BindRetryRevalidatesFreshGrantBeforeFetch(t *testi
 		return operation()
 	}
 	done := make(chan error, 1)
-	go func() { done <- service.RefreshOnce(context.Background()) }()
-	<-pending
+	joined := false
+	defer func() {
+		releaseWorker()
+		cancel()
+		if joined {
+			return
+		}
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Errorf("worker cleanup returned original error: %v", err)
+			}
+		case <-time.After(3 * time.Second):
+			t.Error("worker did not stop after bounded cleanup")
+		}
+	}()
+	go func() { done <- service.RefreshOnce(ctx) }()
+	select {
+	case <-pending:
+	case err := <-done:
+		joined = true
+		t.Fatalf("worker exited before pending bind: %v", err)
+	case <-time.After(3 * time.Second):
+		t.Fatal("worker did not reach pending bind")
+	}
 	identity.currentErr = authn.ErrSnapshotStale
-	close(release)
-	if err := <-done; err != nil {
-		t.Fatal("fresh denial did not close attempt", err)
+	releaseWorker()
+	select {
+	case err := <-done:
+		joined = true
+		if err != nil {
+			t.Fatal("fresh denial did not close attempt", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("fresh denial did not finish attempt")
 	}
 	e.policy.mu.Lock()
 	fetches := e.policy.fetches
