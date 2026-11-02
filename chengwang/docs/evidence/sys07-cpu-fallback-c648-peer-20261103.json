@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-c648-cpu-fallback-projection-review",
+  "verdict": "SOURCE_ACCEPT",
+  "candidate": {
+    "path": "D:/CodexData/workspace/chengwang-joint-cpu-fallback-c648-projection-20261103-v1",
+    "baseCommit": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+    "manifestSHA256": "d94810abfba8289eba8be049061017282027daa2e07a540f1945faf7f22baab3",
+    "receiptSHA256": "4883118e1c31b72d36aceaee9a28cbb2c3801d078dda471f61dcee1aa946d259",
+    "patchSHA256": "7c50f4af0d300b9be4b056c3f457b403017ce26a2eaaa316e2b055d87fe0231b",
+    "modifiedPaths": 4,
+    "lineEndings": "LF"
+  },
+  "identity": {
+    "headMatchesBase": true,
+    "onlyDeclaredPathsModified": true,
+    "manifestDeliveryFilesMatched": "10/10",
+    "receiptBeforeGitBlobsMatched": "4/4",
+    "afterimagesMatchedWorkingBytes": "4/4",
+    "afterimageSHA256Matched": "4/4",
+    "afterimageCRLFCount": 0,
+    "patchReverseAppliesToFrozenWorkingTree": true
+  },
+  "acceptedV3Projection": {
+    "sanitizePublicationExact": true,
+    "sanitizePublicationSHA256": "34c131a9982f415c23082f6219071840e90ad8aa2506b19497a6ca88cf7baf99",
+    "testSanitizePublicationExact": true,
+    "testSanitizePublicationSHA256": "7ccd15bf10d122bb4e9548466fea392fdaaf4cd241be373be7c874d373ca3e2b",
+    "workflowEqualExceptContractPin": true
+  },
+  "sourceContract": {
+    "schema": "chengwang.joint-control-plane-source-contract/v1",
+    "baseCommitField": "736bfdd1f8182e958cea26987f85683e2c6aee39",
+    "pathCountBefore": 841,
+    "pathCountAfter": 841,
+    "changedRows": [
+      "chengwang/deploy/joint-control-plane/sanitize_publication.py",
+      "chengwang/deploy/joint-control-plane/test_sanitize_publication.py"
+    ],
+    "otherRowsUnchanged": 839,
+    "c648IntegratedGoRowsExplicitlyUnchanged": [
+      "chengwang/internal/subscription/sealed_archive_a0.go",
+      "chengwang/internal/subscription/sealed_archive_history.go",
+      "chengwang/internal/subscription/sealed_archive_test.go",
+      "chengwang/internal/subscription/sealed_archive_wire.go"
+    ],
+    "afterSHA256": "d29420f0b6dd7443348b6e79a7a3310f2c423caf9784c61293365f5e3cd5e263",
+    "independentCheck": "PASS"
+  },
+  "workflowPins": {
+    "contractPin": "d29420f0b6dd7443348b6e79a7a3310f2c423caf9784c61293365f5e3cd5e263",
+    "contractPinMatchesActual": true,
+    "checkerPin": "5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec",
+    "checkerPinMatchesActual": true,
+    "checkerPinChangedFromAcceptedV3": false
+  },
+  "independentJointUnits": {
+    "command": "python -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output <external-temp-output>",
+    "exitCode": 0,
+    "testsRun": 47,
+    "failures": 0,
+    "errors": 0,
+    "result": "PASS",
+    "durationSeconds": 2.654,
+    "schema": "chengwang.joint-control-plane-units/v2",
+    "syntheticOnly": true,
+    "productAcceptanceProven": false
+  },
+  "producerEvidence": {
+    "sourceContractLogSHA256": "d366a5e8927d41de6010a15ed35996aaf14ef83e58975c5f47923f6748602445",
+    "jointUnitsLogSHA256": "878526b6554c95a577487272f211da9dbb9d622a33bda3c5fb3c81b6eb6e54ec",
+    "jointUnitsJSONSHA256": "2afdeb7e55f94f47c9ff4afaacd4098250b7853094ed80197f849eb1e3a2fdc7",
+    "deliveryHashesVerified": true
+  },
+  "findings": [],
+  "boundaries": {
+    "sourceAccepted": true,
+    "goExecutedByReviewer": false,
+    "runtimeExecutedByReviewer": false,
+    "productAcceptanceProven": false,
+    "actualGoResult": "UNKNOWN",
+    "actualRuntimeResult": "UNKNOWN",
+    "candidateModified": false,
+    "formalModified": false,
+    "joblogsOrRawRead": false
+  }
+}

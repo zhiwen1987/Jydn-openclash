@@ -1,0 +1,127 @@
+{
+  "schema": "chengwang.p207-independent-audit/v1",
+  "verdict": "P207_REJECT",
+  "actualModel": "UNKNOWN",
+  "run": {
+    "id": 41479327943,
+    "attempt": 1,
+    "event": "push",
+    "branch": "codex/chengwang-unified-20261102",
+    "headSHA": "c64872682817c39fbf8c78704a3cc8df68a3b7a3",
+    "tree": "15697a36d29a897634d8bf8055d9fe18bfdb0b10",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {"id": 125393142261, "name": "source-models", "conclusion": "success"},
+      {"id": 125393315425, "name": "source-and-go", "conclusion": "failure"},
+      {"id": 125393769628, "name": "fresh", "conclusion": "skipped"}
+    ]
+  },
+  "publicArtifacts": [
+    {
+      "id": 13157989234,
+      "name": "p207a-source-models-41479327943-1",
+      "bytes": 1699,
+      "sha256": "47c1164cbcdc171f1c0aecbe3ed697a552e51f29abc9e0461527658458560e5e",
+      "memberCount": 1,
+      "custodySHA256": "0d42f6e27ab9722f77a5d634486197a7a676188b6ba6c605c6514e67090f42",
+      "originalBytesStable": true
+    },
+    {
+      "id": 13159356336,
+      "name": "p207a-source-go-failure-41479327943-1",
+      "bytes": 2763,
+      "sha256": "82917a593a9a6321964753fad29f7cb09421d84a851df37059e7e42975b525cb",
+      "memberCount": 9,
+      "custodySHA256": "212cb26c785281799dfadb1aa82135621b8f7462c05cf087a43d15f4f600b851",
+      "originalBytesStable": true
+    }
+  ],
+  "sourceModels": {
+    "accepted": true,
+    "count": 63,
+    "namesSHA256": "381d6fd992de5fffe1ee56bc52449d2be561078b2b05dd5050dc6607926459dd",
+    "logSHA256": "eedf0481c26286708d5083066d7360518fd133d352747f5364a1b15be2a1380d",
+    "independentVerifier": "exact-c648 check_source_contract.py source_model_names plus verify_source_model_log"
+  },
+  "sourceClosure": {
+    "accepted": true,
+    "beforeAfterByteIdentical": true,
+    "snapshotSHA256": "3ad1d21175c9187fefc839b0cfe32647916ee2946469f8511ab5734286ca53df",
+    "contractSHA256": "b6cc46dbcb4f7602f64f66c487eb6ef9e858c51b905dc6381d0a7a91652ec4ac",
+    "modulePathCount": 830,
+    "moduleContentSHA256": "c67ead139f20aa70952186c7f0bc9763729b859b1e410d215d94421aba3d6dde",
+    "fixturePathCount": 21,
+    "fixtureContentSHA256": "7caaa3411c0d13971c42e2f60bdf11f4d9d65df71f376808aa635080a4ad9c11",
+    "packageTopCount": 496,
+    "requiredRunTopCount": 491,
+    "changedGoSourceCount": 29,
+    "changedGoSourcesSHA256": "562e0fbe9a47243c17e0f36c12570a7c99d47efa00a97e636402103abcae770d",
+    "foundationCurrentCount": 689,
+    "goExecutionProven": false
+  },
+  "format": {
+    "accepted": true,
+    "commandExit": 0,
+    "patchBytes": 0,
+    "stderrBytes": 0,
+    "emptySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "goFailure": {
+    "schema": "chengwang.subscription-refresh-go-failure/v4",
+    "accepted": false,
+    "reportOutcome": "FAILURE_DIAGNOSTIC_ONLY",
+    "stage": "PACKAGE_TERMINAL",
+    "failureClass": "PACKAGE_TERMINAL_NONPASS",
+    "goExit": 1,
+    "eventCheckExit": 1,
+    "failureCheckExit": 0,
+    "markerObservation": "NONE",
+    "buildDiagnosticStatus": "BUILD_DIAGNOSTIC_LOCATION_UNKNOWN",
+    "buildDiagnosticReason": "NOT_ELIGIBLE",
+    "buildStderrClass": "EMPTY",
+    "buildSourcePositionCount": 0,
+    "declaredPackageCount": 7,
+    "declaredTopCount": 491,
+    "passCount": 489,
+    "failCount": 2,
+    "runningCount": 0,
+    "notStartedCount": 0,
+    "failedTops": [
+      "chengwang/internal/subscription::TestSealedArchiveV8AllControlStatesAndCheckpoint",
+      "chengwang/internal/subscription::TestSealedArchiveV8PrimitiveAndNameBoundaries"
+    ],
+    "failedPackage": "chengwang/internal/subscription",
+    "failedPackageCounts": {"pass": 128, "fail": 2, "running": 0, "notStarted": 0},
+    "underlyingAssertionOrRuntimeCause": "UNKNOWN",
+    "causeBoundary": "The bounded public report names two failed top-level tests but contains no assertion, panic, or private Go output text; no deeper cause is claimed."
+  },
+  "missingAcceptanceEvidence": [
+    "accepted artifact",
+    "fresh artifact and byte-for-byte fresh verification",
+    "accepted go-events report",
+    "official go-list report",
+    "491/0/0/0 terminal result",
+    "zero Go exit"
+  ],
+  "historyBoundary": {
+    "priorRun": 41473420726,
+    "priorHead": "9d9c112f6700c128162556410768396df3ded6a8",
+    "priorFailurePreserved": true,
+    "priorFailureSupersededOrErased": false
+  },
+  "toolPins": {
+    "githubArtifactViaGitCredentialSHA256": "857551d085fbfc49daee58339a8967babfbc6060ec0db4269edfb0cbfd07f068",
+    "safeMaterializerSHA256": "49b7a3ef5721012d804a76b8d5f30ae85a39cd86bad059880806784dfee48608"
+  },
+  "scope": {
+    "jobLogsRead": false,
+    "rawPrivateGoStreamsRead": false,
+    "sessionsRead": false,
+    "signedURLPersisted": false,
+    "localGoOrGofmtRun": false,
+    "rerunRequested": false,
+    "formalRepositoryModified": false,
+    "productionTouched": false
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "reviewType": "independent-frozen-v2-three-path-source-review",
+  "verdict": "SOURCE_REVISE",
+  "input": {
+    "baseCommit": "9d9c112f6700c128162556410768396df3ded6a8",
+    "candidateDirectory": "D:\\CodexData\\workspace\\chengwang-joint-cpu-artifact-fallback-candidate-20261103-v2",
+    "manifestSha256": "fe37a38e7346960b08ee7a6ed4ff2719f538a7cc49897624a02f2db9f5b6d8a2",
+    "receiptSha256": "41c8b4f2e4ea57f099b9ea1e871bbcedc872326dae75e1016e1eede164c1c061",
+    "patchSha256": "fdaac962469e94e289e5bf98394c50f792c70bf0b57870ca896e6ba623e86e1d",
+    "pathCount": 3,
+    "identityVerified": true,
+    "manifestDeliveryMismatches": [],
+    "baseBlobMismatches": [],
+    "afterimageMismatches": [],
+    "afterimagesLfOnly": true
+  },
+  "v1FindingDisposition": {
+    "status": "FIXED",
+    "cpuStepId": "cpu",
+    "preExistingGuard": "Explicit conditional detects existing files, directories, and dangling symlinks and exits before install, units, or Go.",
+    "publicationReadyAfterPublishOnly": true,
+    "uploadCondition": "always() && steps.cpu.outputs.publication_ready == 'true'",
+    "missingArtifactPolicy": "error",
+    "actualBashConflictCases": ["private", "stage", "public"],
+    "actualBashConflictResult": "All exit nonzero, do not invoke stub units/Go, do not write publication_ready, and preserve sentinel bytes."
+  },
+  "findings": [
+    {
+      "id": "R2",
+      "severity": "REVISE",
+      "title": "GITHUB_OUTPUT write failure is masked and can produce a successful CPU step with no artifact",
+      "locations": [
+        ".github/workflows/chengwang-joint-control-plane.yml:44",
+        ".github/workflows/chengwang-joint-control-plane.yml:68-73",
+        ".github/workflows/chengwang-joint-control-plane.yml:75-81",
+        "chengwang/deploy/joint-control-plane/test_sanitize_publication.py:126-143"
+      ],
+      "evidence": "The shell intentionally omits `-e`. After cpu-publish returns zero, `printf publication_ready=true >>$GITHUB_OUTPUT` is not checked. If the append fails, the following final status test can return zero when units and Go succeeded, masking the output-write error. The CPU step then succeeds, publication_ready is absent, and the conditionally gated upload is silently skipped; if-no-files-found:error never runs.",
+      "independentCounterexample": "Executed the frozen workflow Bash block with successful stub python3/Go functions and GITHUB_OUTPUT set to a directory. Bash reported `Is a directory`, invoked all success-path stubs, and exited 0. No publication_ready output was created.",
+      "minimumCorrection": "Treat the GITHUB_OUTPUT append as part of publication success: on append failure set publish_code nonzero or exit nonzero before the final test. Add an actual Bash regression with successful units/Go/publisher stubs and an unwritable or directory GITHUB_OUTPUT; require nonzero exit and absent ready output."
+    }
+  ],
+  "preservedAcceptedProperties": {
+    "fallbackReadsPrivateFiles": false,
+    "fallbackFixedCanonicalJson": true,
+    "fallbackFailureCode": "CPU_DIAGNOSTIC_UNAVAILABLE",
+    "fallbackContainsPrivateCountsHashesOrIdentity": false,
+    "privateCapsChanged": false,
+    "detailedProjectionFailureStillFailsCpuStep": true,
+    "underlyingCpuFailureStillFailsCpuStep": true,
+    "cpuPublishExactOneAllowlist": true,
+    "cpuPublishCachesValidatedBytes": true,
+    "cpuPublishAtomicSiblingReplace": true,
+    "cpuPublishMissingInputRejected": true,
+    "rbacChanged": false,
+    "goPassNotInvented": true,
+    "runtimeAcceptanceNotInvented": true
+  },
+  "independentCpuReplay": {
+    "command": "python -I -B test_sanitize_publication.py",
+    "testsRun": 11,
+    "failures": 0,
+    "exitCode": 0,
+    "producerLogSha256": "5fb816199934daca0290a4511394ebf2f326d5a2c10b1df9dc0e7c00419501b2",
+    "limitation": "The suite covers pre-existing-path Bash conflicts but not GITHUB_OUTPUT append failure."
+  },
+  "afterimageSha256": {
+    ".github/workflows/chengwang-joint-control-plane.yml": "bd87a744c631c020af4d6dd9162f66d424f5639c75e1b1e20e4706c7698f9d6b",
+    "chengwang/deploy/joint-control-plane/sanitize_publication.py": "34c131a9982f415c23082f6219071840e90ad8aa2506b19497a6ca88cf7baf99",
+    "chengwang/deploy/joint-control-plane/test_sanitize_publication.py": "af9c487978958fc19d48bc8312558f2c5bfa67a4ac93e63a6c5c901b5b7170d1"
+  },
+  "constraints": {
+    "candidateModified": false,
+    "v1CandidateModified": false,
+    "formalRepositoryModified": false,
+    "goExecuted": false,
+    "serverExecuted": false,
+    "productionChanged": false,
+    "jobLogsRead": false,
+    "actualGoResult": "UNKNOWN",
+    "actualRunCause": "UNKNOWN"
+  }
+}

@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 05db8d68916e367dde1e325553b3386ea69782e813f41c29197bb07012216293
+  CONTRACT_SHA256: d29420f0b6dd7443348b6e79a7a3310f2c423caf9784c61293365f5e3cd5e263
   CHECKER_SHA256: 5550b1f03bd1e8fda2485d398be54a4c6e51742cd5abe4586099c4789bf82fec
 jobs:
   joint-control-plane:
@@ -39,27 +39,52 @@ jobs:
           m.source_contract(pathlib.Path('.').resolve(),b/'source_contract.json')
           PY
       - name: CPU contracts and Go suite
+        id: cpu
         env: {GOFLAGS: -mod=vendor, CGO_ENABLED: '0'}
         run: |
           set -uo pipefail
-          private="$RUNNER_TEMP/joint-control-plane-cpu-private"; public="$RUNNER_TEMP/joint-control-plane-cpu-public"
-          install -d -m 0700 "$private" "$public"
-          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" >"$private/units.log" 2>&1; unit_code=$?
-          (cd chengwang && go test -count=1 -timeout=300s ./...) >"$private/go.log" 2>&1; go_code=$?
-          printf '%s\n' "$go_code" >"$private/go-exit.txt"
-          if test "$unit_code" = 0 && test "$go_code" = 0; then
-            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu --units "$private/units.json" --go-exit "$private/go-exit.txt" --output "$public/cpu-summary.json"
-          else
-            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$private" --code CPU_FAILED --output "$public/cpu-failure.json"
+          private="$RUNNER_TEMP/joint-control-plane-cpu-private"; stage="$RUNNER_TEMP/joint-control-plane-cpu-stage"; public="$RUNNER_TEMP/joint-control-plane-cpu-public"
+          if test -e "$private" || test -L "$private" || test -e "$stage" || test -L "$stage" || test -e "$public" || test -L "$public"; then
+            printf '%s\n' 'CPU_PUBLICATION=REJECTED_PREEXISTING_PATH' >&2
             exit 1
           fi
-      - name: Preserve bounded CPU summary only
-        if: always()
+          if ! install -d -m 0700 "$private" "$stage"; then
+            printf '%s\n' 'CPU_PUBLICATION=REJECTED_DIRECTORY_CREATION' >&2
+            exit 1
+          fi
+          python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py units --output "$private/units.json" >"$private/units.log" 2>&1; unit_code=$?
+          (cd chengwang && go test -count=1 -timeout=300s ./...) >"$private/go.log" 2>&1; go_code=$?
+          if ! printf '%s\n' "$go_code" >"$private/go-exit.txt"; then
+            printf '%s\n' 'CPU_PUBLICATION=REJECTED_STATUS_WRITE' >&2
+            exit 1
+          fi
+          cpu_code=0
+          if test "$unit_code" = 0 && test "$go_code" = 0; then
+            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu --units "$private/units.json" --go-exit "$private/go-exit.txt" --output "$stage/cpu-summary.json"; projection_code=$?
+          else
+            cpu_code=1
+            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py failure --input "$private" --code CPU_FAILED --output "$stage/cpu-failure.json"; projection_code=$?
+          fi
+          fallback_code=0
+          if test "$projection_code" != 0; then
+            cpu_code=1
+            python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-fallback --output "$stage/cpu-diagnostic-unavailable.json"; fallback_code=$?
+          fi
+          python3 -I -B chengwang/deploy/joint-control-plane/sanitize_publication.py cpu-publish --input "$stage" --output "$public"; publish_code=$?
+          if test "$publish_code" = 0; then
+            if ! printf '%s\n' 'publication_ready=true' >>"$GITHUB_OUTPUT"; then
+              printf '%s\n' 'CPU_PUBLICATION=REJECTED_OUTPUT_WRITE' >&2
+              exit 1
+            fi
+          fi
+          test "$fallback_code" = 0 && test "$publish_code" = 0 && test "$cpu_code" = 0
+      - name: Preserve bounded CPU publication only
+        if: ${{ always() && steps.cpu.outputs.publication_ready == 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: joint-control-plane-cpu-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/joint-control-plane-cpu-public/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
       - name: Build once and acquire immutable source
         run: |

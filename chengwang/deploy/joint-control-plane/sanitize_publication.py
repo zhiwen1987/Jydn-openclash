@@ -4,6 +4,7 @@ import argparse, base64, hashlib, json, os, pathlib, re, shutil, sys, tempfile, 
 
 MAX_FILE=16<<20; MAX_TOTAL=64<<20
 PUBLIC={"build.json","source-before.json","source-after.json","isolation.json","runtime.json","captures.jsonl","wire-events.jsonl","readback.json","outcome.json","api-ca.pem","api-leaf.pem","resolver-ca.pem","resolver-leaf.pem","source-ca.pem","source-leaf.pem","mihomo-ca.pem","mihomo-leaf.pem","private-checks.json","transport-negatives.json"}
+CPU_DIAGNOSTIC={"schema":"chengwang.joint-control-plane-cpu-diagnostic/v1","failureCode":"CPU_DIAGNOSTIC_UNAVAILABLE","status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"runtimeAcceptanceProven":False}
 def need(ok):
     if not ok:raise ValueError("joint-publication-rejected")
 def raw(path,maximum=MAX_FILE):
@@ -116,12 +117,34 @@ def cpu(units,go_exit,out):
     value=decode(units);need(value.get("schema")=="chengwang.joint-control-plane-units/v2" and type(value.get("testsRun"))is int and value["testsRun"]>0 and value.get("syntheticOnly")is True)
     code=int(pathlib.Path(go_exit).read_text().strip());need(code==0)
     pathlib.Path(out).parent.mkdir(mode=0o700,parents=True,exist_ok=True);write(out,canonical({"schema":"chengwang.joint-control-plane-cpu-summary/v2","pythonTests":value["testsRun"],"pythonStatus":"PASS","goStatus":"PASS","rawLogsPublished":False,"runtimeAcceptanceProven":False}))
+def cpu_fallback(out):
+    out=pathlib.Path(out);out.parent.mkdir(mode=0o700,parents=True,exist_ok=True);write(out,canonical(CPU_DIAGNOSTIC))
+def cpu_public_entry(root):
+    root=pathlib.Path(root);need(root.is_dir() and not root.is_symlink());entries=list(root.iterdir());need(len(entries)==1)
+    p=entries[0];data=raw(p,1<<16);value=decode_bytes(data);need(data==canonical(value))
+    if p.name=="cpu-summary.json":
+        need(set(value)=={"schema","pythonTests","pythonStatus","goStatus","rawLogsPublished","runtimeAcceptanceProven"} and value["schema"]=="chengwang.joint-control-plane-cpu-summary/v2" and type(value["pythonTests"])is int and value["pythonTests"]>0 and value["pythonStatus"]==value["goStatus"]=="PASS" and value["rawLogsPublished"]is False and value["runtimeAcceptanceProven"]is False)
+    elif p.name=="cpu-failure.json":
+        keys={"schema","failureCode","status","production","authorization","actualSKU","privateEvidencePublished","retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256"};need(set(value)==keys and value["schema"]=="chengwang.joint-control-plane-safe-failure/v2" and value["failureCode"]=="CPU_FAILED" and value["status"]=="FAIL" and value["production"]is False and value["authorization"]=="BLOCKED" and value["actualSKU"]=="UNKNOWN" and value["privateEvidencePublished"]is False and type(value["retainedPrivateFileCount"])is int and value["retainedPrivateFileCount"]>=0 and type(value["retainedPrivateBytes"])is int and value["retainedPrivateBytes"]>=0 and re.fullmatch(r"[a-f0-9]{64}",value["privateAggregateSHA256"])!=None)
+    else:
+        need(p.name=="cpu-diagnostic-unavailable.json" and value==CPU_DIAGNOSTIC)
+    return p.name,data
+def cpu_publish(inp,out):
+    name,data=cpu_public_entry(inp);out=pathlib.Path(out);need(not out.exists() and out.parent.is_dir())
+    pending=pathlib.Path(tempfile.mkdtemp(prefix="."+out.name+".pending-",dir=out.parent))
+    try:
+        write(pending/name,data);fsync_dir(pending);fsync_dir(out.parent);need(not out.exists());os.replace(pending,out);fsync_dir(out.parent)
+    except BaseException:
+        if pending.exists():shutil.rmtree(pending)
+        raise
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("private","publish","failure","cpu"));p.add_argument("--private-root");p.add_argument("--input");p.add_argument("--output",required=True);p.add_argument("--verification");p.add_argument("--code",default="SCENE_FAILED");p.add_argument("--units");p.add_argument("--go-exit");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("private","publish","failure","cpu","cpu-fallback","cpu-publish"));p.add_argument("--private-root");p.add_argument("--input");p.add_argument("--output",required=True);p.add_argument("--verification");p.add_argument("--code",default="SCENE_FAILED");p.add_argument("--units");p.add_argument("--go-exit");a=p.parse_args()
     if a.action=="private":private_check(a.private_root,a.input,a.output)
     elif a.action=="publish":publish(a.input,a.output,a.verification)
     elif a.action=="failure":failure(a.input,a.output,a.code)
-    else:cpu(a.units,a.go_exit,a.output)
+    elif a.action=="cpu":cpu(a.units,a.go_exit,a.output)
+    elif a.action=="cpu-fallback":cpu_fallback(a.output)
+    else:cpu_publish(a.input,a.output)
 if __name__=="__main__":
     try:main()
     except Exception:print("JOINT_PUBLICATION=REJECTED",file=sys.stderr);raise SystemExit(1) from None

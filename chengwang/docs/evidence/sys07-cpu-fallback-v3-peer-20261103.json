@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-cpu-artifact-fallback-source-review",
+  "verdict": "SOURCE_ACCEPT",
+  "candidate": {
+    "path": "D:/CodexData/workspace/chengwang-joint-cpu-artifact-fallback-candidate-20261103-v3",
+    "baseCommit": "9d9c112f6700c128162556410768396df3ded6a8",
+    "manifestSHA256": "1901bcff23ea5c1df92d45e15336ec88f681aa96ea1f20916e21e52f4209ec02",
+    "receiptSHA256": "8dcb71652645904a9a53581f1cc71882529d737078f765a2acfa76b80ba99921",
+    "patchSHA256": "dfb8567932682a20abfcaf33c8f73b788bd3c221e5d9c343fef15f1165ee315a",
+    "paths": 3,
+    "lineEndings": "LF"
+  },
+  "identity": {
+    "headMatchesBase": true,
+    "onlyDeclaredPathsModified": true,
+    "manifestDeliveryFilesMatched": "8/8",
+    "receiptBeforeGitBlobsMatched": "3/3",
+    "afterimagesMatchedWorkingBytes": "3/3",
+    "afterimageSHA256Matched": "3/3",
+    "afterimageCRLFCount": 0,
+    "patchReverseAppliesToFrozenWorkingTree": true
+  },
+  "r2": {
+    "status": "FIXED",
+    "sourceEvidence": [
+      ".github/workflows/chengwang-joint-control-plane.yml:74-79"
+    ],
+    "testEvidence": [
+      "chengwang/deploy/joint-control-plane/test_sanitize_publication.py:157-174"
+    ],
+    "conclusion": "publication_ready is attempted only after cpu-publish returns zero; an append failure emits a bounded rejection and exits nonzero immediately. The actual Bash negative uses a directory as GITHUB_OUTPUT after a successful publisher, proves the public file exists, proves shell nonzero, and proves no ready entry was emitted."
+  },
+  "cpuShellIoAudit": [
+    {
+      "operation": "pre-existing private, stage, or public path",
+      "lines": "47-50",
+      "result": "file, directory, symlink, and dangling symlink are rejected before units or Go by -e/-L and exit 1"
+    },
+    {
+      "operation": "private and stage directory creation",
+      "lines": "51-54",
+      "result": "install failure is explicitly checked and exits nonzero"
+    },
+    {
+      "operation": "units command and private redirections",
+      "lines": "55",
+      "result": "command or redirection status is captured in unit_code"
+    },
+    {
+      "operation": "Go command and private redirections",
+      "lines": "56",
+      "result": "command or redirection status is captured in go_code"
+    },
+    {
+      "operation": "private go-exit status write",
+      "lines": "57-60",
+      "result": "write failure is explicitly checked and exits nonzero before projection"
+    },
+    {
+      "operation": "success or failure projection",
+      "lines": "61-67",
+      "result": "projection status is always captured; underlying unit or Go failure sets cpu_code=1"
+    },
+    {
+      "operation": "fixed fallback",
+      "lines": "68-72",
+      "result": "projection failure forces cpu_code=1 and fallback status is captured"
+    },
+    {
+      "operation": "exact-one cached atomic publisher",
+      "lines": "73",
+      "result": "publisher status is captured in publish_code"
+    },
+    {
+      "operation": "publication_ready append",
+      "lines": "74-79",
+      "result": "attempted only after publisher success and append failure exits nonzero"
+    },
+    {
+      "operation": "final CPU status",
+      "lines": "80",
+      "result": "fallback, publish, and CPU semantic statuses must all be zero"
+    },
+    {
+      "operation": "artifact upload",
+      "lines": "81-88",
+      "result": "runs only under always plus exact ready output; missing public files are an error"
+    }
+  ],
+  "preservedProperties": {
+    "r1PreexistingPathClosure": true,
+    "privateCapsUnchanged": true,
+    "fallbackReadsNoPrivateFiles": true,
+    "fallbackIsFixedCanonicalCPU_DIAGNOSTIC_UNAVAILABLE": true,
+    "detailedProjectionFailureStillFailsCPU": true,
+    "underlyingUnitsOrGoFailureStillFailsCPU": true,
+    "publisherExactOneCachedAtomic": true,
+    "permissionsRemainContentsRead": true,
+    "rbacUnchanged": true,
+    "runtimeAcceptanceNotRelaxed": true,
+    "goResultNotInvented": true
+  },
+  "independentReplay": {
+    "command": "python -I -B test_sanitize_publication.py",
+    "testsRun": 12,
+    "failures": 0,
+    "errors": 0,
+    "result": "PASS",
+    "reviewDurationSeconds": 1.756,
+    "producerFrozenPassLogSHA256": "10ebeb8756737b3ed367ff7238cd021774555b354c4e80b23a272fc8e2c438d1",
+    "producerFrozenPassLog": "12 tests PASS in 1.642 seconds",
+    "firstFailedProducerLogPreservedButNotUsedAsPassEvidence": true
+  },
+  "findings": [],
+  "boundaries": {
+    "sourceAccepted": true,
+    "goExecutedByReviewer": false,
+    "githubActionsExecutedByReviewer": false,
+    "runtimeAcceptanceProven": false,
+    "actualGoResult": "UNKNOWN",
+    "actualCIResult": "UNKNOWN",
+    "candidateModified": false,
+    "formalModified": false,
+    "joblogsOrRawRead": false
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "reviewType": "independent-frozen-three-path-source-review",
+  "verdict": "SOURCE_REVISE",
+  "input": {
+    "baseCommit": "9d9c112f6700c128162556410768396df3ded6a8",
+    "candidateDirectory": "D:\\CodexData\\workspace\\chengwang-joint-cpu-artifact-fallback-candidate-20261102-v1",
+    "manifestSha256": "16600d022f509bcecd78e8840665279fd8ebcfba1728764895bfe64cbf0a9205",
+    "receiptSha256": "74751ec85935bf5c3d5fc134185af0cbb21e3851cac832490ad83cfc5aa59c59",
+    "patchSha256": "a66d3997b668e923d4b323c940ee4de00d85a9ea5f20a404c127a00c612d35ee",
+    "pathCount": 3,
+    "identityVerified": true,
+    "manifestDeliveryMismatches": [],
+    "baseBlobMismatches": [],
+    "afterimageMismatches": []
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "REVISE",
+      "title": "Workflow pre-existing-path guard is non-enforcing and can upload rejected pre-existing public bytes",
+      "locations": [
+        ".github/workflows/chengwang-joint-control-plane.yml:44-47",
+        ".github/workflows/chengwang-joint-control-plane.yml:63-71",
+        "chengwang/deploy/joint-control-plane/test_sanitize_publication.py:91-130"
+      ],
+      "evidence": "The CPU shell uses `set -uo pipefail`, without `-e`. The standalone `test ! -e private && test ! -e stage && test ! -e public` result is neither checked nor followed by exit, so a pre-existing path does not stop execution. cpu_publish correctly rejects a pre-existing public output, but the artifact step is `if: always()` and uploads that same path. A pre-existing public directory can therefore survive publisher rejection and still be uploaded. Existing tests exercise the Python publisher's conflict rejection and only string-match the workflow; they do not execute the shell plus always-upload behavior.",
+      "privacyImpact": "Potential publication of bytes that were never exact-one validated or produced by cpu_publish.",
+      "minimumCorrection": "Give the CPU step an id; explicitly exit on any pre-existing private/stage/public path; emit a publication-ready output only after cpu_publish returns zero; gate the always artifact step on that output while retaining if-no-files-found:error. This still permits upload of a bounded failure/fallback after the final CPU status test fails, but skips upload whenever publication itself or the precondition fails. Add a workflow-level shell model covering pre-existing private, stage, and public paths."
+    }
+  ],
+  "acceptedProperties": {
+    "fallbackReadsPrivateFiles": false,
+    "fallbackFixedCanonicalJson": true,
+    "fallbackFailureCode": "CPU_DIAGNOSTIC_UNAVAILABLE",
+    "fallbackContainsPrivateCountsHashesOrIdentity": false,
+    "privateCapsChanged": false,
+    "detailedProjectionFailureStillFailsCpuStep": true,
+    "underlyingCpuFailureStillFailsCpuStep": true,
+    "cpuPublishExactOneAllowlist": true,
+    "cpuPublishCachesValidatedBytes": true,
+    "cpuPublishAtomicSiblingReplace": true,
+    "cpuPublishMissingInputRejected": true,
+    "goPassNotInvented": true,
+    "runtimeAcceptanceNotInvented": true
+  },
+  "independentCpuReplay": {
+    "command": "python -I -B test_sanitize_publication.py",
+    "testsRun": 10,
+    "failures": 0,
+    "exitCode": 0,
+    "limitation": "The suite does not execute the workflow shell and artifact-step condition, so it does not cover R1."
+  },
+  "afterimageSha256": {
+    ".github/workflows/chengwang-joint-control-plane.yml": "a3988c19d604f1bc7f9584006f0d7924c18d4e652e07e72c49f2adcec360a989",
+    "chengwang/deploy/joint-control-plane/sanitize_publication.py": "34c131a9982f415c23082f6219071840e90ad8aa2506b19497a6ca88cf7baf99",
+    "chengwang/deploy/joint-control-plane/test_sanitize_publication.py": "f6b66df62ee0c8c37b35c1ed1a0a6422edb0721d3e7b5b99c3e648de79880738"
+  },
+  "constraints": {
+    "candidateModified": false,
+    "formalRepositoryModified": false,
+    "goExecuted": false,
+    "serverExecuted": false,
+    "productionChanged": false,
+    "actualGoResult": "UNKNOWN",
+    "actualRunCause": "UNKNOWN"
+  }
+}
