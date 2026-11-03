@@ -145,19 +145,31 @@ LOCALIZATION_KEYS = frozenset((
     "progressRootState", "failureDetailState", "bootstrapStepOutcome",
     "bootstrapRecordState", "bootstrapChildState", "bootstrapObservationScope",
     "bootstrapObservedRecordState", "bootstrapObservedChildState",
+    "bootstrapObservedChildOperation", "bootstrapObservedChildOperationAuthority",
+    "bootstrapLifecycleRecordState", "bootstrapLifecycleFirstFailure",
+    "bootstrapLifecycleScope",
 ))
 PROGRESS_STATES = frozenset(("ABSENT", "EMPTY", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
 DETAIL_STATES = frozenset(("NOT_EVALUATED", "ABSENT", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
 BOOTSTRAP_RECORD_STATES = frozenset(("ABSENT", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
 BOOTSTRAP_CHILD_STATES = frozenset(("UNKNOWN", "PASS", "COMMAND_NONZERO", "TIMEOUT", "STDOUT_INVALID", "STDOUT_OVERSIZE", "SPAWN_ERROR"))
 BOOTSTRAP_RECORDED_STATES = BOOTSTRAP_CHILD_STATES - {"UNKNOWN"}
-BOOTSTRAP_SCHEMA = "chengwang.joint-control-plane-private-bootstrap/v1"
+BOOTSTRAP_SCHEMA = "chengwang.joint-control-plane-private-bootstrap/v2"
 BOOTSTRAP_RECEIPT_SCHEMA = "chengwang.joint-control-plane-bootstrap-child-receipt/v1"
+BOOTSTRAP_FAILURE_RECEIPT_SCHEMA = "chengwang.joint-control-plane-bootstrap-child-failure/v1"
 BOOTSTRAP_DIRECTORY = "bootstrap-localization.private"
 BOOTSTRAP_FILE = "status.json"
 BOOTSTRAP_MAXIMUM = 512
 BOOTSTRAP_STEP_ID = "bootstrap_progress"
 BOOTSTRAP_OBSERVATION_SCOPE = "NON_AUTHORITATIVE_BOOTSTRAP_CHILD_OBSERVATION_NOT_CAUSE"
+BOOTSTRAP_CHILD_OPERATIONS = frozenset(("NONE","OBSERVED_UNKNOWN","PROGRESS_ROOT_VALIDATE","PROGRESS_CONTRACT_VALIDATE","PROGRESS_EXCLUSIVE_CREATE","PROGRESS_WRITE","PROGRESS_FILE_FSYNC","PROGRESS_READBACK","PROGRESS_DIR_FSYNC"))
+BOOTSTRAP_CHILD_AUTHORITIES = frozenset(("NONE","FIXED_SOURCE_CLASSIFICATION","OBSERVED_UNKNOWN"))
+BOOTSTRAP_LIFECYCLE_SCHEMA = "chengwang.joint-control-plane-bootstrap-lifecycle/v1"
+BOOTSTRAP_LIFECYCLE_FILE = "bootstrap-lifecycle.private.json"
+BOOTSTRAP_LIFECYCLE_SCOPE = "NON_AUTHORITATIVE_BOOTSTRAP_LIFECYCLE_OBSERVATION_NOT_CAUSE"
+BOOTSTRAP_LIFECYCLE_STATES = frozenset(("PASS","FAIL","NOT_ATTEMPTED","UNKNOWN"))
+BOOTSTRAP_LIFECYCLE_STAGES = ("BRIDGE_SETUP","SOURCE_PREFLIGHT","PROGRESS_SETUP","PROGRESS_PREFLIGHT","BOOTSTRAP_CHILD","PROGRESS_TRANSFER","BRIDGE_CLEANUP","BRIDGE_FINAL_ABSENCE")
+BOOTSTRAP_LIFECYCLE_RECORD_STATES = frozenset(("ABSENT","ACCEPTED","INVALID","READ_FAILED","SOURCE_MISMATCH"))
 BOOTSTRAP_STEP_OUTCOMES = frozenset((
     "SUCCESS", "FAILURE", "CANCELLED", "SKIPPED", "MISSING", "UNKNOWN",
 ))
@@ -264,6 +276,40 @@ def record_progress(root, source_commit, phase, state):
         "schema": PROGRESS_SCHEMA, "sourceCommit": source_commit, "ordinal": index + 1,
         "phase": phase, "state": state,
     })
+
+class ProgressDiagnosticFailure(Exception):
+    def __init__(self, operation):
+        require(operation in BOOTSTRAP_CHILD_OPERATIONS - {"NONE","OBSERVED_UNKNOWN"}, "progress-operation")
+        self.operation = operation
+
+def _diagnostic_stage(operation, call):
+    try:
+        return call()
+    except BaseException:
+        raise ProgressDiagnosticFailure(operation) from None
+
+def record_bootstrap_progress(root, source_commit):
+    root = _diagnostic_stage("PROGRESS_ROOT_VALIDATE", lambda: _private_root(root))
+    root, rows = _diagnostic_stage("PROGRESS_CONTRACT_VALIDATE", lambda: _progress_rows(root, source_commit))
+    require(not rows, "progress-bootstrap-empty"); name = progress_name(0, "NAMESPACE_SETUP", "ENTERED")
+    value = {"schema": PROGRESS_SCHEMA, "sourceCommit": source_commit, "ordinal": 1, "phase": "NAMESPACE_SETUP", "state": "ENTERED"}; raw = canonical(value); path = root / name
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0), 0o600)
+    except BaseException:
+        raise ProgressDiagnosticFailure("PROGRESS_EXCLUSIVE_CREATE") from None
+    try:
+        try:
+            seen = 0
+            while seen < len(raw):
+                count = os.write(fd, raw[seen:]); require(count > 0, "progress-write"); seen += count
+        except BaseException:
+            raise ProgressDiagnosticFailure("PROGRESS_WRITE") from None
+        try: os.fsync(fd)
+        except BaseException: raise ProgressDiagnosticFailure("PROGRESS_FILE_FSYNC") from None
+    finally:
+        os.close(fd)
+    _diagnostic_stage("PROGRESS_READBACK", lambda: require(_private_read(path) == raw, "progress-readback"))
+    _diagnostic_stage("PROGRESS_DIR_FSYNC", lambda: _fsync_dir(root))
 
 def exception_type(error):
     code = getattr(error, "code", None)
@@ -485,7 +531,7 @@ def _detail_localization(root, source_commit):
 
 def bootstrap_record_state(path, source_commit, expected_parent=None,
                            expected_directory=None, expected_file=None,
-                           directory_name=BOOTSTRAP_DIRECTORY):
+                           directory_name=BOOTSTRAP_DIRECTORY, include_operation=False):
     if path is None:
         return "ABSENT", "UNKNOWN"
     path = pathlib.Path(path); directory = path.parent; staging = directory.parent
@@ -517,10 +563,14 @@ def bootstrap_record_state(path, source_commit, expected_parent=None,
         value = _strict_object(raw)
     except Exception:
         return "INVALID", "UNKNOWN"
-    keys = {"schema", "sourceCommit", "bootstrapChildState"}
+    keys = {"schema", "sourceCommit", "bootstrapChildState", "bootstrapChildOperation", "bootstrapChildOperationAuthority"}
     if (raw != canonical(value) or set(value) != keys or value.get("schema") != BOOTSTRAP_SCHEMA or
             re.fullmatch(r"[a-f0-9]{40}", value.get("sourceCommit", "")) is None or
-            value.get("bootstrapChildState") not in BOOTSTRAP_RECORDED_STATES):
+            value.get("bootstrapChildState") not in BOOTSTRAP_RECORDED_STATES or
+            value.get("bootstrapChildOperation") not in BOOTSTRAP_CHILD_OPERATIONS or
+            value.get("bootstrapChildOperationAuthority") not in BOOTSTRAP_CHILD_AUTHORITIES or
+            (value["bootstrapChildState"] == "PASS") != (value["bootstrapChildOperation"] == value["bootstrapChildOperationAuthority"] == "NONE") or
+            (value["bootstrapChildOperation"] == "OBSERVED_UNKNOWN") != (value["bootstrapChildOperationAuthority"] == "OBSERVED_UNKNOWN")):
         return "INVALID", "UNKNOWN"
     try:
         staging_after = staging.lstat(); directory_after = directory.lstat()
@@ -537,7 +587,8 @@ def bootstrap_record_state(path, source_commit, expected_parent=None,
         return "INVALID", "UNKNOWN"
     if value["sourceCommit"] != source_commit:
         return "SOURCE_MISMATCH", "UNKNOWN"
-    return "ACCEPTED", value["bootstrapChildState"]
+    result = ("ACCEPTED", value["bootstrapChildState"])
+    return result + (value["bootstrapChildOperation"], value["bootstrapChildOperationAuthority"]) if include_operation else result
 
 def bootstrap_step_outcome(step_id, outcome, witness_source, source_commit):
     values = (step_id, outcome, witness_source)
@@ -551,6 +602,51 @@ def bootstrap_step_outcome(step_id, outcome, witness_source, source_commit):
               "cancelled": "CANCELLED", "skipped": "SKIPPED"}.get(outcome)
     return mapped if mapped is not None else "UNKNOWN"
 
+def record_bootstrap_lifecycle(path, source_commit, run_id, run_attempt, nonce,
+                               payload_digest, stage_statuses, primary_exit, final_exit):
+    require(_root_writer() and re.fullmatch(r"[a-f0-9]{40}", source_commit or "") and
+            re.fullmatch(r"[1-9][0-9]*", run_id or "") and
+            re.fullmatch(r"[1-9][0-9]*", run_attempt or "") and
+            re.fullmatch(r"[a-f0-9]{32}", nonce or "") and
+            re.fullmatch(r"[a-f0-9]{64}", payload_digest or "") and
+            type(stage_statuses) is tuple and len(stage_statuses) == len(BOOTSTRAP_LIFECYCLE_STAGES) and
+            all(type(value) is int and 0 <= value <= 255 for value in stage_statuses) and
+            type(primary_exit) is int and type(final_exit) is int and
+            0 <= primary_exit <= 255 and 0 <= final_exit <= 255, "bootstrap-lifecycle-input")
+    path = pathlib.Path(path); require(path.is_absolute() and path.name == BOOTSTRAP_LIFECYCLE_FILE and path.parent.is_dir() and not path.parent.is_symlink() and not path.exists() and not path.is_symlink(), "bootstrap-lifecycle-path")
+    stages = {stage:("PASS" if status == 0 else "FAIL") for stage,status in zip(BOOTSTRAP_LIFECYCLE_STAGES,stage_statuses)}
+    first_failure = next((stage for stage in BOOTSTRAP_LIFECYCLE_STAGES if stages[stage] == "FAIL"), "NONE")
+    require((primary_exit == 0) == (all(value == 0 for value in stage_statuses[:6])) and
+            (final_exit == 0) == (all(value == 0 for value in stage_statuses)), "bootstrap-lifecycle-exit")
+    value = {"schema":BOOTSTRAP_LIFECYCLE_SCHEMA,"sourceCommit":source_commit,"runId":run_id,
+             "runAttempt":run_attempt,"bridgeNonce":nonce,"payloadDigest":payload_digest,
+             "scope":BOOTSTRAP_LIFECYCLE_SCOPE,"stages":stages,"firstFailure":first_failure,
+             "primaryExit":primary_exit,"finalExit":final_exit}
+    raw = canonical(value); require(len(raw) <= 2048, "bootstrap-lifecycle-size")
+    fd = os.open(path, os.O_RDWR|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_BINARY",0), 0o600)
+    try:
+        seen=0
+        while seen < len(raw):
+            count=os.write(fd,raw[seen:]);require(count>0,"bootstrap-lifecycle-write");seen+=count
+        os.fchown(fd,0,0);os.fsync(fd);os.lseek(fd,0,os.SEEK_SET);require(os.read(fd,len(raw)+1)==raw,"bootstrap-lifecycle-readback");os.fchmod(fd,0o444);os.fsync(fd);meta=os.fstat(fd);require(_owned_mode(meta,0,0,0o444) and stat.S_ISREG(meta.st_mode) and meta.st_nlink==1,"bootstrap-lifecycle-mode")
+    finally:os.close(fd)
+    _fsync_dir(path.parent);state,observed=_bootstrap_lifecycle_state(path,source_commit);require(state=="ACCEPTED" and observed==first_failure,"bootstrap-lifecycle-final")
+
+def _bootstrap_lifecycle_state(path, source_commit):
+    if path is None:return "ABSENT","UNKNOWN"
+    path=pathlib.Path(path)
+    try:raw=_private_read(path);meta=path.lstat()
+    except FileNotFoundError:return "ABSENT","UNKNOWN"
+    except OSError:return "READ_FAILED","UNKNOWN"
+    if path.name != BOOTSTRAP_LIFECYCLE_FILE or path.is_symlink() or not _owned_mode(meta,0,0,0o444) or not stat.S_ISREG(meta.st_mode) or meta.st_nlink!=1 or len(raw)>2048:return "INVALID","UNKNOWN"
+    try:value=_strict_object(raw)
+    except Exception:return "INVALID","UNKNOWN"
+    keys={"schema","sourceCommit","runId","runAttempt","bridgeNonce","payloadDigest","scope","stages","firstFailure","primaryExit","finalExit"}
+    stages=value.get("stages")
+    if raw!=canonical(value) or set(value)!=keys or value.get("schema")!=BOOTSTRAP_LIFECYCLE_SCHEMA or value.get("scope")!=BOOTSTRAP_LIFECYCLE_SCOPE or type(stages)is not dict or set(stages)!=set(BOOTSTRAP_LIFECYCLE_STAGES) or any(stages.get(stage) not in {"PASS","FAIL"} for stage in BOOTSTRAP_LIFECYCLE_STAGES) or value.get("firstFailure")!=next((stage for stage in BOOTSTRAP_LIFECYCLE_STAGES if stages[stage]=="FAIL"),"NONE") or re.fullmatch(r"[1-9][0-9]*",value.get("runId","") or "") is None or re.fullmatch(r"[1-9][0-9]*",value.get("runAttempt","") or "") is None or re.fullmatch(r"[a-f0-9]{32}",value.get("bridgeNonce","") or "") is None or re.fullmatch(r"[a-f0-9]{64}",value.get("payloadDigest","") or "") is None or type(value.get("primaryExit")) is not int or type(value.get("finalExit")) is not int or not 0<=value["primaryExit"]<=255 or not 0<=value["finalExit"]<=255 or ((value["primaryExit"]==0) != all(stages[stage]=="PASS" for stage in BOOTSTRAP_LIFECYCLE_STAGES[:6])) or ((value["finalExit"]==0) != all(stages[stage]=="PASS" for stage in BOOTSTRAP_LIFECYCLE_STAGES)):return "INVALID","UNKNOWN"
+    if value.get("sourceCommit")!=source_commit:return "SOURCE_MISMATCH","UNKNOWN"
+    return "ACCEPTED",value["firstFailure"]
+
 def localization_evidence(progress_root, bootstrap_record, source_commit,
                           bootstrap_step_id=None, bootstrap_step_outcome_value=None,
                           bootstrap_step_source=None):
@@ -560,8 +656,12 @@ def localization_evidence(progress_root, bootstrap_record, source_commit,
     step_outcome = bootstrap_step_outcome(
         bootstrap_step_id, bootstrap_step_outcome_value,
         bootstrap_step_source, source_commit)
-    observed_record_state, observed_child_state = bootstrap_record_state(
-        bootstrap_record, source_commit)
+    observed = bootstrap_record_state(bootstrap_record, source_commit, include_operation=True)
+    observed_record_state, observed_child_state = observed[:2]
+    observed_operation, observed_authority = (observed[2:] if len(observed) == 4 else ("OBSERVED_UNKNOWN", "OBSERVED_UNKNOWN"))
+    lifecycle_path = (pathlib.Path(bootstrap_record).parent.parent / BOOTSTRAP_LIFECYCLE_FILE
+                      if bootstrap_record is not None else None)
+    lifecycle_state, lifecycle_first = _bootstrap_lifecycle_state(lifecycle_path, source_commit)
     record_state, child_state = observed_record_state, observed_child_state
     require(progress_state in PROGRESS_STATES and detail_state in DETAIL_STATES and
             step_outcome in BOOTSTRAP_STEP_OUTCOMES and
@@ -579,15 +679,23 @@ def localization_evidence(progress_root, bootstrap_record, source_commit,
             "bootstrapObservedRecordState": observed_record_state,
             "bootstrapObservedChildState": (observed_child_state
                                             if observed_record_state == "ACCEPTED"
-                                            else "UNKNOWN")}
+                                            else "UNKNOWN"),
+            "bootstrapObservedChildOperation": (observed_operation if observed_record_state == "ACCEPTED" else "OBSERVED_UNKNOWN"),
+            "bootstrapObservedChildOperationAuthority": (observed_authority if observed_record_state == "ACCEPTED" else "OBSERVED_UNKNOWN"),
+            "bootstrapLifecycleRecordState": lifecycle_state,
+            "bootstrapLifecycleFirstFailure": lifecycle_first,
+            "bootstrapLifecycleScope": BOOTSTRAP_LIFECYCLE_SCOPE}
 
 def _root_writer():
     return os.name == "posix" and os.geteuid() == 0
 
-def record_bootstrap_status(path, source_commit, child_state):
+def record_bootstrap_status(path, source_commit, child_state, child_operation="NONE", child_authority="NONE"):
     require(_root_writer(), "bootstrap-platform")
     require(re.fullmatch(r"[a-f0-9]{40}", source_commit or "") is not None and
-            child_state in BOOTSTRAP_RECORDED_STATES, "bootstrap-value")
+            child_state in BOOTSTRAP_RECORDED_STATES and child_operation in BOOTSTRAP_CHILD_OPERATIONS and child_authority in BOOTSTRAP_CHILD_AUTHORITIES and
+            ((child_state == "PASS" and child_operation == child_authority == "NONE") or
+             (child_state != "PASS" and ((child_operation == "OBSERVED_UNKNOWN" and child_authority == "OBSERVED_UNKNOWN") or
+              (child_operation not in ("NONE", "OBSERVED_UNKNOWN") and child_authority == "FIXED_SOURCE_CLASSIFICATION")))), "bootstrap-value")
     path = pathlib.Path(path); directory = path.parent; staging = directory.parent
     require(directory.name == BOOTSTRAP_DIRECTORY and path.name == BOOTSTRAP_FILE,
             "bootstrap-path")
@@ -604,7 +712,8 @@ def record_bootstrap_status(path, source_commit, child_state):
     require(stat.S_ISDIR(directory_meta.st_mode) and not directory.is_symlink() and
             _owned_mode(directory_meta, 0, 0, 0o700), "bootstrap-directory")
     value = {"schema": BOOTSTRAP_SCHEMA, "sourceCommit": source_commit,
-             "bootstrapChildState": child_state}
+             "bootstrapChildState": child_state, "bootstrapChildOperation": child_operation,
+             "bootstrapChildOperationAuthority": child_authority}
     raw = canonical(value); require(len(raw) <= BOOTSTRAP_MAXIMUM, "bootstrap-size")
     fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL |
                  getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0), 0o600)
@@ -638,10 +747,12 @@ def record_bootstrap_status(path, source_commit, child_state):
             sorted(p.name for p in directory.iterdir()) == [BOOTSTRAP_FILE],
             "bootstrap-directory")
     _fsync_dir(directory); _fsync_dir(staging)
-    state, recorded = bootstrap_record_state(
+    state, recorded, operation, authority = bootstrap_record_state(
         path, source_commit, expected_parent=_identity(staging_meta),
-        expected_directory=_identity(directory_final), expected_file=file_identity)
-    require(state == "ACCEPTED" and recorded == child_state, "bootstrap-final")
+        expected_directory=_identity(directory_final), expected_file=file_identity,
+        include_operation=True)
+    require(state == "ACCEPTED" and (recorded, operation, authority) ==
+            (child_state, child_operation, child_authority), "bootstrap-final")
 
 def human_grant(tenant):
     return {"tenantId": tenant, "siteId": SCOPE["siteId"], "environment": SCOPE["environment"]}

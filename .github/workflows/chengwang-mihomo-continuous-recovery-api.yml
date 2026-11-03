@@ -373,12 +373,36 @@ jobs:
         if: ${{ always() }}
         run: |
           set -euo pipefail
+          tree="$(git rev-parse "$GITHUB_SHA^{tree}")"
           python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
-            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-continuous-recovery-public" "$GITHUB_SHA" \
+            --verify-with-failure-summary "$GITHUB_WORKSPACE" \
+            "$RUNNER_TEMP/mihomo-continuous-recovery-public" "$GITHUB_SHA" "$tree" \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$RUNNER_TEMP/mihomo-continuous-recovery-verifier-failure.private.json" \
             > "$RUNNER_TEMP/mihomo-continuous-recovery-verification.txt" \
             2> "$RUNNER_TEMP/mihomo-continuous-recovery-verification.stderr"
           git diff --exit-code
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Independently validate the bounded verifier rejection summary
+        id: verifier_failure_diagnostic
+        if: ${{ failure() }}
+        run: |
+          set -euo pipefail
+          private="$RUNNER_TEMP/mihomo-continuous-recovery-verifier-failure.private.json"
+          public="$RUNNER_TEMP/mihomo-continuous-recovery-verifier-failure-public"
+          test -f "$private"; test ! -e "$public"
+          python3 -I -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_verifier_failure.py \
+            "$GITHUB_WORKSPACE" "$private" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$public"
+          test "$(find "$public" -mindepth 1 -maxdepth 1 -type f -printf '%f\n')" = verification-failure.json
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() && steps.verifier_failure_diagnostic.outcome == 'success' }}
+        with:
+          name: mihomo-continuous-recovery-api-verifier-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-recovery-verifier-failure-public/verification-failure.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Project and independently re-read the bounded safe artifact
         run: |
           set -euo pipefail

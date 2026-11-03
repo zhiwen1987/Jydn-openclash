@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: d0c3689dee3999a598e2b60051f0bbdd83064f18de590c0989a3a4c20380339a
+  CONTRACT_SHA256: 1a85d77024292fe5936c033ca6361d5d8b199c2c61c69ea2ac7fb62180d0f4cc
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
   UID_PROBE_PRODUCER_SHA256: 98982bd151c9289534fa7421a1520ba51ff67ceb0fd930065e227321e419052d
   UID_PROBE_CHECKER_SHA256: 04fdd2ac9acbc2dafa7c2ecab9910b3346649042569dbaeb9cec4efb056e81c8
@@ -287,23 +287,27 @@ jobs:
           bridge_root="$bridge_parent/chengwang-joint-uid-bridge-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$bridge_nonce"
           bridge=(bootstrap-permission-bridge --repo "$GITHUB_WORKSPACE" --source-contract "$source_contract" --bridge-parent "$bridge_parent" --bridge-parent-device "$bridge_parent_device" --bridge-parent-inode "$bridge_parent_inode" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --bridge-nonce "$bridge_nonce")
           bridge_active=false
+          bridge_setup_status=125; source_preflight_status=125; progress_setup_status=125; progress_preflight_status=125; child_status=125; transfer_status=125
           finish_bootstrap(){
-            local saved_exit="$1" final_status cleanup_status absence_status
+            local saved_exit="$1" final_status cleanup_status absence_status lifecycle_status
             trap - EXIT; final_status="$saved_exit"
             if test "$bridge_active" = true; then
-              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi
+              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode progress-cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi
             else cleanup_status=0; fi
             if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0; else absence_status=$?; fi
             if test "$final_status" = 0 && test "$cleanup_status" != 0; then final_status="$cleanup_status"; fi
             if test "$final_status" = 0 && test "$absence_status" != 0; then final_status="$absence_status"; fi
+            if test -n "${payload_digest:-}"; then
+              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" bootstrap-lifecycle --output "$root/evidence/staging/bootstrap-lifecycle.private.json" --source-commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --bridge-nonce "$bridge_nonce" --payload-digest "$payload_digest" --stage-statuses "$bridge_setup_status,$source_preflight_status,$progress_setup_status,$progress_preflight_status,$child_status,$transfer_status,$cleanup_status,$absence_status" --primary-exit "$saved_exit" --final-exit "$final_status"; then lifecycle_status=0; else lifecycle_status=$?; fi
+              if test "$final_status" = 0 && test "$lifecycle_status" != 0; then final_status="$lifecycle_status"; fi
+            fi
             exit "$final_status"
           }
           trap 'finish_bootstrap "$?"' EXIT
           if test ! -e "$progress" && test ! -L "$progress"; then :; else exit 1; fi
-          if sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 "$progress"; then :; else exit $?; fi
           if payload_digest="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" bridge-payload-digest --repo "$GITHUB_WORKSPACE" --source-contract "$source_contract")"; then :; else exit $?; fi
-          if created_bridge="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup)"; then bridge_active=true; else exit $?; fi
-          if test "$created_bridge" = "$bridge_root"; then :; else exit 1; fi
+          if created_bridge="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup)"; then bridge_setup_status=0; bridge_active=true; else bridge_setup_status=$?; exit "$bridge_setup_status"; fi
+          if test "$created_bridge" = "$bridge_root"; then :; else bridge_setup_status=1; exit "$bridge_setup_status"; fi
           script="$bridge_root/payload/ci_joint_control_plane.py"; bridge_contract="$bridge_root/payload/contract.py"; runner="$bridge_root/runner"
           bridge_preflight='import hashlib,json,os,stat,sys
           try:
@@ -324,8 +328,13 @@ jobs:
            raise SystemExit(0 if os.access(sys.argv[1],os.X_OK,effective_ids=True) and digest==sys.argv[4] else 41 if not os.access(sys.argv[1],os.X_OK,effective_ids=True) else 43)
           except SystemExit: raise
           except BaseException: raise SystemExit(42)'
-          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight" "$runner" "$script" "$bridge_contract" "$payload_digest" >/dev/null 2>/dev/null; then :; else exit $?; fi
-          if sudo --non-interactive /usr/bin/python3 -I -B "$script" bootstrap-progress --progress-root "$progress" --bootstrap-record "$bootstrap" --source-commit "$GITHUB_SHA"; then exit 0; else exit $?; fi
+          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight" "$runner" "$script" "$bridge_contract" "$payload_digest" >/dev/null 2>/dev/null; then source_preflight_status=0; else source_preflight_status=$?; exit "$source_preflight_status"; fi
+          if bridge_progress="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode progress-setup)"; then progress_setup_status=0; else progress_setup_status=$?; exit "$progress_setup_status"; fi
+          if test "$bridge_progress" = "$runner/failure-localization.private"; then :; else progress_setup_status=1; exit "$progress_setup_status"; fi
+          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/python3 -I -B "$script" "${bridge[@]}" --bridge-mode progress-preflight >/dev/null 2>/dev/null; then progress_preflight_status=0; else progress_preflight_status=$?; exit "$progress_preflight_status"; fi
+          if sudo --non-interactive /usr/bin/python3 -I -B "$script" bootstrap-progress --progress-root "$bridge_progress" --bootstrap-record "$bootstrap" --source-commit "$GITHUB_SHA"; then child_status=0; else child_status=$?; exit "$child_status"; fi
+          if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode progress-transfer --progress-root "$progress" --source-commit "$GITHUB_SHA"; then transfer_status=0; else transfer_status=$?; exit "$transfer_status"; fi
+          exit 0
       - name: Real B0 J1 R2 same-binary scene
         if: ${{ steps.bootstrap_progress.outcome == 'success' }}
         env:

@@ -82,22 +82,29 @@ jobs:
           root="$RUNNER_TEMP/mihomo-capacity-profile-public"
           test -d "$root"
           helper=chengwang/deploy/mihomo-capacity-profile/check_profile.py
-          python3 -B "$helper" host --out "$root/host-after.json"
-          python3 -B "$helper" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --out "$root/source-after.json"
-          safe_dir="$RUNNER_TEMP/mihomo-capacity-safe-rejection-single"
-          test ! -e "$safe_dir"
-          install -d -m 0755 "$safe_dir"
-          safe_report="$safe_dir/capacity-single-safe-rejection.json"
+          safe_report="$RUNNER_TEMP/mihomo-capacity-safe-rejection-single/capacity-single-safe-rejection.json"
           verify_code=0
-          python3 -B "$helper" verify --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+          python3 -B "$helper" verify --capture-after --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
             --evidence "$root" --report "$RUNNER_TEMP/mihomo-capacity-profile-verification.json" \
             --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" || verify_code=$?
-          if test "$verify_code" -ne 0 && test -f "$safe_report"; then
-            safe_check_code=0
-            python3 -B "$helper" safe-rejection-check --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
-              --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane SINGLE_CASE || safe_check_code=$?
-            if test "$safe_check_code" -eq 0; then
-              printf '%s\n' 'safe_rejection_ready=true' >> "$GITHUB_OUTPUT"
+          if test "$verify_code" -ne 0; then
+            case "$verify_code" in
+              3) safe_state=SAFE_CUSTODY_REJECTED ;;
+              4) safe_state=SAFE_REJECTION_WRITER_FAILED ;;
+              *) safe_state=SAFE_REPORT_MISSING
+                 if test -f "$safe_report"; then
+                   safe_check_code=0
+                   python3 -B "$helper" safe-rejection-check --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+                     --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane SINGLE_CASE || safe_check_code=$?
+                   safe_state=SAFE_REPORT_READER_REJECTED
+                   if test "$safe_check_code" -eq 0; then
+                     safe_state=SAFE_REPORT_VERIFIED
+                     printf '%s\n' 'safe_rejection_ready=true' >> "$GITHUB_OUTPUT"
+                   fi
+                 fi ;;
+            esac
+            if ! printf 'safe_rejection_state=%s\n' "$safe_state" >> "$GITHUB_OUTPUT"; then
+              exit 2
             fi
           fi
           exit "$verify_code"
@@ -151,12 +158,10 @@ jobs:
           name: mihomo-capacity-profile-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/capacity-originals
       - name: Reconstruct profile bytes and exact case result without executing Go
+        id: single_fresh_verify
         run: |
           set -euo pipefail
-          safe_dir="$RUNNER_TEMP/mihomo-capacity-safe-rejection-single-fresh"
-          test ! -e "$safe_dir"
-          install -d -m 0755 "$safe_dir"
-          safe_report="$safe_dir/capacity-single-safe-rejection.json"
+          safe_report="$RUNNER_TEMP/mihomo-capacity-safe-rejection-single-fresh/capacity-single-safe-rejection.json"
           verify_code=0
           python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py verify \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
@@ -164,16 +169,37 @@ jobs:
             --report "$RUNNER_TEMP/mihomo-capacity-profile-fresh.json" \
             --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" || verify_code=$?
           if test "$verify_code" -ne 0; then
-            if test -f "$safe_report"; then
-              safe_check_code=0
-              python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py safe-rejection-check \
-                --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --safe-rejection-report "$safe_report" \
-                --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane SINGLE_CASE || safe_check_code=$?
+            case "$verify_code" in
+              3) safe_state=SAFE_CUSTODY_REJECTED ;;
+              4) safe_state=SAFE_REJECTION_WRITER_FAILED ;;
+              *) safe_state=SAFE_REPORT_MISSING
+                 if test -f "$safe_report"; then
+                   safe_check_code=0
+                   python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py safe-rejection-check \
+                     --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --safe-rejection-report "$safe_report" \
+                     --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane SINGLE_CASE || safe_check_code=$?
+                   safe_state=SAFE_REPORT_READER_REJECTED
+                   if test "$safe_check_code" -eq 0; then
+                     safe_state=SAFE_REPORT_VERIFIED
+                     printf '%s\n' 'safe_rejection_ready=true' >> "$GITHUB_OUTPUT"
+                   fi
+                 fi ;;
+            esac
+            if ! printf 'safe_rejection_state=%s\n' "$safe_state" >> "$GITHUB_OUTPUT"; then
+              exit 2
             fi
             exit "$verify_code"
           fi
           cmp "$RUNNER_TEMP/capacity-originals/mihomo-capacity-profile-verification.json" \
             "$RUNNER_TEMP/mihomo-capacity-profile-fresh.json"
+      - name: Preserve only the independently checked fresh SINGLE rejection summary
+        if: ${{ always() && steps.single_fresh_verify.outputs.safe_rejection_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-capacity-safe-rejection-single-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-capacity-safe-rejection-single-fresh/capacity-single-safe-rejection.json
+          retention-days: 14
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() }}
         with:
@@ -225,23 +251,30 @@ jobs:
           root="$RUNNER_TEMP/mihomo-capacity-profile-full-public"
           test -d "$root"
           helper=chengwang/deploy/mihomo-capacity-profile/check_profile.py
-          python3 -B "$helper" host --out "$root/host-after.json"
-          python3 -B "$helper" source --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --out "$root/source-after.json"
-          safe_dir="$RUNNER_TEMP/mihomo-capacity-safe-rejection-full"
-          test ! -e "$safe_dir"
-          install -d -m 0755 "$safe_dir"
-          safe_report="$safe_dir/capacity-full-safe-rejection.json"
+          safe_report="$RUNNER_TEMP/mihomo-capacity-safe-rejection-full/capacity-full-safe-rejection.json"
           verify_code=0
-          python3 -B "$helper" verify --diagnostic-mode FULL_CONTRACTS \
+          python3 -B "$helper" verify --capture-after --diagnostic-mode FULL_CONTRACTS \
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
             --evidence "$root" --report "$RUNNER_TEMP/mihomo-capacity-profile-full-verification.json" \
             --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" || verify_code=$?
-          if test "$verify_code" -ne 0 && test -f "$safe_report"; then
-            safe_check_code=0
-            python3 -B "$helper" safe-rejection-check --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
-              --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane FULL_CONTRACTS || safe_check_code=$?
-            if test "$safe_check_code" -eq 0; then
-              printf '%s\n' 'safe_rejection_ready=true' >> "$GITHUB_OUTPUT"
+          if test "$verify_code" -ne 0; then
+            case "$verify_code" in
+              3) safe_state=SAFE_CUSTODY_REJECTED ;;
+              4) safe_state=SAFE_REJECTION_WRITER_FAILED ;;
+              *) safe_state=SAFE_REPORT_MISSING
+                 if test -f "$safe_report"; then
+                   safe_check_code=0
+                   python3 -B "$helper" safe-rejection-check --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+                     --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane FULL_CONTRACTS || safe_check_code=$?
+                   safe_state=SAFE_REPORT_READER_REJECTED
+                   if test "$safe_check_code" -eq 0; then
+                     safe_state=SAFE_REPORT_VERIFIED
+                     printf '%s\n' 'safe_rejection_ready=true' >> "$GITHUB_OUTPUT"
+                   fi
+                 fi ;;
+            esac
+            if ! printf 'safe_rejection_state=%s\n' "$safe_state" >> "$GITHUB_OUTPUT"; then
+              exit 2
             fi
           fi
           exit "$verify_code"
@@ -343,12 +376,10 @@ jobs:
           name: mihomo-capacity-go-timeline-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/capacity-full-originals/mihomo-capacity-profile-full-public/timeline-public
       - name: Reconstruct full-suite profile events and resources without executing Go
+        id: full_fresh_verify
         run: |
           set -euo pipefail
-          safe_dir="$RUNNER_TEMP/mihomo-capacity-safe-rejection-full-fresh"
-          test ! -e "$safe_dir"
-          install -d -m 0755 "$safe_dir"
-          safe_report="$safe_dir/capacity-full-safe-rejection.json"
+          safe_report="$RUNNER_TEMP/mihomo-capacity-safe-rejection-full-fresh/capacity-full-safe-rejection.json"
           verify_code=0
           python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py verify \
             --diagnostic-mode FULL_CONTRACTS --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
@@ -356,11 +387,24 @@ jobs:
             --report "$RUNNER_TEMP/mihomo-capacity-profile-full-fresh.json" \
             --safe-rejection-report "$safe_report" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" || verify_code=$?
           if test "$verify_code" -ne 0; then
-            if test -f "$safe_report"; then
-              safe_check_code=0
-              python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py safe-rejection-check \
-                --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --safe-rejection-report "$safe_report" \
-                --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane FULL_CONTRACTS || safe_check_code=$?
+            case "$verify_code" in
+              3) safe_state=SAFE_CUSTODY_REJECTED ;;
+              4) safe_state=SAFE_REJECTION_WRITER_FAILED ;;
+              *) safe_state=SAFE_REPORT_MISSING
+                 if test -f "$safe_report"; then
+                   safe_check_code=0
+                   python3 -B chengwang/deploy/mihomo-capacity-profile/check_profile.py safe-rejection-check \
+                     --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" --safe-rejection-report "$safe_report" \
+                     --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane FULL_CONTRACTS || safe_check_code=$?
+                   safe_state=SAFE_REPORT_READER_REJECTED
+                   if test "$safe_check_code" -eq 0; then
+                     safe_state=SAFE_REPORT_VERIFIED
+                     printf '%s\n' 'safe_rejection_ready=true' >> "$GITHUB_OUTPUT"
+                   fi
+                 fi ;;
+            esac
+            if ! printf 'safe_rejection_state=%s\n' "$safe_state" >> "$GITHUB_OUTPUT"; then
+              exit 2
             fi
             exit "$verify_code"
           fi
@@ -370,6 +414,14 @@ jobs:
             --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
             --evidence "$RUNNER_TEMP/capacity-full-originals/mihomo-capacity-profile-full-public" \
             --lane CAPACITY
+      - name: Preserve only the independently checked fresh FULL rejection summary
+        if: ${{ always() && steps.full_fresh_verify.outputs.safe_rejection_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-capacity-safe-rejection-full-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-capacity-safe-rejection-full-fresh/capacity-full-safe-rejection.json
+          retention-days: 14
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() }}
         with:

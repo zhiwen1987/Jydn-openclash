@@ -110,8 +110,54 @@ CONSUMPTION_ASSET='mihomo-linux-amd64-v1-v1.19.32.gz'
 CONSUMPTION_ARCHIVE_SHA256='306f81e723e60ce6b828899a6fe83e1d00e9ecefb2dc8d4d849312a5bc00efdc'
 CONSUMPTION_UPSTREAM='88dcbf7f1614a67c3b36b848ee3592dfa92ada36'
 
+FAILURE_SUMMARY_SCHEMA='chengwang.mihomo-continuous-recovery-verifier-failure/v1'
+FAILURE_PHASES=(
+ 'SOURCE_BINDING','PUBLIC_INVENTORY','REPORT_SHAPE','HTTP_SHAPES','STATE_CROSS_LINKS',
+ 'COMMANDS','PROCESS_EVENTS','NAMESPACE_TOOLCHAIN','PRIVATE_CUSTODY','CONSUMPTION','UNKNOWN')
+FAILURE_CLASSES=(
+ 'SCHEMA_INVALID','SOURCE_MISMATCH','IDENTITY_MISMATCH','COUNT_MISMATCH','STATE_MISMATCH',
+ 'SEQUENCE_MISMATCH','CUSTODY_INVALID','MISSING_EVIDENCE','DUPLICATE_EVIDENCE','UNKNOWN')
+FAILURE_FIELD_CODES=(
+ 'SOURCE_MANIFEST','SOURCE_FILES','PUBLIC_FILE_SET','REPORT','HTTP_RESPONSES','STATE_RELATIONSHIPS',
+ 'COMMAND_RECEIPTS','PROCESS_RECEIPTS','GO_RESULT','SANDBOX','HOST_NAMESPACE','GO_TOOLCHAIN',
+ 'PRIVATE_RECEIPTS','CONSUMPTION_RECEIPTS','UNKNOWN')
+_ACTIVE_DIAGNOSTIC=None
+
+class VerificationFailure(ValueError):
+    pass
+
+class FailureDiagnostic:
+    def __init__(self,commit,tree,run_id,run_attempt):
+        self.commit=commit; self.tree=tree; self.run_id=run_id; self.run_attempt=run_attempt
+        self.phase='UNKNOWN'; self.failure_class='UNKNOWN'; self.field_code='UNKNOWN'
+        self.source_proven=False; self.binding_sha256=None; self.source_count=None; self.delivery_count=None
+
+def diagnostic_mark(phase,failure_class,field_code):
+    need(phase in FAILURE_PHASES and failure_class in FAILURE_CLASSES and field_code in FAILURE_FIELD_CODES)
+    if _ACTIVE_DIAGNOSTIC is not None:
+        _ACTIVE_DIAGNOSTIC.phase=phase; _ACTIVE_DIAGNOSTIC.failure_class=failure_class; _ACTIVE_DIAGNOSTIC.field_code=field_code
+
+def diagnostic_source_bound(binding):
+    if _ACTIVE_DIAGNOSTIC is not None:
+        need(binding['sourceCommit']==_ACTIVE_DIAGNOSTIC.commit and binding['sourceTree']==_ACTIVE_DIAGNOSTIC.tree)
+        _ACTIVE_DIAGNOSTIC.source_proven=True
+        _ACTIVE_DIAGNOSTIC.binding_sha256=sha(canonical(binding))
+        _ACTIVE_DIAGNOSTIC.source_count=integer(binding['sourceCount'],1)
+        _ACTIVE_DIAGNOSTIC.delivery_count=integer(binding['deliveryCount'],1)
+
+def failure_summary(state):
+    proof={'proven':state.source_proven,'bindingSHA256':state.binding_sha256,
+      'sourceCount':state.source_count,'deliveryCount':state.delivery_count}
+    return {'schema':FAILURE_SUMMARY_SCHEMA,'status':'FAIL','accepted':False,'authorization':'BLOCKED',
+      'runtimeAccepted':False,'phase':state.phase,'failureClass':state.failure_class,'fieldCode':state.field_code,
+      'runId':state.run_id,'runAttempt':state.run_attempt,'sourceCommit':state.commit,
+      'sourceTree':state.tree if state.source_proven else None,
+      'sourceProof':proof,'rawEvidenceIncluded':False,'production':False}
+
 def need(value):
-    if not value: raise ValueError('continuous Recovery independent verification rejected')
+    if not value:
+        if _ACTIVE_DIAGNOSTIC is not None: raise VerificationFailure('continuous Recovery independent verification rejected')
+        raise ValueError('continuous Recovery independent verification rejected')
 def canonical(value): return json.dumps(value,ensure_ascii=True,allow_nan=False,separators=(',',':')).encode('ascii')
 def sha(raw): return hashlib.sha256(raw).hexdigest()
 def integer(value,minimum=0,maximum=(1<<63)-1): need(type(value) is int and minimum<=value<=maximum); return value
@@ -371,11 +417,14 @@ def cleanup_calls(before_value,pre,post):
     need(all(protected[i] in pairs and protected[i+1]==pairs[protected[i]] for i in range(0,len(protected),2)))
 
 def validate_report(report,commit,public,binding):
+    diagnostic_mark('REPORT_SHAPE','SCHEMA_INVALID','REPORT')
     keys(report,('schema','scope','sourceCommit','outcome','failureCode','http','initial','heads','operations','recoveries','callsBefore','callsAfter','faultBeforeCleanup','faultAfterCleanup','faultClosed','closedPorts','runtimeReturned','runtimeErrorClass','privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven'))
     need(report['schema']=='chengwang.mihomo-continuous-recovery-http-experiment/v3' and report['scope']==SCOPE and report['sourceCommit']==commit and report['outcome']=='PASS' and report['failureCode']=='NONE')
     need(report['runtimeReturned'] is True and report['runtimeErrorClass']=='NONE' and all(report[k] is False for k in ('privateWALDecodedByTest','production','fullPayloadProven','internetBusinessProven')))
     initial_acceptance(report['initial'],commit)
+    diagnostic_mark('HTTP_SHAPES','SCHEMA_INVALID','HTTP_RESPONSES')
     results,index=validate_http(report,public)
+    diagnostic_mark('STATE_CROSS_LINKS','STATE_MISMATCH','STATE_RELATIONSHIPS')
     candidates={candidate: candidate_list(results[candidate+'_CANDIDATES']) for candidate in ('FIRST','ACK','SECOND')}
     for candidate,prefix in (('FIRST','FIRST_UNKNOWN'),('ACK','ORDINARY_ACK'),('SECOND','SECOND_UNKNOWN')):
         target=candidates[candidate][1]
@@ -520,7 +569,11 @@ def validate_consumption(value,commit):
     return value
 
 def _verify_evidence(repo,public,commit,safe,full_container=False):
-    binding,_=git_manifest(repo,commit); public=Path(public).resolve(strict=True); contract=contract_value(repo)
+    diagnostic_mark('SOURCE_BINDING','SOURCE_MISMATCH','SOURCE_MANIFEST')
+    binding,_=git_manifest(repo,commit)
+    diagnostic_source_bound(binding)
+    diagnostic_mark('SOURCE_BINDING','SOURCE_MISMATCH','SOURCE_FILES')
+    contract=contract_value(repo)
     build=b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
     default=b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'
     for rel in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',
@@ -532,19 +585,27 @@ def _verify_evidence(repo,public,commit,safe,full_container=False):
     need(source_file(Path(repo)/'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',64<<10).startswith(default))
     fixed={'host-before.json','host-after.json','consumption.json','consumption-independent.json','sandbox.json','go-version.txt','gofmt.patch','gofmt.stderr','continuous.json','continuous.stderr','commands.jsonl','process-events.jsonl','execution.json','continuous-recovery-report.json','http-originals-index.json','private-fsync-receipts.json','kernel.stdout','kernel.stderr'}
     expected=set(SAFE_EVIDENCE) if safe and not full_container else fixed|{f'http-{i:03d}.response.json' for i in range(1,32)}
+    diagnostic_mark('PUBLIC_INVENTORY','MISSING_EVIDENCE','PUBLIC_FILE_SET')
+    public=Path(public).resolve(strict=True)
+    diagnostic_mark('PUBLIC_INVENTORY','COUNT_MISMATCH','PUBLIC_FILE_SET')
     need({p.name for p in public.iterdir()}==expected)
+    diagnostic_mark('REPORT_SHAPE','SCHEMA_INVALID','REPORT')
     report,raw=json_file(public/'continuous-recovery-report.json'); index=validate_report(report,commit,public,binding)
+    diagnostic_mark('HTTP_SHAPES','SCHEMA_INVALID','HTTP_RESPONSES')
     actual_index,_=json_file(public/'http-originals-index.json'); keys(actual_index,('schema','scope','sourceCommit','sourceBinding','entries','production'))
     need(actual_index['schema']=='chengwang.mihomo-continuous-recovery-http-originals/v2' and actual_index['scope']==SCOPE and actual_index['sourceCommit']==commit and actual_index['production'] is False); exact(actual_index['sourceBinding'],binding); exact(actual_index['entries'],index)
+    diagnostic_mark('REPORT_SHAPE','STATE_MISMATCH','GO_RESULT')
     execution,_=json_file(public/'execution.json'); keys(execution,('schema','scope','sourceCommit','sourceBinding','formatExit','goExit','outcome','fullPrivateWALIndependentlyProven','production'))
     need(execution['schema']=='chengwang.mihomo-continuous-recovery-execution/v1' and execution['scope']==SCOPE and execution['sourceCommit']==commit and execution['formatExit']==execution['goExit']==0 and execution['outcome']=='PASS' and execution['fullPrivateWALIndependentlyProven'] is False and execution['production'] is False); exact(execution['sourceBinding'],binding)
     if not safe:
         need(source_file(public/'gofmt.patch',8<<20,empty=True)==b'' and source_file(public/'gofmt.stderr',8<<20,empty=True)==b'' and source_file(public/'continuous.stderr',8<<20,empty=True)==b'')
+    diagnostic_mark('COMMANDS','SEQUENCE_MISMATCH','COMMAND_RECEIPTS')
     commands,_=json_lines(public/'commands.jsonl'); need(len(commands)==4)
     for i,(row,kind,timeout) in enumerate(zip(commands,COMMANDS,TIMEOUTS)):
         keys(row,('schema','sequence','sourceCommit','commandClass','argv','cwd','timeoutSeconds','exitCode','observed','namespace','sourceBinding'))
         integer(row['sequence'],1,4); integer(row['timeoutSeconds'],1,240); integer(row['exitCode'],0,0)
         need(row['schema']=='chengwang.mihomo-continuous-recovery-command-receipt/v1' and row['sequence']==i+1 and row['sourceCommit']==commit and row['commandClass']==kind and row['cwd']=='/tmp/mihomo-apply-source' and row['timeoutSeconds']==timeout and row['exitCode']==0 and row['observed'] is True); exact(row['sourceBinding'],binding); command_argv(row,i,binding,commit)
+    diagnostic_mark('PROCESS_EVENTS','SEQUENCE_MISMATCH','PROCESS_RECEIPTS')
     events,_=json_lines(public/'process-events.jsonl'); need(events and [x['sequence'] for x in events]==list(range(1,len(events)+1)))
     for row in events:
         keys(row,('schema','sequence','commandClass','kind','pid','pidfdAcquired','exitCode')); integer(row['sequence'],1,64)
@@ -554,10 +615,13 @@ def _verify_evidence(repo,public,commit,safe,full_container=False):
         subset=[x for x in events if x.get('commandClass')==command]; need([x['kind'] for x in subset]==['START_INTENT','SPAWNED','PIDFD_ACQUIRED','WAIT_RETURNED'])
         need(subset[-1]['exitCode']==0 and subset[-1]['pidfdAcquired'] is True)
     if not safe:
+        diagnostic_mark('REPORT_SHAPE','STATE_MISMATCH','GO_RESULT')
         rows=[json.loads(x) for x in source_file(public/'continuous.json',8<<20).splitlines() if x]
         relevant=[x for x in rows if x.get('Test')==TOP]; packages=[x for x in rows if 'Test' not in x and x.get('Action')=='pass']
         need(sum(x.get('Action')=='run' for x in relevant)==1 and sum(x.get('Action')=='pass' for x in relevant)==1 and not any(x.get('Action') in ('fail','skip') for x in rows) and len(packages)==1 and packages[0].get('Package')=='chengwang/internal/serverruntime' and all(x.get('Test',TOP).split('/')[0]==TOP for x in rows))
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','SANDBOX')
     sandbox,_=json_file(public/'sandbox.json'); validate_sandbox(sandbox,binding)
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','HOST_NAMESPACE')
     host_before,_=json_file(public/'host-before.json',64<<10); host_after,_=json_file(public/'host-after.json',64<<10)
     need(host_before==host_after); keys(host_before,('networkNamespace','mountNamespace','pidNamespace','resolvSHA256'))
     for key,prefix in (('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')):
@@ -566,15 +630,18 @@ def _verify_evidence(repo,public,commit,safe,full_container=False):
     namespace={key:sandbox[key] for key in ('networkNamespace','mountNamespace','pidNamespace')}
     need(all(namespace[key]!=host_before[key] for key in namespace))
     for row in commands: exact(row['namespace'],namespace)
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','GO_TOOLCHAIN')
     go_version=source_file(public/'go-version.txt',4096)
     need(go_version==b'go version go1.23.12 linux/amd64\n' if safe else go_version.startswith(b'go version go1.23.12 linux/amd64\n'))
     if not safe:
+        diagnostic_mark('PRIVATE_CUSTODY','CUSTODY_INVALID','PRIVATE_RECEIPTS')
         receipt,_=json_file(public/'private-fsync-receipts.json'); need(receipt['schema']=='chengwang.mihomo-continuous-recovery-private-fsync/v1' and receipt['sourceCommit']==commit and receipt['directoryFsyncObserved'] is True and receipt['production'] is False); exact(receipt['sourceBinding'],binding)
         need([row.get('name') for row in receipt['entries']]==['continuous-recovery-report.private.json','kernel.stdout','kernel.stderr'])
         public_receipts={'continuous-recovery-report.private.json':'continuous-recovery-report.json','kernel.stdout':'kernel.stdout','kernel.stderr':'kernel.stderr'}
         for row in receipt['entries']:
             keys(row,('name','bytes','sha256','mode','uid','gid','fsyncObserved')); body=source_file(public/public_receipts[row['name']],2<<20,empty=True)
             need(row['mode']=='0600' and row['uid']==row['gid']==10001 and row['fsyncObserved'] is True and row['bytes']==len(body) and row['sha256']==sha(body))
+    diagnostic_mark('CONSUMPTION','CUSTODY_INVALID','CONSUMPTION_RECEIPTS')
     consumption,consumption_raw=json_file(public/'consumption.json',1<<20)
     independent,independent_raw=json_file(public/'consumption-independent.json',1<<20)
     need(consumption_raw==independent_raw); exact(consumption,independent); validate_consumption(consumption,commit)
@@ -626,6 +693,23 @@ def project_safe(repo,public,commit,run_id,run_attempt,root):
     exact(verify(repo,public,commit),before); exact(safe_root(repo,root,commit,run_id,run_attempt),report)
     return report
 
+def verify_with_failure_summary(repo,public,commit,tree,run_id,run_attempt,output):
+    global _ACTIVE_DIAGNOSTIC
+    need(COMMIT.fullmatch(commit) and OID.fullmatch(tree)); run_id=positive_decimal(run_id); run_attempt=positive_decimal(run_attempt,1<<31)
+    output=Path(output).absolute(); need(output.parent.resolve(strict=True)==output.parent and not output.exists())
+    state=FailureDiagnostic(commit,tree,run_id,run_attempt); need(_ACTIVE_DIAGNOSTIC is None); _ACTIVE_DIAGNOSTIC=state
+    try:
+        try:
+            result=verify(Path(repo),Path(public),commit)
+        except Exception:
+            raw=canonical(failure_summary(state))+b'\n'
+            need(len(raw)<=4096); write_new(output,raw,0o600); sync_directory(output.parent)
+            return 1
+        print(canonical(result).decode())
+        return 0
+    finally:
+        _ACTIVE_DIAGNOSTIC=None
+
 def main(args):
     if len(args)==4 and args[0]=='--source-manifest':
         binding,raw=git_manifest(args[1],args[2]); out=Path(args[3]); need(not out.exists())
@@ -649,5 +733,7 @@ def main(args):
     if len(args)==6 and args[0]=='--verify-safe':
         result=safe_root(Path(args[1]),Path(args[2]),args[3],args[4],args[5])
         print(canonical(result).decode()); return 0
+    if len(args)==8 and args[0]=='--verify-with-failure-summary':
+        return verify_with_failure_summary(Path(args[1]),Path(args[2]),args[3],args[4],args[5],args[6],Path(args[7]))
     need(len(args)==3); result=verify(Path(args[0]),Path(args[1]),args[2]); print(canonical(result).decode()); return 0
 if __name__=='__main__': raise SystemExit(main(sys.argv[1:]))

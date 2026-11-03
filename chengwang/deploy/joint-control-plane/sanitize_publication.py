@@ -111,7 +111,7 @@ def failure(inp,out,code,progress_root=None,source_commit=None,bootstrap_record=
     need(re.fullmatch(r"[A-Z][A-Z0-9_]{2,63}",code)!=None);inp=pathlib.Path(inp);files=failure_files(inp)
     identities=sorted(({"bytes":p.stat().st_size,"sha256":file_sha(p)} for p in files),key=lambda x:(x["sha256"],x["bytes"]))
     scene=code in ("SCENE_FAILED","PRIVATE_SCENE_FAILED")
-    value={"schema":"chengwang.joint-control-plane-safe-failure/v6" if scene else "chengwang.joint-control-plane-safe-failure/v2","failureCode":code,"status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"retainedPrivateFileCount":len(files),"retainedPrivateBytes":sum(p.stat().st_size for p in files),"privateAggregateSHA256":hashlib.sha256(canonical(identities)).hexdigest()}
+    value={"schema":"chengwang.joint-control-plane-safe-failure/v7" if scene else "chengwang.joint-control-plane-safe-failure/v2","failureCode":code,"status":"FAIL","production":False,"authorization":"BLOCKED","actualSKU":"UNKNOWN","privateEvidencePublished":False,"retainedPrivateFileCount":len(files),"retainedPrivateBytes":sum(p.stat().st_size for p in files),"privateAggregateSHA256":hashlib.sha256(canonical(identities)).hexdigest()}
     if scene:
         value["provenanceAuthority"]="NON_AUTHORITATIVE_STANDALONE"
         value["failureClassification"]=C.failure_classification(progress_root,source_commit)
@@ -121,7 +121,7 @@ def failure(inp,out,code,progress_root=None,source_commit=None,bootstrap_record=
     nested=inp/"private-failure-identity.json"
     if nested.is_file():
         private=decode(nested);keys={"schema","failureCode","status","production","authorization","actualSKU","privateEvidencePublished","retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256","provenanceAuthority","failureClassification","localizationEvidence"}
-        need(set(private)==keys and private["schema"]=="chengwang.joint-control-plane-safe-failure/v6" and private["failureCode"]=="PRIVATE_SCENE_FAILED" and private["status"]=="FAIL" and private["production"]is False and private["authorization"]=="BLOCKED" and private["actualSKU"]=="UNKNOWN" and private["privateEvidencePublished"]is False and private["provenanceAuthority"]=="NON_AUTHORITATIVE_STANDALONE" and re.fullmatch(r"[a-f0-9]{64}",private["privateAggregateSHA256"])!=None and private["failureClassification"]==value["failureClassification"] and private["localizationEvidence"]==value["localizationEvidence"])
+        need(set(private)==keys and private["schema"]=="chengwang.joint-control-plane-safe-failure/v7" and private["failureCode"]=="PRIVATE_SCENE_FAILED" and private["status"]=="FAIL" and private["production"]is False and private["authorization"]=="BLOCKED" and private["actualSKU"]=="UNKNOWN" and private["privateEvidencePublished"]is False and private["provenanceAuthority"]=="NON_AUTHORITATIVE_STANDALONE" and re.fullmatch(r"[a-f0-9]{64}",private["privateAggregateSHA256"])!=None and private["failureClassification"]==value["failureClassification"] and private["localizationEvidence"]==value["localizationEvidence"])
         value["privateDiagnostics"]={k:private[k] for k in ("retainedPrivateFileCount","retainedPrivateBytes","privateAggregateSHA256")}
     data=canonical(value);need(len(data)<=4096);pathlib.Path(out).parent.mkdir(mode=0o700,parents=True,exist_ok=True);write(out,data)
 def cpu(units,go_exit,out):

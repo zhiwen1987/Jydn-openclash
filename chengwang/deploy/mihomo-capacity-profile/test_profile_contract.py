@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -425,6 +426,78 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         for secret in ('capacity.json','stderr','pprof','/tmp/','Traceback','https://','argv','Output'):
             with self.subTest(secret=secret):self.assertNotIn(secret,raw.decode())
 
+        source_failed=self.reader.new_safe_progress('SINGLE_CASE')
+        self.reader.safe_phase_begin(source_failed,'SOURCE_BINDING')
+        source_failed_value=self.reader.safe_rejection_value(
+            source_failed,commit,None,41560358147,1,'STRICT_PREDICATE_REJECTED')
+        source_failed_raw=self.reader.encoded(source_failed_value)
+        self.assertEqual(
+            self.reader.validate_safe_rejection(
+                source_failed_raw,commit,None,41560358147,1,'SINGLE_CASE'),
+            source_failed_value)
+        self.assertIs(source_failed_value['sourceGitVerified'],False)
+        self.assertIsNone(source_failed_value['sourceTree'])
+        self.assertEqual(source_failed_value['passedPhases'],[])
+        self.assertEqual(source_failed_value['firstFailedPhase'],'SOURCE_BINDING')
+        self.assertTrue(all(item is None for item in source_failed_value['exitCodes'].values()))
+        self.assertTrue(all(item is None for item in source_failed_value['requiredCounts'].values()))
+        for name,key,replacement in (
+                ('invented_tree','sourceTree','6'*40),
+                ('invented_source_green','sourceGitVerified',True),
+                ('invented_exit','exitCodes',dict(source_failed_value['exitCodes'],go=1)),
+                ('invented_count','requiredCounts',dict(source_failed_value['requiredCounts'],failed=1))):
+            with self.subTest(rejected_unverified_source=name):
+                changed=copy.deepcopy(source_failed_value);changed[key]=replacement
+                with self.assertRaises(ValueError):
+                    self.reader.validate_safe_rejection(
+                        self.reader.encoded(changed),commit,None,41560358147,1,'SINGLE_CASE')
+        with self.assertRaises(ValueError):
+            self.reader.validate_safe_rejection(
+                source_failed_raw,commit,tree,41560358147,1,'SINGLE_CASE')
+        class PosixOS:
+            name='posix'
+            O_NOFOLLOW=0
+            def __getattr__(self,name):return getattr(os,name)
+        def prepare(path,_lane):
+            path.parent.mkdir()
+            return path
+        with tempfile.TemporaryDirectory()as directory:
+            root=Path(directory);evidence=root/'evidence';evidence.mkdir()
+            safe_path=root/'safe'/self.reader.SAFE_REJECTION_BASENAMES['SINGLE_CASE']
+            report=root/'report.json'
+            argv=['check_profile.py','verify','--repo',str(root),'--source-commit',commit,
+                '--evidence',str(evidence),'--report',str(report),'--safe-rejection-report',str(safe_path),
+                '--run-id','41560358147','--run-attempt','1']
+            with mock.patch.object(self.reader,'os',PosixOS()),mock.patch.object(
+                    self.reader,'prepare_safe_rejection_path',side_effect=prepare),mock.patch.object(
+                    self.reader,'source_snapshot',side_effect=ValueError('bounded')),mock.patch.object(sys,'argv',argv):
+                with self.assertRaises(ValueError):self.reader.main()
+            early_raw=safe_path.read_bytes()
+            self.assertEqual(
+                self.reader.validate_safe_rejection(
+                    early_raw,commit,None,41560358147,1,'SINGLE_CASE')['firstFailedPhase'],
+                'SOURCE_BINDING')
+            check_argv=['check_profile.py','safe-rejection-check','--repo',str(root),
+                '--source-commit',commit,'--safe-rejection-report',str(safe_path),
+                '--run-id','41560358147','--run-attempt','1','--lane','SINGLE_CASE']
+            with (mock.patch.object(self.reader,'os',PosixOS()),mock.patch.object(
+                    self.reader,'safe_rejection_path',return_value=safe_path),mock.patch.object(
+                    self.reader,'read',return_value=early_raw),mock.patch.object(
+                    self.reader,'source_snapshot',side_effect=AssertionError('must-not-claim-source')),
+                    mock.patch('builtins.print'),mock.patch.object(sys,'argv',check_argv)):
+                self.reader.main()
+        with tempfile.TemporaryDirectory()as directory:
+            root=Path(directory);evidence=root/'evidence';evidence.mkdir()
+            safe_path=root/'safe'/self.reader.SAFE_REJECTION_BASENAMES['SINGLE_CASE']
+            argv=['check_profile.py','verify','--repo',str(root),'--source-commit',commit,
+                '--evidence',str(evidence),'--report',str(root/'report.json'),
+                '--safe-rejection-report',str(safe_path),'--run-id','41560358147','--run-attempt','1']
+            with mock.patch.object(self.reader,'os',PosixOS()),mock.patch.object(
+                    self.reader,'prepare_safe_rejection_path',side_effect=prepare),mock.patch.object(
+                    self.reader,'source_snapshot',side_effect=ValueError('bounded')),mock.patch.object(
+                    self.reader,'write',side_effect=OSError('bounded')),mock.patch.object(sys,'argv',argv):
+                with self.assertRaises(self.reader.SafeRejectionWriteFailed):self.reader.main()
+
         mutations={
             'schema':('schema','chengwang.capacity-profile-safe-rejection/v0'),
             'source':('sourceCommit','5'*40),
@@ -482,15 +555,43 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
                 with self.assertRaises(OSError):self.reader.write(path,raw)
             linked=path.with_name('linked.json');os.link(path,linked)
             with self.assertRaises(ValueError):self.reader.read(path,65536)
+        with tempfile.TemporaryDirectory()as directory:
+            staged=Path(directory)/'safe'/self.reader.SAFE_REJECTION_BASENAMES['SINGLE_CASE']
+            with mock.patch.object(self.reader,'safe_rejection_path',return_value=staged),mock.patch.object(
+                    self.reader.os,'chmod'):
+                self.assertEqual(
+                    self.reader.prepare_safe_rejection_path(staged,'SINGLE_CASE'),staged)
+            self.assertTrue(staged.parent.is_dir())
+            with self.assertRaises(self.reader.SafeCustodyRejected):
+                self.reader.prepare_safe_rejection_path(staged,'SINGLE_CASE')
+        with tempfile.TemporaryDirectory()as directory:
+            collision=Path(directory)/'safe'/self.reader.SAFE_REJECTION_BASENAMES['SINGLE_CASE']
+            collision.parent.mkdir()
+            collision.write_bytes(b'preexisting')
+            with self.assertRaises(self.reader.SafeCustodyRejected):
+                self.reader.prepare_safe_rejection_path(collision,'SINGLE_CASE')
+            self.assertEqual(collision.read_bytes(),b'preexisting')
         source=Path(self.reader.__file__).read_text(encoding='utf8')
         self.assertIn('os.O_EXCL|os.O_NOFOLLOW',source)
         self.assertNotIn('validate_safe_rejection(raw,commit,tree,run_id,run_attempt,lane):\n    return safe_rejection_value',source)
+        self.assertNotIn('except Exception:pass',source)
+        self.assertIn('raise SafeRejectionWriteFailed()from None',source)
+        self.assertIn('bounded_state=SAFE_CUSTODY_REJECTED',source)
+        self.assertIn('bounded_state=SAFE_REJECTION_WRITER_FAILED',source)
         workflow=Path(self.reader.__file__).resolve().parents[3]/'.github/workflows/chengwang-mihomo-capacity-profile.yml'
         workflow_text=workflow.read_text(encoding='utf8')
-        self.assertIn('safe_rejection_ready=true',workflow_text)
+        self.assertEqual(workflow_text.count('safe_rejection_ready=true'),4)
         self.assertEqual(workflow_text.count('exit "$verify_code"'),4)
         self.assertEqual(workflow_text.count('|| safe_check_code=$?'),4)
-        self.assertEqual(workflow_text.count('if test "$safe_check_code" -eq 0; then'),2)
+        self.assertEqual(workflow_text.count('if test "$safe_check_code" -eq 0; then'),4)
+        self.assertEqual(workflow_text.count('--capture-after'),2)
+        self.assertEqual(workflow_text.count('safe_state=SAFE_CUSTODY_REJECTED'),4)
+        self.assertEqual(workflow_text.count('safe_state=SAFE_REJECTION_WRITER_FAILED'),4)
+        self.assertEqual(workflow_text.count('safe_state=SAFE_REPORT_READER_REJECTED'),4)
+        self.assertIn('steps.single_fresh_verify.outputs.safe_rejection_ready',workflow_text)
+        self.assertIn('steps.full_fresh_verify.outputs.safe_rejection_ready',workflow_text)
+        self.assertIn('mihomo-capacity-safe-rejection-single-fresh-',workflow_text)
+        self.assertIn('mihomo-capacity-safe-rejection-full-fresh-',workflow_text)
         self.assertNotIn('continue-on-error:',workflow_text)
 
     def test_full_source_contract_binds_the_exact_normal_race_timeline_wrapper(self):

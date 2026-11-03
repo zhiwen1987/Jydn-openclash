@@ -87,6 +87,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.reader=load('continuous_reader','check_continuous_recovery_api.py')
+        cls.verifier_failure=load('continuous_verifier_failure','check_continuous_recovery_verifier_failure.py')
         cls.worker=load('continuous_worker','continuous_recovery_api_worker.py')
         cls.model_outcomes=load('continuous_model_outcomes','continuous_recovery_model_outcomes.py')
 
@@ -467,6 +468,132 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertNotIn('if: ${{ always() }}',upload)
         for forbidden in ('*.stdout','*.stderr','continuous.json','kernel.stdout','kernel.stderr','candidate.gz'):
             self.assertNotIn(forbidden,upload)
+        diagnostic_name='          name: mihomo-continuous-recovery-api-verifier-failure-${{ github.run_id }}-${{ github.run_attempt }}\n'
+        self.assertEqual(workflow.count(diagnostic_name),1)
+        diagnostic=workflow.split('      - name: Independently validate the bounded verifier rejection summary\n',1)[1].split('      - name: Project and independently re-read the bounded safe artifact\n',1)[0]
+        self.assertIn("if: ${{ failure() }}",diagnostic)
+        self.assertIn('check_continuous_recovery_verifier_failure.py',diagnostic)
+        self.assertIn("if: ${{ always() && steps.verifier_failure_diagnostic.outcome == 'success' }}",diagnostic)
+        self.assertIn('path: ${{ runner.temp }}/mihomo-continuous-recovery-verifier-failure-public/verification-failure.json',diagnostic)
+        for forbidden in ('verification.stderr','verification.txt','*.stdout','*.stderr','kernel.stdout','kernel.stderr','private.json'):
+            self.assertNotIn(forbidden,diagnostic.split('      - uses: actions/upload-artifact@',1)[1])
+        helper_failure=self.verifier_failure
+        commit='a'*40; tree='b'*40; run_id=41581266977; attempt=1
+        def summary(proven=False,phase='SOURCE_BINDING',failure_class='SOURCE_MISMATCH',field='SOURCE_MANIFEST'):
+            return {'schema':helper_failure.SCHEMA,'status':'FAIL','accepted':False,'authorization':'BLOCKED',
+              'runtimeAccepted':False,'phase':phase,'failureClass':failure_class,'fieldCode':field,
+              'runId':run_id,'runAttempt':attempt,'sourceCommit':commit,'sourceTree':tree if proven else None,
+              'sourceProof':{'proven':proven,'bindingSHA256':'1'*64 if proven else None,
+                'sourceCount':34 if proven else None,'deliveryCount':33 if proven else None},
+              'rawEvidenceIncluded':False,'production':False}
+        private_value=summary(); private_raw=helper_failure.canonical(private_value)+b'\n'
+        self.assertEqual(helper_failure.validate(private_raw,commit,tree,run_id,attempt),private_value)
+        bound_value=summary(True,'HTTP_SHAPES','SCHEMA_INVALID','HTTP_RESPONSES')
+        helper_failure.validate(helper_failure.canonical(bound_value)+b'\n',commit,tree,run_id,attempt)
+        mutants=[]
+        def changed(path,value):
+            mutant=copy.deepcopy(private_value); target=mutant
+            for item in path[:-1]: target=target[item]
+            target[path[-1]]=value; mutants.append(mutant)
+        changed(('runId',),run_id+1); changed(('runAttempt',),attempt+1); changed(('sourceCommit',),'c'*40)
+        changed(('sourceTree',),'c'*40); changed(('phase',),'PRIVATE_MESSAGE'); changed(('failureClass',),'RAW_EXCEPTION')
+        changed(('fieldCode',),'filesystem/path'); changed(('accepted',),True); changed(('runtimeAccepted',),True)
+        changed(('sourceProof','bindingSHA256'),'1'*64); changed(('sourceProof','sourceCount'),34)
+        extra=copy.deepcopy(private_value);extra['message']='PRIVATE_CANARY';mutants.append(extra)
+        for index,mutant in enumerate(mutants):
+            with self.subTest(verifier_failure_mutant=index),self.assertRaises((ValueError,TypeError,KeyError)):
+                helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,run_id,attempt)
+        scalar_base=summary();scalar_base['runId']=1;scalar_base['runAttempt']=1
+        scalar_raw=helper_failure.canonical(scalar_base)+b'\n'
+        self.assertEqual(helper_failure.validate(scalar_raw,commit,tree,1,1),scalar_base)
+        for key in ('runId','runAttempt'):
+            for bad in (True,False,1.0,'1',None):
+                mutant=copy.deepcopy(scalar_base);mutant[key]=bad
+                with self.subTest(integer_identity=key,bad_type=type(bad).__name__,bad=bad),self.assertRaises((ValueError,TypeError)):
+                    helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,1,1)
+        for key in ('accepted','runtimeAccepted','rawEvidenceIncluded','production'):
+            for bad in (0,0.0,'false',None):
+                mutant=copy.deepcopy(scalar_base);mutant[key]=bad
+                with self.subTest(boolean_literal=key,bad_type=type(bad).__name__),self.assertRaises((ValueError,TypeError)):
+                    helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,1,1)
+        for bad in (0,0.0,'false',None):
+            mutant=copy.deepcopy(scalar_base);mutant['sourceProof']['proven']=bad
+            with self.subTest(source_proof_boolean=type(bad).__name__),self.assertRaises((ValueError,TypeError)):
+                helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,1,1)
+        for bad in (False,0,0.0,'',tree):
+            mutant=copy.deepcopy(scalar_base);mutant['sourceTree']=bad
+            with self.subTest(nullable_source_tree=repr(bad)),self.assertRaises((ValueError,TypeError)):
+                helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,1,1)
+        for proof_key in ('bindingSHA256','sourceCount','deliveryCount'):
+            for bad in (False,0,0.0,''):
+                mutant=copy.deepcopy(scalar_base);mutant['sourceProof'][proof_key]=bad
+                with self.subTest(nullable_source_proof=proof_key,bad_type=type(bad).__name__),self.assertRaises((ValueError,TypeError)):
+                    helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,1,1)
+        typed_strings=('schema','status','authorization','phase','failureClass','fieldCode','sourceCommit')
+        for key in typed_strings:
+            for bad in (True,1,1.0,None):
+                mutant=copy.deepcopy(scalar_base);mutant[key]=bad
+                with self.subTest(closed_string=key,bad_type=type(bad).__name__),self.assertRaises((ValueError,TypeError)):
+                    helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,1,1)
+        for key in ('sourceCount','deliveryCount'):
+            for bad in (True,1.0,'34',None):
+                mutant=copy.deepcopy(bound_value);mutant['sourceProof'][key]=bad
+                with self.subTest(bound_count=key,bad_type=type(bad).__name__),self.assertRaises((ValueError,TypeError)):
+                    helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,run_id,attempt)
+        for bad in (True,1,1.0,None,'c'*40):
+            mutant=copy.deepcopy(bound_value);mutant['sourceTree']=bad
+            with self.subTest(bound_source_tree=repr(bad)),self.assertRaises((ValueError,TypeError)):
+                helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,run_id,attempt)
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); private=root/'failure.private.json'; output=root/'public'
+            helper_failure.write_new(private,private_raw,0o600)
+            linked=root/'linked.private.json';os.link(private,linked)
+            with self.assertRaises(ValueError):helper_failure.read_stable(private)
+            linked.unlink()
+            with mock.patch.object(helper_failure,'bind_source',return_value=(root,tree)):
+                published=helper_failure.publish(root,private,commit,str(run_id),str(attempt),output)
+            self.assertFalse(published['accepted']);self.assertEqual(tuple(x.name for x in output.iterdir()),('verification-failure.json',))
+            self.assertEqual((output/'verification-failure.json').read_bytes(),private_raw)
+            with mock.patch.object(helper_failure,'bind_source',return_value=(root,tree)),self.assertRaises(ValueError):
+                helper_failure.publish(root,private,commit,str(run_id),str(attempt),output)
+        with tempfile.TemporaryDirectory() as td:
+            repo=Path(td)/'repo';repo.mkdir();subprocess.run(['git','init','-q',str(repo)],check=True)
+            subprocess.run(['git','-C',str(repo),'config','core.autocrlf','false'],check=True)
+            for relative in helper_failure.BOUND_SOURCES:
+                destination=repo/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+                destination.write_bytes((HERE.parents[2]/relative).read_bytes())
+            subprocess.run(['git','-C',str(repo),'add','--all'],check=True)
+            subprocess.run(['git','-C',str(repo),'-c','user.name=model','-c','user.email=model@example.invalid','commit','-qm','model'],check=True)
+            actual_commit=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
+            actual_tree=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD^{tree}'],text=True).strip()
+            actual_value=copy.deepcopy(private_value);actual_value['sourceCommit']=actual_commit
+            private=Path(td)/'actual.private.json';output=Path(td)/'actual-public'
+            helper_failure.write_new(private,helper_failure.canonical(actual_value)+b'\n',0o600)
+            helper_failure.publish(repo,private,actual_commit,str(run_id),str(attempt),output)
+            self.assertEqual(helper_failure.bind_source(repo,actual_commit)[1],actual_tree)
+            (repo/helper_failure.BOUND_SOURCES[-1]).write_bytes(b'tamper\n')
+            with self.assertRaises(ValueError):helper_failure.bind_source(repo,actual_commit)
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); private=root/'early.private.json'
+            with mock.patch.object(self.reader,'git_manifest',side_effect=ValueError('private detail')):
+                self.assertEqual(self.reader.verify_with_failure_summary(root,root,commit,tree,str(run_id),str(attempt),private),1)
+            early=helper_failure.strict_json(private.read_bytes())
+            self.assertEqual((early['phase'],early['failureClass'],early['fieldCode']),('SOURCE_BINDING','SOURCE_MISMATCH','SOURCE_MANIFEST'))
+            self.assertIsNone(early['sourceTree'])
+            self.assertEqual(early['sourceProof'],{'proven':False,'bindingSHA256':None,'sourceCount':None,'deliveryCount':None})
+            self.assertNotIn('private detail',private.read_text(encoding='ascii'))
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); private=root/'writer.private.json'; private.write_bytes(b'preserve')
+            with self.assertRaises(ValueError):
+                self.reader.verify_with_failure_summary(root,root,commit,tree,str(run_id),str(attempt),private)
+            self.assertEqual(private.read_bytes(),b'preserve')
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); private=root/'writer-fault.private.json'
+            with mock.patch.object(self.reader,'verify',side_effect=ValueError('private verifier detail')), \
+                 mock.patch.object(self.reader,'write_new',side_effect=OSError('private writer detail')), \
+                 self.assertRaises(OSError):
+                self.reader.verify_with_failure_summary(root,root,commit,tree,str(run_id),str(attempt),private)
+            self.assertFalse(private.exists());self.assertIsNone(self.reader._ACTIVE_DIAGNOSTIC)
         helper=self.model_outcomes
         source=(HERE/'test_continuous_recovery_api_model.py').read_bytes()
         expected,source_sha=helper.inventory(source)

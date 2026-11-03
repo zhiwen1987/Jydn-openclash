@@ -253,18 +253,21 @@ SINGLE_REPORT_SCHEMA='chengwang.capacity-profile-verification/v4'
 SINGLE_REPORT_SCOPE='CPU_DIAGNOSIS_OF_CURRENT_VERSIONED_CAPACITY_FIXTURE_NOT_HISTORICAL_BASELINE_NOT_RECOVERY_OR_PRODUCTION'
 FULL_REPORT_SCHEMA='chengwang.capacity-profile-verification/v2'
 FULL_REPORT_SCOPE='FULL_SIX_PACKAGE_RACE_DIAGNOSIS_WITH_MIHOMODEPLOY_ONLY_CPU_WINDOW_NOT_PRODUCT_ACCEPTANCE'
-SAFE_REJECTION_SCHEMA='chengwang.capacity-profile-safe-rejection/v1'
+SAFE_REJECTION_SCHEMA='chengwang.capacity-profile-safe-rejection/v2'
 SAFE_REJECTION_BASENAMES={'SINGLE_CASE':'capacity-single-safe-rejection.json','FULL_CONTRACTS':'capacity-full-safe-rejection.json'}
 SAFE_PHASES={
-    'SINGLE_CASE':('SOURCE_BINDING','EVIDENCE_MEMBER_SET','EXECUTION_CONTRACT','HOST_SANDBOX','PROFILE_STATE',
+    'SINGLE_CASE':('SOURCE_BINDING','AFTER_OBSERVATION','EVIDENCE_MEMBER_SET','EXECUTION_CONTRACT','HOST_SANDBOX','PROFILE_STATE',
         'PROFILE_SHAPE','COMMAND_JOURNAL','GO_EVENT_SEMANTICS','REPORT_CONSTRUCTION','POST_READBACK','REPORT_PUBLICATION'),
-    'FULL_CONTRACTS':('SOURCE_BINDING','EVIDENCE_MEMBER_SET','EXECUTION_CONTRACT','HOST_SANDBOX','PROFILE_STATE',
+    'FULL_CONTRACTS':('SOURCE_BINDING','AFTER_OBSERVATION','EVIDENCE_MEMBER_SET','EXECUTION_CONTRACT','HOST_SANDBOX','PROFILE_STATE',
         'PROFILE_SHAPE','COMMAND_JOURNAL','SOURCE_CONTRACT','TIMELINE','GO_EVENT_SEMANTICS','RESOURCE_WINDOW',
         'REPORT_CONSTRUCTION','POST_READBACK','REPORT_PUBLICATION'),
 }
 SAFE_FAILURE_CLASSES=('STRICT_PREDICATE_REJECTED','CHECKER_INTERNAL_REJECTED')
 SAFE_EXIT_KEYS=('version','format','go','top','cum')
 SAFE_COUNT_KEYS=('passed','failed','skipped','unfinished','notStarted')
+
+class SafeCustodyRejected(Exception):pass
+class SafeRejectionWriteFailed(Exception):pass
 
 def need(v):
     if not v:raise ValueError('capacity profile evidence rejected')
@@ -320,11 +323,16 @@ def safe_phase_pass(progress,name):
     need(progress['currentPhase']==name);progress['passedPhases'].append(name);progress['currentPhase']=None
 def safe_rejection_value(progress,commit,tree,run_id,run_attempt,failure_class):
     need(type(progress)is dict and progress['currentPhase']in SAFE_PHASES[progress['lane']])
-    need(failure_class in SAFE_FAILURE_CLASSES and re.fullmatch('[a-f0-9]{40}',commit)and re.fullmatch('[a-f0-9]{40}',tree))
+    source_verified=tree is not None
+    need(failure_class in SAFE_FAILURE_CLASSES and re.fullmatch('[a-f0-9]{40}',commit))
+    need((re.fullmatch('[a-f0-9]{40}',tree)is not None)if source_verified else
+        (progress['currentPhase']=='SOURCE_BINDING'and progress['passedPhases']==[]and
+         all(item is None for item in progress['exitCodes'].values())and progress['profileCaptureComplete']is None and
+         all(item is None for item in progress['requiredCounts'].values())and progress['timelineValidated']is None))
     value={'schema':SAFE_REJECTION_SCHEMA,'sourceCommit':commit,'sourceTree':tree,
         'runId':run_id,'runAttempt':run_attempt,'lane':progress['lane'],
         'passedPhases':list(progress['passedPhases']),'firstFailedPhase':progress['currentPhase'],
-        'failureClass':failure_class,'sourceGitVerified':True,'strictVerificationAccepted':False,
+        'failureClass':failure_class,'sourceGitVerified':source_verified,'strictVerificationAccepted':False,
         'exitCodes':dict(progress['exitCodes']),'profileCaptureComplete':progress['profileCaptureComplete'],
         'requiredCounts':dict(progress['requiredCounts']),'timelineValidated':progress['timelineValidated'],
         'wholeCIPass':False,'production':False}
@@ -340,7 +348,11 @@ def validate_safe_rejection(raw,commit,tree,run_id,run_attempt,lane):
         value['runAttempt']==run_attempt and value['lane']==lane and lane in SAFE_PHASES)
     phases=SAFE_PHASES[lane];failed=value['firstFailedPhase'];need(failed in phases)
     index=phases.index(failed);need(value['passedPhases']==list(phases[:index]))
-    need(value['failureClass']in SAFE_FAILURE_CLASSES and value['sourceGitVerified']is True and
+    source_verified=value['sourceGitVerified']
+    need(type(source_verified)is bool and source_verified is (tree is not None))
+    need((re.fullmatch('[a-f0-9]{40}',value['sourceTree'])is not None)if source_verified else
+        (value['sourceTree']is None and failed=='SOURCE_BINDING'and index==0))
+    need(value['failureClass']in SAFE_FAILURE_CLASSES and
         value['strictVerificationAccepted']is value['wholeCIPass']is value['production']is False)
     exits=value['exitCodes'];need(exact(exits,SAFE_EXIT_KEYS))
     need(all(item is None or integer(item,-128,255)for item in exits.values()))
@@ -354,6 +366,9 @@ def validate_safe_rejection(raw,commit,tree,run_id,run_attempt,lane):
         all(item is None for item in counts.values()))
     timeline=value['timelineValidated']
     need((timeline is True)if lane=='FULL_CONTRACTS'and'TIMELINE'in value['passedPhases']else timeline is None)
+    if not source_verified:
+        need(all(item is None for item in exits.values())and value['profileCaptureComplete']is None and
+            all(item is None for item in counts.values())and timeline is None)
     return value
 def read(path,limit):
     need(path.is_absolute() and '..' not in path.parts)
@@ -828,28 +843,48 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None,progress=No
     result=validate_report_case_identity(report,diagnostic_mode);safe_phase_pass(progress,'REPORT_CONSTRUCTION');return result
 
 def safe_rejection_path(path,lane,empty):
-    need(type(path)is Path and path.is_absolute()and'..'not in path.parts and path.name==SAFE_REJECTION_BASENAMES[lane])
+    need(isinstance(path,Path)and path.is_absolute()and'..'not in path.parts and path.name==SAFE_REJECTION_BASENAMES[lane])
     parent=path.parent;need(parent.is_dir()and not parent.is_symlink())
     info=parent.stat();need(stat.S_ISDIR(info.st_mode)and info.st_uid==os.geteuid()and info.st_gid==os.getegid()and stat.S_IMODE(info.st_mode)==0o755)
     names=set(item.name for item in parent.iterdir());need(names==(set()if empty else{path.name}))
     return path
 
+def prepare_safe_rejection_path(path,lane):
+    try:
+        need(isinstance(path,Path)and path.is_absolute()and'..'not in path.parts and path.name==SAFE_REJECTION_BASENAMES[lane])
+        parent=path.parent;need(not parent.exists()and not parent.is_symlink())
+        owner=parent.parent;info=owner.stat();need(owner.is_dir()and not owner.is_symlink()and stat.S_ISDIR(info.st_mode))
+        os.mkdir(parent,0o700);os.chmod(parent,0o755,follow_symlinks=False)
+        return safe_rejection_path(path,lane,True)
+    except Exception as error:
+        raise SafeCustodyRejected()from None
+
 def main():
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['host','source','verify','safe-rejection-check']);p.add_argument('--out',type=Path);p.add_argument('--repo',type=Path);p.add_argument('--source-commit');p.add_argument('--evidence',type=Path);p.add_argument('--report',type=Path);p.add_argument('--safe-rejection-report',type=Path);p.add_argument('--run-id');p.add_argument('--run-attempt');p.add_argument('--lane',choices=['SINGLE_CASE','FULL_CONTRACTS']);p.add_argument('--diagnostic-mode',choices=['SINGLE_CASE','FULL_CONTRACTS'],default='SINGLE_CASE');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['host','source','verify','safe-rejection-check']);p.add_argument('--out',type=Path);p.add_argument('--repo',type=Path);p.add_argument('--source-commit');p.add_argument('--evidence',type=Path);p.add_argument('--report',type=Path);p.add_argument('--safe-rejection-report',type=Path);p.add_argument('--run-id');p.add_argument('--run-attempt');p.add_argument('--lane',choices=['SINGLE_CASE','FULL_CONTRACTS']);p.add_argument('--diagnostic-mode',choices=['SINGLE_CASE','FULL_CONTRACTS'],default='SINGLE_CASE');p.add_argument('--capture-after',action='store_true');a=p.parse_args()
     need(os.name=='posix')
     if a.mode=='host':write(a.out,encoded(host()));return
     if a.mode=='source':write(a.out,encoded(source_snapshot(a.repo,a.source_commit)));return
     if a.mode=='safe-rejection-check':
+        need(not a.capture_after)
         need(a.lane in SAFE_PHASES);run_id=bounded_positive(a.run_id);run_attempt=bounded_positive(a.run_attempt)
-        sources=source_snapshot(a.repo,a.source_commit);path=safe_rejection_path(a.safe_rejection_report,a.lane,False)
-        validate_safe_rejection(read(path,65536),a.source_commit,sources['sourceTree'],run_id,run_attempt,a.lane)
+        path=safe_rejection_path(a.safe_rejection_report,a.lane,False);raw=read(path,65536);value=decode(raw)
+        tree=source_snapshot(a.repo,a.source_commit)['sourceTree']if value.get('sourceGitVerified')is True else None
+        validate_safe_rejection(raw,a.source_commit,tree,run_id,run_attempt,a.lane)
         print('CAPACITY_PROFILE_SAFE_REJECTION=VERIFIED lane='+a.lane);return
     full=a.diagnostic_mode=='FULL_CONTRACTS'
-    progress=new_safe_progress(a.diagnostic_mode);safe_phase_begin(progress,'SOURCE_BINDING')
-    sources=source_snapshot(a.repo,a.source_commit);safe_phase_pass(progress,'SOURCE_BINDING')
-    run_id=bounded_positive(a.run_id);run_attempt=bounded_positive(a.run_attempt)
-    safe_path=safe_rejection_path(a.safe_rejection_report,a.diagnostic_mode,True)
+    need(a.mode=='verify');run_id=bounded_positive(a.run_id);run_attempt=bounded_positive(a.run_attempt)
+    safe_path=prepare_safe_rejection_path(a.safe_rejection_report,a.diagnostic_mode)
+    progress=new_safe_progress(a.diagnostic_mode);safe_phase_begin(progress,'SOURCE_BINDING');sources=None
     try:
+        sources=source_snapshot(a.repo,a.source_commit);safe_phase_pass(progress,'SOURCE_BINDING')
+        safe_phase_begin(progress,'AFTER_OBSERVATION')
+        if a.capture_after:
+            write(a.evidence/'host-after.json',encoded(host()))
+            write(a.evidence/'source-after.json',encoded(sources))
+        else:
+            need(all((a.evidence/name).is_file()and not(a.evidence/name).is_symlink()
+                     for name in ('host-after.json','source-after.json')))
+        safe_phase_pass(progress,'AFTER_OBSERVATION')
         safe_phase_begin(progress,'EVIDENCE_MEMBER_SET')
         public=PUBLIC+(RESOURCE_NAMES if full else());expected=set(public)|({TIMELINE_DIR}if full else set())
         need(set(v.name for v in a.evidence.iterdir())==expected)
@@ -873,9 +908,15 @@ def main():
         safe_phase_pass(progress,'REPORT_PUBLICATION')
     except Exception as error:
         failure='STRICT_PREDICATE_REJECTED'if isinstance(error,(ValueError,KeyError,TypeError,UnicodeError,OverflowError))else'CHECKER_INTERNAL_REJECTED'
-        try:write(safe_path,encoded(safe_rejection_value(progress,a.source_commit,sources['sourceTree'],run_id,run_attempt,failure)))
-        except Exception:pass
+        tree=sources['sourceTree']if sources is not None else None
+        try:write(safe_path,encoded(safe_rejection_value(progress,a.source_commit,tree,run_id,run_attempt,failure)))
+        except Exception:raise SafeRejectionWriteFailed()from None
         raise
 if __name__=='__main__':
     try:main()
-    except Exception:raise SystemExit('CAPACITY_PROFILE_EVIDENCE=REJECTED raw_error_suppressed=true') from None
+    except SafeCustodyRejected:
+        print('CAPACITY_PROFILE_EVIDENCE=REJECTED bounded_state=SAFE_CUSTODY_REJECTED',file=sys.stderr);raise SystemExit(3)
+    except SafeRejectionWriteFailed:
+        print('CAPACITY_PROFILE_EVIDENCE=REJECTED bounded_state=SAFE_REJECTION_WRITER_FAILED',file=sys.stderr);raise SystemExit(4)
+    except Exception:
+        print('CAPACITY_PROFILE_EVIDENCE=REJECTED bounded_state=STRICT_OR_INTERNAL_REJECTED',file=sys.stderr);raise SystemExit(1)

@@ -4,12 +4,12 @@ import argparse, ast, errno, hashlib, importlib.util, json, os, pathlib, re, sel
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_ci_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 WORKFLOW=".github/workflows/chengwang-joint-control-plane.yml"
-WORKFLOW_NORMALIZED_SHA256="65878f3fad46a7abcd305a0a24628d9e4e61d65e194c9251f71625fdaec46563"
+WORKFLOW_NORMALIZED_SHA256="f7698ec86a19e46d17dd0176ab6ebbe46c33ae81d4de2ed41a20ee9b29ef2830"
 MODEL_TEST_SOURCES=("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py","test_uid_probe_diagnostic.py","test_check_uid_probe_diagnostic.py")
 MODEL_OUTCOMES=("PASS","FAIL","ERROR","SKIP","UNKNOWN")
 MODEL_DIAGNOSTIC_SCHEMA="chengwang.joint-control-plane-model-outcomes/v1"
 MODEL_DIAGNOSTIC_MAXIMUM=16384
-BOOTSTRAP_STEP_SHA256="b36c7d1f31c0a0a3e10fcfbfb162cc29b76d1f08a6581951fe0f7757d6c11532"
+BOOTSTRAP_STEP_SHA256="390435e14649a0b656b81bf88ba8ba1a349fac7a2e8374a29c5ff870948b9438"
 SCENE_STEP=(
     "- name: Real B0 J1 R2 same-binary scene",
     "  if: ${{ steps.bootstrap_progress.outcome == 'success' }}",
@@ -361,7 +361,7 @@ def _stop_child(process):
     except Exception:return False
 def _bounded_child(argv,expected,timeout=10,popen=subprocess.Popen,platform=None,
                    selector_factory=selectors.DefaultSelector,set_blocking=os.set_blocking,
-                   read_fd=os.read):
+                   read_fd=os.read,failure_decoder=None):
     need(type(expected)is bytes and len(expected)<=1024 and timeout>0)
     try:
         process=popen(argv,cwd="/",env={},shell=False,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,close_fds=True)
@@ -430,15 +430,19 @@ def _bounded_child(argv,expected,timeout=10,popen=subprocess.Popen,platform=None
         except Exception:close_failed=True
     if supervisor_failed or close_failed or not reaped:
         raise ValueError("joint-ci-child-custody-rejected") from None
-    if timed_out:return "TIMEOUT"
-    if oversize:return "STDOUT_OVERSIZE"
-    if code!=0:return "COMMAND_NONZERO"
-    if raw!=expected:return "STDOUT_INVALID"
-    return "PASS"
+    state="TIMEOUT" if timed_out else "STDOUT_OVERSIZE" if oversize else "COMMAND_NONZERO" if code!=0 else "STDOUT_INVALID" if raw!=expected else "PASS"
+    if failure_decoder is None:return state
+    operation,authority=("NONE","NONE") if state=="PASS" else failure_decoder(raw) if state=="COMMAND_NONZERO" else ("OBSERVED_UNKNOWN","OBSERVED_UNKNOWN")
+    return state,operation,authority
+def _bootstrap_failure(raw,source_commit):
+    try:value=C._strict_object(raw)
+    except BaseException:return "OBSERVED_UNKNOWN","OBSERVED_UNKNOWN"
+    if raw!=C.canonical(value) or set(value)!={"schema","sourceCommit","operation","authority"} or value.get("schema")!=C.BOOTSTRAP_FAILURE_RECEIPT_SCHEMA or value.get("sourceCommit")!=source_commit or value.get("operation") not in C.BOOTSTRAP_CHILD_OPERATIONS-{"NONE","OBSERVED_UNKNOWN"} or value.get("authority")!="FIXED_SOURCE_CLASSIFICATION":return "OBSERVED_UNKNOWN","OBSERVED_UNKNOWN"
+    return value["operation"],value["authority"]
 def bootstrap_progress(progress_root,bootstrap_record,source_commit):
     receipt=C.canonical({"schema":C.BOOTSTRAP_RECEIPT_SCHEMA,"sourceCommit":source_commit,"phase":"NAMESPACE_SETUP","state":"ENTERED","status":"PASS"})
-    state=_bounded_child(bootstrap_argv(progress_root,bootstrap_record,source_commit),receipt)
-    C.record_bootstrap_status(bootstrap_record,source_commit,state)
+    state,operation,authority=_bounded_child(bootstrap_argv(progress_root,bootstrap_record,source_commit),receipt,failure_decoder=lambda raw:_bootstrap_failure(raw,source_commit))
+    C.record_bootstrap_status(bootstrap_record,source_commit,state,operation,authority)
     need(state=="PASS")
 PROBE_PREFIX="chengwang-joint-bootstrap-custody-probe-"
 BRIDGE_PREFIX="chengwang-joint-uid-bridge-"
@@ -448,7 +452,7 @@ BRIDGE_FILES=(
 )
 BRIDGE_MAX_FILE_BYTES=1048576
 PROBE_SOURCE="0"*40
-PROBE_RAW=C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":PROBE_SOURCE,"bootstrapChildState":"PASS"})
+PROBE_RAW=C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":PROBE_SOURCE,"bootstrapChildState":"PASS","bootstrapChildOperation":"NONE","bootstrapChildOperationAuthority":"NONE"})
 PROBE_MODES=frozenset(("root-setup","uid-prepublish-denials","root-finalize",
     "uid-final-read-and-rename","uid-install-replacement","root-reject-replacement",
     "root-cleanup","root-final-absence"))
@@ -497,7 +501,7 @@ def _bridge_write(path,raw):
         os.fsync(fd);os.fchmod(fd,0o444);opened=os.fstat(fd);need(stat.S_ISREG(opened.st_mode) and opened.st_nlink==1)
         os.fchown(fd,0,0)
     finally:os.close(fd)
-def _bridge_validate(root,rows,partial=False):
+def _bridge_validate(root,rows,partial=False,progress=False):
     root=pathlib.Path(root);_bridge_owned(root,{0o700,0o711} if partial else 0o711)
     entries={item.name for item in root.iterdir()};need(entries<= {"payload","runner"} if partial else entries=={"payload","runner"})
     payload=root/"payload";runner=root/"runner";expected={basename:(expected,raw) for _,basename,expected,raw in rows}
@@ -509,7 +513,10 @@ def _bridge_validate(root,rows,partial=False):
             if not partial or stat.S_IMODE(meta.st_mode)==0o444:
                 raw=_bridge_stable_read(file);need(raw==expected[name][1] and hashlib.sha256(raw).hexdigest()==expected[name][0])
     if not _probe_absent(runner):
-        _bridge_owned(runner,0o711);need(not any(runner.iterdir()))
+        _bridge_owned(runner,0o711);names={p.name for p in runner.iterdir()}
+        need(names==({"failure-localization.private"} if progress else set()))
+        if progress:
+            item=runner/"failure-localization.private";meta=item.lstat();need(not item.is_symlink() and stat.S_ISDIR(meta.st_mode) and meta.st_uid==C.UID and meta.st_gid==C.GID and stat.S_IMODE(meta.st_mode)==0o700)
     return payload,runner
 def _bridge_cleanup(root,rows,partial=False):
     root=pathlib.Path(root)
@@ -537,6 +544,46 @@ def bridge_cleanup(repo,source_contract,parent_path,parent_device,parent_inode,r
     parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);rows,_=_bridge_rows(repo,source_contract);need((os.geteuid(),os.getegid())==(0,0));_bridge_cleanup(root,rows);return root
 def bridge_final_absence(parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
     parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);need(_probe_absent(root));_bridge_parent(parent_path,parent_device,parent_inode,platform);return root
+def bridge_progress_setup(repo,source_contract,parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
+    parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);rows,_=_bridge_rows(repo,source_contract);need((os.geteuid(),os.getegid())==(0,0));_,runner=_bridge_validate(root,rows);progress=runner/"failure-localization.private";os.mkdir(progress,0o700);os.chown(progress,C.UID,C.GID);os.chmod(progress,0o700);_probe_dir_fsync(runner);_bridge_validate(root,rows,progress=True);return progress
+def bridge_progress_preflight(repo,source_contract,parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
+    parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);need((os.geteuid(),os.getegid())==(C.UID,C.GID));_bridge_owned(root,0o711);need({p.name for p in root.iterdir()}=={"payload","runner"});payload=root/"payload";runner=root/"runner";_bridge_owned(payload,0o555);_bridge_owned(runner,0o711);need({p.name for p in payload.iterdir()}=={item[1] for item in BRIDGE_FILES} and {p.name for p in runner.iterdir()}=={"failure-localization.private"})
+    for _,basename in BRIDGE_FILES:_bridge_owned(payload/basename,0o444,"file");need(len(_bridge_stable_read(payload/basename))<=BRIDGE_MAX_FILE_BYTES)
+    progress=runner/"failure-localization.private";meta=progress.lstat();need(not progress.is_symlink() and stat.S_ISDIR(meta.st_mode) and meta.st_uid==C.UID and meta.st_gid==C.GID and stat.S_IMODE(meta.st_mode)==0o700 and not any(progress.iterdir()));stable=[item.lstat() for item in (root,payload,runner,progress)];probe=progress/"preflight";raw=b"joint-bootstrap-progress-preflight-v1\n";fd=os.open(probe,os.O_RDWR|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_BINARY",0),0o600)
+    try:
+        need(os.write(fd,raw)==len(raw));os.fsync(fd);os.lseek(fd,0,os.SEEK_SET);need(os.read(fd,len(raw)+1)==raw);meta=os.fstat(fd);need(stat.S_ISREG(meta.st_mode) and meta.st_nlink==1)
+    finally:os.close(fd)
+    os.unlink(probe);_probe_dir_fsync(progress);need(not any(progress.iterdir()) and all((before.st_dev,before.st_ino,before.st_mode,before.st_uid,before.st_gid)==(after.st_dev,after.st_ino,after.st_mode,after.st_uid,after.st_gid) for before,after in zip(stable,(item.lstat() for item in (root,payload,runner,progress)))));return progress
+def bridge_progress_transfer(repo,source_contract,parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,destination,source_commit,platform=None):
+    parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);rows,_=_bridge_rows(repo,source_contract);need((os.geteuid(),os.getegid())==(0,0));_,runner=_bridge_validate(root,rows,progress=True);source=runner/"failure-localization.private";_,records=C._progress_rows(source,source_commit);need(len(records)==1);name=C.progress_name(0,"NAMESPACE_SETUP","ENTERED");source_meta=source.lstat();source_file_meta=(source/name).lstat();need(source_meta.st_uid==C.UID and source_meta.st_gid==C.GID and stat.S_IMODE(source_meta.st_mode)==0o700 and source_file_meta.st_uid==C.UID and source_file_meta.st_gid==C.GID and stat.S_IMODE(source_file_meta.st_mode)==0o600 and stat.S_ISREG(source_file_meta.st_mode) and source_file_meta.st_nlink==1);raw=C._private_read(source/name);dest=pathlib.Path(destination);need(dest.is_absolute() and dest.name=="failure-localization.private" and not dest.exists() and not dest.is_symlink());dest_parent=dest.parent;parent_meta=dest_parent.lstat();need(stat.S_ISDIR(parent_meta.st_mode) and not dest_parent.is_symlink());parent_signature=(parent_meta.st_dev,parent_meta.st_ino,parent_meta.st_mode,parent_meta.st_uid,parent_meta.st_gid);dest_identity=None;file_identity=None
+    try:
+        os.mkdir(dest,0o700);created=dest.lstat();dest_identity=(created.st_dev,created.st_ino);os.chown(dest,C.UID,C.GID);os.chmod(dest,0o700)
+        fd=os.open(dest/name,os.O_RDWR|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_BINARY",0),0o600)
+        try:
+            opened=os.fstat(fd);file_identity=(opened.st_dev,opened.st_ino);seen=0
+            while seen<len(raw):count=os.write(fd,raw[seen:]);need(count>0);seen+=count
+            os.fchown(fd,C.UID,C.GID);os.fsync(fd);os.lseek(fd,0,os.SEEK_SET);need(os.read(fd,len(raw)+1)==raw)
+        finally:os.close(fd)
+        dest_meta=dest.lstat();copied_meta=(dest/name).lstat();need((dest_meta.st_dev,dest_meta.st_ino)==dest_identity and (copied_meta.st_dev,copied_meta.st_ino)==file_identity and dest_meta.st_uid==C.UID and dest_meta.st_gid==C.GID and stat.S_IMODE(dest_meta.st_mode)==0o700 and copied_meta.st_uid==C.UID and copied_meta.st_gid==C.GID and stat.S_IMODE(copied_meta.st_mode)==0o600 and stat.S_ISREG(copied_meta.st_mode) and copied_meta.st_nlink==1)
+        _probe_dir_fsync(dest);_probe_dir_fsync(dest.parent);after_parent=dest_parent.lstat();need(parent_signature==(after_parent.st_dev,after_parent.st_ino,after_parent.st_mode,after_parent.st_uid,after_parent.st_gid));_,copied=C._progress_rows(dest,source_commit);need(len(copied)==1 and C._private_read(dest/name)==raw)
+    except BaseException:
+        try:
+            if dest_identity is not None:
+                current=dest.lstat();need((current.st_dev,current.st_ino)==dest_identity and not dest.is_symlink() and stat.S_ISDIR(current.st_mode) and {p.name for p in dest.iterdir()}<=({name} if file_identity is not None else set()))
+                copied=dest/name
+                if file_identity is not None and not _probe_absent(copied):
+                    copied_meta=copied.lstat();need((copied_meta.st_dev,copied_meta.st_ino)==file_identity and not copied.is_symlink() and stat.S_ISREG(copied_meta.st_mode) and copied_meta.st_nlink==1);os.unlink(copied)
+                need(not any(dest.iterdir()));os.rmdir(dest);_probe_dir_fsync(dest_parent);need(_probe_absent(dest));after_parent=dest_parent.lstat();need(parent_signature==(after_parent.st_dev,after_parent.st_ino,after_parent.st_mode,after_parent.st_uid,after_parent.st_gid))
+        except BaseException:raise ValueError("joint-progress-transfer-cleanup-rejected") from None
+        raise
+    os.unlink(source/name);os.rmdir(source);_probe_dir_fsync(runner);_bridge_validate(root,rows);return dest
+def bridge_progress_cleanup(repo,source_contract,parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
+    parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);rows,_=_bridge_rows(repo,source_contract);need((os.geteuid(),os.getegid())==(0,0));runner=root/"runner";runner_names={p.name for p in runner.iterdir()}
+    if not runner_names:_bridge_validate(root,rows);_bridge_cleanup(root,rows);return root
+    _,runner=_bridge_validate(root,rows,progress=True);progress=runner/"failure-localization.private";names={p.name for p in progress.iterdir()};need(names<= {C.progress_name(0,"NAMESPACE_SETUP","ENTERED")})
+    for name in names:
+        p=progress/name;m=p.lstat();need(not p.is_symlink() and stat.S_ISREG(m.st_mode) and m.st_nlink==1 and m.st_uid==C.UID and m.st_gid==C.GID and m.st_size<=4096);os.unlink(p)
+    os.rmdir(progress);_probe_dir_fsync(runner);_bridge_cleanup(root,rows);return root
 def _probe_absent(path):
     try:pathlib.Path(path).lstat()
     except FileNotFoundError:return True
@@ -668,7 +715,7 @@ def _stdout(raw):
     while seen<len(raw):
         count=os.write(fd,raw[seen:]);need(count>0);seen+=count
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","model-diagnostic","progress","bootstrap-progress","bootstrap-permission-probe","bootstrap-permission-bridge","bridge-payload-digest","workflow-contract"));p.add_argument("--output");p.add_argument("--input");p.add_argument("--model-diagnostic");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-contract");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");p.add_argument("--bridge-mode",choices=("setup","cleanup","final-absence"));p.add_argument("--bridge-parent");p.add_argument("--bridge-parent-device");p.add_argument("--bridge-parent-inode");p.add_argument("--bridge-nonce");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","model-diagnostic","progress","bootstrap-progress","bootstrap-lifecycle","bootstrap-permission-probe","bootstrap-permission-bridge","bridge-payload-digest","workflow-contract"));p.add_argument("--output");p.add_argument("--input");p.add_argument("--model-diagnostic");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-contract");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");p.add_argument("--bridge-mode",choices=("setup","cleanup","final-absence","progress-setup","progress-preflight","progress-transfer","progress-cleanup"));p.add_argument("--bridge-parent");p.add_argument("--bridge-parent-device");p.add_argument("--bridge-parent-inode");p.add_argument("--bridge-nonce");p.add_argument("--payload-digest");p.add_argument("--stage-statuses");p.add_argument("--primary-exit");p.add_argument("--final-exit");a=p.parse_args()
     if a.action=="workflow-contract":
         need(a.output is None and a.workflow and not a.receipt);workflow_contract(pathlib.Path(a.workflow).read_bytes());return
     if a.action=="bootstrap-permission-probe":
@@ -680,10 +727,22 @@ def main():
         arguments=(a.repo,a.source_contract,a.bridge_parent,a.bridge_parent_device,a.bridge_parent_inode,a.run_id,a.run_attempt,a.bridge_nonce)
         if a.bridge_mode=="setup":root,_=bridge_setup(*arguments);_stdout((str(root)+"\n").encode())
         elif a.bridge_mode=="cleanup":bridge_cleanup(*arguments)
-        else:bridge_final_absence(*arguments[2:])
+        elif a.bridge_mode=="final-absence":bridge_final_absence(*arguments[2:])
+        elif a.bridge_mode=="progress-setup":_stdout((str(bridge_progress_setup(*arguments))+"\n").encode())
+        elif a.bridge_mode=="progress-preflight":bridge_progress_preflight(*arguments)
+        elif a.bridge_mode=="progress-transfer":need(a.progress_root and a.source_commit);bridge_progress_transfer(*arguments,a.progress_root,a.source_commit)
+        else:bridge_progress_cleanup(*arguments)
         return
+    if a.action=="bootstrap-lifecycle":
+        need(a.output and a.source_commit and a.run_id and a.run_attempt and a.bridge_nonce and a.payload_digest and a.stage_statuses and a.primary_exit is not None and a.final_exit is not None)
+        statuses=tuple(int(value) for value in a.stage_statuses.split(","));C.record_bootstrap_lifecycle(a.output,a.source_commit,a.run_id,a.run_attempt,a.bridge_nonce,a.payload_digest,statuses,int(a.primary_exit),int(a.final_exit));return
     if a.action=="progress":
-        need(a.output is None and a.progress_root and a.source_commit and a.phase and a.state and not a.bootstrap_record);C.record_progress(a.progress_root,a.source_commit,a.phase,a.state)
+        need(a.output is None and a.progress_root and a.source_commit and a.phase and a.state and not a.bootstrap_record)
+        if a.receipt and (a.phase,a.state)==("NAMESPACE_SETUP","ENTERED"):
+            try:C.record_bootstrap_progress(a.progress_root,a.source_commit)
+            except C.ProgressDiagnosticFailure as error:
+                _stdout(C.canonical({"schema":C.BOOTSTRAP_FAILURE_RECEIPT_SCHEMA,"sourceCommit":a.source_commit,"operation":error.operation,"authority":"FIXED_SOURCE_CLASSIFICATION"}));raise SystemExit(70)
+        else:C.record_progress(a.progress_root,a.source_commit,a.phase,a.state)
         if a.receipt:
             need((a.phase,a.state)==("NAMESPACE_SETUP","ENTERED"));_stdout(C.canonical({"schema":C.BOOTSTRAP_RECEIPT_SCHEMA,"sourceCommit":a.source_commit,"phase":a.phase,"state":a.state,"status":"PASS"}))
         return

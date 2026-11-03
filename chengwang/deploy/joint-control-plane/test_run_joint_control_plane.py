@@ -26,14 +26,14 @@ def _probe_fixture_owner_view(probe):
     return mock.patch.object(pathlib.Path,"lstat",autospec=True,side_effect=lstat)
 
 @contextlib.contextmanager
-def _bridge_fixture_root_view(bridge):
-    bridge=pathlib.Path(bridge).absolute();real_lstat=pathlib.Path.lstat;real_open=CI.os.open;real_close=CI.os.close;real_mkdir=CI.os.mkdir
+def _bridge_fixture_root_view(bridge,extra_roots=()):
+    bridge=pathlib.Path(bridge).absolute();roots=(bridge,)+tuple(pathlib.Path(value).absolute() for value in extra_roots);real_lstat=pathlib.Path.lstat;real_open=CI.os.open;real_close=CI.os.close;real_mkdir=CI.os.mkdir
     owners={};modes={};descriptors={};operations=[]
     class StatView:
         def __init__(self,base,uid,gid,mode):self._base=base;self.st_uid=uid;self.st_gid=gid;self.st_mode=(base.st_mode&~0o7777)|mode
         def __getattr__(self,name):return getattr(self._base,name)
     def scoped(path):
-        candidate=pathlib.Path(path).absolute();return candidate if candidate==bridge or bridge in candidate.parents else None
+        candidate=pathlib.Path(path).absolute();return candidate if any(candidate==root or root in candidate.parents for root in roots) else None
     def required(path):
         candidate=scoped(path)
         if candidate is None:raise AssertionError("bridge fixture operation escaped scope")
@@ -84,6 +84,32 @@ def _probe_fixture_cleanup_calls(probe):
         if inside(candidate.parent):real_chmod(candidate.parent,0o700)
         return real_rmdir(candidate)
     return unlink,rmdir
+
+def _fixture_private_read(path,maximum=4096):
+    path=pathlib.Path(path);before=path.lstat();self_same=lambda a,b:(a.st_dev,a.st_ino,a.st_size)==(b.st_dev,b.st_ino,b.st_size)
+    if path.is_symlink() or not CI.stat.S_ISREG(before.st_mode) or before.st_nlink!=1 or not 0<before.st_size<=maximum:raise ValueError("fixture-private-read")
+    raw=path.read_bytes();after=path.lstat()
+    if len(raw)!=before.st_size or not self_same(before,after):raise ValueError("fixture-private-read")
+    return raw
+
+def _bridge_transfer_inputs(root,run_id="451",nonce="c"*32):
+    root=pathlib.Path(root).resolve();repo=root/"repo";parent=root/"parent";staging=root/"staging";parent.mkdir();staging.mkdir();rows=[]
+    for relative,basename in CI.BRIDGE_FILES:
+        path=repo/relative;path.parent.mkdir(parents=True,exist_ok=True);raw=(basename+"\n").encode();path.write_bytes(raw);rows.append({"path":relative,"sha256":CI.hashlib.sha256(raw).hexdigest()})
+    contract=repo/"chengwang/deploy/joint-control-plane/source_contract.json";contract.write_text(json.dumps({"paths":rows})+"\n",encoding="utf-8");meta=parent.lstat();arguments=(repo,contract,parent,str(meta.st_dev),str(meta.st_ino),run_id,"1",nonce);bridge=parent/(CI.BRIDGE_PREFIX+run_id+"-1-"+nonce);destination=staging/"failure-localization.private"
+    return arguments,bridge,destination
+
+@contextlib.contextmanager
+def _prepared_bridge_transfer(root,run_id="451",nonce="c"*32):
+    arguments,bridge,destination=_bridge_transfer_inputs(root,run_id,nonce);commit="1"*40
+    with contextlib.ExitStack() as stack:
+        for patcher in (mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),mock.patch.object(C,"_private_read",side_effect=_fixture_private_read),mock.patch.object(CI.C,"_private_read",side_effect=_fixture_private_read)):
+            stack.enter_context(patcher)
+        view=stack.enter_context(_bridge_fixture_root_view(bridge,(destination.parent,)))
+        CI.bridge_setup(*arguments,platform="posix");progress=CI.bridge_progress_setup(*arguments,platform="posix")
+        with mock.patch.object(CI.os,"geteuid",return_value=C.UID,create=True),mock.patch.object(CI.os,"getegid",return_value=C.GID,create=True):CI.bridge_progress_preflight(*arguments,platform="posix")
+        C.record_bootstrap_progress(progress,commit);record=progress/C.progress_name(0,"NAMESPACE_SETUP","ENTERED");view.set_owner(record,C.UID,C.GID)
+        yield arguments,bridge,destination,progress,record,view,commit
 
 class RunnerContracts(unittest.TestCase):
     def test_policy_transition_changes_only_refresh(self):
@@ -281,7 +307,7 @@ class RunnerContracts(unittest.TestCase):
             baseline=C.failure_classification(root,commit)
             self.assertEqual(baseline,{"failurePhase":"UNKNOWN","lastCompletedPhase":"NONE","exceptionType":"PERMISSION_ERROR","failureReasonCode":"UNKNOWN","failedCaptureName":"success-fetch-r1","lastCompletedCaptureName":"success-approve-r1"})
             with mock.patch.object(C,"_owned_mode",return_value=True):evidence=C.localization_evidence(root,None,commit)
-            self.assertEqual(evidence,{"progressRootState":"EMPTY","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN","bootstrapObservationScope":C.BOOTSTRAP_OBSERVATION_SCOPE,"bootstrapObservedRecordState":"ABSENT","bootstrapObservedChildState":"UNKNOWN"})
+            self.assertEqual(evidence,{"progressRootState":"EMPTY","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN","bootstrapObservationScope":C.BOOTSTRAP_OBSERVATION_SCOPE,"bootstrapObservedRecordState":"ABSENT","bootstrapObservedChildState":"UNKNOWN","bootstrapObservedChildOperation":"OBSERVED_UNKNOWN","bootstrapObservedChildOperationAuthority":"OBSERVED_UNKNOWN","bootstrapLifecycleRecordState":"ABSENT","bootstrapLifecycleFirstFailure":"UNKNOWN","bootstrapLifecycleScope":C.BOOTSTRAP_LIFECYCLE_SCOPE})
             (root/C.FAILURE_DETAIL_NAME).write_bytes(b"{}\n")
             rejected=C.failure_classification(root,commit)
             with mock.patch.object(C,"_owned_mode",return_value=True):rejected_evidence=C.localization_evidence(root,None,commit)
@@ -291,12 +317,12 @@ class RunnerContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE
             self.assertEqual(C.bootstrap_record_state(record,commit),("ABSENT","UNKNOWN"))
-            record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS","bootstrapChildOperation":"NONE","bootstrapChildOperationAuthority":"NONE"}))
             directory_identity=C._identity(record.parent.lstat());file_identity=C._identity(record.lstat());parent_identity=C._identity(staging.lstat())
             with mock.patch.object(C,"_owned_mode",return_value=True):
                 self.assertEqual(C.bootstrap_record_state(record,commit),("ACCEPTED","PASS"))
                 self.assertEqual(C.bootstrap_record_state(record,"7"*40),("SOURCE_MISMATCH","UNKNOWN"))
-            moved=staging/(C.BOOTSTRAP_DIRECTORY+".moved");record.parent.rename(moved);record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            moved=staging/(C.BOOTSTRAP_DIRECTORY+".moved");record.parent.rename(moved);record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS","bootstrapChildOperation":"NONE","bootstrapChildOperationAuthority":"NONE"}))
             with mock.patch.object(C,"_owned_mode",return_value=True):
                 state=C.bootstrap_record_state(record,commit,parent_identity,directory_identity,file_identity)
             self.assertEqual(state,("INVALID","UNKNOWN"))
@@ -320,18 +346,18 @@ class RunnerContracts(unittest.TestCase):
             staging=pathlib.Path(d)/"staging";staging.mkdir();progress=staging/"progress";progress.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir()
             with mock.patch.object(C,"_owned_mode",return_value=True):
                 for child in sorted(C.BOOTSTRAP_RECORDED_STATES):
-                    record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":child}))
+                    operation,authority=(("NONE","NONE") if child=="PASS" else ("OBSERVED_UNKNOWN","OBSERVED_UNKNOWN"));record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":child,"bootstrapChildOperation":operation,"bootstrapChildOperationAuthority":authority}))
                     for raw,expected in (("failure","FAILURE"),("cancelled","CANCELLED"),("skipped","SKIPPED"),(None,"MISSING"),("other","UNKNOWN")):
                         value=C.localization_evidence(progress,record,commit,"bootstrap_progress",raw,commit)
                         self.assertEqual((value["bootstrapStepOutcome"],value["bootstrapRecordState"],value["bootstrapChildState"]),(expected,"INVALID","UNKNOWN"))
                         self.assertEqual((value["bootstrapObservationScope"],value["bootstrapObservedRecordState"],value["bootstrapObservedChildState"]),(C.BOOTSTRAP_OBSERVATION_SCOPE,"ACCEPTED",child))
                     record.unlink()
-                record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+                record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS","bootstrapChildOperation":"NONE","bootstrapChildOperationAuthority":"NONE"}))
                 accepted=C.localization_evidence(progress,record,commit,"bootstrap_progress","success",commit)
             self.assertEqual((accepted["bootstrapStepOutcome"],accepted["bootstrapRecordState"],accepted["bootstrapChildState"]),("SUCCESS","ACCEPTED","PASS"));self.assertEqual((accepted["bootstrapObservedRecordState"],accepted["bootstrapObservedChildState"]),("ACCEPTED","PASS"))
     def test_bootstrap_writer_second_fsync_and_final_named_validation_fail_closed(self):
         commit="5"*40
-        def exercise(root,fail_second=False,final=("ACCEPTED","PASS")):
+        def exercise(root,fail_second=False,final=("ACCEPTED","PASS","NONE","NONE")):
             staging=root/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;events=[];fsync_count=0
             def fsync(fd):
                 nonlocal fsync_count
@@ -349,7 +375,7 @@ class RunnerContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaises(OSError):exercise(pathlib.Path(d),fail_second=True)
         with tempfile.TemporaryDirectory() as d:
-            with self.assertRaises(ValueError):exercise(pathlib.Path(d),final=("INVALID","UNKNOWN"))
+            with self.assertRaises(ValueError):exercise(pathlib.Path(d),final=("INVALID","UNKNOWN","OBSERVED_UNKNOWN","OBSERVED_UNKNOWN"))
     def test_record_publication_fault_matrix_never_survives_failure_projection(self):
         commit="3"*40
         real={name:getattr(C.os,name) for name in ("mkdir","chmod","open","write","fsync","lseek","read","fstat","close")}
@@ -394,7 +420,7 @@ class RunnerContracts(unittest.TestCase):
                 self.assertNotEqual(value["bootstrapRecordState"],"ACCEPTED");self.assertEqual(value["bootstrapChildState"],"UNKNOWN")
         with tempfile.TemporaryDirectory() as d:
             staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE
-            with mock.patch.object(C,"_root_writer",return_value=True),mock.patch.object(C,"_owned_mode",return_value=True),mock.patch.object(C.os,"fchmod",side_effect=lambda fd,mode:None,create=True),mock.patch.object(C,"bootstrap_record_state",return_value=("READ_FAILED","UNKNOWN")):
+            with mock.patch.object(C,"_root_writer",return_value=True),mock.patch.object(C,"_owned_mode",return_value=True),mock.patch.object(C.os,"fchmod",side_effect=lambda fd,mode:None,create=True),mock.patch.object(C,"bootstrap_record_state",return_value=("READ_FAILED","UNKNOWN","OBSERVED_UNKNOWN","OBSERVED_UNKNOWN")):
                 with self.assertRaises(ValueError):C.record_bootstrap_status(record,commit,"PASS")
             with mock.patch.object(C,"_owned_mode",return_value=True):value=C.localization_evidence(None,record,commit,"bootstrap_progress","failure",commit)
             self.assertNotEqual(value["bootstrapRecordState"],"ACCEPTED");self.assertEqual(value["bootstrapChildState"],"UNKNOWN")
@@ -453,6 +479,21 @@ class RunnerContracts(unittest.TestCase):
                 if self.count==1:raise subprocess.TimeoutExpired(["fixed"],timeout)
                 return -9
         process=Process();CI._stop_child(process);self.assertEqual(process.calls,["terminate","wait","kill","wait"])
+        commit="a"*40
+        receipt=C.canonical({"schema":C.BOOTSTRAP_FAILURE_RECEIPT_SCHEMA,"sourceCommit":commit,"operation":"PROGRESS_EXCLUSIVE_CREATE","authority":"FIXED_SOURCE_CLASSIFICATION"})
+        self.assertEqual(CI._bootstrap_failure(receipt,commit),("PROGRESS_EXCLUSIVE_CREATE","FIXED_SOURCE_CLASSIFICATION"));self.assertEqual(CI._bootstrap_failure(b"PRIVATE",commit),("OBSERVED_UNKNOWN","OBSERVED_UNKNOWN"))
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d)
+            with mock.patch.object(C,"_private_root",side_effect=lambda value:pathlib.Path(value)):C.record_bootstrap_progress(root,commit)
+            self.assertEqual(C._strict_object(next(root.iterdir()).read_bytes())["phase"],"NAMESPACE_SETUP")
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d)
+            with mock.patch.object(C,"_private_root",side_effect=lambda value:pathlib.Path(value)),mock.patch.object(C.os,"open",side_effect=PermissionError("PRIVATE")):
+                with self.assertRaises(C.ProgressDiagnosticFailure) as caught:C.record_bootstrap_progress(root,commit)
+            self.assertEqual(caught.exception.operation,"PROGRESS_EXCLUSIVE_CREATE")
+        with tempfile.TemporaryDirectory() as d:
+            path=pathlib.Path(d)/C.BOOTSTRAP_LIFECYCLE_FILE;stages={stage:"PASS" for stage in C.BOOTSTRAP_LIFECYCLE_STAGES};value={"schema":C.BOOTSTRAP_LIFECYCLE_SCHEMA,"sourceCommit":commit,"runId":"12","runAttempt":"1","bridgeNonce":"b"*32,"payloadDigest":"c"*64,"scope":C.BOOTSTRAP_LIFECYCLE_SCOPE,"stages":stages,"firstFailure":"NONE","primaryExit":0,"finalExit":0};path.write_bytes(C.canonical(value))
+            with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C._bootstrap_lifecycle_state(path,commit),("ACCEPTED","NONE"));value["stages"]["PROGRESS_PREFLIGHT"]="FAIL";path.write_bytes(C.canonical(value));self.assertEqual(C._bootstrap_lifecycle_state(path,commit),("INVALID","UNKNOWN"))
     def test_supervisor_setup_read_close_and_reap_faults_never_pass_or_leak(self):
         expected=b"PASS\n"
         class Stream:
@@ -528,7 +569,7 @@ class RunnerContracts(unittest.TestCase):
         scene=workflow.split("      - name: Real B0 J1 R2 same-binary scene",1)[1].split("      - name: Reacquire source after every attempt",1)[0]
         failure=workflow.split("      - name: Publish only bounded failure classification",1)[1].split("      - if: always()",1)[0]
         self.assertIn("id: bootstrap_progress",dedicated);self.assertNotIn("continue-on-error",dedicated)
-        for required in ("bridge-payload-digest","digest==sys.argv[4]","--reuid=10001","--clear-groups","trap 'finish_bootstrap \"$?\"' EXIT","--bridge-mode cleanup","--bridge-mode final-absence",'"$script" bootstrap-progress'):
+        for required in ("bridge-payload-digest","digest==sys.argv[4]","--reuid=10001","--clear-groups","trap 'finish_bootstrap \"$?\"' EXIT","--bridge-mode progress-setup","--bridge-mode progress-preflight","--bridge-mode progress-transfer","--bridge-mode progress-cleanup","bootstrap-lifecycle","--bridge-mode final-absence",'"$script" bootstrap-progress'):
             self.assertIn(required,dedicated)
         self.assertIn("steps.bootstrap_progress.outcome == 'success'",scene);self.assertNotIn(".conclusion",scene+failure)
         for text in (scene,failure,namespace):
@@ -587,12 +628,12 @@ class RunnerContracts(unittest.TestCase):
             "uid-step-duplicated":once("      - name: Independently validate UID probe diagnostic\n","      - name: Probe isolated Linux UID custody\n"+uid_block+"      - name: Independently validate UID probe diagnostic\n"),
             "uid-replay-truncated":once('          cmp "$input" "$output"\n'),
             "uid-install-comment-spoof":once('          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n','          # if run_uid uid-install-replacement; then :; else original_code=$?; fi\n'),
-            "bootstrap-bridge-setup-removed":once('          if created_bridge="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup)"; then bridge_active=true; else exit $?; fi\n'),
+            "bootstrap-bridge-setup-removed":once('          if created_bridge="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup)"; then bridge_setup_status=0; bridge_active=true; else bridge_setup_status=$?; exit "$bridge_setup_status"; fi\n'),
             "bootstrap-payload-digest-bypassed":once("digest==sys.argv[4]","True"),
-            "bootstrap-preflight-removed":once('          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight" "$runner" "$script" "$bridge_contract" "$payload_digest" >/dev/null 2>/dev/null; then :; else exit $?; fi\n'),
+            "bootstrap-preflight-removed":once('          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight" "$runner" "$script" "$bridge_contract" "$payload_digest" >/dev/null 2>/dev/null; then source_preflight_status=0; else source_preflight_status=$?; exit "$source_preflight_status"; fi\n'),
             "bootstrap-original-script-reintroduced":once('"$script" bootstrap-progress','"$source_script" bootstrap-progress'),
             "bootstrap-cleanup-first-failure-overwritten":once('          if test "$final_status" = 0 && test "$cleanup_status" != 0; then final_status="$cleanup_status"; fi\n','          if test "$cleanup_status" != 0; then final_status="$cleanup_status"; fi\n'),
-            "bootstrap-cleanup-removed":once('              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi\n'),
+            "bootstrap-cleanup-removed":once('              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode progress-cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi\n'),
             "bootstrap-final-absence-removed":once('            if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0; else absence_status=$?; fi\n'),
         }
         for name,mutant in mutants.items():
@@ -605,7 +646,7 @@ class RunnerContracts(unittest.TestCase):
         cases=((7,31,32,7),(0,31,32,31),(0,0,32,32),(0,0,0,0))
         with tempfile.TemporaryDirectory() as d:
             trace=pathlib.Path(d)/"trace"
-            stub=function+'sudo(){ case " $* " in *" --bridge-mode cleanup "*) printf "cleanup\\n" >>"$TRACE"; return "$CLEANUP";; *" --bridge-mode final-absence "*) printf "absence\\n" >>"$TRACE"; return "$ABSENCE";; *) return 99;; esac; }\nbridge_active=true\nsource_script=fixed\nbridge=(fixed)\nfinish_bootstrap "$PRIMARY"\n'
+            stub=function+'sudo(){ case " $* " in *" --bridge-mode progress-cleanup "*) printf "cleanup\\n" >>"$TRACE"; return "$CLEANUP";; *" --bridge-mode final-absence "*) printf "absence\\n" >>"$TRACE"; return "$ABSENCE";; *" bootstrap-lifecycle "*) return 0;; *) return 99;; esac; }\nbridge_active=true\nsource_script=fixed\nbridge=(fixed)\nroot="'+str(pathlib.Path(d)).replace("\\","/")+'"\npayload_digest="'+'0'*64+'"\nGITHUB_SHA="'+'0'*40+'"\nGITHUB_RUN_ID=1\nGITHUB_RUN_ATTEMPT=1\nbridge_nonce="'+'0'*32+'"\nbridge_setup_status=0\nsource_preflight_status=0\nprogress_setup_status=0\nprogress_preflight_status=0\nchild_status="$PRIMARY"\ntransfer_status=125\nfinish_bootstrap "$PRIMARY"\n'
             for primary,cleanup,absence,expected in cases:
                 trace.unlink(missing_ok=True);environment={**os.environ,"PRIMARY":str(primary),"CLEANUP":str(cleanup),"ABSENCE":str(absence),"TRACE":str(trace).replace("\\","/")}
                 result=subprocess.run([str(bash),"-c",stub],env=environment,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
@@ -737,7 +778,7 @@ diagnostic_stub() {{
     def test_bootstrap_reader_rejects_extra_symlink_hardlink_owner_mode_and_copied_bytes(self):
         commit="1"*40
         with tempfile.TemporaryDirectory() as d:
-            staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            staging=pathlib.Path(d)/"staging";staging.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS","bootstrapChildOperation":"NONE","bootstrapChildOperationAuthority":"NONE"}))
             with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit),("ACCEPTED","PASS"))
             extra=record.parent/"extra";extra.write_bytes(b"X")
             with mock.patch.object(C,"_owned_mode",return_value=True):self.assertEqual(C.bootstrap_record_state(record,commit),("INVALID","UNKNOWN"))
@@ -886,10 +927,16 @@ diagnostic_stub() {{
                 view.set_mode(payload,0o700);os.rename(moved,changed);view.set_mode(payload,0o555)
                 with mock.patch.object(CI.os,"unlink",side_effect=OSError("PRIVATE UNLINK")):
                     with self.assertRaises(OSError):CI.bridge_cleanup(*arguments,platform="posix")
-                CI.bridge_cleanup(*arguments,platform="posix");CI.bridge_final_absence(*arguments[2:],platform="posix")
+                progress=CI.bridge_progress_setup(*arguments,platform="posix");self.assertEqual(progress,bridge/"runner/failure-localization.private")
+                with mock.patch.object(CI.os,"geteuid",return_value=C.UID,create=True),mock.patch.object(CI.os,"getegid",return_value=C.GID,create=True):CI.bridge_progress_preflight(*arguments,platform="posix")
+                expected_progress=C.canonical({"schema":C.PROGRESS_SCHEMA,"sourceCommit":"1"*40,"ordinal":1,"phase":"NAMESPACE_SETUP","state":"ENTERED"})
+                with mock.patch.object(C,"_private_read",return_value=expected_progress):C.record_bootstrap_progress(progress,"1"*40)
+                view.set_owner(next(progress.iterdir()),C.UID,C.GID)
+                self.assertEqual(len(list(progress.iterdir())),1)
+                CI.bridge_progress_cleanup(*arguments,platform="posix");CI.bridge_final_absence(*arguments[2:],platform="posix")
                 self.assertTrue(view.operations);self.assertTrue(all(view.scoped(row[1]) is not None for row in view.operations))
                 source=pathlib.Path(CI.__file__).read_text(encoding="utf-8")
-                for guard in ("os.fchmod(fd,0o444)","os.chmod(payload,0o555)","os.mkdir(runner,0o711)","meta.st_uid==0 and meta.st_gid==0","meta.st_nlink==1"):
+                for guard in ("os.fchmod(fd,0o444)","os.chmod(payload,0o555)","os.mkdir(runner,0o711)","meta.st_uid==0 and meta.st_gid==0","meta.st_nlink==1","O_EXCL"):
                     self.assertIn(guard,source)
             self.assertEqual(sentinel.read_bytes(),b"UNCHANGED")
     def test_uid_bridge_wrong_contract_preexisting_scope_and_partial_copy_fail_closed(self):
@@ -933,5 +980,66 @@ diagnostic_stub() {{
                 linked.unlink()
                 self.assertTrue(view.operations);self.assertTrue(all(view.scoped(row[1]) is not None for row in view.operations))
             with self.assertRaises(ValueError):CI._bridge_parent(parent,str(meta.st_dev+1),str(meta.st_ino),platform="posix")
+    def test_uid_bridge_progress_transfer_direct_filesystem_matrix_and_scene_continuation(self):
+        with tempfile.TemporaryDirectory() as d,_prepared_bridge_transfer(d) as prepared:
+            arguments,bridge,destination,progress,record,view,commit=prepared;raw=record.read_bytes()
+            result=CI.bridge_progress_transfer(*arguments,destination,commit,platform="posix");self.assertEqual(result,destination);self.assertFalse(progress.exists());self.assertEqual((destination/C.progress_name(0,"NAMESPACE_SETUP","ENTERED")).read_bytes(),raw)
+            C.record_progress(destination,commit,"NAMESPACE_SETUP","COMPLETED");_,rows=C._progress_rows(destination,commit);self.assertEqual([(row["phase"],row["state"]) for row in rows],[('NAMESPACE_SETUP','ENTERED'),('NAMESPACE_SETUP','COMPLETED')]);CI.bridge_progress_cleanup(*arguments,platform="posix");CI.bridge_final_absence(*arguments[2:],platform="posix");self.assertFalse(bridge.exists())
+        for fault in ("source-extra","source-hardlink","source-symlink","source-owner","source-mode","source-noncanonical","destination-file","destination-directory","destination-symlink"):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory() as d,_prepared_bridge_transfer(d,"452",("d"*31)+str(len(fault)%10)) as prepared:
+                arguments,bridge,destination,progress,record,view,commit=prepared;outside=pathlib.Path(d)/"outside";symlink_guard=contextlib.nullcontext()
+                if fault=="source-extra":(progress/"extra").write_bytes(b"X")
+                elif fault=="source-hardlink":os.link(record,outside)
+                elif fault=="source-symlink":
+                    if os.name=="posix":raw=record.read_bytes();record.unlink();outside.write_bytes(raw);record.symlink_to(outside)
+                    else:
+                        real_symlink=pathlib.Path.is_symlink;symlink_guard=mock.patch.object(pathlib.Path,"is_symlink",autospec=True,side_effect=lambda path:path==record or real_symlink(path))
+                elif fault=="source-owner":view.set_owner(record,0,0)
+                elif fault=="source-mode":view.set_mode(record,0o666)
+                elif fault=="source-noncanonical":record.write_bytes(b"{}\n")
+                elif fault=="destination-file":destination.write_bytes(b"PREEXISTING")
+                elif fault=="destination-directory":destination.mkdir()
+                else:
+                    outside.write_bytes(b"PREEXISTING")
+                    if os.name=="posix":destination.symlink_to(outside)
+                    else:
+                        real_symlink=pathlib.Path.is_symlink;symlink_guard=mock.patch.object(pathlib.Path,"is_symlink",autospec=True,side_effect=lambda path:path==destination or real_symlink(path))
+                with symlink_guard,self.assertRaises((ValueError,FileExistsError)):CI.bridge_progress_transfer(*arguments,destination,commit,platform="posix")
+                self.assertTrue(record.exists() or record.is_symlink());self.assertTrue(bridge.exists())
+        for fault in ("partial-write","file-fsync","readback","readback-corrupt","destination-fsync","destination-owner","destination-mode"):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory() as d,_prepared_bridge_transfer(d,"453",("e"*31)+str(len(fault)%10)) as prepared:
+                arguments,bridge,destination,progress,record,view,commit=prepared;real_write=CI.os.write;calls=0
+                def partial(fd,data):
+                    nonlocal calls
+                    calls+=1
+                    if calls==1:return real_write(fd,data[:1])
+                    raise OSError("injected-partial-write")
+                real_fsync=CI.os.fsync
+                def metadata_fault(fd):
+                    result=real_fsync(fd);target=destination/C.progress_name(0,"NAMESPACE_SETUP","ENTERED")
+                    if fault=="destination-owner":view.set_owner(target,0,0)
+                    else:view.set_mode(target,0o666)
+                    return result
+                patcher={"partial-write":mock.patch.object(CI.os,"write",side_effect=partial),"file-fsync":mock.patch.object(CI.os,"fsync",side_effect=OSError("injected-file-fsync")),"readback":mock.patch.object(CI.os,"read",side_effect=OSError("injected-readback")),"readback-corrupt":mock.patch.object(CI.os,"read",return_value=b"CORRUPT"),"destination-fsync":mock.patch.object(CI,"_probe_dir_fsync",side_effect=OSError("injected-dir-fsync")),"destination-owner":mock.patch.object(CI.os,"fsync",side_effect=metadata_fault),"destination-mode":mock.patch.object(CI.os,"fsync",side_effect=metadata_fault)}[fault]
+                with patcher,self.assertRaises((OSError,ValueError)):CI.bridge_progress_transfer(*arguments,destination,commit,platform="posix")
+                self.assertTrue(record.is_file());self.assertTrue(bridge.exists());self.assertFalse(destination.exists() or destination.is_symlink())
+        for fault in ("destination-hardlink","destination-extra","destination-parent-rebind"):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory() as d,_prepared_bridge_transfer(d,"454",("f"*31)+str(len(fault)%10)) as prepared:
+                arguments,bridge,destination,progress,record,view,commit=prepared;real_fsync=CI.os.fsync;injected=False;outside=pathlib.Path(d)/"outside-destination"
+                def inject(fd):
+                    nonlocal injected
+                    result=real_fsync(fd)
+                    if injected:return result
+                    injected=True;target=destination/C.progress_name(0,"NAMESPACE_SETUP","ENTERED")
+                    if fault=="destination-hardlink":os.link(target,outside)
+                    elif fault=="destination-extra":(destination/"extra").write_bytes(b"UNTRUSTED")
+                    return result
+                def rebind(path):
+                    nonlocal injected
+                    if not injected and pathlib.Path(path)==destination:
+                        injected=True;destination.parent.rename(outside);destination.parent.mkdir()
+                patcher=(mock.patch.object(CI,"_probe_dir_fsync",side_effect=rebind) if fault=="destination-parent-rebind" else mock.patch.object(CI.os,"fsync",side_effect=inject))
+                with patcher,self.assertRaises(ValueError):CI.bridge_progress_transfer(*arguments,destination,commit,platform="posix")
+                self.assertTrue(record.is_file());self.assertTrue(bridge.exists());self.assertTrue(outside.exists() or (destination/"extra").exists())
 
 if __name__=="__main__":unittest.main()
