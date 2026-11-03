@@ -39,6 +39,8 @@ FMT=(
 MANIFEST_REL='chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_source_policy.json'
 MAX_TRACKED=64<<20
 COMMIT=re.compile(r'[0-9a-f]{40}'); OID=re.compile(r'[0-9a-f]{40}'); DIGEST=re.compile(r'[0-9a-f]{64}')
+OPERATION=re.compile(r'labop_[0-9a-f]{32}'); RECOVERY=re.compile(r'labrec_[0-9a-f]{32}')
+OBSERVATION=('STABLE_NEW_PROJECTION','STABLE_OLD_PROJECTION','AMBIGUOUS','DRIFT','UNSTABLE')
 DELIVERY=(
  '.github/workflows/chengwang-mihomo-continuous-recovery-api.yml',
  'chengwang/deploy/mihomo-lifecycle-lab/apply_worker.py',
@@ -94,6 +96,19 @@ HTTP_CASES=(
  ('SECOND_RECOVERY_INSPECT_PLANNED','CASE_ACTOR_AUDITOR','GET',None,200),('SECOND_RECOVERY_APPROVE','CASE_ACTOR_APPROVER','POST',None,200),
  ('SECOND_RECOVERY_EXECUTE','CASE_ACTOR_ADMIN','POST',None,200),('SECOND_RECOVERY_INSPECT_COMPLETED','CASE_ACTOR_AUDITOR','GET',None,200),
  ('SECOND_RECOVERED_HEAD','CASE_ACTOR_VIEWER','GET','/api/v1/lab/mihomo/head',200))
+SAFE_FIXED=(
+ 'continuous-recovery-report.json','http-originals-index.json','execution.json','commands.jsonl',
+ 'process-events.jsonl','sandbox.json','host-before.json','host-after.json','consumption.json',
+ 'consumption-independent.json','go-version.txt')
+SAFE_EVIDENCE=tuple(sorted(SAFE_FIXED+tuple(f'http-{i:03d}.response.json' for i in range(1,32))))
+SAFE_SCHEMA='chengwang.mihomo-continuous-recovery-safe-verification/v1'
+SANDBOX_ENVIRONMENT_KEYS=tuple(sorted(('CGO_ENABLED','CHENGWANG_MIHOMO_APPLY_SOURCE_COMMIT','GOCACHE','GOENV','GOFLAGS',
+ 'GOMODCACHE','GOPROXY','GOROOT','GOSUMDB','GOTOOLCHAIN','HOME','LANG','LC_ALL','PATH','TMPDIR','TZ')))
+CONSUMPTION_SOURCES=tuple('chengwang/tools/mihomo-runtime-candidate/'+name for name in
+ ('pin.json','consume_pin.py','check_consumption.py','test_consume_pin.py','README.md'))
+CONSUMPTION_ASSET='mihomo-linux-amd64-v1-v1.19.32.gz'
+CONSUMPTION_ARCHIVE_SHA256='306f81e723e60ce6b828899a6fe83e1d00e9ecefb2dc8d4d849312a5bc00efdc'
+CONSUMPTION_UPSTREAM='88dcbf7f1614a67c3b36b848ee3592dfa92ada36'
 
 def need(value):
     if not value: raise ValueError('continuous Recovery independent verification rejected')
@@ -118,9 +133,38 @@ def source_file(path,limit=2<<20,empty=False):
     path=Path(path).absolute()
     for item in (*reversed(path.parents),path):
         info=item.lstat(); need(not stat.S_ISLNK(info.st_mode) and not getattr(info,'st_file_attributes',0)&1024)
+    sig=lambda x:(x.st_dev,x.st_ino,x.st_mode,x.st_nlink,x.st_size,x.st_mtime_ns)
     before=path.lstat(); need(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and 0<=before.st_size<=limit and (empty or before.st_size>0))
-    raw=path.read_bytes(); after=path.lstat(); sig=lambda x:(x.st_dev,x.st_ino,x.st_mode,x.st_nlink,x.st_size,x.st_mtime_ns)
-    need(sig(before)==sig(after) and len(raw)==before.st_size); return raw
+    fd=os.open(path,os.O_RDONLY|getattr(os,'O_NOFOLLOW',0)|getattr(os,'O_BINARY',0))
+    try:
+        opened=os.fstat(fd); need(stat.S_ISREG(opened.st_mode) and sig(opened)==sig(before)); chunks=[]; seen=0
+        while True:
+            chunk=os.read(fd,min(65536,limit-seen+1))
+            if not chunk: break
+            chunks.append(chunk); seen+=len(chunk); need(seen<=limit)
+        after_fd=os.fstat(fd)
+    finally: os.close(fd)
+    after=path.lstat(); raw=b''.join(chunks)
+    need(sig(before)==sig(after_fd)==sig(after) and len(raw)==before.st_size); return raw
+def write_new(path,raw,mode=0o400):
+    path=Path(path).absolute(); need(type(raw) is bytes and path.parent.resolve(strict=True)==path.parent and not path.exists())
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,'O_NOFOLLOW',0)|getattr(os,'O_BINARY',0),mode)
+    try:
+        view=memoryview(raw)
+        while view:
+            written=os.write(fd,view); need(written>0); view=view[written:]
+        os.fsync(fd)
+    finally: os.close(fd)
+    need(source_file(path,max(1,len(raw)),empty=not raw)==raw)
+def sync_directory(path):
+    path=Path(path).absolute(); need(path.resolve(strict=True)==path and path.is_dir())
+    try: fd=os.open(path,os.O_RDONLY|getattr(os,'O_DIRECTORY',0)|getattr(os,'O_NOFOLLOW',0))
+    except PermissionError:
+        need(os.name=='nt'); return
+    try:
+        try: os.fsync(fd)
+        except OSError: need(os.name=='nt')
+    finally: os.close(fd)
 def set_digest(schema,entries): return sha(canonical({'schema':schema,'entries':entries}))
 
 def policy(repo):
@@ -168,6 +212,14 @@ def json_lines(path,limit=2<<20):
     raw=source_file(path,limit); need(raw.endswith(b'\n')); rows=[]
     for line in raw.splitlines(): value=json.loads(line); need(canonical(value)==line); rows.append(value)
     return rows,raw
+def strict_json(raw):
+    need(type(raw) is bytes)
+    source=raw.decode('utf-8'); need(not source.startswith('\ufeff'))
+    def closed_object(pairs):
+        names=[name for name,_ in pairs]; need(all(type(name) is str for name in names) and len(names)==len(set(names)))
+        return dict(pairs)
+    def no_constant(_): need(False)
+    return json.loads(source,object_pairs_hook=closed_object,parse_constant=no_constant)
 def digest(value): text(value,r'[0-9a-f]{64}',64); return value
 def timestamp(value): text(value,r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z',64); return value
 def proof(value): keys(value,('fullPayloadProven','internetBusinessProven','production')); need(all(boolean(x) is False for x in value.values()))
@@ -176,11 +228,11 @@ def view_head(value):
     keys(value,('schema','boundary','revision','generation','headSHA256','previousHeadSHA256','artifactRecordSHA256','configSHA256','verificationSHA256','verifiedAt','activeOperationId','writeBlocked','proof'))
     need(value['schema']=='chengwang.mihomo-lab-head-view/v1' and value['boundary']==BOUNDARY)
     integer(value['revision'],1); integer(value['generation'],1); digest(value['headSHA256']); digest(value['artifactRecordSHA256']); digest(value['configSHA256']); digest(value['verificationSHA256']); timestamp(value['verifiedAt']); boolean(value['writeBlocked']); proof(value['proof'])
-    need(value['previousHeadSHA256'] is None or DIGEST.fullmatch(value['previousHeadSHA256'])); need(value['activeOperationId'] is None or type(value['activeOperationId']) is str)
+    need(value['previousHeadSHA256'] is None or DIGEST.fullmatch(value['previousHeadSHA256'])); need(value['activeOperationId'] is None or OPERATION.fullmatch(value['activeOperationId']))
 def deployment(value):
     keys(value,('schema','boundary','operationId','phase','revision','planSHA256','candidateRecordSHA256','candidateConfigSHA256','previousHeadSHA256','headSHA256','headGeneration','expiresAt','transport','observation','writeBlocked','replayed','headAdvanced','proof'))
     need(value['schema']=='chengwang.mihomo-lab-deployment-view/v1' and value['boundary']==BOUNDARY and value['replayed'] is False)
-    text(value['operationId'],limit=128); digest(value['planSHA256']); digest(value['candidateRecordSHA256']); digest(value['candidateConfigSHA256']); digest(value['previousHeadSHA256']); digest(value['headSHA256']); integer(value['revision'],1); integer(value['headGeneration'],1); timestamp(value['expiresAt'])
+    text(value['operationId'],OPERATION.pattern,38); digest(value['planSHA256']); digest(value['candidateRecordSHA256']); digest(value['candidateConfigSHA256']); digest(value['previousHeadSHA256']); digest(value['headSHA256']); integer(value['revision'],1); integer(value['headGeneration'],1); timestamp(value['expiresAt'])
     for k in ('writeBlocked','replayed','headAdvanced'): boolean(value[k])
     proof(value['proof'])
     if value['transport'] is not None:
@@ -188,7 +240,7 @@ def deployment(value):
         result=keys(transport['result'],('state','dispatched','statusCode')); need(result['state'] in ('acknowledged','unknown') and result['dispatched'] is True); integer(result['statusCode'],0,599)
     if value['observation'] is not None:
         observation=keys(value['observation'],('conclusion','observedProjectionSHA256','evidenceSHA256','observedAt','localRouteVerified'))
-        text(observation['conclusion'],limit=128); need(observation['observedProjectionSHA256'] is None or DIGEST.fullmatch(observation['observedProjectionSHA256'])); digest(observation['evidenceSHA256']); timestamp(observation['observedAt']); need(observation['localRouteVerified'] is True)
+        need(observation['conclusion'] in OBSERVATION); need(observation['observedProjectionSHA256'] is None or DIGEST.fullmatch(observation['observedProjectionSHA256'])); digest(observation['evidenceSHA256']); timestamp(observation['observedAt']); need(observation['localRouteVerified'] is True)
     if value['phase'] in ('PLANNED','APPROVED'):
         need(value['transport'] is None and value['observation'] is None and value['writeBlocked'] is False and value['headAdvanced'] is False and value['headSHA256']==value['previousHeadSHA256'])
     elif value['phase']=='UNKNOWN':
@@ -202,7 +254,7 @@ def recovery(value, phase=None):
     if phase is not None: need(value['phase']==phase)
     for k in ('planSHA256','originalPlanSHA256','previousHeadSHA256','headSHA256','targetArtifactRecordSHA256','targetConfigSHA256'): digest(value[k])
     integer(value['revision'],1); integer(value['headGeneration'],1); timestamp(value['expiresAt']); boolean(value['writeBlocked']); boolean(value['headAdvanced']); proof(value['proof'])
-    text(value['recoveryId'],limit=128); text(value['unknownOperationId'],limit=128)
+    text(value['recoveryId'],RECOVERY.pattern,39); text(value['unknownOperationId'],OPERATION.pattern,38)
     if value['phase'] in ('PLANNED','APPROVED'):
         need(value['writeBlocked'] is True and value['headAdvanced'] is False and value['headSHA256']==value['previousHeadSHA256'])
     elif value['phase']=='COMPLETED':
@@ -229,7 +281,7 @@ def initial_acceptance(value,commit):
     need(value['privateWALValidated'] is True and value['fullPrivateWALIndependentlyProven'] is False and value['observedProcessMatchesHead'] is True and value['production'] is False)
 
 def envelope(raw,method):
-    value=json.loads(raw); keys(value,('boundary','code','stateMayHaveChanged','result'))
+    value=strict_json(raw); keys(value,('boundary','code','stateMayHaveChanged','result'))
     need(value['boundary']==BOUNDARY and value['code']=='mihomo_lab_ok' and value['stateMayHaveChanged'] is (method=='POST') and type(value['result']) is dict)
     return value['result']
 
@@ -413,13 +465,62 @@ def command_argv(row,index,binding,commit):
     elif index==2: exact(argv,['/tmp/mihomo-apply-go/bin/gofmt','-d',*FMT])
     else: exact(argv,['/tmp/mihomo-apply-go/bin/go','test','-json','-count=1','-shuffle=off','-p=1','-tags='+','.join(TAGS),'-run=^'+TOP+'$','-timeout=210s','./internal/serverruntime'])
 
-def verify(repo,public,commit):
-    binding,_=git_manifest(repo,commit); public=Path(public).resolve(strict=True)
-    contract,contract_raw=json_file(Path(repo)/'chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json',64<<10)
+def contract_value(repo):
+    contract,_=json_file(Path(repo)/'chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_api_contract.json',64<<10)
     need(contract['schema']=='chengwang.mihomo-continuous-recovery-contract/v2' and contract['scope']==SCOPE and
          contract['reportSchema']=='chengwang.mihomo-continuous-recovery-http-experiment/v3' and
          contract['faultObservationSchema']=='chengwang.mihomo-continuous-recovery-response-loss/v2' and
-         contract['exactTags']==list(TAGS) and contract['forbiddenTags']==list(FORBIDDEN) and contract['goPackage']=='./internal/serverruntime' and contract['topTest']==TOP and contract['goTimeoutSeconds']==210 and contract['outerGoTimeoutSeconds']==240 and contract['httpOriginalBytesRequired'] is True and contract['fullPrivateWALIndependentlyProven'] is False and contract['internetBusinessProven'] is False and contract['production'] is False)
+         contract['exactTags']==list(TAGS) and contract['forbiddenTags']==list(FORBIDDEN) and contract['goPackage']=='./internal/serverruntime' and contract['topTest']==TOP and contract['goTimeoutSeconds']==210 and contract['outerGoTimeoutSeconds']==240 and contract['httpOriginalBytesRequired'] is True and contract['fullPrivateWALIndependentlyProven'] is False and contract['internetBusinessProven'] is False and contract['production'] is False and
+         contract['safeArtifactSchema']==SAFE_SCHEMA and contract['safeEvidenceFiles']==list(SAFE_EVIDENCE) and
+         contract['safeEvidenceFileCount']==len(SAFE_EVIDENCE)==42 and contract['safeVerificationMaxBytes']==16<<10 and
+         contract['safeArtifactMaxBytes']==contract['maxPublicBytes']==16<<20)
+    return contract
+
+def validate_sandbox(value,binding):
+    keys(value,('sourceCommit','uid','gid','effectiveCaps','noNewPrivileges','networkNamespace','mountNamespace','pidNamespace',
+      'environmentKeys','interfaceNames','defaultV4Routes','defaultV6Routes','sourceModuleSHA256','sourceReadOnly','goReadOnly',
+      'kernelCopy','schema','sourceBinding','exactTags','forbiddenTags','production'))
+    need(value['schema']=='chengwang.mihomo-continuous-recovery-sandbox/v1' and value['sourceCommit']==binding['sourceCommit'])
+    integer(value['uid'],10001,10001); integer(value['gid'],10001,10001); need(value['effectiveCaps']=='0000000000000000')
+    need(value['noNewPrivileges'] is True and value['environmentKeys']==list(SANDBOX_ENVIRONMENT_KEYS) and
+         value['interfaceNames']==['lo'] and value['defaultV4Routes']==value['defaultV6Routes']==[])
+    for key,prefix in (('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')):
+        text(value[key],prefix+r':\[[1-9][0-9]*\]',64)
+    digest(value['sourceModuleSHA256']); need(value['sourceReadOnly'] is True and value['goReadOnly'] is True)
+    kernel=keys(value['kernelCopy'],('sha256','bytes','mode','readOnly','executable'))
+    digest(kernel['sha256']); integer(kernel['bytes'],1,256<<20)
+    need(kernel['mode']=='0500' and kernel['readOnly'] is True and kernel['executable'] is True)
+    exact(value['sourceBinding'],binding); exact(value['exactTags'],list(TAGS)); exact(value['forbiddenTags'],list(FORBIDDEN))
+    need(value['production'] is False); return value
+
+def validate_consumption(value,commit):
+    keys(value,('schema','state','source','component','version','upstreamSourceCommit','archive','gzip','elf','output',
+      'runtimeExecuted','runtimeCompatibilityProven','businessAvailabilityProven','publisherSignatureProven','productionApproved','production'))
+    need(value['schema']=='chengwang.mihomo-candidate-consumption/v1' and value['state']=='PINNED_GZIP_EXPANDED_NOT_EXECUTED' and
+         value['component']=='MetaCubeX/mihomo' and value['version']=='v1.19.32' and value['upstreamSourceCommit']==CONSUMPTION_UPSTREAM)
+    source=keys(value['source'],('projectSourceCommit','sourceFiles','pinSHA256')); need(source['projectSourceCommit']==commit)
+    rows=source['sourceFiles']; need(type(rows) is list and len(rows)==len(CONSUMPTION_SOURCES))
+    for row,path in zip(rows,CONSUMPTION_SOURCES):
+        keys(row,('path','bytes','sha256')); need(row['path']==path); integer(row['bytes'],1,262144); digest(row['sha256'])
+    digest(source['pinSHA256']); need(source['pinSHA256']==rows[0]['sha256'])
+    archive=keys(value['archive'],('name','bytes','sha256','pinBasis'))
+    need(archive['name']==CONSUMPTION_ASSET and archive['sha256']==CONSUMPTION_ARCHIVE_SHA256 and
+         archive['pinBasis']=='PUBLISHED_RELEASE_ASSET_SHA256_NOT_SIGNATURE_APPROVAL'); integer(archive['bytes'],18,64<<20)
+    gzip=keys(value['gzip'],('singleMember','complete','trailerCRC32','trailerISIZE'))
+    need(gzip['singleMember'] is True and gzip['complete'] is True); text(gzip['trailerCRC32'],r'[0-9a-f]{8}',8); integer(gzip['trailerISIZE'],64,128<<20)
+    elf=keys(value['elf'],('bytes','sha256','byteOrder','elfClass','machine','type','entryPoint','programHeaderCount','loadSegments','sectionHeaderCount','executableEntryMapped'))
+    integer(elf['bytes'],64,128<<20); need(elf['bytes']==gzip['trailerISIZE']); digest(elf['sha256'])
+    need(elf['byteOrder']=='little' and elf['elfClass']=='ELF64' and elf['machine']=='AMD64' and elf['type'] in ('EXEC','DYN'))
+    integer(elf['entryPoint'],1); integer(elf['programHeaderCount'],1,1024); integer(elf['loadSegments'],1,1024); integer(elf['sectionHeaderCount'],0,65535)
+    need(elf['executableEntryMapped'] is True)
+    output=keys(value['output'],('path','mode','receiptMode','directoryMode'))
+    need(output=={'path':'mihomo','mode':'0500','receiptMode':'0400','directoryMode':'0700'})
+    for key in ('runtimeExecuted','runtimeCompatibilityProven','businessAvailabilityProven','publisherSignatureProven','productionApproved','production'):
+        need(value[key] is False)
+    return value
+
+def _verify_evidence(repo,public,commit,safe,full_container=False):
+    binding,_=git_manifest(repo,commit); public=Path(public).resolve(strict=True); contract=contract_value(repo)
     build=b'//go:build linux && chengwang_mihomo_service && chengwang_mihomo_recovery_native && chengwang_mihomo_recovery_continuous_fault && !chengwang_mihomo_faults && !chengwang_mihomo_completion_native\n'
     default=b'//go:build !linux || !chengwang_mihomo_service || !chengwang_mihomo_recovery_native || !chengwang_mihomo_recovery_continuous_fault || chengwang_mihomo_faults || chengwang_mihomo_completion_native\n'
     for rel in ('chengwang/internal/authn/continuous_bound_credentials_linux.go',
@@ -430,13 +531,15 @@ def verify(repo,public,commit):
         need(source_file(Path(repo)/rel,2<<20).startswith(build))
     need(source_file(Path(repo)/'chengwang/internal/serverruntime/mihomo_continuous_recovery_hook_default.go',64<<10).startswith(default))
     fixed={'host-before.json','host-after.json','consumption.json','consumption-independent.json','sandbox.json','go-version.txt','gofmt.patch','gofmt.stderr','continuous.json','continuous.stderr','commands.jsonl','process-events.jsonl','execution.json','continuous-recovery-report.json','http-originals-index.json','private-fsync-receipts.json','kernel.stdout','kernel.stderr'}
-    expected=fixed|{f'http-{i:03d}.response.json' for i in range(1,32)}; need({p.name for p in public.iterdir()}==expected)
+    expected=set(SAFE_EVIDENCE) if safe and not full_container else fixed|{f'http-{i:03d}.response.json' for i in range(1,32)}
+    need({p.name for p in public.iterdir()}==expected)
     report,raw=json_file(public/'continuous-recovery-report.json'); index=validate_report(report,commit,public,binding)
     actual_index,_=json_file(public/'http-originals-index.json'); keys(actual_index,('schema','scope','sourceCommit','sourceBinding','entries','production'))
     need(actual_index['schema']=='chengwang.mihomo-continuous-recovery-http-originals/v2' and actual_index['scope']==SCOPE and actual_index['sourceCommit']==commit and actual_index['production'] is False); exact(actual_index['sourceBinding'],binding); exact(actual_index['entries'],index)
     execution,_=json_file(public/'execution.json'); keys(execution,('schema','scope','sourceCommit','sourceBinding','formatExit','goExit','outcome','fullPrivateWALIndependentlyProven','production'))
     need(execution['schema']=='chengwang.mihomo-continuous-recovery-execution/v1' and execution['scope']==SCOPE and execution['sourceCommit']==commit and execution['formatExit']==execution['goExit']==0 and execution['outcome']=='PASS' and execution['fullPrivateWALIndependentlyProven'] is False and execution['production'] is False); exact(execution['sourceBinding'],binding)
-    need(source_file(public/'gofmt.patch',8<<20,empty=True)==b'' and source_file(public/'gofmt.stderr',8<<20,empty=True)==b'' and source_file(public/'continuous.stderr',8<<20,empty=True)==b'')
+    if not safe:
+        need(source_file(public/'gofmt.patch',8<<20,empty=True)==b'' and source_file(public/'gofmt.stderr',8<<20,empty=True)==b'' and source_file(public/'continuous.stderr',8<<20,empty=True)==b'')
     commands,_=json_lines(public/'commands.jsonl'); need(len(commands)==4)
     for i,(row,kind,timeout) in enumerate(zip(commands,COMMANDS,TIMEOUTS)):
         keys(row,('schema','sequence','sourceCommit','commandClass','argv','cwd','timeoutSeconds','exitCode','observed','namespace','sourceBinding'))
@@ -450,26 +553,78 @@ def verify(repo,public,commit):
     for command in COMMANDS:
         subset=[x for x in events if x.get('commandClass')==command]; need([x['kind'] for x in subset]==['START_INTENT','SPAWNED','PIDFD_ACQUIRED','WAIT_RETURNED'])
         need(subset[-1]['exitCode']==0 and subset[-1]['pidfdAcquired'] is True)
-    rows=[json.loads(x) for x in source_file(public/'continuous.json',8<<20).splitlines() if x]
-    relevant=[x for x in rows if x.get('Test')==TOP]; packages=[x for x in rows if 'Test' not in x and x.get('Action')=='pass']
-    need(sum(x.get('Action')=='run' for x in relevant)==1 and sum(x.get('Action')=='pass' for x in relevant)==1 and not any(x.get('Action') in ('fail','skip') for x in rows) and len(packages)==1 and packages[0].get('Package')=='chengwang/internal/serverruntime' and all(x.get('Test',TOP).split('/')[0]==TOP for x in rows))
-    sandbox,_=json_file(public/'sandbox.json'); need(sandbox['sourceBinding']==binding and sandbox['exactTags']==list(TAGS) and sandbox['forbiddenTags']==list(FORBIDDEN) and sandbox['production'] is False and sandbox['sourceReadOnly'] is True and sandbox['goReadOnly'] is True and sandbox['interfaceNames']==['lo'] and sandbox['defaultV4Routes']==sandbox['defaultV6Routes']==[])
-    host_before=json.loads(source_file(public/'host-before.json',64<<10)); host_after=json.loads(source_file(public/'host-after.json',64<<10))
-    need(host_before==host_after and set(host_before)=={'networkNamespace','mountNamespace','pidNamespace','resolvSHA256'} and DIGEST.fullmatch(host_before['resolvSHA256']))
+    if not safe:
+        rows=[json.loads(x) for x in source_file(public/'continuous.json',8<<20).splitlines() if x]
+        relevant=[x for x in rows if x.get('Test')==TOP]; packages=[x for x in rows if 'Test' not in x and x.get('Action')=='pass']
+        need(sum(x.get('Action')=='run' for x in relevant)==1 and sum(x.get('Action')=='pass' for x in relevant)==1 and not any(x.get('Action') in ('fail','skip') for x in rows) and len(packages)==1 and packages[0].get('Package')=='chengwang/internal/serverruntime' and all(x.get('Test',TOP).split('/')[0]==TOP for x in rows))
+    sandbox,_=json_file(public/'sandbox.json'); validate_sandbox(sandbox,binding)
+    host_before,_=json_file(public/'host-before.json',64<<10); host_after,_=json_file(public/'host-after.json',64<<10)
+    need(host_before==host_after); keys(host_before,('networkNamespace','mountNamespace','pidNamespace','resolvSHA256'))
+    for key,prefix in (('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')):
+        text(host_before[key],prefix+r':\[[1-9][0-9]*\]',64)
+    digest(host_before['resolvSHA256'])
     namespace={key:sandbox[key] for key in ('networkNamespace','mountNamespace','pidNamespace')}
     need(all(namespace[key]!=host_before[key] for key in namespace))
     for row in commands: exact(row['namespace'],namespace)
-    need(source_file(public/'go-version.txt',4096).startswith(b'go version go1.23.12 linux/amd64\n'))
-    receipt,_=json_file(public/'private-fsync-receipts.json'); need(receipt['schema']=='chengwang.mihomo-continuous-recovery-private-fsync/v1' and receipt['sourceCommit']==commit and receipt['directoryFsyncObserved'] is True and receipt['production'] is False); exact(receipt['sourceBinding'],binding)
-    need([row.get('name') for row in receipt['entries']]==['continuous-recovery-report.private.json','kernel.stdout','kernel.stderr'])
-    public_receipts={'continuous-recovery-report.private.json':'continuous-recovery-report.json','kernel.stdout':'kernel.stdout','kernel.stderr':'kernel.stderr'}
-    for row in receipt['entries']:
-        keys(row,('name','bytes','sha256','mode','uid','gid','fsyncObserved')); body=source_file(public/public_receipts[row['name']],2<<20,empty=True)
-        need(row['mode']=='0600' and row['uid']==row['gid']==10001 and row['fsyncObserved'] is True and row['bytes']==len(body) and row['sha256']==sha(body))
-    consumption_raw=source_file(public/'consumption.json',1<<20); need(consumption_raw==source_file(public/'consumption-independent.json',1<<20))
-    consumption=json.loads(consumption_raw); need(consumption['source']['projectSourceCommit']==commit)
-    for key in ('runtimeExecuted','runtimeCompatibilityProven','businessAvailabilityProven','publisherSignatureProven','productionApproved','production'): need(consumption[key] is False)
+    go_version=source_file(public/'go-version.txt',4096)
+    need(go_version==b'go version go1.23.12 linux/amd64\n' if safe else go_version.startswith(b'go version go1.23.12 linux/amd64\n'))
+    if not safe:
+        receipt,_=json_file(public/'private-fsync-receipts.json'); need(receipt['schema']=='chengwang.mihomo-continuous-recovery-private-fsync/v1' and receipt['sourceCommit']==commit and receipt['directoryFsyncObserved'] is True and receipt['production'] is False); exact(receipt['sourceBinding'],binding)
+        need([row.get('name') for row in receipt['entries']]==['continuous-recovery-report.private.json','kernel.stdout','kernel.stderr'])
+        public_receipts={'continuous-recovery-report.private.json':'continuous-recovery-report.json','kernel.stdout':'kernel.stdout','kernel.stderr':'kernel.stderr'}
+        for row in receipt['entries']:
+            keys(row,('name','bytes','sha256','mode','uid','gid','fsyncObserved')); body=source_file(public/public_receipts[row['name']],2<<20,empty=True)
+            need(row['mode']=='0600' and row['uid']==row['gid']==10001 and row['fsyncObserved'] is True and row['bytes']==len(body) and row['sha256']==sha(body))
+    consumption,consumption_raw=json_file(public/'consumption.json',1<<20)
+    independent,independent_raw=json_file(public/'consumption-independent.json',1<<20)
+    need(consumption_raw==independent_raw); exact(consumption,independent); validate_consumption(consumption,commit)
+    return binding,contract,report,index,commands,events,execution
+
+def verify(repo,public,commit):
+    binding,_,_,_,_,_,_=_verify_evidence(repo,public,commit,False)
     return {'schema':'chengwang.mihomo-continuous-recovery-independent-verification/v1','sourceCommit':commit,'sourceBinding':binding,'httpResponses':31,'goTestPassed':True,'fullPrivateWALIndependentlyProven':False,'production':False}
+
+def positive_decimal(value,maximum=(1<<63)-1):
+    need(type(value) is str and re.fullmatch(r'[1-9][0-9]{0,18}',value) is not None)
+    return integer(int(value),1,maximum)
+
+def safe_verification(repo,evidence,commit,run_id,run_attempt,full_container=False):
+    run_id=positive_decimal(run_id); run_attempt=positive_decimal(run_attempt,1<<31)
+    binding,contract,report,index,commands,events,execution=_verify_evidence(repo,evidence,commit,True,full_container)
+    files=[]; total=0
+    for name in SAFE_EVIDENCE:
+        raw=source_file(Path(evidence)/name,contract['safeArtifactMaxBytes']); total+=len(raw)
+        files.append({'name':name,'bytes':len(raw),'sha256':sha(raw)})
+    need(len(files)==contract['safeEvidenceFileCount'] and total<=contract['safeArtifactMaxBytes'])
+    return {'schema':SAFE_SCHEMA,'runId':run_id,'runAttempt':run_attempt,'sourceCommit':commit,'sourceBinding':binding,
+      'scope':SCOPE,'httpResponses':len(index),'recoveries':len(report['recoveries']),'closedPorts':len(report['closedPorts']),
+      'commands':len(commands),'processEvents':len(events),'formatExit':execution['formatExit'],'goExit':execution['goExit'],
+      'outcome':execution['outcome'],'fullPrivateWALIndependentlyProven':False,'internetBusinessProven':False,'production':False,
+      'files':files,'evidenceSetSHA256':set_digest('chengwang.mihomo-continuous-recovery-safe-evidence-set/v1',files)}
+
+def safe_root(repo,root,commit,run_id,run_attempt):
+    root=Path(root).absolute(); need(root.resolve(strict=True)==root and {p.name for p in root.iterdir()}=={'verification.json','evidence'})
+    evidence=root/'evidence'; info=evidence.lstat(); need(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode))
+    contract=contract_value(repo); report,raw=json_file(root/'verification.json',contract['safeVerificationMaxBytes'])
+    expected=safe_verification(repo,evidence,commit,run_id,run_attempt); exact(report,expected)
+    need(len(raw)+sum(row['bytes'] for row in report['files'])<=contract['safeArtifactMaxBytes'])
+    return expected
+
+def project_safe(repo,public,commit,run_id,run_attempt,root):
+    before=verify(repo,public,commit); contract=contract_value(repo); root=Path(root).absolute()
+    need(not root.exists() and root.parent.resolve(strict=True)==root.parent)
+    source_report=safe_verification(repo,public,commit,run_id,run_attempt,True)
+    os.mkdir(root,0o700); evidence=root/'evidence'; os.mkdir(evidence,0o700)
+    for name in SAFE_EVIDENCE:
+        source=Path(public)/name; raw=source_file(source,contract['safeArtifactMaxBytes'])
+        write_new(evidence/name,raw); need(source_file(source,contract['safeArtifactMaxBytes'])==raw)
+    sync_directory(evidence)
+    report=safe_verification(repo,evidence,commit,run_id,run_attempt); raw=canonical(report)+b'\n'
+    exact(report,source_report)
+    need(len(raw)<=contract['safeVerificationMaxBytes'])
+    write_new(root/'verification.json',raw); sync_directory(root)
+    exact(verify(repo,public,commit),before); exact(safe_root(repo,root,commit,run_id,run_attempt),report)
+    return report
 
 def main(args):
     if len(args)==4 and args[0]=='--source-manifest':
@@ -488,5 +643,11 @@ def main(args):
             try: os.fsync(directory)
             finally: os.close(directory)
         print(canonical(binding).decode()); return 0
+    if len(args)==7 and args[0]=='--project-safe':
+        project_safe(Path(args[1]),Path(args[2]),args[3],args[4],args[5],Path(args[6]))
+        print('CONTINUOUS_RECOVERY_SAFE_ARTIFACT=READY production=false'); return 0
+    if len(args)==6 and args[0]=='--verify-safe':
+        result=safe_root(Path(args[1]),Path(args[2]),args[3],args[4],args[5])
+        print(canonical(result).decode()); return 0
     need(len(args)==3); result=verify(Path(args[0]),Path(args[1]),args[2]); print(canonical(result).decode()); return 0
 if __name__=='__main__': raise SystemExit(main(sys.argv[1:]))

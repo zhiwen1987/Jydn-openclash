@@ -25,6 +25,50 @@ def _probe_fixture_owner_view(probe):
         return OwnerView(meta,uid,gid)
     return mock.patch.object(pathlib.Path,"lstat",autospec=True,side_effect=lstat)
 
+@contextlib.contextmanager
+def _bridge_fixture_root_view(bridge):
+    bridge=pathlib.Path(bridge).absolute();real_lstat=pathlib.Path.lstat;real_open=CI.os.open;real_close=CI.os.close;real_mkdir=CI.os.mkdir
+    owners={};modes={};descriptors={};operations=[]
+    class StatView:
+        def __init__(self,base,uid,gid,mode):self._base=base;self.st_uid=uid;self.st_gid=gid;self.st_mode=(base.st_mode&~0o7777)|mode
+        def __getattr__(self,name):return getattr(self._base,name)
+    def scoped(path):
+        candidate=pathlib.Path(path).absolute();return candidate if candidate==bridge or bridge in candidate.parents else None
+    def required(path):
+        candidate=scoped(path)
+        if candidate is None:raise AssertionError("bridge fixture operation escaped scope")
+        return candidate
+    def lstat(path):
+        base=real_lstat(path);candidate=scoped(path)
+        if candidate is None:return base
+        uid,gid=owners.get(candidate,(0,0));mode=modes.get(candidate,CI.stat.S_IMODE(base.st_mode));return StatView(base,uid,gid,mode)
+    def mkdir(path,mode=0o777,*args,**kwargs):
+        result=real_mkdir(path,mode,*args,**kwargs);candidate=scoped(path)
+        if candidate is not None:modes[candidate]=mode&0o7777;owners[candidate]=(0,0);operations.append(("mkdir",candidate,mode&0o7777))
+        return result
+    def open_file(path,flags,mode=0o777,*args,**kwargs):
+        fd=real_open(path,flags,mode,*args,**kwargs);candidate=scoped(path)
+        if candidate is not None:
+            descriptors[fd]=candidate
+            if flags&CI.os.O_CREAT:modes.setdefault(candidate,mode&0o7777)
+        return fd
+    def close_file(fd):
+        try:return real_close(fd)
+        finally:descriptors.pop(fd,None)
+    def chmod(path,mode,*unused,**kwargs):
+        candidate=required(path);modes[candidate]=mode&0o7777;operations.append(("chmod",candidate,mode&0o7777))
+    def chown(path,uid,gid,*unused,**kwargs):
+        candidate=required(path);owners[candidate]=(uid,gid);operations.append(("chown",candidate,uid,gid))
+    def fchmod(fd,mode):
+        candidate=required(descriptors[fd]);modes[candidate]=mode&0o7777;operations.append(("fchmod",candidate,mode&0o7777))
+    def fchown(fd,uid,gid):
+        candidate=required(descriptors[fd]);owners[candidate]=(uid,gid);operations.append(("fchown",candidate,uid,gid))
+    def set_owner(path,uid,gid):owners[required(path)]=(uid,gid)
+    def set_mode(path,mode):modes[required(path)]=mode&0o7777
+    view=types.SimpleNamespace(set_owner=set_owner,set_mode=set_mode,operations=operations,scoped=scoped)
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(mock.patch.object(pathlib.Path,"lstat",autospec=True,side_effect=lstat));stack.enter_context(mock.patch.object(CI.os,"mkdir",side_effect=mkdir));stack.enter_context(mock.patch.object(CI.os,"open",side_effect=open_file));stack.enter_context(mock.patch.object(CI.os,"close",side_effect=close_file));stack.enter_context(mock.patch.object(CI.os,"chmod",side_effect=chmod));stack.enter_context(mock.patch.object(CI.os,"chown",side_effect=chown,create=True));stack.enter_context(mock.patch.object(CI.os,"fchmod",side_effect=fchmod,create=True));stack.enter_context(mock.patch.object(CI.os,"fchown",side_effect=fchown,create=True));yield view
+
 def _probe_fixture_cleanup_calls(probe):
     probe=pathlib.Path(probe);real_chmod=CI.os.chmod;real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
     def inside(path):
@@ -783,26 +827,35 @@ diagnostic_stub() {{
                 path=repo/relative;path.parent.mkdir(parents=True,exist_ok=True);raw=(basename+"\n").encode();path.write_bytes(raw);rows.append({"path":relative,"sha256":CI.hashlib.sha256(raw).hexdigest()})
             contract=repo/"chengwang/deploy/joint-control-plane/source_contract.json";contract.write_text(json.dumps({"schema":"test","paths":rows})+"\n",encoding="utf-8")
             meta=parent.lstat();arguments=(repo,contract,parent,str(meta.st_dev),str(meta.st_ino),"321","7","a"*32)
-            owned=lambda path,*a,**k:pathlib.Path(path).lstat()
-            patches=(mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI.os,"fchown",side_effect=lambda *a:None,create=True),mock.patch.object(CI.os,"fchmod",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_bridge_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
+            patches=(mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
             with contextlib.ExitStack() as stack:
                 for patcher in patches:stack.enter_context(patcher)
+                view=stack.enter_context(_bridge_fixture_root_view(parent/(CI.BRIDGE_PREFIX+"321-7-"+"a"*32)))
                 bridge,digest=CI.bridge_setup(*arguments,platform="posix");self.assertEqual(digest,CI.bridge_payload_digest(repo,contract));self.assertEqual({p.name for p in (bridge/"payload").iterdir()},{"ci_joint_control_plane.py","contract.py"});self.assertFalse(any((bridge/"runner").iterdir()))
-                extra=bridge/"payload/extra";extra.write_bytes(b"UNTRUSTED")
+                payload=bridge/"payload"
+                view.set_owner(bridge,1,0)
                 with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
-                self.assertEqual(extra.read_bytes(),b"UNTRUSTED");extra.unlink()
-                outside=root/"outside-hardlink";os.link(bridge/"payload/contract.py",outside)
+                view.set_owner(bridge,0,0);view.set_owner(bridge,0,1)
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                view.set_owner(bridge,0,0);view.set_mode(bridge,0o777)
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                view.set_mode(bridge,0o711)
+                extra=payload/"extra";view.set_mode(payload,0o700);extra.write_bytes(b"UNTRUSTED");view.set_mode(payload,0o555)
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                self.assertEqual(extra.read_bytes(),b"UNTRUSTED");view.set_mode(payload,0o700);extra.unlink();view.set_mode(payload,0o555)
+                outside=root/"outside-hardlink";os.link(payload/"contract.py",outside)
                 with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
                 outside.unlink()
-                changed=bridge/"payload/contract.py";expected=changed.read_bytes();changed.write_bytes(b"CHANGED")
+                changed=payload/"contract.py";expected=changed.read_bytes();view.set_mode(changed,0o600);changed.write_bytes(b"CHANGED");view.set_mode(changed,0o444)
                 with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
-                changed.write_bytes(expected)
-                moved=root/"moved-contract";os.rename(bridge/"payload/contract.py",moved)
+                view.set_mode(changed,0o600);changed.write_bytes(expected);view.set_mode(changed,0o444)
+                moved=root/"moved-contract";view.set_mode(payload,0o700);os.rename(changed,moved);view.set_mode(payload,0o555)
                 with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
-                os.rename(moved,bridge/"payload/contract.py")
+                view.set_mode(payload,0o700);os.rename(moved,changed);view.set_mode(payload,0o555)
                 with mock.patch.object(CI.os,"unlink",side_effect=OSError("PRIVATE UNLINK")):
                     with self.assertRaises(OSError):CI.bridge_cleanup(*arguments,platform="posix")
-                os.chmod(bridge/"payload",0o700);os.chmod(bridge,0o700);CI.bridge_cleanup(*arguments,platform="posix");CI.bridge_final_absence(*arguments[2:],platform="posix")
+                CI.bridge_cleanup(*arguments,platform="posix");CI.bridge_final_absence(*arguments[2:],platform="posix")
+                self.assertTrue(view.operations);self.assertTrue(all(view.scoped(row[1]) is not None for row in view.operations))
                 source=pathlib.Path(CI.__file__).read_text(encoding="utf-8")
                 for guard in ("os.fchmod(fd,0o444)","os.chmod(payload,0o555)","os.mkdir(runner,0o711)","meta.st_uid==0 and meta.st_gid==0","meta.st_nlink==1"):
                     self.assertIn(guard,source)
@@ -813,10 +866,10 @@ diagnostic_stub() {{
             for relative,basename in CI.BRIDGE_FILES:
                 path=repo/relative;path.parent.mkdir(parents=True,exist_ok=True);raw=(basename+"\n").encode();path.write_bytes(raw);rows.append({"path":relative,"sha256":CI.hashlib.sha256(raw).hexdigest()})
             contract=repo/"chengwang/deploy/joint-control-plane/source_contract.json";contract.write_text(json.dumps({"paths":rows})+"\n",encoding="utf-8");meta=parent.lstat();arguments=(repo,contract,parent,str(meta.st_dev),str(meta.st_ino),"322","8","b"*32);bridge=parent/(CI.BRIDGE_PREFIX+"322-8-"+"b"*32)
-            owned=lambda path,*a,**k:pathlib.Path(path).lstat()
-            patches=(mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI.os,"fchown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_bridge_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
+            patches=(mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
             with contextlib.ExitStack() as stack:
                 for patcher in patches:stack.enter_context(patcher)
+                view=stack.enter_context(_bridge_fixture_root_view(bridge))
                 def partial(path,raw):pathlib.Path(path).write_bytes(raw[:2]);os.chmod(path,0o600);raise OSError("PRIVATE COPY")
                 with mock.patch.object(CI,"_bridge_write",side_effect=partial):
                     with self.assertRaises(OSError):CI.bridge_setup(*arguments,platform="posix")
@@ -825,14 +878,15 @@ diagnostic_stub() {{
                 with mock.patch.object(CI,"_bridge_write",side_effect=wrong_completed):
                     with self.assertRaises(ValueError):CI.bridge_setup(*arguments,platform="posix")
                 wrong=bridge/"payload/ci_joint_control_plane.py";self.assertTrue(wrong.is_file());self.assertEqual(wrong.read_bytes(),b"WRONG-COMPLETED")
-                rows_value,_=CI._bridge_rows(repo,contract);os.chmod(wrong,0o600);CI._bridge_cleanup(bridge,rows_value,partial=True);self.assertFalse(bridge.exists())
+                rows_value,_=CI._bridge_rows(repo,contract);view.set_mode(wrong,0o600);CI._bridge_cleanup(bridge,rows_value,partial=True);self.assertFalse(bridge.exists())
                 with mock.patch.object(CI.os,"fsync",side_effect=OSError("PRIVATE FILE FSYNC")):
                     with self.assertRaises(OSError):CI.bridge_setup(*arguments,platform="posix")
                 self.assertFalse(bridge.exists())
                 calls=[]
                 def fsync_fault(path):
                     calls.append(path)
-                    if len(calls)==1:raise OSError("PRIVATE FSYNC")
+                    if len(calls)==1:
+                        os.chmod(path,0o700);os.chmod(path.parent,0o700);raise OSError("PRIVATE FSYNC")
                 with mock.patch.object(CI,"_probe_dir_fsync",side_effect=fsync_fault):
                     with self.assertRaises(OSError):CI.bridge_setup(*arguments,platform="posix")
                 self.assertFalse(bridge.exists())
@@ -845,6 +899,7 @@ diagnostic_stub() {{
                 linked=root/"linked-source";os.link(repo/CI.BRIDGE_FILES[0][0],linked)
                 with self.assertRaises(ValueError):CI.bridge_payload_digest(repo,contract)
                 linked.unlink()
+                self.assertTrue(view.operations);self.assertTrue(all(view.scoped(row[1]) is not None for row in view.operations))
             with self.assertRaises(ValueError):CI._bridge_parent(parent,str(meta.st_dev+1),str(meta.st_ino),platform="posix")
 
 if __name__=="__main__":unittest.main()

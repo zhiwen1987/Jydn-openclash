@@ -93,9 +93,12 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         needs='    needs: [development-only, continuous-recovery-api]\n'
         gate="    if: ${{ !cancelled() && needs.development-only.result == 'success' && needs.continuous-recovery-api.result == 'success' }}\n"
         old="    if: ${{ !cancelled() && needs.development-only.result == 'success' }}\n"
-        producer='          name: mihomo-continuous-recovery-api-originals-${{ github.run_id }}-${{ github.run_attempt }}\n'
+        producer='          name: mihomo-continuous-recovery-api-safe-${{ github.run_id }}-${{ github.run_attempt }}\n'
+        mixed='          name: mihomo-continuous-recovery-api-originals-${{ github.run_id }}-${{ github.run_attempt }}\n'
         self.assertEqual(fresh.count(needs),1);self.assertEqual(fresh.count(gate),1);self.assertNotIn(old,fresh)
-        self.assertEqual(fresh.count(producer),1);self.assertLess(fresh.index(needs),fresh.index(gate));self.assertLess(fresh.index(gate),fresh.index(producer))
+        self.assertEqual(fresh.count(producer),1);self.assertNotIn(mixed,fresh)
+        self.assertIn('--verify-safe',fresh);self.assertNotIn('verification.stderr',fresh);self.assertNotIn('acquisition',fresh)
+        self.assertLess(fresh.index(needs),fresh.index(gate));self.assertLess(fresh.index(gate),fresh.index(producer))
 
     def test_contract_excludes_old_fault_tags_and_has_independent_capture(self):
         contract=json.loads((HERE/'continuous_recovery_api_contract.json').read_bytes())
@@ -104,6 +107,9 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertEqual(contract['faultObservationSchema'],'chengwang.mihomo-continuous-recovery-response-loss/v2')
         self.assertEqual(contract['goTimeoutSeconds'],210); self.assertEqual(contract['outerGoTimeoutSeconds'],240)
         self.assertFalse(set(contract['exactTags']) & set(contract['forbiddenTags']))
+        self.assertEqual(contract['safeArtifactSchema'],self.reader.SAFE_SCHEMA)
+        self.assertEqual(contract['safeEvidenceFiles'],list(self.reader.SAFE_EVIDENCE))
+        self.assertEqual((contract['safeEvidenceFileCount'],contract['safeVerificationMaxBytes'],contract['safeArtifactMaxBytes']),(42,16<<10,16<<20))
         lifecycle=(HERE.parents[1]/'internal/mihomodeploy/lifecycle.go').read_text(encoding='utf8')
         actual=re.search(r'^const lifecycleSchemaV2 = "([^"]+)"$',lifecycle,re.M)
         self.assertIsNotNone(actual); self.assertEqual(actual.group(1),self.reader.WAL_SCHEMA)
@@ -113,6 +119,7 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertIn('const labContinuousRecoveryFaultSchema = "'+contract['faultObservationSchema']+'"',fault_source)
         self.assertIn('initial.WALSchema != "'+self.reader.WAL_SCHEMA+'"',harness)
         self.assertNotIn('chengwang.mihomo-lifecycle/v2',harness)
+
         self.assertIn('h.call(stage+"_INSPECT", http.MethodGet',harness)
         kernel=(HERE.parents[1]/'internal/mihomodeploy/lab_kernel_linux.go').read_text(encoding='utf8')
         observer=(HERE.parents[1]/'internal/mihomodeploy/lab_native_recovery_observer_linux.go').read_text(encoding='utf8')
@@ -445,6 +452,19 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
             self.assertIn('"reportObserved":false',str(caught.exception)); self.assertIn('"httpCount":0',str(caught.exception))
             self.assertNotIn(secret.decode(),str(caught.exception)); self.assertEqual(adapter.shared().writes,[])
 
+    def test_safe_upload_is_success_only_and_excludes_mixed_diagnostics(self):
+        workflow=(HERE.parents[2]/'.github/workflows/chengwang-mihomo-continuous-recovery-api.yml').read_text(encoding='utf8')
+        safe='          name: mihomo-continuous-recovery-api-safe-${{ github.run_id }}-${{ github.run_attempt }}\n'
+        self.assertEqual(workflow.count(safe),2)
+        producer=workflow.split('      - name: Project and independently re-read the bounded safe artifact\n',1)[1].split('      - uses: actions/upload-artifact@',1)[0]
+        self.assertIn('test ! -s "$RUNNER_TEMP/mihomo-continuous-recovery-verification.stderr"',producer)
+        self.assertIn('--project-safe',producer); self.assertIn('--verify-safe',producer)
+        upload=workflow.split(safe,1)[1].split('      - uses: actions/upload-artifact@',1)[0]
+        self.assertIn('path: ${{ runner.temp }}/mihomo-continuous-recovery-safe/',upload)
+        self.assertNotIn('if: ${{ always() }}',upload)
+        for forbidden in ('*.stdout','*.stderr','continuous.json','kernel.stdout','kernel.stderr','candidate.gz'):
+            self.assertNotIn(forbidden,upload)
+
     def test_producer_and_reader_independently_bind_full_tracked_git_set(self):
         with tempfile.TemporaryDirectory() as td:
             repo=Path(td)
@@ -555,11 +575,13 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
     def fixture(self,root):
         h0='a'*64; h1='b'*64; h2='c'*64; h3='d'*64
         record_a='2'*64; config_a='3'*64; record_b='5'*64; config_b='6'*64
-        heads=[self.head(1,h0,record_a,config_a,False),self.head(1,h0,record_a,config_a,True,'op1'),
-          self.head(2,h1,record_b,config_b,False,None,h0),self.head(3,h2,record_a,config_a,False,'op2',h1),
-          self.head(3,h2,record_a,config_a,True,'op3',h1),self.head(4,h3,record_b,config_b,False,None,h2)]
-        ops=[self.op('op1','UNKNOWN',1,h0,h0,record_b,config_b,True,False,4),self.op('op2','COMPLETED',3,h1,h2,record_a,config_a,False,True,10),self.op('op3','UNKNOWN',3,h2,h2,record_b,config_b,True,False,14)]
-        rec=[self.recovery('rec1','op1',2,h0,h1,record_b,config_b,7),self.recovery('rec2','op3',4,h2,h3,record_b,config_b,17)]
+        op1='labop_'+'1'*32; op2='labop_'+'2'*32; op3='labop_'+'3'*32
+        rec1='labrec_'+'1'*32; rec2='labrec_'+'2'*32
+        heads=[self.head(1,h0,record_a,config_a,False),self.head(1,h0,record_a,config_a,True,op1),
+          self.head(2,h1,record_b,config_b,False,None,h0),self.head(3,h2,record_a,config_a,False,op2,h1),
+          self.head(3,h2,record_a,config_a,True,op3,h1),self.head(4,h3,record_b,config_b,False,None,h2)]
+        ops=[self.op(op1,'UNKNOWN',1,h0,h0,record_b,config_b,True,False,4),self.op(op2,'COMPLETED',3,h1,h2,record_a,config_a,False,True,10),self.op(op3,'UNKNOWN',3,h2,h2,record_b,config_b,True,False,14)]
+        rec=[self.recovery(rec1,op1,2,h0,h1,record_b,config_b,7),self.recovery(rec2,op3,4,h2,h3,record_b,config_b,17)]
         result={}
         head_map=dict(zip(['INITIAL','FIRST_UNKNOWN','FIRST_RECOVERED','ORDINARY_ACK','SECOND_UNKNOWN','SECOND_RECOVERED'],heads))
         for prefix,op in zip(('FIRST_UNKNOWN','ORDINARY_ACK','SECOND_UNKNOWN'),ops):
@@ -602,6 +624,292 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
           'faultBeforeCleanup':self.observe('TERMINAL',pre),'faultAfterCleanup':self.observe('TERMINAL',post),'faultClosed':self.observe('CLOSED',post),
           'closedPorts':[{'port':p,'connectAttempted':True,'accepted':False,'errorClass':'CONNECTION_REFUSED'} for p in (28411,28412,28413,28414,28415,30000)],
           'runtimeReturned':True,'runtimeErrorClass':'NONE','privateWALDecodedByTest':False,'production':False,'fullPayloadProven':False,'internetBusinessProven':False}
+
+    def source_binding(self):
+        return {'schema':'chengwang.mihomo-continuous-recovery-source-binding/v1','sourceCommit':'a'*40,
+          'sourceTree':'b'*40,'indexTree':'b'*40,'sourceManifestSHA256':'c'*64,'sourceSetSHA256':'d'*64,
+          'deliverySetSHA256':'e'*64,'policySHA256':'f'*64,'sourceCount':100,'deliveryCount':35}
+
+    def write_json(self,path,value): path.write_bytes(self.reader.canonical(value)+b'\n')
+
+    def safe_evidence_fixture(self,root):
+        root.mkdir(parents=True); binding=self.source_binding(); report=self.fixture(root); commit='a'*40
+        self.write_json(root/'continuous-recovery-report.json',report)
+        index=self.reader.validate_report(report,commit,root,binding)
+        self.write_json(root/'http-originals-index.json',{'schema':'chengwang.mihomo-continuous-recovery-http-originals/v2',
+          'scope':self.reader.SCOPE,'sourceCommit':commit,'sourceBinding':binding,'entries':index,'production':False})
+        self.write_json(root/'execution.json',{'schema':'chengwang.mihomo-continuous-recovery-execution/v1','scope':self.reader.SCOPE,
+          'sourceCommit':commit,'sourceBinding':binding,'formatExit':0,'goExit':0,'outcome':'PASS',
+          'fullPrivateWALIndependentlyProven':False,'production':False})
+        namespace={'networkNamespace':'net:[2]','mountNamespace':'mnt:[2]','pidNamespace':'pid:[2]'}
+        argvs=(
+          ['python3','-B','/tmp/mihomo-apply-source/deploy/mihomo-lifecycle-lab/continuous_recovery_api_worker.py','--sandbox',commit,
+           binding['sourceTree'],binding['indexTree'],binding['sourceManifestSHA256'],binding['sourceSetSHA256'],binding['deliverySetSHA256'],binding['policySHA256'],str(binding['sourceCount']),str(binding['deliveryCount'])],
+          ['/tmp/mihomo-apply-go/bin/go','version'],
+          ['/tmp/mihomo-apply-go/bin/gofmt','-d',*self.reader.FMT],
+          ['/tmp/mihomo-apply-go/bin/go','test','-json','-count=1','-shuffle=off','-p=1','-tags='+','.join(self.reader.TAGS),'-run=^'+self.reader.TOP+'$','-timeout=210s','./internal/serverruntime'])
+        commands=[]; events=[]; sequence=0
+        for i,(kind,timeout,argv) in enumerate(zip(self.reader.COMMANDS,self.reader.TIMEOUTS,argvs),1):
+            commands.append({'schema':'chengwang.mihomo-continuous-recovery-command-receipt/v1','sequence':i,
+              'sourceCommit':commit,'commandClass':kind,'argv':argv,'cwd':'/tmp/mihomo-apply-source','timeoutSeconds':timeout,
+              'exitCode':0,'observed':True,'namespace':namespace,'sourceBinding':binding})
+            pid=4200+i
+            for event,acquired,exit_code in (('START_INTENT',None,None),('SPAWNED',False,None),('PIDFD_ACQUIRED',True,None),('WAIT_RETURNED',True,0)):
+                sequence+=1; events.append({'schema':'chengwang.mihomo-continuous-recovery-process-event/v1','sequence':sequence,
+                  'commandClass':kind,'kind':event,'pid':None if event=='START_INTENT' else pid,
+                  'pidfdAcquired':acquired,'exitCode':exit_code})
+        (root/'commands.jsonl').write_bytes(b''.join(self.reader.canonical(row)+b'\n' for row in commands))
+        (root/'process-events.jsonl').write_bytes(b''.join(self.reader.canonical(row)+b'\n' for row in events))
+        self.write_json(root/'sandbox.json',{'sourceCommit':commit,'uid':10001,'gid':10001,'effectiveCaps':'0000000000000000',
+          'noNewPrivileges':True,'environmentKeys':list(self.reader.SANDBOX_ENVIRONMENT_KEYS),'interfaceNames':['lo'],
+          'defaultV4Routes':[],'defaultV6Routes':[],'sourceModuleSHA256':'2'*64,'sourceReadOnly':True,'goReadOnly':True,
+          'kernelCopy':{'sha256':'3'*64,'bytes':123456,'mode':'0500','readOnly':True,'executable':True},
+          'schema':'chengwang.mihomo-continuous-recovery-sandbox/v1','sourceBinding':binding,'exactTags':list(self.reader.TAGS),
+          'forbiddenTags':list(self.reader.FORBIDDEN),'production':False,**namespace})
+        host={'networkNamespace':'net:[1]','mountNamespace':'mnt:[1]','pidNamespace':'pid:[1]','resolvSHA256':'1'*64}
+        self.write_json(root/'host-before.json',host); self.write_json(root/'host-after.json',host)
+        source_files=[{'path':path,'bytes':100+i,'sha256':str(i+4)*64} for i,path in enumerate(self.reader.CONSUMPTION_SOURCES)]
+        consumption={'schema':'chengwang.mihomo-candidate-consumption/v1','state':'PINNED_GZIP_EXPANDED_NOT_EXECUTED',
+          'source':{'projectSourceCommit':commit,'sourceFiles':source_files,'pinSHA256':source_files[0]['sha256']},
+          'component':'MetaCubeX/mihomo','version':'v1.19.32','upstreamSourceCommit':self.reader.CONSUMPTION_UPSTREAM,
+          'archive':{'name':self.reader.CONSUMPTION_ASSET,'bytes':65432,'sha256':self.reader.CONSUMPTION_ARCHIVE_SHA256,
+            'pinBasis':'PUBLISHED_RELEASE_ASSET_SHA256_NOT_SIGNATURE_APPROVAL'},
+          'gzip':{'singleMember':True,'complete':True,'trailerCRC32':'1234abcd','trailerISIZE':123456},
+          'elf':{'bytes':123456,'sha256':'a'*64,'byteOrder':'little','elfClass':'ELF64','machine':'AMD64','type':'DYN',
+            'entryPoint':4096,'programHeaderCount':12,'loadSegments':4,'sectionHeaderCount':30,'executableEntryMapped':True},
+          'output':{'path':'mihomo','mode':'0500','receiptMode':'0400','directoryMode':'0700'},
+          'runtimeExecuted':False,'runtimeCompatibilityProven':False,'businessAvailabilityProven':False,
+          'publisherSignatureProven':False,'productionApproved':False,'production':False}
+        self.write_json(root/'consumption.json',consumption); self.write_json(root/'consumption-independent.json',consumption)
+        (root/'go-version.txt').write_bytes(b'go version go1.23.12 linux/amd64\n')
+        return binding,report
+
+    def full_public_fixture(self,root):
+        binding,report=self.safe_evidence_fixture(root)
+        (root/'gofmt.patch').write_bytes(b''); (root/'gofmt.stderr').write_bytes(b''); (root/'continuous.stderr').write_bytes(b'')
+        rows=({'Action':'run','Package':'chengwang/internal/serverruntime','Test':self.reader.TOP},
+              {'Action':'pass','Package':'chengwang/internal/serverruntime','Test':self.reader.TOP},
+              {'Action':'pass','Package':'chengwang/internal/serverruntime'})
+        (root/'continuous.json').write_bytes(b''.join(self.reader.canonical(row)+b'\n' for row in rows))
+        (root/'kernel.stdout').write_bytes(b''); (root/'kernel.stderr').write_bytes(b'')
+        receipts=[]
+        for private,public in (('continuous-recovery-report.private.json','continuous-recovery-report.json'),('kernel.stdout','kernel.stdout'),('kernel.stderr','kernel.stderr')):
+            body=(root/public).read_bytes(); receipts.append({'name':private,'bytes':len(body),'sha256':self.reader.sha(body),
+              'mode':'0600','uid':10001,'gid':10001,'fsyncObserved':True})
+        self.write_json(root/'private-fsync-receipts.json',{'schema':'chengwang.mihomo-continuous-recovery-private-fsync/v1',
+          'sourceCommit':'a'*40,'sourceBinding':binding,'entries':receipts,'directoryFsyncObserved':True,'production':False})
+        return binding,report
+
+    def test_safe_projection_and_independent_readback_positive(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); public=root/'public'; safe=root/'safe'; binding,_=self.full_public_fixture(public)
+            self.assertEqual(self.reader.strict_json(b'{"z":"\\u003c\\u0026\\u003e","a":1}'),{'z':'<&>','a':1})
+            source_report=json.loads((public/'continuous-recovery-report.json').read_bytes())
+            source_index=json.loads((public/'http-originals-index.json').read_bytes())
+            original=json.loads((public/'http-001.response.json').read_bytes())
+            reordered=(b'{ "result" : '+self.reader.canonical(original['result'])+b', "stateMayHaveChanged" : false, '
+              b'"code" : "mihomo_lab_ok", "boundary" : "'+self.reader.BOUNDARY.encode()+b'" }\n')
+            (public/'http-001.response.json').write_bytes(reordered)
+            source_report['http'][0]['responseBodySHA256']=self.reader.sha(reordered)
+            source_report['http'][0]['responseBodyB64']=base64.b64encode(reordered).decode()
+            source_index['entries'][0]['bytes']=len(reordered); source_index['entries'][0]['sha256']=self.reader.sha(reordered)
+            self.write_json(public/'continuous-recovery-report.json',source_report)
+            self.write_json(public/'http-originals-index.json',source_index)
+            private_receipts=json.loads((public/'private-fsync-receipts.json').read_bytes())
+            report_raw=(public/'continuous-recovery-report.json').read_bytes(); private_receipts['entries'][0]['bytes']=len(report_raw)
+            private_receipts['entries'][0]['sha256']=self.reader.sha(report_raw); self.write_json(public/'private-fsync-receipts.json',private_receipts)
+            with mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')):
+                report=self.reader.project_safe(HERE.parents[2],public,'a'*40,'41560358243','1',safe)
+                self.assertEqual(self.reader.safe_root(HERE.parents[2],safe,'a'*40,'41560358243','1'),report)
+            self.assertEqual(set(x.name for x in safe.iterdir()),{'verification.json','evidence'})
+            self.assertEqual(tuple(x.name for x in (safe/'evidence').iterdir()),self.reader.SAFE_EVIDENCE)
+            self.assertEqual((report['httpResponses'],report['recoveries'],report['closedPorts'],report['commands'],report['processEvents']),(31,2,6,4,16))
+            self.assertEqual(len(report['files']),42)
+            self.assertEqual((safe/'evidence/http-001.response.json').read_bytes(),reordered)
+            names='\n'.join(row['name'] for row in report['files'])
+            for forbidden in ('.stdout','.stderr','continuous.json','kernel.stdout','kernel.stderr','.private'):
+                self.assertNotIn(forbidden,names)
+        for label,mutate in (
+          ('sandbox-request-body',lambda value: value.__setitem__('requestBody','SCHEMA_CANARY_9e6b4c2d1a70')),
+          ('consumption-authorization',lambda value: value.__setitem__('authorization','SCHEMA_CANARY_9e6b4c2d1a70'))):
+            with self.subTest(no_partial_safe_output=label),tempfile.TemporaryDirectory() as td:
+                root=Path(td); public=root/'public'; safe=root/'safe'; binding,_=self.full_public_fixture(public)
+                names=('sandbox.json',) if label.startswith('sandbox') else ('consumption.json','consumption-independent.json')
+                for name in names:
+                    value=json.loads((public/name).read_bytes()); mutate(value); self.write_json(public/name,value)
+                with mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')),self.assertRaises((ValueError,TypeError)):
+                    self.reader.project_safe(HERE.parents[2],public,'a'*40,'41560358243','1',safe)
+                self.assertFalse(safe.exists())
+
+    def test_safe_evidence_rejects_file_identity_and_semantic_mutants(self):
+        marker='SCHEMA_CANARY_9e6b4c2d1a70'
+        def descend(value,path):
+            for item in path: value=value[item]
+            return value
+        def inject_json(name,path=()):
+            def mutate(root):
+                value=json.loads((root/name).read_bytes()); descend(value,path)['authorization']=marker; self.write_json(root/name,value)
+            return mutate
+        def inject_both(names,path=()):
+            def mutate(root):
+                for name in names:
+                    value=json.loads((root/name).read_bytes()); descend(value,path)['authorization']=marker; self.write_json(root/name,value)
+            return mutate
+        def replace_json(name,path,value):
+            def mutate(root):
+                body=json.loads((root/name).read_bytes()); parent=descend(body,path[:-1]); parent[path[-1]]=value; self.write_json(root/name,body)
+            return mutate
+        def replace_both(names,path,value):
+            def mutate(root):
+                for name in names:
+                    body=json.loads((root/name).read_bytes()); parent=descend(body,path[:-1]); parent[path[-1]]=value; self.write_json(root/name,body)
+            return mutate
+        def duplicate_key_json(name,key,value):
+            def mutate(root):
+                raw=(root/name).read_bytes(); need=b'{'; self.assertTrue(raw.startswith(need))
+                injected=self.reader.canonical(key)+b':'+self.reader.canonical(value)+b','
+                (root/name).write_bytes(need+injected+raw[1:])
+            return mutate
+        def inject_jsonl(name,row,path=()):
+            def mutate(root):
+                rows=(root/name).read_bytes().splitlines(); value=json.loads(rows[row]); descend(value,path)['authorization']=marker; rows[row]=self.reader.canonical(value)
+                (root/name).write_bytes(b'\n'.join(rows)+b'\n')
+            return mutate
+        def replace_jsonl(name,row,path,value):
+            def mutate(root):
+                rows=(root/name).read_bytes().splitlines(); body=json.loads(rows[row]); parent=descend(body,path[:-1]); parent[path[-1]]=value; rows[row]=self.reader.canonical(body)
+                (root/name).write_bytes(b'\n'.join(rows)+b'\n')
+            return mutate
+        def inject_http(case,path=()):
+            def mutate(root):
+                report=json.loads((root/'continuous-recovery-report.json').read_bytes())
+                index=[x[0] for x in self.reader.HTTP_CASES].index(case); row=report['http'][index]
+                name=f'http-{index+1:03d}.response.json'; body=json.loads((root/name).read_bytes()); descend(body,path)['authorization']=marker
+                raw=self.reader.canonical(body); (root/name).write_bytes(raw); row['responseBodySHA256']=self.reader.sha(raw); row['responseBodyB64']=base64.b64encode(raw).decode()
+                self.write_json(root/'continuous-recovery-report.json',report)
+            return mutate
+        def mutate_extra(root): (root/'extra.json').write_bytes(b'{}\n')
+        def mutate_missing(root): (root/'http-031.response.json').unlink()
+        def mutate_version(root): (root/'go-version.txt').write_bytes(b'go version go1.24.0 linux/amd64\n')
+        def mutate_consumption(root): (root/'consumption-independent.json').write_bytes(b'{}\n')
+        def mutate_response(root): (root/'http-001.response.json').write_bytes(b'{}\n')
+        def mutate_commands(root): (root/'commands.jsonl').write_bytes((root/'commands.jsonl').read_bytes().splitlines(keepends=True)[0])
+        def mutate_events(root):
+            rows=(root/'process-events.jsonl').read_bytes().splitlines(); value=json.loads(rows[-1]); value['exitCode']=1; rows[-1]=self.reader.canonical(value)
+            (root/'process-events.jsonl').write_bytes(b'\n'.join(rows)+b'\n')
+        def mutate_host(root):
+            value=json.loads((root/'host-after.json').read_bytes()); value['networkNamespace']='net:[9]'; self.write_json(root/'host-after.json',value)
+        def mutate_execution(root):
+            value=json.loads((root/'execution.json').read_bytes()); value['goExit']=1; self.write_json(root/'execution.json',value)
+        def mutate_index(root):
+            value=json.loads((root/'http-originals-index.json').read_bytes()); value['sourceCommit']='9'*40; self.write_json(root/'http-originals-index.json',value)
+        def mutate_hardlink(root):
+            target=root/'http-031.response.json'; target.unlink(); os.link(root/'http-030.response.json',target)
+        closed_schema_cases=(
+          ('sandbox-top',inject_json('sandbox.json')),('sandbox-binding',inject_json('sandbox.json',('sourceBinding',))),
+          ('sandbox-kernel',inject_json('sandbox.json',('kernelCopy',))),
+          ('consumption-top',inject_both(('consumption.json','consumption-independent.json'))),
+          ('consumption-source',inject_both(('consumption.json','consumption-independent.json'),('source',))),
+          ('consumption-source-row',inject_both(('consumption.json','consumption-independent.json'),('source','sourceFiles',0))),
+          ('consumption-archive',inject_both(('consumption.json','consumption-independent.json'),('archive',))),
+          ('consumption-gzip',inject_both(('consumption.json','consumption-independent.json'),('gzip',))),
+          ('consumption-elf',inject_both(('consumption.json','consumption-independent.json'),('elf',))),
+          ('consumption-output',inject_both(('consumption.json','consumption-independent.json'),('output',))),
+          ('report-top',inject_json('continuous-recovery-report.json')),
+          ('report-initial',inject_json('continuous-recovery-report.json',('initial',))),
+          ('report-initial-head',inject_json('continuous-recovery-report.json',('initial','head'))),
+          ('report-proof',inject_json('continuous-recovery-report.json',('initial','head','proof'))),
+          ('report-http-row',inject_json('continuous-recovery-report.json',('http',0))),
+          ('report-head-item',inject_json('continuous-recovery-report.json',('heads',0))),
+          ('report-head-view',inject_json('continuous-recovery-report.json',('heads',0,'view'))),
+          ('report-operation-item',inject_json('continuous-recovery-report.json',('operations',0))),
+          ('report-deployment-view',inject_json('continuous-recovery-report.json',('operations',0,'view'))),
+          ('report-deployment-transport',inject_json('continuous-recovery-report.json',('operations',0,'view','transport'))),
+          ('report-transport-result',inject_json('continuous-recovery-report.json',('operations',0,'view','transport','result'))),
+          ('report-observation',inject_json('continuous-recovery-report.json',('operations',0,'view','observation'))),
+          ('report-recovery-item',inject_json('continuous-recovery-report.json',('recoveries',0))),
+          ('report-recovery-view',inject_json('continuous-recovery-report.json',('recoveries',0,'view'))),
+          ('report-calls',inject_json('continuous-recovery-report.json',('callsBefore',))),
+          ('report-fault',inject_json('continuous-recovery-report.json',('faultBeforeCleanup',))),
+          ('report-native-call',inject_json('continuous-recovery-report.json',('faultBeforeCleanup','nativeCalls',0))),
+          ('report-recovery-create',inject_json('continuous-recovery-report.json',('faultBeforeCleanup','recoveryCreates',0))),
+          ('report-fault-transport',inject_json('continuous-recovery-report.json',('faultBeforeCleanup','transport'))),
+          ('report-fault-step',inject_json('continuous-recovery-report.json',('faultBeforeCleanup','transport','steps',0))),
+          ('report-closed-port',inject_json('continuous-recovery-report.json',('closedPorts',0))),
+          ('index-top',inject_json('http-originals-index.json')),('index-binding',inject_json('http-originals-index.json',('sourceBinding',))),
+          ('index-entry',inject_json('http-originals-index.json',('entries',0))),('execution-top',inject_json('execution.json')),
+          ('execution-binding',inject_json('execution.json',('sourceBinding',))),
+          ('command-row',inject_jsonl('commands.jsonl',0)),('command-binding',inject_jsonl('commands.jsonl',0,('sourceBinding',))),
+          ('command-namespace',inject_jsonl('commands.jsonl',0,('namespace',))),('process-row',inject_jsonl('process-events.jsonl',0)),
+          ('host-top',inject_both(('host-before.json','host-after.json'))),
+          ('http-envelope',inject_http('INITIAL_HEAD')),('http-head-result',inject_http('INITIAL_HEAD',('result',))),
+          ('http-candidates-result',inject_http('FIRST_CANDIDATES',('result',))),
+          ('http-candidate-row',inject_http('FIRST_CANDIDATES',('result','candidates',0))),
+          ('http-deployment-result',inject_http('FIRST_UNKNOWN_INSPECT',('result',))),
+          ('http-deployment-transport',inject_http('FIRST_UNKNOWN_INSPECT',('result','transport'))),
+          ('http-deployment-transport-result',inject_http('FIRST_UNKNOWN_INSPECT',('result','transport','result'))),
+          ('http-deployment-observation',inject_http('FIRST_UNKNOWN_INSPECT',('result','observation'))),
+          ('http-recovery-result',inject_http('FIRST_RECOVERY_INSPECT_COMPLETED',('result',))),
+          ('report-operation-id-alias',replace_json('continuous-recovery-report.json',('operations',0,'view','operationId'),'SCHEMA_CANARY_9e6b4c2d1a70')),
+          ('report-recovery-id-alias',replace_json('continuous-recovery-report.json',('recoveries',0,'view','recoveryId'),'SCHEMA_CANARY_9e6b4c2d1a70')),
+          ('report-observation-alias',replace_json('continuous-recovery-report.json',('operations',0,'view','observation','conclusion'),'SCHEMA_CANARY_9e6b4c2d1a70')),
+          ('sandbox-schema',replace_json('sandbox.json',('schema',),'unknown')),
+          ('sandbox-bool-alias',replace_json('sandbox.json',('noNewPrivileges',),1)),
+          ('sandbox-missing-kernel-key',lambda root: (lambda value: (value['kernelCopy'].pop('mode'),self.write_json(root/'sandbox.json',value)))(json.loads((root/'sandbox.json').read_bytes()))),
+          ('consumption-schema',lambda root: [self.write_json(root/name,{**json.loads((root/name).read_bytes()),'schema':'unknown'}) for name in ('consumption.json','consumption-independent.json')]),
+          ('consumption-bool-alias',lambda root: [self.write_json(root/name,{**json.loads((root/name).read_bytes()),'runtimeExecuted':0}) for name in ('consumption.json','consumption-independent.json')]),
+          ('consumption-list-type',replace_both(('consumption.json','consumption-independent.json'),('source','sourceFiles'),{})),
+          ('consumption-duplicate-key',lambda root: [duplicate_key_json(name,'runtimeExecuted','SCHEMA_CANARY_9e6b4c2d1a70')(root) for name in ('consumption.json','consumption-independent.json')]),
+          ('host-duplicate-key',duplicate_key_json('host-before.json','networkNamespace','SCHEMA_CANARY_9e6b4c2d1a70')),
+          ('http-duplicate-key',lambda root: (lambda report,name,body,raw: ( (root/name).write_bytes(raw), report['http'][0].__setitem__('responseBodySHA256',self.reader.sha(raw)), report['http'][0].__setitem__('responseBodyB64',base64.b64encode(raw).decode()), self.write_json(root/'continuous-recovery-report.json',report) ))(
+              json.loads((root/'continuous-recovery-report.json').read_bytes()),'http-001.response.json',json.loads((root/'http-001.response.json').read_bytes()),b'{'+self.reader.canonical('boundary')+b':'+self.reader.canonical('SCHEMA_CANARY_9e6b4c2d1a70')+b','+(root/'http-001.response.json').read_bytes()[1:])),
+          ('report-deep-bool-alias',replace_json('continuous-recovery-report.json',('initial','head','proof','production'),0)),
+          ('execution-bool-alias',replace_json('execution.json',('production',),0)),
+          ('command-bool-int-alias',replace_jsonl('commands.jsonl',0,('exitCode',),False)),
+          ('process-bool-int-alias',replace_jsonl('process-events.jsonl',1,('pid',),True)))
+        for label,mutate in (('extra',mutate_extra),('missing',mutate_missing),('go-version',mutate_version),('consumption',mutate_consumption),
+          ('response',mutate_response),('commands',mutate_commands),('events',mutate_events),('host',mutate_host),('execution',mutate_execution),('index',mutate_index),
+          ('hardlink',mutate_hardlink),*closed_schema_cases):
+            with self.subTest(label=label),tempfile.TemporaryDirectory() as td:
+                root=Path(td)/'evidence'; binding,_=self.safe_evidence_fixture(root); mutate(root)
+                with mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')),self.assertRaises((ValueError,TypeError,FileNotFoundError)):
+                    self.reader.safe_verification(HERE.parents[2],root,'a'*40,'41560358243','1')
+
+    def test_safe_root_rejects_ten_identity_shape_and_digest_mutants(self):
+        cases=('extra-root','missing-verification','extra-field','bad-schema','bad-run','bad-attempt','wrong-commit','bad-digest','bad-count','raw-member',
+          'sandbox-recomputed-digest','consumption-recomputed-digests')
+        for label in cases:
+            with self.subTest(label=label),tempfile.TemporaryDirectory() as td:
+                base=Path(td); evidence=base/'evidence'; binding,_=self.safe_evidence_fixture(evidence)
+                with mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')):
+                    report=self.reader.safe_verification(HERE.parents[2],evidence,'a'*40,'41560358243','1')
+                self.write_json(base/'verification.json',report)
+                args=['a'*40,'41560358243','1']
+                if label=='extra-root': (base/'extra').write_bytes(b'x')
+                elif label=='missing-verification': (base/'verification.json').unlink()
+                elif label in ('extra-field','bad-schema','bad-digest','bad-count'):
+                    value=json.loads((base/'verification.json').read_bytes())
+                    if label=='extra-field': value['unknown']=True
+                    elif label=='bad-schema': value['schema']='wrong'
+                    elif label=='bad-digest': value['files'][0]['sha256']='0'*64
+                    else: value['httpResponses']=30
+                    self.write_json(base/'verification.json',value)
+                elif label=='bad-run': args[1]='01'
+                elif label=='bad-attempt': args[2]='0'
+                elif label=='wrong-commit': args[0]='9'*40
+                elif label=='raw-member': (evidence/'continuous.json').write_bytes(b'raw\n')
+                else:
+                    names=('sandbox.json',) if label.startswith('sandbox') else ('consumption.json','consumption-independent.json')
+                    for name in names:
+                        value=json.loads((evidence/name).read_bytes()); value['authorization']='SCHEMA_CANARY_9e6b4c2d1a70'; self.write_json(evidence/name,value)
+                    value=json.loads((base/'verification.json').read_bytes())
+                    for item in value['files']:
+                        if item['name'] in names:
+                            raw=(evidence/item['name']).read_bytes(); item['bytes']=len(raw); item['sha256']=self.reader.sha(raw)
+                    value['evidenceSetSHA256']=self.reader.set_digest('chengwang.mihomo-continuous-recovery-safe-evidence-set/v1',value['files'])
+                    self.write_json(base/'verification.json',value)
+                with mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')),self.assertRaises((ValueError,TypeError,FileNotFoundError)):
+                    self.reader.safe_root(HERE.parents[2],base,*args)
 
     def worker_outputs(self,report,forbidden):
         with tempfile.TemporaryDirectory() as td:

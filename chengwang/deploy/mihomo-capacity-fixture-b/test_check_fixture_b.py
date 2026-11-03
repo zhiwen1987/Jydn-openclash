@@ -187,9 +187,15 @@ class EventModels(unittest.TestCase):
 
 class EvidenceModels(unittest.TestCase):
     def test_toolchain_exact_and_mutations(self):
-        expected = {"CGO_ENABLED": "1", "GOARCH": "amd64", "GOENV": "off", "GOFLAGS": "-mod=vendor", "GOOS": "linux", "GOPROXY": "off", "GOSUMDB": "off", "GOTOOLCHAIN": "local", "GOVERSION": "go1.23.12", "GOWORK": "off"}
+        expected = {"CGO_ENABLED": "1", "GOARCH": "amd64", "GOENV": "", "GOFLAGS": "-mod=vendor", "GOOS": "linux", "GOPROXY": "off", "GOSUMDB": "off", "GOTOOLCHAIN": "local", "GOVERSION": "go1.23.12", "GOWORK": "off"}
         accepted = gate.toolchain_report(gate.canonical(expected), CONTRACT_SHA)
         self.assertTrue(accepted["accepted"])
+        self.assertEqual(accepted["goenv"], gate.GOENV_POLICY)
+        raw_policy_literal = dict(expected)
+        raw_policy_literal["GOENV"] = "off"
+        with self.assertRaises(gate.GateError) as rejected:
+            gate.toolchain_report(gate.canonical(raw_policy_literal), CONTRACT_SHA)
+        self.assertEqual(rejected.exception.code, "TOOLCHAIN_MISMATCH")
         for key, value in (("GOVERSION", "go1.23.11"), ("GOPROXY", "https://proxy.golang.org"), ("GOWORK", "/tmp/go.work"), ("CGO_ENABLED", "0")):
             changed = dict(expected)
             changed[key] = value

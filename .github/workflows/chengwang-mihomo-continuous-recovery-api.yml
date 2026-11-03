@@ -348,6 +348,27 @@ jobs:
             2> "$RUNNER_TEMP/mihomo-continuous-recovery-verification.stderr"
           git diff --exit-code
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Project and independently re-read the bounded safe artifact
+        run: |
+          set -euo pipefail
+          safe="$RUNNER_TEMP/mihomo-continuous-recovery-safe"
+          test ! -e "$safe"
+          test ! -s "$RUNNER_TEMP/mihomo-continuous-recovery-verification.stderr"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
+            --project-safe "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-continuous-recovery-public" \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$safe"
+          python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
+            --verify-safe "$GITHUB_WORKSPACE" "$safe" "$GITHUB_SHA" "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT" > "$RUNNER_TEMP/mihomo-continuous-recovery-safe-producer.json"
+          cmp "$safe/verification.json" "$RUNNER_TEMP/mihomo-continuous-recovery-safe-producer.json"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-continuous-recovery-api-safe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-recovery-safe/
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() }}
         with:
@@ -372,23 +393,23 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: mihomo-continuous-recovery-api-originals-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/mihomo-continuous-recovery-original
-      - name: Freshly recompute exact run-HEAD originals only
+          name: mihomo-continuous-recovery-api-safe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-recovery-safe-original
+      - name: Freshly recompute the exact run-HEAD safe artifact only
         run: |
           set -euo pipefail
           python3 -B chengwang/deploy/mihomo-lifecycle-lab/check_continuous_recovery_api.py \
-            "$GITHUB_WORKSPACE" \
-            "$RUNNER_TEMP/mihomo-continuous-recovery-original/mihomo-continuous-recovery-public" \
-            "$GITHUB_SHA" > "$RUNNER_TEMP/mihomo-continuous-recovery-fresh.txt"
-          cmp "$RUNNER_TEMP/mihomo-continuous-recovery-original/mihomo-continuous-recovery-verification.txt" \
-            "$RUNNER_TEMP/mihomo-continuous-recovery-fresh.txt"
+            --verify-safe "$GITHUB_WORKSPACE" "$RUNNER_TEMP/mihomo-continuous-recovery-safe-original" \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            > "$RUNNER_TEMP/mihomo-continuous-recovery-safe-fresh.json"
+          cmp "$RUNNER_TEMP/mihomo-continuous-recovery-safe-original/verification.json" \
+            "$RUNNER_TEMP/mihomo-continuous-recovery-safe-fresh.json"
           git diff --exit-code
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() }}
         with:
-          name: mihomo-continuous-recovery-api-fresh-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/mihomo-continuous-recovery-fresh.txt
+          name: mihomo-continuous-recovery-api-safe-fresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-recovery-safe-fresh.json
           if-no-files-found: error
           retention-days: 14

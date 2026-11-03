@@ -28,6 +28,7 @@ SETUP_PHASES = (
 )
 SETUP_STATUSES = ("ENTERED", "PASS", "FAIL")
 PRIVATE_UID = 10001
+GOENV_POLICY = "off"
 HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
 TEST_NAME = re.compile(r"Test[A-Za-z0-9_]+(?:/[A-Za-z0-9_.-]+)*")
@@ -412,7 +413,7 @@ def load_contract(path: Path, expected_sha: str) -> tuple[dict[str, object], byt
         "SOURCE_MISMATCH",
     )
     need(raw == canonical(value), "SOURCE_MISMATCH")
-    need(value["schema"] == "chengwang.capacity-fixture-b-oracle-contract/v2", "SOURCE_MISMATCH")
+    need(value["schema"] == "chengwang.capacity-fixture-b-oracle-contract/v3", "SOURCE_MISMATCH")
     need(value["scope"] == "isolated-fixture-b-synthetic-model-not-full-suite", "SOURCE_MISMATCH")
     need(value["moduleWorkingDirectory"] == "chengwang", "SOURCE_MISMATCH")
     base = exact_keys(value["authoringBase"], ("commit", "tree"), "SOURCE_MISMATCH")
@@ -445,8 +446,8 @@ def load_contract(path: Path, expected_sha: str) -> tuple[dict[str, object], byt
     need(source["path"] == "chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go", "SOURCE_MISMATCH")
     need(source["bytes"] == 31111 and source["gitBlobSHA1"] == "fb11ac12b551d8428d9a68f515a48d84031d270a", "SOURCE_MISMATCH")
     need(source["sha256"] == "fab19f1ca714105f5002d31e2e37ca4cdb0296c5133431951ac81a1576056bc4", "SOURCE_MISMATCH")
-    toolchain = exact_keys(value["toolchain"], ("cgoEnabled", "compiler", "goVersion", "goWork", "goarch", "goos", "offline", "packageParallelism", "shuffle", "timeoutSeconds", "vendor"), "SOURCE_MISMATCH")
-    need(toolchain == {"cgoEnabled": True, "compiler": "gc", "goVersion": "go1.23.12", "goarch": "amd64", "goos": "linux", "goWork": "off", "offline": True, "packageParallelism": 1, "shuffle": "off", "timeoutSeconds": 180, "vendor": True}, "SOURCE_MISMATCH")
+    toolchain = exact_keys(value["toolchain"], ("cgoEnabled", "compiler", "goEnvPolicy", "goVersion", "goWork", "goarch", "goos", "offline", "packageParallelism", "shuffle", "timeoutSeconds", "vendor"), "SOURCE_MISMATCH")
+    need(toolchain == {"cgoEnabled": True, "compiler": "gc", "goEnvPolicy": GOENV_POLICY, "goVersion": "go1.23.12", "goarch": "amd64", "goos": "linux", "goWork": "off", "offline": True, "packageParallelism": 1, "shuffle": "off", "timeoutSeconds": 180, "vendor": True}, "SOURCE_MISMATCH")
     return value, raw
 
 
@@ -510,7 +511,9 @@ def verify_source(raw: bytes, contract: dict[str, object], contract_sha: str) ->
 
 def toolchain_report(raw: bytes, contract_sha: str) -> dict[str, object]:
     value = exact_keys(decode_json(raw), ("CGO_ENABLED", "GOARCH", "GOENV", "GOFLAGS", "GOOS", "GOPROXY", "GOSUMDB", "GOTOOLCHAIN", "GOVERSION", "GOWORK"), "TOOLCHAIN_MISMATCH")
-    expected = {"CGO_ENABLED": "1", "GOARCH": "amd64", "GOENV": "off", "GOFLAGS": "-mod=vendor", "GOOS": "linux", "GOPROXY": "off", "GOSUMDB": "off", "GOTOOLCHAIN": "local", "GOVERSION": "go1.23.12", "GOWORK": "off"}
+    # Go 1.23.12 reports an empty GOENV config-file path when the pinned
+    # operating-system policy is GOENV=off. GOWORK keeps its literal "off".
+    expected = {"CGO_ENABLED": "1", "GOARCH": "amd64", "GOENV": "", "GOFLAGS": "-mod=vendor", "GOOS": "linux", "GOPROXY": "off", "GOSUMDB": "off", "GOTOOLCHAIN": "local", "GOVERSION": "go1.23.12", "GOWORK": "off"}
     need(value == expected, "TOOLCHAIN_MISMATCH")
     return {
         "accepted": True,
@@ -519,7 +522,9 @@ def toolchain_report(raw: bytes, contract_sha: str) -> dict[str, object]:
         "contractSHA256": contract_sha,
         "goVersion": "go1.23.12",
         "goarch": "amd64",
-        "goenv": "off",
+        # This is the contract-pinned persistence policy, not the raw GOENV
+        # config-file path observed above.
+        "goenv": GOENV_POLICY,
         "goflags": "-mod=vendor",
         "goos": "linux",
         "goproxy": "off",
@@ -533,7 +538,7 @@ def toolchain_report(raw: bytes, contract_sha: str) -> dict[str, object]:
 def verify_toolchain(raw: bytes, contract_sha: str) -> dict[str, object]:
     value = exact_keys(decode_json(raw), ("accepted", "cgoEnabled", "compiler", "contractSHA256", "goVersion", "goarch", "goenv", "goflags", "goos", "goproxy", "gosumdb", "gotoolchain", "gowork", "schema"), "TOOLCHAIN_MISMATCH")
     need(raw == canonical(value), "TOOLCHAIN_MISMATCH")
-    need(value == toolchain_report(canonical({"CGO_ENABLED": "1", "GOARCH": "amd64", "GOENV": "off", "GOFLAGS": "-mod=vendor", "GOOS": "linux", "GOPROXY": "off", "GOSUMDB": "off", "GOTOOLCHAIN": "local", "GOVERSION": "go1.23.12", "GOWORK": "off"}), contract_sha), "TOOLCHAIN_MISMATCH")
+    need(value == toolchain_report(canonical({"CGO_ENABLED": "1", "GOARCH": "amd64", "GOENV": "", "GOFLAGS": "-mod=vendor", "GOOS": "linux", "GOPROXY": "off", "GOSUMDB": "off", "GOTOOLCHAIN": "local", "GOVERSION": "go1.23.12", "GOWORK": "off"}), contract_sha), "TOOLCHAIN_MISMATCH")
     return value
 
 

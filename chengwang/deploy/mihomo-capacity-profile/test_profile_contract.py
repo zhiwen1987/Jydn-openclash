@@ -1,3 +1,7 @@
+import base64
+import copy
+import gzip
+import hashlib
 import importlib.util
 import json
 import os
@@ -82,6 +86,82 @@ def load(name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module, path.read_text(encoding='utf-8')
+
+
+def varint(value):
+    result=bytearray()
+    while value>=0x80:result.append((value&0x7f)|0x80);value>>=7
+    result.append(value);return bytes(result)
+
+
+def protobuf_field(number,wire,value):
+    key=varint((number<<3)|wire)
+    return key+varint(value)if wire==0 else key+varint(len(value))+value
+
+
+def synthetic_profile(reader):
+    name=(reader.PACKAGE+'.'+reader.TOP).encode();function=protobuf_field(2,0,0)
+    return gzip.compress(b''.join((protobuf_field(6,2,name),protobuf_field(5,2,function),
+        protobuf_field(2,2,b''),protobuf_field(10,0,1_000_000_000))),mtime=0)
+
+
+def single_rows(reader,outcomes=None,parent=None,package=None,limit=None):
+    outcomes=list(outcomes or ('pass',)*len(reader.SINGLE_CHILDREN));limit=len(outcomes)if limit is None else limit
+    parent=parent or ('pass'if all(value=='pass'for value in outcomes[:limit])and limit==len(reader.SINGLE_CHILDREN)else'fail')
+    package=package or parent;time='2026-11-03T00:00:00Z'
+    rows=[{'Time':time,'Action':'start','Package':reader.PACKAGE},
+        {'Time':time,'Action':'run','Package':reader.PACKAGE,'Test':reader.TOP}]
+    for name,outcome in zip(reader.SINGLE_CHILDREN[:limit],outcomes[:limit]):
+        rows.extend(({'Time':time,'Action':'run','Package':reader.PACKAGE,'Test':name},
+            {'Time':time,'Action':outcome,'Package':reader.PACKAGE,'Test':name,'Elapsed':0.01}))
+    rows.extend(({'Time':time,'Action':parent,'Package':reader.PACKAGE,'Test':reader.TOP,'Elapsed':0.05},
+        {'Time':time,'Action':package,'Package':reader.PACKAGE,'Elapsed':0.05}))
+    return rows
+
+
+def event_wire(reader,rows):return b''.join(reader.encoded(row)for row in rows)
+
+
+def synthetic_commands(reader,go_root,go_exit):
+    go=str(go_root/'bin/go');commands=(
+        ('VERSION',[go,'version'],0),
+        ('FORMAT',[str(go_root/'bin/gofmt'),'-d',*reader.CAPACITY_FMT],0),
+        ('GO_TEST',[go,*reader.GO_ARGS],go_exit),
+        ('PPROF_TOP',[go,'tool','pprof','-symbolize=local','-top',reader.PRIVATE+'/cpu.pprof'],0),
+        ('PPROF_CUM',[go,'tool','pprof','-symbolize=local','-top','-cum',reader.PRIVATE+'/cpu.pprof'],0))
+    rows=[];seq=0;observed=10
+    for kind,argv,code in commands:
+        pid=4000+len(rows)
+        for event,event_pid,event_code in(('START_INTENT',None,None),('STARTED',pid,None),('WAIT_RETURNED',pid,code)):
+            seq+=1;rows.append({'seq':seq,'event':event,'class':kind,'argv':argv,'pid':event_pid,
+                'exitCode':event_code,'monotonicNs':observed});observed+=10
+    return b''.join(reader.encoded(row)for row in rows)
+
+
+def synthetic_single_evidence(reader,rows,go_exit=0):
+    commit='3'*40;go_root=Path('C:/fixed-go-root');profile=synthetic_profile(reader);profile_sha=reader.sha(profile)
+    host={'networkNamespace':'net:[1]','mountNamespace':'mnt:[1]','pidNamespace':'pid:[1]','resolvSHA256':'a'*64}
+    sandbox={'schema':'chengwang.capacity-profile-sandbox/v1','uid':10001,'gid':10001,'effectiveCaps':'0000000000000000',
+        'noNewPrivileges':True,'interfaces':['lo'],'defaultRoutes':{'ipv4':[],'ipv6':[]},'environmentKeys':reader.ENV,
+        'sourceAliasReadOnly':True,'goRootReadOnly':True,'goRoot':str(go_root),'networkNamespace':'net:[2]',
+        'mountNamespace':'mnt:[2]','pidNamespace':'pid:[2]','production':False}
+    state={'schema':'chengwang.capacity-cpu-profile-state/v1','sourceCommit':commit,'stopReason':'M_RUN_RETURNED',
+        'startedAt':'2026-11-03T00:00:00Z','stoppedAt':'2026-11-03T00:00:01Z','durationNanoseconds':1_000_000_000,
+        'profileBytes':len(profile),'profileSHA256':profile_sha,'writerFailed':False,'limitReached':False,
+        'syncSucceeded':True,'closeSucceeded':True,'complete':True,'timerSeconds':60,'testTimeoutSeconds':180}
+    state_raw=reader.encoded(state)
+    wrapped={'schema':'chengwang.capacity-cpu-profile-bytes/v1','sourceCommit':commit,'bytes':len(profile),
+        'sha256':profile_sha,'dataBase64':base64.b64encode(profile).decode(),
+        'profileStateSHA256':hashlib.sha256(state_raw).hexdigest()}
+    execution={'schema':'chengwang.capacity-profile-execution/v1','sourceCommit':commit,'versionExit':0,'formatExit':0,
+        'goExit':go_exit,'topExit':0,'cumExit':0,'profileCaptureComplete':True,'production':False}
+    raw={'host-before.json':reader.encoded(host),'host-after.json':reader.encoded(host),'source-before.json':b'{}\n',
+        'source-after.json':b'{}\n','sandbox.json':reader.encoded(sandbox),'go-version.txt':b'go version go1.23.12 linux/amd64\n',
+        'gofmt.patch':b'','gofmt.stderr':b'','capacity.json':event_wire(reader,rows),'capacity.stderr':b'',
+        'commands.jsonl':synthetic_commands(reader,go_root,go_exit),'execution.json':reader.encoded(execution),
+        'profile-state.json':state_raw,'cpu-profile.json':reader.encoded(wrapped),'pprof-top.txt':b'flat cum\n',
+        'pprof-top.stderr':b'','pprof-cum.txt':b'flat cum\n','pprof-cum.stderr':b''}
+    assert set(raw)==set(reader.PUBLIC);return raw,commit
 
 
 class CapacityProfileSourceContractModels(unittest.TestCase):
@@ -261,6 +341,7 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
               'currentFixtureGoExit':1,'wholeCIPass':False,'production':False}
         self.assertIs(self.reader.validate_report_case_identity(single,'SINGLE_CASE'),single)
         self.assertIs(self.reader.validate_report_case_identity(full,'FULL_CONTRACTS'),full)
+        self.assertEqual(self.reader.FULL_REPORT_SCHEMA,'chengwang.capacity-profile-verification/v2')
         for name,template,key,value,mode in (
                 ('single_schema',single,'schema','chengwang.capacity-profile-verification/v1','SINGLE_CASE'),
                 ('single_scope',single,'scope','CPU_DIAGNOSIS_OF_ORIGINAL_STRUCTURAL_CAPACITY_TEST_NOT_RECOVERY_OR_PRODUCTION','SINGLE_CASE'),
@@ -271,6 +352,146 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
                 with self.assertRaises(ValueError):self.reader.validate_report_case_identity(changed,mode)
         legacy=dict(single);legacy['originalCasePassed']=False
         with self.assertRaises(ValueError):self.reader.validate_report_case_identity(legacy,'SINGLE_CASE')
+
+    def test_single_current_fixture_requires_exact_five_child_fsm_and_keeps_failures_false(self):
+        expected=tuple(self.reader.TOP+'/'+name for name in (
+            'fixture-equivalence-1','fixture-equivalence-2','fixture-equivalence-8',
+            'fixture-tamper-negatives','fixture-capacity-256'))
+        self.assertEqual(self.reader.SINGLE_CHILDREN,expected)
+        self.assertEqual(self.reader.SINGLE_REPORT_SCHEMA,'chengwang.capacity-profile-verification/v4')
+        passing=single_rows(self.reader)
+        raw,commit=synthetic_single_evidence(self.reader,passing)
+        report=self.reader.verify_raw(copy.deepcopy(raw),commit)
+        self.assertTrue(report['currentFixturePassed'])
+        self.assertEqual((report['testRun'],report['testPass'],report['testFailureEvents']),(6,6,0))
+        self.assertEqual(report['requiredCounts'],{'passed':6,'failed':0,'skipped':0,'unfinished':0,'notStarted':0})
+        self.assertEqual((report['expectedDirectSubtestCount'],report['observedDirectSubtestRun'],report['notStartedDirectSubtestCount']),(5,5,0))
+
+        parent_only=[passing[0],passing[1],passing[-2],passing[-1]]
+        parent_raw,_=synthetic_single_evidence(self.reader,parent_only)
+        with self.assertRaises(ValueError):self.reader.verify_raw(parent_raw,commit)
+
+        continued_failure=single_rows(self.reader,('pass','fail','pass','pass','pass'),parent='fail',package='fail')
+        failed_raw,_=synthetic_single_evidence(self.reader,continued_failure,1)
+        failed_report=self.reader.verify_raw(failed_raw,commit)
+        self.assertFalse(failed_report['currentFixturePassed'])
+        self.assertEqual((failed_report['testRun'],failed_report['testPass'],failed_report['testFailureEvents']),(6,4,2))
+        self.assertEqual(failed_report['requiredCounts'],{'passed':4,'failed':2,'skipped':0,'unfinished':0,'notStarted':0})
+
+        prefix_failure=single_rows(self.reader,('pass','fail','pass'),parent='fail',package='fail',limit=3)
+        prefix_raw,_=synthetic_single_evidence(self.reader,prefix_failure,1)
+        prefix_report=self.reader.verify_raw(prefix_raw,commit)
+        self.assertFalse(prefix_report['currentFixturePassed'])
+        self.assertEqual(prefix_report['requiredCounts'],{'passed':2,'failed':2,'skipped':0,'unfinished':0,'notStarted':2})
+
+        def changed(rows,index,key,value):
+            result=copy.deepcopy(rows);result[index][key]=value;return result
+        mutations={
+            'missing_last_child_exit_zero':single_rows(self.reader,limit=4,parent='pass',package='pass'),
+            'unknown_child':changed(passing,2,'Test',self.reader.TOP+'/unknown'),
+            'nested_grandchild':changed(passing,2,'Test',expected[0]+'/nested'),
+            'duplicate_run':passing[:3]+[copy.deepcopy(passing[2])]+passing[3:],
+            'duplicate_pass':passing[:4]+[copy.deepcopy(passing[3])]+passing[4:],
+            'pass_before_run':passing[:2]+[copy.deepcopy(passing[3]),copy.deepcopy(passing[2])]+passing[4:],
+            'wrong_child_order':changed(changed(passing,2,'Test',expected[1]),3,'Test',expected[1]),
+            'skip_child':changed(passing,3,'Action','skip'),
+            'parent_terminal_early':passing[:-4]+[copy.deepcopy(passing[-2])]+passing[-4:-2]+[copy.deepcopy(passing[-1])],
+            'package_terminal_early':passing[:-2]+[copy.deepcopy(passing[-1]),copy.deepcopy(passing[-2])],
+            'parent_package_mismatch':changed(passing,-1,'Action','fail'),
+            'missing_interior_then_later_child':passing[:2]+passing[4:],
+        }
+        for name,rows in mutations.items():
+            with self.subTest(rejected_sequence=name):
+                with self.assertRaises(ValueError):self.reader.single_events(event_wire(self.reader,rows),0)
+        child_fail_zero=single_rows(self.reader,('pass','fail','pass','pass','pass'),parent='fail',package='fail')
+        all_pass_nonzero=single_rows(self.reader)
+        for name,rows,exit_code in(('child_fail_with_zero_exit',child_fail_zero,0),('all_pass_with_nonzero_exit',all_pass_nonzero,1)):
+            with self.subTest(rejected_exit_binding=name):
+                with self.assertRaises(ValueError):self.reader.single_events(event_wire(self.reader,rows),exit_code)
+
+    def test_safe_rejection_summary_is_closed_bound_and_cannot_green(self):
+        commit='3'*40;tree='4'*40;progress=self.reader.new_safe_progress('SINGLE_CASE')
+        for phase in self.reader.SAFE_PHASES['SINGLE_CASE']:
+            self.reader.safe_phase_begin(progress,phase)
+            if phase=='EXECUTION_CONTRACT':
+                progress['exitCodes']={key:0 for key in self.reader.SAFE_EXIT_KEYS};progress['profileCaptureComplete']=True
+            if phase=='GO_EVENT_SEMANTICS':break
+            self.reader.safe_phase_pass(progress,phase)
+        value=self.reader.safe_rejection_value(progress,commit,tree,41560358147,1,'STRICT_PREDICATE_REJECTED')
+        raw=self.reader.encoded(value)
+        self.assertEqual(self.reader.validate_safe_rejection(raw,commit,tree,41560358147,1,'SINGLE_CASE'),value)
+        self.assertIsNone(value['requiredCounts']['passed'])
+        self.assertFalse(value['strictVerificationAccepted']or value['wholeCIPass']or value['production'])
+        for secret in ('capacity.json','stderr','pprof','/tmp/','Traceback','https://','argv','Output'):
+            with self.subTest(secret=secret):self.assertNotIn(secret,raw.decode())
+
+        mutations={
+            'schema':('schema','chengwang.capacity-profile-safe-rejection/v0'),
+            'source':('sourceCommit','5'*40),
+            'tree':('sourceTree','6'*40),
+            'run':('runId',1),
+            'attempt':('runAttempt',2),
+            'lane':('lane','FULL_CONTRACTS'),
+            'phase':('firstFailedPhase','/tmp/private'),
+            'class':('failureClass','raw stderr'),
+            'source_verified':('sourceGitVerified',False),
+            'strict_green':('strictVerificationAccepted',True),
+            'whole_ci_green':('wholeCIPass',True),
+            'production':('production',True),
+        }
+        for name,(key,replacement) in mutations.items():
+            with self.subTest(rejected_binding=name):
+                changed=copy.deepcopy(value);changed[key]=replacement
+                with self.assertRaises(ValueError):self.reader.validate_safe_rejection(self.reader.encoded(changed),commit,tree,41560358147,1,'SINGLE_CASE')
+        extra=copy.deepcopy(value);extra['message']='secret'
+        bad_prefix=copy.deepcopy(value);bad_prefix['passedPhases']=bad_prefix['passedPhases'][:-1]
+        missing_exit=copy.deepcopy(value);missing_exit['exitCodes']['go']=None
+        invented_count=copy.deepcopy(value);invented_count['requiredCounts']['passed']=0
+        for name,changed in(('unknown_field',extra),('non_prefix_phases',bad_prefix),('missing_validated_exit',missing_exit),('invented_unvalidated_count',invented_count)):
+            with self.subTest(rejected_shape=name):
+                with self.assertRaises(ValueError):self.reader.validate_safe_rejection(self.reader.encoded(changed),commit,tree,41560358147,1,'SINGLE_CASE')
+        with self.assertRaises(ValueError):self.reader.validate_safe_rejection(raw+b' '*65536,commit,tree,41560358147,1,'SINGLE_CASE')
+
+        full_progress=self.reader.new_safe_progress('FULL_CONTRACTS')
+        for phase in self.reader.SAFE_PHASES['FULL_CONTRACTS']:
+            self.reader.safe_phase_begin(full_progress,phase)
+            if phase=='EXECUTION_CONTRACT':
+                full_progress['exitCodes']={key:0 for key in self.reader.SAFE_EXIT_KEYS};full_progress['profileCaptureComplete']=True
+            if phase=='TIMELINE':full_progress['timelineValidated']=True
+            if phase=='GO_EVENT_SEMANTICS':full_progress['requiredCounts']={'passed':689,'failed':0,'skipped':0,'unfinished':0,'notStarted':0}
+            if phase=='RESOURCE_WINDOW':break
+            self.reader.safe_phase_pass(full_progress,phase)
+        full_value=self.reader.safe_rejection_value(full_progress,commit,tree,41560358147,1,'STRICT_PREDICATE_REJECTED')
+        self.assertTrue(full_value['timelineValidated'])
+        self.assertEqual(sum(full_value['requiredCounts'].values()),689)
+        self.assertEqual(self.reader.validate_safe_rejection(self.reader.encoded(full_value),commit,tree,41560358147,1,'FULL_CONTRACTS'),full_value)
+
+        completed=self.reader.new_safe_progress('SINGLE_CASE')
+        for phase in self.reader.SAFE_PHASES['SINGLE_CASE']:
+            self.reader.safe_phase_begin(completed,phase)
+            if phase=='EXECUTION_CONTRACT':
+                completed['exitCodes']={key:0 for key in self.reader.SAFE_EXIT_KEYS};completed['profileCaptureComplete']=True
+            if phase=='GO_EVENT_SEMANTICS':completed['requiredCounts']={'passed':6,'failed':0,'skipped':0,'unfinished':0,'notStarted':0}
+            self.reader.safe_phase_pass(completed,phase)
+        with self.assertRaises(ValueError):self.reader.safe_rejection_value(completed,commit,tree,1,1,'STRICT_PREDICATE_REJECTED')
+
+        with tempfile.TemporaryDirectory()as directory:
+            path=Path(directory)/self.reader.SAFE_REJECTION_BASENAMES['SINGLE_CASE']
+            with mock.patch.object(self.reader.os,'O_NOFOLLOW',0,create=True):
+                self.reader.write(path,raw)
+                with self.assertRaises(OSError):self.reader.write(path,raw)
+            linked=path.with_name('linked.json');os.link(path,linked)
+            with self.assertRaises(ValueError):self.reader.read(path,65536)
+        source=Path(self.reader.__file__).read_text(encoding='utf8')
+        self.assertIn('os.O_EXCL|os.O_NOFOLLOW',source)
+        self.assertNotIn('validate_safe_rejection(raw,commit,tree,run_id,run_attempt,lane):\n    return safe_rejection_value',source)
+        workflow=Path(self.reader.__file__).resolve().parents[3]/'.github/workflows/chengwang-mihomo-capacity-profile.yml'
+        workflow_text=workflow.read_text(encoding='utf8')
+        self.assertIn('safe_rejection_ready=true',workflow_text)
+        self.assertEqual(workflow_text.count('exit "$verify_code"'),4)
+        self.assertEqual(workflow_text.count('|| safe_check_code=$?'),4)
+        self.assertEqual(workflow_text.count('if test "$safe_check_code" -eq 0; then'),2)
+        self.assertNotIn('continue-on-error:',workflow_text)
 
     def test_full_source_contract_binds_the_exact_normal_race_timeline_wrapper(self):
         repo=Path(__file__).resolve().parents[3]

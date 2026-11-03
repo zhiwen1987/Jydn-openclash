@@ -246,10 +246,25 @@ CASE_IDENTITY={
     'historicalBaselineMeasured':False,
     'performanceComparisonAuthorized':False,
 }
-SINGLE_REPORT_SCHEMA='chengwang.capacity-profile-verification/v3'
+SINGLE_CHILD_SUFFIXES=('fixture-equivalence-1','fixture-equivalence-2','fixture-equivalence-8',
+    'fixture-tamper-negatives','fixture-capacity-256')
+SINGLE_CHILDREN=tuple(TOP+'/'+name for name in SINGLE_CHILD_SUFFIXES)
+SINGLE_REPORT_SCHEMA='chengwang.capacity-profile-verification/v4'
 SINGLE_REPORT_SCOPE='CPU_DIAGNOSIS_OF_CURRENT_VERSIONED_CAPACITY_FIXTURE_NOT_HISTORICAL_BASELINE_NOT_RECOVERY_OR_PRODUCTION'
 FULL_REPORT_SCHEMA='chengwang.capacity-profile-verification/v2'
 FULL_REPORT_SCOPE='FULL_SIX_PACKAGE_RACE_DIAGNOSIS_WITH_MIHOMODEPLOY_ONLY_CPU_WINDOW_NOT_PRODUCT_ACCEPTANCE'
+SAFE_REJECTION_SCHEMA='chengwang.capacity-profile-safe-rejection/v1'
+SAFE_REJECTION_BASENAMES={'SINGLE_CASE':'capacity-single-safe-rejection.json','FULL_CONTRACTS':'capacity-full-safe-rejection.json'}
+SAFE_PHASES={
+    'SINGLE_CASE':('SOURCE_BINDING','EVIDENCE_MEMBER_SET','EXECUTION_CONTRACT','HOST_SANDBOX','PROFILE_STATE',
+        'PROFILE_SHAPE','COMMAND_JOURNAL','GO_EVENT_SEMANTICS','REPORT_CONSTRUCTION','POST_READBACK','REPORT_PUBLICATION'),
+    'FULL_CONTRACTS':('SOURCE_BINDING','EVIDENCE_MEMBER_SET','EXECUTION_CONTRACT','HOST_SANDBOX','PROFILE_STATE',
+        'PROFILE_SHAPE','COMMAND_JOURNAL','SOURCE_CONTRACT','TIMELINE','GO_EVENT_SEMANTICS','RESOURCE_WINDOW',
+        'REPORT_CONSTRUCTION','POST_READBACK','REPORT_PUBLICATION'),
+}
+SAFE_FAILURE_CLASSES=('STRICT_PREDICATE_REJECTED','CHECKER_INTERNAL_REJECTED')
+SAFE_EXIT_KEYS=('version','format','go','top','cum')
+SAFE_COUNT_KEYS=('passed','failed','skipped','unfinished','notStarted')
 
 def need(v):
     if not v:raise ValueError('capacity profile evidence rejected')
@@ -263,6 +278,9 @@ def decode(raw):
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _:need(False))
 def exact(value,keys):return type(value) is dict and set(value)==set(keys)
 def integer(n,low=0,high=(1<<63)-1):return type(n) is int and low<=n<=high
+def bounded_positive(value):
+    need(type(value)is str and re.fullmatch('[1-9][0-9]{0,18}',value)is not None)
+    result=int(value);need(result<(1<<63));return result
 def case_identity():return dict(CASE_IDENTITY)
 def validate_case_identity(value):
     need(type(value)is dict and value==CASE_IDENTITY)
@@ -287,6 +305,56 @@ def validate_report_case_identity(report,diagnostic_mode):
         need('originalCasePassed'not in report and 'originalGoExit'not in report)
         need(type(report.get('currentFixturePassed'))is bool and integer(report.get('currentFixtureGoExit'),-128,255))
     return report
+def new_safe_progress(diagnostic_mode):
+    need(diagnostic_mode in SAFE_PHASES)
+    return {'lane':diagnostic_mode,'passedPhases':[],'currentPhase':None,
+        'exitCodes':{key:None for key in SAFE_EXIT_KEYS},'profileCaptureComplete':None,
+        'requiredCounts':{key:None for key in SAFE_COUNT_KEYS},'timelineValidated':None}
+def safe_phase_begin(progress,name):
+    if progress is None:return
+    need(type(progress)is dict and progress['currentPhase']is None)
+    phases=SAFE_PHASES[progress['lane']];index=len(progress['passedPhases'])
+    need(index<len(phases)and phases[index]==name);progress['currentPhase']=name
+def safe_phase_pass(progress,name):
+    if progress is None:return
+    need(progress['currentPhase']==name);progress['passedPhases'].append(name);progress['currentPhase']=None
+def safe_rejection_value(progress,commit,tree,run_id,run_attempt,failure_class):
+    need(type(progress)is dict and progress['currentPhase']in SAFE_PHASES[progress['lane']])
+    need(failure_class in SAFE_FAILURE_CLASSES and re.fullmatch('[a-f0-9]{40}',commit)and re.fullmatch('[a-f0-9]{40}',tree))
+    value={'schema':SAFE_REJECTION_SCHEMA,'sourceCommit':commit,'sourceTree':tree,
+        'runId':run_id,'runAttempt':run_attempt,'lane':progress['lane'],
+        'passedPhases':list(progress['passedPhases']),'firstFailedPhase':progress['currentPhase'],
+        'failureClass':failure_class,'sourceGitVerified':True,'strictVerificationAccepted':False,
+        'exitCodes':dict(progress['exitCodes']),'profileCaptureComplete':progress['profileCaptureComplete'],
+        'requiredCounts':dict(progress['requiredCounts']),'timelineValidated':progress['timelineValidated'],
+        'wholeCIPass':False,'production':False}
+    validate_safe_rejection(encoded(value),commit,tree,run_id,run_attempt,progress['lane'])
+    return value
+def validate_safe_rejection(raw,commit,tree,run_id,run_attempt,lane):
+    need(type(raw)is bytes and 0<len(raw)<=65536 and raw.endswith(b'\n')and b'\r'not in raw)
+    value=decode(raw);keys=('schema','sourceCommit','sourceTree','runId','runAttempt','lane','passedPhases',
+        'firstFailedPhase','failureClass','sourceGitVerified','strictVerificationAccepted','exitCodes',
+        'profileCaptureComplete','requiredCounts','timelineValidated','wholeCIPass','production')
+    need(exact(value,keys)and value['schema']==SAFE_REJECTION_SCHEMA)
+    need(value['sourceCommit']==commit and value['sourceTree']==tree and value['runId']==run_id and
+        value['runAttempt']==run_attempt and value['lane']==lane and lane in SAFE_PHASES)
+    phases=SAFE_PHASES[lane];failed=value['firstFailedPhase'];need(failed in phases)
+    index=phases.index(failed);need(value['passedPhases']==list(phases[:index]))
+    need(value['failureClass']in SAFE_FAILURE_CLASSES and value['sourceGitVerified']is True and
+        value['strictVerificationAccepted']is value['wholeCIPass']is value['production']is False)
+    exits=value['exitCodes'];need(exact(exits,SAFE_EXIT_KEYS))
+    need(all(item is None or integer(item,-128,255)for item in exits.values()))
+    execution_passed='EXECUTION_CONTRACT'in value['passedPhases']
+    need((all(item is not None for item in exits.values())and type(value['profileCaptureComplete'])is bool)if execution_passed else
+        (all(item is None for item in exits.values())and value['profileCaptureComplete']is None))
+    counts=value['requiredCounts'];need(exact(counts,SAFE_COUNT_KEYS))
+    need(all(item is None or integer(item,0,4096)for item in counts.values()))
+    semantic_passed='GO_EVENT_SEMANTICS'in value['passedPhases']
+    need((all(item is not None for item in counts.values())and sum(counts.values())==(689 if lane=='FULL_CONTRACTS'else 1+len(SINGLE_CHILDREN)))if semantic_passed else
+        all(item is None for item in counts.values()))
+    timeline=value['timelineValidated']
+    need((timeline is True)if lane=='FULL_CONTRACTS'and'TIMELINE'in value['passedPhases']else timeline is None)
+    return value
 def read(path,limit):
     need(path.is_absolute() and '..' not in path.parts)
     for part in (*reversed(path.parents),path):need(not part.is_symlink())
@@ -592,10 +660,65 @@ def verify_resource(raw):
             need(reason==('NONE'if all(n is not None for n in data.values())else'PARTIAL_FIELDS'))
     return v
 
-def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
+def single_events(raw,go_exit):
+    events=[decode(line)for line in raw.splitlines()]
+    need(events and integer(go_exit,-128,255))
+    need(all(type(v)is dict and set(v)<={'Time','Action','Package','Test','Elapsed','Output'}and
+        v.get('Package')==PACKAGE and v.get('Action')in('start','run','pass','fail','output')for v in events))
+    begun=False;ended=False;parent=None;active=None;next_child=0;children={};package_terminal=None;text=[]
+    for row in events:
+        need(not ended and type(row.get('Time'))is str and row['Time'].endswith('Z'))
+        datetime.datetime.fromisoformat(row['Time'].replace('Z','+00:00'))
+        if 'Elapsed'in row:need(type(row['Elapsed'])in(int,float)and math.isfinite(row['Elapsed'])and row['Elapsed']>=0)
+        action=row['Action'];name=row.get('Test')
+        if action=='start':need(not begun and name is None);begun=True;continue
+        need(begun)
+        if action=='output':
+            need(type(row.get('Output'))is str);text.append(row['Output'])
+            if name is None:continue
+            if name==TOP:need(parent=='run');continue
+            need(name in SINGLE_CHILDREN and active==name and children.get(name)=='run');continue
+        need(action!='skip')
+        if name is None:
+            need(action in('pass','fail')and active is None and parent in('pass','fail')and action==parent)
+            package_terminal=action;ended=True;continue
+        if name==TOP:
+            if action=='run':need(parent is None and active is None);parent='run';continue
+            need(action in('pass','fail')and parent=='run'and active is None)
+            if action=='pass':
+                need(next_child==len(SINGLE_CHILDREN)and all(children.get(child)=='pass'for child in SINGLE_CHILDREN))
+            parent=action;continue
+        need(name in SINGLE_CHILDREN and parent=='run')
+        index=SINGLE_CHILDREN.index(name)
+        if action=='run':
+            need(active is None and index==next_child and name not in children)
+            children[name]='run';active=name;continue
+        need(action in('pass','fail')and active==name and children.get(name)=='run')
+        children[name]=action;active=None;next_child+=1
+    need(ended and active is None and parent in('pass','fail')and package_terminal==parent)
+    passed=sum(value=='pass'for value in children.values())+(parent=='pass')
+    failed=sum(value=='fail'for value in children.values())+(parent=='fail')
+    if go_exit==0:
+        need(parent==package_terminal=='pass'and next_child==len(SINGLE_CHILDREN)and failed==0 and passed==1+len(SINGLE_CHILDREN))
+        case_pass=True
+    else:
+        need(parent==package_terminal=='fail'and failed>=1 and next_child<=len(SINGLE_CHILDREN))
+        case_pass=False
+    counts={'passed':passed,'failed':failed,'skipped':0,'unfinished':0,
+        'notStarted':len(SINGLE_CHILDREN)-next_child}
+    need(sum(counts.values())==1+len(SINGLE_CHILDREN))
+    return {'currentFixturePassed':case_pass,'testRun':1+next_child,'testPass':passed,
+        'testFailureEvents':failed,'packageTerminal':package_terminal,'requiredCounts':counts,
+        'expectedDirectSubtestCount':len(SINGLE_CHILDREN),'observedDirectSubtestRun':next_child,
+        'notStartedDirectSubtestCount':len(SINGLE_CHILDREN)-next_child,
+        'packageTimeoutObserved':'panic: test timed out after 3m0s'in''.join(text),
+        'dataRaceWarningObserved':'WARNING: DATA RACE'in''.join(text)}
+
+def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None,progress=None):
     need(diagnostic_mode in ('SINGLE_CASE','FULL_CONTRACTS'));full=diagnostic_mode=='FULL_CONTRACTS'
     public=PUBLIC+(RESOURCE_NAMES+(TIMELINE_NAME,) if full else())
     need(set(raw)==set(public) and sum(map(len,raw.values()))<=64<<20)
+    safe_phase_begin(progress,'EXECUTION_CONTRACT')
     e=decode(raw['execution.json']);need(exact(e,['schema','sourceCommit','versionExit','formatExit','goExit','topExit','cumExit','profileCaptureComplete','production']+(['diagnosticMode','timelineFailure']if full else[])))
     need(e['schema']==('chengwang.capacity-profile-execution/v2'if full else'chengwang.capacity-profile-execution/v1') and e['sourceCommit']==commit and e['production'] is False)
     if full:need(e['diagnosticMode']=='FULL_CONTRACTS' and e['timelineFailure'] in {
@@ -604,6 +727,10 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
         'POPEN_FAILED','PGID_REJECTED'})
     need(all(integer(e[k],-128,255) for k in ('versionExit','formatExit','goExit','topExit','cumExit')) and e['versionExit']==e['topExit']==e['cumExit']==0)
     need(e['profileCaptureComplete'] is True and raw['go-version.txt']==b'go version go1.23.12 linux/amd64\n')
+    if progress is not None:
+        progress['exitCodes']={name:e[name+'Exit']for name in SAFE_EXIT_KEYS}
+        progress['profileCaptureComplete']=e['profileCaptureComplete']
+    safe_phase_pass(progress,'EXECUTION_CONTRACT');safe_phase_begin(progress,'HOST_SANDBOX')
     before,after=decode(raw['host-before.json']),decode(raw['host-after.json']);need(before==after and exact(before,['networkNamespace','mountNamespace','pidNamespace','resolvSHA256']))
     box=decode(raw['sandbox.json']);need(exact(box,['schema','uid','gid','effectiveCaps','noNewPrivileges','interfaces','defaultRoutes','environmentKeys',
         'sourceAliasReadOnly','goRootReadOnly','goRoot','networkNamespace','mountNamespace','pidNamespace','production']))
@@ -614,6 +741,7 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
         need(re.fullmatch(kind+r':\[[0-9]+\]',box[key]) is not None and re.fullmatch(kind+r':\[[0-9]+\]',before[key]) is not None and box[key]!=before[key])
     need(re.fullmatch('[a-f0-9]{64}',before['resolvSHA256']) is not None)
     need(type(box['goRoot']) is str and Path(box['goRoot']).is_absolute() and '..' not in Path(box['goRoot']).parts)
+    safe_phase_pass(progress,'HOST_SANDBOX');safe_phase_begin(progress,'PROFILE_STATE')
     state=decode(raw['profile-state.json']);need(exact(state,['schema','sourceCommit','stopReason','startedAt','stoppedAt','durationNanoseconds','profileBytes','profileSHA256',
         'writerFailed','limitReached','syncSucceeded','closeSucceeded','complete','timerSeconds','testTimeoutSeconds']+(['diagnosticMode']if full else[])))
     timer=120 if full else 60
@@ -625,12 +753,16 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
     if state['stopReason']=='TIMER_'+str(timer)+'_SECONDS':need(state['durationNanoseconds']>=timer*1000000000)
     for key in ('startedAt','stoppedAt'):need(type(state[key]) is str and re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?Z',state[key]) is not None)
     need(datetime.datetime.fromisoformat(state['stoppedAt'].replace('Z','+00:00'))>=datetime.datetime.fromisoformat(state['startedAt'].replace('Z','+00:00')))
+    safe_phase_pass(progress,'PROFILE_STATE');safe_phase_begin(progress,'PROFILE_SHAPE')
     profile=decode(raw['cpu-profile.json']);need(exact(profile,['schema','sourceCommit','bytes','sha256','dataBase64','profileStateSHA256']))
     need(profile['schema']=='chengwang.capacity-cpu-profile-bytes/v1' and profile['sourceCommit']==commit and type(profile['dataBase64']) is str)
     binary=base64.b64decode(profile['dataBase64'],validate=True)
     need(base64.b64encode(binary).decode()==profile['dataBase64'] and integer(profile['bytes'],1,8<<20) and integer(state['profileBytes'],1,8<<20) and len(binary)==profile['bytes']==state['profileBytes'])
     need(profile['sha256']==state['profileSHA256']==sha(binary) and profile['profileStateSHA256']==sha(raw['profile-state.json']))
     shape=profile_shape(binary,diagnostic_mode)
+    for name in ('pprof-top.txt','pprof-cum.txt'):
+        value=raw[name].decode('utf8','strict');need(value.strip() and 'flat'in value and 'cum'in value)
+    safe_phase_pass(progress,'PROFILE_SHAPE');safe_phase_begin(progress,'COMMAND_JOURNAL')
     rows=[decode(line) for line in raw['commands.jsonl'].splitlines()];need(len(rows)==(16 if full else 15))
     go=str(Path(box['goRoot'])/'bin/go')
     expected=[('VERSION',[go,'version'],'versionExit'),('FORMAT',[str(Path(box['goRoot'])/'bin/gofmt'),'-d',*(FULL_FMT if full else CAPACITY_FMT)],'formatExit'),
@@ -650,17 +782,26 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
         terminal=group[-1]
         if width==4:need(group[2]['pid']==group[1]['pid'] and group[2]['exitCode']is None)
         need(integer(terminal['pid'],2,(1<<31)-1) and terminal['pid']==group[1]['pid'] and type(terminal['exitCode']) is int and terminal['exitCode']==e[exitkey])
-    for name in ('pprof-top.txt','pprof-cum.txt'):
-        value=raw[name].decode('utf8','strict');need(value.strip() and 'flat'in value and 'cum'in value)
+    safe_phase_pass(progress,'COMMAND_JOURNAL')
     if full:
+        safe_phase_begin(progress,'SOURCE_CONTRACT')
+        if sources is None:
+            bound=load_normal_checker();repo=Path(__file__).resolve().parents[3]
+            sources={path:read(repo/path,1<<20)for path in bound.FILES}
         checker,required,binding=full_source_contract(sources,decode(raw['source-before.json']))
+        safe_phase_pass(progress,'SOURCE_CONTRACT');safe_phase_begin(progress,'TIMELINE')
         source_manifest=decode(raw['source-before.json'])
         timeline_value=timeline_check.check_payload(raw[TIMELINE_NAME],'CAPACITY_FULL_RACE',commit,source_manifest['sourceTree'])
         timeline_check.check_capacity_commands(rows,timeline_value)
+        if progress is not None:progress['timelineValidated']=True
+        safe_phase_pass(progress,'TIMELINE');safe_phase_begin(progress,'GO_EVENT_SEMANTICS')
         summary=full_events(raw['capacity.json'],required,checker,e['goExit'],raw['capacity.stderr'])
+        if progress is not None:progress['requiredCounts']=dict(summary['requiredCounts'])
+        safe_phase_pass(progress,'GO_EVENT_SEMANTICS');safe_phase_begin(progress,'RESOURCE_WINDOW')
         resource_before,resource_after=verify_resource(raw['resource-before.json']),verify_resource(raw['resource-after.json'])
         go_rows=[row for row in rows if row['class']=='GO_TEST']
         need(resource_before['finishedMonotonicNs']<=go_rows[1]['monotonicNs']<=go_rows[-1]['monotonicNs']<=resource_after['startedMonotonicNs'])
+        safe_phase_pass(progress,'RESOURCE_WINDOW');safe_phase_begin(progress,'REPORT_CONSTRUCTION')
         report={'schema':FULL_REPORT_SCHEMA,'diagnosticMode':'FULL_CONTRACTS','scope':FULL_REPORT_SCOPE,
             'sourceCommit':commit,'captureVerified':True,**summary,'normalSourceBinding':binding,
             'caseIdentity':case_identity(),'currentFixtureSourcePins':dict(CURRENT_FIXTURE_SOURCE_PINS),
@@ -672,74 +813,69 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
                 'sameCgroupAcrossObservationsIndependentlyProven':False,'resourceCauseProven':False},
             'inputSHA256':{p:sha(v)for p,v in raw.items()},'pprofNumericRecomputeProven':False,
             'nativeKernelExecuted':False,'normal13WorkflowAccepted':False,'wholeCIPass':False,'production':False}
-        return validate_report_case_identity(report,diagnostic_mode)
-    events=[decode(line) for line in raw['capacity.json'].splitlines()]
-    need(events and all(type(v) is dict and set(v)<={'Time','Action','Package','Test','Elapsed','Output'} and v.get('Package')==PACKAGE and v.get('Action') in ('start','run','pass','fail','output') for v in events))
-    begun=False;ended=False;test_state=None
-    for row in events:
-        need(not ended and type(row.get('Time')) is str and row['Time'].endswith('Z'))
-        datetime.datetime.fromisoformat(row['Time'].replace('Z','+00:00'))
-        if 'Elapsed' in row:need(type(row['Elapsed']) in (int,float) and math.isfinite(row['Elapsed']) and row['Elapsed']>=0)
-        action=row['Action'];name=row.get('Test')
-        if action=='start':need(not begun and name is None);begun=True;continue
-        need(begun)
-        if name is not None:
-            need(name==TOP)
-            if action=='run':need(test_state is None);test_state='run'
-            elif action in ('pass','fail'):need(test_state=='run');test_state=action
-            else:need(action=='output' and test_state is not None and type(row.get('Output')) is str)
-        elif action in ('pass','fail'):
-            if action=='pass':need(test_state=='pass')
-            ended=True
-        else:need(action=='output' and type(row.get('Output')) is str)
-    need(ended)
-    test_events=[v for v in events if v.get('Test') is not None];need(all(v['Test']==TOP for v in test_events))
-    need(sum(v['Action']=='run' for v in test_events)==1 and not any(v['Action']=='skip' for v in events))
-    terminal=[v['Action'] for v in events if v.get('Test') is None and v['Action'] in ('pass','fail')];need(len(terminal)==1)
-    passed=sum(v['Action']=='pass' for v in test_events);failed=sum(v['Action']=='fail' for v in test_events);need(passed<=1 and failed<=1 and not(passed and failed))
-    case_pass=e['goExit']==0 and passed==1 and terminal==['pass'] and failed==0
-    need((e['goExit']==0)==case_pass)
-    text=''.join(v.get('Output','') for v in events)
-    for name in ('pprof-top.txt','pprof-cum.txt'):
-        value=raw[name].decode('utf8','strict');need(value.strip() and 'flat' in value and 'cum' in value)
+        result=validate_report_case_identity(report,diagnostic_mode);safe_phase_pass(progress,'REPORT_CONSTRUCTION');return result
+    safe_phase_begin(progress,'GO_EVENT_SEMANTICS')
+    summary=single_events(raw['capacity.json'],e['goExit'])
+    if progress is not None:progress['requiredCounts']=dict(summary['requiredCounts'])
+    safe_phase_pass(progress,'GO_EVENT_SEMANTICS');safe_phase_begin(progress,'REPORT_CONSTRUCTION')
     report={'schema':SINGLE_REPORT_SCHEMA,'scope':SINGLE_REPORT_SCOPE,
         'sourceCommit':commit,'captureVerified':True,'caseIdentity':case_identity(),'currentFixtureSourcePins':dict(CURRENT_FIXTURE_SOURCE_PINS),
-        'currentFixturePassed':case_pass,'currentFixtureGoExit':e['goExit'],
-        'testRun':1,'testPass':passed,'testFailureEvents':failed,'packageTerminal':terminal[0],
-        'packageTimeoutObserved':'panic: test timed out after 3m0s' in text,'dataRaceWarningObserved':'WARNING: DATA RACE' in text,
+        'currentFixtureGoExit':e['goExit'],**summary,
         'formatClean':e['formatExit']==0 and raw['gofmt.patch']==raw['gofmt.stderr']==b'',
         'profile':shape,'profileSHA256':sha(binary),'inputSHA256':{p:sha(v) for p,v in raw.items()},
         'pprofNumericRecomputeProven':False,
         'nativeKernelExecuted':False,'wholeCIPass':False,'production':False}
-    return validate_report_case_identity(report,diagnostic_mode)
+    result=validate_report_case_identity(report,diagnostic_mode);safe_phase_pass(progress,'REPORT_CONSTRUCTION');return result
+
+def safe_rejection_path(path,lane,empty):
+    need(type(path)is Path and path.is_absolute()and'..'not in path.parts and path.name==SAFE_REJECTION_BASENAMES[lane])
+    parent=path.parent;need(parent.is_dir()and not parent.is_symlink())
+    info=parent.stat();need(stat.S_ISDIR(info.st_mode)and info.st_uid==os.geteuid()and info.st_gid==os.getegid()and stat.S_IMODE(info.st_mode)==0o755)
+    names=set(item.name for item in parent.iterdir());need(names==(set()if empty else{path.name}))
+    return path
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['host','source','verify']);p.add_argument('--out',type=Path);p.add_argument('--repo',type=Path);p.add_argument('--source-commit');p.add_argument('--evidence',type=Path);p.add_argument('--report',type=Path);p.add_argument('--diagnostic-mode',choices=['SINGLE_CASE','FULL_CONTRACTS'],default='SINGLE_CASE');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['host','source','verify','safe-rejection-check']);p.add_argument('--out',type=Path);p.add_argument('--repo',type=Path);p.add_argument('--source-commit');p.add_argument('--evidence',type=Path);p.add_argument('--report',type=Path);p.add_argument('--safe-rejection-report',type=Path);p.add_argument('--run-id');p.add_argument('--run-attempt');p.add_argument('--lane',choices=['SINGLE_CASE','FULL_CONTRACTS']);p.add_argument('--diagnostic-mode',choices=['SINGLE_CASE','FULL_CONTRACTS'],default='SINGLE_CASE');a=p.parse_args()
     need(os.name=='posix')
     if a.mode=='host':write(a.out,encoded(host()));return
     if a.mode=='source':write(a.out,encoded(source_snapshot(a.repo,a.source_commit)));return
+    if a.mode=='safe-rejection-check':
+        need(a.lane in SAFE_PHASES);run_id=bounded_positive(a.run_id);run_attempt=bounded_positive(a.run_attempt)
+        sources=source_snapshot(a.repo,a.source_commit);path=safe_rejection_path(a.safe_rejection_report,a.lane,False)
+        validate_safe_rejection(read(path,65536),a.source_commit,sources['sourceTree'],run_id,run_attempt,a.lane)
+        print('CAPACITY_PROFILE_SAFE_REJECTION=VERIFIED lane='+a.lane);return
     full=a.diagnostic_mode=='FULL_CONTRACTS'
-    public=PUBLIC+(RESOURCE_NAMES if full else())
-    expected=set(public)|({TIMELINE_DIR} if full else set())
-    need(set(v.name for v in a.evidence.iterdir())==expected)
-    need(a.report.is_absolute() and not a.report.is_relative_to(a.repo) and not a.report.is_relative_to(a.evidence))
-    raw={name:read(a.evidence/name,12<<20 if name=='cpu-profile.json' else 64<<20 if name=='capacity.json' else 2<<20) for name in public}
-    if full:
-        timeline_dir=a.evidence/TIMELINE_DIR
-        need(timeline_dir.is_dir() and not timeline_dir.is_symlink()
-             and set(v.name for v in timeline_dir.iterdir())=={TIMELINE_NAME})
-        raw[TIMELINE_NAME]=read(timeline_dir/TIMELINE_NAME,2<<20)
-    sources=source_snapshot(a.repo,a.source_commit)
-    need(raw['source-before.json']==raw['source-after.json']==encoded(sources))
-    normal_sources=None
-    if a.diagnostic_mode=='FULL_CONTRACTS':
-        checker=load_normal_checker();normal_sources={p:read(a.repo/p,1<<20)for p in checker.FILES}
-    report=verify_raw(raw,a.source_commit,a.diagnostic_mode,normal_sources)
-    need(all(read(a.evidence/name,len(value))==value for name,value in raw.items()) and source_snapshot(a.repo,a.source_commit)==sources)
-    report['sourceManifestSHA256']=sha(encoded(sources));report['sourceGitVerified']=True
-    write(a.report,encoded(report))
-    if a.diagnostic_mode=='FULL_CONTRACTS':print('CAPACITY_PROFILE_EVIDENCE=VERIFIED diagnostic_mode=FULL_CONTRACTS full_go_accepted='+str(report['fullGoAccepted']).lower()+' not_whole_ci=true')
-    else:print('CAPACITY_PROFILE_EVIDENCE=VERIFIED current_fixture_passed='+str(report['currentFixturePassed']).lower()+' historical_baseline_measured=false performance_comparison_authorized=false not_whole_ci=true')
+    progress=new_safe_progress(a.diagnostic_mode);safe_phase_begin(progress,'SOURCE_BINDING')
+    sources=source_snapshot(a.repo,a.source_commit);safe_phase_pass(progress,'SOURCE_BINDING')
+    run_id=bounded_positive(a.run_id);run_attempt=bounded_positive(a.run_attempt)
+    safe_path=safe_rejection_path(a.safe_rejection_report,a.diagnostic_mode,True)
+    try:
+        safe_phase_begin(progress,'EVIDENCE_MEMBER_SET')
+        public=PUBLIC+(RESOURCE_NAMES if full else());expected=set(public)|({TIMELINE_DIR}if full else set())
+        need(set(v.name for v in a.evidence.iterdir())==expected)
+        need(a.report.is_absolute()and not a.report.is_relative_to(a.repo)and not a.report.is_relative_to(a.evidence)and
+            not a.report.is_relative_to(safe_path.parent))
+        raw={name:read(a.evidence/name,12<<20 if name=='cpu-profile.json'else 64<<20 if name=='capacity.json'else 2<<20)for name in public}
+        if full:
+            timeline_dir=a.evidence/TIMELINE_DIR
+            need(timeline_dir.is_dir()and not timeline_dir.is_symlink()and set(v.name for v in timeline_dir.iterdir())=={TIMELINE_NAME})
+            raw[TIMELINE_NAME]=read(timeline_dir/TIMELINE_NAME,2<<20)
+        need(raw['source-before.json']==raw['source-after.json']==encoded(sources))
+        safe_phase_pass(progress,'EVIDENCE_MEMBER_SET')
+        report=verify_raw(raw,a.source_commit,a.diagnostic_mode,progress=progress)
+        safe_phase_begin(progress,'POST_READBACK')
+        need(all(read(a.evidence/name,len(value))==value for name,value in raw.items())and source_snapshot(a.repo,a.source_commit)==sources)
+        report['sourceManifestSHA256']=sha(encoded(sources));report['sourceGitVerified']=True
+        safe_phase_pass(progress,'POST_READBACK');safe_phase_begin(progress,'REPORT_PUBLICATION')
+        write(a.report,encoded(report))
+        if full:print('CAPACITY_PROFILE_EVIDENCE=VERIFIED diagnostic_mode=FULL_CONTRACTS full_go_accepted='+str(report['fullGoAccepted']).lower()+' not_whole_ci=true')
+        else:print('CAPACITY_PROFILE_EVIDENCE=VERIFIED current_fixture_passed='+str(report['currentFixturePassed']).lower()+' historical_baseline_measured=false performance_comparison_authorized=false not_whole_ci=true')
+        safe_phase_pass(progress,'REPORT_PUBLICATION')
+    except Exception as error:
+        failure='STRICT_PREDICATE_REJECTED'if isinstance(error,(ValueError,KeyError,TypeError,UnicodeError,OverflowError))else'CHECKER_INTERNAL_REJECTED'
+        try:write(safe_path,encoded(safe_rejection_value(progress,a.source_commit,sources['sourceTree'],run_id,run_attempt,failure)))
+        except Exception:pass
+        raise
 if __name__=='__main__':
     try:main()
     except Exception:raise SystemExit('CAPACITY_PROFILE_EVIDENCE=REJECTED raw_error_suppressed=true') from None
