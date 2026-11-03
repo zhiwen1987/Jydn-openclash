@@ -110,7 +110,7 @@ CONSUMPTION_ASSET='mihomo-linux-amd64-v1-v1.19.32.gz'
 CONSUMPTION_ARCHIVE_SHA256='306f81e723e60ce6b828899a6fe83e1d00e9ecefb2dc8d4d849312a5bc00efdc'
 CONSUMPTION_UPSTREAM='88dcbf7f1614a67c3b36b848ee3592dfa92ada36'
 
-FAILURE_SUMMARY_SCHEMA='chengwang.mihomo-continuous-recovery-verifier-failure/v1'
+FAILURE_SUMMARY_SCHEMA='chengwang.mihomo-continuous-recovery-verifier-failure/v2'
 FAILURE_PHASES=(
  'SOURCE_BINDING','PUBLIC_INVENTORY','REPORT_SHAPE','HTTP_SHAPES','STATE_CROSS_LINKS',
  'COMMANDS','PROCESS_EVENTS','NAMESPACE_TOOLCHAIN','PRIVATE_CUSTODY','CONSUMPTION','UNKNOWN')
@@ -120,6 +120,9 @@ FAILURE_CLASSES=(
 FAILURE_FIELD_CODES=(
  'SOURCE_MANIFEST','SOURCE_FILES','PUBLIC_FILE_SET','REPORT','HTTP_RESPONSES','STATE_RELATIONSHIPS',
  'COMMAND_RECEIPTS','PROCESS_RECEIPTS','GO_RESULT','SANDBOX','HOST_NAMESPACE','GO_TOOLCHAIN',
+ 'HOST_NAMESPACE_STABILITY_PID','HOST_NAMESPACE_STABILITY_MNT','HOST_NAMESPACE_STABILITY_NET',
+ 'HOST_NAMESPACE_STABILITY_RESOLV','HOST_NAMESPACE_STABILITY_OTHER','HOST_NAMESPACE_SCHEMA',
+ 'HOST_NAMESPACE_FORMAT','HOST_RESOLV_FORMAT','SANDBOX_HOST_SEPARATION','COMMAND_NAMESPACE_CONSISTENCY',
  'PRIVATE_RECEIPTS','CONSUMPTION_RECEIPTS','UNKNOWN')
 _ACTIVE_DIAGNOSTIC=None
 
@@ -542,6 +545,34 @@ def validate_sandbox(value,binding):
     exact(value['sourceBinding'],binding); exact(value['exactTags'],list(TAGS)); exact(value['forbiddenTags'],list(FORBIDDEN))
     need(value['production'] is False); return value
 
+def host_namespace_stability_field(before,after):
+    if type(before) is not dict or type(after) is not dict:
+        return 'HOST_NAMESPACE_STABILITY_OTHER'
+    for key,field in (('pidNamespace','HOST_NAMESPACE_STABILITY_PID'),
+                      ('mountNamespace','HOST_NAMESPACE_STABILITY_MNT'),
+                      ('networkNamespace','HOST_NAMESPACE_STABILITY_NET'),
+                      ('resolvSHA256','HOST_NAMESPACE_STABILITY_RESOLV')):
+        if key in before and key in after and before[key]!=after[key]:
+            return field
+    return 'HOST_NAMESPACE_STABILITY_OTHER'
+
+def validate_host_namespace(host_before,host_after,sandbox,commands):
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH',host_namespace_stability_field(host_before,host_after))
+    need(host_before==host_after)
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','SCHEMA_INVALID','HOST_NAMESPACE_SCHEMA')
+    keys(host_before,('networkNamespace','mountNamespace','pidNamespace','resolvSHA256'))
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','SCHEMA_INVALID','HOST_NAMESPACE_FORMAT')
+    for key,prefix in (('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')):
+        text(host_before[key],prefix+r':\[[1-9][0-9]*\]',64)
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','SCHEMA_INVALID','HOST_RESOLV_FORMAT')
+    digest(host_before['resolvSHA256'])
+    namespace={key:sandbox[key] for key in ('networkNamespace','mountNamespace','pidNamespace')}
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','SANDBOX_HOST_SEPARATION')
+    need(all(namespace[key]!=host_before[key] for key in namespace))
+    diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','COMMAND_NAMESPACE_CONSISTENCY')
+    for row in commands: exact(row['namespace'],namespace)
+    return namespace
+
 def validate_consumption(value,commit):
     keys(value,('schema','state','source','component','version','upstreamSourceCommit','archive','gzip','elf','output',
       'runtimeExecuted','runtimeCompatibilityProven','businessAvailabilityProven','publisherSignatureProven','productionApproved','production'))
@@ -623,13 +654,7 @@ def _verify_evidence(repo,public,commit,safe,full_container=False):
     sandbox,_=json_file(public/'sandbox.json'); validate_sandbox(sandbox,binding)
     diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','HOST_NAMESPACE')
     host_before,_=json_file(public/'host-before.json',64<<10); host_after,_=json_file(public/'host-after.json',64<<10)
-    need(host_before==host_after); keys(host_before,('networkNamespace','mountNamespace','pidNamespace','resolvSHA256'))
-    for key,prefix in (('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')):
-        text(host_before[key],prefix+r':\[[1-9][0-9]*\]',64)
-    digest(host_before['resolvSHA256'])
-    namespace={key:sandbox[key] for key in ('networkNamespace','mountNamespace','pidNamespace')}
-    need(all(namespace[key]!=host_before[key] for key in namespace))
-    for row in commands: exact(row['namespace'],namespace)
+    validate_host_namespace(host_before,host_after,sandbox,commands)
     diagnostic_mark('NAMESPACE_TOOLCHAIN','IDENTITY_MISMATCH','GO_TOOLCHAIN')
     go_version=source_file(public/'go-version.txt',4096)
     need(go_version==b'go version go1.23.12 linux/amd64\n' if safe else go_version.startswith(b'go version go1.23.12 linux/amd64\n'))

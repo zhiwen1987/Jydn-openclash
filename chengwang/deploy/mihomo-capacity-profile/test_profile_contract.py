@@ -556,6 +556,57 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
             linked=path.with_name('linked.json');os.link(path,linked)
             with self.assertRaises(ValueError):self.reader.read(path,65536)
         with tempfile.TemporaryDirectory()as directory:
+            evidence=Path(directory)/'evidence';timeline_dir=evidence/self.reader.TIMELINE_DIR
+            timeline_dir.mkdir(parents=True);payload=b'controlled-timeline\n'
+            timeline=timeline_dir/self.reader.TIMELINE_NAME;timeline.write_bytes(payload)
+            self.assertEqual(
+                self.reader.post_readback_path(evidence,self.reader.TIMELINE_NAME,True),timeline)
+            self.assertEqual(self.reader.read(
+                self.reader.post_readback_path(evidence,self.reader.TIMELINE_NAME,True),len(payload)),payload)
+            self.assertEqual(
+                self.reader.post_readback_path(evidence,'capacity.json',True),evidence/'capacity.json')
+            self.assertEqual(
+                self.reader.post_readback_path(evidence,self.reader.TIMELINE_NAME,False),
+                evidence/self.reader.TIMELINE_NAME)
+            timeline.write_bytes(b'controlled-tamper\n')
+            with self.assertRaises(ValueError):
+                self.reader.need(self.reader.read(timeline,len(payload))==payload)
+            timeline.write_bytes(payload);linked=timeline.with_name('timeline-linked.json');os.link(timeline,linked)
+            with self.assertRaises(ValueError):self.reader.read(timeline,len(payload))
+            linked.unlink()
+            for name in self.reader.PUBLIC+self.reader.RESOURCE_NAMES:(evidence/name).write_bytes(b'')
+            (evidence/self.reader.TIMELINE_NAME).write_bytes(payload)
+            expected=set(self.reader.PUBLIC)|set(self.reader.RESOURCE_NAMES)|{self.reader.TIMELINE_DIR}
+            with self.assertRaises(ValueError):
+                self.reader.need(set(item.name for item in evidence.iterdir())==expected)
+        with tempfile.TemporaryDirectory()as directory:
+            root=Path(directory);repo=root/'repo';repo.mkdir();evidence=root/'evidence';evidence.mkdir()
+            sources={'sourceTree':tree};source_raw=self.reader.encoded(sources)
+            for name in self.reader.PUBLIC+self.reader.RESOURCE_NAMES:
+                (evidence/name).write_bytes(source_raw if name in ('source-before.json','source-after.json')else b'x')
+            timeline_dir=evidence/self.reader.TIMELINE_DIR;timeline_dir.mkdir()
+            (timeline_dir/self.reader.TIMELINE_NAME).write_bytes(b'timeline\n')
+            safe_path=root/'safe'/self.reader.SAFE_REJECTION_BASENAMES['FULL_CONTRACTS']
+            report=root/'report'/'full.json';report.parent.mkdir()
+            argv=['check_profile.py','verify','--diagnostic-mode','FULL_CONTRACTS','--repo',str(repo),
+                '--source-commit',commit,'--evidence',str(evidence),'--report',str(report),
+                '--safe-rejection-report',str(safe_path),'--run-id','41586779373','--run-attempt','1']
+            def verified(_raw,_commit,_mode,progress):
+                for phase in self.reader.SAFE_PHASES['FULL_CONTRACTS']:
+                    if phase in progress['passedPhases']:continue
+                    if phase=='POST_READBACK':break
+                    self.reader.safe_phase_begin(progress,phase);self.reader.safe_phase_pass(progress,phase)
+                return {'fullGoAccepted':False,'wholeCIPass':False,'production':False}
+            with mock.patch.object(self.reader,'os',PosixOS()),mock.patch.object(
+                    self.reader,'prepare_safe_rejection_path',side_effect=prepare),mock.patch.object(
+                    self.reader,'source_snapshot',return_value=sources),mock.patch.object(
+                    self.reader,'verify_raw',side_effect=verified),mock.patch('builtins.print'),mock.patch.object(
+                    sys,'argv',argv):
+                self.reader.main()
+            published=self.reader.decode(report.read_bytes())
+            self.assertTrue(published['sourceGitVerified']);self.assertFalse(published['fullGoAccepted'])
+            self.assertFalse(safe_path.exists())
+        with tempfile.TemporaryDirectory()as directory:
             staged=Path(directory)/'safe'/self.reader.SAFE_REJECTION_BASENAMES['SINGLE_CASE']
             with mock.patch.object(self.reader,'safe_rejection_path',return_value=staged),mock.patch.object(
                     self.reader.os,'chmod'):

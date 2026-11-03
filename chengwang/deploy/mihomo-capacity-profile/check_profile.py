@@ -378,6 +378,9 @@ def read(path,limit):
     identity=lambda s:(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_mode,s.st_nlink)
     need(identity(before)==identity(opened)==identity(after)==identity(path.lstat()) and len(raw)==before.st_size)
     return raw
+def post_readback_path(evidence,name,full):
+    if full and name==TIMELINE_NAME:return evidence/TIMELINE_DIR/name
+    return evidence/name
 def write(path,raw):
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o644)
     with os.fdopen(fd,'wb') as f:need(f.write(raw)==len(raw));f.flush();os.fsync(f.fileno())
@@ -899,7 +902,8 @@ def main():
         safe_phase_pass(progress,'EVIDENCE_MEMBER_SET')
         report=verify_raw(raw,a.source_commit,a.diagnostic_mode,progress=progress)
         safe_phase_begin(progress,'POST_READBACK')
-        need(all(read(a.evidence/name,len(value))==value for name,value in raw.items())and source_snapshot(a.repo,a.source_commit)==sources)
+        need(all(read(post_readback_path(a.evidence,name,full),len(value))==value for name,value in raw.items())and
+             source_snapshot(a.repo,a.source_commit)==sources)
         report['sourceManifestSHA256']=sha(encoded(sources));report['sourceGitVerified']=True
         safe_phase_pass(progress,'POST_READBACK');safe_phase_begin(progress,'REPORT_PUBLICATION')
         write(a.report,encoded(report))

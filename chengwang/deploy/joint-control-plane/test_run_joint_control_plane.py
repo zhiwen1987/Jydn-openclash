@@ -27,7 +27,7 @@ def _probe_fixture_owner_view(probe):
 
 @contextlib.contextmanager
 def _bridge_fixture_root_view(bridge,extra_roots=()):
-    bridge=pathlib.Path(bridge).absolute();roots=(bridge,)+tuple(pathlib.Path(value).absolute() for value in extra_roots);real_lstat=pathlib.Path.lstat;real_open=CI.os.open;real_close=CI.os.close;real_mkdir=CI.os.mkdir
+    bridge=pathlib.Path(bridge).absolute();roots=(bridge,)+tuple(pathlib.Path(value).absolute() for value in extra_roots);real_lstat=pathlib.Path.lstat;real_iterdir=pathlib.Path.iterdir;real_open=CI.os.open;real_close=CI.os.close;real_mkdir=CI.os.mkdir
     owners={};modes={};descriptors={};operations=[]
     class StatView:
         def __init__(self,base,uid,gid,mode):self._base=base;self.st_uid=uid;self.st_gid=gid;self.st_mode=(base.st_mode&~0o7777)|mode
@@ -51,7 +51,15 @@ def _bridge_fixture_root_view(bridge,extra_roots=()):
         if candidate is not None:
             descriptors[fd]=candidate
             if flags&CI.os.O_CREAT:modes.setdefault(candidate,mode&0o7777)
+            operations.append(("open",candidate,flags))
         return fd
+    def iterdir(path):
+        candidate=scoped(path)
+        if candidate is not None:
+            meta=lstat(candidate);uid=CI.os.geteuid();gid=CI.os.getegid();mode=CI.stat.S_IMODE(meta.st_mode);bits=0o7 if uid==0 else (mode>>6)&0o7 if uid==meta.st_uid else (mode>>3)&0o7 if gid==meta.st_gid else mode&0o7
+            operations.append(("iterdir",candidate,uid,gid,bits))
+            if bits&0o5!=0o5:raise PermissionError("fixture-dac-list-denied")
+        return real_iterdir(path)
     def close_file(fd):
         try:return real_close(fd)
         finally:descriptors.pop(fd,None)
@@ -67,7 +75,7 @@ def _bridge_fixture_root_view(bridge,extra_roots=()):
     def set_mode(path,mode):modes[required(path)]=mode&0o7777
     view=types.SimpleNamespace(set_owner=set_owner,set_mode=set_mode,operations=operations,scoped=scoped)
     with contextlib.ExitStack() as stack:
-        stack.enter_context(mock.patch.object(pathlib.Path,"lstat",autospec=True,side_effect=lstat));stack.enter_context(mock.patch.object(CI.os,"mkdir",side_effect=mkdir));stack.enter_context(mock.patch.object(CI.os,"open",side_effect=open_file));stack.enter_context(mock.patch.object(CI.os,"close",side_effect=close_file));stack.enter_context(mock.patch.object(CI.os,"chmod",side_effect=chmod));stack.enter_context(mock.patch.object(CI.os,"chown",side_effect=chown,create=True));stack.enter_context(mock.patch.object(CI.os,"fchmod",side_effect=fchmod,create=True));stack.enter_context(mock.patch.object(CI.os,"fchown",side_effect=fchown,create=True));yield view
+        stack.enter_context(mock.patch.object(pathlib.Path,"lstat",autospec=True,side_effect=lstat));stack.enter_context(mock.patch.object(pathlib.Path,"iterdir",autospec=True,side_effect=iterdir));stack.enter_context(mock.patch.object(CI.os,"mkdir",side_effect=mkdir));stack.enter_context(mock.patch.object(CI.os,"open",side_effect=open_file));stack.enter_context(mock.patch.object(CI.os,"close",side_effect=close_file));stack.enter_context(mock.patch.object(CI.os,"chmod",side_effect=chmod));stack.enter_context(mock.patch.object(CI.os,"chown",side_effect=chown,create=True));stack.enter_context(mock.patch.object(CI.os,"fchmod",side_effect=fchmod,create=True));stack.enter_context(mock.patch.object(CI.os,"fchown",side_effect=fchown,create=True));yield view
 
 def _probe_fixture_cleanup_calls(probe):
     probe=pathlib.Path(probe);real_chmod=CI.os.chmod;real_unlink=CI.os.unlink;real_rmdir=CI.os.rmdir
@@ -927,8 +935,17 @@ diagnostic_stub() {{
                 view.set_mode(payload,0o700);os.rename(moved,changed);view.set_mode(payload,0o555)
                 with mock.patch.object(CI.os,"unlink",side_effect=OSError("PRIVATE UNLINK")):
                     with self.assertRaises(OSError):CI.bridge_cleanup(*arguments,platform="posix")
-                progress=CI.bridge_progress_setup(*arguments,platform="posix");self.assertEqual(progress,bridge/"runner/failure-localization.private")
+                progress=CI.bridge_progress_setup(*arguments,platform="posix");self.assertEqual(progress,bridge/"runner/failure-localization.private");operation_offset=len(view.operations)
                 with mock.patch.object(CI.os,"geteuid",return_value=C.UID,create=True),mock.patch.object(CI.os,"getegid",return_value=C.GID,create=True):CI.bridge_progress_preflight(*arguments,platform="posix")
+                uid_operations=view.operations[operation_offset:];uid_listed={row[1] for row in uid_operations if row[0]=="iterdir"};self.assertNotIn(bridge,uid_listed);self.assertNotIn(bridge/"runner",uid_listed);self.assertEqual(uid_listed,{progress})
+                uid_opened={row[1] for row in uid_operations if row[0]=="open"};self.assertEqual(uid_opened,{payload/"ci_joint_control_plane.py",payload/"contract.py",progress/"preflight"});self.assertFalse((progress/"preflight").exists())
+                current_open=CI.os.open
+                def reject_preflight(path,*args,**kwargs):
+                    if pathlib.Path(path)==progress/"preflight":raise OSError("fixture-preflight-open-denied")
+                    return current_open(path,*args,**kwargs)
+                with mock.patch.object(CI.os,"geteuid",return_value=C.UID,create=True),mock.patch.object(CI.os,"getegid",return_value=C.GID,create=True),mock.patch.object(CI.os,"open",side_effect=reject_preflight):
+                    with self.assertRaises(OSError):CI.bridge_progress_preflight(*arguments,platform="posix")
+                self.assertFalse((progress/"preflight").exists())
                 expected_progress=C.canonical({"schema":C.PROGRESS_SCHEMA,"sourceCommit":"1"*40,"ordinal":1,"phase":"NAMESPACE_SETUP","state":"ENTERED"})
                 with mock.patch.object(C,"_private_read",return_value=expected_progress):C.record_bootstrap_progress(progress,"1"*40)
                 view.set_owner(next(progress.iterdir()),C.UID,C.GID)

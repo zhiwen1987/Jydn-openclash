@@ -544,6 +544,63 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
             mutant=copy.deepcopy(bound_value);mutant['sourceTree']=bad
             with self.subTest(bound_source_tree=repr(bad)),self.assertRaises((ValueError,TypeError)):
                 helper_failure.validate(helper_failure.canonical(mutant)+b'\n',commit,tree,run_id,attempt)
+        legacy=copy.deepcopy(private_value);legacy['schema']='chengwang.mihomo-continuous-recovery-verifier-failure/v1'
+        with self.assertRaises(ValueError):
+            helper_failure.validate(helper_failure.canonical(legacy)+b'\n',commit,tree,run_id,attempt)
+        host={'networkNamespace':'net:[101]','mountNamespace':'mnt:[102]','pidNamespace':'pid:[103]','resolvSHA256':'1'*64}
+        sandbox={'networkNamespace':'net:[201]','mountNamespace':'mnt:[202]','pidNamespace':'pid:[203]'}
+        commands=[{'namespace':copy.deepcopy(sandbox)} for _ in range(4)]
+        def old_host_accept(before,after,sandbox_value,command_values):
+            try:
+                self.reader.need(before==after)
+                self.reader.keys(before,('networkNamespace','mountNamespace','pidNamespace','resolvSHA256'))
+                for key,prefix in (('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')):
+                    self.reader.text(before[key],prefix+r':\[[1-9][0-9]*\]',64)
+                self.reader.digest(before['resolvSHA256'])
+                namespace={key:sandbox_value[key] for key in ('networkNamespace','mountNamespace','pidNamespace')}
+                self.reader.need(all(namespace[key]!=before[key] for key in namespace))
+                for row in command_values:self.reader.exact(row['namespace'],namespace)
+                return True
+            except (ValueError,TypeError,KeyError):
+                return False
+        def new_host_result(before,after,sandbox_value,command_values):
+            state=self.reader.FailureDiagnostic(commit,tree,run_id,attempt)
+            self.assertIsNone(self.reader._ACTIVE_DIAGNOSTIC);self.reader._ACTIVE_DIAGNOSTIC=state
+            try:
+                try:self.reader.validate_host_namespace(before,after,sandbox_value,command_values);accepted=True
+                except (ValueError,TypeError,KeyError):accepted=False
+            finally:self.reader._ACTIVE_DIAGNOSTIC=None
+            return accepted,state.failure_class,state.field_code
+        self.assertEqual(new_host_result(host,copy.deepcopy(host),sandbox,commands)[0],old_host_accept(host,host,sandbox,commands))
+        host_mutants=[]
+        def host_case(label,code,change):
+            before=copy.deepcopy(host);after=copy.deepcopy(host);sandbox_value=copy.deepcopy(sandbox);command_values=copy.deepcopy(commands)
+            change(before,after,sandbox_value,command_values);host_mutants.append((label,code,before,after,sandbox_value,command_values))
+        host_case('pid-stability','HOST_NAMESPACE_STABILITY_PID',lambda b,a,s,c:a.__setitem__('pidNamespace','pid:[303]'))
+        host_case('mnt-stability','HOST_NAMESPACE_STABILITY_MNT',lambda b,a,s,c:a.__setitem__('mountNamespace','mnt:[302]'))
+        host_case('net-stability','HOST_NAMESPACE_STABILITY_NET',lambda b,a,s,c:a.__setitem__('networkNamespace','net:[301]'))
+        host_case('resolv-stability','HOST_NAMESPACE_STABILITY_RESOLV',lambda b,a,s,c:a.__setitem__('resolvSHA256','2'*64))
+        host_case('other-stability','HOST_NAMESPACE_STABILITY_OTHER',lambda b,a,s,c:a.__setitem__('unexpected',False))
+        host_case('schema','HOST_NAMESPACE_SCHEMA',lambda b,a,s,c:(b.pop('pidNamespace'),a.pop('pidNamespace')))
+        host_case('namespace-format','HOST_NAMESPACE_FORMAT',lambda b,a,s,c:(b.__setitem__('networkNamespace','bad'),a.__setitem__('networkNamespace','bad')))
+        host_case('resolv-format','HOST_RESOLV_FORMAT',lambda b,a,s,c:(b.__setitem__('resolvSHA256','bad'),a.__setitem__('resolvSHA256','bad')))
+        host_case('sandbox-separation','SANDBOX_HOST_SEPARATION',lambda b,a,s,c:s.__setitem__('networkNamespace',b['networkNamespace']))
+        host_case('command-consistency','COMMAND_NAMESPACE_CONSISTENCY',lambda b,a,s,c:c[0]['namespace'].__setitem__('pidNamespace','pid:[999]'))
+        for label,code,before,after,sandbox_value,command_values in host_mutants:
+            accepted,failure_class,observed=new_host_result(before,after,sandbox_value,command_values)
+            with self.subTest(host_namespace=label):
+                self.assertFalse(accepted);self.assertFalse(old_host_accept(before,after,sandbox_value,command_values))
+                self.assertEqual(observed,code)
+                value=summary(True,'NAMESPACE_TOOLCHAIN',failure_class,code)
+                helper_failure.validate(helper_failure.canonical(value)+b'\n',commit,tree,run_id,attempt)
+        before=copy.deepcopy(host);after=copy.deepcopy(host);after['networkNamespace']='net:[301]';after['pidNamespace']='pid:[303]'
+        self.assertEqual(new_host_result(before,after,sandbox,commands)[2],'HOST_NAMESPACE_STABILITY_PID')
+        checker_source=(HERE/'check_continuous_recovery_api.py').read_text(encoding='utf8')
+        for predicate in ('need(host_before==host_after)',
+          "keys(host_before,('networkNamespace','mountNamespace','pidNamespace','resolvSHA256'))",
+          'need(all(namespace[key]!=host_before[key] for key in namespace))',
+          "for row in commands: exact(row['namespace'],namespace)"):
+            self.assertEqual(checker_source.count(predicate),1)
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); private=root/'failure.private.json'; output=root/'public'
             helper_failure.write_new(private,private_raw,0o600)
