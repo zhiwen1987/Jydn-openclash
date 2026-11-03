@@ -281,7 +281,7 @@ class RunnerContracts(unittest.TestCase):
             baseline=C.failure_classification(root,commit)
             self.assertEqual(baseline,{"failurePhase":"UNKNOWN","lastCompletedPhase":"NONE","exceptionType":"PERMISSION_ERROR","failureReasonCode":"UNKNOWN","failedCaptureName":"success-fetch-r1","lastCompletedCaptureName":"success-approve-r1"})
             with mock.patch.object(C,"_owned_mode",return_value=True):evidence=C.localization_evidence(root,None,commit)
-            self.assertEqual(evidence,{"progressRootState":"EMPTY","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN"})
+            self.assertEqual(evidence,{"progressRootState":"EMPTY","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN","bootstrapObservationScope":C.BOOTSTRAP_OBSERVATION_SCOPE,"bootstrapObservedRecordState":"ABSENT","bootstrapObservedChildState":"UNKNOWN"})
             (root/C.FAILURE_DETAIL_NAME).write_bytes(b"{}\n")
             rejected=C.failure_classification(root,commit)
             with mock.patch.object(C,"_owned_mode",return_value=True):rejected_evidence=C.localization_evidence(root,None,commit)
@@ -317,13 +317,18 @@ class RunnerContracts(unittest.TestCase):
     def test_every_non_success_projection_suppresses_later_residual_pass(self):
         commit="4"*40
         with tempfile.TemporaryDirectory() as d:
-            staging=pathlib.Path(d)/"staging";staging.mkdir();progress=staging/"progress";progress.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir();record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
+            staging=pathlib.Path(d)/"staging";staging.mkdir();progress=staging/"progress";progress.mkdir();record=staging/C.BOOTSTRAP_DIRECTORY/C.BOOTSTRAP_FILE;record.parent.mkdir()
             with mock.patch.object(C,"_owned_mode",return_value=True):
-                for raw,expected in (("failure","FAILURE"),("cancelled","CANCELLED"),("skipped","SKIPPED"),(None,"MISSING"),("other","UNKNOWN")):
-                    value=C.localization_evidence(progress,record,commit,"bootstrap_progress",raw,commit)
-                    self.assertEqual((value["bootstrapStepOutcome"],value["bootstrapRecordState"],value["bootstrapChildState"]),(expected,"INVALID","UNKNOWN"))
+                for child in sorted(C.BOOTSTRAP_RECORDED_STATES):
+                    record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":child}))
+                    for raw,expected in (("failure","FAILURE"),("cancelled","CANCELLED"),("skipped","SKIPPED"),(None,"MISSING"),("other","UNKNOWN")):
+                        value=C.localization_evidence(progress,record,commit,"bootstrap_progress",raw,commit)
+                        self.assertEqual((value["bootstrapStepOutcome"],value["bootstrapRecordState"],value["bootstrapChildState"]),(expected,"INVALID","UNKNOWN"))
+                        self.assertEqual((value["bootstrapObservationScope"],value["bootstrapObservedRecordState"],value["bootstrapObservedChildState"]),(C.BOOTSTRAP_OBSERVATION_SCOPE,"ACCEPTED",child))
+                    record.unlink()
+                record.write_bytes(C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"}))
                 accepted=C.localization_evidence(progress,record,commit,"bootstrap_progress","success",commit)
-            self.assertEqual((accepted["bootstrapStepOutcome"],accepted["bootstrapRecordState"],accepted["bootstrapChildState"]),("SUCCESS","ACCEPTED","PASS"))
+            self.assertEqual((accepted["bootstrapStepOutcome"],accepted["bootstrapRecordState"],accepted["bootstrapChildState"]),("SUCCESS","ACCEPTED","PASS"));self.assertEqual((accepted["bootstrapObservedRecordState"],accepted["bootstrapObservedChildState"]),("ACCEPTED","PASS"))
     def test_bootstrap_writer_second_fsync_and_final_named_validation_fail_closed(self):
         commit="5"*40
         def exercise(root,fail_second=False,final=("ACCEPTED","PASS")):
@@ -402,7 +407,7 @@ class RunnerContracts(unittest.TestCase):
                     recorded="PASS" if record_state=="ACCEPTED" else "UNKNOWN"
                     with self.subTest(progress=progress_state,detail=detail_state,record=record_state),mock.patch.object(C,"_progress_localization",return_value=(progress_state,pathlib.Path("/fixed"))),mock.patch.object(C,"_detail_localization",return_value=detail_state),mock.patch.object(C,"bootstrap_record_state",return_value=(record_state,recorded)):
                         value=C.localization_evidence("/fixed","/fixed/status.json",commit,"bootstrap_progress","success",commit)
-                    self.assertEqual(value["progressRootState"],progress_state);self.assertEqual(value["failureDetailState"],detail_state);self.assertEqual(value["bootstrapRecordState"],record_state);self.assertEqual(value["bootstrapChildState"],recorded)
+                    self.assertEqual(value["progressRootState"],progress_state);self.assertEqual(value["failureDetailState"],detail_state);self.assertEqual(value["bootstrapRecordState"],record_state);self.assertEqual(value["bootstrapChildState"],recorded);self.assertEqual(value["bootstrapObservationScope"],C.BOOTSTRAP_OBSERVATION_SCOPE);self.assertEqual(value["bootstrapObservedRecordState"],record_state);self.assertEqual(value["bootstrapObservedChildState"],recorded)
     def test_bounded_child_models_all_closed_outcomes_without_stderr(self):
         expected=b'{"status":"PASS"}\n'
         def run(code,timeout=2):return CI._bounded_child([sys.executable,"-I","-B","-c",code],expected,timeout=timeout)
@@ -511,6 +516,11 @@ class RunnerContracts(unittest.TestCase):
         self.assertNotIn("runner.stderr",workflow);self.assertNotIn("runner.stdout",workflow)
         bash=shutil.which("bash") or (r"C:\Program Files\Git\bin\bash.exe" if pathlib.Path(r"C:\Program Files\Git\bin\bash.exe").is_file() else None);self.assertIsNotNone(bash)
         result=subprocess.run([str(bash),"-n",str(HERE/"ci_namespace.sh")],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False);self.assertEqual(result.returncode,0,result.stderr.decode(errors="replace"))
+        dedicated=workflow.split("      - name: Bootstrap bounded namespace progress\n",1)[1].split("      - name: Real B0 J1 R2 same-binary scene\n",1)[0]
+        body=dedicated.split("        run: |\n",1)[1];script="\n".join(line[10:] for line in body.splitlines())+"\n"
+        with tempfile.TemporaryDirectory() as d:
+            shell=pathlib.Path(d)/"bootstrap.sh";shell.write_text(script,encoding="utf-8",newline="\n")
+            result=subprocess.run([str(bash),"-n",str(shell)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False);self.assertEqual(result.returncode,0,result.stderr.decode(errors="replace"))
     def test_workflow_engine_witness_is_exact_gated_and_standalone_only(self):
         workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();namespace=(HERE/"ci_namespace.sh").read_text();sanitizer=(HERE/"sanitize_publication.py").read_text()
         self.assertTrue(CI.workflow_contract(workflow.encode()))
@@ -518,6 +528,8 @@ class RunnerContracts(unittest.TestCase):
         scene=workflow.split("      - name: Real B0 J1 R2 same-binary scene",1)[1].split("      - name: Reacquire source after every attempt",1)[0]
         failure=workflow.split("      - name: Publish only bounded failure classification",1)[1].split("      - if: always()",1)[0]
         self.assertIn("id: bootstrap_progress",dedicated);self.assertNotIn("continue-on-error",dedicated)
+        for required in ("bridge-payload-digest","digest==sys.argv[4]","--reuid=10001","--clear-groups","trap 'finish_bootstrap \"$?\"' EXIT","--bridge-mode cleanup","--bridge-mode final-absence",'"$script" bootstrap-progress'):
+            self.assertIn(required,dedicated)
         self.assertIn("steps.bootstrap_progress.outcome == 'success'",scene);self.assertNotIn(".conclusion",scene+failure)
         for text in (scene,failure,namespace):
             self.assertIn("bootstrap_progress",text);self.assertIn("bootstrap-step",text.replace("_","-").lower())
@@ -575,9 +587,29 @@ class RunnerContracts(unittest.TestCase):
             "uid-step-duplicated":once("      - name: Independently validate UID probe diagnostic\n","      - name: Probe isolated Linux UID custody\n"+uid_block+"      - name: Independently validate UID probe diagnostic\n"),
             "uid-replay-truncated":once('          cmp "$input" "$output"\n'),
             "uid-install-comment-spoof":once('          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n','          # if run_uid uid-install-replacement; then :; else original_code=$?; fi\n'),
+            "bootstrap-bridge-setup-removed":once('          if created_bridge="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup)"; then bridge_active=true; else exit $?; fi\n'),
+            "bootstrap-payload-digest-bypassed":once("digest==sys.argv[4]","True"),
+            "bootstrap-preflight-removed":once('          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight" "$runner" "$script" "$bridge_contract" "$payload_digest" >/dev/null 2>/dev/null; then :; else exit $?; fi\n'),
+            "bootstrap-original-script-reintroduced":once('"$script" bootstrap-progress','"$source_script" bootstrap-progress'),
+            "bootstrap-cleanup-first-failure-overwritten":once('          if test "$final_status" = 0 && test "$cleanup_status" != 0; then final_status="$cleanup_status"; fi\n','          if test "$cleanup_status" != 0; then final_status="$cleanup_status"; fi\n'),
+            "bootstrap-cleanup-removed":once('              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi\n'),
+            "bootstrap-final-absence-removed":once('            if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0; else absence_status=$?; fi\n'),
         }
         for name,mutant in mutants.items():
             with self.subTest(name=name),self.assertRaises(ValueError):CI.workflow_contract(mutant.encode())
+    def test_bootstrap_bridge_cleanup_stub_preserves_primary_and_promotes_only_later_failure(self):
+        workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();dedicated=workflow.split("      - name: Bootstrap bounded namespace progress\n",1)[1].split("      - name: Real B0 J1 R2 same-binary scene\n",1)[0]
+        function="finish_bootstrap(){\n"+dedicated.split("          finish_bootstrap(){\n",1)[1].split("          }\n",1)[0]+"}\n"
+        function="\n".join(line[10:] if line.startswith("          ") else line for line in function.splitlines())+"\n"
+        bash=shutil.which("bash") or (r"C:\Program Files\Git\bin\bash.exe" if pathlib.Path(r"C:\Program Files\Git\bin\bash.exe").is_file() else None);self.assertIsNotNone(bash)
+        cases=((7,31,32,7),(0,31,32,31),(0,0,32,32),(0,0,0,0))
+        with tempfile.TemporaryDirectory() as d:
+            trace=pathlib.Path(d)/"trace"
+            stub=function+'sudo(){ case " $* " in *" --bridge-mode cleanup "*) printf "cleanup\\n" >>"$TRACE"; return "$CLEANUP";; *" --bridge-mode final-absence "*) printf "absence\\n" >>"$TRACE"; return "$ABSENCE";; *) return 99;; esac; }\nbridge_active=true\nsource_script=fixed\nbridge=(fixed)\nfinish_bootstrap "$PRIMARY"\n'
+            for primary,cleanup,absence,expected in cases:
+                trace.unlink(missing_ok=True);environment={**os.environ,"PRIMARY":str(primary),"CLEANUP":str(cleanup),"ABSENCE":str(absence),"TRACE":str(trace).replace("\\","/")}
+                result=subprocess.run([str(bash),"-c",stub],env=environment,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
+                self.assertEqual(result.returncode,expected,result.stderr.decode(errors="replace"));self.assertEqual(trace.read_text().splitlines(),["cleanup","absence"])
     def test_uid_probe_inventory_order_and_model_boundary_are_source_closed(self):
         workflow=(HERE.parents[2]/".github/workflows/chengwang-joint-control-plane.yml").read_text();source=pathlib.Path(CI.__file__).read_text();tree=ast.parse(source)
         self.assertEqual(CI.PROBE_MODES,{"root-setup","uid-prepublish-denials","root-finalize","uid-final-read-and-rename","uid-install-replacement","root-reject-replacement","root-cleanup","root-final-absence"})

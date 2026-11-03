@@ -4,6 +4,8 @@ from unittest import mock
 HERE=pathlib.Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location("joint_sanitizer_test",HERE/"sanitize_publication.py");S=importlib.util.module_from_spec(spec);spec.loader.exec_module(S)
 def put(path,value):path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(S.canonical(value) if not isinstance(value,bytes) else value)
+def localization(progress,detail,step,record,child,observed_record=None,observed_child=None):
+    return {"progressRootState":progress,"failureDetailState":detail,"bootstrapStepOutcome":step,"bootstrapRecordState":record,"bootstrapChildState":child,"bootstrapObservationScope":S.C.BOOTSTRAP_OBSERVATION_SCOPE,"bootstrapObservedRecordState":record if observed_record is None else observed_record,"bootstrapObservedChildState":child if observed_child is None else observed_child}
 def private_tree(root,stage):
     token="source-token-0123456789";mihomo="mihomo-token-0123456789"
     source=lambda ref:{"referenceId":ref,"revision":1,"secretVersion":"v1","url":"https://"+ref+".subscription.example/subscription?token="+token+ref,"allowedCnames":[],"caPEM":"PUBLIC-CA"}
@@ -70,7 +72,7 @@ class SanitizerContracts(unittest.TestCase):
     def test_failure_projection_never_copies_private_bytes(self):
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);inp=root/"in";inp.mkdir();put(inp/"raw",b"PRIVATE SECRET MATERIAL");out=root/"public/failure.json";S.failure(inp,out,"SCENE_FAILED");value=S.decode(out)
-            self.assertEqual(value["retainedPrivateFileCount"],1);self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertEqual(value["localizationEvidence"],{"progressRootState":"ABSENT","failureDetailState":"NOT_EVALUATED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN"});self.assertEqual(value["schema"],"chengwang.joint-control-plane-safe-failure/v5");self.assertEqual(value["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE");self.assertNotIn("SECRET",out.read_text())
+            self.assertEqual(value["retainedPrivateFileCount"],1);self.assertEqual(value["failureClassification"],S.C.unknown_failure_classification());self.assertEqual(value["localizationEvidence"],localization("ABSENT","NOT_EVALUATED","MISSING","ABSENT","UNKNOWN"));self.assertEqual(value["schema"],"chengwang.joint-control-plane-safe-failure/v6");self.assertEqual(value["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE");self.assertNotIn("SECRET",out.read_text())
         with tempfile.TemporaryDirectory() as d:
             root=pathlib.Path(d);private=root/"private";staging=root/"staging";private.mkdir();staging.mkdir();put(private/"server.stderr",b"PRIVATE SERVER DIAGNOSTIC")
             S.failure(private,staging/"private-failure-identity.json","PRIVATE_SCENE_FAILED");S.failure(staging,root/"public/failure.json","SCENE_FAILED");value=S.decode(root/"public/failure.json")
@@ -90,7 +92,7 @@ class SanitizerContracts(unittest.TestCase):
             raw=out.read_bytes();value=S.decode(out)
             self.assertLessEqual(len(raw),4096);self.assertEqual(set(value["failureClassification"]),S.C.FAILURE_CLASSIFICATION_KEYS)
             self.assertEqual(value["failureClassification"],{"failurePhase":"B0","lastCompletedPhase":"FIXTURE_START","exceptionType":"PERMISSION_ERROR","failureReasonCode":"UNKNOWN","failedCaptureName":"success-fetch-r1","lastCompletedCaptureName":"success-approve-r1"})
-            self.assertEqual(value["localizationEvidence"],{"progressRootState":"ACCEPTED","failureDetailState":"ACCEPTED","bootstrapStepOutcome":"MISSING","bootstrapRecordState":"ABSENT","bootstrapChildState":"UNKNOWN"})
+            self.assertEqual(value["localizationEvidence"],localization("ACCEPTED","ACCEPTED","MISSING","ABSENT","UNKNOWN"))
             for secret in (b"Bearer",b"TOKEN",b"private.invalid",b"/private/path",b"request-body",b"response-body"):self.assertNotIn(secret,raw)
             self.assertFalse(value["privateEvidencePublished"]);self.assertEqual(value["status"],"FAIL")
     def test_nested_scene_classification_is_independently_equal_or_rejected(self):
@@ -122,9 +124,12 @@ class SanitizerContracts(unittest.TestCase):
             root=pathlib.Path(d);private=root/"private";staging=root/"staging";progress=staging/"failure-localization.private";record=staging/S.C.BOOTSTRAP_DIRECTORY/S.C.BOOTSTRAP_FILE
             private.mkdir();staging.mkdir();progress.mkdir();record.parent.mkdir();put(private/"raw",b"PRIVATE");put(record,{"schema":S.C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"PASS"})
             with mock.patch.object(S.C,"_owned_mode",return_value=True):S.failure(private,root/"accepted.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success",commit)
-            accepted=S.decode(root/"accepted.json");self.assertEqual(accepted["localizationEvidence"],{"progressRootState":"EMPTY","failureDetailState":"ABSENT","bootstrapStepOutcome":"SUCCESS","bootstrapRecordState":"ACCEPTED","bootstrapChildState":"PASS"});self.assertEqual(accepted["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE")
+            accepted=S.decode(root/"accepted.json");self.assertEqual(accepted["localizationEvidence"],localization("EMPTY","ABSENT","SUCCESS","ACCEPTED","PASS"));self.assertEqual(accepted["provenanceAuthority"],"NON_AUTHORITATIVE_STANDALONE")
             with mock.patch.object(S.C,"_owned_mode",return_value=False):S.failure(private,root/"rejected.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","success",commit)
-            rejected=S.decode(root/"rejected.json");self.assertEqual(rejected["localizationEvidence"]["bootstrapRecordState"],"INVALID");self.assertEqual(rejected["localizationEvidence"]["bootstrapChildState"],"UNKNOWN")
+            rejected=S.decode(root/"rejected.json");self.assertEqual(rejected["localizationEvidence"]["bootstrapRecordState"],"INVALID");self.assertEqual(rejected["localizationEvidence"]["bootstrapChildState"],"UNKNOWN");self.assertEqual((rejected["localizationEvidence"]["bootstrapObservedRecordState"],rejected["localizationEvidence"]["bootstrapObservedChildState"]),("INVALID","UNKNOWN"))
+            record.write_bytes(S.C.canonical({"schema":S.C.BOOTSTRAP_SCHEMA,"sourceCommit":commit,"bootstrapChildState":"COMMAND_NONZERO"}))
+            with mock.patch.object(S.C,"_owned_mode",return_value=True):S.failure(private,root/"failed-step.json","SCENE_FAILED",progress,commit,record,"bootstrap_progress","failure",commit)
+            failed=S.decode(root/"failed-step.json");self.assertEqual((failed["localizationEvidence"]["bootstrapRecordState"],failed["localizationEvidence"]["bootstrapChildState"]),("INVALID","UNKNOWN"));self.assertEqual((failed["localizationEvidence"]["bootstrapObservationScope"],failed["localizationEvidence"]["bootstrapObservedRecordState"],failed["localizationEvidence"]["bootstrapObservedChildState"]),(S.C.BOOTSTRAP_OBSERVATION_SCOPE,"ACCEPTED","COMMAND_NONZERO"))
     def test_matching_direct_tuple_is_intentionally_indistinguishable_but_non_authoritative(self):
         commit="5"*40
         with tempfile.TemporaryDirectory() as d:

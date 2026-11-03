@@ -32,12 +32,43 @@ jobs:
         with:
           persist-credentials: false
       - name: Run bounded producer and independent-reader models only
+        id: source_models
         run: |
-          set -euo pipefail
-          cd chengwang/deploy/mihomo-lifecycle-lab
-          python3 -B -m unittest -v test_continuous_recovery_api_model
-          git -C "$GITHUB_WORKSPACE" diff --exit-code
-          test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain=v1 --untracked-files=all)"
+          set -uo pipefail
+          helper=chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_model_outcomes.py
+          private="$RUNNER_TEMP/mihomo-continuous-source-model-private"
+          public="$RUNNER_TEMP/mihomo-continuous-source-model-public"
+          if test ! -e "$private" && test ! -L "$private" && test ! -e "$public" && test ! -L "$public"; then :; else exit 2; fi
+          if ! install -d -m 0700 "$private" || ! install -d -m 0755 "$public"; then exit 2; fi
+          if ! source_tree="$(git -C "$GITHUB_WORKSPACE" rev-parse "$GITHUB_SHA^{tree}")"; then exit 2; fi
+          model_code=0
+          python3 -I -B "$helper" run --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+            --source-tree "$source_tree" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --output "$private/model-outcome.json" || model_code=$?
+          check_code=1
+          if test -f "$private/model-outcome.json"; then
+            check_code=0
+            python3 -I -B "$helper" check --repo "$GITHUB_WORKSPACE" --source-commit "$GITHUB_SHA" \
+              --source-tree "$source_tree" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --input "$private/model-outcome.json" --output "$public/model-outcome.json" || check_code=$?
+          fi
+          if test "$check_code" -eq 0; then
+            if ! printf '%s\n' 'model_outcome_ready=true' >> "$GITHUB_OUTPUT"; then check_code=2; fi
+          fi
+          source_code=0
+          git -C "$GITHUB_WORKSPACE" diff --exit-code || source_code=$?
+          test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain=v1 --untracked-files=all)" || source_code=$?
+          if test "$model_code" -ne 0; then exit "$model_code"; fi
+          if test "$check_code" -ne 0; then exit "$check_code"; fi
+          exit "$source_code"
+      - name: Preserve independently checked source-model outcomes only
+        if: ${{ always() && steps.source_models.outputs.model_outcome_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihomo-continuous-source-model-outcomes-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihomo-continuous-source-model-public/model-outcome.json
+          if-no-files-found: error
+          retention-days: 14
   continuous-fault-model:
     needs: [development-only, source-models]
     runs-on: ubuntu-24.04

@@ -85,7 +85,10 @@ class Process:
 
 class ContinuousRecoveryAPIModel(unittest.TestCase):
     @classmethod
-    def setUpClass(cls): cls.reader=load('continuous_reader', 'check_continuous_recovery_api.py'); cls.worker=load('continuous_worker','continuous_recovery_api_worker.py')
+    def setUpClass(cls):
+        cls.reader=load('continuous_reader','check_continuous_recovery_api.py')
+        cls.worker=load('continuous_worker','continuous_recovery_api_worker.py')
+        cls.model_outcomes=load('continuous_model_outcomes','continuous_recovery_model_outcomes.py')
 
     def test_fresh_readback_requires_successful_api_producer(self):
         workflow=(HERE.parents[2]/'.github/workflows/chengwang-mihomo-continuous-recovery-api.yml').read_text(encoding='utf8')
@@ -464,6 +467,61 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
         self.assertNotIn('if: ${{ always() }}',upload)
         for forbidden in ('*.stdout','*.stderr','continuous.json','kernel.stdout','kernel.stderr','candidate.gz'):
             self.assertNotIn(forbidden,upload)
+        helper=self.model_outcomes
+        source=(HERE/'test_continuous_recovery_api_model.py').read_bytes()
+        expected,source_sha=helper.inventory(source)
+        self.assertEqual((len(expected),helper.sha('\n'.join(expected).encode())),(12,helper.EXPECTED_IDS_SHA256))
+        commit='a'*40; tree='b'*40; run_id='41568557617'; attempt='1'
+        accepted=helper.make_value(commit,tree,run_id,attempt,source_sha,expected,expected,expected,(), 'NONE')
+        accepted_raw=helper.canonical(accepted)
+        self.assertTrue(helper.validate(accepted_raw,commit,tree,run_id,attempt,source_sha)['suiteAccepted'])
+        failed_id=expected[0]; passed=tuple(name for name in expected if name!=failed_id)
+        rejected=helper.make_value(commit,tree,run_id,attempt,source_sha,expected,expected,passed,
+          ((failed_id,'ASSERTION_FAILURE'),),'NONE')
+        rejected_raw=helper.canonical(rejected)
+        self.assertFalse(helper.validate(rejected_raw,commit,tree,run_id,attempt,source_sha)['suiteAccepted'])
+        load_error=helper.make_value(commit,tree,run_id,attempt,source_sha,(),(),(),(), 'MODULE_LOAD_ERROR')
+        self.assertFalse(helper.validate(helper.canonical(load_error),commit,tree,run_id,attempt,source_sha)['suiteAccepted'])
+        secret='MODEL_PRIVATE_CANARY_7f2e54b910'
+        self.assertNotIn(secret,accepted_raw.decode());self.assertNotIn(secret,rejected_raw.decode())
+        mutants=[]
+        def changed(key,value):
+            mutant=copy.deepcopy(rejected);mutant[key]=value;mutants.append(mutant)
+        extra=copy.deepcopy(rejected);extra['traceback']=secret;mutants.append(extra)
+        changed('sourceCommit','c'*40);changed('sourceTree','c'*40);changed('runId','2');changed('runAttempt','2')
+        changed('expectedCount',True);changed('expectedIdsSHA256','0'*64);changed('modelSourceSHA256','0'*64)
+        changed('loadedIds',list(expected[:-1]));changed('runIds',list(expected)+[expected[0]])
+        changed('passedIds',list(expected));changed('failedIds',[]);changed('notRunIds',[expected[0]])
+        wrong_class=copy.deepcopy(rejected);wrong_class['failureClasses'][0]['class']='PRIVATE_EXCEPTION';mutants.append(wrong_class)
+        extra_row=copy.deepcopy(rejected);extra_row['failureClasses'][0]['message']=secret;mutants.append(extra_row)
+        changed('runnerFailureClass',False);changed('suiteAccepted',True);changed('sourceCleanBefore',False)
+        changed('sourceCleanAfter',False);changed('production',True)
+        for index,mutant in enumerate(mutants):
+            with self.subTest(model_outcome_mutant=index),self.assertRaises((ValueError,TypeError,KeyError,AssertionError)):
+                helper.validate(helper.canonical(mutant),commit,tree,run_id,attempt,source_sha)
+        with self.assertRaises(ValueError):helper.validate(rejected_raw.replace(b':',b': ',1),commit,tree,run_id,attempt,source_sha)
+        with self.assertRaises(ValueError):helper.validate(rejected_raw+b' '*(helper.MAXIMUM+1),commit,tree,run_id,attempt,source_sha)
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);private=root/'model-outcome.json';helper.write_new(private,rejected_raw,0o600)
+            with self.assertRaises(FileExistsError):helper.write_new(private,rejected_raw,0o600)
+            linked=root/'linked.json';os.link(private,linked)
+            with self.assertRaises(ValueError):helper.read_stable(private)
+            with self.assertRaises(ValueError):helper.exact_directory(root,(private.name,))
+        helper_source=(HERE/'continuous_recovery_model_outcomes.py').read_text(encoding='utf8')
+        self.assertIn('O_NOFOLLOW',helper_source)
+        model_upload='          name: mihomo-continuous-source-model-outcomes-${{ github.run_id }}-${{ github.run_attempt }}\n'
+        self.assertEqual(workflow.count(model_upload),1)
+        model_block=workflow.split('      - name: Run bounded producer and independent-reader models only\n',1)[1].split('      - name: Preserve independently checked source-model outcomes only\n',1)[0]
+        self.assertEqual(model_block.count('helper=chengwang/deploy/mihomo-lifecycle-lab/continuous_recovery_model_outcomes.py'),1)
+        self.assertEqual(model_block.count('python3 -I -B "$helper" run'),1)
+        self.assertEqual(model_block.count('python3 -I -B "$helper" check'),1)
+        self.assertIn('model_outcome_ready=true',model_block)
+        self.assertLess(model_block.index('exit "$model_code"'),model_block.index('exit "$check_code"'))
+        model_upload_block=workflow.split('      - name: Preserve independently checked source-model outcomes only\n',1)[1].split('\n  continuous-fault-model:',1)[0]
+        self.assertIn("if: ${{ always() && steps.source_models.outputs.model_outcome_ready == 'true' }}",model_upload_block)
+        self.assertIn('path: ${{ runner.temp }}/mihomo-continuous-source-model-public/model-outcome.json',model_upload_block)
+        for forbidden in ('*.stdout','*.stderr','continuous.json','kernel.stdout','kernel.stderr','private/'):
+            self.assertNotIn(forbidden,model_upload_block)
 
     def test_producer_and_reader_independently_bind_full_tracked_git_set(self):
         with tempfile.TemporaryDirectory() as td:
@@ -722,7 +780,10 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                 report=self.reader.project_safe(HERE.parents[2],public,'a'*40,'41560358243','1',safe)
                 self.assertEqual(self.reader.safe_root(HERE.parents[2],safe,'a'*40,'41560358243','1'),report)
             self.assertEqual(set(x.name for x in safe.iterdir()),{'verification.json','evidence'})
-            self.assertEqual(tuple(x.name for x in (safe/'evidence').iterdir()),self.reader.SAFE_EVIDENCE)
+            evidence_names=tuple(x.name for x in (safe/'evidence').iterdir())
+            self.assertEqual(len(evidence_names),len(self.reader.SAFE_EVIDENCE))
+            self.assertEqual(set(evidence_names),set(self.reader.SAFE_EVIDENCE))
+            self.assertEqual(tuple(row['name'] for row in report['files']),self.reader.SAFE_EVIDENCE)
             self.assertEqual((report['httpResponses'],report['recoveries'],report['closedPorts'],report['commands'],report['processEvents']),(31,2,6,4,16))
             self.assertEqual(len(report['files']),42)
             self.assertEqual((safe/'evidence/http-001.response.json').read_bytes(),reordered)
@@ -740,6 +801,24 @@ class ContinuousRecoveryAPIModel(unittest.TestCase):
                 with mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')),self.assertRaises((ValueError,TypeError)):
                     self.reader.project_safe(HERE.parents[2],public,'a'*40,'41560358243','1',safe)
                 self.assertFalse(safe.exists())
+
+    def test_safe_projection_accepts_reversed_filesystem_enumeration_but_keeps_canonical_report(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); public=root/'public'; safe=root/'safe'; binding,_=self.full_public_fixture(public)
+            original_iterdir=Path.iterdir
+            def reversed_evidence_iterdir(path):
+                rows=tuple(original_iterdir(path))
+                return iter(reversed(rows)) if path==safe/'evidence' else iter(rows)
+            with mock.patch.object(Path,'iterdir',new=reversed_evidence_iterdir),\
+                 mock.patch.object(self.reader,'git_manifest',return_value=(binding,b'manifest')):
+                report=self.reader.project_safe(HERE.parents[2],public,'a'*40,'41560358243','1',safe)
+                observed=tuple(path.name for path in (safe/'evidence').iterdir())
+                readback=self.reader.safe_root(HERE.parents[2],safe,'a'*40,'41560358243','1')
+            self.assertEqual(len(observed),len(self.reader.SAFE_EVIDENCE))
+            self.assertEqual(set(observed),set(self.reader.SAFE_EVIDENCE))
+            self.assertNotEqual(observed,self.reader.SAFE_EVIDENCE)
+            self.assertEqual(tuple(row['name'] for row in report['files']),self.reader.SAFE_EVIDENCE)
+            self.assertEqual(readback,report)
 
     def test_safe_evidence_rejects_file_identity_and_semantic_mutants(self):
         marker='SCHEMA_CANARY_9e6b4c2d1a70'

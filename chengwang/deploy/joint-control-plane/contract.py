@@ -143,7 +143,8 @@ PROGRESS_SEQUENCE = tuple(
 )
 LOCALIZATION_KEYS = frozenset((
     "progressRootState", "failureDetailState", "bootstrapStepOutcome",
-    "bootstrapRecordState", "bootstrapChildState",
+    "bootstrapRecordState", "bootstrapChildState", "bootstrapObservationScope",
+    "bootstrapObservedRecordState", "bootstrapObservedChildState",
 ))
 PROGRESS_STATES = frozenset(("ABSENT", "EMPTY", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
 DETAIL_STATES = frozenset(("NOT_EVALUATED", "ABSENT", "ACCEPTED", "INVALID", "READ_FAILED", "SOURCE_MISMATCH"))
@@ -156,6 +157,7 @@ BOOTSTRAP_DIRECTORY = "bootstrap-localization.private"
 BOOTSTRAP_FILE = "status.json"
 BOOTSTRAP_MAXIMUM = 512
 BOOTSTRAP_STEP_ID = "bootstrap_progress"
+BOOTSTRAP_OBSERVATION_SCOPE = "NON_AUTHORITATIVE_BOOTSTRAP_CHILD_OBSERVATION_NOT_CAUSE"
 BOOTSTRAP_STEP_OUTCOMES = frozenset((
     "SUCCESS", "FAILURE", "CANCELLED", "SKIPPED", "MISSING", "UNKNOWN",
 ))
@@ -558,7 +560,9 @@ def localization_evidence(progress_root, bootstrap_record, source_commit,
     step_outcome = bootstrap_step_outcome(
         bootstrap_step_id, bootstrap_step_outcome_value,
         bootstrap_step_source, source_commit)
-    record_state, child_state = bootstrap_record_state(bootstrap_record, source_commit)
+    observed_record_state, observed_child_state = bootstrap_record_state(
+        bootstrap_record, source_commit)
+    record_state, child_state = observed_record_state, observed_child_state
     require(progress_state in PROGRESS_STATES and detail_state in DETAIL_STATES and
             step_outcome in BOOTSTRAP_STEP_OUTCOMES and
             record_state in BOOTSTRAP_RECORD_STATES and child_state in BOOTSTRAP_CHILD_STATES,
@@ -570,7 +574,12 @@ def localization_evidence(progress_root, bootstrap_record, source_commit,
         child_state = "UNKNOWN"
     return {"progressRootState": progress_state, "failureDetailState": detail_state,
             "bootstrapStepOutcome": step_outcome,
-            "bootstrapRecordState": record_state, "bootstrapChildState": child_state}
+            "bootstrapRecordState": record_state, "bootstrapChildState": child_state,
+            "bootstrapObservationScope": BOOTSTRAP_OBSERVATION_SCOPE,
+            "bootstrapObservedRecordState": observed_record_state,
+            "bootstrapObservedChildState": (observed_child_state
+                                            if observed_record_state == "ACCEPTED"
+                                            else "UNKNOWN")}
 
 def _root_writer():
     return os.name == "posix" and os.geteuid() == 0

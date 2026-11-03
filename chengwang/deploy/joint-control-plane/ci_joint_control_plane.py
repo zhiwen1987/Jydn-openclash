@@ -4,20 +4,12 @@ import argparse, ast, errno, hashlib, importlib.util, json, os, pathlib, re, sel
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_ci_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 WORKFLOW=".github/workflows/chengwang-joint-control-plane.yml"
-WORKFLOW_NORMALIZED_SHA256="d9f5c6efe9db50fdd13e0ccbdcc365e6fcca4ae0de565b092507f64777b73b8d"
+WORKFLOW_NORMALIZED_SHA256="65878f3fad46a7abcd305a0a24628d9e4e61d65e194c9251f71625fdaec46563"
 MODEL_TEST_SOURCES=("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py","test_uid_probe_diagnostic.py","test_check_uid_probe_diagnostic.py")
 MODEL_OUTCOMES=("PASS","FAIL","ERROR","SKIP","UNKNOWN")
 MODEL_DIAGNOSTIC_SCHEMA="chengwang.joint-control-plane-model-outcomes/v1"
 MODEL_DIAGNOSTIC_MAXIMUM=16384
-BOOTSTRAP_STEP=(
-    "- name: Bootstrap bounded namespace progress",
-    "  id: bootstrap_progress",
-    "  run: |",
-    "    set -euo pipefail",
-    "    root=\"$RUNNER_TEMP/joint-control-plane\"; progress=\"$root/evidence/staging/failure-localization.private\"; bootstrap=\"$root/evidence/staging/bootstrap-localization.private/status.json\"",
-    "    test ! -e \"$progress\"; test ! -L \"$progress\"; sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 \"$progress\"",
-    "    sudo --non-interactive /usr/bin/python3 -I -B \"$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py\" bootstrap-progress --progress-root \"$progress\" --bootstrap-record \"$bootstrap\" --source-commit \"$GITHUB_SHA\"",
-)
+BOOTSTRAP_STEP_SHA256="b36c7d1f31c0a0a3e10fcfbfb162cc29b76d1f08a6581951fe0f7757d6c11532"
 SCENE_STEP=(
     "- name: Real B0 J1 R2 same-binary scene",
     "  if: ${{ steps.bootstrap_progress.outcome == 'success' }}",
@@ -161,7 +153,8 @@ def workflow_contract(raw,source_contract_raw=None):
             name=block[0][8:];need(name and name not in named);named[name]=block
     ids=[line[6:] for block in blocks for line in block if line.startswith("  id: ")]
     need(len(ids)==len(set(ids)) and ids.count("bootstrap_progress")==1)
-    need(named.get("Bootstrap bounded namespace progress")==BOOTSTRAP_STEP)
+    bootstrap_block=named.get("Bootstrap bounded namespace progress")
+    need(bootstrap_block is not None and hashlib.sha256(("\n".join(bootstrap_block)+"\n").encode()).hexdigest()==BOOTSTRAP_STEP_SHA256)
     need(named.get("Real B0 J1 R2 same-binary scene")==SCENE_STEP)
     need(named.get("Publish only bounded failure classification")==FAILURE_STEP)
     need(named.get("CPU contracts and Go suite")==CPU_STEP)

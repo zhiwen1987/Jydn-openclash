@@ -12,7 +12,7 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 2e1f0d934f654374fa7a872dbfca6667429f4e86f351a0dbf3a4ece3d50df802
+  CONTRACT_SHA256: d0c3689dee3999a598e2b60051f0bbdd83064f18de590c0989a3a4c20380339a
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
   UID_PROBE_PRODUCER_SHA256: 98982bd151c9289534fa7421a1520ba51ff67ceb0fd930065e227321e419052d
   UID_PROBE_CHECKER_SHA256: 04fdd2ac9acbc2dafa7c2ecab9910b3346649042569dbaeb9cec4efb056e81c8
@@ -279,10 +279,53 @@ jobs:
       - name: Bootstrap bounded namespace progress
         id: bootstrap_progress
         run: |
-          set -euo pipefail
+          set -uo pipefail
           root="$RUNNER_TEMP/joint-control-plane"; progress="$root/evidence/staging/failure-localization.private"; bootstrap="$root/evidence/staging/bootstrap-localization.private/status.json"
-          test ! -e "$progress"; test ! -L "$progress"; sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 "$progress"
-          sudo --non-interactive /usr/bin/python3 -I -B "$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py" bootstrap-progress --progress-root "$progress" --bootstrap-record "$bootstrap" --source-commit "$GITHUB_SHA"
+          source_script="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py"; source_contract="$GITHUB_WORKSPACE/$CONTRACT"; bridge_parent=/tmp
+          if bridge_parent_device="$(stat -Lc '%d' -- "$bridge_parent")" && bridge_parent_inode="$(stat -Lc '%i' -- "$bridge_parent")"; then :; else exit $?; fi
+          if bridge_nonce="$(/usr/bin/python3 -I -B -c 'import secrets;print(secrets.token_hex(16))')"; then :; else exit $?; fi
+          bridge_root="$bridge_parent/chengwang-joint-uid-bridge-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$bridge_nonce"
+          bridge=(bootstrap-permission-bridge --repo "$GITHUB_WORKSPACE" --source-contract "$source_contract" --bridge-parent "$bridge_parent" --bridge-parent-device "$bridge_parent_device" --bridge-parent-inode "$bridge_parent_inode" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --bridge-nonce "$bridge_nonce")
+          bridge_active=false
+          finish_bootstrap(){
+            local saved_exit="$1" final_status cleanup_status absence_status
+            trap - EXIT; final_status="$saved_exit"
+            if test "$bridge_active" = true; then
+              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi
+            else cleanup_status=0; fi
+            if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0; else absence_status=$?; fi
+            if test "$final_status" = 0 && test "$cleanup_status" != 0; then final_status="$cleanup_status"; fi
+            if test "$final_status" = 0 && test "$absence_status" != 0; then final_status="$absence_status"; fi
+            exit "$final_status"
+          }
+          trap 'finish_bootstrap "$?"' EXIT
+          if test ! -e "$progress" && test ! -L "$progress"; then :; else exit 1; fi
+          if sudo --non-interactive install -d -m 0700 -o 10001 -g 10001 "$progress"; then :; else exit $?; fi
+          if payload_digest="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" bridge-payload-digest --repo "$GITHUB_WORKSPACE" --source-contract "$source_contract")"; then :; else exit $?; fi
+          if created_bridge="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup)"; then bridge_active=true; else exit $?; fi
+          if test "$created_bridge" = "$bridge_root"; then :; else exit 1; fi
+          script="$bridge_root/payload/ci_joint_control_plane.py"; bridge_contract="$bridge_root/payload/contract.py"; runner="$bridge_root/runner"
+          bridge_preflight='import hashlib,json,os,stat,sys
+          try:
+           rows=[]
+           for relative,path in zip(("chengwang/deploy/joint-control-plane/ci_joint_control_plane.py","chengwang/deploy/joint-control-plane/contract.py"),sys.argv[2:4]):
+            fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|getattr(os,"O_NOFOLLOW",0));raw=bytearray()
+            try:
+             meta=os.fstat(fd)
+             if not stat.S_ISREG(meta.st_mode) or meta.st_nlink!=1: raise OSError()
+             while True:
+              chunk=os.read(fd,65536)
+              if not chunk: break
+              raw.extend(chunk)
+              if len(raw)>1048576: raise OSError()
+            finally: os.close(fd)
+            rows.append({"path":relative,"sha256":hashlib.sha256(raw).hexdigest()})
+           digest=hashlib.sha256((json.dumps(rows,sort_keys=True,separators=(",",":"))+"\n").encode()).hexdigest()
+           raise SystemExit(0 if os.access(sys.argv[1],os.X_OK,effective_ids=True) and digest==sys.argv[4] else 41 if not os.access(sys.argv[1],os.X_OK,effective_ids=True) else 43)
+          except SystemExit: raise
+          except BaseException: raise SystemExit(42)'
+          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight" "$runner" "$script" "$bridge_contract" "$payload_digest" >/dev/null 2>/dev/null; then :; else exit $?; fi
+          if sudo --non-interactive /usr/bin/python3 -I -B "$script" bootstrap-progress --progress-root "$progress" --bootstrap-record "$bootstrap" --source-commit "$GITHUB_SHA"; then exit 0; else exit $?; fi
       - name: Real B0 J1 R2 same-binary scene
         if: ${{ steps.bootstrap_progress.outcome == 'success' }}
         env:

@@ -139,7 +139,7 @@ def synthetic_commands(reader,go_root,go_exit):
 
 
 def synthetic_single_evidence(reader,rows,go_exit=0):
-    commit='3'*40;go_root=Path('C:/fixed-go-root');profile=synthetic_profile(reader);profile_sha=reader.sha(profile)
+    commit='3'*40;go_root=Path('//fixed/go-root');profile=synthetic_profile(reader);profile_sha=reader.sha(profile)
     host={'networkNamespace':'net:[1]','mountNamespace':'mnt:[1]','pidNamespace':'pid:[1]','resolvSHA256':'a'*64}
     sandbox={'schema':'chengwang.capacity-profile-sandbox/v1','uid':10001,'gid':10001,'effectiveCaps':'0000000000000000',
         'noNewPrivileges':True,'interfaces':['lo'],'defaultRoutes':{'ipv4':[],'ipv6':[]},'environmentKeys':reader.ENV,

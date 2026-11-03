@@ -326,10 +326,7 @@ class SetupDiagnosticModels(unittest.TestCase):
         self.assertIn('local status=$?', runner)
         self.assertIn('setup_event "$active_phase" FAIL "$status" || true', runner)
         bash = shutil.which("bash")
-        if bash is None:
-            for phase in gate.SETUP_PHASES:
-                self.assertIn(f"phase_enter {phase}", runner)
-            return
+        self.assertIsNotNone(bash, "bash-required-for-executable-exit-stub-model")
         script = r'''set -euo pipefail
 active_phase="$1"
 output="$2"
