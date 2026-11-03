@@ -1,0 +1,237 @@
+{
+  "schema": "chengwang.fa7136-four-component-source-stage-progress/v1",
+  "date": "2026-11-03",
+  "classification": "CURRENT_SOURCE_CHECKPOINT_SOURCE_ONLY",
+  "formal": {
+    "commit": "fa7136afd6bbe18b46c7bc1e0b263578f027e12e",
+    "tree": "88e924578c432caa0d275c116c41864599655cb6",
+    "clean": true,
+    "pushed": false,
+    "integratedSourcePaths": 18
+  },
+  "integration": {
+    "baseCommit": "8e5fd014ed3858b25593142dece069b6f1ea7769",
+    "components": [
+      "official-gofmt-repair",
+      "capacity-fixture-b-oracle-setup-phase",
+      "uid-probe-bridge-v3",
+      "capacity-current-fixture-identity"
+    ],
+    "sliceA": {
+      "immutableRiskRecommendation": "HOLD_FOR_EVIDENCE_AT_REVIEW_TIME",
+      "workflowLabel": "hold_for_evidence",
+      "exactHeadChecksPassed": false,
+      "sourceSliceAssessment": "SOURCE_ACCEPT_FOR_CONTROLLED_INTEGRATION",
+      "sourceSliceAssessmentScope": "SLICE_A_SOURCE_ONLY",
+      "sourceSliceAssessmentEvidence": "sliceAReviewMarkdown",
+      "riskRecommendationEvidence": "sliceAReview",
+      "laterEvidenceDoesNotRewriteReviewDisposition": true
+    },
+    "sliceB": {
+      "recommendation": "MERGE",
+      "workflowLabel": "human_review_required",
+      "exactHeadChecksPassed": true,
+      "evidence": "sliceBReview"
+    },
+    "laterEvidenceAndDecision": {
+      "strictSourceModels": "SOURCE_MODEL_OUTPUT_ACCEPT",
+      "rootDecision": "COMMITTED_TO_DEVELOPMENT_BRANCH_ONLY",
+      "mainOrReleaseDecision": false,
+      "pushed": false
+    },
+    "profileFixture": {
+      "kind": "CURRENT_FIXTURE_IDENTITY_NOT_HISTORICAL_MEASUREMENT",
+      "sha256": "fab19f1ca714105f5002d31e2e37ca4cdb0296c5133431951ac81a1576056bc4"
+    }
+  },
+  "sourceModels": {
+    "scope": "PYTHON_SOURCE_MODELS_ONLY",
+    "result": "SOURCE_MODEL_OUTPUT_ACCEPT",
+    "expected": 263,
+    "actualSuccesses": 263,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "unexpectedSuccesses": 0,
+    "unknownIds": 0,
+    "groups": [
+      {
+        "name": "p207",
+        "expected": 83,
+        "actualSuccesses": 83,
+        "exit": 0
+      },
+      {
+        "name": "joint",
+        "expected": 104,
+        "actualSuccesses": 104,
+        "exit": 0
+      },
+      {
+        "name": "oracle",
+        "expected": 24,
+        "actualSuccesses": 24,
+        "exit": 0
+      },
+      {
+        "name": "profile",
+        "expected": 6,
+        "actualSuccesses": 6,
+        "exit": 0
+      },
+      {
+        "name": "timeline",
+        "expected": 46,
+        "actualSuccesses": 46,
+        "exit": 0
+      }
+    ],
+    "sourcePins": 26,
+    "sourcePinsMatched": 26,
+    "formalCleanBeforeAndAfterReview": true,
+    "goExecuted": false,
+    "runtimeAcceptanceProven": false
+  },
+  "failuresAndRevisionsPreserved": [
+    {
+      "item": "root-first-patch-prepare",
+      "result": "FAILED_BEFORE_SOURCE_APPLICATION",
+      "message": "part failed",
+      "exactChildCause": "UNKNOWN_NOT_CAPTURED",
+      "sourceApplied": false
+    },
+    {
+      "item": "strict-root-binding-v1",
+      "result": "REJECTED_BEFORE_EXECUTION",
+      "reason": "WRONG_DIRECTORY_DERIVATION"
+    },
+    {
+      "item": "uid-bridge-v1",
+      "result": "REVISE",
+      "reason": "PARTIAL_CLEANUP_0444_CONTENT_CHECK_BYPASS"
+    },
+    {
+      "item": "uid-bridge-v2",
+      "result": "SOURCE_ACCEPTED_THEN_FSM_GAP_FOUND"
+    },
+    {
+      "item": "uid-bridge-v3",
+      "result": "SOURCE_ACCEPTED_WITH_REAL_FOUR_TERMINAL_FIX_AND_COVERAGE"
+    },
+    {
+      "item": "older-4b-source-model-run",
+      "result": "FAILED_AND_RETAINED"
+    }
+  ],
+  "pendingOrUnknown": {
+    "go": "NOT_RUN_UNKNOWN",
+    "gofmt": "NOT_RUN_UNKNOWN",
+    "linuxUid": "NOT_RUN_UNKNOWN",
+    "jointBusiness": "NOT_RUN_UNKNOWN",
+    "continuous31": "NOT_RUN_UNKNOWN",
+    "newHeadCI": "NOT_RUN_UNKNOWN"
+  },
+  "archiveBoundary": {
+    "jycwHead": "d4035d5eb9c413ed195fffc3d5321f5b74244e05",
+    "coversThrough": "8e5fd014ed3858b25593142dece069b6f1ea7769",
+    "includesFa7136": false,
+    "historicalThirtyPackageFullAcceptance": "NOT_PROVEN"
+  },
+  "productState": {
+    "productMainBranchChanged": false,
+    "registryChanged": false,
+    "productionChanged": false
+  },
+  "docsAuthoringActions": {
+    "formalWritten": false,
+    "pushed": false,
+    "goExecuted": false,
+    "artifactDownloaded": false,
+    "productionChanged": false
+  },
+  "stageActionsDistinctFromDocsAuthor": {
+    "rootSourceCommit": "fa7136afd6bbe18b46c7bc1e0b263578f027e12e",
+    "rootSourceCommittedToDevelopmentBranch": true,
+    "strictPythonSourceModelsPassed": true,
+    "docsCandidateIntegrated": false,
+    "mainOrReleaseIntegrated": false
+  },
+  "historicalBaseline": {
+    "path": "chengwang/docs/SYS01-30-FACT-BASELINE-8E5F-20261103.md",
+    "boundCommit": "8e5fd014ed3858b25593142dece069b6f1ea7769",
+    "historical": true,
+    "currentCheckpoint": false,
+    "bytes": 14406,
+    "sha256": "a7acfdd11025543da2e36e7aa5cc7a0765565503dc051bba7cdff8792a107a58"
+  },
+  "evidence": {
+    "fourComponentRelease": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-four-component-unified-freeze-release-receipt-20261103-cd03-v1/FINAL.json",
+      "bytes": 2990,
+      "sha256": "6c8e7d24b265efa7662bb853f4c0dd53caf91e3eb8a85f958b15a6de16a2e202"
+    },
+    "sliceAReview": {
+      "path": "D:/CodexData/home/state/plugins/codex-security/scans/chengwang-8e5f-four-component-unified-source-freeze-20261103-cd03-v1/artifacts-140d9af3a47410f611786edc49c4719a727f78025b7bdeb7aacf9203c6b780b6/artifacts/independent-slice-a/FINAL-PATCH-RISK.json",
+      "bytes": 13864,
+      "sha256": "3401fae450cbd639fd72d8386af779b5961576dc59bd98feffa6940d21ed68cf"
+    },
+    "sliceAReviewMarkdown": {
+      "path": "D:/CodexData/home/state/plugins/codex-security/scans/chengwang-8e5f-four-component-unified-source-freeze-20261103-cd03-v1/artifacts-140d9af3a47410f611786edc49c4719a727f78025b7bdeb7aacf9203c6b780b6/artifacts/independent-slice-a/FINAL-REVIEW.md",
+      "bytes": 5006,
+      "sha256": "62dcc6a4429db40574fdef193e98e2c936d8dd7c5770285168afdc843c45995a"
+    },
+    "sliceBReview": {
+      "path": "D:/CodexData/home/state/plugins/codex-security/scans/chengwang-8e5f-four-component-unified-source-freeze-20261103-cd03-v1/artifacts-140d9af3a47410f611786edc49c4719a727f78025b7bdeb7aacf9203c6b780b6/artifacts/four-component-slice-b-independent-review/FINAL-SLICE-B-PATCH-RISK.json",
+      "bytes": 13384,
+      "sha256": "81a7b48020c0dad047632e8fc51247db95230ef2f79321a3f84cbbcaf8cbbb3a"
+    },
+    "rootPreparation": {
+      "path": "D:/CodexData/workspace/chengwang-four-component-root-patch-preparation-20261103-cd03-v1.json",
+      "bytes": 544,
+      "sha256": "80963b476a1a281b373a6449ba3d8657a03ad7c5a522f03b140e95001436fc60"
+    },
+    "rootCommit": {
+      "path": "D:/CodexData/workspace/chengwang-four-component-root-stage-commit-20261103-cd03-v1.json",
+      "bytes": 382,
+      "sha256": "2c11434382b905592c1fbfa7f0a5aea55b9bdd0d4919a45eadc23a74cbd40417"
+    },
+    "bindingV1Reject": {
+      "path": "D:/CodexData/workspace/chengwang-fa7136-strict-root-binding-v1-rejected-20261103-cd03.json",
+      "bytes": 368,
+      "sha256": "2505418803b375ad2e953e261255a93ef6d31ea9a9d23605db5ed190ecb488c5"
+    },
+    "bindingManifestV2": {
+      "path": "D:/CodexData/workspace/chengwang-fa7136-strict-root-binding-20261103-cd03-v2/MANIFEST.json",
+      "bytes": 5472,
+      "sha256": "b7bccc9ec490a34ef6fb6a580ac851d907d08b4cf9305f03822e5d20978988bf"
+    },
+    "strictModelSummary": {
+      "path": "D:/CodexData/workspace/chengwang-fa7136-strict-root-models-20261103-cd03-v2/SUMMARY.json",
+      "bytes": 2322,
+      "sha256": "02fd776c2a1016b0ba778340364aaa6ee97e11aa77f1d08279d79d35df32bfc0"
+    },
+    "strictModelOutputReview": {
+      "path": "D:/CodexData/workspace/chengwang-fa7136-strict-root-models-independent-output-review-20261103-cd03-v1/FINAL.json",
+      "bytes": 3437,
+      "sha256": "c6b9095ce61d875e99a4233184984d90351a4c484efc8df8f9c9a8e03c03e1ec"
+    },
+    "strictModelOutputReviewMarkdown": {
+      "path": "D:/CodexData/workspace/chengwang-fa7136-strict-root-models-independent-output-review-20261103-cd03-v1/FINAL.md",
+      "bytes": 1594,
+      "sha256": "64bac7879f01d1ddf2f8aa414b6974d0a627f1532705d7708ccf9b78c522c2ee"
+    },
+    "historicalDocsReviewV2": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-fact-progress-docs-independent-review-20261103-cd03-v2/FINAL.json",
+      "bytes": 3025,
+      "sha256": "d16127b81f5f82bcea8e87c6b9d1fd5b67963767aecb8dc970a56c1799395bdb"
+    },
+    "formalLiveTasksBefore": {
+      "path": "D:/CodexData/workspace/chengwang-unified-root-20261102-r2m_22eh/r/chengwang/docs/LIVE-TASKS.md",
+      "bytes": 99098,
+      "sha256": "c435907d14fc126ae618e67ba427d3349d2a6f891a1e0c98a3321684ed0d0688"
+    }
+  },
+  "actualAssistantModelSku": "UNKNOWN",
+  "actualAssistantModelSkuDoesNotChangeSourceModelResult": true
+}

@@ -1,0 +1,204 @@
+{
+  "schema": "chengwang.8e5f-archive-foundation-pending-progress/v2",
+  "date": "2026-11-03",
+  "checkpoint": {
+    "classification": "HISTORICAL_FROZEN_CUT",
+    "stateAtCheckpoint": "AFTER_JYCW_D403_READBACK_AND_FOUNDATION_SAFE_TIMELINE_BEFORE_UID_V2_INDEPENDENT_ACCEPTANCE",
+    "laterFactsMustUseNewCheckpoint": true,
+    "v1DocsReviewDisposition": "REVISE_BEFORE_HISTORICAL_CHECKPOINT_INTEGRATION"
+  },
+  "formal": {
+    "commit": "8e5fd014ed3858b25593142dece069b6f1ea7769",
+    "tree": "35f812d7cb15a178c7576339e207d40280d966a8",
+    "clean": true,
+    "sourceIntegrationChanged": false
+  },
+  "jycw": {
+    "repository": "zhiwen1987/JY-CW",
+    "head": "d4035d5eb9c413ed195fffc3d5321f5b74244e05",
+    "tree": "73cf9cad46694ea9c10e82179dc09545caaf49d7",
+    "rootFullScan": {
+      "result": "PASS",
+      "verifiedFiles": 67380,
+      "verifiedBytes": 1251282878,
+      "failures": 0,
+      "independentlyRerunByFinalReview": false
+    },
+    "committedDelta": {
+      "paths": 393,
+      "stageReceiptRows": 393,
+      "pathSetExact": true
+    },
+    "freshPartialClone": {
+      "result": "PASS",
+      "pathsRead": 393,
+      "missing": 0,
+      "byteLengthMismatches": 0,
+      "sha256Mismatches": 0
+    },
+    "pushAndRemoteRefVerified": true,
+    "archiveRuntimeAcceptance": false
+  },
+  "foundation": {
+    "runId": 41550851674,
+    "attempt": 1,
+    "workflowConclusion": "failure",
+    "safeTimelineArtifact": {
+      "id": 13189974937,
+      "members": 2,
+      "digestSHA256": "2ec941de0d6725b91254a6e3a0afccb6ee0c900a226fa38ab3a66c4da777641c"
+    },
+    "ordinary": {
+      "requiredTopPass": 689,
+      "requiredTopFail": 0,
+      "childExit": 0,
+      "parentTopActiveSeconds": 0.55
+    },
+    "race": {
+      "requiredTopPass": 689,
+      "requiredTopFail": 0,
+      "childExit": 0,
+      "parentTopActiveSeconds": 5.46
+    },
+    "fiveChildOracleOutcomesProven": false,
+    "actualFirstFailureCause": "UNKNOWN",
+    "freshUploadFailure": "SOURCE_PROVEN_SECONDARY_CASCADE_IF_FRESH_REPORT_MISSING",
+    "mixedCapacityArtifacts": {
+      "downloaded": false,
+      "decision": "NOT_ELIGIBLE",
+      "reason": "mixed uploader permits raw stderr, pprof, profile, gofmt and command/state members without a metadata member allowlist"
+    }
+  },
+  "sourceCandidates": {
+    "officialGofmt": {
+      "paths": 9,
+      "independentSourceDisposition": "MERGE_HUMAN_REVIEW_REQUIRED",
+      "integrated": false,
+      "goRuntimeAccepted": false
+    },
+    "oracleSetupPhase": {
+      "paths": 5,
+      "independentSourceDisposition": "MERGE_HUMAN_REVIEW_REQUIRED",
+      "integrated": false,
+      "actualFailurePhase": "UNKNOWN",
+      "goRuntimeAccepted": false
+    },
+    "uidBridgeV1": {
+      "independentDisposition": "REVISE",
+      "failure": "PARTIAL_CLEANUP_WRONGLY_SKIPPED_CONTENT_FOR_SEALED_0444_FILE"
+    },
+    "uidBridgeV2": {
+      "state": "FROZEN_SOURCE_ONLY_PENDING_INDEPENDENT_REVIEW_AND_LINUX_CI",
+      "independentSourceAccepted": false,
+      "integrated": false
+    }
+  },
+  "docsAuthoringActions": {
+    "goExecuted": false,
+    "additionalArtifactDownloaded": false,
+    "formalWritten": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "stageAuthorizedActions": {
+    "jycwArchiveRepository": "zhiwen1987/JY-CW",
+    "jycwMainPush": true,
+    "foundationSafeTimelineArtifactDownloaded": true,
+    "mixedCapacityArtifactsDownloaded": false
+  },
+  "productStateAtCheckpoint": {
+    "formalDevelopmentRepositoryChangedByDocsCandidate": false,
+    "productMainBranchChanged": false,
+    "registryChanged": false,
+    "productionChanged": false
+  },
+  "preservedBoundaries": {
+    "historicalThirtyPackageFullAcceptance": "NOT_PROVEN",
+    "oldCheckpointFactsRewritten": false,
+    "uidV2StatusScope": "STATE_AT_CHECKPOINT_ONLY_PENDING_INDEPENDENT_REVIEW_AND_LINUX_CI",
+    "laterUidV2AcceptanceIncluded": false,
+    "actualModel": "UNKNOWN"
+  },
+  "evidence": {
+    "formalLiveTasks": {
+      "path": "D:/CodexData/workspace/chengwang-unified-root-20261102-r2m_22eh/r/chengwang/docs/LIVE-TASKS.md",
+      "bytes": 99098,
+      "sha256": "c435907d14fc126ae618e67ba427d3349d2a6f891a1e0c98a3321684ed0d0688"
+    },
+    "jycwRootFullScan": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-jycw-root-fullscan-20261103-cd03-v1.json",
+      "bytes": 98,
+      "sha256": "c4c57169c115bcc88134629e6417fe7196ae795a22456e3880ad061906c751d6"
+    },
+    "jycwRootCommit": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-jycw-root-commit-20261103-cd03-v1.json",
+      "bytes": 180,
+      "sha256": "5c4ee066399e2cd2f7c30305df006d236b7ae80cfc6d53914fe7d590ca2bb36b"
+    },
+    "jycwRootPush": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-jycw-root-push-20261103-cd03-v1.json",
+      "bytes": 194,
+      "sha256": "adaa8d790baee6b918b5972bf6d2f1cff3b2b52c1f4a7de1faa84c7d595399e8"
+    },
+    "jycwRemoteReadback": {
+      "path": "D:/CodexData/workspace/chengwang-jycw-remote-readback-d403-20261103-cd03-v1.json",
+      "bytes": 388,
+      "sha256": "c6401ce0d3d536a2557af34e777a0954403f9d2d7346143a93b0507b3e7b5341"
+    },
+    "jycwFinalIndependentReview": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-jycw-final-readback-independent-review-20261103-cd03-v1/FINAL.json",
+      "bytes": 5718,
+      "sha256": "432d1cd7253e5636705a2b35d04e505794f3f5417afbda9917b6c6bcc5698dd6"
+    },
+    "foundationArtifactMetadata": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-foundation-timeline-originals-20261103-cd03-v1/artifact-metadata.json",
+      "bytes": 832,
+      "sha256": "87cb352eaba981b7c0ee35b8f4aedb5a34f14129baecbaaba917a304a528bf41"
+    },
+    "foundationCustody": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-foundation-timeline-originals-20261103-cd03-v1/mihomo-foundation-go-timelines-41550851674-1.custody.json",
+      "bytes": 1143,
+      "sha256": "721189523d90c4c4e8d28932c2cb7183cd29302a4b30ae4c243dc5b5b26da809"
+    },
+    "foundationTimelineIndependentReview": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-foundation-timeline-independent-review-20261103-cd03-v1/FINAL.json",
+      "bytes": 5251,
+      "sha256": "f79b5c373c1f48a49e5b53160141cbedc459376f5755f66e4a06d8d9b324d6eb"
+    },
+    "foundationSourceDiagnosis": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-foundation-source-diagnosis-20261103-cd03-v1/FINAL.json",
+      "bytes": 7739,
+      "sha256": "5c9ccf521a7d9fc3a57d58f414e9a8ebfbf10eeef9c5d9f53271b2482bef62d4"
+    },
+    "capacityArtifactSafetyReview": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-capacity-artifact-safety-review-20261103-cd03-v1/FINAL.json",
+      "bytes": 6027,
+      "sha256": "c56d4c99791780e4239e656b5ef98d7c4187e1ec93cae1973042a2513cf5c9f4"
+    },
+    "officialGofmtIndependentReview": {
+      "path": "D:/CodexData/home/state/plugins/codex-security/scans/chengwang-8e5f-official-gofmt-source-freeze-20261103-cd03-v1/artifacts-5a3ee010721509e33bbcf389c44571e589c00c7110c632dace6630ee8ed80283/artifacts/official-gofmt-source-patch-risk.json",
+      "bytes": 7431,
+      "sha256": "c641f2a7daf78bb9dd82952037a0c88f4db7b2354625d3479f2b977a6843dfef"
+    },
+    "oracleSetupIndependentReview": {
+      "path": "D:/CodexData/home/state/plugins/codex-security/scans/chengwang-8e5f-oracle-setup-phase-source-freeze-20261103-cd03-v1/artifacts-e85710bde0c8dc799ed74ef3022aaad7e1e0c2cee78bb923b55ff9f371f0ca7e/artifacts/oracle-setup-phase-independent-review/FINAL-PATCH-RISK.json",
+      "bytes": 9841,
+      "sha256": "df005ac679d2a951b66a7a26f1c37b4e06d0678894232cc2615e794cf351c238"
+    },
+    "uidV2Freeze": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-uid-probe-bridge-candidate-20261103-cd03-v2/source-freeze-v2/FREEZE.json",
+      "bytes": 5786,
+      "sha256": "578c1f493d85c7c0e6f63dc01994d5f3dfcd18160c3ddf3ac719cc93742ac19f"
+    },
+    "uidV2AuthorAttempts": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-uid-probe-bridge-candidate-20261103-cd03-v2/source-freeze-v2/AUTHOR-ATTEMPTS.json",
+      "bytes": 595,
+      "sha256": "940ca18da20ae8356e6f8b83d703246c05639a782f317d1a1d26bcaa010d6dc1"
+    },
+    "v1DocsIndependentReview": {
+      "path": "D:/CodexData/workspace/chengwang-8e5f-fact-progress-docs-independent-review-20261103-cd03-v1/FINAL.json",
+      "bytes": 6833,
+      "sha256": "c5a1a742c61ad00f3ab4d180858f9cc0aa6fc054404ec89b138729cbb853bbeb"
+    }
+  }
+}
