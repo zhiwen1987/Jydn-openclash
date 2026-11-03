@@ -219,6 +219,58 @@ class CapacityProfileSourceContractModels(unittest.TestCase):
         self.assertIn("'--no-replace-objects'",text)
         self.assertIn("GIT_NO_REPLACE_OBJECTS",text)
         self.assertIn("'sourceTree':tree",text)
+        target='chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go'
+        current='fab19f1ca714105f5002d31e2e37ca4cdb0296c5133431951ac81a1576056bc4'
+        preformat='dee61e1330b0dd8e658ad19cea90404a49e23e87855bf8955303714d5c65dbc1'
+        historical='ea0a3ec623691b161680727378e1feb638157322df230b60d0f7e09534a2b7d6'
+        self.assertEqual(self.reader.CURRENT_FIXTURE_SOURCE_PINS[target],current)
+        self.assertEqual(self.reader.CASE_IDENTITY,{
+            'schema':'chengwang.capacity-profile-case-identity/v1',
+            'caseName':self.reader.TOP,
+            'version':'CURRENT_FIXTURE_OFFICIAL_GOFMT_V1',
+            'currentFixtureSHA256':current,
+            'preformatFixtureSHA256':preformat,
+            'historicalBaselineReferenceSHA256':historical,
+            'historicalBaselineRole':'HISTORICAL_REFERENCE_ONLY',
+            'historicalBaselineMeasured':False,
+            'performanceComparisonAuthorized':False,
+        })
+        self.reader.validate_current_source_pins(dict(self.reader.CURRENT_FIXTURE_SOURCE_PINS))
+        self.reader.validate_case_identity(self.reader.case_identity())
+
+        for name,digest in [('wrong_hash','0'*64),('preformat_source',preformat),('historical_source',historical)]:
+            with self.subTest(rejected_source_pin=name):
+                pins=dict(self.reader.CURRENT_FIXTURE_SOURCE_PINS);pins[target]=digest
+                with self.assertRaises(ValueError):self.reader.validate_current_source_pins(pins)
+        for name,key,value in (
+                ('identity_schema','schema','chengwang.capacity-profile-case-identity/v0'),
+                ('identity_version','version','HISTORICAL_BASELINE'),
+                ('identity_current_hash','currentFixtureSHA256',historical),
+                ('identity_historical_role','historicalBaselineRole','CURRENT_FIXTURE'),
+                ('historical_claim','historicalBaselineMeasured',True),
+                ('comparison_claim','performanceComparisonAuthorized',True)):
+            with self.subTest(rejected_case_identity=name):
+                identity=self.reader.case_identity();identity[key]=value
+                with self.assertRaises(ValueError):self.reader.validate_case_identity(identity)
+
+        single={'schema':self.reader.SINGLE_REPORT_SCHEMA,'scope':self.reader.SINGLE_REPORT_SCOPE,
+                'caseIdentity':self.reader.case_identity(),'currentFixtureSourcePins':dict(self.reader.CURRENT_FIXTURE_SOURCE_PINS),
+                'currentFixturePassed':False,'currentFixtureGoExit':1,'wholeCIPass':False,'production':False}
+        full={'schema':self.reader.FULL_REPORT_SCHEMA,'scope':self.reader.FULL_REPORT_SCOPE,
+              'caseIdentity':self.reader.case_identity(),'currentFixtureSourcePins':dict(self.reader.CURRENT_FIXTURE_SOURCE_PINS),
+              'currentFixtureGoExit':1,'wholeCIPass':False,'production':False}
+        self.assertIs(self.reader.validate_report_case_identity(single,'SINGLE_CASE'),single)
+        self.assertIs(self.reader.validate_report_case_identity(full,'FULL_CONTRACTS'),full)
+        for name,template,key,value,mode in (
+                ('single_schema',single,'schema','chengwang.capacity-profile-verification/v1','SINGLE_CASE'),
+                ('single_scope',single,'scope','CPU_DIAGNOSIS_OF_ORIGINAL_STRUCTURAL_CAPACITY_TEST_NOT_RECOVERY_OR_PRODUCTION','SINGLE_CASE'),
+                ('full_schema',full,'schema','chengwang.capacity-profile-verification/v3','FULL_CONTRACTS'),
+                ('full_scope',full,'scope','CURRENT_FIXTURE','FULL_CONTRACTS')):
+            with self.subTest(rejected_report_label=name):
+                changed=dict(template);changed[key]=value
+                with self.assertRaises(ValueError):self.reader.validate_report_case_identity(changed,mode)
+        legacy=dict(single);legacy['originalCasePassed']=False
+        with self.assertRaises(ValueError):self.reader.validate_report_case_identity(legacy,'SINGLE_CASE')
 
     def test_full_source_contract_binds_the_exact_normal_race_timeline_wrapper(self):
         repo=Path(__file__).resolve().parents[3]

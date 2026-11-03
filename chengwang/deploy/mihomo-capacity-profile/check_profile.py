@@ -230,11 +230,26 @@ RESOURCE_SCOPES={'cpuCount':'CAPTURE_PROCESS_OS_LOGICAL_CPU_COUNT','affinityCPUs
 CPU_STAT_FIELDS=('usage_usec','user_usec','system_usec','nr_periods','nr_throttled','throttled_usec')
 ENV=sorted(['PATH','GOROOT','HOME','TMPDIR','GOCACHE','GOMODCACHE','GOPROXY','GOSUMDB','GOENV','GOTOOLCHAIN',
     'GOFLAGS','CGO_ENABLED','LANG','LC_ALL','TZ','CHENGWANG_CAPACITY_PROFILE_SOURCE_COMMIT'])
-ORIGINAL_SOURCE_PINS={
-    'chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go':'ea0a3ec623691b161680727378e1feb638157322df230b60d0f7e09534a2b7d6',
+CURRENT_FIXTURE_SOURCE_PINS={
+    'chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go':'fab19f1ca714105f5002d31e2e37ca4cdb0296c5133431951ac81a1576056bc4',
     'chengwang/internal/mihomodeploy/lifecycle.go':'026bd6b1e38bc05024aa8c26bf3195784a4e8dd0df75d7d0fcca34c941c0eb1c',
     'chengwang/internal/mihomodeploy/lab_bootstrap_state.go':'472592e381a67f1850b1518d2b47698111dada600459cf8bec2f795f4719aad5',
 }
+CASE_IDENTITY={
+    'schema':'chengwang.capacity-profile-case-identity/v1',
+    'caseName':TOP,
+    'version':'CURRENT_FIXTURE_OFFICIAL_GOFMT_V1',
+    'currentFixtureSHA256':'fab19f1ca714105f5002d31e2e37ca4cdb0296c5133431951ac81a1576056bc4',
+    'preformatFixtureSHA256':'dee61e1330b0dd8e658ad19cea90404a49e23e87855bf8955303714d5c65dbc1',
+    'historicalBaselineReferenceSHA256':'ea0a3ec623691b161680727378e1feb638157322df230b60d0f7e09534a2b7d6',
+    'historicalBaselineRole':'HISTORICAL_REFERENCE_ONLY',
+    'historicalBaselineMeasured':False,
+    'performanceComparisonAuthorized':False,
+}
+SINGLE_REPORT_SCHEMA='chengwang.capacity-profile-verification/v3'
+SINGLE_REPORT_SCOPE='CPU_DIAGNOSIS_OF_CURRENT_VERSIONED_CAPACITY_FIXTURE_NOT_HISTORICAL_BASELINE_NOT_RECOVERY_OR_PRODUCTION'
+FULL_REPORT_SCHEMA='chengwang.capacity-profile-verification/v2'
+FULL_REPORT_SCOPE='FULL_SIX_PACKAGE_RACE_DIAGNOSIS_WITH_MIHOMODEPLOY_ONLY_CPU_WINDOW_NOT_PRODUCT_ACCEPTANCE'
 
 def need(v):
     if not v:raise ValueError('capacity profile evidence rejected')
@@ -248,6 +263,30 @@ def decode(raw):
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _:need(False))
 def exact(value,keys):return type(value) is dict and set(value)==set(keys)
 def integer(n,low=0,high=(1<<63)-1):return type(n) is int and low<=n<=high
+def case_identity():return dict(CASE_IDENTITY)
+def validate_case_identity(value):
+    need(type(value)is dict and value==CASE_IDENTITY)
+    need(value['currentFixtureSHA256']==CURRENT_FIXTURE_SOURCE_PINS['chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go'])
+    need(value['preformatFixtureSHA256']!=value['currentFixtureSHA256'])
+    need(value['historicalBaselineReferenceSHA256']not in (value['currentFixtureSHA256'],value['preformatFixtureSHA256']))
+    need(value['historicalBaselineRole']=='HISTORICAL_REFERENCE_ONLY')
+    need(value['historicalBaselineMeasured']is value['performanceComparisonAuthorized']is False)
+def validate_current_source_pins(pinned):
+    need(type(pinned)is dict and all(pinned.get(path)==digest for path,digest in CURRENT_FIXTURE_SOURCE_PINS.items()))
+    need(pinned['chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go']!=CASE_IDENTITY['historicalBaselineReferenceSHA256'])
+def validate_report_case_identity(report,diagnostic_mode):
+    need(type(report)is dict and diagnostic_mode in ('SINGLE_CASE','FULL_CONTRACTS'))
+    full=diagnostic_mode=='FULL_CONTRACTS'
+    need(report.get('schema')==(FULL_REPORT_SCHEMA if full else SINGLE_REPORT_SCHEMA))
+    need(report.get('scope')==(FULL_REPORT_SCOPE if full else SINGLE_REPORT_SCOPE))
+    validate_case_identity(report.get('caseIdentity'))
+    need(report.get('currentFixtureSourcePins')==CURRENT_FIXTURE_SOURCE_PINS)
+    need(report.get('wholeCIPass')is False and report.get('production')is False)
+    if full:need('originalGoExit'not in report and integer(report.get('currentFixtureGoExit'),-128,255))
+    else:
+        need('originalCasePassed'not in report and 'originalGoExit'not in report)
+        need(type(report.get('currentFixturePassed'))is bool and integer(report.get('currentFixtureGoExit'),-128,255))
+    return report
 def read(path,limit):
     need(path.is_absolute() and '..' not in path.parts)
     for part in (*reversed(path.parents),path):need(not part.is_symlink())
@@ -284,9 +323,10 @@ def source_snapshot(repo,commit):
         rows.append({'path':name,'bytes':len(raw),'sha256':sha(raw),'gitBlobSHA1':oid.decode()})
     need(1<=len(rows)<=4096 and len({r['path'] for r in rows})==len(rows))
     pinned={r['path']:r['sha256'] for r in rows}
-    need(all(pinned.get(p)==value for p,value in ORIGINAL_SOURCE_PINS.items()))
-    return {'schema':'chengwang.capacity-profile-source/v1','sourceCommit':commit,'sourceTree':tree,'sourceGitVerified':True,
-        'originalCaseSourcePins':ORIGINAL_SOURCE_PINS,'files':rows}
+    validate_current_source_pins(pinned)
+    identity=case_identity();validate_case_identity(identity)
+    return {'schema':'chengwang.capacity-profile-source/v2','sourceCommit':commit,'sourceTree':tree,'sourceGitVerified':True,
+        'currentFixtureSourcePins':dict(CURRENT_FIXTURE_SOURCE_PINS),'caseIdentity':identity,'files':rows}
 
 def host():
     return {**{k:os.readlink('/proc/self/ns/'+v) for k,v in [('networkNamespace','net'),('mountNamespace','mnt'),('pidNamespace','pid')]},
@@ -529,7 +569,7 @@ def full_events(raw,required,checker,go_exit,stderr=b''):
         'observedSemanticStates':len(states),'allUnfinishedNames':unfinished,'allFailedNames':failed,'allSkippedNames':skipped,
         'packageStates':{p:terminals.get(p,'UNFINISHED'if p in begun else'NOT_STARTED')for p in sorted(packages)},
         'capacityCaseState':states.get((PACKAGE,TOP),'NOT_STARTED'),'packageTimeoutObserved':{p:'panic: test timed out after 3m0s'in text_by_package[p]for p in sorted(packages)},
-        'dataRaceWarningObserved':race_warning,'originalGoExit':go_exit,'nonRequiredStatesRetainedInOriginalJSON':True}
+        'dataRaceWarningObserved':race_warning,'currentFixtureGoExit':go_exit,'nonRequiredStatesRetainedInOriginalJSON':True}
 
 def verify_resource(raw):
     need(type(raw)is bytes and 0<len(raw)<=65536);v=decode(raw)
@@ -621,9 +661,9 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
         resource_before,resource_after=verify_resource(raw['resource-before.json']),verify_resource(raw['resource-after.json'])
         go_rows=[row for row in rows if row['class']=='GO_TEST']
         need(resource_before['finishedMonotonicNs']<=go_rows[1]['monotonicNs']<=go_rows[-1]['monotonicNs']<=resource_after['startedMonotonicNs'])
-        return {'schema':'chengwang.capacity-profile-verification/v2','diagnosticMode':'FULL_CONTRACTS',
-            'scope':'FULL_SIX_PACKAGE_RACE_DIAGNOSIS_WITH_MIHOMODEPLOY_ONLY_CPU_WINDOW_NOT_PRODUCT_ACCEPTANCE',
+        report={'schema':FULL_REPORT_SCHEMA,'diagnosticMode':'FULL_CONTRACTS','scope':FULL_REPORT_SCOPE,
             'sourceCommit':commit,'captureVerified':True,**summary,'normalSourceBinding':binding,
+            'caseIdentity':case_identity(),'currentFixtureSourcePins':dict(CURRENT_FIXTURE_SOURCE_PINS),
             'formatClean':e['formatExit']==0 and raw['gofmt.patch']==raw['gofmt.stderr']==b'',
             'profile':shape,'profileSHA256':sha(binary),'profileProcessPackage':PACKAGE,'profileTimerSeconds':120,
             'profileStopReason':state['stopReason'],'profileMeasuredDurationNanoseconds':state['durationNanoseconds'],
@@ -632,6 +672,7 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
                 'sameCgroupAcrossObservationsIndependentlyProven':False,'resourceCauseProven':False},
             'inputSHA256':{p:sha(v)for p,v in raw.items()},'pprofNumericRecomputeProven':False,
             'nativeKernelExecuted':False,'normal13WorkflowAccepted':False,'wholeCIPass':False,'production':False}
+        return validate_report_case_identity(report,diagnostic_mode)
     events=[decode(line) for line in raw['capacity.json'].splitlines()]
     need(events and all(type(v) is dict and set(v)<={'Time','Action','Package','Test','Elapsed','Output'} and v.get('Package')==PACKAGE and v.get('Action') in ('start','run','pass','fail','output') for v in events))
     begun=False;ended=False;test_state=None
@@ -661,14 +702,16 @@ def verify_raw(raw,commit,diagnostic_mode='SINGLE_CASE',sources=None):
     text=''.join(v.get('Output','') for v in events)
     for name in ('pprof-top.txt','pprof-cum.txt'):
         value=raw[name].decode('utf8','strict');need(value.strip() and 'flat' in value and 'cum' in value)
-    return {'schema':'chengwang.capacity-profile-verification/v1','scope':'CPU_DIAGNOSIS_OF_ORIGINAL_STRUCTURAL_CAPACITY_TEST_NOT_RECOVERY_OR_PRODUCTION',
-        'sourceCommit':commit,'captureVerified':True,'originalCasePassed':case_pass,'originalGoExit':e['goExit'],
+    report={'schema':SINGLE_REPORT_SCHEMA,'scope':SINGLE_REPORT_SCOPE,
+        'sourceCommit':commit,'captureVerified':True,'caseIdentity':case_identity(),'currentFixtureSourcePins':dict(CURRENT_FIXTURE_SOURCE_PINS),
+        'currentFixturePassed':case_pass,'currentFixtureGoExit':e['goExit'],
         'testRun':1,'testPass':passed,'testFailureEvents':failed,'packageTerminal':terminal[0],
         'packageTimeoutObserved':'panic: test timed out after 3m0s' in text,'dataRaceWarningObserved':'WARNING: DATA RACE' in text,
         'formatClean':e['formatExit']==0 and raw['gofmt.patch']==raw['gofmt.stderr']==b'',
         'profile':shape,'profileSHA256':sha(binary),'inputSHA256':{p:sha(v) for p,v in raw.items()},
         'pprofNumericRecomputeProven':False,
         'nativeKernelExecuted':False,'wholeCIPass':False,'production':False}
+    return validate_report_case_identity(report,diagnostic_mode)
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('mode',choices=['host','source','verify']);p.add_argument('--out',type=Path);p.add_argument('--repo',type=Path);p.add_argument('--source-commit');p.add_argument('--evidence',type=Path);p.add_argument('--report',type=Path);p.add_argument('--diagnostic-mode',choices=['SINGLE_CASE','FULL_CONTRACTS'],default='SINGLE_CASE');a=p.parse_args()
@@ -696,7 +739,7 @@ def main():
     report['sourceManifestSHA256']=sha(encoded(sources));report['sourceGitVerified']=True
     write(a.report,encoded(report))
     if a.diagnostic_mode=='FULL_CONTRACTS':print('CAPACITY_PROFILE_EVIDENCE=VERIFIED diagnostic_mode=FULL_CONTRACTS full_go_accepted='+str(report['fullGoAccepted']).lower()+' not_whole_ci=true')
-    else:print('CAPACITY_PROFILE_EVIDENCE=VERIFIED original_case_passed='+str(report['originalCasePassed']).lower()+' not_whole_ci=true')
+    else:print('CAPACITY_PROFILE_EVIDENCE=VERIFIED current_fixture_passed='+str(report['currentFixturePassed']).lower()+' historical_baseline_measured=false performance_comparison_authorized=false not_whole_ci=true')
 if __name__=='__main__':
     try:main()
     except Exception:raise SystemExit('CAPACITY_PROFILE_EVIDENCE=REJECTED raw_error_suppressed=true') from None

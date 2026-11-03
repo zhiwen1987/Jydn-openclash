@@ -512,21 +512,25 @@ class RunnerContracts(unittest.TestCase):
             "model-independent-validator-removed":once('          if python3 -I -B chengwang/deploy/joint-control-plane/ci_joint_control_plane.py model-diagnostic --input "$private/model-outcome.json" --source-commit "$GITHUB_SHA" --output "$model_public/model-outcome.json"; then\n'),
             "uid-diagnostic-upload-bypass":once("        if: ${{ always() && steps.uid_probe_diagnostic.outputs.ready == 'true' }}","        if: always()"),
             "uid-diagnostic-ready-write-unchecked":once("if echo 'ready=true' >> \"$GITHUB_OUTPUT\"; then exit 0; else exit 1; fi","echo 'ready=true' >> \"$GITHUB_OUTPUT\""),
-            "uid-diagnostic-preflight-failure-green":once('          test "$preflight" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true\n'),
+            "uid-diagnostic-preflight-failure-green":once('          test "$host_preflight" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true\n'),
+            "uid-bridge-setup-removed":once('          if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup >/dev/null 2>/dev/null; then bridge_setup_status=0; bridge_active=true; else bridge_setup_status=$?; bridge_active=false; fi\n'),
+            "uid-bridge-preflight-removed":once('            if "${diagnostic[@]}" bridge-preflight --classification "$bridge_preflight" --exit-status "$bridge_preflight_status"; then :; else diagnostic_failed=true; fi\n'),
+            "uid-bridge-cleanup-removed":once('              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi\n'),
+            "uid-bridge-absence-removed":once('            if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0; else absence_status=$?; fi\n'),
             "uid-diagnostic-cleanup-missing":once('if run_root root-cleanup; then cleanup_status=0; else cleanup_status=$?; fi','cleanup_status=0'),
             "uid-diagnostic-final-absence-missing":once('if run_root root-final-absence; then absence_status=0; else absence_status=$?; fi','absence_status=0'),
             "uid-diagnostic-independent-replay-removed":once('  uid-probe-independent-replay:\n','  removed-uid-probe-independent-replay:\n'),
-            "uid-diagnostic-producer-pin-drift":once("7456e8a933f5d577f4302887c32e575da296d44aed02a3cba6353a442827dca2","0"*64),
+            "uid-diagnostic-producer-pin-drift":once("98982bd151c9289534fa7421a1520ba51ff67ceb0fd930065e227321e419052d","0"*64),
             "uid-root-escalation":once("--reuid=10001","--reuid=0"),
             "uid-clear-groups-removed":once("--clear-groups "),
             "main-timeout-expanded":once("    timeout-minutes: 18","    timeout-minutes: 180"),
-            "uid-install-call-removed":once('          if test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n'),
+            "uid-install-call-removed":once('          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n'),
             "exact-ref-drift":once("  EXACT_REF: refs/heads/codex/chengwang-unified-20261102","  EXACT_REF: refs/heads/main"),
             "source-contract-pin-drift":once(contract_pin,"  CONTRACT_SHA256: "+"0"*64),
             "head-source-binding-removed":once('          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"\n'),
             "uid-step-duplicated":once("      - name: Independently validate UID probe diagnostic\n","      - name: Probe isolated Linux UID custody\n"+uid_block+"      - name: Independently validate UID probe diagnostic\n"),
             "uid-replay-truncated":once('          cmp "$input" "$output"\n'),
-            "uid-install-comment-spoof":once('          if test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n','          # if run_uid uid-install-replacement; then :; else original_code=$?; fi\n'),
+            "uid-install-comment-spoof":once('          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi\n','          # if run_uid uid-install-replacement; then :; else original_code=$?; fi\n'),
         }
         for name,mutant in mutants.items():
             with self.subTest(name=name),self.assertRaises(ValueError):CI.workflow_contract(mutant.encode())
@@ -548,6 +552,7 @@ class RunnerContracts(unittest.TestCase):
         probe=block.split("        run: |\n",1)[1]
         probe="\n".join(line[10:] if line.startswith("          ") else line for line in probe.splitlines())+"\n"
         probe=probe.replace('diagnostic=(/usr/bin/python3 -I -B "$producer"','diagnostic=(diagnostic_stub')
+        probe=probe.replace('bridge_nonce="$(/usr/bin/python3 -I -B -c \'import secrets;print(secrets.token_hex(16))\')" || exit 1','bridge_nonce=0123456789abcdef0123456789abcdef')
         probe=probe.replace('if cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi','test "$INJECT_OUTER_EXIT" != true || exit 17\nif cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi')
         bash=shutil.which("bash")
         if bash is None:
@@ -555,32 +560,51 @@ class RunnerContracts(unittest.TestCase):
             self.assertTrue(candidate.is_file());bash=str(candidate)
         source=str(HERE.parents[2]).replace("\\","/");producer_hash=CI.hashlib.sha256((HERE/"uid_probe_diagnostic.py").read_bytes()).hexdigest()
         modes=("root-setup","uid-prepublish-denials","root-finalize","uid-final-read-and-rename","uid-install-replacement","root-reject-replacement","root-cleanup","root-final-absence")
-        for name,fail_mode,fail_status,inject,want in (("cleanup31","root-cleanup",31,False,31),("absence32","root-final-absence",32,False,32),("outer17","",0,True,17)):
+        cases=(("cleanup31","root-cleanup","",31,0,False,31,modes),("absence32","root-final-absence","",32,0,False,32,modes),("outer17","","",0,0,True,17,modes),("bridge-cleanup35","","cleanup",35,0,False,35,modes),("bridge-absence36","","final-absence",36,0,False,36,modes),("bridge-setup33","","setup",33,0,False,33,()),("host-inaccessible-bridge-pass","","",0,43,False,0,modes))
+        for name,fail_mode,fail_bridge_mode,fail_status,host_preflight_status,inject,want,expected_modes in cases:
             with self.subTest(name=name),tempfile.TemporaryDirectory() as directory:
                 root=pathlib.Path(directory);runner=root/"runner";runner.mkdir();trace=root/"trace";candidate=root/"candidate"
                 runner_text=str(runner).replace("\\","/");trace_text=str(trace).replace("\\","/")
                 harness=f'''set +e
 export GITHUB_WORKSPACE={json.dumps(source)} RUNNER_TEMP={json.dumps(runner_text)} GITHUB_SHA={'1'*40} GITHUB_RUN_ID=71 GITHUB_RUN_ATTEMPT=8 UID_PROBE_PRODUCER_SHA256={producer_hash}
-export FAIL_MODE={json.dumps(fail_mode)} FAIL_STATUS={fail_status} INJECT_OUTER_EXIT={'true' if inject else 'false'} TRACE={json.dumps(trace_text)}
+export FAIL_MODE={json.dumps(fail_mode)} FAIL_BRIDGE_MODE={json.dumps(fail_bridge_mode)} FAIL_STATUS={fail_status} HOST_PREFLIGHT_STATUS={host_preflight_status} INJECT_OUTER_EXIT={'true' if inject else 'false'} TRACE={json.dumps(trace_text)}
+PREFLIGHT_CALLS=0
 install() {{ local target="${{@: -1}}"; mkdir "$target"; }}
 sudo() {{
-  local mode="" previous="" argument
-  for argument in "$@"; do if test "$previous" = --probe-mode; then mode="$argument"; fi; previous="$argument"; done
+  local mode="" bridge_mode="" nonce="" run_id="" run_attempt="" previous="" argument bridge_root="" bridge_status=0
+  for argument in "$@"; do
+    case "$previous" in --probe-mode) mode="$argument";; --bridge-mode) bridge_mode="$argument";; --bridge-nonce) nonce="$argument";; --run-id) run_id="$argument";; --run-attempt) run_attempt="$argument";; esac
+    previous="$argument"
+  done
+  if printf '%s\\n' "$*" | grep -q 'bridge-payload-digest'; then printf '%064d\\n' 0; return 0; fi
+  if test -n "$bridge_mode"; then
+    bridge_root="/tmp/chengwang-joint-uid-bridge-$run_id-$run_attempt-$nonce"
+    case "$bridge_mode" in
+      setup) mkdir -p "$bridge_root/payload" "$bridge_root/runner"; printf 'fixture\\n' >"$bridge_root/payload/ci_joint_control_plane.py"; printf 'fixture\\n' >"$bridge_root/payload/contract.py";;
+      cleanup) rm -rf "$bridge_root";;
+      final-absence) test ! -e "$bridge_root";;
+      *) return 90;;
+    esac
+    bridge_status=$?
+    if test "$bridge_mode" = "$FAIL_BRIDGE_MODE"; then test "$bridge_mode" != setup || rm -rf "$bridge_root"; return "$FAIL_STATUS"; fi
+    return "$bridge_status"
+  fi
   if test -n "$mode"; then printf 'call:%s\\n' "$mode" >> "$TRACE"; if test "$mode" = "$FAIL_MODE"; then return "$FAIL_STATUS"; fi; return 0; fi
+  if printf '%s\\n' "$*" | grep -q -- '--reuid=10001'; then PREFLIGHT_CALLS=$((PREFLIGHT_CALLS+1)); test "$PREFLIGHT_CALLS" != 1 || return "$HOST_PREFLIGHT_STATUS"; fi
   return 0
 }}
 diagnostic_stub() {{
   local command="" mode="" status="" previous="" argument
-  for argument in "$@"; do case "$argument" in init|preflight|event|finalize) command="$argument";; esac; case "$previous" in --mode) mode="$argument";; --exit-status) status="$argument";; esac; previous="$argument"; done
+  for argument in "$@"; do case "$argument" in init|host-preflight|bridge-setup|bridge-preflight|event|bridge-cleanup|bridge-final-absence|finalize) command="$argument";; esac; case "$previous" in --mode) mode="$argument";; --exit-status) status="$argument";; esac; previous="$argument"; done
   printf 'diagnostic:%s:%s:%s\\n' "$command" "$mode" "$status" >> "$TRACE"
   if test "$command" = finalize && test "$INJECT_OUTER_EXIT" = true; then printf 'reject-finalize:%s\\n' "$status" >> "$TRACE"; return 1; fi
   return 0
 }}
 '''+probe
                 completed=subprocess.run([bash],input=harness.encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=20,check=False)
-                self.assertEqual(completed.returncode,want);self.assertEqual(completed.stdout,b"");self.assertNotIn(b"PRIVATE",completed.stderr)
+                self.assertEqual(completed.returncode,want,(completed.stderr,trace.read_text() if trace.exists() else "NO_TRACE"));self.assertEqual(completed.stdout,b"");self.assertNotIn(b"PRIVATE",completed.stderr)
                 rows=trace.read_text().splitlines();calls=[row.split(":",1)[1] for row in rows if row.startswith("call:")]
-                self.assertEqual(calls,list(modes));self.assertIn(f"diagnostic:finalize::{want}",rows);self.assertFalse(candidate.exists())
+                self.assertEqual(calls,list(expected_modes));self.assertIn(f"diagnostic:finalize::{want}",rows);self.assertFalse(candidate.exists())
                 if inject:self.assertIn("reject-finalize:17",rows)
     def test_uid_probe_root_derivation_rejects_bad_identity_and_is_never_product_staging(self):
         with tempfile.TemporaryDirectory() as d:
@@ -751,5 +775,76 @@ diagnostic_stub() {{
             unlink,rmdir=_probe_fixture_cleanup_calls(probe)
             with mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.stat,"S_IMODE",return_value=0o711),mock.patch.object(CI.os,"unlink",side_effect=unlink),mock.patch.object(CI.os,"rmdir",side_effect=rmdir),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None),_probe_fixture_owner_view(probe):CI.bootstrap_permission_probe(*args,"root-cleanup",platform="posix")
             self.assertFalse(probe.exists());self.assertEqual(sentinel.read_bytes(),b"UNCHANGED")
+    def test_uid_bridge_exact_two_file_payload_rejects_extra_hardlink_and_preserves_sentinel(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d).resolve();repo=root/"repo";parent=root/"parent";parent.mkdir();sentinel=parent/"outside-sentinel";sentinel.write_bytes(b"UNCHANGED")
+            rows=[]
+            for relative,basename in CI.BRIDGE_FILES:
+                path=repo/relative;path.parent.mkdir(parents=True,exist_ok=True);raw=(basename+"\n").encode();path.write_bytes(raw);rows.append({"path":relative,"sha256":CI.hashlib.sha256(raw).hexdigest()})
+            contract=repo/"chengwang/deploy/joint-control-plane/source_contract.json";contract.write_text(json.dumps({"schema":"test","paths":rows})+"\n",encoding="utf-8")
+            meta=parent.lstat();arguments=(repo,contract,parent,str(meta.st_dev),str(meta.st_ino),"321","7","a"*32)
+            owned=lambda path,*a,**k:pathlib.Path(path).lstat()
+            patches=(mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI.os,"fchown",side_effect=lambda *a:None,create=True),mock.patch.object(CI.os,"fchmod",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_bridge_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
+            with contextlib.ExitStack() as stack:
+                for patcher in patches:stack.enter_context(patcher)
+                bridge,digest=CI.bridge_setup(*arguments,platform="posix");self.assertEqual(digest,CI.bridge_payload_digest(repo,contract));self.assertEqual({p.name for p in (bridge/"payload").iterdir()},{"ci_joint_control_plane.py","contract.py"});self.assertFalse(any((bridge/"runner").iterdir()))
+                extra=bridge/"payload/extra";extra.write_bytes(b"UNTRUSTED")
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                self.assertEqual(extra.read_bytes(),b"UNTRUSTED");extra.unlink()
+                outside=root/"outside-hardlink";os.link(bridge/"payload/contract.py",outside)
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                outside.unlink()
+                changed=bridge/"payload/contract.py";expected=changed.read_bytes();changed.write_bytes(b"CHANGED")
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                changed.write_bytes(expected)
+                moved=root/"moved-contract";os.rename(bridge/"payload/contract.py",moved)
+                with self.assertRaises(ValueError):CI.bridge_cleanup(*arguments,platform="posix")
+                os.rename(moved,bridge/"payload/contract.py")
+                with mock.patch.object(CI.os,"unlink",side_effect=OSError("PRIVATE UNLINK")):
+                    with self.assertRaises(OSError):CI.bridge_cleanup(*arguments,platform="posix")
+                os.chmod(bridge/"payload",0o700);os.chmod(bridge,0o700);CI.bridge_cleanup(*arguments,platform="posix");CI.bridge_final_absence(*arguments[2:],platform="posix")
+                source=pathlib.Path(CI.__file__).read_text(encoding="utf-8")
+                for guard in ("os.fchmod(fd,0o444)","os.chmod(payload,0o555)","os.mkdir(runner,0o711)","meta.st_uid==0 and meta.st_gid==0","meta.st_nlink==1"):
+                    self.assertIn(guard,source)
+            self.assertEqual(sentinel.read_bytes(),b"UNCHANGED")
+    def test_uid_bridge_wrong_contract_preexisting_scope_and_partial_copy_fail_closed(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=pathlib.Path(d).resolve();repo=root/"repo";parent=root/"parent";parent.mkdir();rows=[]
+            for relative,basename in CI.BRIDGE_FILES:
+                path=repo/relative;path.parent.mkdir(parents=True,exist_ok=True);raw=(basename+"\n").encode();path.write_bytes(raw);rows.append({"path":relative,"sha256":CI.hashlib.sha256(raw).hexdigest()})
+            contract=repo/"chengwang/deploy/joint-control-plane/source_contract.json";contract.write_text(json.dumps({"paths":rows})+"\n",encoding="utf-8");meta=parent.lstat();arguments=(repo,contract,parent,str(meta.st_dev),str(meta.st_ino),"322","8","b"*32);bridge=parent/(CI.BRIDGE_PREFIX+"322-8-"+"b"*32)
+            owned=lambda path,*a,**k:pathlib.Path(path).lstat()
+            patches=(mock.patch.object(CI.os,"geteuid",return_value=0,create=True),mock.patch.object(CI.os,"getegid",return_value=0,create=True),mock.patch.object(CI.os,"chown",side_effect=lambda *a:None,create=True),mock.patch.object(CI.os,"fchown",side_effect=lambda *a:None,create=True),mock.patch.object(CI,"_bridge_parent",side_effect=lambda path,*a,**k:pathlib.Path(path)),mock.patch.object(CI,"_bridge_owned",side_effect=owned),mock.patch.object(CI,"_probe_dir_fsync",side_effect=lambda *a:None))
+            with contextlib.ExitStack() as stack:
+                for patcher in patches:stack.enter_context(patcher)
+                def partial(path,raw):pathlib.Path(path).write_bytes(raw[:2]);os.chmod(path,0o600);raise OSError("PRIVATE COPY")
+                with mock.patch.object(CI,"_bridge_write",side_effect=partial):
+                    with self.assertRaises(OSError):CI.bridge_setup(*arguments,platform="posix")
+                self.assertFalse(bridge.exists())
+                def wrong_completed(path,raw):pathlib.Path(path).write_bytes(b"WRONG-COMPLETED");os.chmod(path,0o444);raise OSError("PRIVATE POST-SEAL")
+                with mock.patch.object(CI,"_bridge_write",side_effect=wrong_completed):
+                    with self.assertRaises(ValueError):CI.bridge_setup(*arguments,platform="posix")
+                wrong=bridge/"payload/ci_joint_control_plane.py";self.assertTrue(wrong.is_file());self.assertEqual(wrong.read_bytes(),b"WRONG-COMPLETED")
+                rows_value,_=CI._bridge_rows(repo,contract);os.chmod(wrong,0o600);CI._bridge_cleanup(bridge,rows_value,partial=True);self.assertFalse(bridge.exists())
+                with mock.patch.object(CI.os,"fsync",side_effect=OSError("PRIVATE FILE FSYNC")):
+                    with self.assertRaises(OSError):CI.bridge_setup(*arguments,platform="posix")
+                self.assertFalse(bridge.exists())
+                calls=[]
+                def fsync_fault(path):
+                    calls.append(path)
+                    if len(calls)==1:raise OSError("PRIVATE FSYNC")
+                with mock.patch.object(CI,"_probe_dir_fsync",side_effect=fsync_fault):
+                    with self.assertRaises(OSError):CI.bridge_setup(*arguments,platform="posix")
+                self.assertFalse(bridge.exists())
+                bridge.mkdir();sentinel=bridge/"collision";sentinel.write_bytes(b"PRESERVE")
+                with self.assertRaises(ValueError):CI.bridge_setup(*arguments,platform="posix")
+                self.assertEqual(sentinel.read_bytes(),b"PRESERVE");sentinel.unlink();bridge.rmdir()
+                bad=json.loads(contract.read_text());bad["paths"][0]["sha256"]="0"*64;contract.write_text(json.dumps(bad)+"\n")
+                with self.assertRaises(ValueError):CI.bridge_payload_digest(repo,contract)
+                contract.write_text(json.dumps({"paths":rows})+"\n",encoding="utf-8")
+                linked=root/"linked-source";os.link(repo/CI.BRIDGE_FILES[0][0],linked)
+                with self.assertRaises(ValueError):CI.bridge_payload_digest(repo,contract)
+                linked.unlink()
+            with self.assertRaises(ValueError):CI._bridge_parent(parent,str(meta.st_dev+1),str(meta.st_ino),platform="posix")
 
 if __name__=="__main__":unittest.main()

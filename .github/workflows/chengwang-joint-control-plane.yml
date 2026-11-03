@@ -12,10 +12,10 @@ concurrency:
 env:
   EXACT_REF: refs/heads/codex/chengwang-unified-20261102
   CONTRACT: chengwang/deploy/joint-control-plane/source_contract.json
-  CONTRACT_SHA256: 833f76b2d8584c5cad7f6117ab5393aed6f179e8c6f0d5c81c10489c56270bcc
+  CONTRACT_SHA256: 214f2054a39acfd2719d6f9fff93b8c61a7f98ad47935934037ebae4fba99f1a
   CHECKER_SHA256: cd5b049fc83b50473650afee88332b3cf531eedfcac366023b858dd3aeb32faa
-  UID_PROBE_PRODUCER_SHA256: 7456e8a933f5d577f4302887c32e575da296d44aed02a3cba6353a442827dca2
-  UID_PROBE_CHECKER_SHA256: db3fdcee0a0383f6ae0d05d03971ca90ccc4f0aecb9ef8941082b2d5f035f489
+  UID_PROBE_PRODUCER_SHA256: 98982bd151c9289534fa7421a1520ba51ff67ceb0fd930065e227321e419052d
+  UID_PROBE_CHECKER_SHA256: 04fdd2ac9acbc2dafa7c2ecab9910b3346649042569dbaeb9cec4efb056e81c8
 jobs:
   joint-control-plane:
     runs-on: ubuntu-24.04
@@ -139,18 +139,17 @@ jobs:
         id: uid_probe
         run: |
           set -uo pipefail
-          script="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py"
+          source_script="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/ci_joint_control_plane.py"
+          source_contract="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/source_contract.json"
           producer="$GITHUB_WORKSPACE/chengwang/deploy/joint-control-plane/uid_probe_diagnostic.py"
           private="$RUNNER_TEMP/joint-control-plane-uid-probe-private"
           journal="$private/journal.json"; candidate="$private/uid-probe-diagnostic.json"
           test ! -e "$private" || exit 1; install -d -m 0700 "$private" || exit 1
           test "$(sha256sum "$producer" | cut -d' ' -f1)" = "$UID_PROBE_PRODUCER_SHA256" || exit 1
-          runner_device="$(stat -Lc '%d' -- "$RUNNER_TEMP")"; runner_inode="$(stat -Lc '%i' -- "$RUNNER_TEMP")"
-          common=(bootstrap-permission-probe --runner-temp "$RUNNER_TEMP" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --runner-device "$runner_device" --runner-inode "$runner_inode")
-          root_probe(){ sudo --non-interactive /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
-          uid_probe(){ sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
           diagnostic=(/usr/bin/python3 -I -B "$producer" --journal "$journal" --source-commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT")
           "${diagnostic[@]}" init || exit 1
+          payload_digest="$(sudo --non-interactive /usr/bin/python3 -I -B "$source_script" bridge-payload-digest --repo "$GITHUB_WORKSPACE" --source-contract "$source_contract")" || exit 1
+          test "${#payload_digest}" = 64 || exit 1
           preflight_code='import os,sys
           try:
            runner=os.access(sys.argv[1],os.X_OK,effective_ids=True); readable=False
@@ -160,19 +159,65 @@ jobs:
            raise SystemExit(0 if runner and readable else 41 if not runner and readable else 42 if runner else 43)
           except SystemExit: raise
           except BaseException: raise SystemExit(44)'
-          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$preflight_code" "$RUNNER_TEMP" "$script" >/dev/null 2>/dev/null; then preflight_status=0; else preflight_status=$?; fi
-          case "$preflight_status" in 0) preflight=BOTH_ACCESSIBLE;; 41) preflight=RUNNER_TEMP_NOT_SEARCHABLE;; 42) preflight=SOURCE_SCRIPT_NOT_READABLE;; 43) preflight=BOTH_INACCESSIBLE;; *) preflight=PREFLIGHT_EXECUTION_FAILED;; esac
+          if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$preflight_code" "$RUNNER_TEMP" "$source_script" >/dev/null 2>/dev/null; then host_preflight_status=0; else host_preflight_status=$?; fi
+          case "$host_preflight_status" in 0) host_preflight=BOTH_ACCESSIBLE;; 41) host_preflight=RUNNER_TEMP_NOT_SEARCHABLE;; 42) host_preflight=SOURCE_SCRIPT_NOT_READABLE;; 43) host_preflight=BOTH_INACCESSIBLE;; *) host_preflight=PREFLIGHT_EXECUTION_FAILED;; esac
           diagnostic_failed=false
-          test "$preflight" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true
-          if "${diagnostic[@]}" preflight --classification "$preflight"; then :; else diagnostic_failed=true; fi
-          original_code=0; cleanup_attempted=false; absence_attempted=false; probe_active=true
+          test "$host_preflight" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true
+          if "${diagnostic[@]}" host-preflight --classification "$host_preflight" --exit-status "$host_preflight_status"; then :; else diagnostic_failed=true; fi
+          bridge_parent=/tmp; bridge_parent_device="$(stat -Lc '%d' -- "$bridge_parent")"; bridge_parent_inode="$(stat -Lc '%i' -- "$bridge_parent")"
+          bridge_nonce="$(/usr/bin/python3 -I -B -c 'import secrets;print(secrets.token_hex(16))')" || exit 1
+          bridge_root="$bridge_parent/chengwang-joint-uid-bridge-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$bridge_nonce"
+          bridge=(bootstrap-permission-bridge --repo "$GITHUB_WORKSPACE" --source-contract "$source_contract" --bridge-parent "$bridge_parent" --bridge-parent-device "$bridge_parent_device" --bridge-parent-inode "$bridge_parent_inode" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --bridge-nonce "$bridge_nonce")
+          if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode setup >/dev/null 2>/dev/null; then bridge_setup_status=0; bridge_active=true; else bridge_setup_status=$?; bridge_active=false; fi
+          if "${diagnostic[@]}" bridge-setup --exit-status "$bridge_setup_status" --payload-set-sha256 "$payload_digest"; then :; else diagnostic_failed=true; fi
+          original_code=0; test "$host_preflight" != PREFLIGHT_EXECUTION_FAILED || original_code="$host_preflight_status"
+          cleanup_attempted=false; absence_attempted=false; probe_active=false; bridge_cleanup_attempted=false; bridge_absence_attempted=false
           record_event(){ local event_mode="$1" event_status="$2"; if "${diagnostic[@]}" event --mode "$event_mode" --exit-status "$event_status"; then :; else diagnostic_failed=true; fi; }
+          record_bridge(){ local action="$1" action_status="$2"; if "${diagnostic[@]}" "$action" --exit-status "$action_status"; then :; else diagnostic_failed=true; fi; }
+          if test "$bridge_setup_status" = 0; then
+            script="$bridge_root/payload/ci_joint_control_plane.py"; bridge_contract="$bridge_root/payload/contract.py"; runner="$bridge_root/runner"
+            bridge_preflight_code='import os,sys
+          try:
+           runner=os.access(sys.argv[1],os.X_OK,effective_ids=True);readable=True
+           for path in sys.argv[2:]:
+            try:
+             fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|getattr(os,"O_NOFOLLOW",0));os.read(fd,1);os.close(fd)
+            except OSError: readable=False
+           raise SystemExit(0 if runner and readable else 41 if not runner and readable else 42 if runner else 43)
+          except SystemExit: raise
+          except BaseException: raise SystemExit(44)'
+            if sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC /usr/bin/python3 -I -B -c "$bridge_preflight_code" "$runner" "$script" "$bridge_contract" >/dev/null 2>/dev/null; then bridge_preflight_status=0; else bridge_preflight_status=$?; fi
+            case "$bridge_preflight_status" in 0) bridge_preflight=BRIDGE_ACCESSIBLE;; 41) bridge_preflight=BRIDGE_RUNNER_NOT_SEARCHABLE;; 42) bridge_preflight=BRIDGE_PAYLOAD_NOT_READABLE;; 43) bridge_preflight=BRIDGE_BOTH_INACCESSIBLE;; *) bridge_preflight=BRIDGE_PREFLIGHT_EXECUTION_FAILED;; esac
+            if "${diagnostic[@]}" bridge-preflight --classification "$bridge_preflight" --exit-status "$bridge_preflight_status"; then :; else diagnostic_failed=true; fi
+            if test "$bridge_preflight" = BRIDGE_ACCESSIBLE; then
+              runner_device="$(stat -Lc '%d' -- "$runner")"; runner_inode="$(stat -Lc '%i' -- "$runner")"
+              common=(bootstrap-permission-probe --runner-temp "$runner" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --runner-device "$runner_device" --runner-inode "$runner_inode")
+              root_probe(){ sudo --non-interactive /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
+              uid_probe(){ sudo --non-interactive /usr/bin/setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 /usr/bin/python3 -I -B "$script" "${common[@]}" --probe-mode "$1"; }
+              probe_active=true
+            else
+              test "$original_code" != 0 || original_code="$bridge_preflight_status"
+            fi
+          else
+            test "$original_code" != 0 || original_code="$bridge_setup_status"
+          fi
           run_root(){ local probe_mode="$1" mode_status; if root_probe "$probe_mode" >/dev/null 2>/dev/null; then mode_status=0; else mode_status=$?; fi; record_event "$probe_mode" "$mode_status"; return "$mode_status"; }
           run_uid(){ local probe_mode="$1" mode_status; if uid_probe "$probe_mode" >/dev/null 2>/dev/null; then mode_status=0; else mode_status=$?; fi; record_event "$probe_mode" "$mode_status"; return "$mode_status"; }
           cleanup_probe(){
             local cleanup_status absence_status
             if run_root root-cleanup; then cleanup_status=0; else cleanup_status=$?; fi; cleanup_attempted=true
             if run_root root-final-absence; then absence_status=0; else absence_status=$?; fi; absence_attempted=true
+            if test "$cleanup_status" != 0; then return "$cleanup_status"; fi
+            return "$absence_status"
+          }
+          cleanup_bridge(){
+            local cleanup_status absence_status
+            if test "$bridge_active" = true; then
+              if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0; else cleanup_status=$?; fi
+            else cleanup_status=0; fi
+            bridge_cleanup_attempted=true; record_bridge bridge-cleanup "$cleanup_status"
+            if sudo --non-interactive /usr/bin/python3 -I -B "$source_script" "${bridge[@]}" --bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0; else absence_status=$?; fi
+            bridge_absence_attempted=true; record_bridge bridge-final-absence "$absence_status"; bridge_active=false
             if test "$cleanup_status" != 0; then return "$cleanup_status"; fi
             return "$absence_status"
           }
@@ -184,18 +229,22 @@ jobs:
             if test "$probe_active" = true && { test "$cleanup_attempted" != true || test "$absence_attempted" != true; }; then
               if cleanup_probe; then :; else cleanup_status=$?; test "$final_status" != 0 || final_status="$cleanup_status"; fi
             fi
+            if test "$bridge_cleanup_attempted" != true || test "$bridge_absence_attempted" != true; then
+              if cleanup_bridge; then :; else cleanup_status=$?; test "$final_status" != 0 || final_status="$cleanup_status"; fi
+            fi
             if test "$diagnostic_failed" = true; then test "$final_status" != 0 || final_status=1; fi
             if "${diagnostic[@]}" finalize --exit-status "$final_status" --output "$candidate"; then :; else test "$final_status" != 0 || final_status=1; fi
             exit "$final_status"
           }
           trap 'finish_probe "$?"' EXIT
-          if run_root root-setup; then :; else original_code=$?; fi
-          if test "$original_code" = 0; then if run_uid uid-prepublish-denials; then :; else original_code=$?; fi; fi
-          if test "$original_code" = 0; then if run_root root-finalize; then :; else original_code=$?; fi; fi
-          if test "$original_code" = 0; then if run_uid uid-final-read-and-rename; then :; else original_code=$?; fi; fi
-          if test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi
-          if test "$original_code" = 0; then if run_root root-reject-replacement; then :; else original_code=$?; fi; fi
-          if cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi
+          if test "$probe_active" = true && test "$original_code" = 0; then if run_root root-setup; then :; else original_code=$?; fi; fi
+          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-prepublish-denials; then :; else original_code=$?; fi; fi
+          if test "$probe_active" = true && test "$original_code" = 0; then if run_root root-finalize; then :; else original_code=$?; fi; fi
+          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-final-read-and-rename; then :; else original_code=$?; fi; fi
+          if test "$probe_active" = true && test "$original_code" = 0; then if run_uid uid-install-replacement; then :; else original_code=$?; fi; fi
+          if test "$probe_active" = true && test "$original_code" = 0; then if run_root root-reject-replacement; then :; else original_code=$?; fi; fi
+          if test "$probe_active" = true; then if cleanup_probe; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi; fi
+          if cleanup_bridge; then :; else cleanup_status=$?; test "$original_code" != 0 || original_code="$cleanup_status"; fi
           exit "$original_code"
       - name: Independently validate UID probe diagnostic
         if: always()

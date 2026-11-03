@@ -8,10 +8,10 @@ permissions:
   contents: read
 
 env:
-  CONTRACT_SHA256: 7b9f814d0542adc510b2616feb10e5be346f981b1c9e4f8c9dbde1a91b861cd0
-  CHECKER_SHA256: 1fb18ab095f8918d58696e7f21ebe2bc47da7e0a99b99b11c388acf48240a235
-  MODEL_SHA256: f156dbcb155155e87d1204840fb2b8e98b49e735ea731057023db55dfd19c349
-  RUNNER_SHA256: 6f4bb231ad42b8b0492fb999c2935b9fc17752702a0f7a6d0016c7622337f680
+  CONTRACT_SHA256: 7e813d88362dfd7caee079e1b28688aba87601b6a2ffddccb8c910d74abceca8
+  CHECKER_SHA256: dbc7db00a14c251063e25036743aff3221ddf2e2f30f5503b6098c71281c58ac
+  MODEL_SHA256: e2b30d4c9406b171c73620e02266bbfccaea1434f6c0cb2f99ec98d2cbbf01fc
+  RUNNER_SHA256: 4aa4772455ac420b191bc0bdfc763b01858009a3aa8abf78ae78f5ccbcfb8b6e
 
 concurrency:
   group: chengwang-capacity-fixture-b-${{ github.ref }}
@@ -73,11 +73,33 @@ jobs:
           set -euo pipefail
           go_exe="$(command -v go)"
           go_root="$(dirname "$(dirname "$(readlink -f "$go_exe")")")"
+          root="$RUNNER_TEMP/capacity-fixture-b-$LANE-public"
+          checker="$GITHUB_WORKSPACE/chengwang/deploy/mihomo-capacity-fixture-b/check_fixture_b.py"
+          contract="$GITHUB_WORKSPACE/chengwang/deploy/mihomo-capacity-fixture-b/fixture_b_contract.json"
+          source_tree="$(git -C "$GITHUB_WORKSPACE" rev-parse "$GITHUB_SHA^{tree}")"
+          trusted_uid="$(id -u)"
+          python3 -B "$checker" setup-init --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" \
+            --journal "$root/.setup-journal" --source-commit "$GITHUB_SHA" --source-tree "$source_tree" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane "$LANE" \
+            --trusted-owner-uid "$trusted_uid"
+          set +e
           timeout --signal=TERM --kill-after=15s 600s \
             sudo unshare --net --mount --pid --fork --mount-proc --kill-child=SIGKILL \
             bash "$GITHUB_WORKSPACE/chengwang/deploy/mihomo-capacity-fixture-b/run_fixture_b.sh" \
-            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/capacity-fixture-b-$LANE-public" \
-            "$go_root" "$GITHUB_SHA" "$LANE" "$CONTRACT_SHA256"
+            "$GITHUB_WORKSPACE" "$root" "$go_root" "$GITHUB_SHA" "$source_tree" \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$LANE" "$CONTRACT_SHA256" "$trusted_uid"
+          lane_exit=$?
+          set -e
+          set +e
+          python3 -B "$checker" setup-finalize --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" \
+            --journal "$root/.setup-journal" --source-commit "$GITHUB_SHA" --source-tree "$source_tree" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane "$LANE" \
+            --trusted-owner-uid "$trusted_uid" --host-exit-status "$lane_exit" \
+            --out "$root/setup-status.json"
+          diagnostic_exit=$?
+          set -e
+          if test "$lane_exit" -ne 0; then exit "$lane_exit"; fi
+          test "$diagnostic_exit" -eq 0
       - name: Rebind source and require the accepted fixed report
         if: ${{ always() }}
         working-directory: chengwang
@@ -98,8 +120,14 @@ jobs:
               --out "$root/summary.json"
             set -e
           fi
+          source_tree="$(git -C "$GITHUB_WORKSPACE" rev-parse "$GITHUB_SHA^{tree}")"
+          python3 -B "$checker" setup-check --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" \
+            --source-commit "$GITHUB_SHA" --source-tree "$source_tree" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --lane "$LANE" \
+            --setup-status "$root/setup-status.json"
           python3 -B "$checker" report --contract "$contract" --contract-sha256 "$CONTRACT_SHA256" \
             --source-before "$root/source-before.json" --source-after "$root/source-after.json" \
+            --setup-status "$root/setup-status.json" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --toolchain "$root/toolchain.json" --format-status "$root/format-status.json" \
             --summary "$root/summary.json"
       - name: Preserve only the bounded public lane result
@@ -114,6 +142,7 @@ jobs:
             ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/format-status.json
             ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/gofmt.patch
             ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/summary.json
+            ${{ runner.temp }}/capacity-fixture-b-${{ matrix.lane }}-public/setup-status.json
           retention-days: 14
           if-no-files-found: error
 
@@ -142,6 +171,9 @@ jobs:
             --contract-sha256 "$CONTRACT_SHA256" \
             --ordinary "$RUNNER_TEMP/fixture-b-ordinary/summary.json" \
             --race "$RUNNER_TEMP/fixture-b-race/summary.json" \
+            --ordinary-setup-status "$RUNNER_TEMP/fixture-b-ordinary/setup-status.json" \
+            --race-setup-status "$RUNNER_TEMP/fixture-b-race/setup-status.json" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --out "$RUNNER_TEMP/capacity-fixture-b-pair.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

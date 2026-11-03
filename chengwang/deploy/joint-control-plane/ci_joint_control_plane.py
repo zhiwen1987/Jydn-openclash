@@ -4,7 +4,7 @@ import argparse, ast, errno, hashlib, importlib.util, json, os, pathlib, re, sel
 HERE=pathlib.Path(__file__).resolve().parent
 _spec=importlib.util.spec_from_file_location("joint_ci_contract",HERE/"contract.py");C=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(C)
 WORKFLOW=".github/workflows/chengwang-joint-control-plane.yml"
-WORKFLOW_NORMALIZED_SHA256="42dfcfe0a5ee4b58ed53802f20933f7a716cb19b44264bafbf41cfa478ae2579"
+WORKFLOW_NORMALIZED_SHA256="d9f5c6efe9db50fdd13e0ccbdcc365e6fcca4ae0de565b092507f64777b73b8d"
 MODEL_TEST_SOURCES=("test_joint_fixture.py","test_run_joint_control_plane.py","test_check_joint_control_plane.py","test_sanitize_publication.py","test_uid_probe_diagnostic.py","test_check_uid_probe_diagnostic.py")
 MODEL_OUTCOMES=("PASS","FAIL","ERROR","SKIP","UNKNOWN")
 MODEL_DIAGNOSTIC_SCHEMA="chengwang.joint-control-plane-model-outcomes/v1"
@@ -171,11 +171,16 @@ def workflow_contract(raw,source_contract_raw=None):
     if source_contract_raw is None:source_contract_raw=(HERE/"source_contract.json").read_bytes()
     need(type(source_contract_raw)is bytes and text.count("  CONTRACT_SHA256: "+hashlib.sha256(source_contract_raw).hexdigest())==1)
     required=(
-        "UID_PROBE_PRODUCER_SHA256: 7456e8a933f5d577f4302887c32e575da296d44aed02a3cba6353a442827dca2",
-        "UID_PROBE_CHECKER_SHA256: db3fdcee0a0383f6ae0d05d03971ca90ccc4f0aecb9ef8941082b2d5f035f489",
+        "UID_PROBE_PRODUCER_SHA256: 98982bd151c9289534fa7421a1520ba51ff67ceb0fd930065e227321e419052d",
+        "UID_PROBE_CHECKER_SHA256: 04fdd2ac9acbc2dafa7c2ecab9910b3346649042569dbaeb9cec4efb056e81c8",
         "- name: Probe isolated Linux UID custody",
         "id: uid_probe",
-        "test \"$preflight\" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true",
+        "test \"$host_preflight\" != PREFLIGHT_EXECUTION_FAILED || diagnostic_failed=true",
+        "bridge-payload-digest --repo \"$GITHUB_WORKSPACE\" --source-contract \"$source_contract\"",
+        "--bridge-mode setup >/dev/null 2>/dev/null; then bridge_setup_status=0; bridge_active=true",
+        "bridge-preflight --classification \"$bridge_preflight\" --exit-status \"$bridge_preflight_status\"",
+        "--bridge-mode cleanup >/dev/null 2>/dev/null; then cleanup_status=0",
+        "--bridge-mode final-absence >/dev/null 2>/dev/null; then absence_status=0",
         "if run_root root-setup; then :; else original_code=$?; fi",
         "if run_root root-cleanup; then cleanup_status=0; else cleanup_status=$?; fi",
         "if run_root root-final-absence; then absence_status=0; else absence_status=$?; fi",
@@ -443,11 +448,102 @@ def bootstrap_progress(progress_root,bootstrap_record,source_commit):
     C.record_bootstrap_status(bootstrap_record,source_commit,state)
     need(state=="PASS")
 PROBE_PREFIX="chengwang-joint-bootstrap-custody-probe-"
+BRIDGE_PREFIX="chengwang-joint-uid-bridge-"
+BRIDGE_FILES=(
+    ("chengwang/deploy/joint-control-plane/ci_joint_control_plane.py","ci_joint_control_plane.py"),
+    ("chengwang/deploy/joint-control-plane/contract.py","contract.py"),
+)
+BRIDGE_MAX_FILE_BYTES=1048576
 PROBE_SOURCE="0"*40
 PROBE_RAW=C.canonical({"schema":C.BOOTSTRAP_SCHEMA,"sourceCommit":PROBE_SOURCE,"bootstrapChildState":"PASS"})
 PROBE_MODES=frozenset(("root-setup","uid-prepublish-denials","root-finalize",
     "uid-final-read-and-rename","uid-install-replacement","root-reject-replacement",
     "root-cleanup","root-final-absence"))
+def _bridge_stable_read(path):
+    path=pathlib.Path(path);before=path.lstat();need(not path.is_symlink() and stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size<=BRIDGE_MAX_FILE_BYTES)
+    fd=os.open(path,os.O_RDONLY|getattr(os,"O_CLOEXEC",0)|getattr(os,"O_NOFOLLOW",0));raw=bytearray()
+    try:
+        opened=os.fstat(fd);need((opened.st_dev,opened.st_ino,opened.st_size)==(before.st_dev,before.st_ino,before.st_size))
+        while True:
+            chunk=os.read(fd,65536)
+            if not chunk:break
+            raw.extend(chunk);need(len(raw)<=BRIDGE_MAX_FILE_BYTES)
+        after_fd=os.fstat(fd)
+    finally:os.close(fd)
+    after=path.lstat();identity=lambda value:(value.st_dev,value.st_ino,value.st_size,value.st_mtime_ns)
+    need(identity(before)==identity(after_fd)==identity(after));return bytes(raw)
+def _bridge_rows(repo,source_contract):
+    repo=pathlib.Path(repo).resolve(strict=True);contract=pathlib.Path(source_contract).resolve(strict=True)
+    need(contract==repo/"chengwang/deploy/joint-control-plane/source_contract.json")
+    value=json.loads(_bridge_stable_read(contract));need(type(value)is dict and type(value.get("paths"))is list)
+    by_path={row.get("path"):row for row in value["paths"] if type(row)is dict and row.get("path") in {item[0] for item in BRIDGE_FILES}}
+    need(set(by_path)=={item[0] for item in BRIDGE_FILES})
+    rows=[]
+    for relative,basename in BRIDGE_FILES:
+        row=by_path[relative];need(set(row)=={"path","sha256"} and re.fullmatch(r"[a-f0-9]{64}",row["sha256"] or ""))
+        source=repo/relative;need(source.resolve(strict=True)==source.absolute());raw=_bridge_stable_read(source);need(hashlib.sha256(raw).hexdigest()==row["sha256"])
+        rows.append((relative,basename,row["sha256"],raw))
+    digest=hashlib.sha256(C.canonical([{"path":relative,"sha256":expected} for relative,_,expected,_ in rows])).hexdigest()
+    return rows,digest
+def _bridge_parent(path,device,inode,platform=None):
+    parent=pathlib.Path(path);meta=parent.lstat();need((os.name if platform is None else platform)=="posix")
+    if platform is None:need(parent==pathlib.Path("/tmp"))
+    need(parent.is_absolute() and not parent.is_symlink() and stat.S_ISDIR(meta.st_mode) and meta.st_uid==0 and meta.st_gid==0 and str(meta.st_dev)==device and str(meta.st_ino)==inode and parent.resolve(strict=True)==parent.absolute())
+    return parent
+def _bridge_root(parent,run_id,run_attempt,nonce):
+    need(re.fullmatch(r"[1-9][0-9]*",run_id or "") and re.fullmatch(r"[1-9][0-9]*",run_attempt or "") and re.fullmatch(r"[a-f0-9]{32}",nonce or ""))
+    root=parent/(BRIDGE_PREFIX+run_id+"-"+run_attempt+"-"+nonce);need(root.parent==parent);return root
+def _bridge_owned(path,mode,kind="dir"):
+    path=pathlib.Path(path);meta=path.lstat();modes=set(mode) if type(mode)in (set,frozenset,tuple,list) else {mode};need(not path.is_symlink() and meta.st_uid==0 and meta.st_gid==0 and stat.S_IMODE(meta.st_mode) in modes and (stat.S_ISDIR(meta.st_mode) if kind=="dir" else stat.S_ISREG(meta.st_mode) and meta.st_nlink==1));return meta
+def _bridge_write(path,raw):
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0),0o600)
+    try:
+        seen=0
+        while seen<len(raw):
+            count=os.write(fd,raw[seen:]);need(count>0);seen+=count
+        os.fsync(fd);os.fchmod(fd,0o444);opened=os.fstat(fd);need(stat.S_ISREG(opened.st_mode) and opened.st_nlink==1)
+        os.fchown(fd,0,0)
+    finally:os.close(fd)
+def _bridge_validate(root,rows,partial=False):
+    root=pathlib.Path(root);_bridge_owned(root,{0o700,0o711} if partial else 0o711)
+    entries={item.name for item in root.iterdir()};need(entries<= {"payload","runner"} if partial else entries=={"payload","runner"})
+    payload=root/"payload";runner=root/"runner";expected={basename:(expected,raw) for _,basename,expected,raw in rows}
+    if not _probe_absent(payload):
+        _bridge_owned(payload,{0o700,0o555} if partial else 0o555)
+        names={item.name for item in payload.iterdir()};need(names<=set(expected) if partial else names==set(expected))
+        for name in names:
+            file=payload/name;meta=_bridge_owned(file,{0o600,0o444} if partial else 0o444,"file")
+            if not partial or stat.S_IMODE(meta.st_mode)==0o444:
+                raw=_bridge_stable_read(file);need(raw==expected[name][1] and hashlib.sha256(raw).hexdigest()==expected[name][0])
+    if not _probe_absent(runner):
+        _bridge_owned(runner,0o711);need(not any(runner.iterdir()))
+    return payload,runner
+def _bridge_cleanup(root,rows,partial=False):
+    root=pathlib.Path(root)
+    if _probe_absent(root):return
+    payload,runner=_bridge_validate(root,rows,partial)
+    if not _probe_absent(payload):
+        for _,basename,_,_ in rows:
+            file=payload/basename
+            if not _probe_absent(file):os.unlink(file)
+        os.rmdir(payload)
+    if not _probe_absent(runner):os.rmdir(runner)
+    os.rmdir(root);_probe_dir_fsync(root.parent)
+def bridge_payload_digest(repo,source_contract):return _bridge_rows(repo,source_contract)[1]
+def bridge_setup(repo,source_contract,parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
+    need((os.geteuid(),os.getegid())==(0,0));parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);rows,digest=_bridge_rows(repo,source_contract);need(_probe_absent(root));created=False
+    try:
+        os.mkdir(root,0o700);created=True;os.chown(root,0,0);payload=root/"payload";runner=root/"runner";os.mkdir(payload,0o700);os.chown(payload,0,0);os.mkdir(runner,0o711);os.chown(runner,0,0)
+        for _,basename,_,raw in rows:_bridge_write(payload/basename,raw)
+        os.chmod(payload,0o555);os.chmod(root,0o711);_probe_dir_fsync(payload);_probe_dir_fsync(runner);_probe_dir_fsync(root);_probe_dir_fsync(parent);_bridge_validate(root,rows)
+    except BaseException:
+        if created:_bridge_cleanup(root,rows,partial=True);need(_probe_absent(root))
+        raise
+    return root,digest
+def bridge_cleanup(repo,source_contract,parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
+    parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);rows,_=_bridge_rows(repo,source_contract);need((os.geteuid(),os.getegid())==(0,0));_bridge_cleanup(root,rows);return root
+def bridge_final_absence(parent_path,parent_device,parent_inode,run_id,run_attempt,nonce,platform=None):
+    parent=_bridge_parent(parent_path,parent_device,parent_inode,platform);root=_bridge_root(parent,run_id,run_attempt,nonce);need(_probe_absent(root));_bridge_parent(parent_path,parent_device,parent_inode,platform);return root
 def _probe_absent(path):
     try:pathlib.Path(path).lstat()
     except FileNotFoundError:return True
@@ -579,11 +675,20 @@ def _stdout(raw):
     while seen<len(raw):
         count=os.write(fd,raw[seen:]);need(count>0);seen+=count
 def main():
-    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","model-diagnostic","progress","bootstrap-progress","bootstrap-permission-probe","workflow-contract"));p.add_argument("--output");p.add_argument("--input");p.add_argument("--model-diagnostic");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("action",choices=("source","contract","build","isolation","units","model-diagnostic","progress","bootstrap-progress","bootstrap-permission-probe","bootstrap-permission-bridge","bridge-payload-digest","workflow-contract"));p.add_argument("--output");p.add_argument("--input");p.add_argument("--model-diagnostic");p.add_argument("--repo",default=".");p.add_argument("--workflow");p.add_argument("--source-contract");p.add_argument("--source-commit");p.add_argument("--base-commit");p.add_argument("--server-binary");p.add_argument("--outer-net-namespace");p.add_argument("--progress-root");p.add_argument("--bootstrap-record");p.add_argument("--phase");p.add_argument("--state");p.add_argument("--receipt",action="store_true");p.add_argument("--runner-temp");p.add_argument("--run-id");p.add_argument("--run-attempt");p.add_argument("--runner-device");p.add_argument("--runner-inode");p.add_argument("--probe-mode");p.add_argument("--bridge-mode",choices=("setup","cleanup","final-absence"));p.add_argument("--bridge-parent");p.add_argument("--bridge-parent-device");p.add_argument("--bridge-parent-inode");p.add_argument("--bridge-nonce");a=p.parse_args()
     if a.action=="workflow-contract":
         need(a.output is None and a.workflow and not a.receipt);workflow_contract(pathlib.Path(a.workflow).read_bytes());return
     if a.action=="bootstrap-permission-probe":
         need(a.output is None and a.runner_temp and a.run_id and a.run_attempt and a.runner_device and a.runner_inode and a.probe_mode and not a.receipt);bootstrap_permission_probe(a.runner_temp,a.run_id,a.run_attempt,a.runner_device,a.runner_inode,a.probe_mode);return
+    if a.action=="bridge-payload-digest":
+        need(a.source_contract and a.repo and not a.bridge_mode);_stdout((bridge_payload_digest(a.repo,a.source_contract)+"\n").encode());return
+    if a.action=="bootstrap-permission-bridge":
+        need(a.source_contract and a.repo and a.bridge_mode and a.bridge_parent and a.bridge_parent_device and a.bridge_parent_inode and a.run_id and a.run_attempt and a.bridge_nonce)
+        arguments=(a.repo,a.source_contract,a.bridge_parent,a.bridge_parent_device,a.bridge_parent_inode,a.run_id,a.run_attempt,a.bridge_nonce)
+        if a.bridge_mode=="setup":root,_=bridge_setup(*arguments);_stdout((str(root)+"\n").encode())
+        elif a.bridge_mode=="cleanup":bridge_cleanup(*arguments)
+        else:bridge_final_absence(*arguments[2:])
+        return
     if a.action=="progress":
         need(a.output is None and a.progress_root and a.source_commit and a.phase and a.state and not a.bootstrap_record);C.record_progress(a.progress_root,a.source_commit,a.phase,a.state)
         if a.receipt:

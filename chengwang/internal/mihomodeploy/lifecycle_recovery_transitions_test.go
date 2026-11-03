@@ -412,7 +412,7 @@ func lifecycleRecoveryFullHistoryFixtureBytes(baseRaw []byte, descriptors []labR
 		}
 		txn := lifecycleRecoveryTxn{
 			Plan: descriptor, Phase: "REVOKED_UNSTARTED",
-			Revocation: &lifecycleRevocation{Revision: revision, At: now, Reason: "EXPLICIT_REVOKED", ActorRef: "MODEL_revoker"},
+			Revocation:       &lifecycleRevocation{Revision: revision, At: now, Reason: "EXPLICIT_REVOKED", ActorRef: "MODEL_revoker"},
 			FailedQuiescence: []labQuiescenceObservation{}, UpdatedAt: now,
 		}
 		base.core.RecoveryHistory = append(base.core.RecoveryHistory, txn)
@@ -552,7 +552,9 @@ func TestLifecycleRecoveryCapacityAndRevisionReserveFailBeforeStop(t *testing.T)
 			{"invalid actor syntax", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.ActorRef = "!" }, nil, false},
 			{"unsupported reason", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.Reason = "MODEL_UNSUPPORTED" }, nil, false},
 			{"wrong phase", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Phase = "PLANNED" }, nil, false},
-			{"time before plan creation", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].Revocation.At = w.RecoveryHistory[0].Plan.CreatedAt.Add(-time.Nanosecond) }, nil, false},
+			{"time before plan creation", func(w *lifecycleV3Wire) {
+				w.RecoveryHistory[0].Revocation.At = w.RecoveryHistory[0].Plan.CreatedAt.Add(-time.Nanosecond)
+			}, nil, false},
 			{"time after trusted root", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].UpdatedAt = w.LastTrustedAt.Add(time.Nanosecond) }, nil, false},
 			{"nil failed quiescence", func(w *lifecycleV3Wire) { w.RecoveryHistory[0].FailedQuiescence = nil }, nil, false},
 			{"valid current differs from tail", func(w *lifecycleV3Wire) { w.Recovery.Revocation.ActorRef = "MODEL_tail_actor" }, nil, true},

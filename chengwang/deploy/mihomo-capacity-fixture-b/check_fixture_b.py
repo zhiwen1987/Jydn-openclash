@@ -9,14 +9,25 @@ import json
 import math
 import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
-WORKFLOW_TEMPLATE_SHA256 = "94b7165b803179dd2bb9ce473a84883275d6d1746ecb804d145b9c54182550f1"
+WORKFLOW_TEMPLATE_SHA256 = "67abf3de08f5cde3efdabf4a70aa0877599db31033c516251782fb3e8facb625"
 WORKFLOW_PATH = ".github/workflows/chengwang-mihomo-capacity-fixture-b.yml"
 COMPONENT = "chengwang/deploy/mihomo-capacity-fixture-b"
 PIN_NAMES = ("CONTRACT_SHA256", "CHECKER_SHA256", "MODEL_SHA256", "RUNNER_SHA256")
+SETUP_PHASES = (
+    "NAMESPACE_ENTRY", "MOUNT_PRIVATE", "LOOPBACK", "REPO_BIND", "REPO_READONLY",
+    "GOROOT_BIND", "GOROOT_READONLY", "TMPFS", "UID_STORAGE", "SOURCE_ALIAS",
+    "SOURCE_READONLY", "EXPORT_ALIAS", "EXPORT_READWRITE", "SOURCE_CWD",
+    "UID_PREFLIGHT_SCRIPT", "UID_PREFLIGHT_MODULE_ROOT", "UID_PREFLIGHT_GOROOT_EXEC",
+    "GO_ENV_COMMAND", "GO_ENV_EXIT", "GO_ENV_STDERR_EMPTY", "TOOLCHAIN_WRITER",
+    "FORMAT_GATE", "GO_INVOKE", "ORACLE_VALIDATE",
+)
+SETUP_STATUSES = ("ENTERED", "PASS", "FAIL")
+PRIVATE_UID = 10001
 HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
 TEST_NAME = re.compile(r"Test[A-Za-z0-9_]+(?:/[A-Za-z0-9_.-]+)*")
@@ -103,6 +114,8 @@ def write_new(path: Path, raw: bytes, maximum: int = 1 << 20) -> None:
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
     descriptor = os.open(path, flags, 0o644)
     try:
         written = 0
@@ -124,6 +137,267 @@ def write_new(path: Path, raw: bytes, maximum: int = 1 << 20) -> None:
             raise
 
 
+def fsync_directory(path: Path) -> None:
+    try:
+        descriptor = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    except OSError:
+        if os.name != "nt":
+            raise
+
+
+def setup_binding(contract_sha: str, source_commit: str, source_tree: str, run_id: str, run_attempt: int, lane: str, contract: dict[str, object]) -> dict[str, object]:
+    need(HEX64.fullmatch(contract_sha) is not None, "SOURCE_MISMATCH")
+    need(HEX40.fullmatch(source_commit) is not None and HEX40.fullmatch(source_tree) is not None, "SOURCE_MISMATCH")
+    need(type(run_id) is str and run_id.isascii() and run_id.isdigit() and 1 <= len(run_id) <= 32, "INTERNAL_UNKNOWN")
+    strict_int(run_attempt, 1, 1000)
+    need(lane in contract["lanes"], "TEST_SET_MISMATCH")
+    return {
+        "contractSHA256": contract_sha,
+        "lane": lane,
+        "runAttempt": run_attempt,
+        "runId": run_id,
+        "schema": "chengwang.capacity-fixture-b-setup-journal/v1",
+        "sourceCommit": source_commit,
+        "sourceTree": source_tree,
+    }
+
+
+def path_uid(path: Path) -> int:
+    value = getattr(path.lstat(), "st_uid", 0)
+    need(type(value) is int and value >= 0, "INTERNAL_UNKNOWN")
+    return value
+
+
+def trusted_path(path: Path, trusted_owner_uid: int, directory: bool) -> os.stat_result:
+    need(type(trusted_owner_uid) is int and 0 <= trusted_owner_uid <= (1 << 31) - 1 and trusted_owner_uid != PRIVATE_UID, "INTERNAL_UNKNOWN")
+    need(path.exists() and not path.is_symlink(), "INTERNAL_UNKNOWN")
+    meta = path.lstat()
+    need((stat.S_ISDIR(meta.st_mode) if directory else stat.S_ISREG(meta.st_mode)), "INTERNAL_UNKNOWN")
+    if not directory:
+        need(meta.st_nlink == 1, "INTERNAL_UNKNOWN")
+    need(path_uid(path) in {0, trusted_owner_uid} and path_uid(path) != PRIVATE_UID, "INTERNAL_UNKNOWN")
+    if os.name != "nt":
+        need(meta.st_mode & 0o022 == 0, "INTERNAL_UNKNOWN")
+    return meta
+
+
+def setup_init(journal: Path, binding: dict[str, object], trusted_owner_uid: int) -> None:
+    parent = journal.parent
+    need(parent.is_dir() and not parent.is_symlink(), "INTERNAL_UNKNOWN")
+    need(not journal.exists() and not journal.is_symlink(), "INTERNAL_UNKNOWN")
+    os.mkdir(journal, 0o700)
+    os.chmod(journal, 0o700)
+    trusted_path(journal, trusted_owner_uid, True)
+    write_new(journal / "meta.json", canonical(binding), 16 << 10)
+    fsync_directory(parent)
+
+
+def setup_event_value(binding: dict[str, object], ordinal: int, phase: str, status: str, command_exit_status: int | None) -> dict[str, object]:
+    need(phase in SETUP_PHASES and status in SETUP_STATUSES, "INTERNAL_UNKNOWN")
+    strict_int(ordinal, 0, len(SETUP_PHASES) * 2)
+    if status == "ENTERED":
+        need(command_exit_status is None, "INTERNAL_UNKNOWN")
+    elif status == "FAIL":
+        strict_int(command_exit_status, 1, 255)
+    else:
+        strict_int(command_exit_status, 0, 255)
+        if phase not in {"GO_ENV_COMMAND", "GO_INVOKE"}:
+            need(command_exit_status == 0, "INTERNAL_UNKNOWN")
+    return {
+        "commandExitStatus": command_exit_status,
+        "contractSHA256": binding["contractSHA256"],
+        "lane": binding["lane"],
+        "ordinal": ordinal,
+        "phase": phase,
+        "runAttempt": binding["runAttempt"],
+        "runId": binding["runId"],
+        "schema": "chengwang.capacity-fixture-b-setup-event/v1",
+        "sourceCommit": binding["sourceCommit"],
+        "sourceTree": binding["sourceTree"],
+        "status": status,
+    }
+
+
+def verify_setup_event(raw: bytes, binding: dict[str, object], ordinal: int) -> dict[str, object]:
+    value = exact_keys(decode_json(raw), ("commandExitStatus", "contractSHA256", "lane", "ordinal", "phase", "runAttempt", "runId", "schema", "sourceCommit", "sourceTree", "status"), "INTERNAL_UNKNOWN")
+    need(raw == canonical(value) and value["schema"] == "chengwang.capacity-fixture-b-setup-event/v1", "INTERNAL_UNKNOWN")
+    expected = setup_event_value(binding, ordinal, str(value["phase"]), str(value["status"]), value["commandExitStatus"])  # type: ignore[arg-type]
+    need(value == expected, "INTERNAL_UNKNOWN")
+    return value
+
+
+def validate_setup_sequence(events: list[dict[str, object]]) -> tuple[int, str | None, bool]:
+    next_phase = 0
+    active: str | None = None
+    failed = False
+    for event in events:
+        need(not failed, "INTERNAL_UNKNOWN")
+        phase = str(event["phase"])
+        status = str(event["status"])
+        if status == "ENTERED":
+            need(active is None and next_phase < len(SETUP_PHASES) and phase == SETUP_PHASES[next_phase], "INTERNAL_UNKNOWN")
+            active = phase
+        else:
+            need(active == phase, "INTERNAL_UNKNOWN")
+            active = None
+            if status == "FAIL":
+                failed = True
+            else:
+                next_phase += 1
+    return next_phase, active, failed
+
+
+def read_setup_journal(journal: Path, expected_binding: dict[str, object], trusted_owner_uid: int) -> tuple[list[dict[str, object]], bytes, int, str | None, bool]:
+    trusted_path(journal, trusted_owner_uid, True)
+    entries = sorted(journal.iterdir(), key=lambda item: item.name.encode())
+    meta_path = journal / "meta.json"
+    need(meta_path in entries, "INTERNAL_UNKNOWN")
+    trusted_path(meta_path, trusted_owner_uid, False)
+    meta_raw = safe_read(meta_path, 16 << 10)
+    meta = exact_keys(decode_json(meta_raw), ("contractSHA256", "lane", "runAttempt", "runId", "schema", "sourceCommit", "sourceTree"), "INTERNAL_UNKNOWN")
+    need(meta_raw == canonical(meta) and meta == expected_binding, "INTERNAL_UNKNOWN")
+    events: list[dict[str, object]] = []
+    event_raws: list[bytes] = []
+    event_paths = [path for path in entries if path != meta_path]
+    for ordinal, path in enumerate(event_paths):
+        need(path.name == f"event-{ordinal:04d}.json", "INTERNAL_UNKNOWN")
+        trusted_path(path, trusted_owner_uid, False)
+        raw = safe_read(path, 16 << 10)
+        events.append(verify_setup_event(raw, expected_binding, ordinal))
+        event_raws.append(raw)
+    next_phase, active, failed = validate_setup_sequence(events)
+    return events, b"".join(event_raws), next_phase, active, failed
+
+
+def setup_append_event(journal: Path, binding: dict[str, object], trusted_owner_uid: int, phase: str, status: str, command_exit_status: int | None) -> dict[str, object]:
+    events, _, _, _, _ = read_setup_journal(journal, binding, trusted_owner_uid)
+    value = setup_event_value(binding, len(events), phase, status, command_exit_status)
+    validate_setup_sequence([*events, value])
+    write_new(journal / f"event-{len(events):04d}.json", canonical(value), 16 << 10)
+    return value
+
+
+def setup_flags(events: list[dict[str, object]]) -> dict[str, bool]:
+    completed = {(str(event["phase"]), str(event["status"])) for event in events}
+    entered = {str(event["phase"]) for event in events if event["status"] == "ENTERED"}
+    return {
+        "formatGatePassed": ("FORMAT_GATE", "PASS") in completed,
+        "goEnvExitObserved": ("GO_ENV_COMMAND", "PASS") in completed,
+        "goEnvExitZero": ("GO_ENV_EXIT", "PASS") in completed,
+        "goEnvInvoked": "GO_ENV_COMMAND" in entered,
+        "goEnvStderrEmpty": ("GO_ENV_STDERR_EMPTY", "PASS") in completed,
+        "goExitObserved": ("GO_INVOKE", "PASS") in completed,
+        "goInvoked": "GO_INVOKE" in entered,
+        "oracleValidationPassed": ("ORACLE_VALIDATE", "PASS") in completed,
+        "toolchainWritten": ("TOOLCHAIN_WRITER", "PASS") in completed,
+    }
+
+
+def observed_setup_exit(events: list[dict[str, object]], phase: str) -> int | None:
+    for event in events:
+        if event["phase"] == phase and event["status"] == "PASS":
+            value = event["commandExitStatus"]
+            strict_int(value, 0, 255)
+            return value  # type: ignore[return-value]
+    return None
+
+
+def setup_finalize(journal: Path, binding: dict[str, object], trusted_owner_uid: int, host_exit_status: int) -> dict[str, object]:
+    strict_int(host_exit_status, 0, 255)
+    events, journal_raw, next_phase, active, failed = read_setup_journal(journal, binding, trusted_owner_uid)
+    flags = setup_flags(events)
+    if not events:
+        need(host_exit_status != 0, "INTERNAL_UNKNOWN")
+        phase, status, phase_exit, namespace_entered = "HOST_EXECUTION", "FAIL", host_exit_status, False
+    else:
+        namespace_entered = True
+        last = events[-1]
+        phase, status, phase_exit = str(last["phase"]), str(last["status"]), last["commandExitStatus"]
+        if host_exit_status == 0:
+            need(not failed and active is None and next_phase == len(SETUP_PHASES), "INTERNAL_UNKNOWN")
+            need(phase == "ORACLE_VALIDATE" and status == "PASS" and flags["oracleValidationPassed"], "INTERNAL_UNKNOWN")
+        else:
+            need(failed or active is not None, "INTERNAL_UNKNOWN")
+            need(status in {"ENTERED", "FAIL"}, "INTERNAL_UNKNOWN")
+    value = {
+        "contractSHA256": binding["contractSHA256"],
+        "diagnosticOnly": True,
+        **flags,
+        "goEnvExitStatus": observed_setup_exit(events, "GO_ENV_COMMAND"),
+        "goProcessExitStatus": observed_setup_exit(events, "GO_INVOKE"),
+        "hostExitStatus": host_exit_status,
+        "hostStatus": "PASS" if host_exit_status == 0 else "FAIL",
+        "journalEventCount": len(events),
+        "journalSHA256": sha(journal_raw),
+        "lane": binding["lane"],
+        "namespaceEntered": namespace_entered,
+        "oracleAcceptanceProven": False,
+        "phase": phase,
+        "phaseExitStatus": phase_exit,
+        "runAttempt": binding["runAttempt"],
+        "runId": binding["runId"],
+        "schema": "chengwang.capacity-fixture-b-setup-status/v1",
+        "sourceCommit": binding["sourceCommit"],
+        "sourceTree": binding["sourceTree"],
+        "status": status,
+    }
+    verify_setup_status(canonical(value), binding, False)
+    return value
+
+
+def verify_setup_status(raw: bytes, binding: dict[str, object], require_ready: bool) -> dict[str, object]:
+    keys = ("contractSHA256", "diagnosticOnly", "formatGatePassed", "goEnvExitObserved", "goEnvExitStatus", "goEnvExitZero", "goEnvInvoked", "goEnvStderrEmpty", "goExitObserved", "goInvoked", "goProcessExitStatus", "hostExitStatus", "hostStatus", "journalEventCount", "journalSHA256", "lane", "namespaceEntered", "oracleAcceptanceProven", "oracleValidationPassed", "phase", "phaseExitStatus", "runAttempt", "runId", "schema", "sourceCommit", "sourceTree", "status", "toolchainWritten")
+    value = exact_keys(decode_json(raw), keys, "INTERNAL_UNKNOWN")
+    need(raw == canonical(value) and value["schema"] == "chengwang.capacity-fixture-b-setup-status/v1", "INTERNAL_UNKNOWN")
+    for key in ("contractSHA256", "lane", "runAttempt", "runId", "sourceCommit", "sourceTree"):
+        need(value[key] == binding[key], "SOURCE_MISMATCH")
+    need(value["diagnosticOnly"] is True and value["oracleAcceptanceProven"] is False, "INTERNAL_UNKNOWN")
+    for key in ("formatGatePassed", "goEnvExitObserved", "goEnvExitZero", "goEnvInvoked", "goEnvStderrEmpty", "goExitObserved", "goInvoked", "namespaceEntered", "oracleValidationPassed", "toolchainWritten"):
+        need(type(value[key]) is bool, "INTERNAL_UNKNOWN")
+    strict_int(value["hostExitStatus"], 0, 255)
+    strict_int(value["journalEventCount"], 0, len(SETUP_PHASES) * 2)
+    for key in ("goEnvExitStatus", "goProcessExitStatus"):
+        if value[key] is not None:
+            strict_int(value[key], 0, 255)
+    need(HEX64.fullmatch(str(value["journalSHA256"])) is not None, "INTERNAL_UNKNOWN")
+    need(value["hostStatus"] == ("PASS" if value["hostExitStatus"] == 0 else "FAIL"), "INTERNAL_UNKNOWN")
+    need(value["phase"] == "HOST_EXECUTION" or value["phase"] in SETUP_PHASES, "INTERNAL_UNKNOWN")
+    need(value["status"] in SETUP_STATUSES, "INTERNAL_UNKNOWN")
+    if value["status"] == "ENTERED":
+        need(value["phaseExitStatus"] is None, "INTERNAL_UNKNOWN")
+    elif value["status"] == "FAIL":
+        strict_int(value["phaseExitStatus"], 1, 255)
+    else:
+        strict_int(value["phaseExitStatus"], 0, 255)
+    need(not value["goEnvExitObserved"] or value["goEnvInvoked"], "INTERNAL_UNKNOWN")
+    need(value["goEnvExitObserved"] is (value["goEnvExitStatus"] is not None), "INTERNAL_UNKNOWN")
+    need(not value["goEnvExitZero"] or value["goEnvExitObserved"], "INTERNAL_UNKNOWN")
+    need(not value["goEnvStderrEmpty"] or value["goEnvExitZero"], "INTERNAL_UNKNOWN")
+    need(not value["toolchainWritten"] or value["goEnvStderrEmpty"], "INTERNAL_UNKNOWN")
+    need(not value["formatGatePassed"] or value["toolchainWritten"], "INTERNAL_UNKNOWN")
+    need(not value["goInvoked"] or value["formatGatePassed"], "INTERNAL_UNKNOWN")
+    need(not value["goExitObserved"] or value["goInvoked"], "INTERNAL_UNKNOWN")
+    need(value["goExitObserved"] is (value["goProcessExitStatus"] is not None), "INTERNAL_UNKNOWN")
+    need(not value["oracleValidationPassed"] or value["goExitObserved"], "INTERNAL_UNKNOWN")
+    if not value["namespaceEntered"]:
+        need(value["phase"] == "HOST_EXECUTION" and value["status"] == "FAIL" and value["hostExitStatus"] != 0, "INTERNAL_UNKNOWN")
+        need(value["journalEventCount"] == 0 and value["journalSHA256"] == sha(b""), "INTERNAL_UNKNOWN")
+    else:
+        need(value["journalEventCount"] > 0, "INTERNAL_UNKNOWN")
+    if value["hostStatus"] == "PASS":
+        need(value["namespaceEntered"] is True and value["phase"] == "ORACLE_VALIDATE" and value["status"] == "PASS" and value["oracleValidationPassed"] is True, "INTERNAL_UNKNOWN")
+    else:
+        need(value["status"] in {"ENTERED", "FAIL"}, "INTERNAL_UNKNOWN")
+    if require_ready:
+        need(value["hostStatus"] == "PASS" and value["phase"] == "ORACLE_VALIDATE" and value["status"] == "PASS", "INTERNAL_UNKNOWN")
+        need(value["oracleValidationPassed"] is True, "INTERNAL_UNKNOWN")
+    return value
+
+
 def load_contract(path: Path, expected_sha: str) -> tuple[dict[str, object], bytes]:
     need(HEX64.fullmatch(expected_sha) is not None, "SOURCE_MISMATCH")
     raw = safe_read(path, 1 << 20)
@@ -132,12 +406,13 @@ def load_contract(path: Path, expected_sha: str) -> tuple[dict[str, object], byt
         decode_json(raw),
         (
             "authoringBase", "commands", "eventPackage", "fullSubtests", "lanes", "limits",
-            "moduleWorkingDirectory", "requiredTop", "schema", "scope", "sourceFiles", "toolchain",
+            "moduleWorkingDirectory", "requiredTop", "schema", "scope", "setupPhases",
+            "setupStatuses", "sourceFiles", "toolchain",
         ),
         "SOURCE_MISMATCH",
     )
     need(raw == canonical(value), "SOURCE_MISMATCH")
-    need(value["schema"] == "chengwang.capacity-fixture-b-oracle-contract/v1", "SOURCE_MISMATCH")
+    need(value["schema"] == "chengwang.capacity-fixture-b-oracle-contract/v2", "SOURCE_MISMATCH")
     need(value["scope"] == "isolated-fixture-b-synthetic-model-not-full-suite", "SOURCE_MISMATCH")
     need(value["moduleWorkingDirectory"] == "chengwang", "SOURCE_MISMATCH")
     base = exact_keys(value["authoringBase"], ("commit", "tree"), "SOURCE_MISMATCH")
@@ -150,6 +425,8 @@ def load_contract(path: Path, expected_sha: str) -> tuple[dict[str, object], byt
     need(type(children) is list and len(children) == 5 and len(set(children)) == 5, "SOURCE_MISMATCH")
     need(all(type(item) is str and TEST_NAME.fullmatch(item) is not None and item.startswith(top + "/") for item in children), "SOURCE_MISMATCH")
     need(value["eventPackage"] == "chengwang/internal/mihomodeploy", "SOURCE_MISMATCH")
+    need(value["setupPhases"] == list(SETUP_PHASES), "SOURCE_MISMATCH")
+    need(value["setupStatuses"] == list(SETUP_STATUSES), "SOURCE_MISMATCH")
     commands = value["commands"]
     need(type(commands) is dict and tuple(commands) == ("ordinary", "race"), "SOURCE_MISMATCH")
     ordinary = ["go", "test", "-json", "-mod=vendor", "-count=1", "-p=1", "-shuffle=off", "-timeout=180s", "-run", "^" + top + "$", "./internal/mihomodeploy"]
@@ -166,8 +443,8 @@ def load_contract(path: Path, expected_sha: str) -> tuple[dict[str, object], byt
     need(type(sources) is list and len(sources) == 1, "SOURCE_MISMATCH")
     source = exact_keys(sources[0], ("bytes", "gitBlobSHA1", "path", "sha256"), "SOURCE_MISMATCH")
     need(source["path"] == "chengwang/internal/mihomodeploy/lifecycle_recovery_transitions_test.go", "SOURCE_MISMATCH")
-    need(source["bytes"] == 31098 and source["gitBlobSHA1"] == "1fb2376fa097ad23d6678ca712d784e4ec0fcc5d", "SOURCE_MISMATCH")
-    need(source["sha256"] == "dee61e1330b0dd8e658ad19cea90404a49e23e87855bf8955303714d5c65dbc1", "SOURCE_MISMATCH")
+    need(source["bytes"] == 31111 and source["gitBlobSHA1"] == "fb11ac12b551d8428d9a68f515a48d84031d270a", "SOURCE_MISMATCH")
+    need(source["sha256"] == "fab19f1ca714105f5002d31e2e37ca4cdb0296c5133431951ac81a1576056bc4", "SOURCE_MISMATCH")
     toolchain = exact_keys(value["toolchain"], ("cgoEnabled", "compiler", "goVersion", "goWork", "goarch", "goos", "offline", "packageParallelism", "shuffle", "timeoutSeconds", "vendor"), "SOURCE_MISMATCH")
     need(toolchain == {"cgoEnabled": True, "compiler": "gc", "goVersion": "go1.23.12", "goarch": "amd64", "goos": "linux", "goWork": "off", "offline": True, "packageParallelism": 1, "shuffle": "off", "timeoutSeconds": 180, "vendor": True}, "SOURCE_MISMATCH")
     return value, raw
@@ -512,9 +789,12 @@ def main() -> None:
     report = sub.add_parser("report", parents=[common])
     report.add_argument("--source-before", required=True)
     report.add_argument("--source-after", required=True)
+    report.add_argument("--setup-status", required=True)
     report.add_argument("--toolchain", required=True)
     report.add_argument("--format-status", required=True)
     report.add_argument("--summary", required=True)
+    report.add_argument("--run-id", required=True)
+    report.add_argument("--run-attempt", required=True, type=int)
 
     fallback = sub.add_parser("fallback", parents=[common])
     fallback.add_argument("--lane", required=True)
@@ -525,7 +805,31 @@ def main() -> None:
     pair = sub.add_parser("pair", parents=[common])
     pair.add_argument("--ordinary", required=True)
     pair.add_argument("--race", required=True)
+    pair.add_argument("--ordinary-setup-status", required=True)
+    pair.add_argument("--race-setup-status", required=True)
+    pair.add_argument("--run-id", required=True)
+    pair.add_argument("--run-attempt", required=True, type=int)
     pair.add_argument("--out", required=True)
+
+    setup_parsers = {}
+    for name in ("setup-init", "setup-event", "setup-finalize", "setup-check"):
+        setup_parser = sub.add_parser(name, parents=[common])
+        setup_parser.add_argument("--journal", required=name != "setup-check")
+        setup_parser.add_argument("--source-commit", required=True)
+        setup_parser.add_argument("--source-tree", required=True)
+        setup_parser.add_argument("--run-id", required=True)
+        setup_parser.add_argument("--run-attempt", required=True, type=int)
+        setup_parser.add_argument("--lane", required=True)
+        if name != "setup-check":
+            setup_parser.add_argument("--trusted-owner-uid", required=True, type=int)
+        setup_parsers[name] = setup_parser
+    setup_parsers["setup-event"].add_argument("--phase", required=True)
+    setup_parsers["setup-event"].add_argument("--status", required=True)
+    setup_parsers["setup-event"].add_argument("--command-exit-status", type=int)
+    setup_parsers["setup-finalize"].add_argument("--host-exit-status", required=True, type=int)
+    setup_parsers["setup-finalize"].add_argument("--out", required=True)
+    setup_parsers["setup-check"].add_argument("--setup-status", required=True)
+    setup_parsers["setup-check"].add_argument("--require-ready", action="store_true")
 
     workflow = sub.add_parser("workflow")
     workflow.add_argument("--repo", required=True)
@@ -541,7 +845,19 @@ def main() -> None:
 
     contract, _ = load_contract(Path(args.contract), args.contract_sha256)
     limits = contract["limits"]
-    if args.command == "source":
+    if args.command.startswith("setup-"):
+        binding = setup_binding(args.contract_sha256, args.source_commit, args.source_tree, args.run_id, args.run_attempt, args.lane, contract)
+        if args.command == "setup-init":
+            setup_init(Path(args.journal), binding, args.trusted_owner_uid)
+        elif args.command == "setup-event":
+            setup_append_event(Path(args.journal), binding, args.trusted_owner_uid, args.phase, args.status, args.command_exit_status)
+        elif args.command == "setup-finalize":
+            value = setup_finalize(Path(args.journal), binding, args.trusted_owner_uid, args.host_exit_status)
+            write_new(Path(args.out), canonical(value), limits["publicSummaryBytes"])  # type: ignore[index]
+        else:
+            value = verify_setup_status(safe_read(Path(args.setup_status), limits["publicSummaryBytes"]), binding, args.require_ready)  # type: ignore[index]
+            print(canonical({"diagnosticOnly": True, "phase": value["phase"], "schema": "chengwang.capacity-fixture-b-setup-check/v1", "status": value["status"]}).decode("ascii"), end="")
+    elif args.command == "source":
         value = source_snapshot(Path(args.repo).resolve(), args.source_commit, contract, args.contract_sha256)
         write_new(Path(args.out), canonical(value), limits["publicSummaryBytes"])  # type: ignore[index]
     elif args.command == "toolchain":
@@ -578,10 +894,17 @@ def main() -> None:
         after_raw = safe_read(Path(args.source_after), limits["publicSummaryBytes"])  # type: ignore[index]
         need(before_raw == after_raw, "SOURCE_MISMATCH")
         source_value = verify_source(before_raw, contract, args.contract_sha256)
+        summary_raw = safe_read(Path(args.summary), limits["publicSummaryBytes"])  # type: ignore[index]
+        preview = verify_result(summary_raw, contract, args.contract_sha256, False)
+        need(preview["sourceCommit"] == source_value["sourceCommit"] and preview["sourceTree"] == source_value["sourceTree"], "SOURCE_MISMATCH")
+        binding = setup_binding(args.contract_sha256, preview["sourceCommit"], preview["sourceTree"], args.run_id, args.run_attempt, preview["lane"], contract)  # type: ignore[arg-type]
+        verify_setup_status(safe_read(Path(args.setup_status), limits["publicSummaryBytes"]), binding, False)  # type: ignore[index]
         verify_toolchain(safe_read(Path(args.toolchain), limits["publicSummaryBytes"]), args.contract_sha256)  # type: ignore[index]
         verify_format(safe_read(Path(args.format_status), limits["publicSummaryBytes"]), args.contract_sha256)  # type: ignore[index]
-        result = verify_result(safe_read(Path(args.summary), limits["publicSummaryBytes"]), contract, args.contract_sha256, True)  # type: ignore[index]
+        result = verify_result(summary_raw, contract, args.contract_sha256, True)
         need(result["sourceCommit"] == source_value["sourceCommit"] and result["sourceTree"] == source_value["sourceTree"], "SOURCE_MISMATCH")
+        binding = setup_binding(args.contract_sha256, result["sourceCommit"], result["sourceTree"], args.run_id, args.run_attempt, result["lane"], contract)  # type: ignore[arg-type]
+        verify_setup_status(safe_read(Path(args.setup_status), limits["publicSummaryBytes"]), binding, True)  # type: ignore[index]
         print(canonical({"accepted": True, "lane": result["lane"], "schema": "chengwang.capacity-fixture-b-report-check/v1"}).decode("ascii"), end="")
     elif args.command == "fallback":
         value = failure_summary(contract, args.contract_sha256, args.lane, args.source_commit, args.source_tree, "INTERNAL_UNKNOWN")
@@ -592,6 +915,10 @@ def main() -> None:
         race = verify_result(safe_read(Path(args.race), limits["publicSummaryBytes"]), contract, args.contract_sha256, True)  # type: ignore[index]
         need(ordinary["lane"] == "ordinary" and race["lane"] == "race", "TEST_SET_MISMATCH")
         need(ordinary["sourceCommit"] == race["sourceCommit"] and ordinary["sourceTree"] == race["sourceTree"], "SOURCE_MISMATCH")
+        ordinary_binding = setup_binding(args.contract_sha256, ordinary["sourceCommit"], ordinary["sourceTree"], args.run_id, args.run_attempt, "ordinary", contract)  # type: ignore[arg-type]
+        race_binding = setup_binding(args.contract_sha256, race["sourceCommit"], race["sourceTree"], args.run_id, args.run_attempt, "race", contract)  # type: ignore[arg-type]
+        verify_setup_status(safe_read(Path(args.ordinary_setup_status), limits["publicSummaryBytes"]), ordinary_binding, True)  # type: ignore[index]
+        verify_setup_status(safe_read(Path(args.race_setup_status), limits["publicSummaryBytes"]), race_binding, True)  # type: ignore[index]
         value = {"accepted": True, "contractSHA256": args.contract_sha256, "ordinarySummarySHA256": sha(canonical(ordinary)), "raceSummarySHA256": sha(canonical(race)), "schema": "chengwang.capacity-fixture-b-pair/v1", "sourceCommit": ordinary["sourceCommit"], "sourceTree": ordinary["sourceTree"], "wholeSuiteProven": False}
         write_new(Path(args.out), canonical(value), limits["publicSummaryBytes"])  # type: ignore[index]
 

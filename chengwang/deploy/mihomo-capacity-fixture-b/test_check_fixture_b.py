@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import check_fixture_b as gate
 
@@ -16,6 +19,17 @@ CONTRACT_SHA = hashlib.sha256(CONTRACT_RAW).hexdigest()
 CONTRACT, _ = gate.load_contract(CONTRACT_PATH, CONTRACT_SHA)
 COMMIT = "1" * 40
 TREE = "2" * 40
+RUN_ID = "41550851758"
+RUN_ATTEMPT = 1
+
+
+def setup_binding(lane="ordinary"):
+    return gate.setup_binding(CONTRACT_SHA, COMMIT, TREE, RUN_ID, RUN_ATTEMPT, lane, CONTRACT)
+
+
+def append_passed_phase(journal, binding, trusted_uid, phase, command_exit=0):
+    gate.setup_append_event(journal, binding, trusted_uid, phase, "ENTERED", None)
+    gate.setup_append_event(journal, binding, trusted_uid, phase, "PASS", command_exit)
 
 
 def event(action, test=None, output=None):
@@ -48,7 +62,7 @@ class ContractModels(unittest.TestCase):
         self.assertEqual(CONTRACT_RAW, gate.canonical(CONTRACT))
         self.assertEqual(CONTRACT["lanes"], ["ordinary", "race"])
         self.assertEqual(len(CONTRACT["fullSubtests"]), 5)
-        self.assertEqual(CONTRACT["sourceFiles"][0]["gitBlobSHA1"], "1fb2376fa097ad23d6678ca712d784e4ec0fcc5d")
+        self.assertEqual(CONTRACT["sourceFiles"][0]["gitBlobSHA1"], "fb11ac12b551d8428d9a68f515a48d84031d270a")
 
     def test_contract_tamper_and_duplicate_key_reject(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -215,6 +229,118 @@ class EvidenceModels(unittest.TestCase):
         gate.verify_result(gate.canonical(value), CONTRACT, CONTRACT_SHA, False)
 
 
+class SetupDiagnosticModels(unittest.TestCase):
+    def test_contract_has_exact_fixed_setup_enums(self):
+        self.assertEqual(CONTRACT["setupPhases"], list(gate.SETUP_PHASES))
+        self.assertEqual(CONTRACT["setupStatuses"], ["ENTERED", "PASS", "FAIL"])
+        self.assertEqual(len(gate.SETUP_PHASES), len(set(gate.SETUP_PHASES)))
+
+    def test_successful_journal_is_typed_but_never_oracle_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            journal = Path(directory) / ".setup-journal"
+            trusted_uid = gate.path_uid(Path(directory))
+            binding = setup_binding()
+            gate.setup_init(journal, binding, trusted_uid)
+            for phase in gate.SETUP_PHASES:
+                append_passed_phase(journal, binding, trusted_uid, phase)
+            value = gate.setup_finalize(journal, binding, trusted_uid, 0)
+            raw = gate.canonical(value)
+            self.assertEqual(value["phase"], "ORACLE_VALIDATE")
+            self.assertEqual(value["status"], "PASS")
+            self.assertTrue(value["oracleValidationPassed"])
+            self.assertFalse(value["oracleAcceptanceProven"])
+            self.assertTrue(value["diagnosticOnly"])
+            gate.verify_setup_status(raw, binding, True)
+
+    def test_host_preentry_and_every_namespace_phase_failure_are_distinct(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            trusted_uid = gate.path_uid(root)
+            binding = setup_binding()
+            host_journal = root / "host"
+            gate.setup_init(host_journal, binding, trusted_uid)
+            host = gate.setup_finalize(host_journal, binding, trusted_uid, 124)
+            self.assertEqual((host["phase"], host["status"], host["hostExitStatus"]), ("HOST_EXECUTION", "FAIL", 124))
+            self.assertFalse(host["namespaceEntered"])
+            for index, phase in enumerate(gate.SETUP_PHASES):
+                with self.subTest(phase=phase):
+                    journal = root / f"phase-{index:02d}"
+                    gate.setup_init(journal, binding, trusted_uid)
+                    for prior in gate.SETUP_PHASES[:index]:
+                        append_passed_phase(journal, binding, trusted_uid, prior)
+                    gate.setup_append_event(journal, binding, trusted_uid, phase, "ENTERED", None)
+                    gate.setup_append_event(journal, binding, trusted_uid, phase, "FAIL", 37)
+                    value = gate.setup_finalize(journal, binding, trusted_uid, 37)
+                    self.assertEqual((value["phase"], value["status"], value["phaseExitStatus"], value["hostExitStatus"]), (phase, "FAIL", 37, 37))
+                    self.assertTrue(value["namespaceEntered"])
+                    self.assertNotIn("PRIVATE-CANARY", gate.canonical(value).decode("ascii"))
+
+    def test_foreign_owner_mismatch_unknown_duplicate_and_exit_mutations_reject(self):
+        with tempfile.TemporaryDirectory() as directory:
+            journal = Path(directory) / ".setup-journal"
+            trusted_uid = gate.path_uid(Path(directory))
+            binding = setup_binding()
+            gate.setup_init(journal, binding, trusted_uid)
+            with mock.patch.object(gate, "path_uid", return_value=gate.PRIVATE_UID), self.assertRaises(gate.GateError):
+                gate.read_setup_journal(journal, binding, trusted_uid)
+            changed = dict(binding)
+            changed["sourceTree"] = "3" * 40
+            with self.assertRaises(gate.GateError):
+                gate.read_setup_journal(journal, changed, trusted_uid)
+            with self.assertRaises(gate.GateError):
+                gate.setup_append_event(journal, binding, trusted_uid, "UNKNOWN", "ENTERED", None)
+            with self.assertRaises(gate.GateError):
+                gate.setup_append_event(journal, binding, trusted_uid, "NAMESPACE_ENTRY", "PASS", 0)
+            gate.setup_append_event(journal, binding, trusted_uid, "NAMESPACE_ENTRY", "ENTERED", None)
+            with self.assertRaises(FileExistsError):
+                gate.write_new(journal / "event-0000.json", b"{}\n", 16 << 10)
+            with self.assertRaises(gate.GateError):
+                gate.setup_append_event(journal, binding, trusted_uid, "NAMESPACE_ENTRY", "FAIL", 0)
+
+    def test_setup_status_rejects_unknown_fields_and_binding_or_boolean_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            journal = Path(directory) / ".setup-journal"
+            trusted_uid = gate.path_uid(Path(directory))
+            binding = setup_binding("race")
+            gate.setup_init(journal, binding, trusted_uid)
+            gate.setup_append_event(journal, binding, trusted_uid, "NAMESPACE_ENTRY", "ENTERED", None)
+            gate.setup_append_event(journal, binding, trusted_uid, "NAMESPACE_ENTRY", "FAIL", 19)
+            value = gate.setup_finalize(journal, binding, trusted_uid, 19)
+            variants = []
+            extra = dict(value); extra["privateError"] = "PRIVATE-CANARY"; variants.append(extra)
+            wrong_tree = dict(value); wrong_tree["sourceTree"] = "3" * 40; variants.append(wrong_tree)
+            raw_bool = dict(value); raw_bool["goEnvInvoked"] = "unknown"; variants.append(raw_bool)
+            forged = dict(value); forged["oracleAcceptanceProven"] = True; variants.append(forged)
+            for changed in variants:
+                with self.subTest(keys=tuple(changed)), self.assertRaises(gate.GateError):
+                    gate.verify_setup_status(gate.canonical(changed), binding, False)
+
+    def test_bash_exit_stub_preserves_each_original_failure_code(self):
+        runner = (HERE / "run_fixture_b.sh").read_text("utf-8")
+        self.assertIn('local status=$?', runner)
+        self.assertIn('setup_event "$active_phase" FAIL "$status" || true', runner)
+        bash = shutil.which("bash")
+        if bash is None:
+            for phase in gate.SETUP_PHASES:
+                self.assertIn(f"phase_enter {phase}", runner)
+            return
+        script = r'''set -euo pipefail
+active_phase="$1"
+output="$2"
+setup_event() { printf '%s|%s|%s\n' "$1" "$2" "$3" >"$output"; }
+on_exit() { local status=$?; trap - EXIT; if test "$status" -ne 0 && test -n "$active_phase"; then setup_event "$active_phase" FAIL "$status" || true; fi; exit "$status"; }
+trap on_exit EXIT
+exit 37
+'''
+        for phase in gate.SETUP_PHASES:
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "event"
+                result = subprocess.run([bash, "-c", script, "setup-stub", phase, str(output)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+                self.assertEqual(result.returncode, 37)
+                self.assertEqual(output.read_text("utf-8"), f"{phase}|FAIL|37\n")
+                self.assertNotIn(b"PRIVATE-CANARY", result.stdout + result.stderr + output.read_bytes())
+
+
 class WorkflowModels(unittest.TestCase):
     def test_actual_workflow_and_four_source_pins(self):
         pins = {
@@ -228,8 +354,11 @@ class WorkflowModels(unittest.TestCase):
 
     def test_workflow_has_exact_public_allowlist_and_no_raw_upload(self):
         text = (ROOT / gate.WORKFLOW_PATH).read_text("utf-8")
-        for name in ("source-before.json", "source-after.json", "toolchain.json", "format-status.json", "gofmt.patch", "summary.json"):
+        names = ("source-before.json", "source-after.json", "toolchain.json", "format-status.json", "gofmt.patch", "summary.json", "setup-status.json")
+        for name in names:
             self.assertIn(name, text)
+        upload = text.split("name: capacity-fixture-b-${{ matrix.lane }}", 1)[1].split("retention-days:", 1)[0]
+        self.assertEqual(sum(upload.count(name) for name in names), 7)
         for forbidden in ("events.jsonl", "go.stderr", "gofmt.stderr", "*.json", "*.log"):
             self.assertNotIn(forbidden, text)
 
@@ -239,6 +368,11 @@ class WorkflowModels(unittest.TestCase):
         self.assertIn("sudo unshare --net --mount --pid", workflow)
         for required in ("GOPROXY=off", "GOSUMDB=off", "GOWORK=off", "GOENV=off", "-p=1", "-count=1", "-shuffle=off", "-timeout=180s", "setpriv", "--no-new-privs"):
             self.assertIn(required, text)
+        positions = [text.index(f"phase_enter {phase}") for phase in gate.SETUP_PHASES]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("setup-init", workflow)
+        self.assertIn("setup-finalize", workflow)
+        self.assertIn("setup-check", workflow)
         self.assertNotIn("eval ", text)
 
     def test_workflow_mutations_change_normalized_fingerprint(self):

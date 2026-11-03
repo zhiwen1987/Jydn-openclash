@@ -7,102 +7,109 @@ import uid_probe_diagnostic as D
 
 
 SOURCE = "1" * 40
+DIGEST = "2" * 64
 
 
 class UIDProbeDiagnosticTests(unittest.TestCase):
     def paths(self, directory):
-        root = pathlib.Path(directory)
-        root.chmod(0o700)
+        root = pathlib.Path(directory); root.chmod(0o700)
         return root / "journal.json", root / "uid-probe-diagnostic.json"
 
-    def init(self, journal):
+    def init(self, journal, host="BOTH_INACCESSIBLE", host_status=43, setup=0, bridge="BRIDGE_ACCESSIBLE", bridge_status=0):
         D.initialize(journal, SOURCE, "321", "7")
-        D.set_preflight(journal, SOURCE, "321", "7", "BOTH_ACCESSIBLE")
+        D.set_host_preflight(journal, SOURCE, "321", "7", host, host_status)
+        D.set_bridge_setup(journal, SOURCE, "321", "7", setup, DIGEST)
+        if setup == 0: D.set_bridge_preflight(journal, SOURCE, "321", "7", bridge, bridge_status)
 
-    def event(self, journal, mode, code=0):
-        D.add_event(journal, SOURCE, "321", "7", mode, code)
+    def event(self, journal, mode, code=0): D.add_event(journal, SOURCE, "321", "7", mode, code)
+    def terminal(self, journal, cleanup=0, absence=0):
+        D.set_bridge_terminal(journal, SOURCE, "321", "7", "bridgeCleanupExitStatus", cleanup)
+        D.set_bridge_terminal(journal, SOURCE, "321", "7", "bridgeFinalAbsenceExitStatus", absence)
 
-    def test_success_is_canonical_bounded_and_complete(self):
+    def test_host_inaccessible_bridge_success_is_canonical_bounded_and_complete(self):
         with tempfile.TemporaryDirectory() as directory:
             journal, output = self.paths(directory); self.init(journal)
             for mode in D.MODES: self.event(journal, mode)
-            D.finalize(journal, output, SOURCE, "321", "7", 0)
-            raw = output.read_bytes(); value = json.loads(raw)
-            self.assertLessEqual(len(raw), 4096); self.assertEqual(value["probeStatus"], "PASS")
-            self.assertEqual([event["mode"] for event in value["events"]], list(D.MODES))
+            self.terminal(journal); D.finalize(journal, output, SOURCE, "321", "7", 0)
+            raw=output.read_bytes();value=json.loads(raw)
+            self.assertLessEqual(len(raw),4096);self.assertEqual(value["schema"],D.SCHEMA);self.assertEqual(value["probeStatus"],"PASS")
+            self.assertEqual(value["hostPreflightClassification"],"BOTH_INACCESSIBLE");self.assertEqual(value["bridgePreflightClassification"],"BRIDGE_ACCESSIBLE")
+            self.assertEqual([event["mode"] for event in value["events"]],list(D.MODES))
 
-    def test_root_setup_failure_still_requires_cleanup_and_absence(self):
-        with tempfile.TemporaryDirectory() as directory:
-            journal, output = self.paths(directory); self.init(journal)
-            self.event(journal, "root-setup", 17); self.event(journal, "root-cleanup", 0); self.event(journal, "root-final-absence", 0)
-            D.finalize(journal, output, SOURCE, "321", "7", 17)
-            self.assertEqual(json.loads(output.read_bytes())["probeStatus"], "FAIL")
+    def test_setup_and_bridge_preflight_failures_are_bounded_and_cannot_green(self):
+        for name,setup,classification,status,want in (("setup",19,None,None,19),("preflight",0,"BRIDGE_PAYLOAD_NOT_READABLE",42,42)):
+            with self.subTest(name=name),tempfile.TemporaryDirectory() as directory:
+                journal,output=self.paths(directory);self.init(journal,setup=setup,bridge=classification,bridge_status=status)
+                self.terminal(journal);D.finalize(journal,output,SOURCE,"321","7",want)
+                value=json.loads(output.read_bytes());self.assertEqual(value["probeStatus"],"FAIL");self.assertEqual(value["events"],[])
+                with self.assertRaises(ValueError):D.finalize(journal,output.with_name("bad"),SOURCE,"321","7",0)
 
-    def test_uid_first_and_rename_failures_keep_cleanup(self):
-        for failed in ("uid-prepublish-denials", "uid-final-read-and-rename", "uid-install-replacement"):
-            with self.subTest(failed=failed), tempfile.TemporaryDirectory() as directory:
-                journal, output = self.paths(directory); self.init(journal)
+    def test_probe_prefix_and_two_cleanup_layers_preserve_first_nonzero(self):
+        cases=(("root-setup",17,0,0,17),("uid-prepublish-denials",23,0,0,23),("uid-final-read-and-rename",24,0,0,24),("uid-install-replacement",25,0,0,25),("root-cleanup",31,0,0,31),("root-final-absence",32,0,0,32),(None,0,33,0,33),(None,0,0,34,34))
+        for failed,code,bridge_cleanup,bridge_absence,want in cases:
+            with self.subTest(failed=failed),tempfile.TemporaryDirectory() as directory:
+                journal,output=self.paths(directory);self.init(journal)
                 for mode in D.NORMAL:
-                    self.event(journal, mode, 23 if mode == failed else 0)
-                    if mode == failed: break
-                self.event(journal, "root-cleanup", 0); self.event(journal, "root-final-absence", 0)
-                D.finalize(journal, output, SOURCE, "321", "7", 23)
+                    self.event(journal,mode,code if mode==failed else 0)
+                    if mode==failed:break
+                self.event(journal,"root-cleanup",code if failed=="root-cleanup" else 0)
+                self.event(journal,"root-final-absence",code if failed=="root-final-absence" else 0)
+                self.terminal(journal,bridge_cleanup,bridge_absence);D.finalize(journal,output,SOURCE,"321","7",want)
+                self.assertEqual(json.loads(output.read_bytes())["finalExitStatus"],want)
+        for wrong in (True,0,8):
+            with self.subTest(root_setup_wrong_final=wrong),tempfile.TemporaryDirectory() as directory:
+                journal,output=self.paths(directory);self.init(journal);self.event(journal,"root-setup",17);self.event(journal,"root-cleanup");self.event(journal,"root-final-absence");self.terminal(journal)
+                with self.assertRaises(ValueError):D.finalize(journal,output,SOURCE,"321","7",wrong)
 
-    def test_cleanup_and_final_absence_failures_are_each_retained(self):
-        for failed in D.CLEANUP:
-            with self.subTest(failed=failed), tempfile.TemporaryDirectory() as directory:
-                journal, output = self.paths(directory); self.init(journal)
-                for mode in D.NORMAL: self.event(journal, mode)
-                self.event(journal, "root-cleanup", 31 if failed == "root-cleanup" else 0)
-                self.event(journal, "root-final-absence", 32 if failed == "root-final-absence" else 0)
-                expected=31 if failed=="root-cleanup" else 32
-                D.finalize(journal, output, SOURCE, "321", "7", expected)
-                value=json.loads(output.read_bytes());self.assertEqual(value["events"][-2 if failed=="root-cleanup" else -1]["outcome"],"FAIL")
-            with self.subTest(failed=failed,wrong_final=1), tempfile.TemporaryDirectory() as directory:
-                journal, output = self.paths(directory); self.init(journal)
-                for mode in D.NORMAL: self.event(journal, mode)
-                self.event(journal, "root-cleanup", 31 if failed == "root-cleanup" else 0)
-                self.event(journal, "root-final-absence", 32 if failed == "root-final-absence" else 0)
-                with self.assertRaises(ValueError):D.finalize(journal, output, SOURCE, "321", "7", 1)
-
-    def test_out_of_order_duplicate_unknown_and_after_terminal_reject(self):
+    def test_fixed_enums_order_binding_and_bool_status_reject(self):
         with tempfile.TemporaryDirectory() as directory:
-            journal, _ = self.paths(directory); self.init(journal)
-            with self.assertRaises(ValueError): self.event(journal, "root-setup", True)
-            for mode in ("root-finalize", "unknown"):
-                with self.subTest(mode=mode), self.assertRaises(ValueError): self.event(journal, mode)
-            self.event(journal, "root-setup")
-            with self.assertRaises(ValueError): self.event(journal, "root-setup")
-            self.event(journal, "root-cleanup"); self.event(journal, "root-final-absence")
-            with self.assertRaises(ValueError): self.event(journal, "root-finalize")
+            journal,_=self.paths(directory);D.initialize(journal,SOURCE,"321","7")
+            with self.assertRaises(ValueError):D.set_host_preflight(journal,SOURCE,"321","7","/private/path",43)
+            with self.assertRaises(ValueError):D.set_host_preflight(journal,SOURCE,"321","7","BOTH_INACCESSIBLE",42)
+            D.set_host_preflight(journal,SOURCE,"321","7","BOTH_INACCESSIBLE",43)
+            with self.assertRaises(ValueError):D.set_bridge_setup(journal,SOURCE,"321","7",True,DIGEST)
+            with self.assertRaises(ValueError):D.set_bridge_setup(journal,"3"*40,"321","7",0,DIGEST)
+            with self.assertRaises(ValueError):D.set_bridge_setup(journal,SOURCE,"322","7",0,DIGEST)
+            with self.assertRaises(ValueError):D.set_bridge_setup(journal,SOURCE,"321","8",0,DIGEST)
 
-    def test_foreign_source_run_attempt_and_preexisting_output_reject(self):
+    def test_duplicate_out_of_order_foreign_and_preexisting_output_reject(self):
         with tempfile.TemporaryDirectory() as directory:
-            journal, output = self.paths(directory); self.init(journal)
-            with self.assertRaises(ValueError): D.add_event(journal, "2"*40, "321", "7", "root-setup", 0)
-            with self.assertRaises(ValueError): D.add_event(journal, SOURCE, "322", "7", "root-setup", 0)
-            for mode in D.MODES: self.event(journal, mode)
-            output.write_text("sentinel", encoding="utf-8")
-            with self.assertRaises(FileExistsError): D.finalize(journal, output, SOURCE, "321", "7", 0)
-            self.assertEqual(output.read_text("utf-8"), "sentinel")
+            journal,_=self.paths(directory);self.init(journal)
+            with self.assertRaises(ValueError):self.event(journal,"unknown")
+            with self.assertRaises(ValueError):self.event(journal,"root-finalize")
+            self.event(journal,"root-setup")
+            with self.assertRaises(ValueError):self.event(journal,"root-setup")
+            self.event(journal,"root-cleanup");self.event(journal,"root-final-absence");self.terminal(journal)
+        with tempfile.TemporaryDirectory() as directory:
+            journal,_=self.paths(directory);self.init(journal);self.terminal(journal)
+            with self.assertRaises(ValueError):self.event(journal,"root-setup")
+        with tempfile.TemporaryDirectory() as directory:
+            journal,_=self.paths(directory);D.initialize(journal,SOURCE,"321","7");D.set_bridge_terminal(journal,SOURCE,"321","7","bridgeCleanupExitStatus",0)
+            with self.assertRaises(ValueError):D.set_host_preflight(journal,SOURCE,"321","7","BOTH_INACCESSIBLE",43)
+        with tempfile.TemporaryDirectory() as directory:
+            journal,_=self.paths(directory);D.initialize(journal,SOURCE,"321","7");D.set_host_preflight(journal,SOURCE,"321","7","BOTH_INACCESSIBLE",43);D.set_bridge_terminal(journal,SOURCE,"321","7","bridgeCleanupExitStatus",0)
+            with self.assertRaises(ValueError):D.set_bridge_setup(journal,SOURCE,"321","7",0,DIGEST)
+        with tempfile.TemporaryDirectory() as directory:
+            journal,_=self.paths(directory);D.initialize(journal,SOURCE,"321","7");D.set_host_preflight(journal,SOURCE,"321","7","BOTH_INACCESSIBLE",43);D.set_bridge_setup(journal,SOURCE,"321","7",0,DIGEST);D.set_bridge_terminal(journal,SOURCE,"321","7","bridgeCleanupExitStatus",0)
+            with self.assertRaises(ValueError):D.set_bridge_preflight(journal,SOURCE,"321","7","BRIDGE_ACCESSIBLE",0)
+        with tempfile.TemporaryDirectory() as directory:
+            journal,output=self.paths(directory);self.init(journal);self.terminal(journal)
+            with self.assertRaises(ValueError):D.finalize(journal,output,SOURCE,"321","7",17)
+        with tempfile.TemporaryDirectory() as directory:
+            journal,output=self.paths(directory);self.init(journal)
+            for mode in D.MODES:self.event(journal,mode)
+            self.terminal(journal)
+            output.write_text("sentinel",encoding="utf-8")
+            with self.assertRaises(FileExistsError):D.finalize(journal,output,SOURCE,"321","7",0)
+            self.assertEqual(output.read_text("utf-8"),"sentinel")
 
-    def test_preflight_is_fixed_enum_and_contains_no_path_or_error(self):
-        for classification in D.PREFLIGHT:
-            with self.subTest(classification=classification), tempfile.TemporaryDirectory() as directory:
-                journal, _ = self.paths(directory); D.initialize(journal, SOURCE, "321", "7")
-                D.set_preflight(journal, SOURCE, "321", "7", classification)
-                raw=journal.read_bytes();self.assertNotIn(b"/tmp/",raw);self.assertNotIn(b"\\\\",raw);self.assertNotIn(b"Traceback",raw)
+    def test_diagnostic_contains_no_path_error_or_nonce(self):
         with tempfile.TemporaryDirectory() as directory:
-            journal, _=self.paths(directory);D.initialize(journal,SOURCE,"321","7")
-            with self.assertRaises(ValueError):D.set_preflight(journal,SOURCE,"321","7","/private/path")
-
-    def test_final_exit_cannot_turn_failure_green(self):
-        with tempfile.TemporaryDirectory() as directory:
-            journal, output = self.paths(directory); self.init(journal)
-            self.event(journal,"root-setup",9);self.event(journal,"root-cleanup");self.event(journal,"root-final-absence")
-            with self.assertRaises(ValueError):D.finalize(journal,output,SOURCE,"321","7",True)
-            with self.assertRaises(ValueError):D.finalize(journal,output,SOURCE,"321","7",0)
-            with self.assertRaises(ValueError):D.finalize(journal,output,SOURCE,"321","7",8)
+            journal,output=self.paths(directory);self.init(journal)
+            for mode in D.MODES:self.event(journal,mode)
+            self.terminal(journal);D.finalize(journal,output,SOURCE,"321","7",0)
+            raw=output.read_bytes()
+            for forbidden in (b"/tmp/",b"\\",b"Traceback",b"nonce",b"runnerDevice",b"runnerInode"):self.assertNotIn(forbidden,raw)
 
 
 if __name__ == "__main__": unittest.main()
